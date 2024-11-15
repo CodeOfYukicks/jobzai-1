@@ -1,0 +1,36 @@
+// Storage rules
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isValidContentType(contentType) {
+      return contentType.matches('application/pdf') 
+          || contentType.matches('application/msword')
+          || contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+          || contentType.matches('image/.*');
+    }
+
+    // Public images folder - allow read for all, write for authenticated users
+    match /images/{allImages=**} {
+      allow read: if true;
+      allow write: if isSignedIn()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    
+    // User CVs - private to each user
+    match /cvs/{userId}/{fileName} {
+      allow read, write: if isSignedIn() && isOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024
+        && isValidContentType(request.resource.contentType);
+    }
+  }
+}

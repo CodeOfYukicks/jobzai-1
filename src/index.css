@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Poppins', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply antialiased;
+  }
+}
+
+.hero-gradient {
+  background: #8D75E6;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-white text-[#8D75E6] font-bold transition-all duration-300 rounded-lg
+    px-8 py-4 text-lg shadow-lg hover:transform hover:scale-105 hover:shadow-xl 
+    hover:-translate-y-0.5 active:scale-95;
+  }
+
+  .btn-black {
+    @apply bg-white text-[#8D75E6] font-bold transition-all duration-300 rounded-lg
+    px-8 py-4 text-lg shadow-lg hover:transform hover:scale-105 hover:shadow-xl
+    hover:-translate-y-0.5 active:scale-95;
+  }
+
+  .btn-nav {
+    @apply transition-all duration-300 hover:transform hover:scale-105 
+    hover:text-white;
+  }
+}
+
+/* Animation classes */
+.fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.fade-in-right {
+  animation: fadeInRight 0.8s ease-out forwards;
+}
+
+.fade-in-left {
+  animation: fadeInLeft 0.8s ease-out forwards;
+}
+
+/* Grid Background Animation */
+.animated-grid {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(45, 41, 51, 0.2) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(45, 41, 51, 0.2) 1px, transparent 1px);
+  animation: gridMove 20s linear infinite;
+}
+
+.animated-grid::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: radial-gradient(circle at center, transparent 0%, #8D75E6 70%);
+  pointer-events: none;
+}
+
+@keyframes gridMove {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 50px 50px;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
