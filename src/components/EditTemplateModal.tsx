@@ -1,29 +1,31 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, Eye, EyeOff } from 'lucide-react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 import MergeFieldSelector from './MergeFieldSelector';
 import TemplatePreview from './TemplatePreview';
+import { EmailTemplate } from '../types';
 
-interface EmailTemplate {
-  id: string;
+interface UpdateTemplateData {
   name: string;
   subject: string;
   content: string;
-  folder?: string;
-  liked: boolean;
-  aiGenerated: boolean;
   tags: string[];
-  createdAt: Date;
   updatedAt: Date;
+  [key: string]: string | string[] | Date;
 }
 
 interface EditTemplateModalProps {
   template: EmailTemplate;
   onClose: () => void;
-  onSave: (template: Partial<EmailTemplate>) => Promise<void>;
+  onUpdate: () => void;
 }
 
-export default function EditTemplateModal({ template, onClose, onSave }: EditTemplateModalProps) {
+export default function EditTemplateModal({ template, onClose, onUpdate }: EditTemplateModalProps) {
+  const { currentUser } = useAuth();
   const [editedTemplate, setEditedTemplate] = useState({
     name: template.name,
     subject: template.subject,
@@ -41,11 +43,9 @@ export default function EditTemplateModal({ template, onClose, onSave }: EditTem
     const end = contentRef.current.selectionEnd;
     const currentContent = editedTemplate.content;
     
-    // Insert merge field at cursor position
     const newContent = currentContent.substring(0, start) + field + currentContent.substring(end);
     setEditedTemplate(prev => ({ ...prev, content: newContent }));
 
-    // Reset cursor position after field insertion
     setTimeout(() => {
       if (contentRef.current) {
         const newPosition = start + field.length;
@@ -56,17 +56,31 @@ export default function EditTemplateModal({ template, onClose, onSave }: EditTem
   };
 
   const handleSubmit = async () => {
+    if (!currentUser) {
+      toast.error('You must be logged in to edit templates');
+      return;
+    }
+
     try {
       setIsSaving(true);
-      await onSave({
+      
+      const updateData: UpdateTemplateData = {
         name: editedTemplate.name,
         subject: editedTemplate.subject,
         content: editedTemplate.content,
-        tags: editedTemplate.tags.split(',').map(tag => tag.trim()).filter(Boolean)
-      });
+        tags: editedTemplate.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        updatedAt: new Date()
+      };
+
+      const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', template.id);
+      await updateDoc(templateRef, updateData);
+
+      toast.success('Template updated successfully');
+      onUpdate();
       onClose();
     } catch (error) {
       console.error('Error saving template:', error);
+      toast.error('Failed to save template');
     } finally {
       setIsSaving(false);
     }

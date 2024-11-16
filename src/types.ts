@@ -34,3 +34,22 @@ export interface Recommendation {
   priority: 'high' | 'medium' | 'low';
   icon?: any;
 }
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  content: string;
+  folder?: string;
+  liked: boolean;
+  aiGenerated: boolean;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EditTemplateModalProps {
+  template: EmailTemplate;
+  onClose: () => void;
+  onUpdate: () => void;
+}

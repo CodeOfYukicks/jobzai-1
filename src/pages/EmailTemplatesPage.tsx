@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Folder, Heart, Plus, Wand2, Trash2, ArrowLeft } from 'lucide-react';
-import { collection, query, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
@@ -10,6 +10,7 @@ import GenerateTemplateModal from '../components/GenerateTemplateModal';
 import DeleteTemplateDialog from '../components/DeleteTemplateDialog';
 import TemplateEditModal from '../components/TemplateEditModal';
 import { toast } from 'sonner';
+import TemplateCard from '../components/TemplateCard';
 
 interface EmailTemplate {
   id: string;
@@ -36,6 +37,7 @@ export default function EmailTemplatesPage() {
   const [templateToEdit, setTemplateToEdit] = useState<EmailTemplate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [filter, setFilter] = useState<'all' | 'favorites' | 'ai'>('all');
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -79,19 +81,36 @@ export default function EmailTemplatesPage() {
     }
   };
 
-  const filteredTemplates = templates.filter(template => {
-    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.content.toLowerCase().includes(searchQuery.toLowerCase());
-
-    switch (selectedFolder) {
+  const filteredTemplates = useMemo(() => {
+    switch (filter) {
       case 'favorites':
-        return matchesSearch && template.liked;
-      case 'ai-generated':
-        return matchesSearch && template.aiGenerated;
+        return templates.filter(t => t.liked);
+      case 'ai':
+        return templates.filter(t => t.aiGenerated);
       default:
-        return matchesSearch;
+        return templates;
     }
-  });
+  }, [templates, filter]);
+
+  const loadTemplates = async () => {
+    if (!currentUser) return;
+    
+    setIsLoading(true);
+    try {
+      const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
+      const snapshot = await getDocs(templatesRef);
+      const loadedTemplates = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as EmailTemplate[];
+      setTemplates(loadedTemplates);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      toast.error('Failed to load templates');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AuthLayout>
@@ -175,38 +194,23 @@ export default function EmailTemplatesPage() {
         )}
 
         {/* Folder Navigation */}
-        <div className="flex items-center space-x-4 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-4 mb-6">
           <button
-            onClick={() => setSelectedFolder('all')}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
-              selectedFolder === 'all'
-                ? 'bg-[#8D75E6] text-white'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
+            onClick={() => setFilter('all')}
+            className={`${filter === 'all' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100'} px-4 py-2 rounded-lg`}
           >
-            <Folder className="h-4 w-4 mr-2" />
             All Templates
           </button>
           <button
-            onClick={() => setSelectedFolder('favorites')}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
-              selectedFolder === 'favorites'
-                ? 'bg-[#8D75E6] text-white'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
+            onClick={() => setFilter('favorites')}
+            className={`${filter === 'favorites' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100'} px-4 py-2 rounded-lg`}
           >
-            <Heart className="h-4 w-4 mr-2" />
             Favorites
           </button>
           <button
-            onClick={() => setSelectedFolder('ai-generated')}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
-              selectedFolder === 'ai-generated'
-                ? 'bg-[#8D75E6] text-white'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
+            onClick={() => setFilter('ai')}
+            className={`${filter === 'ai' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100'} px-4 py-2 rounded-lg`}
           >
-            <Wand2 className="h-4 w-4 mr-2" />
             AI Generated
           </button>
         </div>
@@ -218,46 +222,13 @@ export default function EmailTemplatesPage() {
             <p className="mt-4 text-gray-500">Loading templates...</p>
           </div>
         ) : filteredTemplates.length > 0 ? (
-          <div className="space-y-4">
-            {filteredTemplates.map((template) => (
-              <motion.div
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredTemplates.map(template => (
+              <TemplateCard
                 key={template.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={() => setTemplateToEdit(template)}
-                className="group bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer relative"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-grow pr-8">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{template.name}</h3>
-                    <p className="text-sm text-gray-500 mb-2">{template.subject}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {template.aiGenerated && (
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                          AI Generated
-                        </span>
-                      )}
-                      {template.tags.slice(0, 4).map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTemplateToDelete(template);
-                    }}
-                    className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 text-gray-400 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </motion.div>
+                template={template}
+                onUpdate={loadTemplates}
+              />
             ))}
           </div>
         ) : (

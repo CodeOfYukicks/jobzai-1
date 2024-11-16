@@ -1,169 +1,152 @@
-import OpenAI from 'openai';
 import { getOpenAIInstance } from './openai';
 
-interface GeneratedTemplate {
-  name: string;
-  subject: string;
-  content: string;
-  tags: string[];
+// Base types
+export type ToneType = 'professional' | 'friendly' | 'enthusiastic';
+export type LanguageType = 'en' | 'fr';
+
+// Interfaces
+export interface MergeField {
+    label: string;
+    value: string;
 }
 
-interface GenerateOptions {
-  tone: 'professional' | 'friendly' | 'enthusiastic';
-  specificPoints: string;
-  background: string;
-  language: string;
+export interface GeneratedTemplate {
+    name: string;
+    subject: string;
+    content: string;
+    tags: string[];
 }
 
-const LANGUAGE_PROMPTS = {
-  en: {
-    system: "You are an expert in professional communication and LinkedIn networking, skilled at creating effective follow-up messages. Use only these merge fields: (First name), (Last name), (Company), (Job position), and (Full name).",
-    subject: "Following up on our connection"
-  },
-  fr: {
-    system: "Vous êtes un expert en communication professionnelle et réseautage LinkedIn, spécialisé dans la création de messages de suivi efficaces. Utilisez uniquement ces champs de fusion : (First name), (Last name), (Company), (Job position), et (Full name).",
-    subject: "Suite à notre connexion"
-  },
-  es: {
-    system: "Eres un experto en comunicación profesional y networking en LinkedIn, especializado en crear mensajes de seguimiento efectivos. Usa solo estos campos de combinación: (First name), (Last name), (Company), (Job position), y (Full name).",
-    subject: "Seguimiento a nuestra conexión"
-  },
-  it: {
-    system: "Sei un esperto in comunicazione professionale e networking su LinkedIn, specializzato nella creazione di messaggi di follow-up efficaci. Usa solo questi campi di unione: (First name), (Last name), (Company), (Job position), e (Full name).",
-    subject: "In seguito alla nostra connessione"
-  },
-  ru: {
-    system: "Вы эксперт в профессиональной коммуникации и нетворкинге в LinkedIn. Используйте только эти поля слияния: (First name), (Last name), (Company), (Job position), и (Full name).",
-    subject: "По поводу нашего подключения"
-  },
-  zh: {
-    system: "您是LinkedIn专业沟通和社交网络专家。仅使用以下合并字段：(First name), (Last name), (Company), (Job position), 和 (Full name)。",
-    subject: "关于我们的连接"
-  }
-};
-
-class TemplateGenerationError extends Error {
-  constructor(message: string, public details?: any) {
-    super(message);
-    this.name = 'TemplateGenerationError';
-  }
+// Mise à jour de l'interface UserInfo
+export interface UserInfo {
+    firstName: string;
+    lastName: string;
+    jobPreferences: string;
+    location?: string;
 }
 
-function extractSection(content: string, marker: string): string | null {
-  const regex = new RegExp(`${marker}\\s*([\\s\\S]*?)(?=\\b(?:NAME|SUBJECT|CONTENT|TAGS)\\b|$)`, 'i');
-  const match = content.match(regex);
-  return match ? match[1].trim() : null;
+export interface GenerateOptions {
+    tone: ToneType;
+    specificPoints: string;
+    background: string;
+    language: LanguageType;
+    userInfo: UserInfo;
 }
 
-function validateTemplate(template: Partial<GeneratedTemplate>): asserts template is GeneratedTemplate {
-  const errors: string[] = [];
+// Constants
+export const MERGE_FIELDS: readonly MergeField[] = [
+    { label: 'First name', value: '{{prenom}}' },
+    { label: 'Last name', value: '{{nom}}' },
+    { label: 'Company', value: '{{entreprise}}' },
+    { label: 'Region', value: '{{region}}' }
+] as const;
 
-  if (!template.name) errors.push('Template name is missing');
-  if (!template.subject) errors.push('Template subject is missing');
-  if (!template.content) errors.push('Template content is missing');
-  if (!template.tags || !Array.isArray(template.tags)) errors.push('Template tags are invalid');
-  if (template.tags?.length === 0) errors.push('Template must have at least one tag');
+export const TONE_PROMPTS: Record<ToneType, Record<LanguageType, string>> = {
+    professional: {
+        en: `Write a short, professional email to introduce yourself and request an initial exchange about potential opportunities at their company. Keep the tone polite and concise, and mention that your CV is attached.
 
-  if (errors.length > 0) {
-    throw new TemplateGenerationError('Template validation failed', { errors });
-  }
-}
+Include placeholders for:
+First name ({{prenom}}), Last name ({{nom}}), Company name ({{entreprise}}), and optional City/Region ({{region}}).
 
-function processTags(tags: string[]): string[] {
-  // Filter out duplicates and limit to 4 tags
-  const uniqueTags = Array.from(new Set(tags));
-  return uniqueTags.slice(0, 4).map(tag => tag.toLowerCase());
-}
+Ensure the email feels professional and written by a real person.`,
+        
+        fr: `Rédige un email court et professionnel pour te présenter brièvement et demander un échange sur des opportunités potentielles dans leur entreprise. Adopte un ton poli et concis, et précise que ton CV est joint.
 
-export async function generateEmailTemplate(options: GenerateOptions): Promise<GeneratedTemplate> {
-  let openai: OpenAI;
+Inclure les champs :
+Prénom ({{prenom}}), Nom ({{nom}}), Nom de l'entreprise ({{entreprise}}), et éventuellement Ville/Région ({{region}}).
 
-  try {
-    openai = await getOpenAIInstance();
-  } catch (error) {
-    console.error('Failed to initialize OpenAI:', error);
-    throw new TemplateGenerationError(
-      'Unable to connect to AI service. Please try again later.',
-      { error }
-    );
-  }
-
-  const languagePrompt = LANGUAGE_PROMPTS[options.language] || LANGUAGE_PROMPTS.en;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `${languagePrompt.system} 
-          You must format your response exactly as shown below, with each section clearly marked:
-
-          NAME
-          [Template name]
-          SUBJECT
-          [Email subject]
-          CONTENT
-          [Email content]
-          TAGS
-          [Provide exactly 4 relevant, comma-separated tags]`
-        },
-        {
-          role: "user",
-          content: `Create a LinkedIn follow-up message template with:
-          
-          Tone: ${options.tone}
-          Language: ${options.language}
-          ${options.specificPoints ? `Specific Points: ${options.specificPoints}` : ''}
-          ${options.background ? `Background: ${options.background}` : ''}
-
-          The template should:
-          1. Use appropriate merge fields for personalization
-          2. Express genuine interest in potential collaboration
-          3. Highlight relevant shared interests or background
-          4. Include a clear but soft call to action
-          5. Maintain professional courtesy while being personable
-
-          Important: Include exactly 4 relevant tags that describe the template's tone, purpose, and context.`
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000
-    });
-
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      throw new TemplateGenerationError('No template content generated');
-    }
-
-    // Extract each section
-    const rawTags = extractSection(content, 'TAGS')?.split(',').map(tag => tag.trim()).filter(Boolean) || [];
+L'email doit être professionnel et naturel, comme écrit par une vraie personne.`
+    },
     
-    const template: Partial<GeneratedTemplate> = {
-      name: extractSection(content, 'NAME'),
-      subject: extractSection(content, 'SUBJECT'),
-      content: extractSection(content, 'CONTENT'),
-      tags: processTags(rawTags)
-    };
+    friendly: {
+        en: `Write a short, friendly email to introduce yourself and request a quick chat about potential opportunities at their company. Keep the tone warm and approachable, and mention that your CV is attached.
 
-    // Validate the template
-    validateTemplate(template);
+Include placeholders for:
+First name ({{prenom}}), Last name ({{nom}}), Company name ({{entreprise}}), and optional City/Region ({{region}}).
 
-    return template;
-  } catch (error) {
-    console.error('Error generating template:', error);
+Ensure the email feels like it's written by a real person.`,
+        
+        fr: `Rédige un email court et amical pour te présenter brièvement et demander un échange rapide sur des opportunités potentielles dans leur entreprise. Adopte un ton chaleureux et accessible, et précise que ton CV est joint.
 
-    if (error instanceof TemplateGenerationError) {
-      throw error;
+Inclure les champs :
+Prénom ({{prenom}}), Nom ({{nom}}), Nom de l'entreprise ({{entreprise}}), et éventuellement Ville/Région ({{region}}).
+
+L'email doit sembler naturel et écrit par une vraie personne.`
+    },
+    
+    enthusiastic: {
+        en: `Write a short, enthusiastic email to introduce yourself and request a quick conversation about potential opportunities at their company. Keep the tone excited and genuine, and mention that your CV is attached.
+
+Include placeholders for:
+First name ({{prenom}}), Last name ({{nom}}), Company name ({{entreprise}}), and optional City/Region ({{region}}).
+
+Make it sound like a real person wrote it.`,
+        
+        fr: `Rédige un email court et enthousiaste pour te présenter brièvement et demander un échange rapide sur des opportunités potentielles dans leur entreprise. Adopte un ton engageant et sincère, et précise que ton CV est joint.
+
+Inclure les champs :
+Prénom ({{prenom}}), Nom ({{nom}}), Nom de l'entreprise ({{entreprise}}), et éventuellement Ville/Région ({{region}}).
+
+L'email doit paraître authentique et écrit par une vraie personne.`
     }
+} as const;
 
-    if (error.status === 429) {
-      throw new TemplateGenerationError('Rate limit exceeded. Please try again in a few moments.');
+// Main function
+export async function generateEmailTemplate(options: GenerateOptions): Promise<GeneratedTemplate> {
+    const openai = await getOpenAIInstance();
+    
+    try {
+        const basePrompt = TONE_PROMPTS[options.tone][options.language];
+        const userContext = options.language === 'fr' 
+            ? `Contexte du candidat :
+               - Profil professionnel : ${options.userInfo.jobPreferences}
+               - Nom complet : ${options.userInfo.firstName} ${options.userInfo.lastName}
+               ${options.userInfo.location ? `- Localisation : ${options.userInfo.location}` : ''}
+
+               Utilise ces informations pour personnaliser l'email en :
+               1. Adaptant le contenu au profil professionnel du candidat
+               2. Gardant les variables {{prenom}}, {{nom}}, {{entreprise}}, {{region}} pour le destinataire
+               3. Mentionnant les compétences pertinentes du profil
+               4. Conservant le ton ${options.tone} demandé`
+            : `Candidate context:
+               - Professional profile: ${options.userInfo.jobPreferences}
+               - Full name: ${options.userInfo.firstName} ${options.userInfo.lastName}
+               ${options.userInfo.location ? `- Location: ${options.userInfo.location}` : ''}
+
+               Use this information to personalize the email by:
+               1. Adapting the content to the candidate's professional profile
+               2. Keeping the variables {{prenom}}, {{nom}}, {{entreprise}}, {{region}} for the recipient
+               3. Mentioning relevant skills from the profile
+               4. Maintaining the requested ${options.tone} tone`;
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a professional email template generator specialized in job applications."
+                },
+                {
+                    role: "user",
+                    content: `${basePrompt}\n\n${userContext}\n\n${options.specificPoints ? `Additional points: ${options.specificPoints}` : ''}`
+                }
+            ],
+            temperature: 0.7
+        });
+
+        const content = completion.choices[0]?.message?.content;
+        if (!content) {
+            throw new Error('No content generated');
+        }
+
+        return {
+            name: `${options.tone.charAt(0).toUpperCase() + options.tone.slice(1)} Template`,
+            subject: 'Follow-up regarding position',
+            content: content,
+            tags: [options.tone, options.language, 'ai-generated']
+        };
+    } catch (error) {
+        console.error('Error generating template:', error);
+        throw error;
     }
-
-    throw new TemplateGenerationError(
-      'Failed to generate template. Please try again.',
-      { error }
-    );
-  }
 }
