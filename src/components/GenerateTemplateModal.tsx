@@ -195,137 +195,152 @@ export default function GenerateTemplateModal({ onClose, onTemplateCreated }: Ge
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm p-4">
-      <div className="relative h-auto max-h-[90vh] w-full max-w-2xl mx-auto rounded-2xl overflow-hidden">
-        {/* Version Mobile - NE PAS TOUCHER */}
-        <div className="md:hidden bg-white dark:bg-[#1a1f2e] h-full">
-          {/* Header Mobile */}
-          <header className="flex items-center justify-between px-4 h-14 border-b border-gray-200 dark:border-gray-800">
-            <button 
-              onClick={onClose}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400"
-            >
-              <X className="h-5 w-5" />
-              <span className="text-sm">Cancel</span>
+    <div className="fixed inset-0 z-50 md:bg-black/60 md:backdrop-blur-sm md:p-4">
+      <div className="relative h-screen w-full md:h-auto md:max-h-[90vh] md:max-w-2xl md:mx-auto md:rounded-2xl overflow-hidden">
+        {/* Version Mobile */}
+        <div className="md:hidden h-full flex flex-col bg-white dark:bg-[#0B1120]">
+          {/* Header */}
+          <header className="flex items-center px-4 h-16">
+            <button onClick={onClose} className="p-2 -ml-2">
+              <ChevronLeft className="h-6 w-6 text-gray-900 dark:text-white" />
             </button>
-            <h1 className="text-base font-semibold text-gray-900 dark:text-white">Generate Template</h1>
-            <div className="w-14" />
+            <div className="flex-1 flex items-center justify-center gap-3">
+              <div className="relative w-8 h-8">
+                <div className="rounded-full bg-purple-600/10 p-1.5">
+                  <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                    {progressPercentage}%
+                  </span>
+                </div>
+              </div>
+              <div>
+                <h1 className="text-base font-semibold text-gray-900 dark:text-white">
+                  Template Studio
+                </h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Create your perfect email
+                </p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2">
+              <X className="h-6 w-6 text-gray-900 dark:text-white" />
+            </button>
           </header>
 
-          {/* Stepper Mobile */}
-          <div className="px-4 py-2 flex justify-between text-sm">
-            {['Goal', 'Style', 'Details'].map((step, index) => (
-              <div key={step} className="flex items-center">
-                <button 
-                  onClick={() => handleStepClick(index)}
-                  className={`
-                    flex items-center
-                    ${index < STEPS.indexOf(currentStep) ? 'cursor-pointer' : 'cursor-default'}
-                  `}
-                >
-                  <div className={`
-                    w-6 h-6 rounded-full flex items-center justify-center
-                    ${index + 1 === getStepNumber(currentStep)
-                      ? 'bg-purple-600 text-white'
-                      : index < STEPS.indexOf(currentStep)
-                        ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400' // Étape complétée
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500' // Étape future
-                    }
-                  `}>
-                    {index < STEPS.indexOf(currentStep) ? (
-                      <Check className="h-3 w-3" /> // Icône de validation pour les étapes complétées
-                    ) : (
-                      index + 1
-                    )}
-                  </div>
-                  <span className={`ml-2 
-                    ${index + 1 === getStepNumber(currentStep)
-                      ? 'text-gray-900 dark:text-white'
-                      : index < STEPS.indexOf(currentStep)
-                        ? 'text-purple-600 dark:text-purple-400' // Étape complétée
-                        : 'text-gray-500 dark:text-gray-400' // Étape future
-                    }`}
+          {/* Contenu */}
+          <div className="flex-1 overflow-y-auto px-4 pb-24">
+            {/* Stepper Mobile */}
+            <div className="px-4 py-2 flex justify-between text-sm">
+              {['Goal', 'Style', 'Details'].map((step, index) => (
+                <div key={step} className="flex items-center">
+                  <button 
+                    onClick={() => handleStepClick(index)}
+                    className={`
+                      flex items-center
+                      ${index < STEPS.indexOf(currentStep) ? 'cursor-pointer' : 'cursor-default'}
+                    `}
                   >
-                    {step}
-                  </span>
-                </button>
-                {index < 2 && (
-                  <div className={`w-12 h-px mx-2
-                    ${index < STEPS.indexOf(currentStep)
-                      ? 'bg-purple-200 dark:bg-purple-900/50' // Ligne complétée
-                      : 'bg-gray-200 dark:bg-gray-800' // Ligne future
-                    }
-                  `} />
-                )}
-              </div>
-            ))}
+                    <div className={`
+                      w-6 h-6 rounded-full flex items-center justify-center
+                      ${index + 1 === getStepNumber(currentStep)
+                        ? 'bg-purple-600 text-white'
+                        : index < STEPS.indexOf(currentStep)
+                          ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400' // Étape complétée
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-500' // Étape future
+                      }
+                    `}>
+                      {index < STEPS.indexOf(currentStep) ? (
+                        <Check className="h-3 w-3" /> // Icône de validation pour les étapes complétées
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    <span className={`ml-2 
+                      ${index + 1 === getStepNumber(currentStep)
+                        ? 'text-gray-900 dark:text-white'
+                        : index < STEPS.indexOf(currentStep)
+                          ? 'text-purple-600 dark:text-purple-400' // Étape complétée
+                          : 'text-gray-500 dark:text-gray-400' // Étape future
+                      }`}
+                    >
+                      {step}
+                    </span>
+                  </button>
+                  {index < 2 && (
+                    <div className={`w-12 h-px mx-2
+                      ${index < STEPS.indexOf(currentStep)
+                        ? 'bg-purple-200 dark:bg-purple-900/50' // Ligne complétée
+                        : 'bg-gray-200 dark:bg-gray-800' // Ligne future
+                      }
+                    `} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Content - Modifier pour prendre l'espace restant */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex-1 p-4 overflow-y-auto"
+              >
+                {currentStep === 'goal' && <GoalStep options={options} onSelect={handleGoalSelect} />}
+                {currentStep === 'style' && <StyleStep options={options} onSelect={handleStyleSelect} />}
+                {currentStep === 'details' && <DetailsStep options={options} onSelect={handleDetailsSelect} />}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          {/* Content Mobile avec Animation */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="p-4 overflow-y-auto"
-              style={{ height: 'calc(100vh - 8.5rem)' }}
-            >
-              {currentStep === 'goal' && <GoalStep options={options} onSelect={handleGoalSelect} />}
-              {currentStep === 'style' && <StyleStep options={options} onSelect={handleStyleSelect} />}
-              {currentStep === 'details' && <DetailsStep options={options} onSelect={handleDetailsSelect} />}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Footer Mobile */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-white dark:bg-[#1a1f2e] border-t border-gray-200 dark:border-gray-800">
-            <div className="flex gap-3">
-              {/* Bouton Cancel - toujours visible */}
-              <button
+          {/* Footer */}
+          <div className="fixed bottom-0 left-0 right-0 px-4 py-4 bg-white dark:bg-[#0B1120] border-t border-gray-200 dark:border-gray-800">
+            <div className="flex gap-3 max-w-md mx-auto">
+              {/* Cancel */}
+              <button 
                 onClick={onClose}
-                className="flex-1 py-3 px-4 border border-gray-200 dark:border-gray-700 
-                  text-gray-700 dark:text-gray-300 rounded-xl
-                  hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-800 
+                  text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
 
-              {/* Bouton Previous - visible sauf à la première étape */}
+              {/* Previous */}
               {currentStep !== 'goal' && (
                 <button
-                  onClick={handleBack}
-                  className="flex-1 py-3 px-4 border border-gray-200 dark:border-gray-700 
-                    text-gray-700 dark:text-gray-300 rounded-xl
-                    hover:bg-gray-50 dark:hover:bg-gray-800"
+                  onClick={() => {
+                    const currentIndex = STEPS.indexOf(currentStep);
+                    setCurrentStep(STEPS[currentIndex - 1]);
+                  }}
+                  className="flex-1 py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-800 
+                    text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
                   Previous
                 </button>
               )}
-              
-              {/* Bouton Continue/Generate */}
-              <button
+
+              {/* Continue/Generate */}
+              <button 
                 onClick={currentStep === 'details' ? handleGenerate : handleNext}
                 disabled={isGenerating}
-                className="flex-1 py-3 px-4 bg-purple-600 text-white rounded-xl
-                  flex items-center justify-center gap-2 hover:bg-purple-700 
+                className="flex-1 py-3 px-4 rounded-xl bg-purple-600 text-white 
+                  flex items-center justify-center gap-2 hover:bg-purple-700
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Generating...</span>
-                  </>
+                {currentStep === 'details' ? (
+                  isGenerating ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-5 w-5" />
+                      <span>Generate Email</span>
+                    </>
+                  )
                 ) : (
-                  <>
-                    {currentStep === 'details' ? (
-                      <>
-                        <Wand2 className="h-5 w-5" />
-                        <span>Generate</span>
-                      </>
-                    ) : (
-                      <span>Continue</span>
-                    )}
-                  </>
+                  <span>Continue</span>
                 )}
               </button>
             </div>
