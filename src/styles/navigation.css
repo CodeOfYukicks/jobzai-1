@@ -1,0 +1,16 @@
+/* Styles pour la navigation */
+.nav-item {
+  @apply transition-all duration-200;
+}
+
+.nav-item:hover {
+  @apply transform translate-x-1;
+}
+
+.nav-icon {
+  @apply transition-transform duration-200;
+}
+
+.nav-item:hover .nav-icon {
+  @apply scale-110;
+} 

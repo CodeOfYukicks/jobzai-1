@@ -15,7 +15,7 @@ const plans = [
   {
     id: 'free',
     name: 'Free',
-    price: '€0',
+    price: 'â‚¬0',
     period: 'month',
     credits: 25,
     features: [
@@ -29,7 +29,7 @@ const plans = [
   {
     id: 'standard',
     name: 'Standard',
-    price: '€39',
+    price: 'â‚¬39',
     period: 'month',
     credits: 500,
     features: [
@@ -45,7 +45,7 @@ const plans = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '€69',
+    price: 'â‚¬69',
     period: 'month',
     credits: 999999,
     features: [

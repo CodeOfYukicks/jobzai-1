@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from 'next-themes'
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -20,18 +21,33 @@ import TermsPage from './pages/TermsPage';
 import CookiesPage from './pages/CookiesPage';
 import PlanSelectionPage from './pages/PlanSelectionPage';
 import PrivateRoute from './components/PrivateRoute';
+import PublicRoute from './components/PublicRoute';
+import { ThemeToggle } from './components/ui/theme-toggle';
+import HubPage from './pages/HubPage';
 
 const queryClient = new QueryClient();
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen">
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<><Navbar /><HomePage /></>} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/" element={
+            <PublicRoute>
+              <><Navbar /><HomePage /></>
+            </PublicRoute>
+          } />
+          <Route path="/login" element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          } />
+          <Route path="/signup" element={
+            <PublicRoute>
+              <SignupPage />
+            </PublicRoute>
+          } />
           <Route path="/select-plan" element={<PlanSelectionPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
@@ -39,6 +55,7 @@ export default function App() {
           
           {/* Protected routes */}
           <Route element={<PrivateRoute />}>
+            <Route path="/hub" element={<HubPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/email-templates" element={<EmailTemplatesPage />} />
             <Route path="/email-templates/new" element={<CreateTemplatePage />} />
@@ -51,7 +68,8 @@ export default function App() {
           </Route>
         </Routes>
         <Toaster position="top-right" />
-      </div>
+        <ThemeToggle />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

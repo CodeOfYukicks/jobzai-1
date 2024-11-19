@@ -1,19 +1,33 @@
 import mailgun from 'mailgun-js';
+import * as admin from "firebase-admin";
 
-if (!process.env.MAILGUN_API_KEY || !process.env.MAILGUN_DOMAIN) {
-  throw new Error('Mailgun configuration missing');
+async function getMailgunConfig() {
+  const configDoc = await admin.firestore()
+    .collection('settings')
+    .doc('mailgun')
+    .get();
+  
+  const config = configDoc.data();
+  
+  if (!config?.apiKey || !config?.domain) {
+    throw new Error('Mailgun configuration missing in Firestore');
+  }
+  
+  return config;
 }
-
-const mg = mailgun({
-  apiKey: process.env.MAILGUN_API_KEY,
-  domain: process.env.MAILGUN_DOMAIN
-});
 
 export const emailService = {
   async sendEmail(to: string, subject: string, html: string, from: string) {
     try {
+      const config = await getMailgunConfig();
+      
+      const mg = mailgun({
+        apiKey: config.apiKey,
+        domain: config.domain
+      });
+
       await mg.messages().send({
-        from,
+        from: from || config.fromEmail,
         to,
         subject,
         html
@@ -29,12 +43,19 @@ export const emailService = {
     to: string;
     subject: string;
     html: string;
-    from: string;
+    from?: string;
   }>) {
     try {
+      const config = await getMailgunConfig();
+      
+      const mg = mailgun({
+        apiKey: config.apiKey,
+        domain: config.domain
+      });
+
       const promises = emails.map(email => 
         mg.messages().send({
-          from: email.from,
+          from: email.from || config.fromEmail,
           to: email.to,
           subject: email.subject,
           html: email.html
