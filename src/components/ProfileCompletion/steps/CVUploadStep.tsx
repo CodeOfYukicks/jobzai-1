@@ -66,18 +66,52 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
       </div>
 
       {cvUrl && cvName ? (
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="flex items-center space-x-3">
-            <FileText className="h-5 w-5 text-[#8D75E6]" />
-            <div>
-              <p className="font-medium text-gray-900">{cvName}</p>
-              <p className="text-sm text-gray-500">CV uploaded successfully</p>
+        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <FileText className="h-5 w-5 text-[#8D75E6]" />
+              <div>
+                <p className="font-medium text-gray-900">{cvName}</p>
+                <p className="text-sm text-gray-500">CV uploaded successfully</p>
+              </div>
             </div>
+            
+            <label className="flex items-center px-4 py-2 text-sm font-medium text-[#8D75E6] 
+              bg-[#8D75E6]/10 rounded-lg cursor-pointer hover:bg-[#8D75E6]/20 transition-colors">
+              {isUploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Change CV
+                </>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx"
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 flex items-center space-x-4 text-sm">
+            <a
+              href={cvUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#8D75E6] hover:underline flex items-center"
+            >
+              <FileText className="w-4 h-4 mr-1" />
+              View CV
+            </a>
           </div>
         </div>
       ) : (
         <div className="flex items-center justify-center w-full">
-          <label className="flex flex-col w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+          <label className="flex flex-col w-full h-32 border-2 border-gray-300 border-dashed 
+            rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               {isUploading ? (
                 <>
@@ -108,14 +142,16 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
       <div className="flex justify-between pt-6">
         <button
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900"
+          className="px-6 py-2 text-gray-600 hover:text-gray-900 font-medium"
         >
           Back
         </button>
         <button
           onClick={() => cvUrl && cvName && onNext({ cvUrl, cvName })}
           disabled={!cvUrl || !cvName}
-          className="btn-primary px-6 py-2 rounded-lg disabled:opacity-50"
+          className="px-8 py-2 bg-[#8D75E6] text-white rounded-lg font-medium
+            disabled:opacity-50 disabled:cursor-not-allowed
+            hover:bg-[#7B64D3] transition-colors"
         >
           Continue
         </button>

@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { getDownloadURL, ref } from 'firebase/storage';
+import { storage } from '../../lib/firebase';
 
 interface OnboardingLayoutProps {
   children: React.ReactNode;
@@ -17,6 +20,21 @@ export default function OnboardingLayout({
   subtitle 
 }: OnboardingLayoutProps) {
   const { currentUser } = useAuth();
+  const [logoUrl, setLogoUrl] = useState('');
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const logoRef = ref(storage, 'images/logo-dark.png');
+        const url = await getDownloadURL(logoRef);
+        setLogoUrl(url);
+      } catch (error) {
+        console.error('Error loading logo:', error);
+      }
+    };
+
+    fetchLogo();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -25,8 +43,18 @@ export default function OnboardingLayout({
         {/* Header */}
         <header className="fixed top-0 left-0 right-0 lg:right-[35%] bg-white z-50 border-b border-gray-100">
           <div className="max-w-md mx-auto px-4 py-4 lg:max-w-none lg:px-6 flex justify-between items-center">
-            <img src="/logo.png" alt="Logo" className="h-8 w-auto" />
-            <span className="text-sm text-gray-600">{currentUser?.email}</span>
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt="Jobzai" 
+                className="h-8 w-auto object-contain"
+              />
+            ) : (
+              <div className="h-8 w-32 bg-gray-100 animate-pulse rounded" />
+            )}
+            {currentUser?.email && (
+              <span className="text-sm text-gray-600">{currentUser.email}</span>
+            )}
           </div>
         </header>
 
