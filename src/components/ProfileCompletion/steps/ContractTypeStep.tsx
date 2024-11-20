@@ -16,27 +16,30 @@ const contractTypes = [
 
 export default function ContractTypeStep({ value, onNext, onBack }: ContractTypeStepProps) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-medium text-gray-900">Preferred Contract Type</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Select the type of employment you're looking for
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-8">
+      <div className="grid grid-cols-2 gap-6">
         {contractTypes.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => onNext({ contractType: id })}
-            className={`p-4 rounded-lg border-2 transition-colors ${
-              value === id
-                ? 'border-[#8D75E6] bg-[#8D75E6]/5'
-                : 'border-gray-200 hover:border-[#8D75E6]/50'
-            }`}
+            className={`
+              group relative p-6 rounded-xl transition-all duration-200
+              ${value === id 
+                ? 'bg-[#8D75E6]/10 border-2 border-[#8D75E6]' 
+                : 'bg-gray-50 border-2 border-transparent hover:border-[#8D75E6]/30'
+              }
+            `}
           >
-            <Icon className="h-8 w-8 mx-auto mb-2 text-[#8D75E6]" />
-            <div className="font-medium">{label}</div>
+            <div className="flex flex-col items-center text-center">
+              <Icon className={`h-10 w-10 mb-4 transition-colors ${
+                value === id ? 'text-[#8D75E6]' : 'text-gray-400 group-hover:text-[#8D75E6]'
+              }`} />
+              <span className={`font-medium text-lg transition-colors ${
+                value === id ? 'text-[#8D75E6]' : 'text-gray-700'
+              }`}>
+                {label}
+              </span>
+            </div>
           </button>
         ))}
       </div>
@@ -44,14 +47,16 @@ export default function ContractTypeStep({ value, onNext, onBack }: ContractType
       <div className="flex justify-between pt-6">
         <button
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900"
+          className="px-6 py-2 text-gray-600 hover:text-gray-900 font-medium"
         >
           Back
         </button>
         <button
-          onClick={() => onNext({ contractType: value as any })}
+          onClick={() => value && onNext({ contractType: value as any })}
           disabled={!value}
-          className="btn-primary px-6 py-2 rounded-lg disabled:opacity-50"
+          className="px-8 py-2 bg-[#8D75E6] text-white rounded-lg font-medium
+            disabled:opacity-50 disabled:cursor-not-allowed
+            hover:bg-[#7B64D3] transition-colors"
         >
           Continue
         </button>

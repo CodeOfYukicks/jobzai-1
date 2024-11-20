@@ -24,6 +24,7 @@ import PrivateRoute from './components/PrivateRoute';
 import PublicRoute from './components/PublicRoute';
 import { ThemeToggle } from './components/ui/theme-toggle';
 import HubPage from './pages/HubPage';
+import CompleteProfilePage from './pages/CompleteProfilePage';
 
 const queryClient = new QueryClient();
 
@@ -48,13 +49,16 @@ export default function App() {
               <SignupPage />
             </PublicRoute>
           } />
-          <Route path="/select-plan" element={<PlanSelectionPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/cookies" element={<CookiesPage />} />
           
-          {/* Protected routes */}
-          <Route element={<PrivateRoute />}>
+          {/* Profile completion route */}
+          <Route path="/complete-profile" element={
+            <PrivateRoute requireProfileCompleted={false}>
+              <CompleteProfilePage />
+            </PrivateRoute>
+          } />
+          
+          {/* Protected routes requiring completed profile */}
+          <Route element={<PrivateRoute requireProfileCompleted={true} />}>
             <Route path="/hub" element={<HubPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/email-templates" element={<EmailTemplatesPage />} />
@@ -66,6 +70,12 @@ export default function App() {
             <Route path="/payment" element={<PaymentPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
+
+          {/* Public static pages */}
+          <Route path="/select-plan" element={<PlanSelectionPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/cookies" element={<CookiesPage />} />
         </Routes>
         <Toaster position="top-right" />
         <ThemeToggle />

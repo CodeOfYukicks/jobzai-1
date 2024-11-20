@@ -3,10 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface PrivateRouteProps {
   children?: React.ReactNode;
+  requireProfileCompleted?: boolean;
 }
 
-export default function PrivateRoute({ children }: PrivateRouteProps) {
-  const { currentUser, loading } = useAuth();
+export default function PrivateRoute({ children, requireProfileCompleted = true }: PrivateRouteProps) {
+  const { currentUser, loading, isProfileCompleted } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -31,6 +32,14 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
 
   if (!currentUser.emailVerified && !isGoogleUser && !isCompletingProfile) {
     return <Navigate to="/verify-email" replace />;
+  }
+
+  if (requireProfileCompleted && !isProfileCompleted && !isCompletingProfile) {
+    return <Navigate to="/complete-profile" replace />;
+  }
+
+  if (isCompletingProfile && isProfileCompleted) {
+    return <Navigate to="/hub" replace />;
   }
 
   return (

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithPopup, User, createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -10,36 +10,64 @@ import { toast } from 'sonner';
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
+  isProfileCompleted: boolean;
   signInWithGoogle: () => Promise<any>;
   logout: () => Promise<void>;
   signup: (email: string, password: string) => Promise<any>;
   updateUserProfile: (firstName: string, lastName: string, photoURL?: string) => Promise<void>;
-  // Ajoutez d'autres m├®thodes n├®cessaires
+  completeProfile: (profileData: any) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   loading: true,
+  isProfileCompleted: false,
   signInWithGoogle: async () => {},
   logout: async () => {},
   signup: async (email: string, password: string) => {},
   updateUserProfile: async () => {},
-  // Ajoutez d'autres m├®thodes n├®cessaires
+  completeProfile: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isProfileCompleted, setIsProfileCompleted] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
+    const unsubscribe = auth.onAuthStateChanged(async user => {
       setCurrentUser(user);
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        setIsProfileCompleted(userDoc.data()?.profileCompleted ?? false);
+      }
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
+
+  const completeProfile = async (profileData: any) => {
+    if (!currentUser) return;
+
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        ...profileData,
+        profileCompleted: true,
+        updatedAt: new Date().toISOString()
+      });
+
+      setIsProfileCompleted(true);
+      navigate('/hub');
+      toast.success('Profile completed successfully!');
+    } catch (error) {
+      console.error('Error completing profile:', error);
+      toast.error('Failed to complete profile');
+      throw error;
+    }
+  };
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -53,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const userDoc = await getDoc(userRef);
       const isNewUser = !userDoc.exists();
+      const isProfileComplete = userDoc.data()?.profileCompleted ?? false;
       
       await setDoc(userRef, {
         email: result.user.email,
@@ -60,10 +89,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         photoURL: result.user.photoURL,
         createdAt: isNewUser ? new Date().toISOString() : userDoc.data()?.createdAt,
         lastLogin: new Date().toISOString(),
-        profileCompleted: false
+        profileCompleted: isNewUser ? false : isProfileComplete
       }, { merge: true });
 
-      if (isNewUser) {
+      if (isNewUser || !isProfileComplete) {
         navigate('/complete-profile');
       } else {
         navigate('/hub');
@@ -100,11 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailVerified: false
       });
 
-      await sendEmailVerification(result.user, {
-        url: window.location.origin + '/hub',
-        handleCodeInApp: false
-      });
-
+      console.log("Redirecting to complete-profile after signup");
       navigate('/complete-profile');
       
       return result;
@@ -131,10 +156,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     currentUser,
     loading,
+    isProfileCompleted,
     signInWithGoogle,
     logout,
     signup,
     updateUserProfile,
+    completeProfile,
   };
 
   return (
