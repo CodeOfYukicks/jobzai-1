@@ -25,6 +25,8 @@ import PublicRoute from './components/PublicRoute';
 import { ThemeToggle } from './components/ui/theme-toggle';
 import HubPage from './pages/HubPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
+import SmartMatchingPage from './pages/SmartMatchingPage';
+import SearchPage from './pages/SearchPage';
 
 const queryClient = new QueryClient();
 
@@ -69,6 +71,8 @@ export default function App() {
             <Route path="/billing" element={<BillingPage />} />
             <Route path="/payment" element={<PaymentPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/smart-matching" element={<SmartMatchingPage />} />
+            <Route path="/search" element={<SearchPage />} />
           </Route>
 
           {/* Public static pages */}

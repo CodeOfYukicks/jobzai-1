@@ -7,8 +7,19 @@ import { signOut as firebaseSignOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
+interface UserData {
+  email: string;
+  name?: string;
+  photoURL?: string;
+  credits: number;
+  profileCompleted: boolean;
+  createdAt: string;
+  lastLogin: string;
+}
+
 interface AuthContextType {
   currentUser: User | null;
+  userData: UserData | null;
   loading: boolean;
   isProfileCompleted: boolean;
   signInWithGoogle: () => Promise<any>;
@@ -20,6 +31,7 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType>({
   currentUser: null,
+  userData: null,
   loading: true,
   isProfileCompleted: false,
   signInWithGoogle: async () => {},
@@ -31,6 +43,7 @@ export const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isProfileCompleted, setIsProfileCompleted] = useState(false);
   const navigate = useNavigate();
@@ -40,7 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(user);
       if (user) {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
-        setIsProfileCompleted(userDoc.data()?.profileCompleted ?? false);
+        const userData = userDoc.data() as UserData;
+        setUserData(userData);
+        setIsProfileCompleted(userData?.profileCompleted ?? false);
+      } else {
+        setUserData(null);
       }
       setLoading(false);
     });
@@ -155,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     currentUser,
+    userData,
     loading,
     isProfileCompleted,
     signInWithGoogle,
