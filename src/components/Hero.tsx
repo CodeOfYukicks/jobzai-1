@@ -24,7 +24,7 @@ export default function Hero() {
   };
 
   return (
-    <div id="home" className="relative isolate overflow-hidden bg-[#8D75E6] dark:bg-[#2A2831] min-h-screen flex items-center transition-colors duration-200">
+    <div id="home" className="relative isolate overflow-hidden bg-[#2A2831] min-h-screen flex items-center transition-colors duration-200">
       <AnimatedGridPattern
         width={40}
         height={40}
@@ -91,7 +91,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Placeholder Image */}
+          {/* Image sans l'effet de bord transparent */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -99,29 +99,11 @@ export default function Hero() {
             className="col-span-6 relative"
           >
             <div className="relative mx-auto max-w-[640px]">
-              {/* Placeholder Container */}
-              <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-white/10 shadow-2xl ring-1 ring-white/20">
-                {/* Placeholder Content */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent">
-                  <div className="absolute inset-0 grid grid-cols-2 gap-4 p-8">
-                    {/* Left Column */}
-                    <div className="space-y-4">
-                      <div className="h-4 bg-white/10 rounded animate-pulse"></div>
-                      <div className="h-4 bg-white/10 rounded animate-pulse w-3/4"></div>
-                      <div className="h-32 bg-white/10 rounded animate-pulse mt-8"></div>
-                    </div>
-                    {/* Right Column */}
-                    <div className="space-y-4">
-                      <div className="h-48 bg-white/10 rounded animate-pulse"></div>
-                      <div className="h-4 bg-white/10 rounded animate-pulse w-1/2"></div>
-                      <div className="h-4 bg-white/10 rounded animate-pulse w-3/4"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Decorative Elements */}
-              <div className="absolute -inset-x-4 -inset-y-4 z-0 bg-gradient-to-r from-[#4D3E78]/30 to-[#6F58B8]/30 opacity-50 blur-2xl rounded-xl"></div>
+              <FirebaseImage
+                path="images/fond-hero.png"
+                alt="Hero illustration"
+                className="relative rounded-lg"
+              />
             </div>
           </motion.div>
         </div>

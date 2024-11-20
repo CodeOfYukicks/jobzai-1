@@ -4,7 +4,7 @@ import FirebaseImage from './FirebaseImage';
 
 export default function Footer() {
   return (
-    <footer className="bg-[#8D75E6] dark:bg-[#2A2831] text-white transition-colors duration-200">
+    <footer className="bg-[#2A2831] text-white transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}

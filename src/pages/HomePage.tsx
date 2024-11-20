@@ -91,7 +91,7 @@ const features = [
   },
 ];
 
-// D├®finir la configuration du globe en dehors du composant
+// Définir la configuration du globe en dehors du composant
 const GLOBE_CONFIG = {
   width: 800,
   height: 800,
@@ -102,14 +102,14 @@ const GLOBE_CONFIG = {
   diffuse: 1.2,
   mapSamples: 16000,
   mapBrightness: 6,
-  baseColor: [0.55, 0.46, 0.9],    // #8D75E6
-  markerColor: [1, 1, 1],          // Blanc
-  glowColor: [0.55, 0.46, 0.9],    // #8D75E6
+  baseColor: [1, 1, 1],           // Blanc
+  markerColor: [0.1, 0.1, 0.1],   // Presque noir pour contraste
+  glowColor: [1, 1, 1],           // Blanc
   pointSize: 1.5,
   pointsData: [],
-  backgroundColor: '#544582',
-  globeColor: [0.55, 0.46, 0.9],
-  atmosphereColor: [0.55, 0.46, 0.9],
+  backgroundColor: 'transparent',
+  globeColor: [1, 1, 1],          // Blanc
+  atmosphereColor: [1, 1, 1],     // Blanc
   markers: [
     { location: [40.7128, -74.006], size: 0.05 },  // New York
     { location: [48.8566, 2.3522], size: 0.05 },   // Paris
@@ -119,7 +119,7 @@ const GLOBE_CONFIG = {
 };
 
 export default function HomePage() {
-  // D├®finir tous les refs n├®cessaires
+  // Définir tous les refs nécessaires
   const containerRef = useRef<HTMLDivElement>(null);
   const div1Ref = useRef<HTMLDivElement>(null);
   const div2Ref = useRef<HTMLDivElement>(null);
@@ -132,21 +132,11 @@ export default function HomePage() {
       </section>
 
       {/* Bento Grid Section */}
-      <section id="features" className="py-24 bg-[#8D75E6] dark:bg-[#2A2831] relative transition-colors duration-200">
-        {/* Pattern de points */}
-        <div 
-          className="absolute inset-0" 
-          style={{
-            backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '24px 24px',
-            backgroundPosition: '0 0'
-          }}
-        />
-
+      <section id="features" className="py-24 bg-[#2A2831] relative transition-colors duration-200">
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <SparklesText 
             text="Everything you need to succeed"
-            colors={{ first: "#FE8BBB", second: "#4D3E78" }}
+            colors={{ first: "#9E7AFF", second: "#FFB17A" }}
             className="text-4xl font-bold text-center text-white mb-16"
           />
 
@@ -154,11 +144,11 @@ export default function HomePage() {
             {/* Carte Gestion de Campagnes avec Globe */}
             <BentoCard
               name="Campaigns"
-              className="col-span-12 md:col-span-7 h-[300px] bg-[#544582] text-white"
+              className="col-span-12 md:col-span-7 h-[300px] bg-[#D6EDD9] text-[#2D6652]"
               Icon={Rocket}
-              iconClassName="text-white"
-              nameClassName="text-white"
-              descriptionClassName="text-white"
+              iconClassName="text-[#2D6652]"
+              nameClassName="text-[#2D6652]"
+              descriptionClassName="text-[#2D6652]"
               ctaClassName="text-white hover:text-white"
               description="Create and manage mass job application campaigns. Target companies that interest you and automate your outreach."
               href="/signup"
@@ -167,12 +157,13 @@ export default function HomePage() {
                 <div className="absolute inset-0">
                   <GlobeComponent 
                     {...GLOBE_CONFIG}
-                    baseColor={[0.55, 0.46, 0.9]}
-                    glowColor={[0.55, 0.46, 0.9]}
-                    markerColor={[1, 1, 1]}
-                    atmosphereColor={[0.55, 0.46, 0.9]}
-                    globeColor={[0.55, 0.46, 0.9]}
-                    pointColor={[0.55, 0.46, 0.9]}
+                    baseColor={[1, 1, 1]}         // Blanc [1, 1, 1]
+                    glowColor={[1, 1, 1]}         // Blanc
+                    markerColor={[0.1, 0.1, 0.1]} // Presque noir pour contraste
+                    atmosphereColor={[1, 1, 1]}    // Blanc
+                    globeColor={[1, 1, 1]}         // Blanc
+                    pointColor={[1, 1, 1]}         // Blanc
+                    backgroundColor="transparent"   // Fond transparent
                   />
                 </div>
               }
@@ -181,26 +172,26 @@ export default function HomePage() {
             {/* Carte Tracking avec AnimatedBeam */}
             <BentoCard
               name="Tracking"
-              className="col-span-12 md:col-span-5 h-[300px] bg-[#544582] text-white"
+              className="col-span-12 md:col-span-5 h-[300px] bg-[#FFDCE8] text-[#78355B]"
               Icon={LineChart}
-              iconClassName="text-white"
+              iconClassName="text-[#78355B]"
               description="Monitor your applications in real-time with our intuitive tracking system."
               href="/signup"
               cta="View Dashboard"
               background={
                 <div className="absolute inset-0" ref={containerRef}>
                   <div className="absolute inset-0" />
-                  <div ref={div1Ref} className="absolute top-10 left-10 p-3 bg-[#FFB17A] rounded-full shadow-lg">
+                  <div ref={div1Ref} className="absolute top-10 left-10 p-3 bg-[#763359] rounded-full shadow-lg">
                     <Mail className="w-6 h-6 text-white" />
                   </div>
-                  <div ref={div2Ref} className="absolute bottom-10 right-10 p-3 bg-[#9E7AFF] rounded-full shadow-lg">
+                  <div ref={div2Ref} className="absolute bottom-10 right-10 p-3 bg-[#763359] rounded-full shadow-lg">
                     <Check className="w-6 h-6 text-white" />
                   </div>
                   <AnimatedBeam
                     containerRef={containerRef}
                     fromRef={div1Ref}
                     toRef={div2Ref}
-                    color="#FFB17A"
+                    color="#78355B"
                   />
                 </div>
               }
@@ -209,9 +200,9 @@ export default function HomePage() {
             {/* Carte Recommandations */}
             <BentoCard
               name="Smart Matching"
-              className="col-span-12 md:col-span-5 h-[300px] bg-[#544582] text-white"
+              className="col-span-12 md:col-span-5 h-[300px] bg-[#EADFF8] text-[#4D3E78]"
               Icon={Target}
-              iconClassName="text-white"
+              iconClassName="text-[#4D3E78]"
               description="Our AI analyzes your profile and suggests the best opportunities tailored to your experience."
               href="/signup"
               cta="View Matches"
@@ -221,7 +212,7 @@ export default function HomePage() {
                     max={100}
                     min={0}
                     value={85}
-                    gaugePrimaryColor="#FFB17A"
+                    gaugePrimaryColor="#4D3E78"
                     gaugeSecondaryColor="rgba(255, 177, 122, 0.2)"
                     className="opacity-30"
                   />
@@ -232,9 +223,9 @@ export default function HomePage() {
             {/* Carte Templates avec Particles */}
             <BentoCard
               name="Templates"
-              className="col-span-12 md:col-span-7 h-[300px] bg-[#544582] text-white"
+              className="col-span-12 md:col-span-7 h-[300px] bg-[#FFE0CC] text-[#883E24]"
               Icon={Save}
-              iconClassName="text-white"
+              iconClassName="text-[#883E24]"
               description="Create and customize application templates for different job types and industries."
               href="/signup"
               cta="Manage Templates"
@@ -245,7 +236,7 @@ export default function HomePage() {
                     quantity={50}
                     staticity={30}
                     ease={50}
-                    color="#9E7AFF"
+                    color="#883E24"
                     size={0.5}
                   />
                 </div>
@@ -256,13 +247,14 @@ export default function HomePage() {
       </section>
 
       {/* 5 Steps Section */}
-      <div id="how-it-works" className="bg-[#8D75E6] dark:bg-[#2A2831] text-white transition-colors duration-200 py-24">
+      <section className="py-24 bg-[#2A2831] text-white">
         <div className="max-w-7xl mx-auto px-6">
           <SparklesText 
             text="5 steps to get your dream job"
-            colors={{ first: "#FFB17A", second: "#9E7AFF" }}
-            className="text-4xl font-bold text-center mb-16"
+            colors={{ first: "#9E7AFF", second: "#FFB17A" }}
+            className="text-4xl font-bold text-center text-white mb-16"
           />
+
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
             <div className="text-center">
               <div className="mb-4">
@@ -310,16 +302,18 @@ export default function HomePage() {
             <p className="mt-4 text-sm text-gray-100">25 credits offered</p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Innovation Section */}
-      <section className="py-24 bg-[#8D75E6] relative transition-colors duration-200">
+      <section className="py-24 bg-[#8D75E6] dark:bg-[#2A2831] relative transition-colors duration-200">
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <SparklesText 
             text="Innovation that flows"
-            colors={{ first: "#544582", second: "#544582" }}
-            className="text-5xl font-bold text-center mb-16 !text-[#544582]"
-            style={{ color: '#544582' }}
+            colors={{ 
+              first: "#FFFFFF",  // Première couleur des sparkles
+              second: "#FFB17A"  // Deuxième couleur des sparkles
+            }}
+            className="text-5xl font-bold text-center mb-16 text-[#544582]"
           />
 
           {/* Contenu en deux colonnes */}
@@ -445,7 +439,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-[#8D75E6] dark:bg-[#2A2831] text-white relative transition-colors duration-200">
+      <section className="py-24 bg-[#8D75E6] text-white relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {features.map((feature, index) => (
@@ -463,7 +457,7 @@ export default function HomePage() {
                   className="w-16 h-16 mx-auto mb-6"
                 />
                 <h3 className="text-2xl font-bold mb-4">{feature.title}</h3>
-                <p className="text-gray-100">{feature.description}</p>
+                <p className="text-white/90">{feature.description}</p>
               </motion.div>
             ))}
           </div>
