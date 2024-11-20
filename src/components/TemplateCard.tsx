@@ -129,79 +129,109 @@ export default function TemplateCard({ template, onUpdate, onDelete, isMobile }:
   // Version mobile uniquement
   if (isMobile) {
     return (
-      <div className="relative mb-4">
+      <div className="relative mb-3.5">
         <motion.div
-          className="relative bg-white dark:bg-[#353040] rounded-lg shadow-sm
-            border border-gray-200 dark:border-gray-700/30"
-          initial={false}
-          animate={{
-            x: 0,
-            opacity: 1
-          }}
+          className="relative overflow-hidden
+            bg-white/95 dark:bg-[#353040]/95 
+            backdrop-blur-sm
+            rounded-2xl
+            border border-gray-100/50 dark:border-gray-700/30
+            shadow-sm"
         >
+          {/* Header plus compact */}
           <div className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            <div className="flex items-start justify-between gap-3 mb-2.5">
+              <div className="flex-1 min-w-0"> {/* Évite le débordement */}
+                <div className="flex items-center gap-2 mb-2">
+                  {template.aiGenerated && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium 
+                      bg-[#8D75E6]/10 text-[#8D75E6]">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      AI
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-base font-medium text-gray-900 dark:text-white truncate">
                   {template.name}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                  {template.content}
-                </p>
               </div>
-              
-              {/* Actions mobiles */}
-              <div className="flex gap-2">
-                <button
+
+              {/* Actions plus accessibles */}
+              <div className="flex items-center gap-1.5">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
                   onClick={handleToggleFavorite}
-                  className={`p-2 rounded-full transition-colors ${
+                  className={`p-2 rounded-xl ${
                     template.liked 
-                      ? 'text-red-400 bg-red-400/20' 
-                      : 'text-gray-400 hover:text-red-400 hover:bg-red-400/20'
+                      ? 'text-red-400 bg-red-400/10' 
+                      : 'text-gray-400'
                   }`}
                 >
                   <Heart className={`h-5 w-5 ${template.liked ? 'fill-current' : ''}`} />
-                </button>
-                
-                <button
-                  onClick={() => setShowEditModal(true)}
-                  className="p-2 rounded-full text-gray-400 hover:text-[#8D75E6] hover:bg-[#8D75E6]/20 transition-colors"
-                >
-                  <Edit className="h-5 w-5" />
-                </button>
-
-                <button
-                  onClick={() => onDelete?.(template)}
-                  className="p-2 rounded-full text-gray-400 hover:text-red-400 hover:bg-red-400/20 transition-colors"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
+                </motion.button>
               </div>
             </div>
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2 mt-3">
-              {template.tags.map(tag => (
-                <span 
-                  key={tag}
-                  className="px-2 py-1 text-xs rounded-full 
-                    bg-gray-100 dark:bg-gray-700/50 
-                    text-gray-600 dark:text-gray-300"
+            {/* Contenu plus lisible */}
+            <div className="mb-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2">
+                {template.content}
+              </p>
+            </div>
+
+            {/* Actions et tags en bas */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700/30">
+              <div className="flex gap-1.5">
+                <motion.button 
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowEditModal(true)}
+                  className="p-2 rounded-lg text-gray-400 
+                    hover:text-[#8D75E6] hover:bg-[#8D75E6]/10 
+                    active:bg-[#8D75E6]/20
+                    transition-all duration-200"
                 >
-                  {tag}
-                </span>
-              ))}
+                  <Edit className="h-4.5 w-4.5" />
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onDelete?.(template)}
+                  className="p-2 rounded-lg text-gray-400 
+                    hover:text-red-400 hover:bg-red-400/10
+                    active:bg-red-400/20
+                    transition-all duration-200"
+                >
+                  <Trash2 className="h-4.5 w-4.5" />
+                </motion.button>
+              </div>
+              
+              <div className="flex gap-1.5">
+                {template.tags.slice(0, 2).map(tag => (
+                  <span key={tag} className="px-2 py-0.5 text-xs rounded-md 
+                    bg-gray-100/80 dark:bg-gray-700/50 
+                    text-gray-600 dark:text-gray-300">
+                    {tag}
+                  </span>
+                ))}
+                {template.tags.length > 2 && (
+                  <span className="text-xs text-gray-400">
+                    +{template.tags.length - 2}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {showEditModal && (
-          <EditTemplateModal
-            template={template}
-            onClose={() => setShowEditModal(false)}
-            onUpdate={onUpdate}
-          />
-        )}
+        {/* Modal d'édition */}
+        <AnimatePresence>
+          {showEditModal && (
+            <EditTemplateModal
+              template={template}
+              onClose={() => setShowEditModal(false)}
+              onUpdate={onUpdate}
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }

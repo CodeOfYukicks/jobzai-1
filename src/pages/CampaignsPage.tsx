@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, Filter } from 'lucide-react';
 import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy } from 'firebase/firestore';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -191,86 +191,110 @@ export default function CampaignsPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
-        {/* Header - Adapt├® pour mobile */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Campaigns</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage your job application campaigns
-            </p>
-          </div>
-          <button
-            onClick={() => setShowNewCampaign(true)}
-            className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 bg-[#8D75E6] text-white rounded-lg hover:bg-[#8D75E6]/90 transition-colors"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            New Campaign
-          </button>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-8"
+        >
+          {/* Header amélioré */}
+          <div className="mb-12 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-[#8D75E6] to-[#A990FF] text-transparent bg-clip-text mb-3">
+                Campaigns
+              </h1>
+              <p className="text-lg text-gray-400">
+                Manage your job application campaigns
+              </p>
+            </div>
 
-        {/* Search and Filters - R├®organis├®s pour mobile */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:space-x-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search campaigns..."
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-[#8D75E6] focus:border-[#8D75E6]"
-            />
+            {/* Bouton amélioré */}
+            <button
+              onClick={() => setShowNewCampaign(true)}
+              className="group px-5 py-2.5 rounded-xl 
+                bg-gradient-to-r from-[#8D75E6] to-[#A990FF]
+                hover:opacity-90
+                border border-[#8D75E6]/20
+                shadow-lg shadow-[#8D75E6]/20
+                transition-all duration-200"
+            >
+              <div className="flex items-center gap-3">
+                <Plus className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-medium text-white">New Campaign</span>
+              </div>
+            </button>
           </div>
-          <div className="w-full sm:w-auto">
+
+          {/* Search amélioré */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search campaigns..."
+                className="w-full pl-12 pr-4 py-3.5
+                  bg-white/80 dark:bg-[#353040]/80
+                  backdrop-blur-sm
+                  border border-gray-200/50 dark:border-gray-700/30
+                  rounded-xl
+                  text-base
+                  placeholder:text-gray-400
+                  focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]/50
+                  shadow-sm
+                  transition-all duration-200"
+              />
+            </div>
             <CampaignFilters
               filters={filters}
               onFilterChange={handleFilterChange}
             />
           </div>
-        </div>
 
-        {/* Campaigns List */}
-        <div className="space-y-4">
-          {filteredCampaigns.map((campaign) => (
-            <CampaignCard
-              key={campaign.id}
-              campaign={campaign}
-              onDelete={(campaign) => setDeleteModal({ show: true, campaign })}
-              onSelect={setSelectedCampaign}
-              onStartCampaign={handleStartCampaign}
-              formatDate={formatDate}
-              isMobile={window.innerWidth < 640}
+          {/* Campaigns List */}
+          <div className="space-y-4">
+            {filteredCampaigns.map((campaign) => (
+              <CampaignCard
+                key={campaign.id}
+                campaign={campaign}
+                onDelete={(campaign) => setDeleteModal({ show: true, campaign })}
+                onSelect={setSelectedCampaign}
+                onStartCampaign={handleStartCampaign}
+                formatDate={formatDate}
+                isMobile={window.innerWidth < 640}
+              />
+            ))}
+
+            {/* ├ëtats vides et erreurs adapt├®s */}
+            {filteredCampaigns.length === 0 && !error && (
+              <div className="text-center py-8 sm:py-12">
+                <p className="text-gray-500">No campaigns found</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="text-center py-8 sm:py-12">
+                <p className="text-red-500">{error}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Modals */}
+          {deleteModal.show && deleteModal.campaign && (
+            <DeleteCampaignModal
+              campaignTitle={deleteModal.campaign.title}
+              onConfirm={handleDeleteCampaign}
+              onClose={() => setDeleteModal({ show: false })}
             />
-          ))}
-
-          {/* ├ëtats vides et erreurs adapt├®s */}
-          {filteredCampaigns.length === 0 && !error && (
-            <div className="text-center py-8 sm:py-12">
-              <p className="text-gray-500">No campaigns found</p>
-            </div>
           )}
-
-          {error && (
-            <div className="text-center py-8 sm:py-12">
-              <p className="text-red-500">{error}</p>
-            </div>
+          {selectedCampaign && (
+            <CampaignDetailsModal
+              campaign={selectedCampaign}
+              onClose={() => setSelectedCampaign(null)}
+            />
           )}
-        </div>
-
-        {/* Modals */}
-        {deleteModal.show && deleteModal.campaign && (
-          <DeleteCampaignModal
-            campaignTitle={deleteModal.campaign.title}
-            onConfirm={handleDeleteCampaign}
-            onClose={() => setDeleteModal({ show: false })}
-          />
-        )}
-        {selectedCampaign && (
-          <CampaignDetailsModal
-            campaign={selectedCampaign}
-            onClose={() => setSelectedCampaign(null)}
-          />
-        )}
+        </motion.div>
       </div>
     </AuthLayout>
   );

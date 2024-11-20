@@ -23,7 +23,6 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'sonner';
 import FirebaseImage from './FirebaseImage';
-import { ThemeToggle } from './ui/theme-toggle';
 
 const publicNavigation = [
   { name: 'Features', href: '#features' },
@@ -175,7 +174,6 @@ export default function Navbar() {
               >
                 Sign up
               </Link>
-              <ThemeToggle className="ml-2" />
             </div>
           )}
 
@@ -257,7 +255,6 @@ export default function Navbar() {
                       <Settings className="h-5 w-5" />
                       <span>Theme</span>
                     </div>
-                    <ThemeToggle />
                   </div>
                 </div>
 

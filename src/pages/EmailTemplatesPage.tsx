@@ -199,38 +199,46 @@ export default function EmailTemplatesPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen bg-white dark:bg-[#2A2831] px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header amélioré */}
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
+          <div className="mb-12"> {/* Espacement augmenté */}
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#8D75E6] to-[#B19CEF] text-transparent bg-clip-text">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-[#8D75E6] to-[#A990FF] text-transparent bg-clip-text mb-3">
                   Email Templates
                 </h1>
-                <p className="text-gray-400">
+                <p className="text-lg text-gray-400"> {/* Taille augmentée */}
                   {templates.length} templates available
                 </p>
               </div>
 
-              {/* Desktop Action Buttons */}
+              {/* Boutons d'action desktop améliorés */}
               {!isMobile && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4"> {/* Gap augmenté */}
                   <button
                     onClick={() => setShowGenerateModal(true)}
-                    className="group px-4 py-2 rounded-lg bg-[#8D75E6]/10 hover:bg-[#8D75E6]/15 transition-all duration-200"
+                    className="group px-5 py-2.5 rounded-xl 
+                      bg-[#8D75E6]/10 hover:bg-[#8D75E6]/15 
+                      border border-[#8D75E6]/20 hover:border-[#8D75E6]/30
+                      transition-all duration-200"
                   >
-                    <div className="flex items-center gap-2">
-                      <Wand2 className="h-4 w-4 text-[#8D75E6]" />
+                    <div className="flex items-center gap-3">
+                      <Wand2 className="h-4 w-4 text-[#8D75E6] group-hover:scale-110 transition-transform" />
                       <span className="text-sm font-medium text-[#8D75E6]">AI Generate</span>
                     </div>
                   </button>
                   <button
                     onClick={() => navigate('/email-templates/new')}
-                    className="group px-4 py-2 rounded-lg bg-[#8D75E6] hover:bg-[#8D75E6]/90 transition-all duration-200"
+                    className="group px-5 py-2.5 rounded-xl 
+                      bg-gradient-to-r from-[#8D75E6] to-[#A990FF]
+                      hover:opacity-90
+                      border border-[#8D75E6]/20
+                      shadow-lg shadow-[#8D75E6]/20
+                      transition-all duration-200"
                   >
-                    <div className="flex items-center gap-2">
-                      <Plus className="h-4 w-4 text-white" />
+                    <div className="flex items-center gap-3">
+                      <Plus className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
                       <span className="text-sm font-medium text-white">New Template</span>
                     </div>
                   </button>

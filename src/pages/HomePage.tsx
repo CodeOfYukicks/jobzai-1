@@ -99,14 +99,18 @@ const GLOBE_CONFIG = {
   phi: 0,
   theta: 0.3,
   dark: 0,
-  diffuse: 0.8,
+  diffuse: 1.2,
   mapSamples: 16000,
-  mapBrightness: 4,
-  baseColor: [0.55, 0.46, 0.9],  // Violet
-  markerColor: [1, 1, 1],        // Blanc
-  glowColor: [0.55, 0.46, 0.9],  // Violet
+  mapBrightness: 6,
+  baseColor: [0.55, 0.46, 0.9],    // #8D75E6
+  markerColor: [1, 1, 1],          // Blanc
+  glowColor: [0.55, 0.46, 0.9],    // #8D75E6
+  pointSize: 1.5,
+  pointsData: [],
+  backgroundColor: '#544582',
+  globeColor: [0.55, 0.46, 0.9],
+  atmosphereColor: [0.55, 0.46, 0.9],
   markers: [
-    // R├®duire le nombre de marqueurs pour commencer
     { location: [40.7128, -74.006], size: 0.05 },  // New York
     { location: [48.8566, 2.3522], size: 0.05 },   // Paris
     { location: [35.6762, 139.6503], size: 0.05 }, // Tokyo
@@ -150,14 +154,26 @@ export default function HomePage() {
             {/* Carte Gestion de Campagnes avec Globe */}
             <BentoCard
               name="Campaigns"
-              className="col-span-12 md:col-span-7 h-[300px]"
+              className="col-span-12 md:col-span-7 h-[300px] bg-[#544582] text-white"
               Icon={Rocket}
+              iconClassName="text-white"
+              nameClassName="text-white"
+              descriptionClassName="text-white"
+              ctaClassName="text-white hover:text-white"
               description="Create and manage mass job application campaigns. Target companies that interest you and automate your outreach."
               href="/signup"
               cta="Launch Campaign"
               background={
                 <div className="absolute inset-0">
-                  <GlobeComponent />
+                  <GlobeComponent 
+                    {...GLOBE_CONFIG}
+                    baseColor={[0.55, 0.46, 0.9]}
+                    glowColor={[0.55, 0.46, 0.9]}
+                    markerColor={[1, 1, 1]}
+                    atmosphereColor={[0.55, 0.46, 0.9]}
+                    globeColor={[0.55, 0.46, 0.9]}
+                    pointColor={[0.55, 0.46, 0.9]}
+                  />
                 </div>
               }
             />
@@ -165,24 +181,26 @@ export default function HomePage() {
             {/* Carte Tracking avec AnimatedBeam */}
             <BentoCard
               name="Tracking"
-              className="col-span-12 md:col-span-5 h-[300px]"
+              className="col-span-12 md:col-span-5 h-[300px] bg-[#544582] text-white"
               Icon={LineChart}
+              iconClassName="text-white"
               description="Monitor your applications in real-time with our intuitive tracking system."
               href="/signup"
               cta="View Dashboard"
               background={
                 <div className="absolute inset-0" ref={containerRef}>
-                  <div className="absolute inset-0 bg-white" />
-                  <div ref={div1Ref} className="absolute top-10 left-10 p-3 bg-white rounded-full shadow-lg">
-                    <Mail className="w-6 h-6" />
+                  <div className="absolute inset-0" />
+                  <div ref={div1Ref} className="absolute top-10 left-10 p-3 bg-[#FFB17A] rounded-full shadow-lg">
+                    <Mail className="w-6 h-6 text-white" />
                   </div>
-                  <div ref={div2Ref} className="absolute bottom-10 right-10 p-3 bg-white rounded-full shadow-lg">
-                    <Check className="w-6 h-6" />
+                  <div ref={div2Ref} className="absolute bottom-10 right-10 p-3 bg-[#9E7AFF] rounded-full shadow-lg">
+                    <Check className="w-6 h-6 text-white" />
                   </div>
                   <AnimatedBeam
                     containerRef={containerRef}
                     fromRef={div1Ref}
                     toRef={div2Ref}
+                    color="#FFB17A"
                   />
                 </div>
               }
@@ -191,8 +209,9 @@ export default function HomePage() {
             {/* Carte Recommandations */}
             <BentoCard
               name="Smart Matching"
-              className="col-span-12 md:col-span-5 h-[300px]"
+              className="col-span-12 md:col-span-5 h-[300px] bg-[#544582] text-white"
               Icon={Target}
+              iconClassName="text-white"
               description="Our AI analyzes your profile and suggests the best opportunities tailored to your experience."
               href="/signup"
               cta="View Matches"
@@ -202,9 +221,9 @@ export default function HomePage() {
                     max={100}
                     min={0}
                     value={85}
-                    gaugePrimaryColor="#4D3E78"
-                    gaugeSecondaryColor="rgba(77, 62, 120, 0.2)"
-                    className="opacity-20"
+                    gaugePrimaryColor="#FFB17A"
+                    gaugeSecondaryColor="rgba(255, 177, 122, 0.2)"
+                    className="opacity-30"
                   />
                 </div>
               }
@@ -213,8 +232,9 @@ export default function HomePage() {
             {/* Carte Templates avec Particles */}
             <BentoCard
               name="Templates"
-              className="col-span-12 md:col-span-7 h-[300px]"
+              className="col-span-12 md:col-span-7 h-[300px] bg-[#544582] text-white"
               Icon={Save}
+              iconClassName="text-white"
               description="Create and customize application templates for different job types and industries."
               href="/signup"
               cta="Manage Templates"
@@ -225,7 +245,7 @@ export default function HomePage() {
                     quantity={50}
                     staticity={30}
                     ease={50}
-                    color="#4D3E78"
+                    color="#9E7AFF"
                     size={0.5}
                   />
                 </div>
@@ -293,39 +313,44 @@ export default function HomePage() {
       </div>
 
       {/* Innovation Section */}
-      <section className="py-24 bg-[#8D75E6] dark:bg-[#2A2831] relative transition-colors duration-200">
+      <section className="py-24 bg-[#8D75E6] relative transition-colors duration-200">
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <SparklesText 
             text="Innovation that flows"
-            colors={{ first: "#4D3E78", second: "#FE8BBB" }}
-            className="text-4xl font-bold text-center text-white mb-16"
+            colors={{ first: "#544582", second: "#544582" }}
+            className="text-5xl font-bold text-center mb-16 !text-[#544582]"
+            style={{ color: '#544582' }}
           />
 
           {/* Contenu en deux colonnes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             {/* Colonne de gauche avec BentoGrid */}
             <div className="grid grid-cols-12 gap-6">
-              {/* Premi├¿re carte - Statistique */}
+              {/* Première carte - Statistique */}
               <BentoCard
                 name="Hidden Market"
-                className="col-span-12 h-[300px]"
+                className="col-span-12 h-[300px] bg-[#544582] text-white"
                 Icon={Target}
+                iconClassName="text-white"
+                nameClassName="text-white font-bold"
+                descriptionClassName="text-white/80 font-medium"
+                ctaClassName="text-white hover:text-white"
                 description="of job opportunities are never posted publicly"
                 href="/signup"
                 cta="Learn More"
                 background={
-                  <div className="absolute inset-0 flex items-center justify-center bg-white">
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#544582]">
                     <Particles
                       className="absolute inset-0"
                       quantity={50}
                       staticity={30}
                       ease={50}
                       size={1}
-                      color="#8D75E6"
+                      color="#FFFFFF"
                     />
                     <div className="relative z-10 text-center">
-                      <span className="text-[80px] font-bold text-[#8D75E6]" style={{
-                        textShadow: '0 0 20px rgba(141, 117, 230, 0.5)'
+                      <span className="text-[80px] font-bold text-white" style={{
+                        textShadow: '0 0 20px rgba(255, 255, 255, 0.3)'
                       }}>
                         85%
                       </span>
@@ -334,20 +359,24 @@ export default function HomePage() {
                 }
               />
 
-              {/* Deuxi├¿me carte - Temps de r├®ponse */}
+              {/* Deuxième carte - Temps de réponse */}
               <BentoCard
                 name="Response Time"
-                className="col-span-12 h-[300px]"
+                className="col-span-12 h-[300px] bg-[#544582] text-white"
                 Icon={Clock}
+                iconClassName="text-white"
+                nameClassName="text-white font-bold"
+                descriptionClassName="text-white/80 font-medium"
+                ctaClassName="text-white hover:text-white"
                 description="average time to first interview with our AI-powered outreach"
                 href="/signup"
                 cta="Get Started"
                 background={
-                  <div className="absolute inset-0 flex items-center justify-center bg-white overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#544582] overflow-hidden">
                     <Meteors number={20} />
                     <div className="relative z-10 text-center">
-                      <span className="text-[80px] font-bold text-[#8D75E6]" style={{
-                        textShadow: '0 0 20px rgba(141, 117, 230, 0.5)'
+                      <span className="text-[80px] font-bold text-white" style={{
+                        textShadow: '0 0 20px rgba(255, 255, 255, 0.3)'
                       }}>
                         24h
                       </span>
@@ -357,36 +386,39 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Colonne de texte ├á droite */}
+            {/* Colonne de droite avec le texte */}
             <div className="space-y-12">
               <div>
-                <h3 className="text-2xl font-bold text-white mb-4">
+                <h3 className="text-2xl font-bold text-[#544582] mb-4">
                   Seamless Access to the Hidden Job Market
                 </h3>
-                <p className="text-white text-base">
-                  Jobz.ai allows you to <span className="font-semibold">apply to job opportunities not publicly advertised</span>,
-                  giving you an <span className="font-semibold">edge in a competitive market</span>. Our AI reaches hiring
-                  managers directly, ensuring your application is seen by the right people.
+                <p className="text-white/90 font-normal leading-relaxed">
+                  Jobz.ai allows you to apply to job opportunities not publicly advertised, 
+                  <span className="font-medium">giving you an edge in a competitive market.</span> 
+                  Our AI reaches hiring managers directly, ensuring your application is seen by the right people.
                 </p>
               </div>
+
               <div>
-                <h3 className="text-2xl font-bold text-white mb-4">
+                <h3 className="text-2xl font-bold text-[#544582] mb-4">
                   Effortless Application Process
                 </h3>
-                <p className="text-white text-base">
-                  With just a few clicks, Jobz.ai automates your job applications by <span className="font-semibold">generating
-                  personalized emails</span> based on your profile and preferences. You focus on what matters,
-                  while we handle the heavy lifting.
+                <p className="text-white/90 font-normal leading-relaxed">
+                  With just a few clicks, Jobz.ai automates your job applications by 
+                  <span className="font-medium">generating personalized emails based on your profile and preferences.</span> 
+                  You focus on what matters, while we handle the heavy lifting.
                 </p>
               </div>
+
               <div>
-                <h3 className="text-2xl font-bold text-white mb-4">
+                <h3 className="text-2xl font-bold text-[#544582] mb-4">
                   Smart Campaign Management and Insights
                 </h3>
-                <p className="text-white text-base">
-                  Our intuitive dashboard gives you <span className="font-semibold">real-time feedback on your
-                  applications</span>, showing which messages are opened and which generate responses. You can easily track
-                  and optimize your job search strategy for better results.
+                <p className="text-white/90 font-normal leading-relaxed">
+                  Our intuitive dashboard gives you 
+                  <span className="font-medium">real-time feedback on your applications,</span> 
+                  showing which messages are opened and which generate responses. You can easily track and optimize 
+                  your job search strategy for better results.
                 </p>
               </div>
             </div>

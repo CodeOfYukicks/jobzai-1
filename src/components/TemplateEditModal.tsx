@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Eye, EyeOff, Save } from 'lucide-react';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -23,6 +23,21 @@ interface TemplateEditModalProps {
   onSave?: (templateId: string) => void;
   inCampaignFlow?: boolean;
 }
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
+};
 
 export default function TemplateEditModal({ 
   template, 
@@ -87,72 +102,100 @@ export default function TemplateEditModal({
   }
 
   return (
-    <div className={`${inCampaignFlow ? '' : 'fixed inset-0 bg-black bg-opacity-50 z-50'}`}>
+    <div className={`${inCampaignFlow ? '' : 'fixed inset-0 bg-black/20 dark:bg-black/50 z-50'}`}>
       <motion.div
         initial={{ opacity: 0, y: '100%' }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: '100%' }}
         className={`
-          bg-[#0A0A1B] text-white
-          ${inCampaignFlow ? 'w-full' : 'h-full md:h-auto md:max-h-[90vh] md:rounded-lg md:max-w-4xl md:m-auto md:my-4'}
+          bg-white dark:bg-[#0A0A1B] 
+          text-gray-900 dark:text-white
+          ${inCampaignFlow ? 'w-full h-[calc(100vh-180px)]' : 'h-full'}
           flex flex-col
-          ${!inCampaignFlow && 'md:relative fixed inset-0'}
+          rounded-xl
+          shadow-2xl
         `}
       >
-        {/* Header mobile-first */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <div className="flex items-center space-x-3">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800/50">
+          <div className="flex items-center space-x-4">
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-300"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
             <div>
-              <h2 className="text-lg font-medium">Template Studio</h2>
-              <p className="text-sm text-gray-400">Create your perfect email</p>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Template Studio
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Create your perfect email</p>
             </div>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowPreview(!showPreview)}
-              className="p-2 text-gray-400 hover:text-gray-300"
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 
+                hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
             >
-              {showPreview ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              {showPreview ? (
+                <>
+                  <EyeOff className="h-4 w-4" />
+                  <span className="text-sm">Hide Preview</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" />
+                  <span className="text-sm">Show Preview</span>
+                </>
+              )}
             </button>
           </div>
         </div>
 
-        {/* Progress steps */}
-        <div className="flex items-center px-4 py-3 border-b border-gray-800">
-          <div className="flex items-center space-x-4 w-full">
-            <div className="flex items-center space-x-2">
-              <span className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-sm">1</span>
-              <span className="text-sm">Goal</span>
+        {/* Progress Steps */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800/50">
+          <div className="flex items-center justify-between max-w-2xl">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#8D75E6] text-white">
+                ✓
+              </div>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Goal</span>
             </div>
-            <div className="flex-1 h-0.5 bg-gray-800"></div>
-            <div className="flex items-center space-x-2 opacity-50">
-              <span className="w-6 h-6 rounded-full border border-gray-600 flex items-center justify-center text-sm">2</span>
-              <span className="text-sm">Content</span>
+            <div className="flex-1 h-[2px] mx-4 bg-[#8D75E6]/50" />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#8D75E6] text-white">
+                2
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Content</span>
             </div>
-            <div className="flex-1 h-0.5 bg-gray-800"></div>
-            <div className="flex items-center space-x-2 opacity-50">
-              <span className="w-6 h-6 rounded-full border border-gray-600 flex items-center justify-center text-sm">3</span>
-              <span className="text-sm">Settings</span>
+            <div className="flex-1 h-[2px] mx-4 bg-gray-200 dark:bg-gray-800" />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full 
+                border-2 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
+                3
+              </div>
+              <span className="text-sm text-gray-400 dark:text-gray-500">Settings</span>
             </div>
           </div>
         </div>
 
-        {/* Content area */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-6">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#0A0A1B]">
+          <div className="space-y-6 p-6">
             <div>
-              <label className="block text-sm text-gray-300 mb-2">Template Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Template Name
+              </label>
               <input
                 type="text"
                 value={editedTemplate.name}
                 onChange={(e) => setEditedTemplate(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400"
+                className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                  border border-gray-200 dark:border-gray-700 
+                  rounded-lg text-gray-900 dark:text-white 
+                  placeholder-gray-400 dark:placeholder-gray-500
+                  focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]"
                 placeholder="e.g., Professional Introduction"
               />
             </div>
@@ -211,17 +254,21 @@ I am writing to express my interest in the (Job position) position at (Company).
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-800">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="p-6 border-t border-gray-200 dark:border-gray-800/50 bg-white dark:bg-[#0A0A1B]">
+          <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-3 text-center border border-gray-700 rounded-lg text-gray-300"
+              className="px-6 py-2.5 text-gray-600 dark:text-gray-300 
+                border border-gray-200 dark:border-gray-700 
+                hover:bg-gray-100 dark:hover:bg-gray-800/50 
+                rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-3 text-center bg-purple-600 rounded-lg text-white font-medium"
+              className="px-6 py-2.5 bg-[#8D75E6] hover:bg-[#7B64D5] 
+                text-white font-medium rounded-lg transition-colors"
             >
               Continue
             </button>

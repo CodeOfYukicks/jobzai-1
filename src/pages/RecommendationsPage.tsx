@@ -52,26 +52,36 @@ export default function RecommendationsPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-8"
         >
-          {/* Header */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">AI Recommendations</h1>
-            <p className="mt-1 text-sm text-gray-500">
+          {/* Header amélioré */}
+          <div className="mb-12">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-[#8D75E6] to-[#A990FF] text-transparent bg-clip-text mb-3">
+              AI Recommendations
+            </h1>
+            <p className="text-lg text-gray-400">
               Personalized insights to improve your job search success
             </p>
           </div>
 
-          {/* CV Analysis */}
-          <CVAnalysisCard 
-            analysis={cvAnalysis}
-            isLoading={isAnalyzing}
-            error={analysisError}
-          />
+          {/* CV Analysis avec style amélioré */}
+          <div className="bg-white/80 dark:bg-[#353040]/90 
+            backdrop-blur-sm
+            rounded-xl 
+            border border-gray-100 dark:border-gray-700/30 
+            p-6 
+            hover:shadow-lg hover:shadow-[#8D75E6]/5
+            transition-all duration-300">
+            <CVAnalysisCard 
+              analysis={cvAnalysis}
+              isLoading={isAnalyzing}
+              error={analysisError}
+            />
+          </div>
 
           {/* Recommendation Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

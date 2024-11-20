@@ -118,23 +118,28 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#8D75E6] dark:bg-[#2A2831] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-200">
-      <AnimatedGridPattern 
-        width={40} 
-        height={40} 
-        x={0}
-        y={0}
-        className="absolute inset-0 h-full w-full fill-white/[0.1] stroke-white/[0.1]"
-        strokeDasharray="4 4"
-        numSquares={40}
-        maxOpacity={0.3}
-        duration={3}
-        repeatDelay={0.3}
-      />
+    <div className="min-h-screen bg-[#8D75E6] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Pattern en arrière-plan avec z-index négatif */}
+      <div className="absolute inset-0 z-0">
+        <AnimatedGridPattern 
+          width={40} 
+          height={40} 
+          x={0}
+          y={0}
+          className="h-full w-full fill-white/[0.1] stroke-white/[0.1]"
+          strokeDasharray="4 4"
+          numSquares={40}
+          maxOpacity={0.3}
+          duration={3}
+          repeatDelay={0.3}
+        />
+      </div>
+
+      {/* Formulaire avec z-index positif */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg"
+        className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg relative z-10"
       >
         <div>
           <Link to="/" className="block text-center">

@@ -5,7 +5,6 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import CampaignBreadcrumbs from '../components/CampaignBreadcrumbs';
 import CampaignForm from '../components/CampaignForm';
 import { TemplateSelector } from '../components/TemplateSelector'; // Updated import
 
@@ -135,19 +134,6 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
           </p>
         </div>
       </div>
-
-      {/* Breadcrumbs */}
-      <CampaignBreadcrumbs
-        currentStep={currentStep}
-        onStepClick={(step) => {
-          if (isStepValid(step)) {
-            setCurrentStep(step);
-          } else {
-            toast.error('Please complete the current step before proceeding.');
-          }
-        }}
-        isStepValid={isStepValid}
-      />
 
       {/* Content */}
       {currentStep === 'details' ? (

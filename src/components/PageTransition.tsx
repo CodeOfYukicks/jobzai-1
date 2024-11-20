@@ -17,33 +17,34 @@ const PageTransition: FC<PageTransitionProps> = ({
   if (!clickPosition) return null;
 
   const isMobile = window.innerWidth <= 768;
-  const duration = isMobile ? 0.35 : 0.6;
+  const duration = isMobile ? 0.8 : 1;
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ 
-            clipPath: `circle(0px at ${clickPosition.x}px ${clickPosition.y}px)` 
+            clipPath: `circle(0px at ${clickPosition.x}px ${clickPosition.y}px)`,
+            opacity: 0.8
           }}
           animate={{ 
-            clipPath: `circle(200% at ${clickPosition.x}px ${clickPosition.y}px)` 
+            clipPath: `circle(170% at ${clickPosition.x}px ${clickPosition.y}px)`,
+            opacity: 1
           }}
           exit={{ 
-            clipPath: `circle(0px at ${clickPosition.x}px ${clickPosition.y}px)` 
+            clipPath: `circle(0px at ${clickPosition.x}px ${clickPosition.y}px)`,
+            opacity: 0.8
           }}
           transition={{ 
             duration,
-            ease: isMobile ? "easeOut" : "easeInOut"
+            ease: [0.4, 0, 0.2, 1]
           }}
-          onAnimationComplete={onAnimationComplete}
           style={{
             position: 'fixed',
             inset: 0,
             backgroundColor: color,
             zIndex: 9999,
             pointerEvents: 'none',
-            willChange: 'clip-path'
           }}
         />
       )}

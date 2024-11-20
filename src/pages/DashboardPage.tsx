@@ -166,69 +166,69 @@ export default function DashboardPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-8"
         >
-          {/* Header */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="mt-1 text-sm text-gray-500">
+          {/* Header amélioré */}
+          <div className="mb-12">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-[#8D75E6] to-[#A990FF] text-transparent bg-clip-text mb-3">
+              Dashboard
+            </h1>
+            <p className="text-lg text-gray-400">
               Track your job application performance and analytics
             </p>
           </div>
 
           {/* Stats Grid */}
-          <div className="relative">
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {statsConfig.map((stat, index) => (
-                <motion.div
-                  key={stat.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-white overflow-hidden shadow rounded-lg"
-                  ref={index === 0 ? creditElementRef : undefined}
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <stat.icon className="h-6 w-6 text-[#4D3E78]" />
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">
-                            {stat.name}
-                          </dt>
-                          <dd className="flex items-baseline">
-                            <div className="text-2xl font-semibold text-gray-900">
-                              {stat.value}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {statsConfig.map((stat, index) => (
+              <motion.div
+                key={stat.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white overflow-hidden shadow rounded-lg"
+                ref={index === 0 ? creditElementRef : undefined}
+              >
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <stat.icon className="h-6 w-6 text-[#4D3E78]" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          {stat.name}
+                        </dt>
+                        <dd className="flex items-baseline">
+                          <div className="text-2xl font-semibold text-gray-900">
+                            {stat.value}
+                          </div>
+                          {stat.change !== '0' && (
+                            <div className={`ml-2 flex items-baseline text-sm font-semibold ${
+                              stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {stat.change}
                             </div>
-                            {stat.change !== '0' && (
-                              <div className={`ml-2 flex items-baseline text-sm font-semibold ${
-                                stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                {stat.change}
-                              </div>
-                            )}
-                          </dd>
-                        </dl>
-                      </div>
+                          )}
+                        </dd>
+                      </dl>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {!hasPremiumAccess && (
-              <PremiumFeatureOverlay
-                title="Unlock Advanced Analytics"
-                description="Upgrade to Standard or Premium plan to access detailed analytics, response rate tracking, and campaign performance insights."
-              />
-            )}
+                </div>
+              </motion.div>
+            ))}
           </div>
+
+          {!hasPremiumAccess && (
+            <PremiumFeatureOverlay
+              title="Unlock Advanced Analytics"
+              description="Upgrade to Standard or Premium plan to access detailed analytics, response rate tracking, and campaign performance insights."
+            />
+          )}
 
           {/* Floating Credits Animation */}
           <FloatingCredits 

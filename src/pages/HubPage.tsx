@@ -41,10 +41,10 @@ export default function HubPage() {
     };
 
     const colorMap = {
-      'bg-violet-50': '#7c3aed',
-      'bg-blue-50': '#2563eb',
-      'bg-emerald-50': '#059669',
-      'bg-amber-50': '#d97706'
+      'bg-violet-50': '#f5f3ff',
+      'bg-blue-50': '#eff6ff',
+      'bg-emerald-50': '#ecfdf5',
+      'bg-amber-50': '#fff7ed'
     };
 
     setTransition({
@@ -57,7 +57,7 @@ export default function HubPage() {
     const isMobile = window.innerWidth <= 768;
     setTimeout(() => {
       navigate(card.path);
-    }, isMobile ? 350 : 450);
+    }, isMobile ? 700 : 900);
   };
 
   // Récupérer les activités récentes
