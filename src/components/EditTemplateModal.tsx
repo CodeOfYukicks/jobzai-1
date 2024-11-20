@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, Save, Eye, EyeOff, Mail } from 'lucide-react';
+import { X, Save, Mail } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import MergeFieldSelector from './MergeFieldSelector';
 import TemplatePreview from './TemplatePreview';
 import { EmailTemplate } from '../types';
+import { useIsMobile } from '../hooks/useIsMobile';
+import EditTemplateMobile from './mobile/TemplateEditMobile';
 
 // Définition des merge fields directement dans le composant
 const MERGE_FIELDS = [
@@ -55,6 +57,7 @@ interface EditTemplateModalProps {
 }
 
 export default function EditTemplateModal({ template, onClose, onUpdate }: EditTemplateModalProps) {
+  const isMobile = useIsMobile();
   const { currentUser } = useAuth();
   const [editedTemplate, setEditedTemplate] = useState({
     name: template.name,
@@ -62,7 +65,6 @@ export default function EditTemplateModal({ template, onClose, onUpdate }: EditT
     content: template.content,
     tags: template.tags.join(', ')
   });
-  const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
@@ -116,29 +118,30 @@ export default function EditTemplateModal({ template, onClose, onUpdate }: EditT
     }
   };
 
+  if (isMobile) {
+    return (
+      <EditTemplateMobile 
+        template={template}
+        onClose={onClose}
+        onSave={handleSubmit}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl"
+        className="bg-white dark:bg-[#0B1120] rounded-xl shadow-xl w-full max-w-2xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Template</h2>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowPreview(!showPreview)}
-              className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              <Eye className="h-4 w-4" />
-              Show Preview
-            </button>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Content */}
@@ -152,9 +155,9 @@ export default function EditTemplateModal({ template, onClose, onUpdate }: EditT
               type="text"
               value={editedTemplate.name}
               onChange={(e) => setEditedTemplate(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full p-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
+              className="w-full p-2.5 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-gray-600 
                 rounded-lg text-gray-900 dark:text-white
-                focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA]"
             />
           </div>
 
@@ -167,9 +170,9 @@ export default function EditTemplateModal({ template, onClose, onUpdate }: EditT
               type="text"
               value={editedTemplate.subject}
               onChange={(e) => setEditedTemplate(prev => ({ ...prev, subject: e.target.value }))}
-              className="w-full p-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
+              className="w-full p-2.5 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-gray-600 
                 rounded-lg text-gray-900 dark:text-white
-                focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA]"
             />
           </div>
 
@@ -220,9 +223,9 @@ export default function EditTemplateModal({ template, onClose, onUpdate }: EditT
               value={editedTemplate.content}
               onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
               rows={12}
-              className="w-full p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
+              className="w-full p-3 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-gray-600 
                 rounded-lg text-gray-900 dark:text-white font-mono text-sm
-                focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA]"
               placeholder="Dear {{firstName}},
 
 I hope this message finds you well..."
@@ -238,9 +241,9 @@ I hope this message finds you well..."
               type="text"
               value={editedTemplate.tags}
               onChange={(e) => setEditedTemplate(prev => ({ ...prev, tags: e.target.value }))}
-              className="w-full p-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
+              className="w-full p-2.5 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-gray-600 
                 rounded-lg text-gray-900 dark:text-white
-                focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA]"
             />
           </div>
         </div>
@@ -256,7 +259,7 @@ I hope this message finds you well..."
           <button
             onClick={handleSubmit}
             disabled={isSaving}
-            className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="px-4 py-2 text-sm bg-[#9333EA] text-white rounded-lg hover:bg-purple-700"
           >
             Save Changes
           </button>

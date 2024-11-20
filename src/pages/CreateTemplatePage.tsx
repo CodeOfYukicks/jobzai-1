@@ -123,7 +123,7 @@ export default function CreateTemplatePage() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative h-screen overflow-auto">
       {/* Layout principal avec flou amélioré */}
       <AuthLayout>
         <div className="filter blur-md opacity-50">
@@ -140,7 +140,7 @@ export default function CreateTemplatePage() {
         <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
 
         {/* Modal */}
-        <div className="relative w-full max-w-3xl bg-white dark:bg-[#0B1120] rounded-3xl shadow-xl">
+        <div className="relative w-full max-w-3xl bg-white dark:bg-[#0B1120] rounded-3xl shadow-xl overflow-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
             <div className="flex items-center gap-4">

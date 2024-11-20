@@ -65,7 +65,7 @@ export function MobileCreateTemplate({
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
         <button 
           onClick={handleBack} 
-          className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+          className="text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -82,7 +82,7 @@ export function MobileCreateTemplate({
         </div>
         <button 
           onClick={() => navigate(-1)} 
-          className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+          className="text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
         >
           <X className="w-5 h-5" />
         </button>
@@ -130,7 +130,7 @@ export function MobileCreateTemplate({
       </div>
 
       {/* Content area */}
-      <div className="h-[calc(100vh-12rem)] overflow-y-auto bg-gray-50 dark:bg-[#0B1120]">
+      <div className="h-[calc(100vh-12rem)] overflow-y-auto bg-white dark:bg-[#0B1120]">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -174,11 +174,11 @@ export function MobileCreateTemplate({
           <button
             onClick={() => navigate(-1)}
             className="flex-1 py-3 px-4 
-              bg-gray-50 dark:bg-gray-900 
-              border border-gray-200 dark:border-gray-800
+              bg-gray-100 dark:bg-gray-900 
+              border border-gray-300 dark:border-gray-800
               text-gray-700 dark:text-gray-300 
               font-medium rounded-xl 
-              hover:bg-gray-100 dark:hover:bg-gray-800 
+              hover:bg-gray-200 dark:hover:bg-gray-800 
               transition-colors"
           >
             Cancel
@@ -188,11 +188,11 @@ export function MobileCreateTemplate({
             <button
               onClick={handleBack}
               className="flex-1 py-3 px-4 
-                bg-gray-50 dark:bg-gray-900 
-                border border-gray-200 dark:border-gray-800
+                bg-gray-100 dark:bg-gray-900 
+                border border-gray-300 dark:border-gray-800
                 text-gray-700 dark:text-gray-300 
                 font-medium rounded-xl 
-                hover:bg-gray-100 dark:hover:bg-gray-800 
+                hover:bg-gray-200 dark:hover:bg-gray-800 
                 transition-colors"
             >
               Previous
