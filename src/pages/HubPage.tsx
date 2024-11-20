@@ -12,6 +12,7 @@ import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import type { Activity } from '../types/stats';
 import FirebaseImage from '../components/FirebaseImage';
+import PageTransition from '../components/PageTransition';
 
 export default function HubPage() {
   const { currentUser, userData } = useAuth();
@@ -22,8 +23,42 @@ export default function HubPage() {
   const firstName = userData?.name?.split(' ')[0] || 'there';
   const navigate = useNavigate();
   const isNewUser = new Date(userData?.createdAt || '').getTime() > Date.now() - 24 * 60 * 60 * 1000;
+  const [transition, setTransition] = useState({
+    isOpen: false,
+    color: '',
+    path: '',
+    clickPosition: null as { x: number; y: number } | null
+  });
 
-  console.log('userData:', userData);
+  const handleCardClick = (e: React.MouseEvent, card: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    const clickPosition = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    };
+
+    const colorMap = {
+      'bg-violet-50': '#f5f3ff',
+      'bg-blue-50': '#eff6ff',
+      'bg-emerald-50': '#ecfdf5',
+      'bg-amber-50': '#fff7ed'
+    };
+
+    setTransition({
+      isOpen: true,
+      color: colorMap[card.bgColor as keyof typeof colorMap] || '#ffffff',
+      path: card.path,
+      clickPosition
+    });
+
+    // Augmentons légèrement le délai pour voir l'animation complète
+    setTimeout(() => {
+      navigate(card.path);
+    }, 450); // Un peu moins que la durée de l'animation pour une transition fluide
+  };
 
   // Récupérer les activités récentes
   useEffect(() => {
@@ -58,9 +93,9 @@ export default function HubPage() {
         label: 'Active',
         trend: null
       },
-      bgGradient: 'from-violet-50 to-violet-100/50',
-      accentColor: 'text-violet-600',
-      link: '/campaigns'
+      bgColor: 'bg-violet-50',
+      iconColor: 'text-violet-600',
+      path: '/campaigns'
     },
     {
       title: 'Analytics Dashboard',
@@ -71,12 +106,12 @@ export default function HubPage() {
         label: 'Success Rate',
         trend: null
       },
-      bgGradient: 'from-blue-50 to-blue-100/50',
-      accentColor: 'text-blue-600',
-      link: '/dashboard'
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      path: '/dashboard'
     },
     {
-      title: 'Smart Matching',
+      title: 'Recommendations',
       description: 'View your job recommendations',
       icon: Target,
       stats: { 
@@ -84,9 +119,9 @@ export default function HubPage() {
         label: 'New Matches',
         trend: null
       },
-      bgGradient: 'from-emerald-50 to-emerald-100/50',
-      accentColor: 'text-emerald-600',
-      link: '/recommendations'
+      bgColor: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+      path: '/recommendations'
     },
     {
       title: 'Email Templates',
@@ -97,35 +132,12 @@ export default function HubPage() {
         label: 'Templates',
         trend: null
       },
-      bgGradient: 'from-amber-50 to-amber-100/50',
-      accentColor: 'text-amber-600',
-      link: '/email-templates'
+      bgColor: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+      path: '/email-templates'
     }
   ];
 
-  // Stats pour le header
-  const headerStats = !statsLoading && stats ? [
-    { 
-      label: 'Active Campaigns', 
-      value: stats.activeCampaigns.toString(), 
-      trend: null,
-      icon: Rocket 
-    },
-    { 
-      label: 'Response Rate', 
-      value: `${stats.responseRate}%`, 
-      trend: null,
-      icon: TrendingUp 
-    },
-    { 
-      label: 'New Matches', 
-      value: stats.newMatches.toString(), 
-      trend: null,
-      icon: Users 
-    }
-  ] : [];
-
-  // Gérer la soumission de la recherche
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -133,7 +145,6 @@ export default function HubPage() {
     }
   };
 
-  // Gérer la touche Entrée
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch(e);
@@ -142,6 +153,18 @@ export default function HubPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageTransition
+        isOpen={transition.isOpen}
+        color={transition.color}
+        clickPosition={transition.clickPosition}
+        onAnimationComplete={() => {
+          setTransition(prev => ({
+            ...prev,
+            isOpen: false,
+            clickPosition: null
+          }));
+        }}
+      />
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
@@ -235,53 +258,19 @@ export default function HubPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {[
-            {
-              title: 'Campaigns',
-              description: 'Create and manage your job applications',
-              icon: Rocket,
-              bgColor: 'bg-violet-50',
-              iconColor: 'text-violet-600',
-              path: '/campaigns'
-            },
-            {
-              title: 'Analytics Dashboard',
-              description: 'Track your application progress',
-              icon: LineChart,
-              bgColor: 'bg-blue-50',
-              iconColor: 'text-blue-600',
-              path: '/dashboard'
-            },
-            {
-              title: 'Smart Matching',
-              description: 'View your job recommendations',
-              icon: Target,
-              bgColor: 'bg-emerald-50',
-              iconColor: 'text-emerald-600',
-              path: '/smart-matching'
-            },
-            {
-              title: 'Email Templates',
-              description: 'Manage your email templates',
-              icon: Mail,
-              bgColor: 'bg-amber-50',
-              iconColor: 'text-amber-600',
-              path: '/email-templates'
-            }
-          ].map((card) => (
-            <Link
+          {mainCards.map((card) => (
+            <button
               key={card.title}
-              to={card.path}
-              className={`${card.bgColor} p-6 rounded-xl hover:scale-[1.02] transition-transform
-                cursor-pointer group`}
+              onClick={(e) => handleCardClick(e, card)}
+              className={`${card.bgColor} p-6 rounded-xl hover:scale-[1.02] 
+                transition-all duration-300 text-left`}
             >
-              <card.icon className={`w-8 h-8 ${card.iconColor} mb-4 
-                group-hover:scale-110 transition-transform`} />
+              <card.icon className={`w-8 h-8 ${card.iconColor} mb-4`} />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 {card.title}
               </h2>
               <p className="text-gray-600">{card.description}</p>
-            </Link>
+            </button>
           ))}
         </div>
       </main>

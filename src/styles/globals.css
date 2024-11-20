@@ -28,3 +28,14 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background-color: #D1D5DB;
 } 
+
+/* Ajouter ces styles si nécessaire */
+.origin-center {
+  transform-origin: center;
+}
+
+/* Optionnel : améliorer la performance des animations */
+.scale-transition {
+  will-change: transform;
+  backface-visibility: hidden;
+} 
