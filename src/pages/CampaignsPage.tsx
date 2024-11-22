@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Trash2, Filter } from 'lucide-react';
-import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
@@ -12,6 +12,7 @@ import CampaignDetailsModal from '../components/CampaignDetailsModal';
 import { toast } from 'sonner';
 import { httpsCallable } from 'firebase/functions';
 import CampaignCard from '../components/CampaignCard';
+import axios from 'axios';
 
 interface Campaign {
   id: string;
@@ -27,6 +28,8 @@ interface Campaign {
   createdAt: string;
   blacklistedCompanies: { id: string; name: string; }[];
   credits: number;
+  cv: string;
+  templateId: string;
 }
 
 export default function CampaignsPage() {
@@ -139,39 +142,73 @@ export default function CampaignsPage() {
         return;
       }
 
-      console.log("Starting campaign with ID:", campaignId);
-      console.log("Current user:", currentUser.uid);
-      
-      const startCampaignFunction = httpsCallable<
-        { campaignId: string },
-        { success: boolean; message: string }
-      >(functions, 'startCampaign');
-      
       const toastId = toast.loading("Starting campaign...");
-      
-      // Appel de la fonction avec plus de logs
-      console.log("Calling Cloud Function with data:", { campaignId });
-      const result = await startCampaignFunction({
-        campaignId: campaignId
-      });
-      console.log("Raw function result:", result);
-      
-      if (result.data.success) {
-        toast.dismiss(toastId);
-        toast.success(result.data.message);
-      } else {
-        throw new Error(result.data.message || "Unknown error");
-      }
 
-    } catch (error: any) {
-      console.error("Detailed error starting campaign:", {
-        error,
-        message: error.message,
-        code: error.code,
-        details: error.details
+      // Récupérer les données de l'utilisateur
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.data();
+
+      // Récupérer la campagne
+      const campaignRef = doc(db, 'users', currentUser.uid, 'campaigns', campaignId);
+      const campaignSnap = await getDoc(campaignRef);
+      const campaign = campaignSnap.data();
+
+      // Récupérer le template
+      const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', campaign.templateId);
+      const templateSnap = await getDoc(templateRef);
+      const emailTemplate = templateSnap.data();
+
+      // Préparer les données pour le webhook
+      const webhookData = {
+        user: {
+          id: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          // Ajouter d'autres informations utilisateur si nécessaire
+          ...userData
+        },
+        campaign: {
+          id: campaignId,
+          title: campaign.title,
+          jobTitle: campaign.jobTitle,
+          industry: campaign.industry,
+          jobType: campaign.jobType,
+          location: campaign.location,
+          description: campaign.description,
+          blacklistedCompanies: campaign.blacklistedCompanies || [],
+          credits: campaign.credits,
+          status: campaign.status,
+          emailsSent: campaign.emailsSent || 0,
+          responses: campaign.responses || 0,
+          createdAt: campaign.createdAt,
+          cv: campaign.cv || null,
+          emailTemplate: emailTemplate ? {
+            id: campaign.templateId,
+            name: emailTemplate.name,
+            subject: emailTemplate.subject,
+            content: emailTemplate.content
+          } : null
+        }
+      };
+
+      console.log("📤 Sending to webhook with user data:", webhookData);
+
+      const WEBHOOK_URL = "https://hook.eu1.make.com/orrmdfwy6ahw3315pi3gfrryc4h5uj1s";
+      await axios.post(WEBHOOK_URL, webhookData);
+
+      // Mettre à jour le statut
+      await updateDoc(campaignRef, {
+        status: 'active',
+        startedAt: serverTimestamp()
       });
-      toast.dismiss();
-      toast.error(error.message || "Failed to start campaign");
+
+      toast.dismiss(toastId);
+      toast.success("Campaign started successfully!");
+
+    } catch (error) {
+      console.error("Error starting campaign:", error);
+      toast.error("Failed to start campaign");
     }
   };
 

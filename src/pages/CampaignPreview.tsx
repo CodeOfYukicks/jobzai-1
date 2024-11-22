@@ -7,6 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import CampaignForm from '../components/CampaignForm';
 import { TemplateSelector } from '../components/TemplateSelector'; // Updated import
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
 
 interface CampaignPreviewProps {
   onBack: () => void;
@@ -29,6 +31,7 @@ interface FormData {
   blacklistedCompanies: { id: string; name: string }[];
   credits: number;
   cv?: File | null;
+  templateId: string;
 }
 
 export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
@@ -44,6 +47,7 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
     blacklistedCompanies: [],
     credits: 0,
     cv: null,
+    templateId: '',
   });
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -70,29 +74,40 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
 
   const handleCreateCampaign = async () => {
     if (!currentUser || !selectedTemplate) {
-      toast.error('Please fill in all required fields and select a template.');
+      toast.error('Please select an email template');
       return;
     }
 
     try {
       setIsCreating(true);
 
-      // Create campaign data
+      let cvUrl = formData.cv;
+      
+      // Si c'est un fichier, on l'upload
+      if (formData.cv instanceof File) {
+        const storageRef = ref(storage, `users/${currentUser.uid}/cvs/${formData.cv.name}`);
+        await uploadBytes(storageRef, formData.cv);
+        cvUrl = await getDownloadURL(storageRef);
+      }
+
       const campaignData = {
         ...formData,
+        cv: cvUrl, // Utiliser l'URL du CV (soit existante, soit nouvellement uploadée)
         status: 'pending',
         emailsSent: 0,
         responses: 0,
         createdAt: serverTimestamp(),
+        templateId: selectedTemplate.id,
         template: {
           id: selectedTemplate.id,
           name: selectedTemplate.name,
           subject: selectedTemplate.subject,
           content: selectedTemplate.content,
-        },
+        }
       };
 
-      // Create campaign
+      console.log("Creating campaign with template:", campaignData);
+
       const campaignsCollection = collection(db, 'users', currentUser.uid, 'campaigns');
       await addDoc(campaignsCollection, campaignData);
 

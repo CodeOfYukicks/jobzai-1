@@ -15,7 +15,8 @@ interface FormData {
   description: string;
   blacklistedCompanies: { id: string; name: string; }[];
   credits: number;
-  cv?: File | null;
+  cv: string | File | null;
+  templateId: string;
 }
 
 interface CampaignFormProps {
@@ -89,6 +90,10 @@ export default function CampaignForm({
     if (file) {
       onFormChange({ ...formData, cv: file });
     }
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    onFormChange({ ...formData, templateId });
   };
 
   return (
@@ -242,7 +247,10 @@ export default function CampaignForm({
                   
                   <CVSelection
                     onFileSelect={(file) => onFormChange({ ...formData, cv: file })}
-                    onExistingCVSelect={(cvUrl) => onFormChange({ ...formData, cv: cvUrl as unknown as File })}
+                    onExistingCVSelect={(cvUrl) => {
+                      console.log("Selected existing CV:", cvUrl);
+                      onFormChange({ ...formData, cv: cvUrl });
+                    }}
                   />
                 </div>
               </FormSection>

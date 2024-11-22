@@ -24,7 +24,7 @@ interface EmailTemplate {
 }
 
 interface TemplateSelectorProps {
-  onSelect: (template: EmailTemplate | null) => void;
+  onSelect: (template: EmailTemplate) => void;
   selectedTemplateId?: string;
 }
 
@@ -95,6 +95,11 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     setTemplateToEdit(null);
   };
 
+  const handleTemplateSelect = (template: EmailTemplate) => {
+    onSelect(template);
+    console.log("Selected template:", template);
+  };
+
   const filteredTemplates = templates.filter(
     (template) =>
       template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -145,7 +150,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                   ? 'border-[#8D75E6] bg-[#8D75E6]/5'
                   : 'border-gray-200 hover:border-[#8D75E6]/50'
               }`}
-              onClick={() => handleEditTemplate(template)}
+              onClick={() => handleTemplateSelect(template)}
             >
               <div className="flex justify-between items-start">
                 <div className="flex-grow pr-8">
