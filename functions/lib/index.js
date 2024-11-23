@@ -8,8 +8,9 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.startCampaign = void 0;
+exports.updateCampaignEmails = exports.startCampaign = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const https_2 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const mailgun_js_1 = require("./lib/mailgun.js");
 // Initialize Firebase Admin
@@ -94,6 +95,66 @@ exports.startCampaign = (0, https_1.onCall)({
             stack: error instanceof Error ? error.stack : undefined
         });
         throw new Error(error instanceof Error ? error.message : "Failed to start campaign");
+    }
+});
+exports.updateCampaignEmails = (0, https_2.onRequest)({
+    region: 'us-central1',
+    cors: true
+}, async (req, res) => {
+    try {
+        // Extraire les données de la structure Make
+        const { data: { campaignId, userId, emailsSent, responses, status, emailDetails } } = req.body;
+        console.log("Received update request for campaign:", { userId, campaignId, emailsCount: emailDetails === null || emailDetails === void 0 ? void 0 : emailDetails.length });
+        // Validation des données
+        if (!userId || !campaignId || !Array.isArray(emailDetails)) {
+            console.error("Invalid request data:", { userId, campaignId, emailDetails });
+            res.status(400).send('Invalid request data');
+            return;
+        }
+        const campaignRef = admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('campaigns')
+            .doc(campaignId);
+        const campaignDoc = await campaignRef.get();
+        if (!campaignDoc.exists) {
+            console.error("Campaign not found:", campaignId);
+            res.status(404).send('Campaign not found');
+            return;
+        }
+        const batch = admin.firestore().batch();
+        // Ajouter les emails avec la structure Make
+        for (const email of emailDetails) {
+            const emailRef = campaignRef.collection('emails').doc();
+            batch.set(emailRef, {
+                to: email.to,
+                subject: email.subject,
+                content: email.content,
+                company: email.company,
+                status: 'sent',
+                sentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        // Mettre à jour la campagne avec les statistiques
+        batch.update(campaignRef, {
+            emailsSent: emailsSent || emailDetails.length,
+            responses: responses || 0,
+            status: status || 'completed',
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        });
+        await batch.commit();
+        console.log("Successfully updated campaign:", { campaignId, emailsProcessed: emailDetails.length });
+        res.status(200).json({
+            success: true,
+            emailsProcessed: emailDetails.length
+        });
+    }
+    catch (error) {
+        console.error('Error in updateCampaignEmails:', error);
+        res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
 });
 //# sourceMappingURL=index.js.map

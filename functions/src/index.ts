@@ -124,18 +124,23 @@ export const updateCampaignEmails = onRequest({
   cors: true
 }, async (req, res) => {
   try {
-    // Vérifier la méthode
-    if (req.method !== 'POST') {
-      res.status(405).send('Method Not Allowed');
-      return;
-    }
+    // Extraire les données de la structure Make
+    const { 
+      data: {
+        campaignId,
+        userId,
+        emailsSent,
+        responses,
+        status,
+        emailDetails
+      }
+    } = req.body;
 
-    const { userId, campaignId, emails } = req.body;
-    console.log("Received update request for campaign:", { userId, campaignId, emailsCount: emails?.length });
+    console.log("Received update request for campaign:", { userId, campaignId, emailsCount: emailDetails?.length });
 
     // Validation des données
-    if (!userId || !campaignId || !Array.isArray(emails)) {
-      console.error("Invalid request data:", { userId, campaignId, emails });
+    if (!userId || !campaignId || !Array.isArray(emailDetails)) {
+      console.error("Invalid request data:", { userId, campaignId, emailDetails });
       res.status(400).send('Invalid request data');
       return;
     }
@@ -155,32 +160,33 @@ export const updateCampaignEmails = onRequest({
 
     const batch = admin.firestore().batch();
 
-    // Ajouter les emails
-    for (const email of emails) {
+    // Ajouter les emails avec la structure Make
+    for (const email of emailDetails) {
       const emailRef = campaignRef.collection('emails').doc();
       batch.set(emailRef, {
         to: email.to,
         subject: email.subject,
         content: email.content,
+        company: email.company,
         status: 'sent',
-        sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        metadata: email.metadata || {}
+        sentAt: admin.firestore.FieldValue.serverTimestamp()
       });
     }
 
-    // Mettre à jour la campagne
+    // Mettre à jour la campagne avec les statistiques
     batch.update(campaignRef, {
-      emailsSent: admin.firestore.FieldValue.increment(emails.length),
-      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'completed'
+      emailsSent: emailsSent || emailDetails.length,
+      responses: responses || 0,
+      status: status || 'completed',
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
     });
 
     await batch.commit();
-    console.log("Successfully updated campaign:", { campaignId, emailsProcessed: emails.length });
+    console.log("Successfully updated campaign:", { campaignId, emailsProcessed: emailDetails.length });
 
     res.status(200).json({
       success: true,
-      emailsProcessed: emails.length
+      emailsProcessed: emailDetails.length
     });
 
   } catch (error) {
