@@ -102,15 +102,38 @@ exports.updateCampaignEmails = (0, https_2.onRequest)({
     cors: true
 }, async (req, res) => {
     try {
-        // Extraire les données de la structure Make
-        const { data: { campaignId, userId, emailsSent, responses, status, emailDetails } } = req.body;
-        console.log("Received update request for campaign:", { userId, campaignId, emailsCount: emailDetails === null || emailDetails === void 0 ? void 0 : emailDetails.length });
-        // Validation des données
-        if (!userId || !campaignId || !Array.isArray(emailDetails)) {
-            console.error("Invalid request data:", { userId, campaignId, emailDetails });
-            res.status(400).send('Invalid request data');
+        // 1. Log de la requête complète
+        console.log("Request body received:", req.body);
+        // 2. Validation initiale de la structure
+        const data = req.body.data || {};
+        console.log("Extracted data object:", data);
+        // 3. Extraction sécurisée avec valeurs par défaut
+        const campaignId = data.campaignId;
+        const userId = data.userId;
+        const updates = data.updates || {};
+        const emailDetails = Array.isArray(data.emailDetails) ? data.emailDetails : [];
+        // 4. Validation des champs requis
+        if (!data || !campaignId || !userId || !Array.isArray(data.emailDetails)) {
+            console.error("Invalid data structure:", {
+                hasData: !!data,
+                hasCampaignId: !!campaignId,
+                hasUserId: !!userId,
+                emailDetailsIsArray: Array.isArray(data.emailDetails)
+            });
+            res.status(400).json({
+                success: false,
+                error: "Invalid data structure"
+            });
             return;
         }
+        // 5. Extraction sécurisée des updates
+        const { emailsSent = emailDetails.length, responses = 0, status = 'completed' } = updates;
+        console.log("Processing campaign update:", {
+            campaignId,
+            userId,
+            emailsCount: emailDetails.length,
+            status
+        });
         const campaignRef = admin.firestore()
             .collection('users')
             .doc(userId)
@@ -119,11 +142,14 @@ exports.updateCampaignEmails = (0, https_2.onRequest)({
         const campaignDoc = await campaignRef.get();
         if (!campaignDoc.exists) {
             console.error("Campaign not found:", campaignId);
-            res.status(404).send('Campaign not found');
+            res.status(404).json({
+                success: false,
+                error: "Campaign not found"
+            });
             return;
         }
         const batch = admin.firestore().batch();
-        // Ajouter les emails avec la structure Make
+        // Ajouter les emails
         for (const email of emailDetails) {
             const emailRef = campaignRef.collection('emails').doc();
             batch.set(emailRef, {
@@ -135,7 +161,7 @@ exports.updateCampaignEmails = (0, https_2.onRequest)({
                 sentAt: admin.firestore.FieldValue.serverTimestamp()
             });
         }
-        // Mettre à jour la campagne avec les statistiques
+        // Mettre à jour la campagne
         batch.update(campaignRef, {
             emailsSent: emailsSent || emailDetails.length,
             responses: responses || 0,
@@ -143,7 +169,10 @@ exports.updateCampaignEmails = (0, https_2.onRequest)({
             lastUpdated: admin.firestore.FieldValue.serverTimestamp()
         });
         await batch.commit();
-        console.log("Successfully updated campaign:", { campaignId, emailsProcessed: emailDetails.length });
+        console.log("Successfully updated campaign:", {
+            campaignId,
+            emailsProcessed: emailDetails.length
+        });
         res.status(200).json({
             success: true,
             emailsProcessed: emailDetails.length
