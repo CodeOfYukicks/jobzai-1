@@ -27,6 +27,61 @@ const navigationGroups = {
   ],
 };
 
+// Ajouter cette fonction pour calculer le pourcentage
+const calculateProfileCompletion = (data: any) => {
+  if (!data) return 0;
+  
+  const requiredFields = [
+    // Personal Information
+    'firstName',
+    'lastName',
+    'email',
+    'gender',
+    'location',
+    'contractType',
+    
+    // Location & Mobility
+    'willingToRelocate',
+    'workPreference',
+    'travelPreference',
+    
+    // Experience & Expertise
+    'yearsOfExperience',
+    'currentPosition',
+    'skills',
+    'tools',
+    
+    // Documents & Links
+    'cvUrl',
+    'linkedinUrl',
+    
+    // Professional Objectives
+    'targetPosition',
+    'targetSectors',
+    'salaryExpectations',
+    
+    // Preferences & Priorities
+    'workLifeBalance',
+    'companyCulture',
+    'preferredCompanySize'
+  ];
+
+  let completedFields = 0;
+
+  requiredFields.forEach(field => {
+    const value = data[field];
+    if (Array.isArray(value)) {
+      if (value.length > 0) completedFields++;
+    } else if (typeof value === 'object' && value !== null) {
+      if (Object.values(value).some(v => v !== '')) completedFields++;
+    } else if (value) {
+      completedFields++;
+    }
+  });
+
+  return Math.round((completedFields / requiredFields.length) * 100);
+};
+
 function getFirstName(email: string | null | undefined): string {
   if (!email) return 'User';
   
@@ -46,6 +101,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState<string | null>(null);
+  const [profileCompletion, setProfileCompletion] = useState(0);
 
   useEffect(() => {
     if (currentUser) {
@@ -53,11 +109,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         doc(db, 'users', currentUser.uid),
         (doc) => {
           if (doc.exists()) {
-            setCredits(doc.data().credits || 0);
+            const userData = doc.data();
+            setCredits(userData.credits || 0);
+            setProfileCompletion(calculateProfileCompletion(userData));
           }
         }
       );
-
       return () => unsubscribe();
     }
   }, [currentUser]);
@@ -164,6 +221,65 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               ))}
             </div>
 
+            {/* Profile Completion Alert - Affiché si < 90% */}
+            {profileCompletion < 90 && (
+              <div className="px-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 
+                    dark:from-amber-900/20 dark:to-amber-800/20 p-4"
+                >
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                        Profile Completion
+                      </span>
+                      <span className="text-sm font-bold text-amber-900 dark:text-amber-100">
+                        {profileCompletion}%
+                      </span>
+                    </div>
+
+                    {/* Barre de progression */}
+                    <div className="h-1.5 bg-amber-200/50 dark:bg-amber-700/30 rounded-full overflow-hidden mb-3">
+                      <motion.div 
+                        className="h-full bg-amber-500 dark:bg-amber-400 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${profileCompletion}%` }}
+                        transition={{ duration: 0.5 }}
+                      />
+                    </div>
+
+                    <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mb-3">
+                      Complete your profile to get personalized recommendations and better job matches.
+                    </p>
+
+                    <Link
+                      to="/professional-profile"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-900 
+                        dark:text-amber-100 hover:text-amber-700 dark:hover:text-amber-300 
+                        transition-colors"
+                    >
+                      Complete Profile
+                      <svg 
+                        className="w-3 h-3" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M9 5l7 7-7 7" 
+                        />
+                      </svg>
+                    </Link>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
             {/* Section Settings */}
             <div className="space-y-2">
               <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -215,9 +331,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   <p className="text-3xl font-bold">{credits}</p>
                   <div className="mt-4">
                     <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div 
+                      <motion.div 
                         className="h-full bg-white rounded-full transition-all duration-500"
-                        style={{ width: `${(credits / 500) * 100}%` }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(credits / 500) * 100}%` }}
                       />
                     </div>
                     <Link
