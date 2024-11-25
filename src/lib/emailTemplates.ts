@@ -37,11 +37,10 @@ export interface GeneratedTemplate {
 
 // Fonction de validation des champs de fusion
 export function validateMergeFields(content: string): { isValid: boolean; invalidFields: string[] } {
-  // Liste des champs de fusion autorisés
-  const validFields = Object.values(MERGE_FIELDS).map(field => field.value);
+  const validFields = ['salutationField', 'firstNameField', 'lastNameField', 'companyField'];
   
-  // Trouve tous les champs de fusion dans le contenu
-  const usedFields = content.match(/{{[^}]+}}/g) || [];
+  // Trouve tous les champs qui se terminent par "Field"
+  const usedFields = content.match(/\w+Field/g) || [];
   
   // Vérifie si tous les champs utilisés sont valides
   const invalidFields = usedFields.filter(field => !validFields.includes(field));
@@ -69,7 +68,7 @@ const GOAL_PROMPTS: Record<EmailGoal, Record<EmailLength, Record<LanguageType, s
       fr: `Rédigez un email TRÈS COURT pour établir un premier contact professionnel.
       
       Structure obligatoire :
-      1. Salutation simple ("Bonjour {{firstName}}")
+      1. Salutation simple ("Bonjour firstNameField")
       2. 2-3 lignes de contenu maximum
       3. Proposition d'un appel de 15 minutes
       4. Signature simple
@@ -82,7 +81,7 @@ const GOAL_PROMPTS: Record<EmailGoal, Record<EmailLength, Record<LanguageType, s
       en: `Write a VERY SHORT email to establish a first professional contact.
       
       Mandatory structure:
-      1. Simple greeting ("Hi {{firstName}}")
+      1. Simple greeting ("Hi firstNameField")
       2. 2-3 lines of content maximum
       3. Proposal for a 15-minute call
       4. Simple signature
@@ -269,24 +268,24 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
           options.length === 'short' ? 'short, impactful' : 'professional, engaging'
         } professional networking emails.`;
 
-    // Construction du contexte utilisateur
+    // Construction du contexte utilisateur avec focus sur la signature
     const userContext = options.language === 'fr'
       ? `Contexte du candidat :
-         - Nom pour signature : ${options.userProfile.firstName} ${options.userProfile.lastName}
+         - Signature : ${options.userProfile.firstName}
          - Motivation : ${options.userProfile.motivation}
          - Type de contrat : ${options.userProfile.contractType}
          
-         ${options.length === 'short' 
-           ? 'Utilisez ces informations de manière très ciblée et concise.'
-           : 'Utilisez ces informations pour enrichir le contenu tout en restant concis.'}`
+         IMPORTANT : 
+         - Signez uniquement avec "${options.userProfile.firstName}"
+         - Créez un objet d'email clair et accrocheur qui mentionne le but de l'email`
       : `Candidate context:
-         - Name for signature: ${options.userProfile.firstName} ${options.userProfile.lastName}
+         - Signature: ${options.userProfile.firstName}
          - Motivation: ${options.userProfile.motivation}
          - Contract type: ${options.userProfile.contractType}
          
-         ${options.length === 'short'
-           ? 'Use this information in a very targeted and concise way.'
-           : 'Use this information to enrich the content while staying concise.'}`;
+         IMPORTANT:
+         - Sign only with "${options.userProfile.firstName}"
+         - Create a clear and engaging subject line that mentions the email's purpose`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -295,18 +294,33 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
           role: "system",
           content: `${systemInstruction}\n${languageInstruction}
           
-          IMPORTANT: Use ONLY these merge fields:
-          ${Object.values(MERGE_FIELDS)
-            .map(field => `- ${field.value} (${field.label})`)
-            .join('\n  ')}
+          IMPORTANT FORMAT:
+          ${options.language === 'fr' 
+            ? `1. Commencez par "Subject: [Objet clair et engageant]"
+               Exemples d'objets :
+               - "Échange de 15 minutes sur les opportunités chez companyField"
+               - "Collaboration potentielle chez companyField"
+               - "Proposition de valeur pour companyField"`
+            : `1. Start with "Subject: [Clear, engaging subject]"
+               Example subjects:
+               - "Quick chat about collaboration at companyField"
+               - "Let's connect about opportunities at companyField"
+               - "15-min call to discuss value proposition at companyField"`
+          }
+          
+          2. Sautez une ligne
+          3. Écrivez le contenu de l'email
+          4. Terminez par une signature simple avec UNIQUEMENT le prénom fourni
+          
+          IMPORTANT MERGE FIELDS:
+          - salutationField (Titre formel)
+          - firstNameField (Prénom)
+          - lastNameField (Nom)
+          - companyField (Nom de l'entreprise)
           
           DO NOT use any other merge fields or variables.
-          
-          Use these merge fields for the recipient ONLY:
-          - {{firstName}} for recipient's first name
-          - {{lastName}} for recipient's last name
-          - {{company}} for company name
-          - {{position}} for job position`
+          DO NOT use double curly braces {{}} format.
+          Always use the format: wordField (example: firstNameField)`
         },
         {
           role: "user",
@@ -321,11 +335,16 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
       throw new Error('No content generated');
     }
 
-    // Validation du contenu généré
-    const validation = validateMergeFields(content);
-    if (!validation.isValid) {
-      throw new Error(`Generated content contains invalid merge fields: ${validation.invalidFields.join(', ')}`);
-    }
+    // Extraire le sujet et le contenu séparément avec support multilingue
+    const subjectMatch = content.match(/^(?:Subject|Objet):\s*(.+)$/im);
+    const subject = subjectMatch ? subjectMatch[1].trim() : 
+      (options.language === 'fr' ? 'Prise de contact' : 'Professional Contact Request');
+
+    // Nettoyer le contenu en retirant la ligne du sujet (format FR et EN)
+    const cleanContent = content
+      .replace(/^(?:Subject|Objet):.+$/im, '') // Retire la ligne du sujet dans les deux langues
+      .replace(/^Objet:.+$/im, '') // S'assure de retirer aussi le format français
+      .trim(); // Retire les espaces superflus
 
     // Génération du nom du template
     const lengthIndicator = options.language === 'fr' 
@@ -338,9 +357,8 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
 
     return {
       name: templateName,
-      subject: content.match(/Subject:|Objet:\s*(.*)/i)?.[1] || 
-        (options.language === 'fr' ? 'Prise de contact' : 'Professional Contact Request'),
-      content: content.replace(/Subject:|Objet:\s*.*\n/i, '').trim(),
+      subject: subject,
+      content: cleanContent,
       tags: [options.goal, options.language, options.length, 'ai-generated']
     };
   } catch (error) {

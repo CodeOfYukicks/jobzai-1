@@ -212,11 +212,10 @@ export default function CreateTemplatePage() {
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { field: '{{salutation}}', example: 'Mr/Ms', note: 'Formal title' },
-                  { field: '{{firstName}}', example: 'John' },
-                  { field: '{{lastName}}', example: 'Doe' },
-                  { field: '{{company}}', example: 'Acme Corp' },
-                  { field: '{{position}}', example: 'Software Engineer' }
+                  { field: 'salutationField', example: 'Mr/Ms', note: 'Formal title' },
+                  { field: 'firstNameField', example: 'John' },
+                  { field: 'lastNameField', example: 'Doe' },
+                  { field: 'companyField', example: 'Acme Corp' }
                 ].map(({ field, example, note }) => (
                   <button
                     key={field}
@@ -268,7 +267,7 @@ export default function CreateTemplatePage() {
                   placeholder:text-gray-400 dark:placeholder:text-gray-500
                   focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0
                   font-mono text-sm"
-                placeholder={`Dear {{salutation}} {{lastName}},\n\nI hope this message finds you well...\n\nBest regards,\n[Your name]`}
+                placeholder={`Dear salutationField lastNameField,\n\nI hope this message finds you well...\n\nBest regards,\n[Your name]`}
               />
             </div>
 

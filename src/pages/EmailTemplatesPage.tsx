@@ -199,84 +199,119 @@ export default function EmailTemplatesPage() {
 
   return (
     <AuthLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header amélioré */}
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12"> {/* Espacement augmenté */}
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-[#8D75E6] to-[#A990FF] text-transparent bg-clip-text mb-3">
-                  Email Templates
-                </h1>
-                <p className="text-lg text-gray-400"> {/* Taille augmentée */}
-                  {templates.length} templates available
-                </p>
-              </div>
-
-              {/* Boutons d'action desktop améliorés */}
-              {!isMobile && (
-                <div className="flex items-center gap-4"> {/* Gap augmenté */}
-                  <button
-                    onClick={() => setShowGenerateModal(true)}
-                    className="group px-5 py-2.5 rounded-xl 
-                      bg-[#8D75E6]/10 hover:bg-[#8D75E6]/15 
-                      border border-[#8D75E6]/20 hover:border-[#8D75E6]/30
-                      transition-all duration-200"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Wand2 className="h-4 w-4 text-[#8D75E6] group-hover:scale-110 transition-transform" />
-                      <span className="text-sm font-medium text-[#8D75E6]">AI Generate</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => navigate('/email-templates/new')}
-                    className="group px-5 py-2.5 rounded-xl 
-                      bg-gradient-to-r from-[#8D75E6] to-[#A990FF]
-                      hover:opacity-90
-                      border border-[#8D75E6]/20
-                      shadow-lg shadow-[#8D75E6]/20
-                      transition-all duration-200"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Plus className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
-                      <span className="text-sm font-medium text-white">New Template</span>
-                    </div>
-                  </button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Email Templates
+              </h1>
+              <p className="mt-2 text-gray-500 dark:text-gray-400">
+                {templates.length} templates available
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowGenerateModal(true)}
+                className="group px-4 py-2.5 rounded-xl 
+                  bg-purple-100 dark:bg-purple-900/30 
+                  hover:bg-purple-200 dark:hover:bg-purple-900/50 
+                  transition-all duration-200"
+              >
+                <div className="flex items-center gap-2">
+                  <Wand2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                    AI Generate
+                  </span>
                 </div>
-              )}
+              </button>
+
+              <button
+                onClick={() => navigate('/email-templates/new')}
+                className="group px-4 py-2.5 rounded-xl 
+                  bg-gradient-to-r from-purple-600 to-indigo-600
+                  hover:opacity-90 transition-all duration-200
+                  shadow-lg shadow-purple-500/20"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-white" />
+                  <span className="text-sm font-medium text-white">New Template</span>
+                </div>
+              </button>
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <Mail className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {templates.length}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Templates</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Wand2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {templates.filter(t => t.aiGenerated).length}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">AI Generated</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <Heart className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {templates.filter(t => t.liked).length}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Favorites</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="mb-8">
+          <div className="relative mb-4">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <input
               type="text"
-              className="w-full pl-10 pr-4 py-3 
-                bg-white dark:bg-[#353040] 
-                text-gray-900 dark:text-gray-100
-                border border-gray-200 dark:border-gray-700/30 
-                rounded-xl
-                placeholder:text-gray-500
-                focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]/50
-                transition-all duration-200"
-              placeholder="Search by template name, content or tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by template name, content or tags..."
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 
+                border border-gray-200 dark:border-gray-700 rounded-xl
+                focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-2 mb-6 p-1 bg-gray-100 dark:bg-[#353040] rounded-lg">
+          <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
             {['All', 'Favorites', 'AI Generated'].map((filterOption) => (
               <button
                 key={filterOption}
-                onClick={() => setFilter(filterOption === 'AI Generated' ? 'ai generated' : filterOption.toLowerCase())}
+                onClick={() => setFilter(filterOption === 'AI Generated' ? 'ai' : filterOption.toLowerCase())}
                 className={`
-                  flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                  ${(filter === filterOption.toLowerCase() || (filter === 'ai generated' && filterOption === 'AI Generated'))
-                    ? 'bg-[#8D75E6] text-white' 
-                    : 'text-gray-400 hover:text-gray-200'}
+                  flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                  ${(filter === filterOption.toLowerCase() || (filter === 'ai' && filterOption === 'AI Generated'))
+                    ? 'bg-white dark:bg-gray-900 text-purple-600 dark:text-purple-400 shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}
                 `}
               >
                 <div className="flex items-center justify-center gap-2">
@@ -289,52 +324,80 @@ export default function EmailTemplatesPage() {
           </div>
         </div>
 
-        {/* Mobile Action Buttons */}
-        {isMobile && (
-          <div className="flex space-x-2 mb-6">
-            <button
-              onClick={() => setShowGenerateModal(true)}
-              className="flex-1 py-3 px-4 bg-[#8D75E6]/10 text-[#8D75E6] rounded-lg font-medium text-sm"
+        {/* Templates Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTemplates.map((template) => (
+            <div
+              key={template.id}
+              className="group bg-white dark:bg-gray-800 rounded-xl p-6 
+                border border-gray-200 dark:border-gray-700
+                hover:shadow-lg hover:border-purple-500 dark:hover:border-purple-500
+                transition-all duration-200"
             >
-              <Wand2 className="h-4 w-4 mx-auto mb-1" />
-              <span>Generate</span>
-            </button>
-            <button
-              onClick={() => navigate('/email-templates/new')}
-              className="flex-1 py-3 px-4 bg-[#8D75E6] text-white rounded-lg font-medium text-sm"
-            >
-              <Plus className="h-4 w-4 mx-auto mb-1" />
-              <span>Create</span>
-            </button>
-          </div>
-        )}
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600">
+                  {template.name}
+                </h3>
+                {template.aiGenerated && (
+                  <span className="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/30 
+                    text-purple-600 dark:text-purple-400 rounded-full">
+                    AI
+                  </span>
+                )}
+              </div>
 
-        {/* Templates List */}
-        {isLoading ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">
+                {template.content}
+              </p>
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                {template.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 
+                      text-gray-600 dark:text-gray-400 rounded-full"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleFavorite(template)}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Heart 
+                      className={`h-4 w-4 ${template.liked 
+                        ? 'fill-red-500 text-red-500' 
+                        : 'text-gray-400 hover:text-red-500'}`} 
+                    />
+                  </button>
+                  <button
+                    onClick={() => setTemplateToEdit(template)}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Pencil className="h-4 w-4 text-gray-400 hover:text-purple-500" />
+                  </button>
+                </div>
+                <button
+                  onClick={() => setTemplateToDelete(template)}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredTemplates.length === 0 && (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8D75E6] mx-auto"></div>
-            <p className="mt-4 text-gray-500">Loading templates...</p>
-          </div>
-        ) : filteredTemplates.length > 0 ? (
-          <div className="space-y-2">
-            {filteredTemplates.map((template) => (
-              <TemplateCard
-                key={template.id}
-                template={template}
-                onUpdate={refreshTemplates}
-                onDelete={(template) => setTemplateToDelete(template)}
-                isMobile={true}
-              />
-            ))}
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#8D75E6]/10 mb-4">
-              <Mail className="h-8 w-8 text-[#8D75E6]" />
+            <div className="inline-flex items-center justify-center w-16 h-16 
+              rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
+              <Mail className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
               No templates yet
@@ -346,34 +409,35 @@ export default function EmailTemplatesPage() {
             </p>
             <button
               onClick={() => setShowGenerateModal(true)}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#8D75E6] rounded-lg hover:bg-[#8D75E6]/90"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium 
+                text-white bg-purple-600 rounded-lg hover:bg-purple-700"
             >
               <Wand2 className="h-4 w-4 mr-2" />
               Generate with AI
             </button>
-          </motion.div>
+          </div>
         )}
-      </div>
 
-      {/* Modals */}
-      <AnimatePresence>
-        {showGenerateModal && (
-          <GenerateTemplateModal onClose={() => setShowGenerateModal(false)} />
-        )}
-        {templateToDelete && (
-          <DeleteTemplateDialog
-            templateName={templateToDelete.name}
-            onConfirm={() => handleDeleteTemplate(templateToDelete)}
-            onClose={() => setTemplateToDelete(null)}
-          />
-        )}
-        {templateToEdit && (
-          <TemplateEditModal
-            template={templateToEdit}
-            onClose={() => setTemplateToEdit(null)}
-          />
-        )}
-      </AnimatePresence>
+        {/* Modals */}
+        <AnimatePresence>
+          {showGenerateModal && (
+            <GenerateTemplateModal onClose={() => setShowGenerateModal(false)} />
+          )}
+          {templateToDelete && (
+            <DeleteTemplateDialog
+              templateName={templateToDelete.name}
+              onConfirm={() => handleDeleteTemplate(templateToDelete)}
+              onClose={() => setTemplateToDelete(null)}
+            />
+          )}
+          {templateToEdit && (
+            <TemplateEditModal
+              template={templateToEdit}
+              onClose={() => setTemplateToEdit(null)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
     </AuthLayout>
   );
 }

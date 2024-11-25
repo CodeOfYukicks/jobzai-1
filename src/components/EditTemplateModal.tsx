@@ -15,30 +15,25 @@ import EditTemplateMobile from './mobile/TemplateEditMobile';
 const MERGE_FIELDS = [
   { 
     label: 'Salutation', 
-    value: '{{salutation}}', 
+    value: 'salutationField', 
     example: 'Mr/Ms',
     description: 'Formal title (Mr, Ms, Dr, etc.)'
   },
   { 
     label: 'First Name', 
-    value: '{{firstName}}', 
+    value: 'firstNameField', 
     example: 'John' 
   },
   { 
     label: 'Last Name', 
-    value: '{{lastName}}', 
+    value: 'lastNameField', 
     example: 'Doe' 
   },
   { 
     label: 'Company', 
-    value: '{{company}}', 
+    value: 'companyField', 
     example: 'Acme Corp' 
   },
-  { 
-    label: 'Position', 
-    value: '{{position}}', 
-    example: 'Software Engineer' 
-  }
 ];
 
 interface UpdateTemplateData {

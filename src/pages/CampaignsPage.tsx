@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Trash2, Filter } from 'lucide-react';
+import { Plus, Search, Trash2, Filter, Mail, MessageSquare, Target, Calendar, Inbox, PlayCircle } from 'lucide-react';
 import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -228,111 +228,222 @@ export default function CampaignsPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
-        >
-          {/* Header amélioré */}
-          <div className="mb-12 flex justify-between items-start">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-[#8D75E6] to-[#A990FF] text-transparent bg-clip-text mb-3">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Campaigns
               </h1>
-              <p className="text-lg text-gray-400">
+              <p className="mt-2 text-gray-500 dark:text-gray-400">
                 Manage your job application campaigns
               </p>
             </div>
-
-            {/* Bouton amélioré */}
             <button
               onClick={() => setShowNewCampaign(true)}
-              className="group px-5 py-2.5 rounded-xl 
-                bg-gradient-to-r from-[#8D75E6] to-[#A990FF]
-                hover:opacity-90
-                border border-[#8D75E6]/20
-                shadow-lg shadow-[#8D75E6]/20
-                transition-all duration-200"
+              className="group px-4 py-2.5 rounded-xl 
+                bg-gradient-to-r from-purple-600 to-indigo-600
+                hover:opacity-90 transition-all duration-200
+                shadow-lg shadow-purple-500/20"
             >
-              <div className="flex items-center gap-3">
-                <Plus className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
+              <div className="flex items-center gap-2">
+                <Plus className="h-4 w-4 text-white" />
                 <span className="text-sm font-medium text-white">New Campaign</span>
               </div>
             </button>
           </div>
 
-          {/* Search amélioré */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search campaigns..."
-                className="w-full pl-12 pr-4 py-3.5
-                  bg-white/80 dark:bg-[#353040]/80
-                  backdrop-blur-sm
-                  border border-gray-200/50 dark:border-gray-700/30
-                  rounded-xl
-                  text-base
-                  placeholder:text-gray-400
-                  focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]/50
-                  shadow-sm
-                  transition-all duration-200"
-              />
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <Mail className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {campaigns.reduce((total, campaign) => total + (Number(campaign.emailsSent) || 0), 0)}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Emails Sent</p>
+                </div>
+              </div>
             </div>
-            <CampaignFilters
-              filters={filters}
-              onFilterChange={handleFilterChange}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {campaigns.reduce((acc, c) => acc + (c.responses || 0), 0)}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Responses</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {campaigns.filter(c => c.status === 'completed').length}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Completed Campaigns</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search campaigns..."
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 
+                border border-gray-200 dark:border-gray-700 rounded-xl
+                focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
+          <CampaignFilters filters={filters} onFilterChange={handleFilterChange} />
+        </div>
 
-          {/* Campaigns List */}
-          <div className="space-y-4">
-            {filteredCampaigns.map((campaign) => (
-              <CampaignCard
-                key={campaign.id}
-                campaign={campaign}
-                onDelete={(campaign) => setDeleteModal({ show: true, campaign })}
-                onSelect={setSelectedCampaign}
-                onStartCampaign={handleStartCampaign}
-                formatDate={formatDate}
-                isMobile={window.innerWidth < 640}
-              />
-            ))}
-
-            {/* ├ëtats vides et erreurs adapt├®s */}
-            {filteredCampaigns.length === 0 && !error && (
-              <div className="text-center py-8 sm:py-12">
-                <p className="text-gray-500">No campaigns found</p>
+        {/* Campaigns Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCampaigns.map((campaign) => (
+            <div
+              key={campaign.id}
+              className="group bg-white dark:bg-gray-800 rounded-xl p-6 
+                border border-gray-200 dark:border-gray-700
+                hover:shadow-lg hover:border-purple-500 dark:hover:border-purple-500
+                transition-all duration-200 cursor-pointer"
+              onClick={() => setSelectedCampaign(campaign)}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600">
+                    {campaign.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {campaign.jobTitle}
+                  </p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium
+                  ${getStatusColor(campaign.status)}`}>
+                  {campaign.status}
+                </span>
               </div>
-            )}
 
-            {error && (
-              <div className="text-center py-8 sm:py-12">
-                <p className="text-red-500">{error}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {campaign.emailsSent} sent
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {campaign.responses} responses
+                  </span>
+                </div>
               </div>
-            )}
+
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm text-gray-500">
+                      {formatDate(campaign.createdAt)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {campaign.status === 'pending' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartCampaign(campaign.id);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 
+                          hover:bg-green-200 dark:hover:bg-green-900/50 transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-2">
+                          <PlayCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                            Start
+                          </span>
+                        </div>
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteModal({ show: true, campaign });
+                      }}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredCampaigns.length === 0 && (
+          <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
+              <Inbox className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No campaigns found
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              {searchQuery 
+                ? "No campaigns match your search criteria" 
+                : "Get started by creating your first campaign"}
+            </p>
           </div>
+        )}
 
-          {/* Modals */}
-          {deleteModal.show && deleteModal.campaign && (
-            <DeleteCampaignModal
-              campaignTitle={deleteModal.campaign.title}
-              onConfirm={handleDeleteCampaign}
-              onClose={() => setDeleteModal({ show: false })}
-            />
-          )}
-          {selectedCampaign && (
-            <CampaignDetailsModal
-              campaign={selectedCampaign}
-              onClose={() => setSelectedCampaign(null)}
-            />
-          )}
-        </motion.div>
+        {/* Modals */}
+        {deleteModal.show && deleteModal.campaign && (
+          <DeleteCampaignModal
+            campaignTitle={deleteModal.campaign.title}
+            onConfirm={handleDeleteCampaign}
+            onClose={() => setDeleteModal({ show: false })}
+          />
+        )}
+        {selectedCampaign && (
+          <CampaignDetailsModal
+            campaign={selectedCampaign}
+            onClose={() => setSelectedCampaign(null)}
+          />
+        )}
       </div>
     </AuthLayout>
   );
+}
+
+// Utility function for status colors
+function getStatusColor(status: string) {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    case 'completed':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    case 'paused':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+  }
 }

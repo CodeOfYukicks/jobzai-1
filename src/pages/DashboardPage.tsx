@@ -1,12 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Send, BarChart, TrendingUp, Loader2 } from 'lucide-react';
+import { CreditCard, Send, BarChart, TrendingUp, Loader2, RefreshCw, ChevronRight, Download } from 'lucide-react';
 import { doc, collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import FloatingCredits from '../components/FloatingCredits';
 import PremiumFeatureOverlay from '../components/PremiumFeatureOverlay';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
+
+interface CampaignData {
+  title: string;
+  launchDate: string;
+  candidatesReached: number;
+  responses: number;
+  status: 'active' | 'completed';
+}
 
 interface DashboardStats {
   credits: number;
@@ -17,6 +26,14 @@ interface DashboardStats {
   responseRateChange: number;
   activeCampaigns: number;
   campaignsChange: number;
+  totalCampaigns: number;
+  averageResponseRate: number;
+  totalCandidates: number;
+  conversionRate: number;
+  historicalData: {
+    date: string;
+    value: number;
+  }[];
 }
 
 interface UserData {
@@ -34,7 +51,12 @@ export default function DashboardPage() {
     responseRate: 0,
     responseRateChange: 0,
     activeCampaigns: 0,
-    campaignsChange: 0
+    campaignsChange: 0,
+    totalCampaigns: 0,
+    averageResponseRate: 0,
+    totalCandidates: 0,
+    conversionRate: 0,
+    historicalData: []
   });
   const [userData, setUserData] = useState<UserData>({ credits: 0 });
   const [creditDiff, setCreditDiff] = useState(0);
@@ -42,85 +64,126 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const creditElementRef = useRef<HTMLDivElement>(null);
   const previousCredits = useRef(stats.credits);
+  const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchStats = async () => {
+    try {
+      // Get user's campaigns
+      const campaignsRef = collection(db, 'users', currentUser?.uid || '', 'campaigns');
+      const campaignsQuery = query(campaignsRef);
+      const campaignsSnapshot = await getDocs(campaignsQuery);
+      
+      // Calculate campaign stats
+      let totalApplications = 0;
+      let totalResponses = 0;
+      let activeCampaigns = 0;
+      let totalCandidatesCount = 0;
+      
+      const campaignsList: CampaignData[] = [];
+      
+      campaignsSnapshot.forEach(doc => {
+        const campaign = doc.data() as CampaignData;
+        campaignsList.push(campaign);
+        totalApplications += campaign.candidatesReached || 0;
+        totalResponses += campaign.responses || 0;
+        totalCandidatesCount += campaign.candidatesReached || 0;
+        if (campaign.status === 'active') {
+          activeCampaigns++;
+        }
+      });
+
+      setCampaigns(campaignsList);
+
+      // Calculate response rate
+      const responseRate = totalApplications > 0 
+        ? (totalResponses / totalApplications) * 100 
+        : 0;
+
+      // Subscribe to user document for real-time updates
+      const unsubscribeUser = onSnapshot(
+        doc(db, 'users', currentUser.uid),
+        (doc) => {
+          if (doc.exists()) {
+            const data = doc.data() as UserData;
+            setUserData(data);
+            
+            // Calculate credit difference for animation
+            const diff = (data.credits || 0) - previousCredits.current;
+            if (diff !== 0 && creditElementRef.current) {
+              const rect = creditElementRef.current.getBoundingClientRect();
+              setTriggerPosition({
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+              });
+              setCreditDiff(diff);
+            }
+            previousCredits.current = data.credits || 0;
+
+            // Update all stats
+            setStats(prev => ({
+              ...prev,
+              credits: data.credits || 0,
+              creditsChange: diff,
+              applicationsSent: totalApplications,
+              applicationsChange: totalApplications - (prev.applicationsSent || 0),
+              responseRate: parseFloat(responseRate.toFixed(1)),
+              responseRateChange: responseRate - (prev.responseRate || 0),
+              activeCampaigns,
+              campaignsChange: activeCampaigns - (prev.activeCampaigns || 0),
+              totalCampaigns: campaignsList.length,
+              averageResponseRate: responseRate,
+              totalCandidates: totalCandidatesCount,
+              conversionRate: totalResponses > 0 ? (totalResponses / totalCandidatesCount) * 100 : 0,
+              historicalData: [...prev.historicalData, { date: new Date().toISOString(), value: responseRate }]
+            }));
+          }
+          setIsLoading(false);
+        }
+      );
+
+      return () => {
+        unsubscribeUser();
+      };
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!currentUser) return;
-
-    const fetchStats = async () => {
-      try {
-        // Get user's campaigns
-        const campaignsRef = collection(db, 'users', currentUser.uid, 'campaigns');
-        const campaignsQuery = query(campaignsRef);
-        const campaignsSnapshot = await getDocs(campaignsQuery);
-        
-        // Calculate campaign stats
-        let totalApplications = 0;
-        let totalResponses = 0;
-        let activeCampaigns = 0;
-        
-        campaignsSnapshot.forEach(doc => {
-          const campaign = doc.data();
-          totalApplications += campaign.emailsSent || 0;
-          totalResponses += campaign.responses || 0;
-          if (campaign.status === 'active') {
-            activeCampaigns++;
-          }
-        });
-
-        // Calculate response rate
-        const responseRate = totalApplications > 0 
-          ? (totalResponses / totalApplications) * 100 
-          : 0;
-
-        // Subscribe to user document for real-time updates
-        const unsubscribeUser = onSnapshot(
-          doc(db, 'users', currentUser.uid),
-          (doc) => {
-            if (doc.exists()) {
-              const data = doc.data() as UserData;
-              setUserData(data);
-              
-              // Calculate credit difference for animation
-              const diff = (data.credits || 0) - previousCredits.current;
-              if (diff !== 0 && creditElementRef.current) {
-                const rect = creditElementRef.current.getBoundingClientRect();
-                setTriggerPosition({
-                  x: rect.left + rect.width / 2,
-                  y: rect.top + rect.height / 2
-                });
-                setCreditDiff(diff);
-              }
-              previousCredits.current = data.credits || 0;
-
-              // Update all stats
-              setStats(prev => ({
-                credits: data.credits || 0,
-                creditsChange: diff,
-                applicationsSent: totalApplications,
-                applicationsChange: totalApplications - (prev.applicationsSent || 0),
-                responseRate: parseFloat(responseRate.toFixed(1)),
-                responseRateChange: responseRate - (prev.responseRate || 0),
-                activeCampaigns,
-                campaignsChange: activeCampaigns - (prev.activeCampaigns || 0)
-              }));
-            }
-            setIsLoading(false);
-          }
-        );
-
-        return () => {
-          unsubscribeUser();
-        };
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        setIsLoading(false);
-      }
-    };
-
     fetchStats();
   }, [currentUser]);
 
   const hasPremiumAccess = userData.plan === 'standard' || userData.plan === 'premium';
+
+  const overviewMetrics = [
+    {
+      name: 'Total Campaigns',
+      value: stats.totalCampaigns,
+      change: stats.campaignsChange,
+      historicalData: stats.historicalData
+    },
+    {
+      name: 'Average Response Rate',
+      value: `${stats.averageResponseRate.toFixed(1)}%`,
+      change: stats.responseRateChange,
+      historicalData: stats.historicalData
+    },
+    {
+      name: 'Total Candidates',
+      value: stats.totalCandidates,
+      change: 0, // Calculer le changement si nécessaire
+      historicalData: stats.historicalData
+    },
+    {
+      name: 'Conversion Rate',
+      value: `${stats.conversionRate.toFixed(1)}%`,
+      change: 0, // Calculer le changement si nécessaire
+      historicalData: stats.historicalData
+    }
+  ];
 
   const statsConfig = [
     {
@@ -154,6 +217,23 @@ export default function DashboardPage() {
     },
   ];
 
+  const refreshDashboard = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch('/api/refresh-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser?.uid })
+      });
+      // Mettre à jour les données
+      await fetchStats();
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <AuthLayout>
@@ -172,69 +252,75 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-8"
         >
-          {/* Header amélioré */}
-          <div className="mb-12">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-[#8D75E6] to-[#A990FF] text-transparent bg-clip-text mb-3">
-              Dashboard
-            </h1>
-            <p className="text-lg text-gray-400">
-              Track your job application performance and analytics
-            </p>
+          {/* Header avec bouton refresh */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-500">Campaign performance overview</p>
+            </div>
+            <button
+              onClick={refreshDashboard}
+              className="flex items-center px-4 py-2 rounded-lg bg-white shadow"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {statsConfig.map((stat, index) => (
-              <motion.div
-                key={stat.name}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white overflow-hidden shadow rounded-lg"
-                ref={index === 0 ? creditElementRef : undefined}
-              >
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <stat.icon className="h-6 w-6 text-[#4D3E78]" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          {stat.name}
-                        </dt>
-                        <dd className="flex items-baseline">
-                          <div className="text-2xl font-semibold text-gray-900">
-                            {stat.value}
-                          </div>
-                          {stat.change !== '0' && (
-                            <div className={`ml-2 flex items-baseline text-sm font-semibold ${
-                              stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {stat.change}
-                            </div>
-                          )}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
+          {/* Overview Section avec Sparklines */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {overviewMetrics.map((metric) => (
+              <div key={metric.name} className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-sm text-gray-500">{metric.name}</h3>
+                <div className="mt-2 flex items-baseline">
+                  <p className="text-2xl font-semibold">{metric.value}</p>
+                  <span className={`ml-2 text-sm ${metric.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {metric.change > 0 ? '+' : ''}{metric.change}%
+                  </span>
                 </div>
-              </motion.div>
+                <div className="h-16 mt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={metric.historicalData}>
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#8884d8"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             ))}
           </div>
 
-          {!hasPremiumAccess && (
-            <PremiumFeatureOverlay
-              title="Unlock Advanced Analytics"
-              description="Upgrade to Standard or Premium plan to access detailed analytics, response rate tracking, and campaign performance insights."
-            />
-          )}
+          {/* Recent Campaigns Section */}
+          <div className="bg-white rounded-lg shadow mb-8">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Recent Campaigns</h2>
+                <button className="text-purple-600 hover:text-purple-700 text-sm flex items-center">
+                  View all <ChevronRight className="h-4 w-4 ml-1" />
+                </button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                {/* ... table content ... */}
+              </table>
+            </div>
+          </div>
 
-          {/* Floating Credits Animation */}
-          <FloatingCredits 
-            value={creditDiff} 
-            triggerPosition={triggerPosition}
-          />
+          {/* Analytics Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* ... analytics charts ... */}
+          </div>
+
+          {/* Suggestions Section */}
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
+            {/* ... suggestions content ... */}
+          </div>
         </motion.div>
       </div>
     </AuthLayout>
