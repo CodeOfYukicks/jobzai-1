@@ -20,7 +20,7 @@ interface AuthLayoutProps {
 const navigationGroups = {
   main: [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Email Templates', href: '/email-templates', icon: Mail },
+    { name: 'Template Studio', href: '/email-templates', icon: Mail },
     { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
     { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
   ],

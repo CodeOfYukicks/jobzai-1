@@ -101,12 +101,12 @@ export default function CreditAllocation({ availableCredits, onChange }: CreditA
 
       {/* Credit Usage Info */}
       <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Credit Usage</h4>
-        <div className="space-y-2 text-sm text-gray-600">
-          <p>ÔÇó 1 credit = 1 spontaneous application</p>
-          <p>ÔÇó Remaining after allocation: {availableCredits - allocatedCredits} credits</p>
-          <p>ÔÇó Estimated applications: {allocatedCredits} companies</p>
-        </div>
+        <h4 className="font-medium text-gray-900 dark:text-white">Credit Usage</h4>
+        <ul className="space-y-1">
+          <li>• 1 credit = 1 spontaneous application</li>
+          <li>• Remaining after allocation: {availableCredits - allocatedCredits} credits</li>
+          <li>• Estimated applications: {allocatedCredits} companies</li>
+        </ul>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   X, Mail, Clock, Target, CreditCard, Building, MapPin, 
   Briefcase, FileText, Eye, Users, BarChart, Calendar,
-  CheckCircle2, AlertCircle, PauseCircle, PlayCircle
+  CheckCircle2, AlertCircle, PauseCircle, PlayCircle, ExternalLink, Download
 } from 'lucide-react';
 
 interface Campaign {
@@ -39,6 +39,7 @@ interface Campaign {
   cv?: {
     name: string;
     url: string;
+    updatedAt: any;
   };
   template?: {
     name: string;
@@ -227,13 +228,14 @@ export default function CampaignDetailsModal({ campaign, onClose }: { campaign: 
 
           {activeTab === 'details' && (
             <div className="space-y-6">
-              {/* Credits Used */}
+              {/* Campaign Resources */}
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Campaign Resources
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900/50 
+                    rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                       <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     </div>
@@ -247,27 +249,54 @@ export default function CampaignDetailsModal({ campaign, onClose }: { campaign: 
                 </div>
               </div>
 
-              {/* CV Details */}
+              {/* CV Section */}
               {campaign.cv && (
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     CV Used
                   </h3>
-                  <div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900/50 
+                    rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                      <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {campaign.cv.name}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {typeof campaign.cv === 'string' 
+                          ? 'CV Document' 
+                          : campaign.cv.name || 'CV Document'}
                       </p>
+                      {campaign.cv.updatedAt && (
+                        <p className="text-xs text-gray-500">
+                          Last updated: {new Date(campaign.cv.updatedAt?.toDate()).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
                       <a 
-                        href={campaign.cv.url} 
+                        href={typeof campaign.cv === 'string' ? campaign.cv : campaign.cv.url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm 
+                          bg-purple-50 dark:bg-purple-900/20 
+                          text-purple-600 dark:text-purple-400 
+                          rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 
+                          transition-colors"
                       >
-                        View CV
+                        <ExternalLink className="h-4 w-4" />
+                        View
+                      </a>
+                      <a 
+                        href={typeof campaign.cv === 'string' ? campaign.cv : campaign.cv.url}
+                        download
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm 
+                          bg-gray-50 dark:bg-gray-800/50
+                          text-gray-600 dark:text-gray-400 
+                          rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                          transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
                       </a>
                     </div>
                   </div>
