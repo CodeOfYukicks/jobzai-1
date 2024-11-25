@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Send, BarChart, TrendingUp, Loader2, RefreshCw, ChevronRight, Download } from 'lucide-react';
+import { CreditCard, Send, BarChart, TrendingUp, Loader2, RefreshCw, ChevronRight, Download, LayoutGrid, Users, Target, Inbox } from 'lucide-react';
 import { doc, collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,8 @@ import AuthLayout from '../components/AuthLayout';
 import FloatingCredits from '../components/FloatingCredits';
 import PremiumFeatureOverlay from '../components/PremiumFeatureOverlay';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { Link } from 'react-router-dom';
+import { Mail, MessageSquare } from 'lucide-react';
 
 interface CampaignData {
   title: string;
@@ -41,6 +43,23 @@ interface UserData {
   credits: number;
 }
 
+function getStatusColor(status: string) {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    case 'completed':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    case 'paused':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    case 'pending':
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
+    case 'failed':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+  }
+}
+
 export default function DashboardPage() {
   const { currentUser } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
@@ -66,6 +85,12 @@ export default function DashboardPage() {
   const previousCredits = useRef(stats.credits);
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const recentCampaigns = useMemo(() => {
+    return campaigns
+      .sort((a, b) => new Date(b.launchDate).getTime() - new Date(a.launchDate).getTime())
+      .slice(0, 3);
+  }, [campaigns]);
 
   const fetchStats = async () => {
     try {
@@ -247,81 +272,188 @@ export default function DashboardPage() {
   return (
     <AuthLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
-        >
-          {/* Header avec bouton refresh */}
-          <div className="flex justify-between items-center mb-8">
+        {/* Hero Section */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-500">Campaign performance overview</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Dashboard
+              </h1>
+              <p className="mt-2 text-gray-500 dark:text-gray-400">
+                Campaign performance overview
+              </p>
             </div>
             <button
               onClick={refreshDashboard}
-              className="flex items-center px-4 py-2 rounded-lg bg-white shadow"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl 
+                bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700
+                border border-gray-200 dark:border-gray-700
+                transition-all duration-200 shadow-sm"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`h-4 w-4 text-gray-600 dark:text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Refresh
+              </span>
             </button>
           </div>
+        </div>
 
-          {/* Overview Section avec Sparklines */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {overviewMetrics.map((metric) => (
-              <div key={metric.name} className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm text-gray-500">{metric.name}</h3>
-                <div className="mt-2 flex items-baseline">
-                  <p className="text-2xl font-semibold">{metric.value}</p>
-                  <span className={`ml-2 text-sm ${metric.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {metric.change > 0 ? '+' : ''}{metric.change}%
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <LayoutGrid className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Total Campaigns
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.totalCampaigns}
+                  </p>
+                  <span className="text-sm text-green-500">
+                    {stats.campaignsChange > 0 && '+'}{stats.campaignsChange}%
                   </span>
                 </div>
-                <div className="h-16 mt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={metric.historicalData}>
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#8884d8"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <BarChart className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Average Response Rate
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {(stats.averageResponseRate || 0).toFixed(1)}%
+                  </p>
+                  <span className={`text-sm ${(stats.responseRateChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {stats.responseRateChange > 0 && '+'}
+                    {(stats.responseRateChange || 0).toFixed(1)}%
+                  </span>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
 
-          {/* Recent Campaigns Section */}
-          <div className="bg-white rounded-lg shadow mb-8">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold">Recent Campaigns</h2>
-                <button className="text-purple-600 hover:text-purple-700 text-sm flex items-center">
-                  View all <ChevronRight className="h-4 w-4 ml-1" />
-                </button>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Total Candidates
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.totalCandidates}
+                  </p>
+                  <span className="text-sm text-green-500">
+                    {stats.candidatesChange > 0 && '+'}{stats.candidatesChange}%
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                {/* ... table content ... */}
-              </table>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                <Target className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Conversion Rate
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {(stats.conversionRate || 0).toFixed(1)}%
+                  </p>
+                  <span className={`text-sm ${(stats.conversionRateChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {stats.conversionRateChange > 0 && '+'}
+                    {(stats.conversionRateChange || 0).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Analytics Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* ... analytics charts ... */}
+        {/* Recent Campaigns Section */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Recent Campaigns
+            </h2>
+            <Link
+              to="/campaigns"
+              className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 
+                dark:text-purple-400 dark:hover:text-purple-300 font-medium"
+            >
+              View all
+              <ChevronRight className="h-4 w-4" />
+            </Link>
           </div>
 
-          {/* Suggestions Section */}
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
-            {/* ... suggestions content ... */}
-          </div>
-        </motion.div>
+          {recentCampaigns.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentCampaigns.map(campaign => (
+                <div key={campaign.id} 
+                  className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 
+                    dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 
+                    transition-all duration-200"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {campaign.title}
+                      </h3>
+                      <p className="text-sm text-gray-500">{campaign.jobTitle}</p>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
+                      {campaign.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {campaign.emailsSent} sent
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {campaign.responses} responses
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
+                <Inbox className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No campaigns yet
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Create your first campaign to get started
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </AuthLayout>
   );

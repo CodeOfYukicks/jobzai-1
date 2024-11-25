@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Briefcase, MapPin, FileText, Settings, AlertCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Briefcase, MapPin, FileText, Settings, AlertCircle, Building, Clock, Search, X, Loader2 } from 'lucide-react';
 import CompanySearch from './CompanySearch';
 import CreditAllocation from './CreditAllocation';
 import CVSelection from './CVSelection';
@@ -27,17 +27,43 @@ interface CampaignFormProps {
   currentStepIndex: number;
 }
 
+// Ajouter ces constantes au début du fichier, avant le composant
 const steps = [
   { 
-    title: 'Campaign Details',
+    title: 'Campaign Details', 
     subtitle: 'Basic information',
-    icon: Briefcase
+    icon: Briefcase 
   },
   { 
-    title: 'Email Template',
+    title: 'Email Template', 
     subtitle: 'Customize message',
-    icon: FileText
+    icon: FileText 
   }
+];
+
+const industryOptions = [
+  { value: 'technology', label: 'Technology' },
+  { value: 'finance', label: 'Finance & Banking' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'retail', label: 'Retail & E-commerce' },
+  { value: 'manufacturing', label: 'Manufacturing' },
+  { value: 'education', label: 'Education' },
+  { value: 'consulting', label: 'Consulting' },
+  { value: 'media', label: 'Media & Entertainment' },
+  { value: 'telecom', label: 'Telecommunications' },
+  { value: 'automotive', label: 'Automotive' },
+  { value: 'energy', label: 'Energy & Utilities' },
+  { value: 'real-estate', label: 'Real Estate' },
+  { value: 'other', label: 'Other' }
+];
+
+const jobTypeOptions = [
+  { value: 'full-time', label: 'Full Time' },
+  { value: 'part-time', label: 'Part Time' },
+  { value: 'contract', label: 'Contract' },
+  { value: 'freelance', label: 'Freelance' },
+  { value: 'internship', label: 'Internship' },
+  { value: 'temporary', label: 'Temporary' }
 ];
 
 export default function CampaignForm({ 
@@ -48,108 +74,88 @@ export default function CampaignForm({
   currentStepIndex = 0
 }: CampaignFormProps) {
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validateForm = () => {
+  const handleNext = async () => {
+    // Validation de base
     const newErrors: Partial<Record<keyof FormData, string>> = {};
-    const requiredFields: (keyof FormData)[] = [
-      'title',
-      'jobTitle',
-      'industry',
-      'jobType',
-      'location',
-      'description',
-      'credits'
-    ];
-
-    requiredFields.forEach(field => {
-      if (!formData[field]) {
-        newErrors[field] = 'This field is required';
+    
+    if (currentStepIndex === 0) {
+      if (!formData.title?.trim()) {
+        newErrors.title = 'Campaign title is required';
       }
-    });
-
-    if (formData.credits <= 0) {
-      newErrors.credits = 'Must allocate at least 1 credit';
+      if (!formData.jobTitle?.trim()) {
+        newErrors.jobTitle = 'Job title is required';
+      }
+      if (!formData.industry) {
+        newErrors.industry = 'Industry is required';
+      }
+      if (!formData.jobType) {
+        newErrors.jobType = 'Job type is required';
+      }
+      if (!formData.location?.trim()) {
+        newErrors.location = 'Location is required';
+      }
+      if (!formData.description?.trim()) {
+        newErrors.description = 'Description is required';
+      }
+      if (!formData.credits || formData.credits <= 0) {
+        newErrors.credits = 'Please allocate some credits';
+      }
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
-  const handleNext = () => {
-    if (validateForm()) {
-      onNext();
+    // Si il y a des erreurs, on ne continue pas
+    if (Object.keys(newErrors).length > 0) {
+      return;
     }
-  };
 
-  const handleBack = () => {
-    onBack();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onFormChange({ ...formData, cv: file });
+    setIsSubmitting(true);
+    try {
+      await onNext();
+    } catch (error) {
+      console.error('Error while submitting:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const handleTemplateSelect = (templateId: string) => {
-    onFormChange({ ...formData, templateId });
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-12"
-      >
-        <div className="flex items-center justify-between bg-white/80 dark:bg-[#353040]/90 
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Progress Steps */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between bg-white/80 dark:bg-gray-800/90 
           backdrop-blur-sm p-6 rounded-2xl border border-gray-100/50 dark:border-gray-700/30">
           {steps.map((step, index) => (
             <div key={step.title} className="flex items-center flex-1">
               <div className="flex flex-col items-center relative">
-                <motion.div
-                  initial={false}
-                  animate={{
-                    scale: currentStepIndex === index ? 1.1 : 1,
-                    opacity: currentStepIndex >= index ? 1 : 0.5
-                  }}
-                  className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200",
-                    currentStepIndex === index 
-                      ? "bg-gradient-to-r from-[#8D75E6] to-[#A990FF] shadow-lg shadow-[#8D75E6]/20" 
-                      : "bg-gray-100 dark:bg-gray-800"
-                  )}
-                >
-                  <step.icon className={cn(
-                    "h-5 w-5",
-                    currentStepIndex >= index ? "text-white" : "text-gray-400"
-                  )} />
-                </motion.div>
-                <div className="mt-3 text-center">
-                  <p className={cn(
-                    "text-sm font-medium",
-                    currentStepIndex === index ? "text-[#8D75E6]" : "text-gray-500"
-                  )}>
-                    {step.title}
-                  </p>
-                  <p className="text-xs text-gray-400">{step.subtitle}</p>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center
+                  ${currentStepIndex === index 
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/20' 
+                    : 'bg-gray-100 dark:bg-gray-700/50 text-gray-400'}`}>
+                  <step.icon className="h-5 w-5" />
                 </div>
+                <p className={`mt-3 text-sm font-medium
+                  ${currentStepIndex === index ? 'text-purple-600' : 'text-gray-500'}`}>
+                  {step.title}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {step.subtitle}
+                </p>
               </div>
-              {index < steps.length - 1 && (
+              {index < 1 && (
                 <div className="flex-1 h-0.5 mx-8">
-                  <div className={cn(
-                    "h-full rounded-full transition-all duration-500",
-                    currentStepIndex > index 
-                      ? "bg-gradient-to-r from-[#8D75E6] to-[#A990FF]" 
-                      : "bg-gray-200 dark:bg-gray-700"
-                  )} />
+                  <div className={`h-full rounded-full transition-all duration-500
+                    ${currentStepIndex > index 
+                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600' 
+                      : 'bg-gray-200 dark:bg-gray-700'}`} />
                 </div>
               )}
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       <form onSubmit={(e) => {
         e.preventDefault();
@@ -162,13 +168,20 @@ export default function CampaignForm({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              className="space-y-8"
             >
-              <FormSection
-                title="Basic Information"
-                icon={Briefcase}
-                description="Define your campaign's core details"
-              >
+              {/* Basic Information */}
+              <div className="bg-white/80 dark:bg-gray-800/90 rounded-2xl p-6 border 
+                border-gray-100/50 dark:border-gray-700/30 space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                    Basic Information
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Define your campaign's core details
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <FormField
                     label="Campaign Title"
@@ -192,15 +205,8 @@ export default function CampaignForm({
                     type="select"
                     value={formData.industry}
                     onChange={(e) => onFormChange({ ...formData, industry: e.target.value })}
-                    options={[
-                      { value: "", label: "Select Industry" },
-                      { value: "technology", label: "Technology" },
-                      { value: "healthcare", label: "Healthcare" },
-                      { value: "finance", label: "Finance" },
-                      { value: "education", label: "Education" },
-                      { value: "other", label: "Other" }
-                    ]}
-                    icon={Briefcase}
+                    options={industryOptions}
+                    icon={Building}
                   />
                   <FormField
                     label="Job Type"
@@ -208,32 +214,34 @@ export default function CampaignForm({
                     type="select"
                     value={formData.jobType}
                     onChange={(e) => onFormChange({ ...formData, jobType: e.target.value })}
-                    options={[
-                      { value: "", label: "Select Job Type" },
-                      { value: "full-time", label: "Full-time" },
-                      { value: "part-time", label: "Part-time" },
-                      { value: "contract", label: "Contract" },
-                      { value: "internship", label: "Internship" }
-                    ]}
-                    icon={Briefcase}
+                    options={jobTypeOptions}
+                    icon={Clock}
                   />
-                  <FormField
-                    label="Location"
-                    error={errors.location}
-                    placeholder="e.g., Remote, New York, London"
-                    value={formData.location}
-                    onChange={(e) => onFormChange({ ...formData, location: e.target.value })}
-                    className="lg:col-span-2"
-                    icon={MapPin}
-                  />
+                  <div className="lg:col-span-2">
+                    <FormField
+                      label="Location"
+                      error={errors.location}
+                      placeholder="e.g., Remote, New York, London"
+                      value={formData.location}
+                      onChange={(e) => onFormChange({ ...formData, location: e.target.value })}
+                      icon={MapPin}
+                    />
+                  </div>
                 </div>
-              </FormSection>
+              </div>
 
-              <FormSection
-                title="Campaign Details"
-                icon={FileText}
-                description="Describe your ideal candidates"
-              >
+              {/* Campaign Details */}
+              <div className="bg-white/80 dark:bg-gray-800/90 rounded-2xl p-6 border 
+                border-gray-100/50 dark:border-gray-700/30 space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                    Campaign Details
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Describe your ideal candidates
+                  </p>
+                </div>
+
                 <div className="space-y-6">
                   <FormField
                     label="Description"
@@ -247,110 +255,92 @@ export default function CampaignForm({
                   
                   <CVSelection
                     onFileSelect={(file) => onFormChange({ ...formData, cv: file })}
-                    onExistingCVSelect={(cvUrl) => {
-                      console.log("Selected existing CV:", cvUrl);
-                      onFormChange({ ...formData, cv: cvUrl });
-                    }}
+                    onExistingCVSelect={(cvUrl) => onFormChange({ ...formData, cv: cvUrl })}
+                    currentCV={formData.cv}
                   />
                 </div>
-              </FormSection>
+              </div>
 
-              <FormSection
-                title="Campaign Settings"
-                icon={Settings}
-                description="Configure campaign preferences"
-              >
+              {/* Campaign Settings */}
+              <div className="bg-white/80 dark:bg-gray-800/90 rounded-2xl p-6 border 
+                border-gray-100/50 dark:border-gray-700/30 space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                    Campaign Settings
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Configure campaign preferences
+                  </p>
+                </div>
+
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Company Blacklist</label>
-                    <CompanySearch
-                      onSelect={(company) => onFormChange({
-                        ...formData,
-                        blacklistedCompanies: [...formData.blacklistedCompanies, company]
-                      })}
-                      onRemove={(companyId) => onFormChange({
-                        ...formData,
-                        blacklistedCompanies: formData.blacklistedCompanies.filter(c => c.id !== companyId)
-                      })}
-                      selectedCompanies={formData.blacklistedCompanies}
-                    />
-                  </div>
+                  <CompanyBlacklist
+                    selectedCompanies={formData.blacklistedCompanies}
+                    onSelect={(company) => onFormChange({
+                      ...formData,
+                      blacklistedCompanies: [...formData.blacklistedCompanies, company]
+                    })}
+                    onRemove={(companyId) => onFormChange({
+                      ...formData,
+                      blacklistedCompanies: formData.blacklistedCompanies.filter(c => c.id !== companyId)
+                    })}
+                  />
 
                   <CreditAllocation
                     availableCredits={100}
+                    currentCredits={formData.credits}
                     onChange={(credits) => onFormChange({ ...formData, credits })}
+                    error={errors.credits}
                   />
                 </div>
-              </FormSection>
+              </div>
             </motion.div>
           )}
           
           {currentStepIndex === 1 && (
-            <motion.div
-              key="email-template"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
-            >
-              {/* Contenu de la deuxième étape */}
-            </motion.div>
+            <EmailTemplateStep
+              formData={formData}
+              onFormChange={onFormChange}
+              errors={errors}
+            />
           )}
         </AnimatePresence>
 
-        <motion.div className="flex justify-between mt-8">
-          <motion.button
+        {/* Navigation */}
+        <div className="flex justify-between mt-8">
+          <button
             type="button"
-            onClick={handleBack}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-600 
-              hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+            onClick={onBack}
+            className="px-4 py-2 text-gray-600 hover:text-gray-900 
+              dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
           >
             Back
-          </motion.button>
+          </button>
           
-          <motion.button
+          <button
             type="submit"
-            className="px-6 py-3 bg-gradient-to-r from-[#8D75E6] to-[#A990FF]
-              text-white rounded-xl shadow-lg shadow-[#8D75E6]/20
-              hover:shadow-xl hover:shadow-[#8D75E6]/30
-              transition-all duration-200
-              flex items-center gap-2"
+            disabled={isSubmitting}
+            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 
+              text-white rounded-lg shadow-lg shadow-purple-600/20 
+              hover:shadow-xl hover:shadow-purple-600/30 
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-all duration-200 flex items-center gap-2"
           >
-            {currentStepIndex === steps.length - 1 ? 'Create Campaign' : 'Next Step'}
-            <ArrowRight className="h-4 w-4" />
-          </motion.button>
-        </motion.div>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                {currentStepIndex === 1 ? 'Create Campaign' : 'Next Step'}
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        </div>
       </form>
     </div>
-  );
-}
-
-function FormSection({ title, icon: Icon, description, children }: {
-  title: string;
-  icon: any;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.div 
-      className="bg-white/80 dark:bg-[#353040]/90 backdrop-blur-sm 
-        rounded-2xl border border-gray-100/50 dark:border-gray-700/30 
-        p-6 transition-all hover:shadow-lg hover:shadow-[#8D75E6]/5"
-    >
-      <div className="flex items-start gap-4 mb-6">
-        <div className="p-3 rounded-xl bg-[#8D75E6]/10">
-          <Icon className="h-5 w-5 text-[#8D75E6]" />
-        </div>
-        <div>
-          <h2 className="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-600 
-            dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            {title}
-          </h2>
-          <p className="text-sm text-gray-500">{description}</p>
-        </div>
-      </div>
-      {children}
-    </motion.div>
   );
 }
 
@@ -420,6 +410,119 @@ function FormField({ label, error, type = 'text', icon: Icon, options, className
           <AlertCircle className="h-4 w-4" />
           <p className="text-sm">{error}</p>
         </motion.div>
+      )}
+    </div>
+  );
+}
+
+function CompanyBlacklist({ 
+  selectedCompanies = [], 
+  onSelect, 
+  onRemove 
+}: {
+  selectedCompanies: { id: string; name: string; }[];
+  onSelect: (company: { id: string; name: string; }) => void;
+  onRemove: (companyId: string) => void;
+}) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<{ id: string; name: string; }[]>([]);
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Simuler une recherche d'API
+      const results = [
+        { id: '1', name: 'Google' },
+        { id: '2', name: 'Microsoft' },
+        { id: '3', name: 'Apple' },
+        { id: '4', name: 'Amazon' },
+        { id: '5', name: 'Meta' }
+      ].filter(company => 
+        company.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(results);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-2 bg-gradient-to-r 
+          from-gray-700 to-gray-500 dark:from-gray-200 dark:to-gray-400 
+          bg-clip-text text-transparent">
+          Company Blacklist
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Search companies to blacklist..."
+            className="w-full rounded-xl bg-gray-50/50 dark:bg-gray-800/50 
+              border border-gray-200/50 dark:border-gray-700/30
+              focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600/50
+              pl-10 pr-4 py-2.5"
+          />
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <Search className="h-5 w-5" />
+          </div>
+          {isSearching && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+            </div>
+          )}
+        </div>
+
+        {/* Résultats de recherche */}
+        {searchResults.length > 0 && (
+          <div className="absolute mt-1 w-full bg-white dark:bg-gray-800 rounded-lg border 
+            border-gray-200 dark:border-gray-700 shadow-lg z-10 max-h-48 overflow-auto">
+            {searchResults.map(company => (
+              <button
+                key={company.id}
+                onClick={() => {
+                  onSelect(company);
+                  setSearchQuery('');
+                  setSearchResults([]);
+                }}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700
+                  text-sm text-gray-700 dark:text-gray-300"
+              >
+                {company.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Entreprises sélectionnées */}
+      {selectedCompanies.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectedCompanies.map(company => (
+            <div
+              key={company.id}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-full
+                bg-gray-100 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300"
+            >
+              <span>{company.name}</span>
+              <button
+                onClick={() => onRemove(company.id)}
+                className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+              >
+                <X className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -195,213 +195,224 @@ export default function SettingsPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-2xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          {/* En-tête */}
-          <div className="mb-8">
-            <h1 className="text-xl font-semibold text-gray-900">Profile Settings</h1>
-            <p className="text-sm text-gray-500">Update your personal information</p>
-          </div>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            Profile Settings
+          </h1>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
+            Update your personal information
+          </p>
+        </div>
 
-          {/* Contenu principal */}
-          <div className="bg-white rounded-2xl p-8 space-y-8">
-            {/* Photo de profil */}
-            <div className="bg-white rounded-xl p-6 mb-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium">Profile Picture</h3>
-                <label 
-                  htmlFor="profile-upload" 
-                  className="text-purple-600 text-sm hover:text-purple-700 cursor-pointer"
-                >
-                  Update Photo
-                </label>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                {settings.photoURL ? (
-                  <img 
-                    src={settings.photoURL} 
-                    alt="Profile" 
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center">
-                    <User className="w-8 h-8 text-purple-600" />
-                  </div>
-                )}
-                <p className="text-xs text-gray-500">JPG, GIF or PNG. Max size of 2MB</p>
-                <input
-                  type="file"
-                  id="profile-upload"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </div>
+        <div className="space-y-6 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          {/* Profile Picture Section */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Picture</h2>
+              <label 
+                htmlFor="profile-upload"
+                className="text-sm text-purple-600 hover:text-purple-700 cursor-pointer font-medium"
+              >
+                Update Photo
+              </label>
             </div>
-
-            {/* CV Upload */}
-            <div className="bg-white rounded-xl p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-medium">Resume/CV</h3>
-                  <p className="text-xs text-gray-500">PDF, DOC or DOCX</p>
-                </div>
-                <label 
-                  htmlFor="cv-upload" 
-                  className="text-purple-600 text-sm hover:text-purple-700 cursor-pointer"
-                >
-                  {settings.cvUrl ? 'Update CV' : 'Upload CV'}
-                </label>
-              </div>
-
-              {settings.cvUrl && (
-                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                  <FileText className="h-5 w-5 text-purple-600" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 truncate">{settings.cvName}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {settings.cvUrl.split('/').pop()}
-                    </p>
-                  </div>
+            <div className="flex items-center gap-4">
+              {settings.photoURL ? (
+                <img 
+                  src={settings.photoURL} 
+                  alt="Profile" 
+                  className="h-16 w-16 rounded-full object-cover ring-2 ring-purple-100 dark:ring-purple-900"
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-purple-100 dark:bg-purple-900/30 
+                  flex items-center justify-center">
+                  <User className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                 </div>
               )}
-              
+              <p className="text-sm text-gray-500">JPG, GIF or PNG. Max size of 2MB</p>
+            </div>
+            <input
+              type="file"
+              id="profile-upload"
+              className="hidden"
+              accept="image/*"
+              onChange={handleImageUpload}
+            />
+          </div>
+
+          {/* Resume/CV Section */}
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Resume/CV</h2>
+                <p className="text-sm text-gray-500">PDF, DOC or DOCX</p>
+              </div>
+              <label 
+                htmlFor="cv-upload"
+                className="text-sm text-purple-600 hover:text-purple-700 cursor-pointer font-medium"
+              >
+                {settings.cvUrl ? 'Update CV' : 'Upload CV'}
+              </label>
+            </div>
+            
+            {settings.cvUrl && (
+              <div className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {settings.cvName}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {settings.cvUrl.split('/').pop()}
+                  </p>
+                </div>
+              </div>
+            )}
+            <input
+              type="file"
+              id="cv-upload"
+              className="hidden"
+              accept=".pdf,.doc,.docx"
+              onChange={handleCVUpload}
+            />
+          </div>
+
+          {/* Job Search Motivation */}
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Job Search Motivation
+            </h2>
+            <div className="relative">
+              <textarea
+                value={settings.motivation}
+                onChange={(e) => setSettings(prev => ({ ...prev, motivation: e.target.value }))}
+                className="w-full min-h-[120px] p-4 rounded-lg border border-gray-200 
+                  dark:border-gray-700 bg-white dark:bg-gray-800
+                  focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
+                  resize-none"
+                placeholder="Describe your career goals and what you're looking for..."
+                maxLength={500}
+              />
+              <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                {settings.motivation.length}/500
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Information */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                First Name
+              </label>
               <input
-                type="file"
-                id="cv-upload"
-                accept=".pdf,.doc,.docx"
-                className="hidden"
-                onChange={handleCVUpload}
+                type="text"
+                value={settings.firstName}
+                onChange={(e) => setSettings(prev => ({ ...prev, firstName: e.target.value }))}
+                className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                  bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 
+                  focus:border-purple-500"
               />
             </div>
-
-            {/* Job Search Motivation */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Job Search Motivation
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Last Name
               </label>
-              <div className="relative">
-                <textarea
-                  value={settings.motivation}
-                  onChange={(e) => setSettings(prev => ({ ...prev, motivation: e.target.value }))}
-                  className="w-full min-h-[160px] p-4 rounded-xl border border-gray-200 
-                    focus:ring-2 focus:ring-purple-100 focus:border-purple-600 
-                    resize-none scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent
-                    hover:border-gray-300 transition-colors"
-                  placeholder="Describe your career goals, preferred industries, and what you're looking for in your next role..."
-                />
-                <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                  {settings.motivation.length}/500
-                </div>
-              </div>
-              <p className="text-xs text-gray-500">
-                Be specific about your experience, skills, and what you're looking for
-              </p>
+              <input
+                type="text"
+                value={settings.lastName}
+                onChange={(e) => setSettings(prev => ({ ...prev, lastName: e.target.value }))}
+                className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                  bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 
+                  focus:border-purple-500"
+              />
             </div>
+            <div className="sm:col-span-2 space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Location
+              </label>
+              <input
+                type="text"
+                value={settings.location}
+                onChange={(e) => setSettings(prev => ({ ...prev, location: e.target.value }))}
+                className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                  bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 
+                  focus:border-purple-500"
+                placeholder="e.g., Paris, Remote..."
+              />
+            </div>
+          </div>
 
-            {/* Informations personnelles */}
+          {/* Gender Selection */}
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gender</h2>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">First Name</label>
-                <input
-                  type="text"
-                  value={settings.firstName}
-                  onChange={(e) => setSettings(prev => ({ ...prev, firstName: e.target.value }))}
-                  className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-100 focus:border-purple-600"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Last Name</label>
-                <input
-                  type="text"
-                  value={settings.lastName}
-                  onChange={(e) => setSettings(prev => ({ ...prev, lastName: e.target.value }))}
-                  className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-100 focus:border-purple-600"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700">Location</label>
-                <input
-                  type="text"
-                  value={settings.location}
-                  onChange={(e) => setSettings(prev => ({ ...prev, location: e.target.value }))}
-                  className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-100 focus:border-purple-600"
-                  placeholder="e.g., Paris, Remote..."
-                />
-              </div>
-            </div>
-
-            {/* Sélections */}
-            <div className="space-y-6">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Gender</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {['Male', 'Female'].map((gender) => (
-                    <button
-                      key={gender}
-                      onClick={() => setSettings(prev => ({ ...prev, gender: gender.toLowerCase() as 'male' | 'female' }))}
-                      className={`p-3 rounded-xl border-2 transition-all ${
-                        settings.gender === gender.toLowerCase()
-                          ? 'border-purple-600 bg-purple-50 text-purple-700'
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      {gender}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Contract Type</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {contractTypes.map(type => (
-                    <button
-                      key={type.id}
-                      onClick={() => setSettings(prev => ({ ...prev, contractType: type.id }))}
-                      className={`p-3 rounded-xl border-2 transition-all ${
-                        settings.contractType === type.id
-                          ? 'border-purple-600 bg-purple-50 text-purple-700'
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="pt-4">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full p-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50"
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
+              {['Male', 'Female'].map((gender) => (
+                <button
+                  key={gender}
+                  onClick={() => setSettings(prev => ({ 
+                    ...prev, 
+                    gender: gender.toLowerCase() as 'male' | 'female' 
+                  }))}
+                  className={`p-3 rounded-lg border-2 transition-all
+                    ${settings.gender === gender.toLowerCase()
+                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                      : 'border-gray-200 dark:border-gray-700'
+                    }`}
+                >
+                  {gender}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Security */}
-          <div className="bg-white rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium">Change Password</h3>
-                <p className="text-xs text-gray-500">Update your password regularly</p>
-              </div>
-              <button className="text-purple-600 hover:text-purple-700">
-                Change
-              </button>
+          {/* Contract Type */}
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Contract Type</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {contractTypes.map(type => (
+                <button
+                  key={type.id}
+                  onClick={() => setSettings(prev => ({ ...prev, contractType: type.id }))}
+                  className={`p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2
+                    ${settings.contractType === type.id
+                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                      : 'border-gray-200 dark:border-gray-700'
+                    }`}
+                >
+                  <type.icon className="h-4 w-4" />
+                  {type.label}
+                </button>
+              ))}
             </div>
           </div>
-        </motion.div>
+
+          {/* Save Button */}
+          <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full p-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+
+        {/* Security */}
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium">Change Password</h3>
+              <p className="text-xs text-gray-500">Update your password regularly</p>
+            </div>
+            <button className="text-purple-600 hover:text-purple-700">
+              Change
+            </button>
+          </div>
+        </div>
       </div>
     </AuthLayout>
   );
