@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, CreditCard, X, LogOut } from 'lucide-react';
+import { Settings, CreditCard, X, LogOut, UserCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface QuickSettingsPanelProps {
@@ -15,6 +15,7 @@ interface QuickSettingsPanelProps {
 }
 
 const menuItems = [
+  { icon: UserCircle, label: 'Professional Profile', path: '/professional-profile' },
   { icon: Settings, label: 'Settings', path: '/settings' },
   { icon: CreditCard, label: 'Billing', path: '/billing' },
 ];
@@ -43,7 +44,7 @@ export const QuickSettingsPanel = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-xl z-50 flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-full sm:w-80 bg-white shadow-xl z-50 flex flex-col"
           >
             {/* Header */}
             <div className="p-4 border-b border-gray-100">
@@ -75,8 +76,22 @@ export const QuickSettingsPanel = ({
               </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Actions avec Profil mis en évidence */}
             <div className="p-4 border-b border-gray-100">
+              <Link
+                to="/professional-profile"
+                onClick={onClose}
+                className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg p-4 mb-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">Complete Your Profile</span>
+                  <UserCircle className="w-5 h-5" />
+                </div>
+                <div className="text-sm opacity-90">
+                  Enhance your job matching opportunities
+                </div>
+              </Link>
+
               <div className="bg-gradient-to-r from-[#8D75E6]/10 to-transparent rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Credits</span>

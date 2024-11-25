@@ -23,6 +23,7 @@ const navigationGroups = {
     { name: 'Template Studio', href: '/email-templates', icon: Mail },
     { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
     { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
+    { name: 'Professional Profile', href: '/professional-profile', icon: User },
   ],
 };
 

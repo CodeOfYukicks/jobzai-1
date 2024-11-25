@@ -10,12 +10,54 @@ import CVAnalysisCard from '../components/CVAnalysisCard';
 import { analyzeCVWithGPT, CVAnalysis } from '../lib/cvAnalysis';
 import { UserData } from '../types';
 
+interface GPTRecommendation {
+  type: 'target-companies' | 'application-timing' | 'salary-insights' | 'keyword-optimization';
+  prompt: string;
+  userData: any;
+  result?: any;
+}
+
 export default function RecommendationsPage() {
   const { currentUser } = useAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [cvAnalysis, setCvAnalysis] = useState<CVAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<{
+    targetCompanies: any | null;
+    applicationTiming: any | null;
+    salaryInsights: any | null;
+    keywordOptimization: any | null;
+  }>({
+    targetCompanies: null,
+    applicationTiming: null,
+    salaryInsights: null,
+    keywordOptimization: null,
+  });
+
+  const [loading, setLoading] = useState<{
+    targetCompanies: boolean;
+    applicationTiming: boolean;
+    salaryInsights: boolean;
+    keywordOptimization: boolean;
+  }>({
+    targetCompanies: false,
+    applicationTiming: false,
+    salaryInsights: false,
+    keywordOptimization: false,
+  });
+
+  // Fonction pour charger les recommandations
+  const loadRecommendation = async (type: GPTRecommendation['type']) => {
+    setLoading(prev => ({ ...prev, [type]: true }));
+    try {
+      // À implémenter avec vos prompts
+    } catch (error) {
+      console.error(`Error loading ${type} recommendation:`, error);
+    } finally {
+      setLoading(prev => ({ ...prev, [type]: false }));
+    }
+  };
 
   useEffect(() => {
     if (!currentUser) return;
