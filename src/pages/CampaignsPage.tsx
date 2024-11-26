@@ -42,6 +42,7 @@ export default function CampaignsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showNewCampaign, setShowNewCampaign] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+  const [userCredits, setUserCredits] = useState<number>(0);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -89,6 +90,18 @@ export default function CampaignsPage() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const userRef = doc(db, 'users', currentUser.uid);
+    const unsubscribe = onSnapshot(userRef, (doc) => {
+      const userData = doc.data();
+      setUserCredits(userData?.credits || 0);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const handleDeleteCampaign = async () => {
     if (!currentUser || !deleteModal.campaign) return;
@@ -149,10 +162,32 @@ export default function CampaignsPage() {
       const userSnap = await getDoc(userRef);
       const userData = userSnap.data();
 
+      // Vérifier si l'utilisateur a assez de crédits
+      const currentCredits = userData?.credits || 0;
+
       // Récupérer la campagne
       const campaignRef = doc(db, 'users', currentUser.uid, 'campaigns', campaignId);
       const campaignSnap = await getDoc(campaignRef);
       const campaign = campaignSnap.data();
+
+      // Vérifier si la campagne existe et a des crédits assignés
+      if (!campaign?.credits) {
+        toast.dismiss(toastId);
+        toast.error("Campaign credits not specified");
+        return;
+      }
+
+      // Vérifier si l'utilisateur a assez de crédits
+      if (currentCredits < campaign.credits) {
+        toast.dismiss(toastId);
+        toast.error(`Insufficient credits. You need ${campaign.credits} credits but only have ${currentCredits}`);
+        return;
+      }
+
+      // Déduire les crédits du solde de l'utilisateur
+      await updateDoc(userRef, {
+        credits: currentCredits - campaign.credits
+      });
 
       // Récupérer le template
       const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', campaign.templateId);
@@ -197,14 +232,15 @@ export default function CampaignsPage() {
       const WEBHOOK_URL = "https://hook.eu1.make.com/orrmdfwy6ahw3315pi3gfrryc4h5uj1s";
       await axios.post(WEBHOOK_URL, webhookData);
 
-      // Mettre à jour le statut
+      // Mettre à jour le statut de la campagne
       await updateDoc(campaignRef, {
         status: 'active',
-        startedAt: serverTimestamp()
+        startedAt: serverTimestamp(),
+        creditsDeducted: true // Marquer que les crédits ont été déduits
       });
 
       toast.dismiss(toastId);
-      toast.success("Campaign started successfully!");
+      toast.success(`Campaign started successfully! ${campaign.credits} credits deducted from your balance.`);
 
     } catch (error) {
       console.error("Error starting campaign:", error);
@@ -335,10 +371,17 @@ export default function CampaignsPage() {
                     {campaign.jobTitle}
                   </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium
-                  ${getStatusColor(campaign.status)}`}>
-                  {campaign.status}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium
+                    ${getStatusColor(campaign.status)}`}>
+                    {campaign.status}
+                  </span>
+                  {campaign.status === 'pending' && (
+                    <span className="text-xs text-gray-500">
+                      Credits: {campaign.credits} / {userCredits} available
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

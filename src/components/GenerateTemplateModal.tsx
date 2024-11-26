@@ -195,35 +195,37 @@ export default function GenerateTemplateModal({ onClose, onTemplateCreated }: Ge
   };
 
   return (
-    <div className="fixed inset-0 z-50 md:bg-black/60 md:backdrop-blur-sm md:p-4">
-      <div className="relative h-screen w-full md:h-auto md:max-h-[90vh] md:max-w-2xl md:mx-auto md:rounded-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 md:bg-black/60 md:backdrop-blur-sm md:p-4 overflow-y-auto">
+      <div className="relative min-h-full w-full md:h-auto md:max-w-2xl md:mx-auto md:rounded-2xl">
         {/* Version Mobile */}
-        <div className="md:hidden h-full flex flex-col bg-white dark:bg-[#0B1120]">
+        <div className="md:hidden min-h-screen flex flex-col bg-white">
           {/* Header */}
-          <header className="flex items-center px-4 h-16">
-            <button onClick={onClose} className="p-2 -ml-2">
-              <ChevronLeft className="h-6 w-6 text-gray-900 dark:text-white" />
-            </button>
-            <div className="flex-1 flex items-center justify-center gap-3">
-              <div className="relative w-8 h-8">
-                <div className="rounded-full bg-purple-600/10 p-1.5">
-                  <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                    {progressPercentage}%
-                  </span>
+          <header className="sticky top-0 z-10 bg-white border-b">
+            <div className="flex items-center px-4 h-16">
+              <button onClick={onClose} className="p-2 -ml-2">
+                <ChevronLeft className="h-6 w-6 text-gray-900 dark:text-white" />
+              </button>
+              <div className="flex-1 flex items-center justify-center gap-3">
+                <div className="relative w-8 h-8">
+                  <div className="rounded-full bg-purple-600/10 p-1.5">
+                    <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                      {progressPercentage}%
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-base font-semibold text-gray-900 dark:text-white">
+                    Template Studio
+                  </h1>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Create your perfect email
+                  </p>
                 </div>
               </div>
-              <div>
-                <h1 className="text-base font-semibold text-gray-900 dark:text-white">
-                  Template Studio
-                </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Create your perfect email
-                </p>
-              </div>
+              <button onClick={onClose} className="p-2">
+                <X className="h-6 w-6 text-gray-900 dark:text-white" />
+              </button>
             </div>
-            <button onClick={onClose} className="p-2">
-              <X className="h-6 w-6 text-gray-900 dark:text-white" />
-            </button>
           </header>
 
           {/* Contenu */}
@@ -294,7 +296,7 @@ export default function GenerateTemplateModal({ onClose, onTemplateCreated }: Ge
           </div>
 
           {/* Footer */}
-          <div className="fixed bottom-0 left-0 right-0 px-4 py-4 bg-white dark:bg-[#0B1120] border-t border-gray-200 dark:border-gray-800">
+          <div className="sticky bottom-0 bg-white border-t p-4">
             <div className="flex gap-3 max-w-md mx-auto">
               {/* Cancel */}
               <button 
@@ -348,9 +350,8 @@ export default function GenerateTemplateModal({ onClose, onTemplateCreated }: Ge
         </div>
 
         {/* Version Desktop - NOUVELLE VERSION */}
-        <div className="hidden md:block bg-white dark:bg-[#0B1120] h-full">
-          <div className="flex flex-col h-full">
-            {/* Header avec progression */}
+        <div className="hidden md:block bg-white rounded-2xl">
+          <div className="sticky top-0 z-10 bg-white border-b rounded-t-2xl">
             <div className="flex items-center justify-between p-6">
               <div className="flex items-center gap-3">
                 <div className="relative w-12 h-12">
@@ -390,9 +391,11 @@ export default function GenerateTemplateModal({ onClose, onTemplateCreated }: Ge
                 <X className="h-5 w-5" />
               </button>
             </div>
+          </div>
 
-            {/* Contenu principal */}
-            <div className="flex flex-1">
+          {/* Contenu principal */}
+          <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+            <div className="flex">
               {/* Colonne de gauche */}
               <div className="w-1/2 p-6 space-y-8">
                 {/* Section Goal */}
@@ -499,29 +502,29 @@ export default function GenerateTemplateModal({ onClose, onTemplateCreated }: Ge
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Footer */}
-            <div className="p-6 border-t border-gray-200 dark:border-gray-800">
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="w-full py-3 px-4 bg-purple-600 text-white rounded-xl
-                  flex items-center justify-center gap-2 hover:bg-purple-700 
-                  disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Generating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="h-5 w-5" />
-                    <span>Generate Template</span>
-                  </>
-                )}
-              </button>
-            </div>
+          {/* Footer */}
+          <div className="sticky bottom-0 bg-white border-t rounded-b-2xl">
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="w-full py-3 px-4 bg-purple-600 text-white rounded-xl
+                flex items-center justify-center gap-2 hover:bg-purple-700 
+                disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-5 w-5" />
+                  <span>Generate Template</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

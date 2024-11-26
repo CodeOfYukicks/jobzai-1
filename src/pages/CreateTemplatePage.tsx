@@ -123,210 +123,130 @@ export default function CreateTemplatePage() {
   }
 
   return (
-    <div className="relative h-screen overflow-auto">
+    <div className="relative h-screen overflow-hidden">
       {/* Layout principal avec flou amélioré */}
       <AuthLayout>
         <div className="filter blur-md opacity-50">
-          {/* Contenu existant de la page */}
           <div className="container mx-auto px-4">
             {/* ... contenu normal ... */}
           </div>
         </div>
       </AuthLayout>
 
-      {/* Modal overlay avec fond plus foncé */}
-      <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
-        {/* Background overlay plus foncé et plus flou */}
-        <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
+      {/* Modal overlay avec scroll */}
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        {/* Background overlay */}
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm" />
 
-        {/* Modal */}
-        <div className="relative w-full max-w-3xl bg-white dark:bg-[#0B1120] rounded-3xl shadow-xl overflow-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-[#9333EA]/10 flex items-center justify-center relative">
-                {/* Cercle de progression */}
-                <svg className="absolute inset-0 w-full h-full -rotate-90">
-                  <circle
-                    cx="24"
-                    cy="24"
-                    r="20"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                    className="text-[#9333EA]/20"
-                  />
-                  <circle
-                    cx="24"
-                    cy="24"
-                    r="20"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                    className="text-[#9333EA]"
-                    strokeDasharray={`${(calculateProgress() / 100) * (2 * Math.PI * 20)} ${2 * Math.PI * 20}`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="text-[#9333EA] font-medium relative">
-                  {calculateProgress()}%
-                </span>
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Template Studio</h1>
-                <p className="text-gray-500 dark:text-gray-400">Create your perfect email</p>
-              </div>
-            </div>
-            <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Inputs et champs */}
-          <div className="p-6 space-y-6">
-            {/* Template Name */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Template Name</label>
-              <input
-                type="text"
-                value={template.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="e.g., Professional Introduction"
-                className="w-full px-3 py-2 rounded-lg 
-                  bg-white dark:bg-[#0B1120]
-                  border border-gray-200 dark:border-gray-800
-                  text-gray-900 dark:text-gray-100
-                  placeholder:text-gray-400 dark:placeholder:text-gray-500
-                  focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]"
-              />
-            </div>
-
-            {/* Merge Fields */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                <Mail className="w-4 h-4" />
-                <span>Available merge fields</span>
-                <span className="text-gray-400">•</span>
-                <span className="text-gray-500">Recipient's information that will be automatically replaced</span>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { field: 'salutationField', example: 'Mr/Ms', note: 'Formal title' },
-                  { field: 'firstNameField', example: 'John' },
-                  { field: 'lastNameField', example: 'Doe' },
-                  { field: 'companyField', example: 'Acme Corp' }
-                ].map(({ field, example, note }) => (
-                  <button
-                    key={field}
-                    onClick={() => insertMergeField(field)}
-                    className="flex flex-col items-start p-3 rounded-lg 
-                      bg-white dark:bg-[#0B1120]
-                      border border-gray-200 dark:border-gray-800
-                      hover:border-[#9333EA]
-                      transition-colors text-left"
-                  >
-                    <span className="font-mono text-sm text-[#9333EA]">{field}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Example: {example}</span>
-                    {note && <span className="text-xs text-purple-500 dark:text-purple-400 mt-1">{note}</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Subject Line */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Subject Line</label>
-              <input
-                id="template-subject"
-                type="text"
-                value={template.subject}
-                onChange={(e) => handleChange('subject', e.target.value)}
-                placeholder="e.g., Follow-up: {{position}} opportunity at {{company}}"
-                className="w-full px-3 py-2 rounded-lg 
-                  bg-white dark:bg-gray-900
-                  border border-gray-200 dark:border-gray-700
-                  text-gray-900 dark:text-gray-100
-                  placeholder:text-gray-400 dark:placeholder:text-gray-500
-                  focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0"
-              />
-            </div>
-
-            {/* Content */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Content</label>
-              <textarea
-                id="template-content"
-                value={template.content}
-                onChange={(e) => handleChange('content', e.target.value)}
-                rows={8}
-                className="w-full px-3 py-2 rounded-lg 
-                  bg-white dark:bg-gray-900
-                  border border-gray-200 dark:border-gray-700
-                  text-gray-900 dark:text-gray-100
-                  placeholder:text-gray-400 dark:placeholder:text-gray-500
-                  focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0
-                  font-mono text-sm"
-                placeholder={`Dear salutationField lastNameField,\n\nI hope this message finds you well...\n\nBest regards,\n[Your name]`}
-              />
-            </div>
-
-            {/* Settings Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Email Goal */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  <Target className="w-4 h-4" />
-                  Email Goal
-                </label>
-                <div className="space-y-2">
-                  {['Build Connection', 'Explore Opportunities', 'Make Introduction'].map((goal) => (
-                    <button
-                      key={goal}
-                      onClick={() => handleChange('goal', goal.toLowerCase())}
-                      className={`w-full p-3 text-left rounded-lg border transition-colors
-                        ${template.goal === goal.toLowerCase()
-                          ? 'bg-[#9333EA]/10 border-[#9333EA] text-white'
-                          : 'bg-white dark:bg-[#0B1120] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-[#9333EA]'
-                        }`}
-                    >
-                      {goal}
-                    </button>
-                  ))}
+        {/* Container du modal avec padding et min-height pour centrage */}
+        <div className="relative min-h-full p-4 flex items-start justify-center">
+          {/* Modal avec hauteur maximale et scroll interne */}
+          <div className="relative w-full max-w-3xl my-4 bg-white dark:bg-[#0B1120] rounded-3xl shadow-xl flex flex-col">
+            {/* Header fixe */}
+            <div className="sticky top-0 z-20 bg-white dark:bg-[#0B1120] rounded-t-3xl border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-[#9333EA]/10 flex items-center justify-center relative">
+                    {/* Cercle de progression */}
+                    <svg className="absolute inset-0 w-full h-full -rotate-90">
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="20"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                        className="text-[#9333EA]/20"
+                      />
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="20"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                        className="text-[#9333EA]"
+                        strokeDasharray={`${(calculateProgress() / 100) * (2 * Math.PI * 20)} ${2 * Math.PI * 20}`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span className="text-[#9333EA] font-medium relative">
+                      {calculateProgress()}%
+                    </span>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Template Studio</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Create your perfect email</p>
+                  </div>
                 </div>
+                <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
+            </div>
 
-              {/* Language & Tags */}
-              <div className="space-y-6">
+            {/* Zone de contenu scrollable */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-6 space-y-6">
+                {/* Template Name */}
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium">
-                    <Globe2 className="w-4 h-4" />
-                    Language
-                  </label>
-                  <select
-                    value={template.language}
-                    onChange={(e) => handleChange('language', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg 
-                      bg-white dark:bg-gray-900
-                      border border-gray-200 dark:border-gray-700
-                      text-gray-900 dark:text-gray-100
-                      focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0"
-                  >
-                    <option value="en">English</option>
-                    <option value="fr">Français</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium">
-                    <Tags className="w-4 h-4" />
-                    Tags (comma-separated)
-                  </label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Template Name</label>
                   <input
                     type="text"
-                    value={template.tags}
-                    onChange={(e) => handleChange('tags', e.target.value)}
-                    placeholder="e.g., professional, introduction, job-application"
+                    value={template.name}
+                    onChange={(e) => handleChange('name', e.target.value)}
+                    placeholder="e.g., Professional Introduction"
+                    className="w-full px-3 py-2 rounded-lg 
+                      bg-white dark:bg-[#0B1120]
+                      border border-gray-200 dark:border-gray-800
+                      text-gray-900 dark:text-gray-100
+                      placeholder:text-gray-400 dark:placeholder:text-gray-500
+                      focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]"
+                  />
+                </div>
+
+                {/* Merge Fields */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <Mail className="w-4 h-4" />
+                    <span>Available merge fields</span>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-gray-500">Recipient's information that will be automatically replaced</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { field: 'salutationField', example: 'Mr/Ms', note: 'Formal title' },
+                      { field: 'firstNameField', example: 'John' },
+                      { field: 'lastNameField', example: 'Doe' },
+                      { field: 'companyField', example: 'Acme Corp' }
+                    ].map(({ field, example, note }) => (
+                      <button
+                        key={field}
+                        onClick={() => insertMergeField(field)}
+                        className="flex flex-col items-start p-3 rounded-lg 
+                          bg-white dark:bg-[#0B1120]
+                          border border-gray-200 dark:border-gray-800
+                          hover:border-[#9333EA]
+                          transition-colors text-left"
+                      >
+                        <span className="font-mono text-sm text-[#9333EA]">{field}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Example: {example}</span>
+                        {note && <span className="text-xs text-purple-500 dark:text-purple-400 mt-1">{note}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Subject Line */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Subject Line</label>
+                  <input
+                    id="template-subject"
+                    type="text"
+                    value={template.subject}
+                    onChange={(e) => handleChange('subject', e.target.value)}
+                    placeholder="e.g., Follow-up: {{position}} opportunity at {{company}}"
                     className="w-full px-3 py-2 rounded-lg 
                       bg-white dark:bg-gray-900
                       border border-gray-200 dark:border-gray-700
@@ -335,22 +255,110 @@ export default function CreateTemplatePage() {
                       focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0"
                   />
                 </div>
+
+                {/* Content */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Content</label>
+                  <textarea
+                    id="template-content"
+                    value={template.content}
+                    onChange={(e) => handleChange('content', e.target.value)}
+                    rows={8}
+                    className="w-full px-3 py-2 rounded-lg 
+                      bg-white dark:bg-gray-900
+                      border border-gray-200 dark:border-gray-700
+                      text-gray-900 dark:text-gray-100
+                      placeholder:text-gray-400 dark:placeholder:text-gray-500
+                      focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0
+                      font-mono text-sm"
+                    placeholder={`Dear salutationField lastNameField,\n\nI hope this message finds you well...\n\nBest regards,\n[Your name]`}
+                  />
+                </div>
+
+                {/* Settings Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Email Goal */}
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <Target className="w-4 h-4" />
+                      Email Goal
+                    </label>
+                    <div className="space-y-2">
+                      {['Build Connection', 'Explore Opportunities', 'Make Introduction'].map((goal) => (
+                        <button
+                          key={goal}
+                          onClick={() => handleChange('goal', goal.toLowerCase())}
+                          className={`w-full p-3 text-left rounded-lg border transition-colors
+                            ${template.goal === goal.toLowerCase()
+                              ? 'bg-[#9333EA]/10 border-[#9333EA] text-white'
+                              : 'bg-white dark:bg-[#0B1120] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-[#9333EA]'
+                            }`}
+                        >
+                          {goal}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Language & Tags */}
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium">
+                        <Globe2 className="w-4 h-4" />
+                        Language
+                      </label>
+                      <select
+                        value={template.language}
+                        onChange={(e) => handleChange('language', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg 
+                          bg-white dark:bg-gray-900
+                          border border-gray-200 dark:border-gray-700
+                          text-gray-900 dark:text-gray-100
+                          focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0"
+                      >
+                        <option value="en">English</option>
+                        <option value="fr">Français</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium">
+                        <Tags className="w-4 h-4" />
+                        Tags (comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={template.tags}
+                        onChange={(e) => handleChange('tags', e.target.value)}
+                        placeholder="e.g., professional, introduction, job-application"
+                        className="w-full px-3 py-2 rounded-lg 
+                          bg-white dark:bg-gray-900
+                          border border-gray-200 dark:border-gray-700
+                          text-gray-900 dark:text-gray-100
+                          placeholder:text-gray-400 dark:placeholder:text-gray-500
+                          focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Generate Template Button */}
-            <div className="pt-4">
-              <button
-                onClick={handleSave}
-                className="w-full py-3 px-4 bg-[#9333EA] hover:bg-[#9333EA]/90
-                  text-white font-medium rounded-xl transition-colors
-                  flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 4V20M20 12L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                Generate Template
-              </button>
+            {/* Footer fixe avec bouton */}
+            <div className="sticky bottom-0 z-20 bg-white dark:bg-[#0B1120] rounded-b-3xl border-t border-gray-200 dark:border-gray-800">
+              <div className="p-6">
+                <button
+                  onClick={handleSave}
+                  className="w-full py-3 px-4 bg-[#9333EA] hover:bg-[#9333EA]/90
+                    text-white font-medium rounded-xl transition-colors
+                    flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 4V20M20 12L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  Generate Template
+                </button>
+              </div>
             </div>
           </div>
         </div>

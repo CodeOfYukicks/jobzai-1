@@ -57,7 +57,7 @@ export default function WordRotator({ words, className = '' }: WordRotatorProps)
   }, [currentWord, currentIndex, isDeleting, isPaused, words]);
 
   return (
-    <span className={`inline-block text-[#4D3E78] ${className}`}>
+    <span className={`inline-block text-[#C1AAF8] ${className}`}>
       <motion.span
         key={currentWord}
         initial={{ opacity: 0.8 }}
@@ -76,7 +76,7 @@ export default function WordRotator({ words, className = '' }: WordRotatorProps)
             repeatType: "reverse",
             ease: "easeInOut"
           }}
-          className="inline-block w-[2px] h-[1.1em] bg-[#4D3E78] ml-[2px] align-middle"
+          className="inline-block w-[2px] h-[1.1em] bg-[#C1AAF8] ml-[2px] align-middle"
         />
       </motion.span>
     </span>

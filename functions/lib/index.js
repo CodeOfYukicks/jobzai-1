@@ -99,9 +99,31 @@ exports.startCampaign = (0, https_1.onCall)({
 });
 exports.updateCampaignEmails = (0, https_2.onRequest)({
     region: 'us-central1',
-    cors: true
+    cors: true,
 }, async (req, res) => {
+    // Définir explicitement les headers
+    res.setHeader('Content-Type', 'application/json');
     try {
+        // Vérifier la méthode HTTP
+        if (req.method !== 'POST') {
+            res.status(405).json({
+                success: false,
+                error: "Method not allowed"
+            });
+            return;
+        }
+        // Vérifier le Content-Type
+        const contentType = req.headers['content-type'];
+        if (!contentType || !contentType.includes('application/json')) {
+            res.status(400).json({
+                success: false,
+                error: "Content-Type must be application/json"
+            });
+            return;
+        }
+        // Log de la requête complète
+        console.log("Headers:", req.headers);
+        console.log("Raw body:", req.body);
         // 1. Log de la requête complète
         console.log("Request body received:", req.body);
         // 2. Validation initiale de la structure

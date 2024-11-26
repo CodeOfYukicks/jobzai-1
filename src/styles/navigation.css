@@ -13,4 +13,44 @@
 
 .nav-item:hover .nav-icon {
   @apply scale-110;
+}
+
+/* Styles modernes pour la barre de défilement - Version gris clair */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.25) transparent; /* Gris clair pour Firefox */
+}
+
+/* Pour Chrome, Safari et autres */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px; /* Légèrement plus fin */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.25); /* Gris clair base */
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
+}
+
+/* Hover effect plus subtil */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.4); /* Gris légèrement plus foncé au hover */
+}
+
+/* Mode sombre - encore plus subtil */
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(156, 163, 175, 0.15) transparent;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.15);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.25);
 } 

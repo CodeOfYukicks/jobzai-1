@@ -186,3 +186,42 @@
     @apply bg-[#8D75E6] dark:bg-[#2A2831] text-foreground m-0 p-0 transition-colors duration-200;
   }
 }
+
+/* Styles des toasts */
+[data-sonner-toaster][data-position='top-right'] {
+  top: 1.5rem;
+  right: 1.5rem;
+}
+
+.toast-custom {
+  @apply shadow-lg shadow-black/5;
+}
+
+/* Animation des toasts */
+[data-sonner-toast] {
+  @apply transform transition-all duration-200 ease-out;
+}
+
+[data-sonner-toast][data-visible='false'] {
+  @apply translate-y-2 opacity-0;
+}
+
+[data-sonner-toast][data-visible='true'] {
+  @apply translate-y-0 opacity-100;
+}
+
+/* Style pour les boutons d'action */
+[data-sonner-toast] [data-button] {
+  @apply bg-gray-50 hover:bg-gray-100 text-gray-800 px-3 py-1.5 rounded-lg
+    transition-colors duration-200 text-sm font-medium ml-2;
+}
+
+/* Style pour l'icône de fermeture */
+[data-sonner-toast] [data-close-button] {
+  @apply opacity-50 hover:opacity-100 transition-opacity duration-200;
+}
+
+/* Espacement entre les toasts */
+[data-sonner-toast] + [data-sonner-toast] {
+  margin-top: 0.5rem;
+}

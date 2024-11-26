@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Briefcase, MapPin, FileText, Settings, AlertCircle, Building, Clock, Search, X, Loader2 } from 'lucide-react';
 import CompanySearch from './CompanySearch';
 import CreditAllocation from './CreditAllocation';
 import CVSelection from './CVSelection';
 import { cn } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 interface FormData {
   title: string;
@@ -73,8 +76,23 @@ export default function CampaignForm({
   onBack,
   currentStepIndex = 0
 }: CampaignFormProps) {
+  const { currentUser } = useAuth();
+  const [availableCredits, setAvailableCredits] = useState(0);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Charger les crédits de l'utilisateur
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const userRef = doc(db, 'users', currentUser.uid);
+    const unsubscribe = onSnapshot(userRef, (doc) => {
+      const userData = doc.data();
+      setAvailableCredits(userData?.credits || 0);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const handleNext = async () => {
     // Validation de base
@@ -287,7 +305,7 @@ export default function CampaignForm({
                   />
 
                   <CreditAllocation
-                    availableCredits={100}
+                    availableCredits={availableCredits}
                     currentCredits={formData.credits}
                     onChange={(credits) => onFormChange({ ...formData, credits })}
                     error={errors.credits}

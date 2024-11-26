@@ -80,7 +80,46 @@ export default function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/cookies" element={<CookiesPage />} />
       </Routes>
-      <Toaster position="top-right" />
+      <Toaster
+        position="top-right"
+        expand={false}
+        richColors={false}
+        theme="light"
+        className="!font-sans"
+        toastOptions={{
+          style: {
+            background: 'white',
+            border: 'none',
+            color: '#1a1a1a',
+            fontSize: '14px',
+            borderRadius: '14px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+            padding: '12px 16px',
+          },
+          className: 'toast-custom',
+          success: {
+            style: {
+              background: '#f0fdf4',
+              borderLeft: '4px solid #22c55e',
+            },
+            icon: '✓',
+          },
+          error: {
+            style: {
+              background: '#fef2f2',
+              borderLeft: '4px solid #ef4444',
+            },
+            icon: '✕',
+          },
+          warning: {
+            style: {
+              background: '#fffbeb',
+              borderLeft: '4px solid #f59e0b',
+            },
+            icon: '⚠',
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
