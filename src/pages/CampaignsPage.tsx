@@ -32,6 +32,12 @@ interface Campaign {
   templateId: string;
 }
 
+// Ajout du type pour la modale de confirmation
+type StartModalType = {
+  show: boolean;
+  campaign?: Campaign;
+}
+
 export default function CampaignsPage() {
   const { currentUser } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -43,6 +49,7 @@ export default function CampaignsPage() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [userCredits, setUserCredits] = useState<number>(0);
+  const [startModal, setStartModal] = useState<StartModalType>({ show: false });
 
   useEffect(() => {
     if (!currentUser) return;
@@ -149,6 +156,8 @@ export default function CampaignsPage() {
   );
 
   const handleStartCampaign = async (campaignId: string) => {
+    setStartModal({ show: false });
+    
     try {
       if (!currentUser) {
         toast.error("Please login first");
@@ -246,6 +255,11 @@ export default function CampaignsPage() {
       console.error("Error starting campaign:", error);
       toast.error("Failed to start campaign");
     }
+  };
+
+  const handleStartClick = (e: React.MouseEvent, campaign: Campaign) => {
+    e.stopPropagation();
+    setStartModal({ show: true, campaign });
   };
 
   const handleFilterChange = (newFilters: FiltersType) => {
@@ -410,10 +424,7 @@ export default function CampaignsPage() {
                   <div className="flex items-center gap-2">
                     {campaign.status === 'pending' && (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartCampaign(campaign.id);
-                        }}
+                        onClick={(e) => handleStartClick(e, campaign)}
                         className="px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 
                           hover:bg-green-200 dark:hover:bg-green-900/50 transition-all duration-200"
                       >
@@ -471,6 +482,54 @@ export default function CampaignsPage() {
             campaign={selectedCampaign}
             onClose={() => setSelectedCampaign(null)}
           />
+        )}
+        {startModal.show && startModal.campaign && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-xl transform transition-all">
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-6">
+                  <PlayCircle className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  Start Campaign
+                </h3>
+                <p className="text-center text-gray-600 dark:text-gray-300 mb-6">
+                  You are about to start the campaign "<span className="font-semibold">{startModal.campaign.title}</span>". This action will:
+                </p>
+                <ul className="space-y-3 mb-6 w-full">
+                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                    Use <span className="font-semibold mx-1">{startModal.campaign.credits}</span> credits from your account
+                  </li>
+                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                    Send automated job applications based on your template
+                  </li>
+                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                    Start running immediately and cannot be undone
+                  </li>
+                </ul>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+                  Available credits: <span className="font-semibold">{userCredits}</span>
+                </p>
+                <div className="flex gap-4 w-full">
+                  <button
+                    onClick={() => setStartModal({ show: false })}
+                    className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleStartCampaign(startModal.campaign!.id)}
+                    className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors duration-200"
+                  >
+                    Start Campaign
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </AuthLayout>
