@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -24,6 +24,7 @@ const navigationGroups = {
     { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
     { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
     { name: 'Professional Profile', href: '/professional-profile', icon: User },
+    { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
   ],
 };
 

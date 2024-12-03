@@ -140,11 +140,11 @@ export default function HomePage() {
             className="text-4xl font-bold text-center text-white mb-16"
           />
 
-          <div className="grid grid-cols-12 gap-6">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-12">
             {/* Carte Gestion de Campagnes avec Globe */}
             <BentoCard
               name="Campaigns"
-              className="col-span-12 md:col-span-7 h-[300px] bg-[#D6EDD9] text-[#2D6652]"
+              className="col-span-1 md:col-span-7 h-[300px] bg-[#D6EDD9] text-[#2D6652] text-sm md:text-base"
               Icon={Rocket}
               iconClassName="text-[#2D6652]"
               nameClassName="text-[#2D6652]"
@@ -172,7 +172,7 @@ export default function HomePage() {
             {/* Carte Tracking avec AnimatedBeam */}
             <BentoCard
               name="Tracking"
-              className="col-span-12 md:col-span-5 h-[300px] bg-[#FFDCE8] text-[#78355B]"
+              className="col-span-1 md:col-span-5 h-[300px] bg-[#FFDCE8] text-[#78355B] text-sm md:text-base"
               Icon={LineChart}
               iconClassName="text-[#78355B]"
               description="Monitor your applications in real-time with our intuitive tracking system."
@@ -200,7 +200,7 @@ export default function HomePage() {
             {/* Carte Recommandations */}
             <BentoCard
               name="Smart Matching"
-              className="col-span-12 md:col-span-5 h-[300px] bg-[#EADFF8] text-[#4D3E78]"
+              className="col-span-1 md:col-span-5 h-[300px] bg-[#EADFF8] text-[#4D3E78] text-sm md:text-base"
               Icon={Target}
               iconClassName="text-[#4D3E78]"
               description="Our AI analyzes your profile and suggests the best opportunities tailored to your experience."
@@ -223,7 +223,7 @@ export default function HomePage() {
             {/* Carte Templates avec Particles */}
             <BentoCard
               name="Templates"
-              className="col-span-12 md:col-span-7 h-[300px] bg-[#FFE0CC] text-[#883E24]"
+              className="col-span-1 md:col-span-7 h-[300px] bg-[#FFE0CC] text-[#883E24] text-sm md:text-base"
               Icon={Save}
               iconClassName="text-[#883E24]"
               description="Create and customize application templates for different job types and industries."
@@ -309,110 +309,103 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <SparklesText 
             text="Innovation that flows"
-            colors={{ 
-              first: "#FFFFFF",  // Première couleur des sparkles
-              second: "#FFB17A"  // Deuxième couleur des sparkles
-            }}
+            colors={{ first: "#FFFFFF", second: "#FFB17A" }}
             className="text-5xl font-bold text-center mb-16 text-[#544582]"
           />
 
-          {/* Contenu en deux colonnes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            {/* Colonne de gauche avec BentoGrid */}
-            <div className="grid grid-cols-12 gap-6">
-              {/* Première carte - Statistique */}
-              <BentoCard
-                name="Hidden Market"
-                className="col-span-12 h-[300px] bg-[#544582] text-white"
-                Icon={Target}
-                iconClassName="text-white"
-                nameClassName="text-white font-bold"
-                descriptionClassName="text-white/80 font-medium"
-                ctaClassName="text-white hover:text-white"
-                description="of job opportunities are never posted publicly"
-                href="/signup"
-                cta="Learn More"
-                background={
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#544582]">
-                    <Particles
-                      className="absolute inset-0"
-                      quantity={50}
-                      staticity={30}
-                      ease={50}
-                      size={1}
-                      color="#FFFFFF"
-                    />
-                    <div className="relative z-10 text-center">
-                      <span className="text-[80px] font-bold text-white" style={{
-                        textShadow: '0 0 20px rgba(255, 255, 255, 0.3)'
-                      }}>
-                        85%
-                      </span>
-                    </div>
-                  </div>
-                }
-              />
-
-              {/* Deuxième carte - Temps de réponse */}
-              <BentoCard
-                name="Response Time"
-                className="col-span-12 h-[300px] bg-[#544582] text-white"
-                Icon={Clock}
-                iconClassName="text-white"
-                nameClassName="text-white font-bold"
-                descriptionClassName="text-white/80 font-medium"
-                ctaClassName="text-white hover:text-white"
-                description="average time to first interview with our AI-powered outreach"
-                href="/signup"
-                cta="Get Started"
-                background={
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#544582] overflow-hidden">
-                    <Meteors number={20} />
-                    <div className="relative z-10 text-center">
-                      <span className="text-[80px] font-bold text-white" style={{
-                        textShadow: '0 0 20px rgba(255, 255, 255, 0.3)'
-                      }}>
-                        24h
-                      </span>
-                    </div>
-                  </div>
-                }
-              />
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-12">
+            {/* Hidden Market Card */}
+            <div className="col-span-1 md:col-span-7 h-[300px] bg-[#544582] text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
+              <div className="absolute inset-0">
+                <Particles 
+                  className="h-full w-full"
+                  quantity={50}
+                  staticity={30}
+                  ease={50}
+                  color="#FFFFFF"
+                  size={0.5}
+                />
+              </div>
+              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
+                <div className="flex items-center gap-3 mb-4">
+                  <Target className="text-white h-6 w-6" />
+                  <span className="text-lg font-semibold">Hidden Market</span>
+                </div>
+                <span className="text-[72px] font-bold">85%</span>
+                <p className="text-sm text-white/80 mt-2">
+                  of job opportunities are never posted publicly
+                </p>
+              </div>
             </div>
 
-            {/* Colonne de droite avec le texte */}
-            <div className="space-y-12">
-              <div>
-                <h3 className="text-2xl font-bold text-[#544582] mb-4">
-                  Seamless Access to the Hidden Job Market
-                </h3>
-                <p className="text-white/90 font-normal leading-relaxed">
+            {/* Hidden Job Market Access Card */}
+            <div className="col-span-1 md:col-span-5 h-[300px] bg-white/10 backdrop-blur-sm text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
+              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
+                <div className="flex items-center gap-3 mb-4">
+                  <Globe className="text-white h-6 w-6" />
+                  <span className="text-lg font-semibold">Hidden Job Market Access</span>
+                </div>
+                <p className="text-sm text-white/80">
                   Jobz.ai allows you to apply to job opportunities not publicly advertised, 
-                  <span className="font-medium">giving you an edge in a competitive market.</span> 
-                  Our AI reaches hiring managers directly, ensuring your application is seen by the right people.
+                  giving you an edge in a competitive market. Our AI reaches hiring managers directly, 
+                  ensuring your application is seen by the right people.
                 </p>
               </div>
+            </div>
 
-              <div>
-                <h3 className="text-2xl font-bold text-[#544582] mb-4">
-                  Effortless Application Process
-                </h3>
-                <p className="text-white/90 font-normal leading-relaxed">
-                  With just a few clicks, Jobz.ai automates your job applications by 
-                  <span className="font-medium">generating personalized emails based on your profile and preferences.</span> 
-                  You focus on what matters, while we handle the heavy lifting.
+            {/* Response Time Card */}
+            <div className="col-span-1 md:col-span-5 h-[300px] bg-[#544582] text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
+              <div className="absolute inset-0">
+                <Meteors number={20} />
+              </div>
+              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
+                <div className="flex items-center gap-3 mb-4">
+                  <Clock className="text-white h-6 w-6" />
+                  <span className="text-lg font-semibold">Response Time</span>
+                </div>
+                <span className="text-[72px] font-bold">24h</span>
+                <p className="text-sm text-white/80 mt-2">
+                  average time to first interview with our AI-powered outreach
                 </p>
               </div>
+            </div>
 
-              <div>
-                <h3 className="text-2xl font-bold text-[#544582] mb-4">
-                  Smart Campaign Management and Insights
-                </h3>
-                <p className="text-white/90 font-normal leading-relaxed">
-                  Our intuitive dashboard gives you 
-                  <span className="font-medium">real-time feedback on your applications,</span> 
-                  showing which messages are opened and which generate responses. You can easily track and optimize 
-                  your job search strategy for better results.
+            {/* Effortless Applications Card */}
+            <div className="col-span-1 md:col-span-7 h-[300px] bg-white/10 backdrop-blur-sm text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
+              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
+                <div className="flex items-center gap-3 mb-4">
+                  <Share2 className="text-white h-6 w-6" />
+                  <span className="text-lg font-semibold">Effortless Applications</span>
+                </div>
+                <p className="text-sm text-white/80">
+                  With just a few clicks, Jobz.ai automates your job applications by generating 
+                  personalized emails based on your profile and preferences. You focus on what matters, 
+                  while we handle the heavy lifting.
+                </p>
+              </div>
+            </div>
+
+            {/* Smart Campaign Management Card */}
+            <div className="col-span-2 md:col-span-12 h-[300px] bg-white/10 backdrop-blur-sm text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
+              <div className="absolute inset-0">
+                <Particles 
+                  className="h-full w-full"
+                  quantity={50}
+                  staticity={30}
+                  ease={50}
+                  color="#FFFFFF"
+                  size={0.5}
+                />
+              </div>
+              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
+                <div className="flex items-center gap-3 mb-4">
+                  <LineChart className="text-white h-6 w-6" />
+                  <span className="text-lg font-semibold">Smart Campaign Management</span>
+                </div>
+                <p className="text-sm text-white/80">
+                  Our intuitive dashboard gives you real-time feedback on your applications, 
+                  showing which messages are opened and which generate responses. You can easily track 
+                  and optimize your job search strategy for better results.
                 </p>
               </div>
             </div>

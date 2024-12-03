@@ -6,8 +6,6 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import RecommendationCard from '../components/RecommendationCard';
-import CVAnalysisCard from '../components/CVAnalysisCard';
-import { analyzeCVWithGPT, CVAnalysis } from '../lib/cvAnalysis';
 import { UserData } from '../types';
 
 interface GPTRecommendation {
@@ -20,69 +18,16 @@ interface GPTRecommendation {
 export default function RecommendationsPage() {
   const { currentUser } = useAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [cvAnalysis, setCvAnalysis] = useState<CVAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [recommendations, setRecommendations] = useState<{
-    targetCompanies: any | null;
-    applicationTiming: any | null;
-    salaryInsights: any | null;
-    keywordOptimization: any | null;
-  }>({
-    targetCompanies: null,
-    applicationTiming: null,
-    salaryInsights: null,
-    keywordOptimization: null,
-  });
-
-  const [loading, setLoading] = useState<{
-    targetCompanies: boolean;
-    applicationTiming: boolean;
-    salaryInsights: boolean;
-    keywordOptimization: boolean;
-  }>({
-    targetCompanies: false,
-    applicationTiming: false,
-    salaryInsights: false,
-    keywordOptimization: false,
-  });
-
-  // Fonction pour charger les recommandations
-  const loadRecommendation = async (type: GPTRecommendation['type']) => {
-    setLoading(prev => ({ ...prev, [type]: true }));
-    try {
-      // À implémenter avec vos prompts
-    } catch (error) {
-      console.error(`Error loading ${type} recommendation:`, error);
-    } finally {
-      setLoading(prev => ({ ...prev, [type]: false }));
-    }
-  };
 
   useEffect(() => {
     if (!currentUser) return;
 
     const unsubscribe = onSnapshot(
       doc(db, 'users', currentUser.uid),
-      async (doc) => {
+      (doc) => {
         if (doc.exists()) {
           const data = doc.data() as UserData;
           setUserData(data);
-
-          // If user has a CV, analyze it
-          if (data.cvUrl) {
-            try {
-              setIsAnalyzing(true);
-              setAnalysisError(null);
-              const analysis = await analyzeCVWithGPT(data.cvUrl, data);
-              setCvAnalysis(analysis);
-            } catch (error) {
-              console.error('Error analyzing CV:', error);
-              setAnalysisError('Failed to analyze CV. Please try again later.');
-            } finally {
-              setIsAnalyzing(false);
-            }
-          }
         }
       }
     );
@@ -107,29 +52,6 @@ export default function RecommendationsPage() {
               </p>
             </div>
           </div>
-
-          {/* CV Analysis Status */}
-          {analysisError ? (
-            <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                <p className="text-sm text-red-600 dark:text-red-400">{analysisError}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="ml-auto text-sm text-red-600 hover:text-red-700 dark:text-red-400 font-medium"
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
-          ) : isAnalyzing ? (
-            <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-xl">
-              <div className="flex items-center gap-3">
-                <Loader2 className="h-5 w-5 text-purple-500 animate-spin" />
-                <p className="text-sm text-purple-600 dark:text-purple-400">Analyzing your CV...</p>
-              </div>
-            </div>
-          ) : null}
         </div>
 
         {/* Recommendations Grid */}

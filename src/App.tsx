@@ -26,6 +26,7 @@ import CompleteProfilePage from './pages/CompleteProfilePage';
 import SmartMatchingPage from './pages/SmartMatchingPage';
 import SearchPage from './pages/SearchPage';
 import ProfessionalProfilePage from './pages/ProfessionalProfilePage';
+import CVAnalysisPage from './pages/CVAnalysisPage';
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/smart-matching" element={<SmartMatchingPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/professional-profile" element={<ProfessionalProfilePage />} />
+          <Route path="/cv-analysis" element={<CVAnalysisPage />} />
         </Route>
 
         {/* Public static pages */}

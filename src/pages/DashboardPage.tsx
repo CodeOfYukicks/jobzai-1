@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Send, BarChart, TrendingUp, Loader2, RefreshCw, ChevronRight, Download, LayoutGrid, Users, Target, Inbox } from 'lucide-react';
+import { CreditCard, Send, TrendingUp, Loader2, RefreshCw, ChevronRight, Download, LayoutGrid, Users, Target, Inbox, Mail, MessageSquare } from 'lucide-react';
 import { doc, collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import FloatingCredits from '../components/FloatingCredits';
 import PremiumFeatureOverlay from '../components/PremiumFeatureOverlay';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import {
+  LineChart, Line, ResponsiveContainer, XAxis, YAxis, 
+  Tooltip, AreaChart, Area, BarChart, Bar, ComposedChart
+} from 'recharts';
 import { Link } from 'react-router-dom';
-import { Mail, MessageSquare } from 'lucide-react';
 
 interface CampaignData {
   title: string;
@@ -35,12 +37,27 @@ interface DashboardStats {
   historicalData: {
     date: string;
     value: number;
+    applications: number;
+    responses: number;
+    balance: number;
   }[];
 }
 
 interface UserData {
   plan?: string;
   credits: number;
+}
+
+interface ChartDataPoint {
+  date: string;
+  value: number;
+}
+
+interface CashFlowDataPoint {
+  date: string;
+  balance: number;
+  inflow: number;
+  outflow: number;
 }
 
 function getStatusColor(status: string) {
@@ -59,6 +76,13 @@ function getStatusColor(status: string) {
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
   }
 }
+
+const formatChartData = (data: any[], key: string): ChartDataPoint[] => {
+  return data.map(item => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+    value: item[key]
+  }));
+};
 
 export default function DashboardPage() {
   const { currentUser } = useAuth();
@@ -160,7 +184,16 @@ export default function DashboardPage() {
               averageResponseRate: responseRate,
               totalCandidates: totalCandidatesCount,
               conversionRate: totalResponses > 0 ? (totalResponses / totalCandidatesCount) * 100 : 0,
-              historicalData: [...prev.historicalData, { date: new Date().toISOString(), value: responseRate }]
+              historicalData: [
+                ...prev.historicalData,
+                {
+                  date: new Date().toISOString(),
+                  value: responseRate,
+                  applications: totalApplications,
+                  responses: totalResponses,
+                  balance: data.credits || 0
+                }
+              ]
             }));
           }
           setIsLoading(false);
@@ -258,6 +291,11 @@ export default function DashboardPage() {
       setIsRefreshing(false);
     }
   };
+
+  // Formatez les données pour les graphiques
+  const balanceData = formatChartData(stats.historicalData, 'balance');
+  const applicationsData = formatChartData(stats.historicalData, 'applications');
+  const performanceData = formatChartData(stats.historicalData, 'responses');
 
   if (isLoading) {
     return (
@@ -383,6 +421,67 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Graphiques Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Available Balance Chart */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Available balance</h3>
+              <span className="text-2xl font-semibold text-gray-900 dark:text-white">
+                {stats.credits.toLocaleString()} credits
+              </span>
+            </div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={balanceData}>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="value" stroke="#8B5CF6" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Applications Sent Chart */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Applications Sent</h3>
+              <span className="text-2xl font-semibold text-gray-900 dark:text-white">
+                {stats.applicationsSent.toLocaleString()}
+              </span>
+            </div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={applicationsData}>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="value" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Campaign Performance Chart */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 col-span-1 lg:col-span-2">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Campaign Performance</h3>
+            </div>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={performanceData}>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#8B5CF6" />
+                  <Line type="monotone" dataKey="value" stroke="#10B981" />
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
