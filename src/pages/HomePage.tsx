@@ -305,109 +305,109 @@ export default function HomePage() {
       </section>
 
       {/* Innovation Section */}
-      <section className="py-24 bg-[#8D75E6] dark:bg-[#2A2831] relative transition-colors duration-200">
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
+      <section className="py-24 bg-[#8D75E6] relative transition-colors duration-200">
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           <SparklesText 
             text="Innovation that flows"
-            colors={{ first: "#FFFFFF", second: "#FFB17A" }}
-            className="text-5xl font-bold text-center mb-16 text-[#544582]"
+            colors={{ first: "#F3ECF7", second: "#E16521" }}
+            className="text-5xl font-bold text-center mb-16 text-[#F3ECF7]"
           />
 
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-12">
-            {/* Hidden Market Card */}
-            <div className="col-span-1 md:col-span-7 h-[300px] bg-[#544582] text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
-              <div className="absolute inset-0">
-                <Particles 
-                  className="h-full w-full"
-                  quantity={50}
-                  staticity={30}
-                  ease={50}
-                  color="#FFFFFF"
-                  size={0.5}
-                />
-              </div>
-              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
-                <div className="flex items-center gap-3 mb-4">
-                  <Target className="text-white h-6 w-6" />
-                  <span className="text-lg font-semibold">Hidden Market</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Main Feature Card */}
+            <div className="bg-[#E9F3E7] rounded-xl p-8 relative overflow-hidden h-[300px]">
+              {/* Background Image */}
+              <FirebaseImage 
+                path="images/hidden-market-illustration.png" 
+                alt="Hidden Market Illustration"
+                className="absolute inset-0 w-full h-full object-cover opacity-20"
+              />
+              
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="mb-2 text-sm text-[#4D3E78] font-medium">MARKET INSIGHTS</div>
+                <h3 className="text-4xl font-serif mb-4 text-[#4D3E78]">Hidden Market Access</h3>
+                <p className="text-[#4D3E78] mb-6 max-w-[70%]">
+                  Use AI to discover and apply to job opportunities that are never posted publicly.
+                </p>
+                <div className="flex flex-col text-[#4D3E78]">
+                  <span className="text-6xl font-bold leading-none mb-1">85%</span>
+                  <span className="text-base">of opportunities never reach job boards</span>
                 </div>
-                <span className="text-[72px] font-bold">85%</span>
-                <p className="text-sm text-white/80 mt-2">
-                  of job opportunities are never posted publicly
+              </div>
+            </div>
+
+            {/* Case Study Card */}
+            <div className="bg-[#E16521] rounded-xl p-8 text-[#F3ECF7] relative overflow-hidden">
+              <div className="mb-2 text-sm font-medium">CASE STUDY</div>
+              <h3 className="text-3xl mb-4">Response Time Revolution</h3>
+              <p className="text-2xl font-light mb-4">
+                AI-powered outreach achieves first interviews within
+              </p>
+              <div className="text-6xl font-bold mb-4">24h</div>
+              <FirebaseImage 
+                path="images/response-time-graph.png" 
+                alt="Response Time Graph"
+                className="absolute bottom-0 right-0 w-64 h-64 object-contain"
+              />
+            </div>
+
+            {/* Automation Card */}
+            <div className="bg-[#4D3E78] rounded-xl p-8 relative overflow-hidden h-[300px]">
+              {/* Background Image */}
+              <FirebaseImage 
+                path="images/automation-illustration.png" 
+                alt="Automation Illustration"
+                className="absolute inset-0 w-full h-full object-cover opacity-20"
+              />
+              
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="mb-2 text-sm text-white font-medium">AUTOMATION</div>
+                <h3 className="text-4xl font-serif mb-4 text-white">Effortless Applications</h3>
+                <p className="text-white/90 mb-6 max-w-[70%]">
+                  Generate personalized applications with just a few clicks. 
+                  Let AI handle the heavy lifting.
                 </p>
               </div>
             </div>
 
-            {/* Hidden Job Market Access Card */}
-            <div className="col-span-1 md:col-span-5 h-[300px] bg-white/10 backdrop-blur-sm text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
-              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
-                <div className="flex items-center gap-3 mb-4">
-                  <Globe className="text-white h-6 w-6" />
-                  <span className="text-lg font-semibold">Hidden Job Market Access</span>
-                </div>
-                <p className="text-sm text-white/80">
-                  Jobz.ai allows you to apply to job opportunities not publicly advertised, 
-                  giving you an edge in a competitive market. Our AI reaches hiring managers directly, 
-                  ensuring your application is seen by the right people.
+            {/* Analytics Card */}
+            <div className="bg-[#E9F3E7] rounded-xl p-8 relative overflow-hidden h-[300px]">
+              {/* Background Image */}
+              <FirebaseImage 
+                path="images/analytics-dashboard.png" 
+                alt="Analytics Dashboard"
+                className="absolute inset-0 w-full h-full object-cover opacity-20"
+              />
+              
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="mb-2 text-sm text-[#4D3E78] font-medium">ANALYTICS</div>
+                <h3 className="text-3xl text-[#4D3E78] mb-4">Smart Campaign Management</h3>
+                <p className="text-[#4D3E78] mb-6 max-w-[70%]">
+                  Track your applications in real-time with our intuitive dashboard.
                 </p>
               </div>
             </div>
 
-            {/* Response Time Card */}
-            <div className="col-span-1 md:col-span-5 h-[300px] bg-[#544582] text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
-              <div className="absolute inset-0">
-                <Meteors number={20} />
-              </div>
-              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
-                <div className="flex items-center gap-3 mb-4">
-                  <Clock className="text-white h-6 w-6" />
-                  <span className="text-lg font-semibold">Response Time</span>
-                </div>
-                <span className="text-[72px] font-bold">24h</span>
-                <p className="text-sm text-white/80 mt-2">
-                  average time to first interview with our AI-powered outreach
+            {/* Full Width Card */}
+            <div className="md:col-span-2 bg-[#E9F3E7] rounded-xl p-8 text-[#195642] relative overflow-hidden">
+              <div className="max-w-2xl">
+                <div className="mb-2 text-sm font-medium">PLATFORM</div>
+                <h3 className="text-4xl mb-4">Complete Job Search Solution</h3>
+                <p className="text-xl mb-6">
+                  From discovery to interview, our AI-powered platform streamlines every step of your job search journey.
                 </p>
+                <button className="bg-[#195642] text-[#F3ECF7] px-6 py-3 rounded-lg font-medium hover:bg-[#195642]/90 transition-colors">
+                  Get Started
+                </button>
               </div>
-            </div>
-
-            {/* Effortless Applications Card */}
-            <div className="col-span-1 md:col-span-7 h-[300px] bg-white/10 backdrop-blur-sm text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
-              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
-                <div className="flex items-center gap-3 mb-4">
-                  <Share2 className="text-white h-6 w-6" />
-                  <span className="text-lg font-semibold">Effortless Applications</span>
-                </div>
-                <p className="text-sm text-white/80">
-                  With just a few clicks, Jobz.ai automates your job applications by generating 
-                  personalized emails based on your profile and preferences. You focus on what matters, 
-                  while we handle the heavy lifting.
-                </p>
-              </div>
-            </div>
-
-            {/* Smart Campaign Management Card */}
-            <div className="col-span-2 md:col-span-12 h-[300px] bg-white/10 backdrop-blur-sm text-white rounded-xl relative overflow-hidden transition-transform transform hover:scale-105">
-              <div className="absolute inset-0">
-                <Particles 
-                  className="h-full w-full"
-                  quantity={50}
-                  staticity={30}
-                  ease={50}
-                  color="#FFFFFF"
-                  size={0.5}
-                />
-              </div>
-              <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center">
-                <div className="flex items-center gap-3 mb-4">
-                  <LineChart className="text-white h-6 w-6" />
-                  <span className="text-lg font-semibold">Smart Campaign Management</span>
-                </div>
-                <p className="text-sm text-white/80">
-                  Our intuitive dashboard gives you real-time feedback on your applications, 
-                  showing which messages are opened and which generate responses. You can easily track 
-                  and optimize your job search strategy for better results.
-                </p>
-              </div>
+              <FirebaseImage 
+                path="images/platform-overview.png" 
+                alt="Platform Overview"
+                className="absolute bottom-0 right-0 w-96 h-96 object-contain"
+              />
             </div>
           </div>
         </div>
