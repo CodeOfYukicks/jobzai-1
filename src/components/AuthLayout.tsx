@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch } from 'lucide-react';
+import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
+import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -220,6 +220,21 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     )}
                   </Link>
                 ))}
+
+                {/* Nouveau lien pour les candidatures */}
+                <NavLink
+                  to="/applications"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors duration-200 ${
+                      isActive
+                        ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`
+                  }
+                >
+                  <Briefcase className="h-5 w-5" />
+                  <span>Applications</span>
+                </NavLink>
               </div>
 
               {/* Profile Completion Alert si < 90% */}

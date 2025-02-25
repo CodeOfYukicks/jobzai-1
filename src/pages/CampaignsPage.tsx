@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Trash2, Filter, Mail, MessageSquare, Target, Calendar, Inbox, PlayCircle } from 'lucide-react';
+import { Plus, Search, Trash2, Filter, Mail, MessageSquare, Target, Calendar, Inbox, PlayCircle, LayoutGrid, Columns } from 'lucide-react';
 import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -150,11 +150,6 @@ export default function CampaignsPage() {
     }
   };
 
-  const filteredCampaigns = campaigns.filter(campaign =>
-    campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const handleStartCampaign = async (campaignId: string) => {
     setStartModal({ show: false });
     
@@ -266,6 +261,12 @@ export default function CampaignsPage() {
     setFilters(newFilters);
   };
 
+  // Filtrage des campagnes
+  const filteredCampaigns = campaigns.filter(campaign =>
+    (campaign.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (campaign.description?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+  );
+  
   if (showNewCampaign) {
     return (
       <AuthLayout>
@@ -362,10 +363,12 @@ export default function CampaignsPage() {
                 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
-          <CampaignFilters filters={filters} onFilterChange={handleFilterChange} />
+          <div className="flex items-center gap-3">
+            <CampaignFilters filters={filters} onFilterChange={handleFilterChange} />
+          </div>
         </div>
 
-        {/* Campaigns Grid */}
+        {/* Vue liste (affichée par défaut maintenant) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCampaigns.map((campaign) => (
             <div

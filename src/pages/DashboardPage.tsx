@@ -14,11 +14,14 @@ import {
 import { Link } from 'react-router-dom';
 
 interface CampaignData {
+  id?: string;
   title: string;
   launchDate: string;
   candidatesReached: number;
   responses: number;
-  status: 'active' | 'completed';
+  status: 'active' | 'completed' | 'paused' | 'pending' | 'failed';
+  emailsSent?: number;
+  jobTitle?: string;
 }
 
 interface DashboardStats {
@@ -33,7 +36,9 @@ interface DashboardStats {
   totalCampaigns: number;
   averageResponseRate: number;
   totalCandidates: number;
+  candidatesChange: number;
   conversionRate: number;
+  conversionRateChange: number;
   historicalData: {
     date: string;
     value: number;
@@ -80,7 +85,7 @@ function getStatusColor(status: string) {
 const formatChartData = (data: any[], key: string): ChartDataPoint[] => {
   return data.map(item => ({
     date: new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
-    value: item[key]
+    value: key === 'balance' ? item.balance : item[key]
   }));
 };
 
@@ -98,7 +103,9 @@ export default function DashboardPage() {
     totalCampaigns: 0,
     averageResponseRate: 0,
     totalCandidates: 0,
+    candidatesChange: 0,
     conversionRate: 0,
+    conversionRateChange: 0,
     historicalData: []
   });
   const [userData, setUserData] = useState<UserData>({ credits: 0 });
@@ -116,7 +123,7 @@ export default function DashboardPage() {
       .slice(0, 3);
   }, [campaigns]);
 
-  const fetchStats = async () => {
+  const fetchStats = async (isRefresh = false) => {
     try {
       // Get user's campaigns
       const campaignsRef = collection(db, 'users', currentUser?.uid || '', 'campaigns');
@@ -144,9 +151,18 @@ export default function DashboardPage() {
 
       setCampaigns(campaignsList);
 
+      // Calculate previous values to track changes
+      const prevTotalCandidates = stats.totalCandidates || 0;
+      const prevConversionRate = stats.conversionRate || 0;
+      
       // Calculate response rate
       const responseRate = totalApplications > 0 
         ? (totalResponses / totalApplications) * 100 
+        : 0;
+        
+      // Calculate conversion rate safely to avoid infinity values
+      const conversionRate = totalCandidatesCount > 0 
+        ? (totalResponses / totalCandidatesCount) * 100 
         : 0;
 
       // Subscribe to user document for real-time updates
@@ -159,6 +175,8 @@ export default function DashboardPage() {
             
             // Calculate credit difference for animation
             const diff = (data.credits || 0) - previousCredits.current;
+            const creditChanged = diff !== 0;
+            
             if (diff !== 0 && creditElementRef.current) {
               const rect = creditElementRef.current.getBoundingClientRect();
               setTriggerPosition({
@@ -167,34 +185,59 @@ export default function DashboardPage() {
               });
               setCreditDiff(diff);
             }
-            previousCredits.current = data.credits || 0;
-
+            
             // Update all stats
-            setStats(prev => ({
-              ...prev,
-              credits: data.credits || 0,
-              creditsChange: diff,
-              applicationsSent: totalApplications,
-              applicationsChange: totalApplications - (prev.applicationsSent || 0),
-              responseRate: parseFloat(responseRate.toFixed(1)),
-              responseRateChange: responseRate - (prev.responseRate || 0),
-              activeCampaigns,
-              campaignsChange: activeCampaigns - (prev.activeCampaigns || 0),
-              totalCampaigns: campaignsList.length,
-              averageResponseRate: responseRate,
-              totalCandidates: totalCandidatesCount,
-              conversionRate: totalResponses > 0 ? (totalResponses / totalCandidatesCount) * 100 : 0,
-              historicalData: [
-                ...prev.historicalData,
-                {
+            setStats(prev => {
+              // Gérer l'historique des données différemment
+              let updatedHistoricalData = [...prev.historicalData];
+              
+              // Ajout d'un nouveau point à l'historique dans ces cas:
+              // 1. Si c'est le premier chargement et qu'il n'y a pas de données
+              // 2. Si les crédits ont changé (même pendant un refresh)
+              if (updatedHistoricalData.length === 0 || creditChanged) {
+                // Ajouter un nouveau point de donnée
+                updatedHistoricalData.push({
                   date: new Date().toISOString(),
                   value: responseRate,
                   applications: totalApplications,
                   responses: totalResponses,
                   balance: data.credits || 0
-                }
-              ]
-            }));
+                });
+              } else if (isRefresh) {
+                // Lors d'un refresh sans changement de crédit, mettre à jour uniquement 
+                // les valeurs autres que la balance dans le dernier point
+                const lastIndex = updatedHistoricalData.length - 1;
+                updatedHistoricalData[lastIndex] = {
+                  ...updatedHistoricalData[lastIndex],
+                  value: responseRate,
+                  applications: totalApplications,
+                  responses: totalResponses
+                  // Ne pas modifier la balance puisqu'elle n'a pas changé
+                };
+              }
+              
+              // Définir la nouvelle valeur de référence pour les crédits
+              previousCredits.current = data.credits || 0;
+              
+              return {
+                ...prev,
+                credits: data.credits || 0,
+                creditsChange: diff,
+                applicationsSent: totalApplications,
+                applicationsChange: totalApplications - (prev.applicationsSent || 0),
+                responseRate: parseFloat(responseRate.toFixed(1)),
+                responseRateChange: responseRate - (prev.responseRate || 0),
+                activeCampaigns,
+                campaignsChange: activeCampaigns - (prev.activeCampaigns || 0),
+                totalCampaigns: campaignsList.length,
+                averageResponseRate: responseRate,
+                totalCandidates: totalCandidatesCount,
+                candidatesChange: totalCandidatesCount - (prev.totalCandidates || 0),
+                conversionRate: conversionRate,
+                conversionRateChange: conversionRate - (prev.conversionRate || 0),
+                historicalData: updatedHistoricalData
+              };
+            });
           }
           setIsLoading(false);
         }
@@ -211,7 +254,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!currentUser) return;
-    fetchStats();
+    fetchStats(false); // Indiquer que ce n'est pas un refresh
   }, [currentUser]);
 
   const hasPremiumAccess = userData.plan === 'standard' || userData.plan === 'premium';
@@ -232,13 +275,13 @@ export default function DashboardPage() {
     {
       name: 'Total Candidates',
       value: stats.totalCandidates,
-      change: 0, // Calculer le changement si nécessaire
+      change: stats.candidatesChange,
       historicalData: stats.historicalData
     },
     {
       name: 'Conversion Rate',
       value: `${stats.conversionRate.toFixed(1)}%`,
-      change: 0, // Calculer le changement si nécessaire
+      change: stats.conversionRateChange,
       historicalData: stats.historicalData
     }
   ];
@@ -283,8 +326,8 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUser?.uid })
       });
-      // Mettre à jour les données
-      await fetchStats();
+      // Mettre à jour les données en indiquant que c'est un refresh
+      await fetchStats(true);
     } catch (error) {
       console.error('Error refreshing dashboard:', error);
     } finally {
@@ -314,7 +357,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-purple-600">
                 Dashboard
               </h1>
               <p className="mt-2 text-gray-500 dark:text-gray-400">
@@ -352,7 +395,7 @@ export default function DashboardPage() {
                     {stats.totalCampaigns}
                   </p>
                   <span className="text-sm text-green-500">
-                    {stats.campaignsChange > 0 && '+'}{stats.campaignsChange}%
+                    {stats.campaignsChange > 0 ? `+${stats.campaignsChange}%` : `${stats.campaignsChange}%`}
                   </span>
                 </div>
               </div>
@@ -373,8 +416,7 @@ export default function DashboardPage() {
                     {(stats.averageResponseRate || 0).toFixed(1)}%
                   </p>
                   <span className={`text-sm ${(stats.responseRateChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {stats.responseRateChange > 0 && '+'}
-                    {(stats.responseRateChange || 0).toFixed(1)}%
+                    {stats.responseRateChange > 0 ? `+${(stats.responseRateChange || 0).toFixed(1)}%` : `${(stats.responseRateChange || 0).toFixed(1)}%`}
                   </span>
                 </div>
               </div>
@@ -395,7 +437,7 @@ export default function DashboardPage() {
                     {stats.totalCandidates}
                   </p>
                   <span className="text-sm text-green-500">
-                    {stats.candidatesChange > 0 && '+'}{stats.candidatesChange}%
+                    {stats.candidatesChange > 0 ? `+${stats.candidatesChange}%` : `${stats.candidatesChange}%`}
                   </span>
                 </div>
               </div>
@@ -413,11 +455,10 @@ export default function DashboardPage() {
                 </p>
                 <div className="flex items-baseline gap-2">
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {(stats.conversionRate || 0).toFixed(1)}%
+                    {Number.isFinite(stats.conversionRate) ? (stats.conversionRate || 0).toFixed(1) + '%' : '0.0%'}
                   </p>
                   <span className={`text-sm ${(stats.conversionRateChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {stats.conversionRateChange > 0 && '+'}
-                    {(stats.conversionRateChange || 0).toFixed(1)}%
+                    {stats.conversionRateChange > 0 ? `+${(stats.conversionRateChange || 0).toFixed(1)}%` : `${(stats.conversionRateChange || 0).toFixed(1)}%`}
                   </span>
                 </div>
               </div>
@@ -425,14 +466,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Graphiques Section */}
+        {/* Charts Section - Updated to match screenshot */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Available Balance Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-base font-semibold text-gray-900 dark:text-white">Available balance</h3>
               <span className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {stats.credits.toLocaleString()} credits
+                {stats.credits} credits
               </span>
             </div>
             <div className="h-[200px]">
@@ -441,7 +482,14 @@ export default function DashboardPage() {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#8B5CF6" />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#8B5CF6" 
+                    strokeWidth={2}
+                    dot={{ fill: '#8B5CF6', r: 4 }}
+                    activeDot={{ fill: '#8B5CF6', r: 6 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -452,7 +500,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-base font-semibold text-gray-900 dark:text-white">Applications Sent</h3>
               <span className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {stats.applicationsSent.toLocaleString()}
+                {stats.applicationsSent}
               </span>
             </div>
             <div className="h-[200px]">
@@ -461,7 +509,13 @@ export default function DashboardPage() {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Area type="monotone" dataKey="value" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#10B981" 
+                    fill="#10B981" 
+                    fillOpacity={0.2}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -478,15 +532,21 @@ export default function DashboardPage() {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#8B5CF6" />
-                  <Line type="monotone" dataKey="value" stroke="#10B981" />
+                  <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#10B981"
+                    strokeWidth={2}
+                    dot={{ fill: '#10B981', r: 4 }}
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* Recent Campaigns Section */}
+        {/* Recent Campaigns Section - Updated to match screenshot */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -503,9 +563,9 @@ export default function DashboardPage() {
           </div>
 
           {recentCampaigns.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {recentCampaigns.map(campaign => (
-                <div key={campaign.id} 
+                <div key={campaign.id || campaign.title} 
                   className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 
                     dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 
                     transition-all duration-200"
@@ -515,7 +575,9 @@ export default function DashboardPage() {
                       <h3 className="font-medium text-gray-900 dark:text-white">
                         {campaign.title}
                       </h3>
-                      <p className="text-sm text-gray-500">{campaign.jobTitle}</p>
+                      {campaign.jobTitle && (
+                        <p className="text-sm text-gray-500">{campaign.jobTitle}</p>
+                      )}
                     </div>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
                       {campaign.status}
@@ -526,13 +588,13 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-gray-400" />
                       <span className="text-sm text-gray-600 dark:text-gray-300">
-                        {campaign.emailsSent} sent
+                        {campaign.emailsSent || campaign.candidatesReached || 0} sent
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <MessageSquare className="h-4 w-4 text-gray-400" />
                       <span className="text-sm text-gray-600 dark:text-gray-300">
-                        {campaign.responses} responses
+                        {campaign.responses || 0} responses
                       </span>
                     </div>
                   </div>

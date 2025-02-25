@@ -325,31 +325,36 @@ export default function HomePage() {
               
               {/* Content */}
               <div className="relative z-10">
-                <div className="mb-2 text-sm text-[#4D3E78] font-medium">MARKET INSIGHTS</div>
-                <h3 className="text-4xl font-serif mb-4 text-[#4D3E78]">Hidden Market Access</h3>
-                <p className="text-[#4D3E78] mb-6 max-w-[70%]">
+                <div className="mb-2 text-xs md:text-sm text-[#4D3E78] font-medium">MARKET INSIGHTS</div>
+                <h3 className="text-2xl md:text-4xl font-serif mb-4 text-[#4D3E78]">Hidden Market Access</h3>
+                <p className="text-sm md:text-base text-[#4D3E78] mb-6 max-w-[70%]">
                   Use AI to discover and apply to job opportunities that are never posted publicly.
                 </p>
                 <div className="flex flex-col text-[#4D3E78]">
-                  <span className="text-6xl font-bold leading-none mb-1">85%</span>
-                  <span className="text-base">of opportunities never reach job boards</span>
+                  <span className="text-4xl md:text-6xl font-bold leading-none mb-1">85%</span>
+                  <span className="text-xs md:text-base">of opportunities never reach job boards</span>
                 </div>
               </div>
             </div>
 
             {/* Case Study Card */}
-            <div className="bg-[#E16521] rounded-xl p-8 text-[#F3ECF7] relative overflow-hidden">
-              <div className="mb-2 text-sm font-medium">CASE STUDY</div>
-              <h3 className="text-3xl mb-4">Response Time Revolution</h3>
-              <p className="text-2xl font-light mb-4">
-                AI-powered outreach achieves first interviews within
-              </p>
-              <div className="text-6xl font-bold mb-4">24h</div>
+            <div className="bg-[#E16521] rounded-xl p-6 text-[#F3ECF7] relative overflow-hidden h-auto md:h-[300px]">
+              {/* Background Image */}
               <FirebaseImage 
                 path="images/response-time-graph.png" 
                 alt="Response Time Graph"
-                className="absolute bottom-0 right-0 w-64 h-64 object-contain"
+                className="absolute right-0 bottom-0 w-[200px] h-[200px] md:w-[300px] md:h-[300px] object-contain opacity-20"
               />
+              
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="mb-2 text-sm font-medium">CASE STUDY</div>
+                <h3 className="text-3xl md:text-4xl font-serif mb-4">Response Time Revolution</h3>
+                <p className="mb-4 md:mb-8 max-w-full md:max-w-[70%]">
+                  AI-powered outreach achieves first interviews within
+                </p>
+                <div className="text-6xl md:text-7xl font-bold font-serif">24h</div>
+              </div>
             </div>
 
             {/* Automation Card */}
@@ -392,34 +397,43 @@ export default function HomePage() {
             </div>
 
             {/* Full Width Card */}
-            <div className="md:col-span-2 bg-[#E9F3E7] rounded-xl p-8 text-[#195642] relative overflow-hidden">
-              <div className="max-w-2xl">
-                <div className="mb-2 text-sm font-medium">PLATFORM</div>
-                <h3 className="text-4xl mb-4">Complete Job Search Solution</h3>
-                <p className="text-xl mb-6">
+            <div className="md:col-span-2 bg-[#E9F3E7] rounded-xl p-8 text-[#195642] relative overflow-hidden h-[300px]">
+              {/* Background Image */}
+              <FirebaseImage 
+                path="images/platform-overview.png" 
+                alt="Platform Overview"
+                className="absolute right-0 bottom-0 w-[300px] h-[300px] object-contain opacity-20"
+              />
+              
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="mb-2 text-xs md:text-sm font-medium">PLATFORM</div>
+                <h3 className="text-2xl md:text-4xl mb-4">Complete Job Search Solution</h3>
+                <p className="text-sm md:text-xl mb-6 max-w-[70%]">
                   From discovery to interview, our AI-powered platform streamlines every step of your job search journey.
                 </p>
                 <button className="bg-[#195642] text-[#F3ECF7] px-6 py-3 rounded-lg font-medium hover:bg-[#195642]/90 transition-colors">
                   Get Started
                 </button>
               </div>
-              <FirebaseImage 
-                path="images/platform-overview.png" 
-                alt="Platform Overview"
-                className="absolute bottom-0 right-0 w-96 h-96 object-contain"
-              />
             </div>
           </div>
         </div>
       </section>
 
+      {/* How it works Section */}
       <section className="py-24 bg-[#8D75E6] dark:bg-[#2A2831] relative transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-6">
-          <SparklesText 
-            text="See how it works"
-            colors={{ first: "#FE8BBB", second: "#4D3E78" }}
-            className="text-4xl font-bold text-center text-white mb-16"
-          />
+          <div className="text-center mb-16">
+            <SparklesText 
+              text="Meet the product"
+              colors={{ first: "#FE8BBB", second: "#4D3E78" }}
+              className="text-5xl font-bold text-center text-white mb-4"
+            />
+            <p className="text-xl text-white/80">
+              Take two minutes for an overview of the product.
+            </p>
+          </div>
           
           <HeroVideoDialog
             videoSrc="https://www.youtube.com/embed/your-video-id"
