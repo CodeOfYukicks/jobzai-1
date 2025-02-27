@@ -7,11 +7,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface CVSelectionProps {
-  onFileSelect: (file: File | null) => void;
-  onExistingCVSelect: (cvUrl: string) => void;
+  currentCV: string | File | null;
+  onCVChange: (cv: string | File | null) => void;
 }
 
-export default function CVSelection({ onFileSelect, onExistingCVSelect }: CVSelectionProps) {
+export default function CVSelection({ currentCV, onCVChange }: CVSelectionProps) {
   const { currentUser } = useAuth();
   const [existingCV, setExistingCV] = useState<{ url: string; name: string } | null>(null);
   const [selectedOption, setSelectedOption] = useState<'existing' | 'new' | null>(null);
@@ -28,14 +28,27 @@ export default function CVSelection({ onFileSelect, onExistingCVSelect }: CVSele
           const data = doc.data();
           if (data.cvUrl && data.cvName) {
             setExistingCV({ url: data.cvUrl, name: data.cvName });
-            setSelectedOption('existing');
+            // Only set to 'existing' if no currentCV is already set
+            if (!currentCV) {
+              setSelectedOption('existing');
+            }
           }
         }
       }
     );
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, currentCV]);
+
+  useEffect(() => {
+    // Initialize the selected option based on currentCV
+    if (currentCV instanceof File) {
+      setNewFile(currentCV);
+      setSelectedOption('new');
+    } else if (typeof currentCV === 'string' && currentCV) {
+      setSelectedOption('existing');
+    }
+  }, [currentCV]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,8 +84,8 @@ export default function CVSelection({ onFileSelect, onExistingCVSelect }: CVSele
         lastUpdated: new Date().toISOString()
       });
 
-      onFileSelect(file);
-      onExistingCVSelect(downloadUrl);
+      onCVChange(file); // Pass the file object
+      setSelectedOption('new');
       toast.success('CV uploaded successfully');
     } catch (error: any) {
       console.error('Error uploading CV:', error);
@@ -90,34 +103,38 @@ export default function CVSelection({ onFileSelect, onExistingCVSelect }: CVSele
   const handleOptionChange = (option: 'existing' | 'new') => {
     setSelectedOption(option);
     if (option === 'existing' && existingCV) {
-      onExistingCVSelect(existingCV.url);
-      onFileSelect(null);
-    } else {
-      onExistingCVSelect('');
+      onCVChange(existingCV.url);
+    } else if (option === 'new') {
+      // Keep the current file selection if there is one
+      if (newFile) {
+        onCVChange(newFile);
+      } else {
+        onCVChange(null);
+      }
     }
   };
 
   if (!existingCV) {
     return (
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Upload CV/Resume
+        <label className="block text-sm font-medium mb-2 bg-gradient-to-r from-gray-700 to-gray-500 dark:from-gray-200 dark:to-gray-400 bg-clip-text text-transparent">
+          CV/Resume
         </label>
         <div className="flex items-center justify-center w-full">
-          <label className="flex flex-col w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+          <label className="flex flex-col w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 dark:border-gray-600">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               {isUploading ? (
                 <>
                   <Loader2 className="w-8 h-8 mb-3 text-gray-400 animate-spin" />
-                  <p className="text-sm text-gray-500">Uploading...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Uploading...</p>
                 </>
               ) : (
                 <>
                   <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                  <p className="mb-2 text-sm text-gray-500">
+                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">PDF or Word (MAX. 5MB)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">PDF or Word (MAX. 5MB)</p>
                 </>
               )}
             </div>
@@ -136,7 +153,9 @@ export default function CVSelection({ onFileSelect, onExistingCVSelect }: CVSele
 
   return (
     <div className="space-y-4">
-      <label className="block text-sm font-medium text-gray-700">CV/Resume</label>
+      <label className="block text-sm font-medium mb-2 bg-gradient-to-r from-gray-700 to-gray-500 dark:from-gray-200 dark:to-gray-400 bg-clip-text text-transparent">
+        CV/Resume
+      </label>
       
       <div className="space-y-4">
         {/* Existing CV Option */}
@@ -146,10 +165,10 @@ export default function CVSelection({ onFileSelect, onExistingCVSelect }: CVSele
             id="existing-cv"
             checked={selectedOption === 'existing'}
             onChange={() => handleOptionChange('existing')}
-            className="h-4 w-4 text-[#6956A8] focus:ring-[#6956A8]"
+            className="h-4 w-4 text-purple-600 focus:ring-purple-500"
           />
           <label htmlFor="existing-cv" className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 text-sm text-gray-900">
+            <div className="flex items-center space-x-2 text-sm text-gray-900 dark:text-gray-200">
               <FileText className="h-5 w-5 text-gray-400" />
               <span>Use existing CV:</span>
               <span className="font-medium">{existingCV.name}</span>
@@ -165,29 +184,29 @@ export default function CVSelection({ onFileSelect, onExistingCVSelect }: CVSele
               id="new-cv"
               checked={selectedOption === 'new'}
               onChange={() => handleOptionChange('new')}
-              className="h-4 w-4 text-[#6956A8] focus:ring-[#6956A8]"
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500"
             />
-            <label htmlFor="new-cv" className="text-sm text-gray-900">
+            <label htmlFor="new-cv" className="text-sm text-gray-900 dark:text-gray-200">
               Upload a new CV
             </label>
           </div>
 
           {selectedOption === 'new' && (
             <div className="ml-7">
-              <label className="flex flex-col w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+              <label className="flex flex-col w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 dark:border-gray-600">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   {isUploading ? (
                     <>
                       <Loader2 className="w-8 h-8 mb-3 text-gray-400 animate-spin" />
-                      <p className="text-sm text-gray-500">Uploading...</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Uploading...</p>
                     </>
                   ) : (
                     <>
                       <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-500">
+                      <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                         <span className="font-semibold">Click to upload</span> or drag and drop
                       </p>
-                      <p className="text-xs text-gray-500">PDF or Word (MAX. 5MB)</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">PDF or Word (MAX. 5MB)</p>
                     </>
                   )}
                 </div>
@@ -200,7 +219,7 @@ export default function CVSelection({ onFileSelect, onExistingCVSelect }: CVSele
                 />
               </label>
               {newFile && (
-                <p className="mt-2 text-sm text-gray-600">
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                   Selected file: {newFile.name}
                 </p>
               )}

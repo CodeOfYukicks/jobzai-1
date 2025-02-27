@@ -39,47 +39,71 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const [templateToEdit, setTemplateToEdit] = useState<EmailTemplate | null>(null);
   const { currentUser } = useAuth();
 
-  useEffect(() => {
-    const loadTemplates = async () => {
-      if (!currentUser) return;
+  const loadTemplates = async () => {
+    if (!currentUser) return;
 
-      try {
-        setIsLoading(true);
-        const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
-        const templatesSnapshot = await getDocs(query(templatesRef));
+    try {
+      setIsLoading(true);
+      const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
+      const templatesSnapshot = await getDocs(query(templatesRef));
 
-        const loadedTemplates = templatesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate(),
-          updatedAt: doc.data().updatedAt?.toDate(),
-        })) as EmailTemplate[];
+      const loadedTemplates = templatesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate(),
+      })) as EmailTemplate[];
 
-        setTemplates(loadedTemplates);
+      setTemplates(loadedTemplates);
 
-        // Set initially selected template if selectedTemplateId is provided
-        if (selectedTemplateId) {
-          const template = loadedTemplates.find((t) => t.id === selectedTemplateId);
-          if (template) {
-            onSelect(template);
-          }
+      // Set initially selected template if selectedTemplateId is provided
+      if (selectedTemplateId) {
+        const template = loadedTemplates.find((t) => t.id === selectedTemplateId);
+        if (template) {
+          onSelect(template);
         }
-      } catch (error) {
-        console.error('Error loading templates:', error);
-        toast.error('Failed to load email templates');
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      toast.error('Failed to load email templates');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadTemplates();
   }, [currentUser, selectedTemplateId]);
 
-  const handleCreateTemplate = (templateId: string) => {
-    const newTemplate = templates.find((t) => t.id === templateId);
+  const handleCreateTemplate = async (templateId: string) => {
+    // First, refresh the templates list to include the newly created template
+    await loadTemplates();
+    
+    // Now find the newly created template in the refreshed list
+    const templatesRef = collection(db, 'users', currentUser?.uid as string, 'emailTemplates');
+    const templatesSnapshot = await getDocs(query(templatesRef));
+    
+    const newTemplate = templatesSnapshot.docs
+      .find(doc => doc.id === templateId);
+      
     if (newTemplate) {
-      onSelect(newTemplate);
+      const template = {
+        id: newTemplate.id,
+        ...newTemplate.data(),
+        createdAt: newTemplate.data().createdAt?.toDate(),
+        updatedAt: newTemplate.data().updatedAt?.toDate(),
+      } as EmailTemplate;
+      
+      // Update the templates state with the new list that includes the created template
+      setTemplates(prev => {
+        const exists = prev.some(t => t.id === template.id);
+        return exists ? prev : [...prev, template];
+      });
+      
+      // Select the newly created template
+      onSelect(template);
     }
+    
     setShowCreateDialog(false);
   };
 
@@ -87,7 +111,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     setTemplateToEdit(template);
   };
 
-  const handleSaveEdit = (templateId: string) => {
+  const handleSaveEdit = async (templateId: string) => {
+    await loadTemplates(); // Refresh templates after edit
+    
     const updatedTemplate = templates.find((t) => t.id === templateId);
     if (updatedTemplate) {
       onSelect(updatedTemplate);
