@@ -555,9 +555,9 @@ export default function JobApplicationsPage() {
               {/* Header fixe */}
               <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold">Edit Applic)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                    <X classNaation</h2>
-                  <button onClick={() => setEditModal({ show: false }me="w-5 h-5" />
+                  <h2 className="text-lg font-semibold">Edit Application</h2>
+                  <button onClick={() => setEditModal({ show: false })} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
