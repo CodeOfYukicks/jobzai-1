@@ -531,37 +531,37 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
       {/* Progress Steps */}
       <div className="mb-8">
         <div className="flex items-center justify-center bg-white dark:bg-gray-800 
-          backdrop-blur-sm p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <div className="flex items-center max-w-3xl mx-auto">
+          backdrop-blur-sm p-3 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center justify-between w-full mx-auto">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
-                <div className="flex flex-col items-center relative">
-                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center
+                <div className="flex flex-col items-center">
+                  <div className={`w-8 h-8 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl flex items-center justify-center shadow
                     ${currentStepIndex === index 
-                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/20' 
+                      ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white shadow-lg shadow-purple-600/40 ring-2 ring-purple-500/50' 
                       : currentStepIndex > index
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
-                    {currentStepIndex > index ? <Check className="h-5 w-5" /> : <step.icon className="h-5 w-5" />}
+                        ? 'bg-green-600 text-white shadow-md shadow-green-500/30'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}>
+                    {currentStepIndex > index ? <Check className="h-3 w-3 sm:h-5 sm:w-5" /> : <step.icon className="h-3 w-3 sm:h-5 sm:w-5" />}
                   </div>
-                  <p className={`mt-3 text-sm font-medium
+                  <p className={`mt-1 sm:mt-3 text-[11px] sm:text-sm font-medium truncate max-w-[70px] sm:max-w-none text-center
                     ${currentStepIndex === index 
-                      ? 'text-purple-600 dark:text-purple-400' 
+                      ? 'text-purple-700 dark:text-purple-300 font-bold' 
                       : currentStepIndex > index
-                        ? 'text-green-500'
-                        : 'text-gray-500 dark:text-gray-400'}`}>
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-gray-600 dark:text-gray-300'}`}>
                     {step.title}
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="hidden sm:block text-xs text-gray-500 dark:text-gray-400">
                     {step.subtitle}
                   </p>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className="w-28 h-0.5 mx-6">
+                  <div className="w-8 sm:w-20 md:w-28 h-1 mx-1 sm:mx-4 md:mx-6">
                     <div className={`h-full rounded-full transition-all duration-500
                       ${currentStepIndex > index 
-                        ? 'bg-green-500' 
-                        : 'bg-gray-200 dark:bg-gray-700'}`} />
+                        ? 'bg-green-600' 
+                        : 'bg-gray-300 dark:bg-gray-600'}`} />
                   </div>
                 )}
               </div>
