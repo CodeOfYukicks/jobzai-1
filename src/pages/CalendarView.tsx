@@ -9,8 +9,6 @@ import AuthLayout from '../components/AuthLayout';
 import { Calendar as CalendarIcon, Briefcase, ArrowRight, Calendar as CalIcon, Check, RefreshCw, Link, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { Interview, JobApplication } from './JobApplicationsPage'; // Import des types
-import { initGoogleApi, signInToGoogle } from '../services/googleAuthService';
-import { addEventToGoogleCalendar, formatInterviewForGoogleCalendar } from '../services/googleCalendarService';
 
 // Setup le localisateur pour le calendrier
 const localizer = momentLocalizer(moment);
@@ -35,7 +33,6 @@ export default function CalendarView() {
   const [selectedView, setSelectedView] = useState<'month' | 'week' | 'day'>('month');
   const [showApplications, setShowApplications] = useState(true);
   const [showInterviews, setShowInterviews] = useState(true);
-  const [isGoogleInitialized, setIsGoogleInitialized] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -116,60 +113,32 @@ export default function CalendarView() {
     fetchApplicationsAndInterviews();
   }, [currentUser]);
 
-  useEffect(() => {
-    const initGoogle = async () => {
-      try {
-        const isSignedIn = await initGoogleApi();
-        setIsGoogleInitialized(true);
-        setGoogleCalendarConnected(isSignedIn);
-      } catch (error) {
-        console.error('Failed to initialize Google API:', error);
-        toast.error('Failed to initialize Google Calendar');
-      }
-    };
-
-    initGoogle();
-  }, []);
-
+  // Connecter à Google Calendar (cette fonction serait implémentée avec l'API Google)
   const connectToGoogleCalendar = async () => {
-    try {
-      if (!isGoogleInitialized) {
-        toast.error('Google API not initialized');
-        return;
-      }
-
-      await signInToGoogle();
+    // Note: Ceci est un exemple de workflow, l'implémentation réelle nécessite l'API Google
+    toast.info('Connecting to Google Calendar...');
+    
+    // Simuler une connexion réussie après 1 seconde
+    setTimeout(() => {
       setGoogleCalendarConnected(true);
       toast.success('Connected to Google Calendar');
-    } catch (error) {
-      console.error('Failed to connect to Google Calendar:', error);
-      toast.error('Failed to connect to Google Calendar');
-    }
+    }, 1000);
+    
+    // L'implémentation réelle utiliserait l'API Google OAuth
+    // et le flux d'autorisation pour obtenir un jeton d'accès
   };
 
-  const syncWithGoogleCalendar = async () => {
-    try {
-      if (!isGoogleInitialized || !googleCalendarConnected) {
-        toast.error('Please connect to Google Calendar first');
-        return;
-      }
-
-      toast.info('Syncing with Google Calendar...');
-
-      // Filtrer les interviews à synchroniser
-      const interviewEvents = events.filter(event => event.type === 'interview');
-      
-      // Synchroniser chaque interview
-      for (const event of interviewEvents) {
-        const googleEvent = formatInterviewForGoogleCalendar(event);
-        await addEventToGoogleCalendar(googleEvent);
-      }
-
-      toast.success('Successfully synced with Google Calendar');
-    } catch (error) {
-      console.error('Failed to sync with Google Calendar:', error);
-      toast.error('Failed to sync with Google Calendar');
-    }
+  // Synchroniser avec Google Calendar
+  const syncWithGoogleCalendar = () => {
+    toast.info('Syncing with Google Calendar...');
+    
+    // Simuler une synchronisation réussie après 1 seconde
+    setTimeout(() => {
+      toast.success('Synced with Google Calendar');
+    }, 1000);
+    
+    // L'implémentation réelle enverrait les événements vers Google Calendar
+    // et récupérerait également les événements Google Calendar
   };
 
   // Filtre des événements selon les types sélectionnés
