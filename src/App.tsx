@@ -28,6 +28,7 @@ import SearchPage from './pages/SearchPage';
 import ProfessionalProfilePage from './pages/ProfessionalProfilePage';
 import CVAnalysisPage from './pages/CVAnalysisPage';
 import JobApplicationsPage from './pages/JobApplicationsPage';
+import CalendarView from './pages/CalendarView';
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ export default function App() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/cookies" element={<CookiesPage />} />
+        <Route path="/calendar" element={<CalendarView />} />
       </Routes>
       <Toaster
         position="top-right"

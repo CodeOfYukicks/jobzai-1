@@ -265,29 +265,29 @@ export default function JobApplicationsPage() {
   
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Hero Section avec statistiques */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="mb-4 sm:mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Job Applications
               </h1>
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-xs sm:text-sm lg:text-base text-gray-500 dark:text-gray-400">
                 Track and manage your job applications
               </p>
             </div>
             <button
               onClick={() => setNewApplicationModal(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium text-sm hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs sm:text-sm font-medium hover:opacity-90 transition-all duration-200"
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
               Add Application
             </button>
           </div>
 
           {/* Statistiques en grille responsive */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
             {[
               { label: 'Applied', count: applications.filter(a => a.status === 'applied').length, color: 'blue' },
               { label: 'Interview', count: applications.filter(a => a.status === 'interview').length, color: 'purple' },
@@ -295,12 +295,12 @@ export default function JobApplicationsPage() {
               { label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length, color: 'red' }
             ].map(stat => (
               <div key={stat.label} 
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 flex flex-col items-center sm:items-start"
+                className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-gray-200 dark:border-gray-700"
               >
-                <div className={`text-${stat.color}-600 dark:text-${stat.color}-400 text-xl sm:text-2xl font-bold mb-1`}>
+                <div className={`text-${stat.color}-600 dark:text-${stat.color}-400 text-lg sm:text-xl lg:text-2xl font-bold`}>
                   {stat.count}
                 </div>
-                <div className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   {stat.label}
                 </div>
               </div>
@@ -309,40 +309,40 @@ export default function JobApplicationsPage() {
         </div>
 
         {/* Barre de recherche responsive */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <div className="relative w-full">
             <input
               type="text"
               placeholder="Search by company or position..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm sm:text-base focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-8 sm:pl-10 pr-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500"
             />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
+            <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </div>
         </div>
 
-        {/* Kanban Board avec scroll horizontal sur mobile */}
+        {/* Kanban Board avec meilleur scroll horizontal sur mobile */}
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="flex overflow-x-auto pb-4 sm:pb-6 -mx-2 px-2 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 hide-scrollbar">
             {['applied', 'interview', 'offer', 'rejected'].map((status) => (
               <Droppable key={status} droppableId={status}>
                 {(provided) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className="flex-shrink-0 w-[85vw] sm:w-auto bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4"
+                    className="flex-shrink-0 w-[80vw] sm:w-auto bg-gray-50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 lg:p-4"
                   >
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                      <h3 className="font-semibold text-gray-900 dark:text-white capitalize text-sm sm:text-base">
+                    <div className="flex items-center justify-between mb-2 sm:mb-3">
+                      <h3 className="font-semibold text-gray-900 dark:text-white capitalize text-xs sm:text-sm">
                         {status}
                       </h3>
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                      <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                         {applications.filter(a => a.status === status).length}
                       </span>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {applications
                         .filter(app => app.status === status)
                         .map((app, index) => (
@@ -352,113 +352,88 @@ export default function JobApplicationsPage() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-200"
+                                className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 lg:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-200"
                               >
-                                <div className="flex justify-between items-start mb-3">
+                                {/* Contenu de la carte */}
+                                <div className="flex justify-between items-start mb-2">
                                   <div>
-                                    <h4 className="font-medium text-gray-900 dark:text-white">
+                                    <h4 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">
                                       {app.companyName}
                                     </h4>
-                                    <p className="text-purple-600 dark:text-purple-400 text-sm">
+                                    <p className="text-purple-600 dark:text-purple-400 text-xs">
                                       {app.position}
                                     </p>
                                   </div>
-                                  <div className="flex gap-2">
+                                  <div className="flex gap-1 sm:gap-2">
                                     <button
                                       onClick={() => {
                                         setFormData(app);
                                         setEditModal({ show: true, application: app });
                                       }}
-                                      className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                                      className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                                     >
-                                      <Edit3 className="w-4 h-4 text-gray-500" />
+                                      <Edit3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500" />
                                     </button>
                                     <button
                                       onClick={() => setDeleteModal({ show: true, application: app })}
-                                      className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                                      className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                                     >
-                                      <Trash2 className="w-4 h-4 text-gray-500" />
+                                      <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500" />
                                     </button>
                                   </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                    <MapPin className="w-4 h-4 mr-2" />
-                                    {app.location}
-                                  </div>
-                                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                    <Calendar className="w-4 h-4 mr-2" />
-                                    Applied: {app.appliedDate}
-                                  </div>
-                                </div>
-
-                                {/* Indicateur d'entretiens */}
+                                {/* Indicateurs d'entretien */}
                                 {app.interviews && app.interviews.length > 0 && (
-                                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                                    <div className="flex items-center gap-2">
-                                      <Users className="w-4 h-4 text-purple-500" />
-                                      <div className="flex items-center gap-1.5">
-                                        {app.interviews.map((interview, i) => (
+                                  <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      {app.interviews.slice(0, 3).map((interview, i) => (
+                                        <div
+                                          key={interview.id}
+                                          className="relative group"
+                                        >
                                           <div
-                                            key={interview.id}
-                                            className={`relative group ${i > 2 ? 'hidden' : ''}`}
+                                            className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-medium border ${
+                                              interview.status === 'completed'
+                                                ? 'bg-green-100 border-green-500 text-green-700'
+                                                : interview.status === 'cancelled'
+                                                ? 'bg-red-100 border-red-500 text-red-700'
+                                                : 'bg-purple-100 border-purple-500 text-purple-700'
+                                            }`}
                                           >
-                                            <div
-                                              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border-2 ${
-                                                interview.status === 'completed'
-                                                  ? 'bg-green-100 border-green-500 text-green-700 dark:bg-green-900/30 dark:border-green-400 dark:text-green-400'
-                                                  : interview.status === 'cancelled'
-                                                  ? 'bg-red-100 border-red-500 text-red-700 dark:bg-red-900/30 dark:border-red-400 dark:text-red-400'
-                                                  : 'bg-purple-100 border-purple-500 text-purple-700 dark:bg-purple-900/30 dark:border-purple-400 dark:text-purple-400'
-                                              }`}
-                                            >
-                                              {interview.type === 'technical' ? 'T' :
-                                               interview.type === 'hr' ? 'HR' :
-                                               interview.type === 'manager' ? 'M' :
-                                               interview.type === 'final' ? 'F' : 'O'}
-                                            </div>
-                                            {/* Tooltip */}
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                                              {interview.type.charAt(0).toUpperCase() + interview.type.slice(1)} Interview
-                                              <br />
-                                              {interview.date} {interview.time}
-                                            </div>
+                                            {interview.type.charAt(0).toUpperCase()}
                                           </div>
-                                        ))}
-                                        {app.interviews.length > 3 && (
-                                          <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-500 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
-                                            +{app.interviews.length - 3}
+                                          {/* Tooltip plus compact */}
+                                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                            {interview.type} - {interview.date}
                                           </div>
-                                        )}
-                                      </div>
+                                        </div>
+                                      ))}
+                                      {app.interviews.length > 3 && (
+                                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 flex items-center justify-center text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300">
+                                          +{app.interviews.length - 3}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 )}
 
-                                {app.url && (
-                                  <a
-                                    href={app.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="mt-3 inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:underline"
-                                  >
-                                    <ExternalLink className="w-4 h-4 mr-1" />
-                                    View Job
-                                  </a>
-                                )}
+                                {/* Informations supplémentaires */}
+                                <div className="mt-2 space-y-1">
+                                  <div className="flex items-center text-[10px] sm:text-xs text-gray-500">
+                                    <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
+                                    {app.location}
+                                  </div>
+                                  <div className="flex items-center text-[10px] sm:text-xs text-gray-500">
+                                    <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
+                                    Applied: {app.appliedDate}
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </Draggable>
                         ))}
                       {provided.placeholder}
-                      {applications.filter(a => a.status === status).length === 0 && (
-                        <div className="flex items-center justify-center h-24 sm:h-32">
-                          <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500">
-                            No applications
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -467,417 +442,105 @@ export default function JobApplicationsPage() {
           </div>
         </DragDropContext>
 
-        {/* Modal d'édition responsive */}
-        {editModal.show && (
+        {/* Style pour cacher la scrollbar sur mobile tout en gardant la fonctionnalité */}
+        <style jsx global>{`
+          .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+
+        {/* Ajouter le modal à la fin du composant, avant la dernière div */}
+        {newApplicationModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 z-10">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                    Edit Application
-                  </h3>
-                  <button
-                    onClick={() => setEditModal({ show: false })}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                  >
-                    <X className="w-5 h-5 text-gray-500" />
-                  </button>
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">New Application</h2>
+                <button onClick={() => setNewApplicationModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-6">
-                {/* Sections du formulaire avec espacement responsive */}
-                <div className="space-y-6">
-                  {/* Basic Information */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Basic Information
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Company Name*
-                        </label>
-                        <div className="relative">
-                          <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="text"
-                            value={formData.companyName || ''}
-                            onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Position*
-                        </label>
-                        <div className="relative">
-                          <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="text"
-                            value={formData.position || ''}
-                            onChange={(e) => setFormData({...formData, position: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Location & Date */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Location & Date
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Location*
-                        </label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="text"
-                            value={formData.location || ''}
-                            onChange={(e) => setFormData({...formData, location: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Application Date*
-                        </label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="date"
-                            value={formData.appliedDate || ''}
-                            onChange={(e) => setFormData({...formData, appliedDate: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contact Information */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Contact Information
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Contact Name
-                        </label>
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="text"
-                            value={formData.contactName || ''}
-                            onChange={(e) => setFormData({...formData, contactName: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Contact Email
-                        </label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="email"
-                            value={formData.contactEmail || ''}
-                            onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Contact Phone
-                        </label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="tel"
-                            value={formData.contactPhone || ''}
-                            onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Additional Details */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Additional Details
-                    </h4>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Job URL
-                        </label>
-                        <div className="relative">
-                          <Link className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="url"
-                            value={formData.url || ''}
-                            onChange={(e) => setFormData({...formData, url: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Salary Range
-                        </label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="text"
-                            value={formData.salary || ''}
-                            onChange={(e) => setFormData({...formData, salary: e.target.value})}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                            placeholder="e.g. 50,000 - 70,000 €"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Notes
-                        </label>
-                        <div className="relative">
-                          <FileText className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                          <textarea
-                            value={formData.notes || ''}
-                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                            rows={4}
-                            className="pl-10 w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600"
-                            placeholder="Add any additional notes about the application..."
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Name *</label>
+                  <input
+                    type="text"
+                    value={formData.companyName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                    required
+                  />
                 </div>
 
-                {/* Section Interviews */}
-                <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Interviews
-                    </h3>
-                    <button
-                      onClick={() => {
-                        const newInterview: Interview = {
-                          id: Date.now().toString(),
-                          date: '',
-                          time: '',
-                          type: 'technical',
-                          status: 'scheduled'
-                        };
-                        setFormData({
-                          ...formData,
-                          interviews: [...(formData.interviews || []), newInterview]
-                        });
-                      }}
-                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg"
-                    >
-                      <PlusCircle className="w-4 h-4 mr-2" />
-                      Add Interview
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {formData.interviews?.map((interview, index) => (
-                      <div
-                        key={interview.id}
-                        className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${
-                              interview.status === 'completed' ? 'bg-green-500' :
-                              interview.status === 'cancelled' ? 'bg-red-500' :
-                              'bg-yellow-500'
-                            }`} />
-                            <select
-                              value={interview.type}
-                              onChange={(e) => {
-                                const updatedInterviews = [...(formData.interviews || [])];
-                                updatedInterviews[index] = {
-                                  ...interview,
-                                  type: e.target.value as Interview['type']
-                                };
-                                setFormData({ ...formData, interviews: updatedInterviews });
-                              }}
-                              className="text-sm font-medium bg-transparent border-none focus:ring-0"
-                            >
-                              <option value="technical">Technical Interview</option>
-                              <option value="hr">HR Interview</option>
-                              <option value="manager">Manager Interview</option>
-                              <option value="final">Final Interview</option>
-                              <option value="other">Other</option>
-                            </select>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={interview.status}
-                              onChange={(e) => {
-                                const updatedInterviews = [...(formData.interviews || [])];
-                                updatedInterviews[index] = {
-                                  ...interview,
-                                  status: e.target.value as Interview['status']
-                                };
-                                setFormData({ ...formData, interviews: updatedInterviews });
-                              }}
-                              className="text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg"
-                            >
-                              <option value="scheduled">Scheduled</option>
-                              <option value="completed">Completed</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                            <button
-                              onClick={() => {
-                                const updatedInterviews = formData.interviews?.filter(
-                                  (_, i) => i !== index
-                                );
-                                setFormData({ ...formData, interviews: updatedInterviews });
-                              }}
-                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                            >
-                              <Trash2 className="w-4 h-4 text-gray-500" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              Date
-                            </label>
-                            <div className="relative">
-                              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                              <input
-                                type="date"
-                                value={interview.date}
-                                onChange={(e) => {
-                                  const updatedInterviews = [...(formData.interviews || [])];
-                                  updatedInterviews[index] = {
-                                    ...interview,
-                                    date: e.target.value
-                                  };
-                                  setFormData({ ...formData, interviews: updatedInterviews });
-                                }}
-                                className="pl-10 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              Time
-                            </label>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                              <input
-                                type="time"
-                                value={interview.time}
-                                onChange={(e) => {
-                                  const updatedInterviews = [...(formData.interviews || [])];
-                                  updatedInterviews[index] = {
-                                    ...interview,
-                                    time: e.target.value
-                                  };
-                                  setFormData({ ...formData, interviews: updatedInterviews });
-                                }}
-                                className="pl-10 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Interviewers
-                          </label>
-                          <div className="relative">
-                            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                              type="text"
-                              value={interview.interviewers?.join(', ') || ''}
-                              onChange={(e) => {
-                                const updatedInterviews = [...(formData.interviews || [])];
-                                updatedInterviews[index] = {
-                                  ...interview,
-                                  interviewers: e.target.value.split(',').map(s => s.trim())
-                                };
-                                setFormData({ ...formData, interviews: updatedInterviews });
-                              }}
-                              placeholder="Enter interviewer names separated by commas"
-                              className="pl-10 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Notes & Feedback
-                          </label>
-                          <div className="relative">
-                            <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                            <textarea
-                              value={interview.notes}
-                              onChange={(e) => {
-                                const updatedInterviews = [...(formData.interviews || [])];
-                                updatedInterviews[index] = {
-                                  ...interview,
-                                  notes: e.target.value
-                                };
-                                setFormData({ ...formData, interviews: updatedInterviews });
-                              }}
-                              rows={3}
-                              placeholder="Add any notes or feedback about the interview..."
-                              className="pl-10 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    {!formData.interviews?.length && (
-                      <div className="text-center py-6">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          No interviews scheduled yet. Click "Add Interview" to create one.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Position *</label>
+                  <input
+                    type="text"
+                    value={formData.position}
+                    onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                    required
+                  />
                 </div>
-              </div>
 
-              <div className="sticky bottom-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex flex-col sm:flex-row justify-end gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Location *</label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Applied Date *</label>
+                  <input
+                    type="date"
+                    value={formData.appliedDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
+                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Job URL</label>
+                  <input
+                    type="url"
+                    value={formData.url || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Notes</label>
+                  <textarea
+                    value={formData.notes || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 mt-6">
                   <button
-                    onClick={() => setEditModal({ show: false })}
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    onClick={() => setNewApplicationModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleUpdateApplication}
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-purple-600 text-white hover:bg-purple-700"
+                    onClick={handleCreateApplication}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90"
                   >
-                    Save Changes
+                    Create
                   </button>
                 </div>
               </div>
@@ -885,35 +548,269 @@ export default function JobApplicationsPage() {
           </div>
         )}
 
-        {/* Delete Confirmation Modal */}
-        {deleteModal.show && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-xl transform transition-all">
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6">
-                  <Trash2 className="h-8 w-8 text-red-600 dark:text-red-400" />
+        {/* Modal d'édition */}
+        {editModal.show && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+              {/* Header fixe */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold">Edit Applic)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                    <X classNaation</h2>
+                  <button onClick={() => setEditModal({ show: false }me="w-5 h-5" />
+                  </button>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Delete Application
-                </h3>
-                <p className="text-center text-gray-600 dark:text-gray-300 mb-6">
-                  Are you sure you want to delete this job application? This action cannot be undone.
-                </p>
-                
-                <div className="flex gap-4 w-full">
+              </div>
+
+              {/* Contenu scrollable */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Champs principaux */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Company Name *</label>
+                    <input
+                      type="text"
+                      value={formData.companyName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Position *</label>
+                    <input
+                      type="text"
+                      value={formData.position}
+                      onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Location *</label>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Applied Date *</label>
+                    <input
+                      type="date"
+                      value={formData.appliedDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
+                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Job URL</label>
+                    <input
+                      type="url"
+                      value={formData.url || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Notes</label>
+                    <textarea
+                      value={formData.notes || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                {/* Section des entretiens avec son propre scroll si nécessaire */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 py-2">
+                    <label className="block text-sm font-medium">Interviews</label>
+                    <button
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          interviews: [...(prev.interviews || []), {
+                            id: crypto.randomUUID(),
+                            date: new Date().toISOString().split('T')[0],
+                            time: '09:00',
+                            type: 'technical',
+                            status: 'scheduled'
+                          }]
+                        }));
+                      }}
+                      className="inline-flex items-center px-2 py-1 text-xs font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5 mr-1" />
+                      Add Interview
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 max-h-[40vh] overflow-y-auto rounded-lg">
+                    {formData.interviews?.map((interview, index) => (
+                      <div 
+                        key={interview.id} 
+                        className="bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-800"
+                      >
+                        {/* Header de l'entretien */}
+                        <div className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-800/50">
+                          <div className="flex items-center gap-2 flex-1">
+                            <select
+                              value={interview.type}
+                              onChange={(e) => {
+                                const newInterviews = [...(formData.interviews || [])];
+                                newInterviews[index] = {
+                                  ...interview,
+                                  type: e.target.value as 'technical' | 'hr' | 'manager' | 'final' | 'other'
+                                };
+                                setFormData(prev => ({ ...prev, interviews: newInterviews }));
+                              }}
+                              className="text-xs p-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 w-24"
+                            >
+                              <option value="technical">Technical</option>
+                              <option value="hr">HR</option>
+                              <option value="manager">Manager</option>
+                              <option value="final">Final</option>
+                              <option value="other">Other</option>
+                            </select>
+                            <select
+                              value={interview.status}
+                              onChange={(e) => {
+                                const newInterviews = [...(formData.interviews || [])];
+                                newInterviews[index] = {
+                                  ...interview,
+                                  status: e.target.value as 'scheduled' | 'completed' | 'cancelled'
+                                };
+                                setFormData(prev => ({ ...prev, interviews: newInterviews }));
+                              }}
+                              className={`text-xs p-1 rounded border ${
+                                interview.status === 'completed' 
+                                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400' 
+                                  : interview.status === 'cancelled'
+                                  ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+                                  : 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400'
+                              } w-24`}
+                            >
+                              <option value="scheduled">Scheduled</option>
+                              <option value="completed">Completed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newInterviews = formData.interviews?.filter((_, i) => i !== index);
+                              setFormData(prev => ({ ...prev, interviews: newInterviews }));
+                            }}
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                          >
+                            <X className="w-3.5 h-3.5 text-gray-500" />
+                          </button>
+                        </div>
+
+                        {/* Corps de l'entretien */}
+                        <div className="p-2">
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                              <input
+                                type="date"
+                                value={interview.date}
+                                onChange={(e) => {
+                                  const newInterviews = [...(formData.interviews || [])];
+                                  newInterviews[index] = { ...interview, date: e.target.value };
+                                  setFormData(prev => ({ ...prev, interviews: newInterviews }));
+                                }}
+                                className="flex-1 text-xs p-1 rounded border border-gray-200 dark:border-gray-700"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-gray-400" />
+                              <input
+                                type="time"
+                                value={interview.time}
+                                onChange={(e) => {
+                                  const newInterviews = [...(formData.interviews || [])];
+                                  newInterviews[index] = { ...interview, time: e.target.value };
+                                  setFormData(prev => ({ ...prev, interviews: newInterviews }));
+                                }}
+                                className="flex-1 text-xs p-1 rounded border border-gray-200 dark:border-gray-700"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-1">
+                            <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-1" />
+                            <textarea
+                              placeholder="Notes & Feedback..."
+                              value={interview.notes || ''}
+                              onChange={(e) => {
+                                const newInterviews = [...(formData.interviews || [])];
+                                newInterviews[index] = { ...interview, notes: e.target.value };
+                                setFormData(prev => ({ ...prev, interviews: newInterviews }));
+                              }}
+                              className="flex-1 text-xs p-1.5 rounded border border-gray-200 dark:border-gray-700 min-h-[60px] resize-y"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer fixe avec les boutons */}
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex justify-end gap-2">
                   <button
-                    onClick={() => setDeleteModal({ show: false })}
-                    className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    onClick={() => setEditModal({ show: false })}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleDeleteApplication}
-                    className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700"
+                    onClick={handleUpdateApplication}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90"
                   >
-                    Delete
+                    Update
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de suppression */}
+        {deleteModal.show && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Delete Application</h2>
+                <button onClick={() => setDeleteModal({ show: false })} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to delete this application? This action cannot be undone.
+              </p>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setDeleteModal({ show: false })}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteApplication}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Briefcase, Building, Target, 
@@ -9,12 +9,17 @@ import { Dialog, Disclosure } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { getDoc, doc } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { getDownloadURL, ref } from 'firebase/storage';
 import { toast } from 'sonner';
 import { db, storage } from '../lib/firebase';
 import PrivateRoute from '../components/PrivateRoute';
-import { extractTextFromPDF } from '../utils/pdfParser';
 import * as pdfjsLib from 'pdfjs-dist';
+import { pdfjs } from 'react-pdf';
+
+// Utiliser la bonne version du worker qui correspond à notre bibliothèque
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.js';
+
+console.log('PDF.js version:', pdfjsLib.version);
 
 interface ATSAnalysis {
   id: string;
@@ -56,24 +61,50 @@ interface AnalysisRequest {
   jobDescription: string;
 }
 
-// Configurer le worker PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
+// Fonction d'analyse simplifiée pour tester
 const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
   try {
-    const response = await fetch('/api/analyze-cv', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Simulation d'une analyse
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Générer une analyse factice pour test
+    return {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      jobTitle: data.jobTitle,
+      company: data.company,
+      matchScore: Math.floor(Math.random() * 40) + 60, // Score entre 60 et 100
+      keyFindings: [
+        {
+          title: 'Skills Match',
+          score: 75,
+          details: ['Strong technical skills', 'Relevant experience']
+        },
+        {
+          title: 'Experience Relevance',
+          score: 85,
+          details: ['Previous roles align with job requirements']
+        }
+      ],
+      skillsMatch: {
+        matching: ['Communication', 'Problem Solving', 'Technical Writing'],
+        missing: ['Leadership', 'Project Management']
       },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error('Analysis failed');
-    }
-
-    return await response.json();
+      recommendations: [
+        'Add more keywords from job description',
+        'Highlight leadership experiences',
+        'Include metrics and achievements'
+      ],
+      keywords: {
+        found: ['technical', 'communication', 'skills'],
+        missing: ['leadership', 'management']
+      },
+      experience: {
+        relevant: ['Technical writing', 'Problem solving'],
+        gaps: ['No leadership experience mentioned']
+      },
+      cvUrl: 'test'
+    };
   } catch (error) {
     console.error('Error during CV analysis:', error);
     throw error;
@@ -92,6 +123,9 @@ export default function CVAnalysisPage() {
     jobDescription: '',
   });
   const [analyses, setAnalyses] = useState<ATSAnalysis[]>([]);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Charger le CV depuis le profil utilisateur
   useEffect(() => {
@@ -112,99 +146,63 @@ export default function CVAnalysisPage() {
     fetchUserCV();
   }, [currentUser]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return;
-    const file = e.target.files[0];
-    
-    try {
-      const storageRef = ref(storage, `cvs/${currentUser?.uid}/${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setSelectedCV(url);
-      toast.success('CV uploaded successfully');
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast.error('Failed to upload CV');
-    }
+  // Extraction de texte simplifiée (version de test uniquement)
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const reader = new FileReader();
+        reader.onload = function() {
+          // Retourner simplement le nom du fichier comme texte pour tester
+          resolve(`Content of CV: ${file.name}`);
+        };
+        reader.onerror = function(error) {
+          reject(error);
+        };
+        reader.readAsText(file);
+      } catch (error) {
+        reject(error);
+      }
+    });
   };
 
-  const extractTextFromPDF = async (pdfUrl: string): Promise<string> => {
-    try {
-      console.log('Starting PDF extraction from URL:', pdfUrl);
-      
-      // Utiliser notre API proxy pour récupérer le PDF
-      const response = await fetch('/api/fetch-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ pdfUrl }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch PDF: ${response.statusText}`);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      console.log('PDF downloaded, size:', arrayBuffer.byteLength);
-
-      // Charger le PDF avec PDF.js
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdf = await loadingTask.promise;
-      console.log('PDF loaded successfully, pages:', pdf.numPages);
-
-      let text = '';
-      
-      // Extraire le texte de chaque page
-      for (let i = 1; i <= pdf.numPages; i++) {
-        console.log(`Processing page ${i}/${pdf.numPages}`);
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items
-          .map((item: any) => item.str)
-          .join(' ');
-        text += pageText + '\n';
-      }
-      
-      console.log('Text extraction completed, length:', text.length);
-      return text;
-    } catch (error) {
-      console.error('PDF extraction error:', error);
-      throw new Error(`PDF extraction failed: ${error.message}`);
-    }
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    const file = e.target.files[0];
+    setCvFile(file);
+    toast.success('CV selected successfully');
   };
 
   const handleAnalysis = async () => {
     try {
+      setIsLoading(true);
       toast.loading('Analyzing your CV...');
       console.log('Starting analysis process');
 
-      if (!selectedCV) {
-        toast.error('Please select a CV first');
+      if (!cvFile && !selectedCV) {
+        toast.error('Please select a CV');
+        setIsLoading(false);
         return;
       }
 
-      // Obtenir une URL signée
-      const cvRef = ref(storage, selectedCV);
-      const signedUrl = await getDownloadURL(cvRef);
-      console.log('Signed URL:', signedUrl);
-
+      // Extraire le texte du CV
       let cvContent = '';
       try {
-        cvContent = await extractTextFromPDF(signedUrl);
-        console.log('CV text extracted successfully');
+        if (cvFile) {
+          console.log('Processing CV file:', cvFile.name);
+          cvContent = await extractTextFromPDF(cvFile);
+        } else if (selectedCV && userCV) {
+          console.log('Using profile CV');
+          // Pour tester, utiliser directement le nom du CV
+          cvContent = `Content from profile CV: ${userCV.name}`;
+        }
       } catch (error) {
         console.error('CV processing error:', error);
-        toast.error(`Failed to process CV: ${error.message}`);
+        toast.error('Failed to process CV');
+        setIsLoading(false);
         return;
       }
 
-      if (!cvContent || cvContent.trim().length === 0) {
-        toast.error('No text could be extracted from the CV');
-        return;
-      }
-
-      console.log('Preparing analysis data');
+      // Préparer les données pour l'analyse
       const analysisData = {
         cvContent,
         jobTitle: formData.jobTitle,
@@ -212,19 +210,23 @@ export default function CVAnalysisPage() {
         jobDescription: formData.jobDescription,
       };
 
-      console.log('Sending analysis request');
+      // Envoyer pour analyse
       const analysis = await analyzeCV(analysisData);
 
-      console.log('Analysis completed successfully');
+      // Mettre à jour l'UI
       setAnalyses(prev => [analysis, ...prev]);
       setIsModalOpen(false);
       setCurrentStep(1);
+      setCvFile(null);
+      setSelectedCV('');
+      setIsLoading(false);
       toast.dismiss();
       toast.success('Analysis completed successfully!');
     } catch (error) {
       console.error('Analysis failed:', error);
       toast.dismiss();
-      toast.error(`Analysis failed: ${error.message}`);
+      toast.error(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsLoading(false);
     }
   };
 
@@ -237,7 +239,10 @@ export default function CVAnalysisPage() {
           <div className="grid grid-cols-1 gap-4">
             {userCV && (
               <button
-                onClick={() => setSelectedCV(userCV.url)}
+                onClick={() => {
+                  setSelectedCV(userCV.url);
+                  setCvFile(null);
+                }}
                 className={`flex items-center p-4 border-2 rounded-xl transition-all ${
                   selectedCV === userCV.url
                     ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
@@ -261,12 +266,13 @@ export default function CVAnalysisPage() {
               </button>
             )}
 
-            <label
+            <div
               className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                selectedCV && selectedCV !== userCV?.url
+                cvFile 
                   ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                   : 'border-gray-200 dark:border-gray-700 hover:border-purple-300'
               }`}
+              onClick={() => fileInputRef.current?.click()}
             >
               <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
                 <Upload className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -275,23 +281,30 @@ export default function CVAnalysisPage() {
                 <h3 className="font-medium text-gray-900 dark:text-white">
                   Upload New CV
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedCV && selectedCV !== userCV?.url ? 'CV uploaded' : 'Upload a different CV for this analysis'}
-                </p>
+                {cvFile ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {cvFile.name} ({(cvFile.size/1024).toFixed(1)} KB)
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Upload a different CV for this analysis
+                  </p>
+                )}
               </div>
               <input
                 type="file"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf"
                 onChange={handleFileUpload}
+                ref={fileInputRef}
                 className="hidden"
               />
-              {selectedCV && selectedCV !== userCV?.url && (
+              {cvFile && (
                 <Check className="w-5 h-5 text-purple-600" />
               )}
-            </label>
+            </div>
           </div>
 
-          {!selectedCV && (
+          {!selectedCV && !cvFile && (
             <p className="text-sm text-red-500">
               Please select or upload a CV to continue
             </p>
@@ -474,6 +487,51 @@ export default function CVAnalysisPage() {
     </motion.div>
   );
 
+  const renderFileUpload = () => (
+    <div className="mt-4">
+      <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
+        Upload your CV
+      </label>
+      <div 
+        className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        onClick={() => fileInputRef.current?.click()}
+      >
+        {cvFile ? (
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3">
+              <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+            </div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{cvFile.name}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {(cvFile.size / 1024).toFixed(1)} KB
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-3">
+              <Upload className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Upload your CV (PDF)</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Click to browse or drag and drop
+            </p>
+          </div>
+        )}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              setCvFile(e.target.files[0]);
+            }
+          }}
+          accept=".pdf"
+          className="hidden"
+        />
+      </div>
+    </div>
+  );
+
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -554,7 +612,48 @@ export default function CVAnalysisPage() {
                 </div>
 
                 {/* Modal Content */}
-                {steps[currentStep - 1].content}
+                {currentStep === 1 && renderFileUpload()}
+                {currentStep === 2 && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Job Title
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.jobTitle}
+                        onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                        placeholder="e.g. Senior Software Engineer"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Company
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.company}
+                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                        placeholder="e.g. Google"
+                      />
+                    </div>
+                  </div>
+                )}
+                {currentStep === 3 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Job Description
+                    </label>
+                    <textarea
+                      value={formData.jobDescription}
+                      onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
+                      className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                      placeholder="Paste the full job description here..."
+                    />
+                  </div>
+                )}
 
                 {/* Modal Footer */}
                 <div className="mt-6 flex justify-end gap-3">
@@ -576,7 +675,7 @@ export default function CVAnalysisPage() {
                       }
                     }}
                     className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium"
-                    disabled={currentStep === 1 && !selectedCV}
+                    disabled={currentStep === 1 && !cvFile}
                   >
                     {currentStep === steps.length ? 'Analyze' : 'Next'}
                   </button>
