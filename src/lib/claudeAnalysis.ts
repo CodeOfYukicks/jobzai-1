@@ -1,0 +1,244 @@
+import { toast } from 'sonner';
+import * as pdfjsLib from 'pdfjs-dist';
+
+/**
+ * Call Claude API with PDF for CV analysis
+ * @param pdfFile The PDF file to analyze
+ * @param jobDetails Job details for analysis context
+ * @returns The analysis results
+ */
+export async function analyzeCVWithClaude(
+  pdfFile: File,
+  jobDetails: { jobTitle: string; company: string; jobDescription: string }
+) {
+  try {
+    console.log('Starting CV analysis with Claude API...');
+    
+    // Get API key from environment
+    const apiKey = window.ENV?.VITE_ANTHROPIC_API_KEY || 
+                   import.meta.env.VITE_ANTHROPIC_API_KEY as string;
+                   
+    // Make sure we're using the exact URL for our Express server
+    const apiUrl = 'http://localhost:3000/api/claude';
+    
+    if (!apiKey) {
+      throw new Error('Anthropic API key is missing. Please check your .env file and restart the server');
+    }
+    
+    console.log('Preparing PDF for Claude API...');
+    
+    // Convert PDF to base64 for direct submission
+    const base64PDF = await fileToBase64(pdfFile);
+    console.log('PDF converted to base64 successfully');
+    
+    // Construct the prompt for Claude
+    const prompt = buildATSAnalysisPrompt(jobDetails);
+    
+    console.log('Sending request to Claude API with PDF...');
+    
+    // Create the Claude API request with the PDF file using a model that supports PDF
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        model: "claude-3-5-sonnet-20241022", // Using a model that supports PDF input
+        max_tokens: 4000,
+        temperature: 0.2,
+        system: "You are an expert ATS (Applicant Tracking System) analyzer and career coach. Your task is to provide detailed, accurate, and helpful analysis of how well a resume matches a specific job description. Return your analysis as structured JSON data only.",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: prompt
+              },
+              {
+                type: "document",
+                source: {
+                  type: "base64",
+                  media_type: "application/pdf",
+                  data: base64PDF
+                }
+              }
+            ]
+          }
+        ]
+      })
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `API error: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        console.error('Claude API error:', errorData);
+        errorMessage = `Claude API error: ${errorData.error?.message || response.statusText}`;
+      } catch (e) {
+        console.error('Could not parse error response', e);
+      }
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    console.log('Claude analysis completed successfully');
+    
+    // Parse the response
+    try {
+      // Claude returns more conversational responses, so we need to extract JSON
+      const analysisText = data.content[0].text;
+      const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || 
+                        analysisText.match(/{[\s\S]*}/);
+                        
+      const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : analysisText;
+      const parsedAnalysis = JSON.parse(jsonStr);
+      
+      return {
+        ...parsedAnalysis,
+        date: new Date().toISOString(),
+        id: `claude_ats_${Date.now()}`
+      };
+    } catch (parseError) {
+      console.error('Failed to parse Claude response as JSON:', parseError);
+      throw new Error('Invalid analysis format received from Claude. Please try again.');
+    }
+  } catch (error: unknown) {
+    console.error('Claude API call failed:', error);
+    toast.error(`Failed to analyze CV with Claude: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw error;
+  }
+}
+
+/**
+ * Extract text from a PDF file
+ * @param file PDF file
+ * @returns Extracted text
+ */
+async function extractTextFromPDF(file: File): Promise<string> {
+  try {
+    console.log("Starting PDF text extraction");
+    const arrayBuffer = await file.arrayBuffer();
+    console.log("PDF loaded into memory, size:", arrayBuffer.byteLength);
+    
+    // Configure PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    
+    // Load the PDF document
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    console.log(`PDF loaded successfully: ${pdf.numPages} pages`);
+    
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let i = 1; i <= pdf.numPages; i++) {
+      console.log(`Processing page ${i}/${pdf.numPages}`);
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(' ');
+      fullText += pageText + '\n\n';
+    }
+    
+    console.log("Text extraction completed successfully");
+    return fullText || `Failed to extract meaningful text from PDF`;
+  } catch (error) {
+    console.error('Error extracting text from PDF:', error);
+    return `Error extracting text: ${error instanceof Error ? error.message : 'Unknown error'}`;
+  }
+}
+
+/**
+ * Convert a file to base64
+ * @param file File to convert
+ * @returns Base64 encoded string
+ */
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64String = reader.result as string;
+      // Extract just the base64 part after the prefix
+      const base64Content = base64String.split(',')[1];
+      resolve(base64Content);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Build the prompt for Claude ATS analysis
+ * @param jobDetails Details about the job for analysis
+ * @returns Formatted prompt string
+ */
+function buildATSAnalysisPrompt(jobDetails: { 
+  jobTitle: string; 
+  company: string; 
+  jobDescription: string; 
+}): string {
+  return `
+# ATS Resume Analysis Task
+
+## Instructions
+Analyze the provided resume PDF against the job description below. Provide a detailed, accurate and genuinely helpful analysis of how well the resume matches the job requirements.
+
+## Job Details
+- Position: ${jobDetails.jobTitle}
+- Company: ${jobDetails.company}
+- Job Description:
+\`\`\`
+${jobDetails.jobDescription}
+\`\`\`
+
+## Analysis Requirements
+1. THOROUGHLY examine both the resume and job description
+2. Provide an HONEST and PRECISE match analysis with NO artificial inflation of scores
+3. Vary your scores meaningfully based on the actual match quality - don't default to generic mid-range scores
+4. Identify SPECIFIC strengths and gaps, not generic advice
+
+## Output Format
+Return ONLY a JSON object with the following structure:
+
+\`\`\`json
+{
+  "matchScore": <integer_between_0_and_100>,
+  "keyFindings": [<array_of_5-7_specific_key_findings_as_strings>],
+  "skillsMatch": {
+    "matching": [{"name": <skill_name>, "relevance": <integer_0-100>}, ...],
+    "missing": [{"name": <skill_name>, "relevance": <integer_0-100>}, ...],
+    "alternative": [{"name": <skill_name>, "alternativeTo": <required_skill>}, ...]
+  },
+  "categoryScores": {
+    "skills": <integer_between_0_and_100>,
+    "experience": <integer_between_0_and_100>,
+    "education": <integer_between_0_and_100>,
+    "industryFit": <integer_between_0_and_100>
+  },
+  "executiveSummary": <string_summarizing_overall_match_quality>,
+  "experienceAnalysis": [
+    {"aspect": <aspect_name>, "analysis": <detailed_analysis>},
+    ...
+  ],
+  "recommendations": [
+    {
+      "title": <recommendation_title>,
+      "description": <detailed_recommendation>,
+      "priority": <"high"|"medium"|"low">,
+      "examples": <example_text_or_null>
+    },
+    ...
+  ]
+}
+\`\`\`
+
+## Important Guidelines
+- Ensure scores are MEANINGFUL and DIFFERENTIATED, not clustered in the 70-80% range
+- Assign lower scores (30-60%) when appropriate for poor matches
+- Assign higher scores (80-95%) only for exceptionally strong matches
+- NEVER automatically inflate scores - be honest and precise
+- Include specific job-relevant KEYWORDS found/missing in the resume
+- Provide detailed, actionable recommendations specific to this resume and job
+- Give real examples and fixes in your recommendations
+`;
+} 

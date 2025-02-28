@@ -1611,8 +1611,6 @@ export default function DashboardPage() {
                             outerRadius={100}
                             fill="#8884d8"
                             dataKey="value"
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            labelLine={false}
                           >
                             {applicationStatusData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -1624,9 +1622,29 @@ export default function DashboardPage() {
                             verticalAlign="bottom" 
                             align="center"
                             wrapperStyle={{
-                              paddingTop: "20px"
+                              paddingTop: "10px",
+                              fontSize: "14px",
+                              fontWeight: 500
                             }}
-                            formatter={(value) => <span className="text-sm font-medium">{value}</span>}
+                            content={(props) => {
+                              const { payload } = props;
+                              return (
+                                <div className="flex justify-center items-center gap-4 mt-2">
+                                  {payload?.map((entry, index) => (
+                                    <span key={`legend-item-${index}`} className="flex items-center gap-2">
+                                      <span 
+                                        className="inline-block w-3 h-3 rounded-full" 
+                                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                                      />
+                                      <span className="text-xs font-medium">{entry.value}</span>
+                                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                        ({applicationStatusData[index].value})
+                                      </span>
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            }}
                           />
                         </RechartsPieChart>
                       </ResponsiveContainer>

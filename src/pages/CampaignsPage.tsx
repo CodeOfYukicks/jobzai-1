@@ -30,6 +30,8 @@ interface Campaign {
   credits: number;
   cv: string;
   templateId: string;
+  updatedAt?: string;
+  lastEmailSentAt?: string;
 }
 
 // Ajout du type pour la modale de confirmation
@@ -153,17 +155,24 @@ export default function CampaignsPage() {
   const handleStartCampaign = async (campaignId: string) => {
     setStartModal({ show: false });
     
+    if (!currentUser) {
+      toast.error("Please login first");
+      return;
+    }
+
+    const toastId = toast.loading("Starting campaign...");
+    
     try {
-      if (!currentUser) {
-        toast.error("Please login first");
-        return;
-      }
-
-      const toastId = toast.loading("Starting campaign...");
-
       // Récupérer les données de l'utilisateur
       const userRef = doc(db, 'users', currentUser.uid);
       const userSnap = await getDoc(userRef);
+      
+      if (!userSnap.exists()) {
+        toast.error("User data not found");
+        toast.dismiss(toastId);
+        return;
+      }
+      
       const userData = userSnap.data();
 
       // Vérifier si l'utilisateur a assez de crédits
@@ -172,31 +181,52 @@ export default function CampaignsPage() {
       // Récupérer la campagne
       const campaignRef = doc(db, 'users', currentUser.uid, 'campaigns', campaignId);
       const campaignSnap = await getDoc(campaignRef);
-      const campaign = campaignSnap.data();
+      
+      if (!campaignSnap.exists()) {
+        toast.error("Campaign not found");
+        toast.dismiss(toastId);
+        return;
+      }
+      
+      const campaignData = campaignSnap.data();
 
       // Vérifier si la campagne existe et a des crédits assignés
-      if (!campaign?.credits) {
-        toast.dismiss(toastId);
+      if (!campaignData?.credits) {
         toast.error("Campaign credits not specified");
+        toast.dismiss(toastId);
         return;
       }
 
       // Vérifier si l'utilisateur a assez de crédits
-      if (currentCredits < campaign.credits) {
+      if (currentCredits < campaignData.credits) {
+        toast.error(`Insufficient credits. You need ${campaignData.credits} credits but only have ${currentCredits}`);
         toast.dismiss(toastId);
-        toast.error(`Insufficient credits. You need ${campaign.credits} credits but only have ${currentCredits}`);
         return;
       }
 
-      // Déduire les crédits du solde de l'utilisateur
-      await updateDoc(userRef, {
-        credits: currentCredits - campaign.credits
-      });
+      // Vérifier que le template existe
+      if (!campaignData.templateId) {
+        toast.error("Email template not specified");
+        toast.dismiss(toastId);
+        return;
+      }
 
       // Récupérer le template
-      const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', campaign.templateId);
+      const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', campaignData.templateId);
       const templateSnap = await getDoc(templateRef);
+      
+      if (!templateSnap.exists()) {
+        toast.error("Email template not found");
+        toast.dismiss(toastId);
+        return;
+      }
+      
       const emailTemplate = templateSnap.data();
+
+      // Déduire les crédits du solde de l'utilisateur
+      await updateDoc(userRef, {
+        credits: currentCredits - campaignData.credits
+      });
 
       // Préparer les données pour le webhook
       const webhookData = {
@@ -204,26 +234,13 @@ export default function CampaignsPage() {
           id: currentUser.uid,
           email: currentUser.email,
           displayName: currentUser.displayName,
-          // Ajouter d'autres informations utilisateur si nécessaire
           ...userData
         },
         campaign: {
           id: campaignId,
-          title: campaign.title,
-          jobTitle: campaign.jobTitle,
-          industry: campaign.industry,
-          jobType: campaign.jobType,
-          location: campaign.location,
-          description: campaign.description,
-          blacklistedCompanies: campaign.blacklistedCompanies || [],
-          credits: campaign.credits,
-          status: campaign.status,
-          emailsSent: campaign.emailsSent || 0,
-          responses: campaign.responses || 0,
-          createdAt: campaign.createdAt,
-          cv: campaign.cv || null,
+          ...campaignData,
           emailTemplate: emailTemplate ? {
-            id: campaign.templateId,
+            id: campaignData.templateId,
             name: emailTemplate.name,
             subject: emailTemplate.subject,
             content: emailTemplate.content
@@ -233,8 +250,14 @@ export default function CampaignsPage() {
 
       console.log("📤 Sending to webhook with user data:", webhookData);
 
+      // Essayer d'envoyer les données au webhook (on continue même si ça échoue)
       const WEBHOOK_URL = "https://hook.eu1.make.com/orrmdfwy6ahw3315pi3gfrryc4h5uj1s";
-      await axios.post(WEBHOOK_URL, webhookData);
+      try {
+        await axios.post(WEBHOOK_URL, webhookData);
+      } catch (webhookError) {
+        console.error("Webhook error:", webhookError);
+        // On continue même si le webhook échoue
+      }
 
       // Mettre à jour le statut de la campagne
       await updateDoc(campaignRef, {
@@ -243,12 +266,12 @@ export default function CampaignsPage() {
         creditsDeducted: true // Marquer que les crédits ont été déduits
       });
 
-      toast.dismiss(toastId);
-      toast.success(`Campaign started successfully! ${campaign.credits} credits deducted from your balance.`);
-
+      toast.success(`Campaign started successfully! ${campaignData.credits} credits deducted from your balance.`);
     } catch (error) {
       console.error("Error starting campaign:", error);
       toast.error("Failed to start campaign");
+    } finally {
+      toast.dismiss(toastId);
     }
   };
 

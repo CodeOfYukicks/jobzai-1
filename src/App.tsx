@@ -32,6 +32,31 @@ import CalendarView from './pages/CalendarView';
 
 const queryClient = new QueryClient();
 
+// Declare the window.ENV property for TypeScript
+declare global {
+  interface Window {
+    ENV?: {
+      VITE_OPENAI_API_KEY?: string;
+      VITE_OPENAI_API_URL?: string;
+      [key: string]: string | undefined;
+    };
+  }
+}
+
+// Add inside App component or in a useEffect somewhere
+// Inject Vite environment variables into window for client-side access
+window.ENV = {
+  VITE_OPENAI_API_KEY: import.meta.env.VITE_OPENAI_API_KEY,
+  VITE_OPENAI_API_URL: import.meta.env.VITE_OPENAI_API_URL,
+};
+
+console.log('Environment variables loaded into client side', {
+  apiKey: window.ENV.VITE_OPENAI_API_KEY ? 
+    `Present (starts with ${window.ENV.VITE_OPENAI_API_KEY.substring(0, 3)}...)` : 
+    'Missing',
+  apiUrl: window.ENV.VITE_OPENAI_API_URL || 'Using default'
+});
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
