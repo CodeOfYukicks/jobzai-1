@@ -3,7 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Briefcase, Building, Target, 
   ChevronRight, X, Sparkles, Brain,
-  CheckCircle, AlertCircle, Trophy, Lightbulb, Upload, Check
+  CheckCircle, AlertCircle, Trophy, Lightbulb, Upload, Check,
+  Flame as FireIcon, AlertTriangle as ExclamationTriangleIcon, 
+  Info as InformationCircleIcon, Code as CodeBracketIcon,
+  BarChart as ChartBarIcon
 } from 'lucide-react';
 import { Dialog, Disclosure } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -788,7 +791,7 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
   // Lorsque vous créez l'objet retourné, arrondissez tous les scores
   return {
     id: crypto.randomUUID(),
-    date: new Date().toISOString(),
+    date: formatDateString(new Date().toISOString().split('T')[0]),
     jobTitle: data.jobTitle,
     company: data.company,
     matchScore: roundScore(finalMatchScore),
@@ -852,7 +855,7 @@ const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
         return {
           ...analysis,
           id: `analysis_${Date.now()}`,
-          date: new Date().toISOString(),
+          date: formatDateString(analysis.date),
           userId: auth.currentUser?.uid || 'anonymous',
           jobTitle: data.jobTitle,
           company: data.company
@@ -913,7 +916,7 @@ const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
       return {
         ...gptAnalysis,
         id: gptAnalysis.id || `analysis_${Date.now()}`,
-        date: new Date().toISOString(),
+        date: formatDateString(new Date().toISOString().split('T')[0]),
         userId: auth.currentUser?.uid || 'anonymous',
         jobTitle: data.jobTitle,
         company: data.company
@@ -970,6 +973,9 @@ export default function CVAnalysisPage() {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [validationEnabled, setValidationEnabled] = useState(true);
+  const [loadingStep, setLoadingStep] = useState<string>('preparing');
+  const [loadingMessage, setLoadingMessage] = useState<string>('Preparing to analyze your resume...');
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
 
   // Charger le CV depuis le profil utilisateur
   useEffect(() => {
@@ -1383,6 +1389,145 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
     }
   };
 
+  const loadingMessages = {
+    preparing: [
+      "Warming up the AI engines...",
+      "Dusting off the digital magnifying glass...",
+      "Powering up the resume analyzer...",
+      "Preparing the virtual interview room...",
+      "Loading professional assessment tools..."
+    ],
+    analyzing: [
+      "Scanning your resume with AI-powered vision...",
+      "Comparing your skills with job requirements...",
+      "Analyzing your professional experience...",
+      "Evaluating career progression patterns...",
+      "Identifying your unique strengths..."
+    ],
+    matching: [
+      "Calculating match score with scientific precision...",
+      "Finding perfect-fit skills in your profile...",
+      "Discovering hidden talents in your experience...",
+      "Measuring educational alignment with requirements...",
+      "Quantifying your industry expertise..."
+    ],
+    finalizing: [
+      "Crafting personalized recommendations...",
+      "Polishing the final analysis report...",
+      "Preparing actionable insights...",
+      "Formatting results for maximum clarity...",
+      "Adding final touches to your career advice..."
+    ]
+  };
+
+  // Ajouter un composant LoadingScreen minimal sans animation complexe
+  const LoadingScreen = () => {
+    return (
+      <div className="fixed inset-0 bg-purple-900/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center text-white p-6">
+        <div className="w-full max-w-md mx-auto flex flex-col items-center">
+          {/* Logo statique */}
+          <div className="mb-8">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-xl">
+              <Brain className="w-12 h-12 text-white" />
+            </div>
+          </div>
+          
+          {/* Step indicator */}
+          <div className="flex gap-2 mb-8">
+            {['preparing', 'analyzing', 'matching', 'finalizing'].map((step) => (
+              <div 
+                key={step} 
+                className={`w-3 h-3 rounded-full ${
+                  loadingStep === step 
+                    ? 'bg-white' 
+                    : (Object.keys(loadingMessages).indexOf(step) <= Object.keys(loadingMessages).indexOf(loadingStep)) 
+                      ? 'bg-purple-400' 
+                      : 'bg-purple-800'
+                }`}
+              />
+            ))}
+          </div>
+          
+          {/* Message statique sans animation */}
+          <div className="h-16 flex items-center justify-center mb-6">
+            <h2 className="text-xl md:text-2xl font-medium text-center">
+              {loadingMessage}
+            </h2>
+          </div>
+          
+          {/* Progress bar simple */}
+          <div className="w-full h-3 bg-purple-800/50 rounded-full overflow-hidden mb-4">
+            <div 
+              className="h-full bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
+              style={{ width: `${loadingProgress}%` }}
+            />
+          </div>
+          
+          {/* Progress percentage */}
+          <p className="text-sm font-medium text-purple-200 mb-8">
+            {Math.round(loadingProgress)}% Complete
+          </p>
+          
+          <p className="text-xs text-purple-300 mt-4 text-center max-w-xs">
+            We're analyzing your resume with Claude AI to provide the most accurate job match insights. 
+            This may take a minute...
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // Modifier l'effet pour les messages sans clignotement
+  useEffect(() => {
+    if (!isLoading) return;
+    
+    // Change message every 5 seconds avec une transition plus douce
+    const messageInterval = setInterval(() => {
+      const messages = loadingMessages[loadingStep as keyof typeof loadingMessages];
+      
+      // Animation de fondu entre les messages
+      setLoadingMessage(prev => {
+        // Sauvegarder le message actuel pour éviter la répétition
+        const currentMessage = prev;
+        // Sélectionner un nouveau message différent de l'actuel
+        let newMessage;
+        do {
+          const idx = Math.floor(Math.random() * messages.length);
+          newMessage = messages[idx];
+        } while (newMessage === currentMessage && messages.length > 1);
+        
+        return newMessage;
+      });
+    }, 5000); // Intervalle plus long
+    
+    // Simulate progress plus fluide et progressif
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        // Cap progress based on current step
+        const caps = {
+          'preparing': 25,
+          'analyzing': 65,
+          'matching': 85,
+          'finalizing': 95
+        };
+        const cap = caps[loadingStep as keyof typeof caps];
+        
+        if (prev >= cap) return prev;
+        
+        // Increment plus petit et plus progressif
+        const remainingProgress = cap - prev;
+        const increment = Math.max(0.2, remainingProgress * 0.02);
+        return Math.min(prev + increment, cap);
+      });
+    }, 350);
+    
+    return () => {
+      clearInterval(messageInterval);
+      clearInterval(progressInterval);
+    };
+  }, [isLoading, loadingStep]);
+
+  // Modifier la fonction handleAnalysis pour fermer le modal avant d'activer le chargement
   const handleAnalysis = async () => {
     try {
       // Force disable validation to ensure we use the real API
@@ -1393,9 +1538,17 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
       
       console.log("🚀 STARTING ANALYSIS - Validation disabled - Using Claude API for PDF analysis");
       
+      // Fermer le modal avant d'afficher l'écran de chargement
+      setIsModalOpen(false);
+      
+      // Petit délai pour permettre à l'animation de fermeture du modal de se terminer
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Maintenant activer l'écran de chargement
       setIsLoading(true);
-      toast.loading('Analyzing your resume with Claude...');
-
+      setLoadingStep('preparing');
+      setLoadingProgress(0);
+      
       if (!cvFile && !selectedCV) {
         toast.error('Please select a resume');
         setIsLoading(false);
@@ -1407,6 +1560,9 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
         console.log('📄 Using Claude API for PDF analysis:', cvFile.name);
         
         try {
+          // Artificial delay for better UX on preparation step (1.5 seconds)
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
           // Prepare job details
           const jobDetails = {
             jobTitle: formData.jobTitle || 'Not specified',
@@ -1423,35 +1579,50 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           }
           
           console.log('📡 Sending request to Claude API for PDF analysis...');
-          toast.loading('Analyzing with Claude API...');
+          
+          // Update loading step
+          setLoadingStep('analyzing');
           
           // Call Claude API with the PDF file
           const analysis = await analyzeCVWithClaude(cvFile, jobDetails);
+          
           console.log('✅ Claude analysis successful!', analysis);
+          
+          // Update loading step
+          setLoadingStep('matching');
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           // Create analysis object
           const fullAnalysis = {
             ...analysis,
             id: `analysis_${Date.now()}`,
-            date: new Date().toISOString(),
+            date: formatDateString(analysis.date),
             userId: auth.currentUser?.uid || 'anonymous',
             jobTitle: jobDetails.jobTitle,
             company: jobDetails.company
           };
           
+          // Update loading step
+          setLoadingStep('finalizing');
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
           // Save and update UI
           const savedAnalysis = await saveAnalysisToFirestore(fullAnalysis);
           setAnalyses(prev => [savedAnalysis, ...prev]);
-          setIsModalOpen(false);
           setCurrentStep(1);
           setCvFile(null);
           setSelectedCV('');
+          setLoadingProgress(100);
+          
+          // Short delay before hiding loading screen for a smooth transition
+          await new Promise(resolve => setTimeout(resolve, 500));
           setIsLoading(false);
           
           toast.dismiss();
           toast.success('CV analysis with Claude completed!');
         } catch (error: any) {
           console.error('❌ Claude API call failed:', error);
+          setIsLoading(false);
           throw new Error(`Claude analysis failed: ${error.message}`);
         }
       } else {
@@ -1614,10 +1785,8 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Handle final submission
-      console.log('Final form data:', { ...formData, cvUrl: selectedCV });
-      setIsModalOpen(false);
-      setCurrentStep(1);
+      // Call handleAnalysis instead of just closing the modal
+      handleAnalysis();
     }
   };
 
@@ -1656,6 +1825,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
   const AnalysisCard = ({ analysis, onDelete }: { analysis: ATSAnalysis, onDelete: (id: string) => void }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     
     const toggleExpand = () => {
       setIsExpanded(!isExpanded);
@@ -1671,19 +1841,29 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
         setExpandedSection(section);
       }
     };
+
+    const confirmDelete = () => {
+      onDelete(analysis.id);
+      setIsDeleteDialogOpen(false);
+    };
+    
+    // Formater la date en format simple (fonction helper)
+    const formatDate = (dateString: string): string => {
+      return formatDateString(dateString);
+    };
     
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden mb-6 border border-gray-100 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden mb-6 border border-gray-100 dark:border-gray-700">
         {/* Card Header - Always visible and clickable */}
         <div 
-          className="flex items-center p-5 cursor-pointer relative"
+          className="flex items-center p-6 cursor-pointer relative group"
           onClick={toggleExpand}
         >
-          <div className="mr-4">
+          <div className="mr-5 transition-transform duration-300 group-hover:scale-105">
             <CircularProgressWithCenterText 
               value={analysis.matchScore} 
-              size={74} 
-              strokeWidth={7}
+              size={80} 
+              strokeWidth={8}
               textSize="text-xl font-bold"
               colorClass={getScoreColorClass(analysis.matchScore)}
             />
@@ -1692,14 +1872,14 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           <div className="flex-grow">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white mb-1">
                   {analysis.jobTitle}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {analysis.company}
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  {analysis.company} • <span className="text-gray-500 dark:text-gray-500">{formatDate(analysis.date)}</span>
                 </p>
                 
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-2">
                   {analysis.skillsMatch.matching.slice(0, 2).map((skill, idx) => (
                     <SkillTag key={idx} skill={skill.name} matched={true} relevance={skill.relevance} />
                   ))}
@@ -1707,17 +1887,17 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                     <SkillTag key={idx} skill={skill.name} matched={false} relevance={skill.relevance} />
                   ))}
                   {(analysis.skillsMatch.matching.length > 2 || analysis.skillsMatch.missing.length > 1) && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400 rounded-full ml-1">+{analysis.skillsMatch.matching.length + analysis.skillsMatch.missing.length - 3} more</span>
+                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400 rounded-full ml-1">+{analysis.skillsMatch.matching.length + analysis.skillsMatch.missing.length - 3} more</span>
                   )}
                 </div>
               </div>
               
               <div className="flex items-center">
-                <p className="text-xs text-gray-500 mr-3">{new Date(analysis.date).toLocaleDateString()}</p>
+                <p className="text-xs text-gray-500 mr-3">{formatDate(analysis.date)}</p>
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDelete(analysis.id);
+                    setIsDeleteDialogOpen(true);
                   }}
                   className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                 >
@@ -1741,6 +1921,56 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           </div>
         </div>
         
+        {/* Confirmation Dialog for Delete */}
+        <Dialog
+          open={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          className="fixed inset-0 z-50 overflow-y-auto"
+        >
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <Dialog.Overlay 
+              as={motion.div}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-auto p-6"
+            >
+              <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Confirm Deletion
+              </Dialog.Title>
+              
+              <div className="mb-6">
+                <p className="text-gray-600 dark:text-gray-300">
+                  Are you sure you want to delete this analysis for "{analysis.jobTitle}" at {analysis.company}? This action cannot be undone.
+                </p>
+              </div>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                >
+                  Cancel
+                </button>
+                
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </Dialog>
+        
         {/* Category Scores */}
         {isExpanded && (
           <motion.div
@@ -1750,31 +1980,37 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
             transition={{ duration: 0.3 }}
             className="border-t border-gray-100 dark:border-gray-700"
           >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-1 p-4 bg-gray-50 dark:bg-gray-800/50">
-              <ScoreCard
-                title="Skills"
-                score={analysis.categoryScores.skills}
-                icon={<PuzzlePieceIcon className="h-5 w-5" />}
-                description={getScoreExplanation("Skills", analysis.categoryScores.skills)}
-              />
-              <ScoreCard
-                title="Experience"
-                score={analysis.categoryScores.experience}
-                icon={<BriefcaseIcon className="h-5 w-5" />}
-                description={getScoreExplanation("Experience", analysis.categoryScores.experience)}
-              />
-              <ScoreCard
-                title="Education"
-                score={analysis.categoryScores.education}
-                icon={<AcademicCapIcon className="h-5 w-5" />}
-                description={getScoreExplanation("Education", analysis.categoryScores.education)}
-              />
-              <ScoreCard
-                title="Industry"
-                score={analysis.categoryScores.industryFit}
-                icon={<BuildingOfficeIcon className="h-5 w-5" />}
-                description={getScoreExplanation("Industry", analysis.categoryScores.industryFit)}
-              />
+            <div className="p-5 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800/40 dark:to-gray-800/10">
+              <h4 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-purple-500" />
+                Category Scores
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <ScoreCard
+                  title="Skills"
+                  score={analysis.categoryScores.skills}
+                  icon={<PuzzlePieceIcon className="h-5 w-5" />}
+                  description={getScoreExplanation("Skills", analysis.categoryScores.skills)}
+                />
+                <ScoreCard
+                  title="Experience"
+                  score={analysis.categoryScores.experience}
+                  icon={<BriefcaseIcon className="h-5 w-5" />}
+                  description={getScoreExplanation("Experience", analysis.categoryScores.experience)}
+                />
+                <ScoreCard
+                  title="Education"
+                  score={analysis.categoryScores.education}
+                  icon={<AcademicCapIcon className="h-5 w-5" />}
+                  description={getScoreExplanation("Education", analysis.categoryScores.education)}
+                />
+                <ScoreCard
+                  title="Industry"
+                  score={analysis.categoryScores.industryFit}
+                  icon={<BuildingOfficeIcon className="h-5 w-5" />}
+                  description={getScoreExplanation("Industry", analysis.categoryScores.industryFit)}
+                />
+              </div>
             </div>
           </motion.div>
         )}
@@ -1915,7 +2151,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                 className="w-full flex justify-between items-center py-3 text-left focus:outline-none"
               >
                 <SectionTitle 
-                  icon={<LightBulbIcon className="h-5 w-5 text-purple-500" />} 
+                  icon={<Lightbulb className="h-5 w-5 text-purple-500" />} 
                   title="Recommendations" 
                 />
                 <ChevronDownIcon className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${expandedSection === 'recommendations' ? 'transform rotate-180' : ''}`} />
@@ -1927,17 +2163,31 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="mt-4 space-y-4"
+                  className="mt-4 grid gap-4"
                 >
                   {analysis.recommendations.map((rec, idx) => (
-                    <div key={idx} className="relative overflow-hidden">
+                    <div key={idx} className="relative overflow-hidden group">
                       <div className={`
-                        absolute top-0 left-0 w-1 h-full
-                        ${rec.priority === 'high' ? 'bg-red-500' : 
-                          rec.priority === 'medium' ? 'bg-orange-500' : 'bg-blue-500'}
+                        absolute top-0 left-0 h-full w-1 rounded-full
+                        ${rec.priority === 'high' ? 'bg-gradient-to-b from-red-400 to-red-600' : 
+                          rec.priority === 'medium' ? 'bg-gradient-to-b from-orange-400 to-orange-600' : 
+                          'bg-gradient-to-b from-blue-400 to-blue-600'}
                       `}></div>
-                      <div className="p-4 pl-5 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                      <div className="p-4 pl-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300 hover:translate-x-1">
                         <div className="flex items-center mb-2">
+                          <div className={`
+                            mr-2 p-1.5 rounded-lg
+                            ${rec.priority === 'high' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 
+                              rec.priority === 'medium' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 
+                              'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}
+                          `}>
+                            {rec.priority === 'high' ? 
+                              <FireIcon className="h-4 w-4" /> : 
+                              rec.priority === 'medium' ? 
+                              <ExclamationTriangleIcon className="h-4 w-4" /> : 
+                              <InformationCircleIcon className="h-4 w-4" />
+                            }
+                          </div>
                           <h4 className="font-medium text-gray-900 dark:text-gray-100">{rec.title}</h4>
                           <span className={`
                             ml-2 px-2 py-0.5 text-xs rounded-full
@@ -1950,8 +2200,11 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                         </div>
                         <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{rec.description}</p>
                         {rec.examples && (
-                          <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md border border-gray-100 dark:border-gray-700">
-                            <h5 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Example</h5>
+                          <div className="mt-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700 group-hover:border-gray-200 dark:group-hover:border-gray-600 transition-colors">
+                            <h5 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1 flex items-center">
+                              <CodeBracketIcon className="h-3 w-3 mr-1" />
+                              Example
+                            </h5>
                             <p className="text-sm italic text-gray-700 dark:text-gray-300">{rec.examples}</p>
                           </div>
                         )}
@@ -2124,8 +2377,9 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
-            className={colorClass}
+            className={`${colorClass} transition-all duration-1000 ease-out`}
             strokeLinecap="round"
+            style={{ filter: 'drop-shadow(0 0 2px rgba(var(--shadow-color, 0, 0, 0), 0.1))' }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
@@ -2136,25 +2390,30 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
   };
 
   const ScoreCard = ({ title, score, icon, description }: { title: string, score: number, icon: React.ReactNode, description: string }) => {
-    const roundedScore = Math.round(score);
-    
     return (
-      <div className="group relative hover:ring-2 hover:ring-purple-200 dark:hover:ring-purple-900/30 rounded-lg p-4 bg-white dark:bg-gray-800 transition-all duration-200 cursor-help">
-        <div className="flex flex-col items-center md:flex-row md:items-center">
-          <div className="text-purple-500 dark:text-purple-400 mb-2 md:mb-0 md:mr-3">
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-all duration-300 relative overflow-hidden group"
+        title={description}
+      >
+        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-50/20 to-gray-100/20 dark:from-gray-700/20 dark:to-gray-600/20 rounded-full -mr-10 -mt-10 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        
+        <div className="flex items-center gap-3 mb-1 relative z-10">
+          <div className={`p-2.5 rounded-lg ${getScoreColorClass(score).replace('text-', 'bg-').replace('600', '100').replace('400', '900/30')}`}>
             {icon}
           </div>
-          <div className="text-center md:text-left">
-            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</h4>
-            <div className="text-xl font-bold text-gray-900 dark:text-white mt-1 flex">
-              {roundedScore}
-              <span className="text-sm text-gray-500 ml-0.5">%</span>
+          <div>
+            <h4 className="font-medium text-gray-700 dark:text-gray-300 text-sm">{title}</h4>
+            <div className="flex items-baseline">
+              <span className="text-2xl font-bold" style={{ color: `var(--${getScoreColorClass(score).replace('text-', '')})` }}>
+                {score}
+              </span>
+              <span className="text-sm ml-0.5 opacity-80" style={{ color: `var(--${getScoreColorClass(score).replace('text-', '')})` }}>%</span>
             </div>
           </div>
         </div>
         
-        <div className="absolute z-10 left-0 transform -translate-y-2 w-64 p-4 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none">
-          <div className="text-sm text-gray-700 dark:text-gray-300">{description}</div>
+        <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-100/80 dark:border-gray-700/80 text-xs text-gray-500 dark:text-gray-400 max-h-0 overflow-hidden opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-300">
+          {description}
         </div>
       </div>
     );
@@ -2162,10 +2421,10 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
 
   const SkillTag = ({ skill, matched, relevance }: { skill: string; matched: boolean; relevance?: number }) => (
     <span 
-      className={`inline-block px-3 py-1 rounded-full text-sm font-medium mr-2 mb-2 transition-all duration-200 transform hover:scale-105 ${
+      className={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-sm ${
         matched 
-          ? 'bg-green-100 text-green-800 dark:bg-green-800/40 dark:text-green-200 border border-green-200 dark:border-green-700/50' 
-          : 'bg-red-100 text-red-800 dark:bg-red-800/40 dark:text-red-200 border border-red-200 dark:border-red-700/50'
+          ? 'bg-gradient-to-r from-green-50 to-green-100 text-green-700 dark:from-green-900/30 dark:to-green-800/40 dark:text-green-300 border border-green-200/50 dark:border-green-700/30' 
+          : 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 dark:from-red-900/30 dark:to-red-800/40 dark:text-red-300 border border-red-200/50 dark:border-red-700/30'
       }`}
     >
       {skill}{relevance ? ` (${relevance}%)` : ''}
@@ -2180,9 +2439,9 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
   );
 
   const getScoreColorClass = (score: number): string => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 80) return "text-green-600 dark:text-green-400";
+    if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
+    return "text-red-600 dark:text-red-400";
   };
 
   const generateExecutiveSummary = (matchScore: number, keyFindings: any[]): string => {
@@ -2309,7 +2568,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
       return {
         ...analysis,
         id: `analysis_${Date.now()}`,
-        date: new Date().toISOString(),
+        date: formatDateString(analysis.date),
         userId: auth.currentUser?.uid || 'anonymous',
         jobTitle: jobDetails.jobTitle,
         company: jobDetails.company
@@ -2327,17 +2586,20 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                ATS Resume Analysis
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400">
+                  ATS Resume Analysis
+                </span>
               </h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-400">
-                Get a detailed analysis of how your resume matches specific job positions
+              <p className="text-gray-600 dark:text-gray-400 max-w-2xl">
+                Get detailed insights on how your resume matches specific job positions. Improve your chances with AI-powered recommendations.
               </p>
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-200"
+              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg font-medium transition-colors duration-200 transform hover:scale-105 shadow-sm flex items-center gap-2"
             >
+              <Sparkles className="h-4 w-4" />
               New Analysis
             </button>
           </div>
@@ -2350,20 +2612,21 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
             
             {analyses.length === 0 && (
               <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <FileText className="w-10 h-10 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
                   No analyses yet
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6">
-                  Start by clicking "New Analysis" to analyze your resume against a specific job posting.
+                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+                  Analyze your resume against specific job descriptions to see how well it matches and get personalized improvement suggestions.
                 </p>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-5 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg font-medium hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow flex items-center gap-2 mx-auto"
                 >
-                  Start an analysis
+                  <Sparkles className="h-5 w-5" />
+                  Start your first analysis
                 </button>
               </div>
             )}
@@ -2377,7 +2640,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           <Dialog
             open={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            className="fixed inset-0 z-50 overflow-y-auto"
+            className="fixed inset-0 z-[50] overflow-y-auto"
           >
             <div className="flex items-center justify-center min-h-screen px-4">
               <Dialog.Overlay 
@@ -2385,14 +2648,16 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/40"
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm"
               />
 
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full mx-auto p-6"
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ duration: 0.25 }}
+                className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full mx-auto p-6 md:p-8 overflow-hidden"
               >
                 {/* Modal Header */}
                 <div className="flex justify-between items-center mb-6">
@@ -2406,61 +2671,63 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                   </div>
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="text-gray-400 hover:text-gray-500"
+                    className="text-gray-400 hover:text-gray-500 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Modal Content */}
-                {currentStep === 1 && renderFileUpload()}
-                {currentStep === 2 && (
-                  <div className="space-y-4">
+                <div className="max-h-[70vh] overflow-y-auto pr-1 -mr-1 mb-6">
+                  {currentStep === 1 && renderFileUpload()}
+                  {currentStep === 2 && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Job Title
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.jobTitle}
+                          onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                          placeholder="e.g., Full Stack Developer"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter the exact job title for better analysis
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Company
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.company}
+                          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                          placeholder="e.g., Google"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {currentStep === 3 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Job Title
+                        Job Description
                       </label>
-                      <input
-                        type="text"
-                        value={formData.jobTitle}
-                        onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-                        placeholder="e.g., Full Stack Developer"
+                      <textarea
+                        value={formData.jobDescription}
+                        onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
+                        className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                        placeholder="Copy and paste the complete job description here..."
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Enter the exact job title for better analysis
+                      <p className="text-xs text-gray-500 mt-2">
+                        The more detailed the description, the more accurate the analysis. Include required skills, responsibilities, and qualifications.
                       </p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Company
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.company}
-                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-                        placeholder="e.g., Google"
-                      />
-                    </div>
-                  </div>
-                )}
-                {currentStep === 3 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Job Description
-                    </label>
-                    <textarea
-                      value={formData.jobDescription}
-                      onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                      className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-                      placeholder="Copy and paste the complete job description here..."
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      The more detailed the description, the more accurate the analysis. Include required skills, responsibilities, and qualifications.
-                    </p>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Modal Footer */}
                 <div className="mt-6 flex justify-end gap-3">
@@ -2514,6 +2781,11 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           </Dialog>
         )}
       </AnimatePresence>
+
+      {/* LoadingScreen */}
+      <AnimatePresence>
+        {isLoading && <LoadingScreen />}
+      </AnimatePresence>
     </AuthLayout>
   );
 }
@@ -2530,3 +2802,12 @@ const Section = ({ title, icon, children }: any) => (
     {children}
   </div>
 );
+
+// Fonction utilitaire pour formater la date (ajoutée en haut du fichier)
+function formatDateString(dateString: string): string {
+  // Si la date contient le format ISO avec T, extraire seulement la partie date
+  if (dateString && dateString.includes('T')) {
+    return dateString.split('T')[0];
+  }
+  return dateString;
+}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
@@ -24,7 +24,46 @@ import {
   Info
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Interview, JobApplication } from './JobApplicationsPage'; // Import des types
+
+// Import types from JobApplicationsPage
+interface Interview {
+  id: string;
+  date: string;
+  time: string;
+  type: 'technical' | 'hr' | 'manager' | 'final' | 'other';
+  interviewers?: string[];
+  status: 'scheduled' | 'completed' | 'cancelled';
+  notes?: string;
+  feedback?: string;
+  location?: string;
+  contactName?: string;
+  contactEmail?: string;
+}
+
+interface StatusChange {
+  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
+  date: string;
+  notes?: string;
+}
+
+interface JobApplication {
+  id: string;
+  companyName: string;
+  position: string;
+  location: string;
+  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
+  appliedDate: string;
+  url?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  salary?: string;
+  notes?: string;
+  createdAt: any;
+  updatedAt: any;
+  interviews?: Interview[];
+  statusHistory?: StatusChange[];
+}
 
 // Setup le localisateur pour le calendrier
 const localizer = momentLocalizer(moment);
@@ -151,6 +190,229 @@ const EventModal = ({ event, onClose }: EventModalProps) => {
   );
 };
 
+// Composant Modal pour ajouter un événement
+interface AddEventModalProps {
+  selectedDate: Date;
+  onClose: () => void;
+  onAddEvent: (eventData: any) => Promise<void>;
+}
+
+const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps) => {
+  const [eventType, setEventType] = useState<'application' | 'interview'>('application');
+  const [formData, setFormData] = useState({
+    companyName: '',
+    position: '',
+    location: '',
+    notes: '',
+    url: '',
+    interviewType: 'technical',
+    interviewTime: '09:00',
+    contactName: '',
+    contactEmail: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Préparer les données selon le type d'événement
+      const eventData = {
+        ...formData,
+        date: moment(selectedDate).format('YYYY-MM-DD'),
+        eventType,
+      };
+      
+      await onAddEvent(eventData);
+      onClose();
+    } catch (error) {
+      console.error('Error adding event:', error);
+      toast.error('Failed to add event');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h3 className="font-semibold text-lg">
+            Add {eventType === 'application' ? 'Job Application' : 'Interview'}
+          </h3>
+          <button 
+            onClick={onClose}
+            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Sélection du type d'événement */}
+          <div className="flex space-x-4 mb-4">
+            <button
+              type="button"
+              onClick={() => setEventType('application')}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium ${
+                eventType === 'application' 
+                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' 
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              Job Application
+            </button>
+            <button
+              type="button"
+              onClick={() => setEventType('interview')}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium ${
+                eventType === 'interview' 
+                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' 
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              Interview
+            </button>
+          </div>
+          
+          {/* Champs communs */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Company Name *</label>
+              <input
+                type="text"
+                required
+                value={formData.companyName}
+                onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                placeholder="Enter company name"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Position *</label>
+              <input
+                type="text"
+                required
+                value={formData.position}
+                onChange={(e) => setFormData({...formData, position: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                placeholder="Enter position"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Location</label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                placeholder="Enter location"
+              />
+            </div>
+            
+            {/* Champs spécifiques pour les entretiens */}
+            {eventType === 'interview' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Interview Type</label>
+                  <select
+                    value={formData.interviewType}
+                    onChange={(e) => setFormData({...formData, interviewType: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                  >
+                    <option value="technical">Technical</option>
+                    <option value="hr">HR</option>
+                    <option value="manager">Manager</option>
+                    <option value="final">Final</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Time</label>
+                  <input
+                    type="time"
+                    value={formData.interviewTime}
+                    onChange={(e) => setFormData({...formData, interviewTime: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Contact Name</label>
+                  <input
+                    type="text"
+                    value={formData.contactName}
+                    onChange={(e) => setFormData({...formData, contactName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                    placeholder="Enter contact name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Contact Email</label>
+                  <input
+                    type="email"
+                    value={formData.contactEmail}
+                    onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                    placeholder="Enter contact email"
+                  />
+                </div>
+              </>
+            )}
+            
+            {/* URL pour les candidatures */}
+            {eventType === 'application' && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Job URL</label>
+                <input
+                  type="url"
+                  value={formData.url}
+                  onChange={(e) => setFormData({...formData, url: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                  placeholder="https://..."
+                />
+              </div>
+            )}
+            
+            {/* Notes pour les deux types */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 min-h-[80px]"
+                placeholder="Add any relevant notes..."
+              />
+            </div>
+          </div>
+          
+          <div className="pt-3 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-70"
+            >
+              {isSubmitting ? 'Adding...' : 'Add Event'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function CalendarView() {
   const { currentUser } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -161,6 +423,8 @@ export default function CalendarView() {
   const [showInterviews, setShowInterviews] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -321,6 +585,200 @@ export default function CalendarView() {
       newDate.setDate(newDate.getDate() + 1);
     }
     setCurrentDate(newDate);
+  };
+
+  // Fonction pour ajouter un événement
+  const handleAddEvent = async (eventData: any) => {
+    if (!currentUser) return;
+    
+    try {
+      if (eventData.eventType === 'application') {
+        // Ajouter une nouvelle candidature
+        const applicationData = {
+          companyName: eventData.companyName,
+          position: eventData.position,
+          location: eventData.location || '',
+          status: 'applied',
+          appliedDate: eventData.date,
+          url: eventData.url || '',
+          notes: eventData.notes || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          statusHistory: [{
+            status: 'applied',
+            date: eventData.date,
+            notes: 'Application created from calendar'
+          }]
+        };
+        
+        const docRef = await addDoc(
+          collection(db, 'users', currentUser.uid, 'jobApplications'), 
+          applicationData
+        );
+        
+        // Ajouter l'événement au state local
+        const newEvent: CalendarEvent = {
+          id: `app-${docRef.id}`,
+          title: `Applied: ${eventData.companyName} - ${eventData.position}`,
+          start: new Date(eventData.date),
+          end: new Date(eventData.date),
+          allDay: true,
+          type: 'application',
+          color: '#8b5cf6', // purple
+          resource: { id: docRef.id, ...applicationData }
+        };
+        
+        setEvents(prev => [...prev, newEvent]);
+        toast.success('Job application added successfully');
+      } else {
+        // Pour un entretien, vérifier si une candidature existe déjà
+        const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+        const applicationsSnapshot = await getDocs(query(applicationsRef));
+        
+        // Chercher une candidature existante pour cette entreprise et poste
+        let existingApplication: any = null;
+        applicationsSnapshot.forEach(doc => {
+          const app = doc.data() as any;
+          if (
+            app.companyName?.toLowerCase() === eventData.companyName.toLowerCase() &&
+            app.position?.toLowerCase() === eventData.position.toLowerCase()
+          ) {
+            existingApplication = { id: doc.id, ...app };
+          }
+        });
+        
+        let applicationId;
+        
+        if (existingApplication) {
+          // Utiliser la candidature existante
+          applicationId = existingApplication.id;
+        } else {
+          // Créer une nouvelle candidature
+          const applicationData = {
+            companyName: eventData.companyName,
+            position: eventData.position,
+            location: eventData.location || '',
+            status: 'interview',
+            appliedDate: eventData.date, // Using the same date
+            notes: eventData.notes || '',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            statusHistory: [{
+              status: 'applied',
+              date: eventData.date,
+              notes: 'Application created from calendar'
+            }, {
+              status: 'interview',
+              date: eventData.date,
+              notes: 'Interview scheduled from calendar'
+            }]
+          };
+          
+          const docRef = await addDoc(
+            collection(db, 'users', currentUser.uid, 'jobApplications'), 
+            applicationData
+          );
+          
+          applicationId = docRef.id;
+          
+          // Add the application event too
+          const newApplicationEvent: CalendarEvent = {
+            id: `app-${docRef.id}`,
+            title: `Applied: ${eventData.companyName} - ${eventData.position}`,
+            start: new Date(eventData.date),
+            end: new Date(eventData.date),
+            allDay: true,
+            type: 'application',
+            color: '#8b5cf6', // purple
+            resource: { id: docRef.id, ...applicationData }
+          };
+          
+          setEvents(prev => [...prev, newApplicationEvent]);
+        }
+        
+        // Ajouter l'entretien
+        const interviewData = {
+          id: crypto.randomUUID(),
+          date: eventData.date,
+          time: eventData.interviewTime,
+          type: eventData.interviewType,
+          status: 'scheduled',
+          location: eventData.location || '',
+          notes: eventData.notes || '',
+          contactName: eventData.contactName || '',
+          contactEmail: eventData.contactEmail || ''
+        };
+        
+        // Mise à jour de la candidature avec le nouvel entretien
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        await updateDoc(applicationRef, {
+          interviews: existingApplication?.interviews ? [...existingApplication.interviews, interviewData] : [interviewData],
+          status: 'interview',
+          updatedAt: serverTimestamp(),
+          statusHistory: existingApplication?.statusHistory ? 
+            [...existingApplication.statusHistory, {
+              status: 'interview',
+              date: eventData.date,
+              notes: 'Interview added from calendar'
+            }] : 
+            [{
+              status: 'applied',
+              date: eventData.date,
+              notes: 'Application created from calendar'
+            }, {
+              status: 'interview',
+              date: eventData.date,
+              notes: 'Interview scheduled from calendar'
+            }]
+        });
+        
+        // Déterminer la couleur en fonction du type d'entretien
+        let color = '#6366f1'; // indigo par défaut
+        if (eventData.interviewType === 'hr') color = '#ec4899'; // pink
+        if (eventData.interviewType === 'technical') color = '#14b8a6'; // teal
+        if (eventData.interviewType === 'manager') color = '#f59e0b'; // amber
+        if (eventData.interviewType === 'final') color = '#22c55e'; // green
+        
+        // Créer la date et l'heure de l'entretien
+        const interviewDate = new Date(eventData.date);
+        const [hours, minutes] = eventData.interviewTime.split(':').map(Number);
+        interviewDate.setHours(hours, minutes);
+        
+        // Créer une date de fin (par défaut, 1 heure plus tard)
+        const endDate = new Date(interviewDate);
+        endDate.setHours(endDate.getHours() + 1);
+        
+        // Ajouter l'événement d'entretien au state local
+        const newInterviewEvent: CalendarEvent = {
+          id: `int-${applicationId}-${interviewData.id}`,
+          title: `${eventData.interviewType.charAt(0).toUpperCase() + eventData.interviewType.slice(1)} Interview: ${eventData.companyName}`,
+          start: interviewDate,
+          end: endDate,
+          allDay: false,
+          type: 'interview',
+          color,
+          resource: { 
+            id: applicationId, 
+            companyName: eventData.companyName,
+            position: eventData.position,
+            interview: interviewData
+          }
+        };
+        
+        setEvents(prev => [...prev, newInterviewEvent]);
+        toast.success('Interview added successfully');
+      }
+    } catch (error) {
+      console.error('Error adding event:', error);
+      toast.error('Failed to add event');
+      throw error;
+    }
+  };
+
+  // Gestion du double-clic sur le calendrier
+  const handleSlotSelect = (slotInfo: any) => {
+    setSelectedSlot(slotInfo.start);
+    setShowAddEventModal(true);
   };
 
   return (
@@ -487,6 +945,7 @@ export default function CalendarView() {
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
               </div>
             ) : (
+              // @ts-ignore
               <Calendar
                 localizer={localizer}
                 events={filteredEvents}
@@ -497,13 +956,15 @@ export default function CalendarView() {
                 view={selectedView}
                 date={currentDate}
                 onNavigate={date => setCurrentDate(date)}
-                onView={(view) => setSelectedView(view as 'month' | 'week' | 'day')}
+                onView={(view) => setSelectedView(view as any)}
                 eventPropGetter={eventStyleGetter}
                 popup
                 tooltipAccessor={(event) => `${event.title}`}
                 onSelectEvent={(event) => {
                   setSelectedEvent(event);
                 }}
+                selectable={true}
+                onSelectSlot={handleSlotSelect}
                 dayPropGetter={(date) => {
                   const today = new Date();
                   if (
@@ -533,6 +994,18 @@ export default function CalendarView() {
           <EventModal 
             event={selectedEvent} 
             onClose={() => setSelectedEvent(null)} 
+          />
+        )}
+        
+        {/* Modal pour ajouter un événement */}
+        {showAddEventModal && selectedSlot && (
+          <AddEventModal
+            selectedDate={selectedSlot}
+            onClose={() => {
+              setShowAddEventModal(false);
+              setSelectedSlot(null);
+            }}
+            onAddEvent={handleAddEvent}
           />
         )}
       </div>

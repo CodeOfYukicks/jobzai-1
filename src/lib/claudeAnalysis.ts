@@ -14,22 +14,29 @@ export async function analyzeCVWithClaude(
   try {
     console.log('Starting CV analysis with Claude API...');
     
-    // Get API key from environment
-    const apiKey = window.ENV?.VITE_ANTHROPIC_API_KEY || 
-                   import.meta.env.VITE_ANTHROPIC_API_KEY as string;
-                   
+    // Try multiple server endpoints in case the user is running on different ports
+    // First, try connecting to the test endpoint to ensure server is running
+    try {
+      console.log('Testing connection to Claude API server...');
+      const testResponse = await fetch('http://localhost:3000/api/test');
+      if (!testResponse.ok) {
+        console.warn('Claude API server test failed. Will still attempt main call.');
+      } else {
+        const testData = await testResponse.json();
+        console.log('Claude API server test successful');
+      }
+    } catch (testError) {
+      console.warn('Failed to connect to Claude API server test endpoint:', testError);
+    }
+    
     // Make sure we're using the exact URL for our Express server
     const apiUrl = 'http://localhost:3000/api/claude';
-    
-    if (!apiKey) {
-      throw new Error('Anthropic API key is missing. Please check your .env file and restart the server');
-    }
     
     console.log('Preparing PDF for Claude API...');
     
     // Convert PDF to base64 for direct submission
     const base64PDF = await fileToBase64(pdfFile);
-    console.log('PDF converted to base64 successfully');
+    console.log('PDF converted to base64 successfully, size:', base64PDF.length);
     
     // Construct the prompt for Claude
     const prompt = buildATSAnalysisPrompt(jobDetails);
@@ -37,11 +44,11 @@ export async function analyzeCVWithClaude(
     console.log('Sending request to Claude API with PDF...');
     
     // Create the Claude API request with the PDF file using a model that supports PDF
+    // Using the latest format expected by Claude API
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
       },
       body: JSON.stringify({
         model: "claude-3-5-sonnet-20241022", // Using a model that supports PDF input
@@ -54,7 +61,7 @@ export async function analyzeCVWithClaude(
             content: [
               {
                 type: "text",
-                text: prompt
+                text: prompt  // Simplified format without nesting
               },
               {
                 type: "document",
@@ -75,7 +82,7 @@ export async function analyzeCVWithClaude(
       try {
         const errorData = await response.json();
         console.error('Claude API error:', errorData);
-        errorMessage = `Claude API error: ${errorData.error?.message || response.statusText}`;
+        errorMessage = `Claude API error: ${errorData.error?.message || errorData.message || response.statusText}`;
       } catch (e) {
         console.error('Could not parse error response', e);
       }
@@ -87,21 +94,47 @@ export async function analyzeCVWithClaude(
     
     // Parse the response
     try {
-      // Claude returns more conversational responses, so we need to extract JSON
-      const analysisText = data.content[0].text;
-      const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || 
-                        analysisText.match(/{[\s\S]*}/);
-                        
-      const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : analysisText;
-      const parsedAnalysis = JSON.parse(jsonStr);
-      
-      return {
-        ...parsedAnalysis,
-        date: new Date().toISOString(),
-        id: `claude_ats_${Date.now()}`
-      };
+      // The server should now be returning a properly formatted response directly
+      if (data.status === 'success') {
+        const content = data.content;
+        
+        if (!content) {
+          throw new Error('Empty response content from Claude API');
+        }
+        
+        // Extract the JSON from Claude's response if needed
+        let parsedAnalysis;
+        
+        if (typeof content === 'string') {
+          // Claude returns more conversational responses, so we need to extract JSON
+          const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                          content.match(/{[\s\S]*}/);
+                          
+          const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+          parsedAnalysis = JSON.parse(jsonStr);
+        } else if (Array.isArray(content) && content.length > 0 && content[0].text) {
+          // Handle the response format where content is an array of objects with text
+          const analysisText = content[0].text;
+          const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || 
+                          analysisText.match(/{[\s\S]*}/);
+                          
+          const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : analysisText;
+          parsedAnalysis = JSON.parse(jsonStr);
+        } else {
+          // If it's already parsed JSON
+          parsedAnalysis = content;
+        }
+        
+        return {
+          ...parsedAnalysis,
+          date: new Date().toISOString(),
+          id: `claude_ats_${Date.now()}`
+        };
+      } else {
+        throw new Error(data.message || 'API returned error status');
+      }
     } catch (parseError) {
-      console.error('Failed to parse Claude response as JSON:', parseError);
+      console.error('Failed to parse Claude response:', parseError);
       throw new Error('Invalid analysis format received from Claude. Please try again.');
     }
   } catch (error: unknown) {

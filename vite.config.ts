@@ -11,13 +11,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/claude': {
-        target: 'https://api.anthropic.com',
+      '/api': {
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/claude/, '/v1/messages'),
-        headers: {
-          'anthropic-version': '2023-06-01'
-        }
       }
     }
   }

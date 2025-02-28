@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Trash2, Filter, Mail, MessageSquare, Target, Calendar, Inbox, PlayCircle, LayoutGrid, Columns } from 'lucide-react';
+import { Plus, Search, Trash2, Filter, Mail, MessageSquare, Target, Calendar, Inbox, PlayCircle, LayoutGrid, List, ChevronRight } from 'lucide-react';
 import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +14,7 @@ import { httpsCallable } from 'firebase/functions';
 import CampaignCard from '../components/CampaignCard';
 import axios from 'axios';
 
+// Define local Campaign interface to match what we're using in this file
 interface Campaign {
   id: string;
   title: string;
@@ -37,21 +38,22 @@ interface Campaign {
 // Ajout du type pour la modale de confirmation
 type StartModalType = {
   show: boolean;
-  campaign?: Campaign;
+  campaign?: any;
 }
 
 export default function CampaignsPage() {
   const { currentUser } = useAuth();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [deleteModal, setDeleteModal] = useState<{show: boolean; campaign?: Campaign}>({ show: false });
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{show: boolean; campaign?: any}>({ show: false });
+  const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
   const [filters, setFilters] = useState<FiltersType>({});
   const [error, setError] = useState<string | null>(null);
   const [showNewCampaign, setShowNewCampaign] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [userCredits, setUserCredits] = useState<number>(0);
   const [startModal, setStartModal] = useState<StartModalType>({ show: false });
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     if (!currentUser) return;
@@ -59,15 +61,26 @@ export default function CampaignsPage() {
     const campaignsRef = collection(db, 'users', currentUser.uid, 'campaigns');
     let q = query(campaignsRef);
 
-    // Apply filters
+    // Apply status filter
     if (filters.status) {
       q = query(q, where('status', '==', filters.status));
     }
+
+    // Apply date range filters
     if (filters.dateRange?.start) {
-      q = query(q, where('createdAt', '>=', filters.dateRange.start));
+      // Convert Date to Firestore Timestamp or ISO string format depending on your data model
+      const startDate = filters.dateRange.start;
+      q = query(q, where('createdAt', '>=', startDate));
     }
+    
     if (filters.dateRange?.end) {
-      q = query(q, where('createdAt', '<=', filters.dateRange.end));
+      // Convert Date to Firestore Timestamp or ISO string format depending on your data model
+      const endDate = filters.dateRange.end;
+      // Set time to end of day for the end date
+      if (endDate instanceof Date) {
+        endDate.setHours(23, 59, 59, 999);
+      }
+      q = query(q, where('createdAt', '<=', endDate));
     }
 
     // Add ordering
@@ -275,7 +288,7 @@ export default function CampaignsPage() {
     }
   };
 
-  const handleStartClick = (e: React.MouseEvent, campaign: Campaign) => {
+  const handleStartClick = (e: React.MouseEvent, campaign: any) => {
     e.stopPropagation();
     setStartModal({ show: true, campaign });
   };
@@ -299,6 +312,226 @@ export default function CampaignsPage() {
       </AuthLayout>
     );
   }
+
+  // Render the table/list view for campaigns
+  const renderListView = () => (
+    <div className="overflow-hidden bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-900/50">
+            <tr>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Campaign
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Status
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Emails
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Responses
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Date
+              </th>
+              <th scope="col" className="px-6 py-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredCampaigns.length > 0 ? (
+              filteredCampaigns.map((campaign) => (
+                <tr 
+                  key={campaign.id} 
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col cursor-pointer" onClick={() => setSelectedCampaign(campaign)}>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {campaign.title}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {campaign.jobTitle}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(campaign.status)}`}>
+                        {campaign.status}
+                      </span>
+                      {campaign.status === 'pending' && campaign.credits && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {campaign.credits} / {userCredits} credits
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-1">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {campaign.emailsSent || 0} sent
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-1">
+                      <MessageSquare className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {campaign.responses || 0} responses
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {formatDate(campaign.createdAt)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      {campaign.status === 'pending' && (
+                        <button
+                          onClick={(e) => { 
+                            e.stopPropagation();
+                            handleStartClick(e, campaign);
+                          }}
+                          className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 
+                            hover:bg-green-200 dark:hover:bg-green-900/50 transition-all duration-200"
+                        >
+                          <PlayCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                            Start
+                          </span>
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteModal({ show: true, campaign });
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedCampaign(campaign)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                  {searchQuery || Object.keys(filters).length > 0 
+                    ? "No campaigns match your filters or search criteria" 
+                    : "No campaigns found. Create your first campaign to get started."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // Render the grid view for campaigns
+  const renderGridView = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filteredCampaigns.map((campaign) => (
+        <div
+          key={campaign.id}
+          className="group bg-white dark:bg-gray-800 rounded-xl p-6 
+            border border-gray-200 dark:border-gray-700
+            hover:shadow-lg hover:border-purple-500 dark:hover:border-purple-500
+            transition-all duration-200 cursor-pointer"
+          onClick={() => setSelectedCampaign(campaign)}
+        >
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600">
+                {campaign.title}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {campaign.jobTitle}
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium
+                ${getStatusColor(campaign.status)}`}>
+                {campaign.status}
+              </span>
+              {campaign.status === 'pending' && (
+                <span className="text-xs text-gray-500">
+                  Credits: {campaign.credits} / {userCredits} available
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-300">
+                {campaign.emailsSent} sent
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-300">
+                {campaign.responses} responses
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-500">
+                  {formatDate(campaign.createdAt)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {campaign.status === 'pending' && (
+                  <button
+                    onClick={(e) => handleStartClick(e, campaign)}
+                    className="px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 
+                      hover:bg-green-200 dark:hover:bg-green-900/50 transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-2">
+                      <PlayCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                        Start
+                      </span>
+                    </div>
+                  </button>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteModal({ show: true, campaign });
+                  }}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <AuthLayout>
@@ -372,7 +605,7 @@ export default function CampaignsPage() {
           </div>
         </div>
 
-        {/* Search and Filters */}
+        {/* Search, Filters and View Toggle */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -388,95 +621,37 @@ export default function CampaignsPage() {
           </div>
           <div className="flex items-center gap-3">
             <CampaignFilters filters={filters} onFilterChange={handleFilterChange} />
+            
+            {/* View Toggle Buttons */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 flex">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg flex items-center justify-center ${
+                  viewMode === 'grid' 
+                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                aria-label="Grid View"
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg flex items-center justify-center ${
+                  viewMode === 'list' 
+                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                aria-label="List View"
+              >
+                <List className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Vue liste (affichée par défaut maintenant) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCampaigns.map((campaign) => (
-            <div
-              key={campaign.id}
-              className="group bg-white dark:bg-gray-800 rounded-xl p-6 
-                border border-gray-200 dark:border-gray-700
-                hover:shadow-lg hover:border-purple-500 dark:hover:border-purple-500
-                transition-all duration-200 cursor-pointer"
-              onClick={() => setSelectedCampaign(campaign)}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600">
-                    {campaign.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {campaign.jobTitle}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium
-                    ${getStatusColor(campaign.status)}`}>
-                    {campaign.status}
-                  </span>
-                  {campaign.status === 'pending' && (
-                    <span className="text-xs text-gray-500">
-                      Credits: {campaign.credits} / {userCredits} available
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
-                    {campaign.emailsSent} sent
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
-                    {campaign.responses} responses
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-500">
-                      {formatDate(campaign.createdAt)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {campaign.status === 'pending' && (
-                      <button
-                        onClick={(e) => handleStartClick(e, campaign)}
-                        className="px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 
-                          hover:bg-green-200 dark:hover:bg-green-900/50 transition-all duration-200"
-                      >
-                        <div className="flex items-center gap-2">
-                          <PlayCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                          <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                            Start
-                          </span>
-                        </div>
-                      </button>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteModal({ show: true, campaign });
-                      }}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Campaigns View (Grid or List) */}
+        {viewMode === 'grid' ? renderGridView() : renderListView()}
 
         {/* Empty State */}
         {filteredCampaigns.length === 0 && (

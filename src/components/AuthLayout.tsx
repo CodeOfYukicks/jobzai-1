@@ -18,14 +18,19 @@ interface AuthLayoutProps {
 
 // Définir les groupes de navigation
 const navigationGroups = {
-  main: [
+  activities: [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Template Studio', href: '/email-templates', icon: Mail },
     { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
-    { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
-    { name: 'Professional Profile', href: '/professional-profile', icon: User },
+  ],
+  jobTracking: [
     { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Application Tracking', href: '/applications', icon: Briefcase },
+  ],
+  profile: [
+    { name: 'Professional Profile', href: '/professional-profile', icon: User },
+    { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
   ],
 };
 
@@ -173,12 +178,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
           {/* Navigation principale - flex-1 pour prendre l'espace disponible */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <nav className="p-3">
+            <nav className="p-3 space-y-6">
+              {/* Activities Section */}
               <div className="space-y-1">
                 <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Main
+                  Spontaneous Applications
                 </p>
-                {navigationGroups.main.map((item) => (
+                {navigationGroups.activities.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
@@ -221,21 +227,106 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     )}
                   </Link>
                 ))}
+              </div>
 
-                {/* Nouveau lien pour les candidatures */}
-                <NavLink
-                  to="/applications"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors duration-200 ${
-                      isActive
-                        ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`
-                  }
-                >
-                  <Briefcase className="h-5 w-5" />
-                  <span>Applications</span>
-                </NavLink>
+              {/* Job Tracking Section */}
+              <div className="space-y-1">
+                <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Job Tracking
+                </p>
+                {navigationGroups.jobTracking.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onMouseEnter={() => setIsHovered(item.name)}
+                    onMouseLeave={() => setIsHovered(null)}
+                    className={`group flex items-center px-2 sm:px-4 py-2 sm:py-3 text-sm font-medium rounded-xl 
+                      transition-all duration-200 relative overflow-hidden
+                      ${location.pathname === item.href
+                        ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                  >
+                    {/* Hover Effect */}
+                    {isHovered === item.name && (
+                      <motion.div
+                        layoutId="hoverEffect"
+                        className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                    
+                    <div className="relative flex items-center gap-3">
+                      <item.icon className={`h-5 w-5 transition-colors
+                        ${location.pathname === item.href 
+                          ? 'text-purple-600 dark:text-purple-400' 
+                          : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
+                      />
+                      <span>{item.name}</span>
+                    </div>
+
+                    {location.pathname === item.href && (
+                      <motion.div
+                        layoutId="activeIndicator"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 
+                          bg-gradient-to-b from-purple-600 to-indigo-600 rounded-r-full"
+                      />
+                    )}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Profile Section */}
+              <div className="space-y-1">
+                <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Profile & Recommendations
+                </p>
+                {navigationGroups.profile.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onMouseEnter={() => setIsHovered(item.name)}
+                    onMouseLeave={() => setIsHovered(null)}
+                    className={`group flex items-center px-2 sm:px-4 py-2 sm:py-3 text-sm font-medium rounded-xl 
+                      transition-all duration-200 relative overflow-hidden
+                      ${location.pathname === item.href
+                        ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                  >
+                    {/* Hover Effect */}
+                    {isHovered === item.name && (
+                      <motion.div
+                        layoutId="hoverEffect"
+                        className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                    
+                    <div className="relative flex items-center gap-3">
+                      <item.icon className={`h-5 w-5 transition-colors
+                        ${location.pathname === item.href 
+                          ? 'text-purple-600 dark:text-purple-400' 
+                          : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
+                      />
+                      <span>{item.name}</span>
+                    </div>
+
+                    {location.pathname === item.href && (
+                      <motion.div
+                        layoutId="activeIndicator"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 
+                          bg-gradient-to-b from-purple-600 to-indigo-600 rounded-r-full"
+                      />
+                    )}
+                  </Link>
+                ))}
               </div>
 
               {/* Profile Completion Alert si < 90% */}

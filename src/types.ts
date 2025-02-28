@@ -9,6 +9,14 @@ export interface UserData {
   emailVerified?: boolean;
   createdAt?: any;
   lastUpdated?: any;
+  isPremium?: boolean;
+  email?: string;
+  phone?: string;
+  location?: string;
+  jobTitle?: string;
+  yearsOfExperience?: string | number;
+  skills?: string[];
+  education?: string[];
 }
 
 export interface Campaign {
