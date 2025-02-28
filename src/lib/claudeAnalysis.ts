@@ -2,6 +2,22 @@ import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
 
 /**
+ * Détermine l'URL de base de l'API en fonction de l'environnement
+ * @returns L'URL de base pour les appels API
+ */
+function getApiBaseUrl(): string {
+  // En production, utilisez des URLs relatives pour le même domaine
+  // En développement, utilisez localhost avec le port spécifique
+  const isProd = import.meta.env.PROD || window.location.hostname !== 'localhost';
+  
+  if (isProd) {
+    return '/api'; // URL relative en production
+  } else {
+    return 'http://localhost:3000/api'; // URL complète en développement
+  }
+}
+
+/**
  * Call Claude API with PDF for CV analysis
  * @param pdfFile The PDF file to analyze
  * @param jobDetails Job details for analysis context
@@ -14,11 +30,14 @@ export async function analyzeCVWithClaude(
   try {
     console.log('Starting CV analysis with Claude API...');
     
+    // Obtenir l'URL de base de l'API
+    const baseApiUrl = getApiBaseUrl();
+    
     // Try multiple server endpoints in case the user is running on different ports
     // First, try connecting to the test endpoint to ensure server is running
     try {
       console.log('Testing connection to Claude API server...');
-      const testResponse = await fetch('http://localhost:3000/api/test');
+      const testResponse = await fetch(`${baseApiUrl}/test`);
       if (!testResponse.ok) {
         console.warn('Claude API server test failed. Will still attempt main call.');
       } else {
@@ -30,7 +49,7 @@ export async function analyzeCVWithClaude(
     }
     
     // Make sure we're using the exact URL for our Express server
-    const apiUrl = 'http://localhost:3000/api/claude';
+    const apiUrl = `${baseApiUrl}/claude`;
     
     console.log('Preparing PDF for Claude API...');
     

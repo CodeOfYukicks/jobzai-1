@@ -823,10 +823,26 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
 // Fonction d'analyse plus sophistiquée
 const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
   try {
-    console.log('🚀 Démarrage de l\'analyse ATS avec GPT Vision');
+    console.log('🔍 Analyzing CV with data:', data);
     
-    // Si nous avons un CV téléchargé directement (au lieu d'une URL de stockage)
+    // Variable pour détecter si on fait une analyse directe avec fichier PDF
     let directAnalysis = false;
+    let cvFile: File | null = null;
+    
+    // Si un fichier PDF a été uploadé directement, on le récupère depuis le state
+    if (typeof window !== 'undefined') {
+      // Récupérer le cvFile depuis le state en utilisant une approche plus sûre
+      try {
+        // On utilise une assertion de type pour éviter l'erreur de TypeScript
+        // En production, il serait préférable d'implémenter un state manager propre
+        const appState = (window as any).__JOBZAI_STATE__;
+        if (appState && appState.cvFile) {
+          cvFile = appState.cvFile;
+        }
+      } catch (error) {
+        console.warn('Impossible de récupérer le state du CV:', error);
+      }
+    }
     
     if (cvFile && cvFile.type === 'application/pdf') {
       console.log('📄 Utilisation directe du fichier PDF pour GPT Vision');
@@ -842,30 +858,26 @@ const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
           jobDescription: data.jobDescription
         };
         
-        // Log pour vérifier la clé API
-        console.log('🔑 Vérification de la clé API:', 
-                   process.env.NEXT_PUBLIC_OPENAI_API_KEY ? 
-                   'Présente (commence par ' + process.env.NEXT_PUBLIC_OPENAI_API_KEY.substring(0, 3) + '...)' : 
-                   'MANQUANTE');
-        
         // Utiliser la nouvelle fonction Claude API à la place
         const analysis = await analyzeCVWithClaude(cvFile, jobDetails);
         console.log('✅ Analyse Claude réussie!', analysis);
         
         return {
           ...analysis,
-          id: `analysis_${Date.now()}`,
-          date: formatDateString(analysis.date),
-          userId: auth.currentUser?.uid || 'anonymous',
+          id: `claude_analysis_${Date.now()}`,
           jobTitle: data.jobTitle,
-          company: data.company
+          company: data.company,
+          date: new Date().toISOString(),
+          userId: auth.currentUser?.uid || 'unknown'
         };
       } catch (error) {
-        console.error('❌ Erreur lors de l\'appel à l\'API Claude:', error);
-        console.log('Fallback to standard analysis...');
-        directAnalysis = false;
+        console.error('❌ Erreur lors de l\'analyse directe avec Claude:', error);
+        throw error;
       }
     }
+    
+    // Si pas d'analyse directe, continuer avec l'analyse traditionnelle via le texte
+    // Reste du code existant...
     
     // Si on n'a pas pu utiliser le PDF directement, continuer avec l'approche standard
     if (!directAnalysis) {

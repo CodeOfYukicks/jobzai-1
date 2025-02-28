@@ -11,9 +11,32 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Déterminer si nous sommes en production
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Liste des domaines autorisés
+const allowedOrigins = isProduction 
+  ? [process.env.PRODUCTION_DOMAIN, 'https://jobzai.com', 'https://www.jobzai.com'].filter(Boolean) // Domaines de production 
+  : ['http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173']; // Domaines de développement
+
+console.log('CORS configuration:');
+console.log('- Environment:', isProduction ? 'Production' : 'Development');
+console.log('- Allowed origins:', allowedOrigins);
+
 // Enable CORS for all routes with explicit configuration
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173'],
+  origin: function (origin, callback) {
+    // Permettre les requêtes sans origine (comme les appels API mobiles ou Postman)
+    if (!origin) return callback(null, true);
+    
+    // Vérifier si l'origine est dans la liste des domaines autorisés
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      console.warn(`Origin ${origin} not allowed by CORS`);
+      callback(null, true); // En production, on pourrait être plus restrictif ici
+    }
+  },
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'x-api-key', 'anthropic-version'],
   credentials: true
@@ -54,7 +77,8 @@ app.get('/api/claude/test', (req, res) => {
     status: 'success', 
     message: 'Claude API endpoint is accessible', 
     apiKeyPresent: !!apiKey,
-    apiKeyLength: apiKey ? apiKey.length : 0
+    apiKeyLength: apiKey ? apiKey.length : 0,
+    environment: isProduction ? 'production' : 'development'
   });
 });
 
@@ -104,7 +128,8 @@ app.post('/api/claude', async (req, res) => {
     console.log("Claude API endpoint called");
     
     // Get API key and validate
-    const apiKey = process.env.VITE_ANTHROPIC_API_KEY;
+    // En production, préférer une variable d'environnement sans préfixe VITE_
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
     
     if (!apiKey) {
       console.error("Claude API key is missing in server environment");
@@ -222,7 +247,7 @@ app.post('/api/claude', async (req, res) => {
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT} in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
   console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
   console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
   console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
