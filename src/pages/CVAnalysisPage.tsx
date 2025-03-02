@@ -4,9 +4,10 @@ import {
   FileText, Briefcase, Building, Target, 
   ChevronRight, X, Sparkles, Brain,
   CheckCircle, AlertCircle, Trophy, Lightbulb, Upload, Check,
-  Flame as FireIcon, AlertTriangle as ExclamationTriangleIcon, 
+  Flame as FireIcon, AlertTriangle, 
   Info as InformationCircleIcon, Code as CodeBracketIcon,
-  BarChart as ChartBarIcon
+  BarChart as ChartBarIcon, Trash2, ChevronUp, ChevronDown, Calendar,
+  Building2, CalendarDays as CalendarIcon
 } from 'lucide-react';
 import { Dialog, Disclosure } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -29,7 +30,9 @@ import {
   MagnifyingGlassIcon,
   ChevronDownIcon,
   DocumentPlusIcon,
-  CheckIcon
+  CheckIcon,
+  PlusIcon,
+  XMarkIcon as XIcon
 } from '@heroicons/react/24/outline';
 import { validateCVContent, validateJobDescription, setValidationOptions, analyzeCVWithGPT } from '../lib/cvAnalysis';
 // Import Claude Analysis functions
@@ -1435,55 +1438,24 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
   // Ajouter un composant LoadingScreen minimal sans animation complexe
   const LoadingScreen = () => {
     return (
-      <div className="fixed inset-0 bg-purple-900/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center text-white p-6">
-        <div className="w-full max-w-md mx-auto flex flex-col items-center">
-          {/* Logo statique */}
-          <div className="mb-8">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-xl">
-              <Brain className="w-12 h-12 text-white" />
-            </div>
-          </div>
-          
-          {/* Step indicator */}
-          <div className="flex gap-2 mb-8">
-            {['preparing', 'analyzing', 'matching', 'finalizing'].map((step) => (
-              <div 
-                key={step} 
-                className={`w-3 h-3 rounded-full ${
-                  loadingStep === step 
-                    ? 'bg-white' 
-                    : (Object.keys(loadingMessages).indexOf(step) <= Object.keys(loadingMessages).indexOf(loadingStep)) 
-                      ? 'bg-purple-400' 
-                      : 'bg-purple-800'
-                }`}
-              />
-            ))}
-          </div>
-          
-          {/* Message statique sans animation */}
-          <div className="h-16 flex items-center justify-center mb-6">
-            <h2 className="text-xl md:text-2xl font-medium text-center">
-              {loadingMessage}
-            </h2>
-          </div>
-          
-          {/* Progress bar simple */}
-          <div className="w-full h-3 bg-purple-800/50 rounded-full overflow-hidden mb-4">
-            <div 
-              className="h-full bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
-              style={{ width: `${loadingProgress}%` }}
-            />
-          </div>
-          
-          {/* Progress percentage */}
-          <p className="text-sm font-medium text-purple-200 mb-8">
-            {Math.round(loadingProgress)}% Complete
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white dark:bg-gray-900 bg-opacity-90 dark:bg-opacity-90 backdrop-blur-sm">
+        <div className="w-20 h-20 rounded-full border-t-4 border-b-4 border-purple-600 dark:border-purple-400 animate-spin mb-5"></div>
+        
+        <div className="text-center mb-8">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{loadingMessage}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {loadingStep === 'analyzing' && 'This may take up to a minute...'}
           </p>
-          
-          <p className="text-xs text-purple-300 mt-4 text-center max-w-xs">
-            We're analyzing your resume with Claude AI to provide the most accurate job match insights. 
-            This may take a minute...
-          </p>
+        </div>
+        
+        <div className="w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 mb-2">
+          <div 
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 h-2.5 rounded-full transition-all duration-500 ease-out" 
+            style={{ width: `${loadingProgress}%` }}
+          ></div>
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {loadingProgress}%
         </div>
       </div>
     );
@@ -1777,8 +1749,8 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           <textarea
             value={formData.jobDescription}
             onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-            className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-            placeholder="Copy and paste the complete job description here..."
+            className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white h-64"
+            placeholder="Paste the job description here..."
           />
           <p className="text-xs text-gray-500 mt-2">
             The more detailed the description, the more accurate the analysis. Include required skills, responsibilities, and qualifications.
@@ -1868,403 +1840,321 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden mb-6 border border-gray-100 dark:border-gray-700">
         {/* Card Header - Always visible and clickable */}
         <div 
-          className="flex items-center p-6 cursor-pointer relative group"
           onClick={toggleExpand}
+          className="p-5 cursor-pointer flex items-center justify-between group"
         >
-          <div className="mr-5 transition-transform duration-300 group-hover:scale-105">
-            <CircularProgressWithCenterText 
-              value={analysis.matchScore} 
-              size={80} 
-              strokeWidth={8}
-              textSize="text-xl font-bold"
-              colorClass={getScoreColorClass(analysis.matchScore)}
-            />
-          </div>
-          
-          <div className="flex-grow">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white mb-1">
+          <div className="flex items-center space-x-5 flex-1">
+            {/* Score Circle */}
+            <div className="relative">
+              <CircularProgressWithCenterText 
+                value={analysis.matchScore} 
+                size={70}
+                strokeWidth={7}
+                textSize="text-xl font-semibold"
+                colorClass={getScoreColorClass(analysis.matchScore)}
+              />
+              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <Trophy className={`w-5 h-5 ${
+                  analysis.matchScore >= 80 
+                    ? 'text-yellow-500' 
+                    : analysis.matchScore >= 65 
+                    ? 'text-blue-400' 
+                    : 'text-red-400'
+                }`} />
+              </div>
+            </div>
+            
+            {/* Job Title and Company */}
+            <div className="flex-1">
+              <div className="flex items-center">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                   {analysis.jobTitle}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  {analysis.company} • <span className="text-gray-500 dark:text-gray-500">{formatDate(analysis.date)}</span>
-                </p>
-                
-                <div className="flex flex-wrap gap-2">
-                  {analysis.skillsMatch.matching.slice(0, 2).map((skill, idx) => (
-                    <SkillTag key={idx} skill={skill.name} matched={true} relevance={skill.relevance} />
-                  ))}
-                  {analysis.skillsMatch.missing.slice(0, 1).map((skill, idx) => (
-                    <SkillTag key={idx} skill={skill.name} matched={false} relevance={skill.relevance} />
-                  ))}
-                  {(analysis.skillsMatch.matching.length > 2 || analysis.skillsMatch.missing.length > 1) && (
-                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400 rounded-full ml-1">+{analysis.skillsMatch.matching.length + analysis.skillsMatch.missing.length - 3} more</span>
-                  )}
-                </div>
+                {analysis.matchScore >= 80 && (
+                  <div className="ml-2 flex items-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    High match
+                  </div>
+                )}
               </div>
-              
-              <div className="flex items-center">
-                <p className="text-xs text-gray-500 mr-3">{formatDate(analysis.date)}</p>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsDeleteDialogOpen(true);
-                  }}
-                  className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleExpand();
-                  }}
-                  className="ml-3 text-purple-500 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
+              <div className="flex items-center mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                  <Building2 className="w-4 h-4 mr-1.5 text-gray-400 dark:text-gray-500" /> 
+                  {analysis.company}
+                </p>
+                <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>
+                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                  <CalendarIcon className="w-4 h-4 mr-1.5 text-gray-400 dark:text-gray-500" /> 
+                  {formatDate(analysis.date)}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Confirmation Dialog for Delete */}
-        <Dialog
-          open={isDeleteDialogOpen}
-          onClose={() => setIsDeleteDialogOpen(false)}
-          className="fixed inset-0 z-50 overflow-y-auto"
-        >
-          <div className="flex items-center justify-center min-h-screen px-4">
-            <Dialog.Overlay 
-              as={motion.div}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40"
-            />
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-auto p-6"
+          {/* Actions Menu */}
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDeleteDialogOpen(true);
+              }}
+              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+              aria-label="Delete analysis"
             >
-              <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Confirm Deletion
-              </Dialog.Title>
-              
-              <div className="mb-6">
-                <p className="text-gray-600 dark:text-gray-300">
-                  Are you sure you want to delete this analysis for "{analysis.jobTitle}" at {analysis.company}? This action cannot be undone.
-                </p>
-              </div>
-              
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setIsDeleteDialogOpen(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                >
-                  Cancel
-                </button>
-                
-                <button
-                  onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-                >
-                  Delete
-                </button>
-              </div>
-            </motion.div>
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </button>
           </div>
-        </Dialog>
+        </div>
+
+        {/* Skill Badges */}
+        {!isExpanded && (
+          <div className="px-5 pb-5 pt-0 flex flex-wrap gap-2">
+            {analysis.skillsMatch.matching
+              .sort((a, b) => b.relevance - a.relevance)
+              .slice(0, 3)
+              .map((skill, idx) => (
+                <SkillTag 
+                  key={`match-${idx}`} 
+                  skill={skill.name} 
+                  matched={true} 
+                  relevance={skill.relevance} 
+                />
+              ))}
+            
+            {/* Ajouter des skills manquantes (tags rouges) */}
+            {analysis.skillsMatch.missing
+              .slice(0, 2)
+              .map((skill, idx) => (
+                <SkillTag 
+                  key={`missing-${idx}`} 
+                  skill={skill.name} 
+                  matched={false} 
+                />
+              ))}
+              
+            {/* Compteur pour les skills restantes */}
+            {(analysis.skillsMatch.matching.length > 3 || analysis.skillsMatch.missing.length > 2) && (
+              <div className="text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full">
+                +{(analysis.skillsMatch.matching.length - 3) + (analysis.skillsMatch.missing.length - 2)} plus
+              </div>
+            )}
+          </div>
+        )}
         
-        {/* Category Scores */}
+        {/* Expanded Content */}
         {isExpanded && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="border-t border-gray-100 dark:border-gray-700"
+            className="px-5 pb-5"
           >
-            <div className="p-5 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800/40 dark:to-gray-800/10">
-              <h4 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
-                <ChartBarIcon className="h-4 w-4 text-purple-500" />
-                Category Scores
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <ScoreCard
-                  title="Skills"
-                  score={analysis.categoryScores.skills}
-                  icon={<PuzzlePieceIcon className="h-5 w-5" />}
-                  description={getScoreExplanation("Skills", analysis.categoryScores.skills)}
-                />
-                <ScoreCard
-                  title="Experience"
-                  score={analysis.categoryScores.experience}
-                  icon={<BriefcaseIcon className="h-5 w-5" />}
-                  description={getScoreExplanation("Experience", analysis.categoryScores.experience)}
-                />
-                <ScoreCard
-                  title="Education"
-                  score={analysis.categoryScores.education}
-                  icon={<AcademicCapIcon className="h-5 w-5" />}
-                  description={getScoreExplanation("Education", analysis.categoryScores.education)}
-                />
-                <ScoreCard
-                  title="Industry"
-                  score={analysis.categoryScores.industryFit}
-                  icon={<BuildingOfficeIcon className="h-5 w-5" />}
-                  description={getScoreExplanation("Industry", analysis.categoryScores.industryFit)}
-                />
+            {/* Category Scores */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 mb-5">
+              {Object.entries(analysis.categoryScores).map(([category, score], idx) => (
+                <div key={idx} className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 flex flex-col items-center justify-center">
+                  <div className="text-xs uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    {category.replace(/([A-Z])/g, ' $1').trim()}
+                  </div>
+                  <div className={`text-xl font-bold ${getScoreColorClass(score)}`}>
+                    {Math.round(score)}%
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Expandable sections */}
+            <div className="space-y-3">
+              {/* Executive Summary */}
+              <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleSection('summary')}
+                  className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <FileText className="w-5 h-5 mr-2 text-purple-500" />
+                    <span className="font-medium">Résumé exécutif</span>
+                  </div>
+                  {expandedSection === 'summary' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {expandedSection === 'summary' && (
+                  <div className="p-4 bg-white dark:bg-gray-800">
+                    <p className="text-gray-700 dark:text-gray-300">{analysis.executiveSummary}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Skills Match */}
+              <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleSection('skills')}
+                  className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+                    <span className="font-medium">Compétences correspondantes</span>
+                  </div>
+                  {expandedSection === 'skills' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {expandedSection === 'skills' && (
+                  <div className="p-4 bg-white dark:bg-gray-800">
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {analysis.skillsMatch.matching.map((skill, idx) => (
+                        <SkillTag 
+                          key={idx} 
+                          skill={skill.name} 
+                          matched={true} 
+                          relevance={skill.relevance} 
+                        />
+                      ))}
+                    </div>
+                    
+                    {analysis.skillsMatch.missing.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Compétences manquantes</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {analysis.skillsMatch.missing.map((skill, idx) => (
+                            <SkillTag 
+                              key={idx} 
+                              skill={skill.name} 
+                              matched={false} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Experience Analysis */}
+              <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleSection('experience')}
+                  className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <Briefcase className="w-5 h-5 mr-2 text-blue-500" />
+                    <span className="font-medium">Analyse d'expérience</span>
+                  </div>
+                  {expandedSection === 'experience' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {expandedSection === 'experience' && (
+                  <div className="p-4 bg-white dark:bg-gray-800">
+                    <div className="space-y-4">
+                      {analysis.experienceAnalysis.map((item, idx) => (
+                        <div key={idx} className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">{item.aspect}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{item.analysis}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Recommendations */}
+              <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleSection('recommendations')}
+                  className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
+                    <span className="font-medium">Recommandations</span>
+                  </div>
+                  {expandedSection === 'recommendations' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {expandedSection === 'recommendations' && (
+                  <div className="p-4 bg-white dark:bg-gray-800">
+                    <div className="space-y-3">
+                      {analysis.recommendations.map((rec, idx) => (
+                        <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-700 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-gray-900 dark:text-white">{rec.title}</h4>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              rec.priority === 'high' 
+                                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' 
+                                : rec.priority === 'medium'
+                                ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400'
+                                : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            }`}>
+                              {rec.priority.charAt(0).toUpperCase() + rec.priority.slice(1)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{rec.description}</p>
+                          {rec.examples && (
+                            <div className="mt-2 text-sm bg-gray-50 dark:bg-gray-700/30 p-2 rounded-md text-gray-700 dark:text-gray-300">
+                              <span className="font-medium text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Exemple</span>
+                              {rec.examples}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
         )}
-        
-        {/* Executive Summary */}
-        {isExpanded && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="p-5 border-t border-gray-100 dark:border-gray-700"
-          >
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 mb-4">
-              <h3 className="font-semibold text-purple-700 dark:text-purple-400 mb-2 flex items-center">
-                <DocumentTextIcon className="h-5 w-5 mr-2 inline" />
-                Executive Summary
-              </h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                {analysis.executiveSummary}
-              </p>
-            </div>
-          </motion.div>
-        )}
-        
-        {/* Accordion Sections */}
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className="px-5 pb-5"
-          >
-            {/* Skills and Technologies */}
-            <div className="mb-3">
-              <button
-                onClick={() => toggleSection('skills')}
-                className="w-full flex justify-between items-center py-3 text-left focus:outline-none"
-              >
-                <SectionTitle 
-                  icon={<PuzzlePieceIcon className="h-5 w-5 text-purple-500" />} 
-                  title="Skills and Technologies" 
+
+        {/* Delete Confirmation Dialog */}
+        <AnimatePresence>
+          {isDeleteDialogOpen && (
+            <Dialog
+              open={isDeleteDialogOpen}
+              onClose={() => setIsDeleteDialogOpen(false)}
+              className="fixed inset-0 z-[60] overflow-y-auto"
+            >
+              <div className="flex items-center justify-center min-h-screen px-4">
+                <Dialog.Overlay 
+                  as={motion.div}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/40 backdrop-blur-sm"
                 />
-                <ChevronDownIcon className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${expandedSection === 'skills' ? 'transform rotate-180' : ''}`} />
-              </button>
-              
-              {expandedSection === 'skills' && (
+
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="mt-4 space-y-6"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-5 mx-auto"
                 >
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Matching Skills</h3>
-                    <div className="flex flex-wrap">
-                      {analysis.skillsMatch.matching.map((skill, idx) => (
-                        <SkillTag key={idx} skill={skill.name} matched={true} relevance={skill.relevance} />
-                      ))}
-                      {analysis.skillsMatch.matching.length === 0 && (
-                        <p className="text-gray-500 dark:text-gray-400 italic">No matching skills found.</p>
-                      )}
+                  <div className="text-center mb-4">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 text-red-500 mb-4">
+                      <AlertTriangle className="w-6 h-6" />
                     </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Delete this analysis?</h3>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      This action is irreversible. Are you sure you want to delete this analysis for the position "{analysis.jobTitle}"?
+                    </p>
                   </div>
                   
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">
-                      Missing Skills 
-                      <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                        (Skills mentioned in the job description but not found in your CV)
-                      </span>
-                    </h3>
-                    <div className="flex flex-wrap">
-                      {analysis.skillsMatch.missing.map((skill, idx) => (
-                        <SkillTag key={idx} skill={skill.name} matched={false} relevance={skill.relevance} />
-                      ))}
-                      {analysis.skillsMatch.missing.length === 0 && (
-                        <p className="text-gray-500 dark:text-gray-400 italic">Great! No missing skills detected.</p>
-                      )}
-                    </div>
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      onClick={() => setIsDeleteDialogOpen(false)}
+                      className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-offset-white dark:focus:ring-offset-gray-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 focus:ring-offset-white dark:focus:ring-offset-gray-800"
+                    >
+                      Delete
+                    </button>
                   </div>
-                
-                  {analysis.skillsMatch.alternative.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Alternative Skills</h3>
-                      <div className="flex flex-wrap">
-                        {analysis.skillsMatch.alternative.map((skill, idx) => (
-                          <div key={idx} className="flex items-center bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/30 dark:to-blue-900/30 border border-blue-100 dark:border-blue-800/30 rounded-full px-3 py-1 mr-2 mb-2">
-                            <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">{skill.name}</span>
-                            <span className="mx-1 text-gray-400">→</span>
-                            <span className="text-gray-600 dark:text-gray-300 text-sm">{skill.alternativeTo}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </motion.div>
-              )}
-            </div>
-            
-            {/* Experience Analysis */}
-            <div className="mb-3">
-              <button
-                onClick={() => toggleSection('experience')}
-                className="w-full flex justify-between items-center py-3 text-left focus:outline-none"
-              >
-                <SectionTitle 
-                  icon={<BriefcaseIcon className="h-5 w-5 text-purple-500" />} 
-                  title="Experience Analysis" 
-                />
-                <ChevronDownIcon className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${expandedSection === 'experience' ? 'transform rotate-180' : ''}`} />
-              </button>
-              
-              {expandedSection === 'experience' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="mt-4"
-                >
-                  {analysis.experienceAnalysis.map((item, idx) => (
-                    <div key={idx} className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">{item.aspect}</h4>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{item.analysis}</p>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </div>
-            
-            {/* Recommendations */}
-            <div className="mb-3">
-              <button
-                onClick={() => toggleSection('recommendations')}
-                className="w-full flex justify-between items-center py-3 text-left focus:outline-none"
-              >
-                <SectionTitle 
-                  icon={<Lightbulb className="h-5 w-5 text-purple-500" />} 
-                  title="Recommendations" 
-                />
-                <ChevronDownIcon className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${expandedSection === 'recommendations' ? 'transform rotate-180' : ''}`} />
-              </button>
-              
-              {expandedSection === 'recommendations' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="mt-4 grid gap-4"
-                >
-                  {analysis.recommendations.map((rec, idx) => (
-                    <div key={idx} className="relative overflow-hidden group">
-                      <div className={`
-                        absolute top-0 left-0 h-full w-1 rounded-full
-                        ${rec.priority === 'high' ? 'bg-gradient-to-b from-red-400 to-red-600' : 
-                          rec.priority === 'medium' ? 'bg-gradient-to-b from-orange-400 to-orange-600' : 
-                          'bg-gradient-to-b from-blue-400 to-blue-600'}
-                      `}></div>
-                      <div className="p-4 pl-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300 hover:translate-x-1">
-                        <div className="flex items-center mb-2">
-                          <div className={`
-                            mr-2 p-1.5 rounded-lg
-                            ${rec.priority === 'high' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 
-                              rec.priority === 'medium' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 
-                              'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}
-                          `}>
-                            {rec.priority === 'high' ? 
-                              <FireIcon className="h-4 w-4" /> : 
-                              rec.priority === 'medium' ? 
-                              <ExclamationTriangleIcon className="h-4 w-4" /> : 
-                              <InformationCircleIcon className="h-4 w-4" />
-                            }
-                          </div>
-                          <h4 className="font-medium text-gray-900 dark:text-gray-100">{rec.title}</h4>
-                          <span className={`
-                            ml-2 px-2 py-0.5 text-xs rounded-full
-                            ${rec.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 
-                              rec.priority === 'medium' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' : 
-                              'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'}
-                          `}>
-                            {rec.priority}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{rec.description}</p>
-                        {rec.examples && (
-                          <div className="mt-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700 group-hover:border-gray-200 dark:group-hover:border-gray-600 transition-colors">
-                            <h5 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1 flex items-center">
-                              <CodeBracketIcon className="h-3 w-3 mr-1" />
-                              Example
-                            </h5>
-                            <p className="text-sm italic text-gray-700 dark:text-gray-300">{rec.examples}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </div>
-            
-            {/* Key Findings */}
-            <div className="mb-3">
-              <button
-                onClick={() => toggleSection('findings')}
-                className="w-full flex justify-between items-center py-3 text-left focus:outline-none"
-              >
-                <SectionTitle 
-                  icon={<MagnifyingGlassIcon className="h-5 w-5 text-purple-500" />} 
-                  title="Key Findings" 
-                />
-                <ChevronDownIcon className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${expandedSection === 'findings' ? 'transform rotate-180' : ''}`} />
-              </button>
-              
-              {expandedSection === 'findings' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="mt-4"
-                >
-                  <ul className="space-y-2">
-                    {analysis.keyFindings.map((finding, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <span className="text-green-500 dark:text-green-400 mr-2 mt-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">{finding}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        )}
+              </div>
+            </Dialog>
+          )}
+        </AnimatePresence>
       </div>
     );
   };
@@ -2364,38 +2254,66 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
   const CircularProgressWithCenterText = ({ value, size = 64, strokeWidth = 6, textSize = "text-lg", colorClass = "text-purple-600" }: { value: number, size?: number, strokeWidth?: number, textSize?: string, colorClass?: string }) => {
     const radius = (size - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
-    // Arrondir la valeur pour le calcul du cercle progressif
-    const roundedValue = Math.round(value);
-    const strokeDashoffset = circumference - (roundedValue / 100) * circumference;
-
+    const progress = (100 - value) / 100 * circumference;
+    
+    const getGradientColors = () => {
+      if (value >= 80) return { start: '#10B981', end: '#34D399', mid: '#059669' };  // Green
+      if (value >= 65) return { start: '#F59E0B', end: '#FBBF24', mid: '#D97706' };  // Yellow/Orange
+      return { start: '#DC2626', end: '#EF4444', mid: '#B91C1C' };  // Red
+    };
+    
+    const { start, end, mid } = getGradientColors();
+    
     return (
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="transform -rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
+      <div className="relative inline-flex">
+        <svg width={size} height={size} className="transform -rotate-90">
+          {/* Background Circle with subtle gradient */}
+          <defs>
+            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="rgba(229, 231, 235, 0.5)" />
+              <stop offset="100%" stopColor="rgba(209, 213, 219, 0.8)" />
+            </linearGradient>
+          </defs>
+          
+          <circle 
+            cx={size / 2} 
+            cy={size / 2} 
             r={radius}
-            fill="none"
-            stroke="currentColor"
             strokeWidth={strokeWidth}
-            className="text-gray-200 dark:text-gray-700"
+            stroke="url(#bgGradient)"
+            fill="transparent"
+            className="dark:opacity-20"
           />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
+          
+          {/* Progress Circle with Gradient */}
+          <defs>
+            <linearGradient id={`circleGradient-${value}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={start} />
+              <stop offset="50%" stopColor={mid} />
+              <stop offset="100%" stopColor={end} />
+            </linearGradient>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+          
+          <circle 
+            cx={size / 2} 
+            cy={size / 2} 
             r={radius}
-            fill="none"
-            stroke="currentColor"
             strokeWidth={strokeWidth}
+            stroke={`url(#circleGradient-${value})`}
             strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            className={`${colorClass} transition-all duration-1000 ease-out`}
+            strokeDashoffset={progress}
             strokeLinecap="round"
-            style={{ filter: 'drop-shadow(0 0 2px rgba(var(--shadow-color, 0, 0, 0), 0.1))' }}
+            fill="transparent"
+            className="transition-all duration-1000 ease-out-expo"
+            filter={value >= 80 ? "url(#glow)" : ""}
           />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`font-bold ${textSize} ${colorClass}`}>{roundedValue}%</span>
+        <div className={`absolute inset-0 flex items-center justify-center ${textSize} font-bold ${colorClass}`}>
+          <span className="animate-fadeIn">{value}%</span>
         </div>
       </div>
     );
@@ -2432,15 +2350,25 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
   };
 
   const SkillTag = ({ skill, matched, relevance }: { skill: string; matched: boolean; relevance?: number }) => (
-    <span 
-      className={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-sm ${
+    <div 
+      className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
         matched 
-          ? 'bg-gradient-to-r from-green-50 to-green-100 text-green-700 dark:from-green-900/30 dark:to-green-800/40 dark:text-green-300 border border-green-200/50 dark:border-green-700/30' 
-          : 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 dark:from-red-900/30 dark:to-red-800/40 dark:text-red-300 border border-red-200/50 dark:border-red-700/30'
+          ? "bg-gradient-to-r from-green-50 to-teal-50 text-green-700 border border-green-100/80 dark:from-green-900/20 dark:to-teal-900/20 dark:text-green-400 dark:border-green-800/30 hover:shadow-sm hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/30 dark:hover:to-teal-900/30"
+          : "bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border border-red-100/80 dark:from-red-900/20 dark:to-orange-900/20 dark:text-red-400 dark:border-red-800/30 hover:shadow-sm hover:from-red-100 hover:to-orange-100 dark:hover:from-red-900/30 dark:hover:to-orange-900/30"
       }`}
     >
-      {skill}{relevance ? ` (${relevance}%)` : ''}
-    </span>
+      {matched ? (
+        <Check className="w-4 h-4 mr-1.5 text-green-600 dark:text-green-500" />
+      ) : (
+        <X className="w-4 h-4 mr-1.5 text-red-600 dark:text-red-500" />
+      )}
+      <span>{skill}</span>
+      {matched && relevance && (
+        <span className="ml-1.5 bg-white dark:bg-gray-800 text-xs px-1.5 py-0.5 rounded-full text-gray-600 dark:text-gray-400 shadow-inner">
+          {Math.round(relevance)}%
+        </span>
+      )}
+    </div>
   );
 
   const SectionTitle = ({ icon, title }: { icon: React.ReactNode; title: string }) => (
@@ -2615,7 +2543,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
               New Analysis
             </button>
           </div>
-
+  
           {/* List of analyses */}
           <div className="mt-8 space-y-6">
             {analyses.map((analysis) => (
@@ -2644,160 +2572,158 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
             )}
           </div>
         </div>
-      </div>
+        
+        {/* Modal */}
+        <AnimatePresence>
+          {isModalOpen && (
+            <Dialog
+              open={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              className="fixed inset-0 z-[50] overflow-y-auto"
+            >
+              <div className="flex items-center justify-center min-h-screen px-4">
+                <Dialog.Overlay 
+                  as={motion.div}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+                />
 
-      {/* Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <Dialog
-            open={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            className="fixed inset-0 z-[50] overflow-y-auto"
-          >
-            <div className="flex items-center justify-center min-h-screen px-4">
-              <Dialog.Overlay 
-                as={motion.div}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-              />
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                transition={{ duration: 0.25 }}
-                className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full mx-auto p-6 md:p-8 overflow-hidden"
-              >
-                {/* Modal Header */}
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {steps[currentStep - 1].title}
-                    </Dialog.Title>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                      {steps[currentStep - 1].description}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="text-gray-400 hover:text-gray-500 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Modal Content */}
-                <div className="max-h-[70vh] overflow-y-auto pr-1 -mr-1 mb-6">
-                  {currentStep === 1 && renderFileUpload()}
-                  {currentStep === 2 && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Job Title
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.jobTitle}
-                          onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-                          placeholder="e.g., Full Stack Developer"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Enter the exact job title for better analysis
-                        </p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Company
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.company}
-                          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-                          placeholder="e.g., Google"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {currentStep === 3 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  transition={{ duration: 0.25 }}
+                  className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full mx-auto p-6 md:p-8 overflow-hidden"
+                >
+                  {/* Modal Header */}
+                  <div className="flex justify-between items-center mb-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Job Description
-                      </label>
-                      <textarea
-                        value={formData.jobDescription}
-                        onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                        className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-                        placeholder="Copy and paste the complete job description here..."
-                      />
-                      <p className="text-xs text-gray-500 mt-2">
-                        The more detailed the description, the more accurate the analysis. Include required skills, responsibilities, and qualifications.
+                      <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white">
+                        {steps[currentStep - 1].title}
+                      </Dialog.Title>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        {steps[currentStep - 1].description}
                       </p>
                     </div>
-                  )}
-                </div>
-
-                {/* Modal Footer */}
-                <div className="mt-6 flex justify-end gap-3">
-                  {currentStep > 1 && (
                     <button
-                      onClick={() => setCurrentStep(currentStep - 1)}
-                      className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center"
+                      onClick={() => setIsModalOpen(false)}
+                      className="text-gray-400 hover:text-gray-500 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Back
+                      <X className="w-5 h-5" />
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      if (currentStep < steps.length) {
-                        setCurrentStep(currentStep + 1);
-                      } else {
-                        // Call handleAnalysis instead of just closing the modal
-                        handleAnalysis();
-                      }
-                    }}
-                    className={`px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium flex items-center ${
-                      (currentStep === 1 && !cvFile) || isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    disabled={(currentStep === 1 && !cvFile) || isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Analysis in progress...
-                      </>
-                    ) : (
-                      <>
-                        {currentStep === steps.length ? 'Analyze' : 'Next'}
-                        {currentStep < steps.length && (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        )}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          </Dialog>
-        )}
-      </AnimatePresence>
+                  </div>
 
-      {/* LoadingScreen */}
-      <AnimatePresence>
-        {isLoading && <LoadingScreen />}
-      </AnimatePresence>
+                  {/* Modal Content */}
+                  <div className="max-h-[70vh] overflow-y-auto pr-1 -mr-1 mb-6">
+                    {currentStep === 1 && renderFileUpload()}
+                    {currentStep === 2 && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Job Title
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.jobTitle}
+                            onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            placeholder="e.g. Frontend Developer"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Company
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.company}
+                            onChange={(e) => setFormData({...formData, company: e.target.value})}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            placeholder="e.g. Acme Corp"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Job Description
+                          </label>
+                          
+                          {/* Ajout du contrôle de validation */}
+                          <ValidationToggle />
+                          
+                          <textarea
+                            value={formData.jobDescription}
+                            onChange={(e) => setFormData({...formData, jobDescription: e.target.value})}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white h-64"
+                            placeholder="Paste the job description here..."
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Modal Footer */}
+                  <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                    {currentStep > 1 && (
+                      <button
+                        onClick={() => setCurrentStep(currentStep - 1)}
+                        className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (currentStep < steps.length) {
+                          setCurrentStep(currentStep + 1);
+                        } else {
+                          // Call handleAnalysis instead of just closing the modal
+                          handleAnalysis();
+                        }
+                      }}
+                      className={`px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium flex items-center ${
+                        (currentStep === 1 && !cvFile) || isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      disabled={(currentStep === 1 && !cvFile) || isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Analysis in progress...
+                        </>
+                      ) : (
+                        <>
+                          {currentStep === steps.length ? 'Analyze' : 'Next'}
+                          {currentStep < steps.length && (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            </Dialog>
+          )}
+        </AnimatePresence>
+
+        {/* LoadingScreen */}
+        <AnimatePresence>
+          {isLoading && <LoadingScreen />}
+        </AnimatePresence>
+      </div>
     </AuthLayout>
   );
 }
