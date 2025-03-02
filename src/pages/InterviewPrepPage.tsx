@@ -96,7 +96,7 @@ export default function InterviewPrepPage() {
   }, [currentUser, applicationId, interviewId, navigate]);
 
   const handleAnalyzeJobPost = async () => {
-    if (!currentUser || !application || !interview) return;
+    if (!currentUser || !application || !interview || !applicationId) return;
     
     if (!jobUrl) {
       toast.error('Please enter a job post URL');
@@ -110,7 +110,7 @@ export default function InterviewPrepPage() {
         jobUrl,
         application.position,
         application.companyName,
-        'claude' // Use Claude as default
+        'perplexity' // Use Perplexity as default
       );
       
       if (analysisResult.error) {
@@ -135,7 +135,7 @@ export default function InterviewPrepPage() {
         lastAnalyzed: new Date().toISOString()
       };
       
-      // Update Firestore
+      // Update Firestore - Make sure applicationId is not undefined
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
       await updateDoc(applicationRef, {
         interviews: updatedInterviews,
@@ -150,7 +150,7 @@ export default function InterviewPrepPage() {
         lastAnalyzed: new Date().toISOString()
       });
       
-      toast.success('Job post analyzed successfully');
+      toast.success('Job post analyzed successfully with Perplexity AI');
     } catch (error) {
       console.error('Error analyzing job post:', error);
       toast.error('Failed to analyze job post: ' + (error instanceof Error ? error.message : 'Unknown error'));
@@ -539,7 +539,7 @@ export default function InterviewPrepPage() {
                            interview.preparation.suggestedAnswers[index] && 
                            typeof interview.preparation.suggestedAnswers[index] === 'object' && 
                            'answer' in interview.preparation.suggestedAnswers[index]
-                            ? interview.preparation.suggestedAnswers[index].answer
+                            ? (interview.preparation.suggestedAnswers[index] as { answer: string }).answer
                             : "Structure your answer using the STAR method: Situation, Task, Action, Result. Focus on highlighting relevant experience and skills from your background that match the job requirements."}
                         </p>
                       </div>
