@@ -17,7 +17,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Liste des domaines autorisés
 const allowedOrigins = isProduction 
   ? [process.env.PRODUCTION_DOMAIN, 'https://jobzai.com', 'https://www.jobzai.com'].filter(Boolean) // Domaines de production 
-  : ['http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173']; // Domaines de développement
+  : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173', 'http://127.0.0.1:5174']; // Domaines de développement
 
 console.log('CORS configuration:');
 console.log('- Environment:', isProduction ? 'Production' : 'Development');

@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
+import { Calendar as BigCalendar, momentLocalizer, View, Components } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { collection, query, getDocs, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Calendar as CalendarIcon, 
   Briefcase, 
   Calendar as CalIcon, 
   Check, 
   RefreshCw, 
-  Link, 
+  Link as LinkIcon, 
   Settings,
   X,
   MapPin,
@@ -21,7 +22,8 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
-  Info
+  Info,
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -87,12 +89,20 @@ interface EventModalProps {
 }
 
 const EventModal = ({ event, onClose }: EventModalProps) => {
+  const navigate = useNavigate();
+  
   if (!event) return null;
   
   const isInterview = event.type === 'interview';
   const resource = event.resource || {};
-  const application = isInterview ? resource : resource;
+  const application = isInterview ? resource.application : resource;
   const interview = isInterview ? resource.interview : null;
+  
+  const handleNavigateToPrep = () => {
+    if (isInterview && application?.id && interview?.id) {
+      navigate(`/interview-prep/${application.id}/${interview.id}`);
+    }
+  };
   
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -177,13 +187,23 @@ const EventModal = ({ event, onClose }: EventModalProps) => {
           ) : null}
         </div>
         
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
           <button 
             onClick={onClose}
             className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Close
           </button>
+          
+          {isInterview && application?.id && interview?.id && (
+            <button 
+              onClick={handleNavigateToPrep}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Prepare for Interview
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -413,6 +433,29 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
   );
 };
 
+// Add Calendar props interface
+interface BigCalendarProps {
+  localizer: any;
+  events: CalendarEvent[];
+  startAccessor: string;
+  endAccessor: string;
+  style: { height: string };
+  views: string[];
+  view: "month" | "week" | "day";
+  date: Date;
+  toolbar?: boolean;
+  onNavigate: (date: Date) => void;
+  onView: (view: string) => void;
+  eventPropGetter: (event: CalendarEvent) => any;
+  popup?: boolean;
+  tooltipAccessor?: (event: CalendarEvent) => string;
+  onSelectEvent: (event: CalendarEvent) => void;
+  selectable: boolean;
+  onSelectSlot: (slotInfo: any) => void;
+  dayPropGetter?: (date: Date) => any;
+  components: Components;
+}
+
 export default function CalendarView() {
   const { currentUser } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -585,6 +628,79 @@ export default function CalendarView() {
       newDate.setDate(newDate.getDate() + 1);
     }
     setCurrentDate(newDate);
+  };
+
+  // Function to process job applications and interviews into calendar events
+  const processEvents = (applications: JobApplication[]): CalendarEvent[] => {
+    const events: CalendarEvent[] = [];
+    
+    // Add job application events
+    applications.forEach(app => {
+      // Add the application date event
+      const appDate = moment(app.appliedDate).toDate();
+      events.push({
+        id: `app-${app.id}`,
+        title: `Applied to ${app.companyName}`,
+        start: appDate,
+        end: appDate,
+        allDay: true,
+        type: 'application',
+        resource: app,
+        color: '#8B5CF6' // Purple
+      });
+      
+      // Add interview events
+      if (app.interviews && app.interviews.length > 0) {
+        app.interviews.forEach(interview => {
+          // Only include if the interview has a valid date
+          if (interview.date) {
+            const interviewDate = moment(`${interview.date} ${interview.time || '09:00'}`, 'YYYY-MM-DD HH:mm').toDate();
+            const endDate = moment(interviewDate).add(1, 'hour').toDate();
+            
+            let eventColor = '#8B5CF6'; // default purple
+            
+            // Set color based on interview type
+            switch(interview.type) {
+              case 'hr':
+                eventColor = '#EC4899'; // Pink
+                break;
+              case 'technical':
+                eventColor = '#14B8A6'; // Teal
+                break;
+              case 'manager':
+                eventColor = '#F59E0B'; // Amber
+                break;
+              case 'final':
+                eventColor = '#10B981'; // Green
+                break;
+            }
+            
+            // Set color based on status
+            if (interview.status === 'cancelled') {
+              eventColor = '#EF4444'; // Red for cancelled
+            } else if (interview.status === 'completed') {
+              eventColor = '#6B7280'; // Gray for completed
+            }
+            
+            events.push({
+              id: `interview-${app.id}-${interview.id}`,
+              title: `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)} Interview at ${app.companyName}`,
+              start: interviewDate,
+              end: endDate,
+              allDay: false,
+              type: 'interview',
+              resource: {
+                application: app,
+                interview: interview
+              },
+              color: eventColor
+            });
+          }
+        });
+      }
+    });
+    
+    return events;
   };
 
   // Fonction pour ajouter un événement
@@ -885,7 +1001,7 @@ export default function CalendarView() {
                   onClick={connectToGoogleCalendar}
                   className="px-4 py-2 bg-white dark:bg-gray-700 text-sm border border-gray-200 dark:border-gray-600 rounded-lg flex items-center hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <Link className="w-4 h-4 mr-1.5" />
+                  <LinkIcon className="w-4 h-4 mr-1.5" />
                   Connect
                 </button>
               ) : (
@@ -946,7 +1062,7 @@ export default function CalendarView() {
               </div>
             ) : (
               // @ts-ignore
-              <Calendar
+              <BigCalendar
                 localizer={localizer}
                 events={filteredEvents}
                 startAccessor="start"

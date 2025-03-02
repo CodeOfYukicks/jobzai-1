@@ -1,9 +1,9 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'sonner';
 import '../styles/navigation.css';
@@ -16,6 +16,32 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
+// Interface for Interview type
+interface Interview {
+  id: string;
+  date: string;
+  time: string;
+  type: 'technical' | 'hr' | 'manager' | 'final' | 'other';
+  status: 'scheduled' | 'completed' | 'cancelled';
+  location?: string;
+}
+
+// Interface for JobApplication type
+interface JobApplication {
+  id: string;
+  companyName: string;
+  position: string;
+  interviews?: Interview[];
+}
+
+// Interface for UpcomingInterview type that includes application info
+interface UpcomingInterview {
+  interview: Interview;
+  applicationId: string;
+  companyName: string;
+  position: string;
+}
+
 // Définir les groupes de navigation
 const navigationGroups = {
   activities: [
@@ -25,8 +51,9 @@ const navigationGroups = {
   ],
   jobTracking: [
     { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
-    { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'Application Tracking', href: '/applications', icon: Briefcase },
+    { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Interview Hub', href: '/upcoming-interviews', icon: Clock },
   ],
   profile: [
     { name: 'Professional Profile', href: '/professional-profile', icon: User },
@@ -110,6 +137,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [isHovered, setIsHovered] = useState<string | null>(null);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
+  const [isLoadingInterviews, setIsLoadingInterviews] = useState(true);
 
   useEffect(() => {
     if (currentUser) {
@@ -142,6 +171,59 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
     loadLogo();
   }, []);
+
+  // Fetch upcoming interviews
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchUpcomingInterviews = async () => {
+      try {
+        setIsLoadingInterviews(true);
+        const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+        const applicationsSnapshot = await getDocs(query(applicationsRef));
+        
+        const interviews: UpcomingInterview[] = [];
+        
+        applicationsSnapshot.forEach((doc) => {
+          const application = { id: doc.id, ...doc.data() } as JobApplication;
+          
+          if (application.interviews && application.interviews.length > 0) {
+            application.interviews.forEach(interview => {
+              // Only include scheduled interviews
+              if (interview.status === 'scheduled') {
+                const interviewDate = new Date(`${interview.date}T${interview.time || '00:00'}`);
+                
+                // Only include future interviews
+                if (interviewDate > new Date()) {
+                  interviews.push({
+                    interview,
+                    applicationId: application.id,
+                    companyName: application.companyName,
+                    position: application.position,
+                  });
+                }
+              }
+            });
+          }
+        });
+        
+        // Sort interviews by date (earliest first)
+        interviews.sort((a, b) => {
+          const dateA = new Date(`${a.interview.date}T${a.interview.time || '00:00'}`);
+          const dateB = new Date(`${b.interview.date}T${b.interview.time || '00:00'}`);
+          return dateA.getTime() - dateB.getTime();
+        });
+        
+        setUpcomingInterviews(interviews);
+        setIsLoadingInterviews(false);
+      } catch (error) {
+        console.error('Error fetching upcoming interviews:', error);
+        setIsLoadingInterviews(false);
+      }
+    };
+
+    fetchUpcomingInterviews();
+  }, [currentUser]);
 
   const handleSignOut = async () => {
     try {

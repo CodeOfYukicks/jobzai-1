@@ -7,14 +7,9 @@ import * as pdfjsLib from 'pdfjs-dist';
  */
 function getApiBaseUrl(): string {
   // En production, utilisez des URLs relatives pour le même domaine
-  // En développement, utilisez localhost avec le port spécifique
-  const isProd = import.meta.env.PROD || window.location.hostname !== 'localhost';
-  
-  if (isProd) {
-    return '/api'; // URL relative en production
-  } else {
-    return 'http://localhost:3000/api'; // URL complète en développement
-  }
+  // En développement, avec la configuration proxy dans vite.config.ts,
+  // nous pouvons aussi utiliser des URLs relatives
+  return '/api';
 }
 
 /**

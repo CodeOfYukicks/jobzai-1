@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Mail, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Mail, Lightbulb, Clock, Briefcase, FileSearch } from 'lucide-react';
 
 interface NavItem {
   icon: typeof LayoutDashboard;
@@ -10,6 +10,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+  { icon: FileSearch, label: 'Resume Lab', path: '/cv-analysis' },
+  { icon: Clock, label: 'Interviews', path: '/upcoming-interviews' },
+  { icon: Briefcase, label: 'Applications', path: '/applications' },
   { icon: Mail, label: 'Templates', path: '/email-templates' },
   { icon: ScrollText, label: 'Campaigns', path: '/campaigns' },
   { icon: Lightbulb, label: 'Ideas', path: '/recommendations' },

@@ -1,7 +1,7 @@
 import { UserData } from '../types';
 import axios from 'axios';
 
-export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy';
+export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy' | 'interview-prep';
 
 interface ClaudeRecommendationRequest {
   prompt: string;

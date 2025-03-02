@@ -1,6 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -29,6 +30,11 @@ import ProfessionalProfilePage from './pages/ProfessionalProfilePage';
 import CVAnalysisPage from './pages/CVAnalysisPage';
 import JobApplicationsPage from './pages/JobApplicationsPage';
 import CalendarView from './pages/CalendarView';
+import InterviewPrepPage from './pages/InterviewPrepPage';
+import UpcomingInterviewsPage from './pages/UpcomingInterviewsPage';
+import InterviewHelpPage from './pages/InterviewHelpPage';
+
+import { initNotificationService } from './services/notificationService';
 
 const queryClient = new QueryClient();
 
@@ -58,6 +64,11 @@ console.log('Environment variables loaded into client side', {
 });
 
 export default function App() {
+  useEffect(() => {
+    // Initialize interview notification service
+    initNotificationService();
+  }, []);
+  
   return (
     <QueryClientProvider client={queryClient}>
       <Routes>
@@ -102,6 +113,9 @@ export default function App() {
           <Route path="/professional-profile" element={<ProfessionalProfilePage />} />
           <Route path="/cv-analysis" element={<CVAnalysisPage />} />
           <Route path="/applications" element={<JobApplicationsPage />} />
+          <Route path="/interview-prep/:applicationId/:interviewId" element={<InterviewPrepPage />} />
+          <Route path="/upcoming-interviews" element={<UpcomingInterviewsPage />} />
+          <Route path="/interview-help" element={<InterviewHelpPage />} />
         </Route>
 
         {/* Public static pages */}

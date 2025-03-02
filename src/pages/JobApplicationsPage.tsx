@@ -3,7 +3,33 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { collection, query, onSnapshot, doc, updateDoc, where, orderBy, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Search, Calendar, Building, ExternalLink, MapPin, Edit3, Trash2, User, Mail, Phone, Briefcase, DollarSign, FileText, MessageSquare, Link, X, PlusCircle, Clock, Users, Check, BarChart, PieChart, Kanban, Calendar as CalendarIcon, LineChart, TrendingUp, Activity, Download } from 'lucide-react';
+import {
+  Activity,
+  Calendar,
+  Check,
+  Clock,
+  Download,
+  Edit2,
+  Edit3,
+  ExternalLink,
+  FileIcon,
+  FileText,
+  Filter,
+  FlaskConical,
+  Globe,
+  LineChart,
+  MapPin,
+  MessageSquare,
+  PenSquare,
+  PieChart,
+  Plus,
+  PlusCircle,
+  Search,
+  Trash2,
+  TrendingUp,
+  Users,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
 import confetti from 'canvas-confetti';
@@ -521,7 +547,7 @@ END:VCALENDAR`;
               onClick={() => setNewApplicationModal(true)}
               className="w-full sm:w-auto inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs sm:text-sm font-medium hover:opacity-90 transition-all duration-200"
             >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+              <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
               Add Application
             </motion.button>
           </div>
@@ -537,7 +563,7 @@ END:VCALENDAR`;
                     : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
                 }`}
               >
-                <Kanban className="w-4 h-4" />
+                <PieChart className="w-4 h-4" />
                 <span>Kanban</span>
               </button>
               <button
@@ -548,7 +574,7 @@ END:VCALENDAR`;
                     : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
                 }`}
               >
-                <BarChart className="w-4 h-4" />
+                <LineChart className="w-4 h-4" />
                 <span>Analytics</span>
               </button>
             </div>
@@ -799,7 +825,7 @@ END:VCALENDAR`;
                     onClick={() => setNewApplicationModal(true)}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
                   >
-                    <Plus className="h-4 w-4" />
+                    <PlusCircle className="h-4 w-4" />
                     <span>Add Your First Application</span>
                   </button>
                 </div>
@@ -1014,115 +1040,153 @@ END:VCALENDAR`;
 
         {/* Existing modals */}
         {newApplicationModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">New Application</h2>
-                <button onClick={() => setNewApplicationModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <X className="w-5 h-5" />
-                </button>
+          <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-800 w-full sm:rounded-xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col"
+            >
+              {/* Drag handle for mobile */}
+              <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
+                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
               </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Company Name *</label>
-                  <input
-                    type="text"
-                    value={formData.companyName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Position *</label>
-                  <input
-                    type="text"
-                    value={formData.position}
-                    onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Location *</label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Applied Date *</label>
-                  <input
-                    type="date"
-                    value={formData.appliedDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
-                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Job URL</label>
-                  <input
-                    type="url"
-                    value={formData.url || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Notes</label>
-                  <textarea
-                    value={formData.notes || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 mt-6">
-                  <button
-                    onClick={() => setNewApplicationModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCreateApplication}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90"
-                  >
-                    Create
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal d'édition */}
-        {editModal.show && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-              {/* Header fixe */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              
+              {/* Header */}
+              <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold">Edit Application</h2>
-                  <button onClick={() => setEditModal({ show: false })} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                  <h2 className="text-lg font-semibold">New Application</h2>
+                  <button 
+                    onClick={() => setNewApplicationModal(false)} 
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center"
+                  >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Company Name *</label>
+                    <input
+                      type="text"
+                      value={formData.companyName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Position *</label>
+                    <input
+                      type="text"
+                      value={formData.position}
+                      onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Location *</label>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Applied Date *</label>
+                    <input
+                      type="date"
+                      value={formData.appliedDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Job URL</label>
+                    <input
+                      type="url"
+                      value={formData.url || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Notes</label>
+                    <textarea
+                      value={formData.notes || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer with action buttons */}
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 shadow-md">
+                <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                  <button
+                    onClick={() => setNewApplicationModal(false)}
+                    className="px-4 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg w-full sm:w-auto"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateApplication}
+                    className="px-4 py-3 sm:py-2 text-base sm:text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90 w-full sm:w-auto"
+                  >
+                    Create Application
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Modal d'édition */}
+        {editModal.show && (
+          <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-800 w-full sm:rounded-xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col"
+            >
+              {/* Drag handle for mobile */}
+              <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
+                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+              </div>
+              
+              {/* Header fixe */}
+              <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold">Edit Application</h2>
+                  <button 
+                    onClick={() => setEditModal({ show: false })} 
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center"
+                  >
+                    <X className="w-5 h-5" />
+                    <span className="sr-only">Close</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Contenu scrollable */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4">
                 {/* Champs principaux */}
                 <div className="space-y-4">
                   <div>
@@ -1131,7 +1195,7 @@ END:VCALENDAR`;
                       type="text"
                       value={formData.companyName}
                       onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                       required
                     />
                   </div>
@@ -1141,7 +1205,7 @@ END:VCALENDAR`;
                       type="text"
                       value={formData.position}
                       onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                       required
                     />
                   </div>
@@ -1151,7 +1215,7 @@ END:VCALENDAR`;
                       type="text"
                       value={formData.location}
                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                       required
                     />
                   </div>
@@ -1161,7 +1225,7 @@ END:VCALENDAR`;
                       type="date"
                       value={formData.appliedDate}
                       onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
-                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                       required
                     />
                   </div>
@@ -1171,7 +1235,7 @@ END:VCALENDAR`;
                       type="url"
                       value={formData.url || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                     />
                   </div>
                   <div>
@@ -1179,7 +1243,7 @@ END:VCALENDAR`;
                     <textarea
                       value={formData.notes || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                       rows={3}
                     />
                   </div>
@@ -1202,21 +1266,21 @@ END:VCALENDAR`;
                           }]
                         }));
                       }}
-                      className="inline-flex items-center px-2 py-1 text-xs font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
                     >
-                      <PlusCircle className="w-3.5 h-3.5 mr-1" />
+                      <PlusCircle className="w-4 h-4 mr-1" />
                       Add Interview
                     </button>
                   </div>
 
-                  <div className="space-y-2 max-h-[40vh] overflow-y-auto rounded-lg">
+                  <div className="space-y-3 max-h-[40vh] overflow-y-auto rounded-lg">
                     {formData.interviews?.map((interview, index) => (
                       <div 
                         key={interview.id} 
                         className="bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-800"
                       >
                         {/* Header de l'entretien */}
-                        <div className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-800/50">
+                        <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800/50">
                           <div className="flex items-center gap-2 flex-1">
                             <select
                               value={interview.type}
@@ -1228,7 +1292,7 @@ END:VCALENDAR`;
                                 };
                                 setFormData(prev => ({ ...prev, interviews: newInterviews }));
                               }}
-                              className="text-xs p-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 w-24"
+                              className="text-sm p-2 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 w-28"
                             >
                               <option value="technical">Technical</option>
                               <option value="hr">HR</option>
@@ -1246,13 +1310,13 @@ END:VCALENDAR`;
                                 };
                                 setFormData(prev => ({ ...prev, interviews: newInterviews }));
                               }}
-                              className={`text-xs p-1 rounded border ${
+                              className={`text-sm p-2 rounded border ${
                                 interview.status === 'completed' 
                                   ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400' 
                                   : interview.status === 'cancelled'
                                   ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
                                   : 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400'
-                              } w-24`}
+                              } w-28`}
                             >
                               <option value="scheduled">Scheduled</option>
                               <option value="completed">Completed</option>
@@ -1264,17 +1328,17 @@ END:VCALENDAR`;
                               const newInterviews = formData.interviews?.filter((_, i) => i !== index);
                               setFormData(prev => ({ ...prev, interviews: newInterviews }));
                             }}
-                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
                           >
-                            <X className="w-3.5 h-3.5 text-gray-500" />
+                            <X className="w-4 h-4 text-gray-500" />
                           </button>
                         </div>
 
                         {/* Corps de l'entretien */}
-                        <div className="p-2">
-                          <div className="grid grid-cols-2 gap-2 mb-2">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                        <div className="p-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-gray-400" />
                               <input
                                 type="date"
                                 value={interview.date}
@@ -1283,11 +1347,11 @@ END:VCALENDAR`;
                                   newInterviews[index] = { ...interview, date: e.target.value };
                                   setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                 }}
-                                className="flex-1 text-xs p-1 rounded border border-gray-200 dark:border-gray-700"
+                                className="flex-1 text-sm p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                               />
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-gray-400" />
                               <input
                                 type="time"
                                 value={interview.time}
@@ -1296,14 +1360,14 @@ END:VCALENDAR`;
                                   newInterviews[index] = { ...interview, time: e.target.value };
                                   setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                 }}
-                                className="flex-1 text-xs p-1 rounded border border-gray-200 dark:border-gray-700"
+                                className="flex-1 text-sm p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                               />
                             </div>
                           </div>
 
-                          <div className="mb-2">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                          <div className="mb-3">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-gray-400" />
                               <input
                                 type="text"
                                 placeholder="Location (e.g. Office, Zoom link, etc.)"
@@ -1313,13 +1377,13 @@ END:VCALENDAR`;
                                   newInterviews[index] = { ...interview, location: e.target.value };
                                   setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                 }}
-                                className="flex-1 text-xs p-1 rounded border border-gray-200 dark:border-gray-700"
+                                className="flex-1 text-sm p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                               />
                             </div>
                           </div>
 
-                          <div className="flex items-start gap-1">
-                            <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-1" />
+                          <div className="flex items-start gap-2">
+                            <MessageSquare className="w-4 h-4 text-gray-400 mt-2" />
                             <textarea
                               placeholder="Notes & Feedback..."
                               value={interview.notes || ''}
@@ -1328,24 +1392,33 @@ END:VCALENDAR`;
                                 newInterviews[index] = { ...interview, notes: e.target.value };
                                 setFormData(prev => ({ ...prev, interviews: newInterviews }));
                               }}
-                              className="flex-1 text-xs p-1.5 rounded border border-gray-200 dark:border-gray-700 min-h-[60px] resize-y"
+                              className="flex-1 text-sm p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800 min-h-[80px] resize-y"
                             />
                           </div>
 
-                          {interview.status === 'scheduled' && (
-                            <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  downloadICS(interview, formData.companyName || '', formData.position || '');
-                                }}
-                                className="w-full flex items-center justify-center gap-1 text-xs text-purple-600 dark:text-purple-400 py-1 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded"
-                              >
-                                <Download className="w-3 h-3" />
-                                Add to Calendar
-                              </button>
-                            </div>
-                          )}
+                          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-2">
+                            {interview.status === 'scheduled' && selectedApplication && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => downloadICS(interview, selectedApplication.companyName, selectedApplication.position)}
+                                  className="flex-1 flex items-center justify-center gap-1 text-sm text-purple-600 dark:text-purple-400 py-2 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded border border-purple-200 dark:border-purple-800"
+                                >
+                                  <Download className="w-4 h-4" />
+                                  Add to Calendar
+                                </button>
+                                
+                                <a
+                                  href={`/interview-prep/${selectedApplication.id}/${interview.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 flex items-center justify-center gap-1 text-sm text-blue-600 dark:text-blue-400 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  Prepare for Interview
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1354,163 +1427,276 @@ END:VCALENDAR`;
               </div>
 
               {/* Footer fixe avec les boutons */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 shadow-md">
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => setEditModal({ show: false })}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg"
+                    className="px-4 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg flex-1 sm:flex-initial"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleUpdateApplication}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90"
+                    className="px-4 py-3 sm:py-2 text-base sm:text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90 flex-1 sm:flex-initial"
                   >
                     Update
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
 
-        {/* Modal de suppression */}
-        {deleteModal.show && (
+        {/* Timeline Modal - Optimisé pour mobile */}
+        {timelineModal && selectedApplication && (
+          <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-800 w-full sm:rounded-xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col"
+            >
+              {/* Drag handle for mobile */}
+              <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
+                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+              </div>
+              
+              {/* Header with title and close/edit buttons */}
+              <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold">Application Timeline</h2>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => {
+                        setTimelineModal(false);
+                        setEditModal({ show: true, application: selectedApplication });
+                      }} 
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center"
+                      aria-label="Edit application"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setTimelineModal(false);
+                        setDeleteModal({ show: true, application: selectedApplication });
+                      }} 
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center text-red-500"
+                      aria-label="Delete application"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => setTimelineModal(false)} 
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center"
+                      aria-label="Close modal"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content with overflow */}
+              <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4">
+                {/* Application details */}
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{selectedApplication.companyName}</h3>
+                  <p className="text-purple-600 dark:text-purple-400 font-medium">{selectedApplication.position}</p>
+                  
+                  <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <MapPin className="w-4 h-4 flex-shrink-0" />
+                      <span>{selectedApplication.location}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <Calendar className="w-4 h-4 flex-shrink-0" />
+                      <span>Applied on {new Date(selectedApplication.appliedDate).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  
+                  {selectedApplication.url && (
+                    <div className="mt-2">
+                      <a 
+                        href={selectedApplication.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>View Job Posting</span>
+                      </a>
+                    </div>
+                  )}
+                  
+                  {selectedApplication.notes && (
+                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 mb-2">
+                        <FileIcon className="w-4 h-4" />
+                        <span className="font-medium">Notes</span>
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{selectedApplication.notes}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Status History */}
+                <div className="mb-6">
+                  <h4 className="text-base font-semibold mb-4">Status History</h4>
+                  <div className="relative pl-6 border-l-2 border-gray-200 dark:border-gray-700 space-y-4">
+                    {selectedApplication.statusHistory?.slice().reverse().map((status, index) => (
+                      <div key={index} className="relative">
+                        {/* Status dot */}
+                        <div className={`absolute -left-[17px] w-8 h-8 rounded-full flex items-center justify-center ${
+                          status.status === 'applied' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
+                          status.status === 'interview' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' :
+                          status.status === 'offer' ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
+                          'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                        }`}>
+                          <span className="text-xs capitalize">{status.status.slice(0, 1)}</span>
+                        </div>
+                        
+                        {/* Status details */}
+                        <div className="bg-white dark:bg-gray-800 pl-4 py-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                            <p className={`font-medium capitalize ${
+                              status.status === 'applied' ? 'text-blue-600 dark:text-blue-400' :
+                              status.status === 'interview' ? 'text-purple-600 dark:text-purple-400' :
+                              status.status === 'offer' ? 'text-green-600 dark:text-green-400' :
+                              'text-red-600 dark:text-red-400'
+                            }`}>
+                              {status.status}
+                            </p>
+                            <time className="text-sm text-gray-500">
+                              {new Date(status.date).toLocaleDateString()}
+                            </time>
+                          </div>
+                          {status.notes && (
+                            <p className="mt-1 text-gray-600 dark:text-gray-400 text-sm">
+                              {status.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Interviews Section */}
+                {selectedApplication.interviews && selectedApplication.interviews.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-base font-semibold mb-4">Interviews</h4>
+                    <div className="space-y-4">
+                      {selectedApplication.interviews.map((interview) => (
+                        <div 
+                          key={interview.id} 
+                          className={`p-4 rounded-lg border ${
+                            interview.status === 'completed' 
+                              ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/50' 
+                              : interview.status === 'cancelled'
+                              ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50'
+                              : 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="capitalize font-medium">{interview.type} Interview</span>
+                              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                interview.status === 'completed' 
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+                                  : interview.status === 'cancelled'
+                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                                  : 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
+                              }`}>
+                                {interview.status}
+                              </span>
+                            </div>
+                            <span className="text-sm text-gray-500">{interview.date} {interview.time}</span>
+                          </div>
+                          
+                          {interview.location && (
+                            <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              <MapPin className="w-4 h-4" />
+                              <span>{interview.location}</span>
+                            </div>
+                          )}
+                          
+                          {interview.notes && (
+                            <p className="text-gray-600 dark:text-gray-400 mb-3">{interview.notes}</p>
+                          )}
+                          
+                          {interview.status === 'scheduled' && (
+                            <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                              <button
+                                onClick={() => downloadICS(interview, selectedApplication.companyName, selectedApplication.position)}
+                                className="flex-1 flex items-center justify-center gap-1 text-sm text-purple-600 dark:text-purple-400 py-2 px-4 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800"
+                              >
+                                <Download className="w-4 h-4" />
+                                Add to Calendar
+                              </button>
+                              
+                              <a
+                                href={`/interview-prep/${selectedApplication.id}/${interview.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 flex items-center justify-center gap-1 text-sm text-blue-600 dark:text-blue-400 py-2 px-4 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                              >
+                                <FileText className="w-4 h-4" />
+                                Prepare for Interview
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer with Close button */}
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end sticky bottom-0 bg-white dark:bg-gray-800 shadow-md">
+                <button
+                  onClick={() => setTimelineModal(false)}
+                  className="w-full sm:w-auto px-4 py-3 sm:py-2 text-base sm:text-sm font-medium bg-purple-600 text-white rounded-full sm:rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteModal.show && deleteModal.application && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-1">
                 <h2 className="text-lg font-semibold">Delete Application</h2>
                 <button onClick={() => setDeleteModal({ show: false })} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Are you sure you want to delete this application? This action cannot be undone.
+              
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Are you sure you want to delete your application for <strong>{deleteModal.application.position}</strong> at <strong>{deleteModal.application.companyName}</strong>? This action cannot be undone.
               </p>
-
-              <div className="flex justify-end gap-2">
+              
+              <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setDeleteModal({ show: false })}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg flex-1 sm:flex-initial"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteApplication}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg"
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-lg flex-1 sm:flex-initial"
                 >
                   Delete
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Add the timeline modal at the end of the component */}
-        {timelineModal && selectedApplication && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Application Timeline</h2>
-                <button onClick={() => setTimelineModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="mb-4">
-                <h3 className="font-medium text-purple-600">{selectedApplication.companyName}</h3>
-                <p className="text-sm text-gray-600">{selectedApplication.position}</p>
-              </div>
-              
-              <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-purple-200 dark:bg-purple-900/30"></div>
-                
-                {/* Status history items */}
-                <div className="space-y-4">
-                  {(selectedApplication.statusHistory || [{
-                    status: selectedApplication.status,
-                    date: selectedApplication.appliedDate,
-                    notes: 'Initial application'
-                  }]).map((statusChange, index) => (
-                    <div key={index} className="ml-10 relative">
-                      {/* Timeline dot */}
-                      <div className={`absolute -left-6 w-6 h-6 rounded-full border-2 flex items-center justify-center
-                        ${statusChange.status === 'applied' ? 'bg-blue-100 border-blue-500 text-blue-700' :
-                          statusChange.status === 'interview' ? 'bg-purple-100 border-purple-500 text-purple-700' :
-                          statusChange.status === 'offer' ? 'bg-green-100 border-green-500 text-green-700' :
-                          'bg-red-100 border-red-500 text-red-700'}`}>
-                        {statusChange.status === 'applied' ? <Briefcase className="w-3 h-3" /> :
-                         statusChange.status === 'interview' ? <Users className="w-3 h-3" /> :
-                         statusChange.status === 'offer' ? <Check className="w-3 h-3" /> :
-                         <X className="w-3 h-3" />}
-                      </div>
-                      
-                      {/* Timeline content */}
-                      <div className="bg-gray-50 dark:bg-gray-900/30 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                        <div className="flex justify-between items-center mb-1">
-                          <h4 className="font-medium capitalize">{statusChange.status}</h4>
-                          <span className="text-xs text-gray-500">{statusChange.date}</span>
-                        </div>
-                        {statusChange.notes && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-2">{statusChange.notes}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Add note button */}
-              {selectedApplication.interviews && selectedApplication.interviews.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="font-medium mb-2">Interviews</h3>
-                  <div className="space-y-3">
-                    {selectedApplication.interviews.map((interview, idx) => (
-                      <div key={idx} className="bg-gray-50 dark:bg-gray-900/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="flex justify-between items-center mb-1">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-full 
-                              ${interview.status === 'completed' ? 'bg-green-500' : 
-                                interview.status === 'cancelled' ? 'bg-red-500' : 'bg-purple-500'}`}>
-                            </div>
-                            <span className="capitalize font-medium">{interview.type} Interview</span>
-                          </div>
-                          <span className="text-xs text-gray-500">{interview.date} {interview.time}</span>
-                        </div>
-                        
-                        {interview.location && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
-                            <MapPin className="w-3 h-3" />
-                            <span>{interview.location}</span>
-                          </div>
-                        )}
-                        
-                        {interview.notes && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-2">{interview.notes}</p>
-                        )}
-                        
-                        {interview.status === 'scheduled' && (
-                          <button
-                            onClick={() => downloadICS(interview, selectedApplication.companyName, selectedApplication.position)}
-                            className="w-full flex items-center justify-center gap-1 text-xs text-purple-600 dark:text-purple-400 py-1 mt-2 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded border border-purple-200 dark:border-purple-800"
-                          >
-                            <Download className="w-3 h-3" />
-                            Add to Calendar
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
           </div>
         )}
 
@@ -1524,6 +1710,19 @@ END:VCALENDAR`;
             display: none;
           }
         `}</style>
+        
+        {/* Floating action button to view all scheduled interviews */}
+        <button
+          onClick={() => {
+            // Redirect to upcoming interviews page
+            window.location.href = '/upcoming-interviews';
+          }}
+          className="fixed bottom-20 right-6 z-10 bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg flex items-center justify-center"
+          aria-label="View all scheduled interviews"
+        >
+          <Calendar className="w-6 h-6" />
+          <span className="sr-only">View all scheduled interviews</span>
+        </button>
       </div>
     </AuthLayout>
   );
