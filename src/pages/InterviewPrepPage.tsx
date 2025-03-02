@@ -14,7 +14,7 @@ import {
   CheckCircle, XCircle, Clock as ClockIcon, ChevronDown,
   Loader2, Send, User, Bot, Save, Plus, X, StickyNote,
   ChevronLeft, LayoutDashboard, HelpCircle, CalendarDays,
-  Search
+  Search, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -92,6 +92,7 @@ export default function InterviewPrepPage() {
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteColor, setNoteColor] = useState('#ffeb3b');
+  const [isRegeneratingQuestions, setIsRegeneratingQuestions] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -631,6 +632,100 @@ export default function InterviewPrepPage() {
     }
   };
 
+  const regenerateQuestions = async () => {
+    if (!currentUser || !application || !interview || !interview.jobPostUrl || !applicationId) {
+      toast.error('No job post URL available for generating new questions');
+      return;
+    }
+    
+    toast.info('Generating new interview questions...');
+    setIsRegeneratingQuestions(true);
+    
+    try {
+      // Call Perplexity to generate different questions
+      const prompt = `
+Based on this job posting for a ${application.position} position at ${application.companyName}: ${interview.jobPostUrl}
+
+Please generate 5 different interview questions that might be asked during this interview. Make them varied - some behavioral, some technical, some about the company fit.
+Return the questions in a JSON format like this:
+{
+  "questions": [
+    "Question 1",
+    "Question 2",
+    "Question 3",
+    "Question 4",
+    "Question 5"
+  ],
+  "answers": [
+    {"question": "Question 1", "answer": "Approach to answering this question"},
+    {"question": "Question 2", "answer": "Approach to answering this question"},
+    {"question": "Question 3", "answer": "Approach to answering this question"},
+    {"question": "Question 4", "answer": "Approach to answering this question"},
+    {"question": "Question 5", "answer": "Approach to answering this question"}
+  ]
+}
+`;
+
+      const response = await queryPerplexity(prompt);
+      
+      if (response) {
+        // Extract the JSON from the response
+        const content = response.choices[0].message.content;
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/\{[\s\S]*?\}/);
+        const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+        const newQuestionsData = JSON.parse(jsonString);
+        
+        // Create updated preparation object with required fields
+        const updatedPreparation: JobPostAnalysisResult = {
+          keyPoints: interview.preparation?.keyPoints || [],
+          requiredSkills: interview.preparation?.requiredSkills || [],
+          suggestedQuestions: newQuestionsData.questions || [],
+          suggestedAnswers: newQuestionsData.answers || [],
+          companyInfo: interview.preparation?.companyInfo,
+          positionDetails: interview.preparation?.positionDetails,
+          cultureFit: interview.preparation?.cultureFit
+        };
+        
+        // Update Firestore - find the interview index
+        const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+        
+        if (interviewIndex === -1) {
+          toast.error('Could not find interview to update');
+          return;
+        }
+        
+        // Create updated interviews array
+        const updatedInterviews = [...(application.interviews || [])];
+        updatedInterviews[interviewIndex] = {
+          ...interview,
+          preparation: updatedPreparation
+        };
+        
+        // Update Firestore
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        await updateDoc(applicationRef, {
+          interviews: updatedInterviews,
+          updatedAt: serverTimestamp()
+        });
+        
+        // Update local state
+        setInterview({
+          ...interview,
+          preparation: updatedPreparation
+        });
+        
+        toast.success('New interview questions generated successfully!');
+      } else {
+        toast.error('Failed to generate new questions');
+      }
+    } catch (error) {
+      console.error('Error generating new questions:', error);
+      toast.error('Failed to generate new questions: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsRegeneratingQuestions(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <AuthLayout>
@@ -753,17 +848,17 @@ export default function InterviewPrepPage() {
               <button
                 onClick={handleAnalyzeJobPost}
                 disabled={isAnalyzing || !jobUrl}
-                className="whitespace-nowrap px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm disabled:cursor-not-allowed"
+                className="whitespace-nowrap px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-purple-400 disabled:to-purple-400 text-white rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:shadow disabled:cursor-not-allowed transform hover:translate-y-[-1px] active:translate-y-[0px]"
               >
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Analyzing...
+                    <span>Analyzing...</span>
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4" />
-                    Analyze Job Post
+                    <span>Analyze Job Post</span>
                   </>
                 )}
               </button>
@@ -977,8 +1072,42 @@ export default function InterviewPrepPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="space-y-6"
+                    className="space-y-6 relative"
                   >
+                    {/* Loading overlay pour la section questions uniquement */}
+                    {isRegeneratingQuestions && (
+                      <div className="absolute inset-0 bg-white/60 dark:bg-gray-900/60 z-10 flex items-center justify-center rounded-xl backdrop-blur-sm">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg flex items-center gap-3">
+                          <div className="relative">
+                            <div className="w-8 h-8 border-3 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
+                          </div>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Generating new questions...</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        Interview Questions
+                      </h3>
+                      {interview.preparation?.suggestedQuestions && interview.preparation.suggestedQuestions.length > 0 && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={regenerateQuestions}
+                          disabled={isRegeneratingQuestions}
+                          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isRegeneratingQuestions ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                          <span>Generate New Questions</span>
+                        </motion.button>
+                      )}
+                    </div>
+                    
                     {interview.preparation?.suggestedQuestions?.map((question, index) => (
                       <motion.div
                         key={index}
@@ -1231,10 +1360,11 @@ export default function InterviewPrepPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col h-[600px] shadow-sm overflow-hidden"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col h-[600px] shadow-md overflow-hidden"
                   >
-                    <div className="p-5 border-b border-gray-200 dark:border-gray-700">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">
+                    <div className="p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-gray-800 dark:to-purple-900/20">
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1 flex items-center">
+                        <MessageSquare className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
                         Interview Trainer Chat
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -1242,14 +1372,16 @@ export default function InterviewPrepPage() {
                       </p>
                     </div>
                     
-                    <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                    <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50 dark:bg-gray-900/20">
                       {chatMessages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                          <MessageSquare className="w-14 h-14 mb-3 opacity-20" />
-                          <p className="text-center max-w-md font-medium mb-3">
+                          <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-6">
+                            <MessageSquare className="w-10 h-10 text-purple-500 dark:text-purple-400" />
+                          </div>
+                          <p className="text-center max-w-md font-medium mb-3 text-lg text-gray-700 dark:text-gray-200">
                             Start a conversation with your AI interview trainer
                           </p>
-                          <p className="text-center text-sm max-w-md mb-6">
+                          <p className="text-center text-sm max-w-md mb-8 text-gray-500 dark:text-gray-400">
                             Ask about the position, company culture, or try practicing some interview questions
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
@@ -1259,15 +1391,27 @@ export default function InterviewPrepPage() {
                               "How can I highlight my relevant experience?",
                               "Ask me about my strengths and weaknesses"
                             ].map((suggestion, i) => (
-                              <button
+                              <motion.button
                                 key={i}
+                                initial={{ opacity: 0.8, y: 5 }}
+                                whileHover={{ 
+                                  opacity: 1, 
+                                  y: 0,
+                                  backgroundColor: "rgba(139, 92, 246, 0.1)",
+                                  transition: { duration: 0.2 }
+                                }}
                                 onClick={() => {
                                   setMessage(suggestion);
                                 }}
-                                className="text-sm text-left p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                className="text-sm text-left p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-800 transition-all shadow-sm"
                               >
-                                {suggestion}
-                              </button>
+                                <div className="flex items-center">
+                                  <div className="mr-3 text-purple-500 dark:text-purple-400">
+                                    <MessageSquare className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-gray-700 dark:text-gray-300">{suggestion}</span>
+                                </div>
+                              </motion.button>
                             ))}
                           </div>
                         </div>
@@ -1292,50 +1436,83 @@ export default function InterviewPrepPage() {
                             }
                           }
                           
+                          // Format displayContent to handle thinking indicators
+                          if (msg.role === 'assistant' && displayContent.includes('<think>')) {
+                            displayContent = displayContent.replace(/<think>[\s\S]*<\/think>/g, '');
+                          }
+                          
                           return (
                             <motion.div
                               key={index}
                               initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                              animate={{ 
+                                opacity: 1, 
+                                y: 0,
+                                transition: { 
+                                  type: "spring",
+                                  stiffness: 300,
+                                  damping: 30,
+                                  delay: index * 0.1,
+                                  duration: 0.4 
+                                } 
+                              }}
+                              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
                             >
                               <div className={`
-                                flex items-start gap-2 max-w-[80%] 
+                                flex items-start gap-3 max-w-[85%] 
                                 ${msg.role === 'user' 
                                   ? 'flex-row-reverse' 
                                   : 'flex-row'}
                               `}>
                                 <div className={`
-                                  w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                                  w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
                                   ${msg.role === 'user'
-                                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400'
-                                    : 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'}
+                                    ? 'bg-gradient-to-br from-purple-400 to-purple-600 shadow-md'
+                                    : 'bg-gradient-to-br from-blue-400 to-indigo-600 shadow-md'}
                                 `}>
                                   {msg.role === 'user' 
-                                    ? <User className="w-4 h-4" /> 
-                                    : <Bot className="w-4 h-4" />}
+                                    ? <User className="w-5 h-5 text-white" /> 
+                                    : <Bot className="w-5 h-5 text-white" />}
                                 </div>
                                 <div className={`
-                                  p-3 rounded-lg
+                                  p-4 rounded-2xl shadow-sm
                                   ${msg.role === 'user'
-                                    ? 'bg-purple-500 text-white dark:bg-purple-600'
-                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}
+                                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-tr-none'
+                                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700'}
                                 `}>
-                                  <p className="text-sm whitespace-pre-wrap">{displayContent}</p>
+                                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{displayContent}</p>
                                   
                                   {isLongMessage && (
                                     <button
                                       onClick={() => toggleMessageExpansion(index)}
-                                      className="text-xs mt-1 text-purple-200 dark:text-purple-400 font-medium hover:underline"
+                                      className={`text-xs mt-2 font-medium hover:underline inline-flex items-center
+                                        ${msg.role === 'user'
+                                          ? 'text-purple-100'
+                                          : 'text-purple-500 dark:text-purple-400'}
+                                      `}
                                     >
-                                      {expandedMessages[index] ? 'Show less' : 'Show more'}
+                                      {expandedMessages[index] ? (
+                                        <>
+                                          <ChevronDown className="w-3 h-3 mr-1" />
+                                          Show less
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ChevronDown className="w-3 h-3 mr-1 transform rotate-180" />
+                                          Show more
+                                        </>
+                                      )}
                                     </button>
                                   )}
                                   
-                                  <p className="text-xs mt-1 opacity-70">
+                                  <div className={`text-xs mt-1 flex items-center justify-end
+                                    ${msg.role === 'user'
+                                      ? 'text-purple-200'
+                                      : 'text-gray-400'}
+                                  `}>
+                                    <ClockIcon className="w-3 h-3 mr-1 inline" />
                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </p>
+                                  </div>
                                 </div>
                               </div>
                             </motion.div>
@@ -1345,35 +1522,44 @@ export default function InterviewPrepPage() {
                       <div ref={chatEndRef} />
                     </div>
                     
-                    <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={message}
-                          onChange={(e) => setMessage(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              sendMessage();
-                            }
-                          }}
-                          placeholder="Type your message..."
-                          className="flex-1 p-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
-                          disabled={isSending}
-                        />
-                        <button
-                          onClick={sendMessage}
-                          disabled={!message.trim() || isSending}
-                          className="p-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isSending ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <Send className="w-5 h-5" />
-                          )}
-                        </button>
+                    <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                      <div className="flex gap-3 items-end">
+                        <div className="relative flex-1">
+                          <textarea
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                sendMessage();
+                              }
+                            }}
+                            placeholder="Type your message..."
+                            rows={1}
+                            className="w-full p-4 pr-12 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:text-white resize-none min-h-[50px] max-h-[120px] transition-all"
+                            style={{ 
+                              height: 'auto',
+                              overflow: 'hidden'
+                            }}
+                            disabled={isSending}
+                          />
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={sendMessage}
+                            disabled={!message.trim() || isSending}
+                            className="absolute right-3 bottom-2 p-2 rounded-full bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                          >
+                            {isSending ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <Send className="w-5 h-5" />
+                            )}
+                          </motion.button>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 ml-2 mt-1 flex items-center">
+                        <HelpCircle className="w-3 h-3 mr-1" />
                         Press Enter to send. Shift+Enter for a new line.
                       </p>
                     </div>
