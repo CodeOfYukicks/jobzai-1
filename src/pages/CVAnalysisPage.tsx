@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Briefcase, Building, Target, 
@@ -9,7 +9,7 @@ import {
   BarChart as ChartBarIcon, Trash2, ChevronUp, ChevronDown, Calendar,
   Building2, CalendarDays as CalendarIcon
 } from 'lucide-react';
-import { Dialog, Disclosure } from '@headlessui/react';
+import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
@@ -37,6 +37,8 @@ import {
 import { validateCVContent, validateJobDescription, setValidationOptions, analyzeCVWithGPT } from '../lib/cvAnalysis';
 // Import Claude Analysis functions
 import { analyzeCVWithClaude, fileToBase64 } from '../lib/claudeAnalysis';
+// Add this import
+import CVSelectionModal from '../components/CVSelectionModal';
 
 // Configurer le worker correctement
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
@@ -976,7 +978,7 @@ export default function CVAnalysisPage() {
   const { currentUser } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedCV, setSelectedCV] = useState<string>('');
+  const [selectedCV, setSelectedCV] = useState<string | null>('');
   const [userCV, setUserCV] = useState<{ url: string; name: string } | null>(null);
   const [formData, setFormData] = useState({
     jobTitle: '',
@@ -991,6 +993,10 @@ export default function CVAnalysisPage() {
   const [loadingStep, setLoadingStep] = useState<string>('preparing');
   const [loadingMessage, setLoadingMessage] = useState<string>('Preparing to analyze your resume...');
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
+  
+  // Add these state variables for CV selection modal
+  const [cvModalOpen, setCvModalOpen] = useState(false);
+  const [enableContentValidation, setEnableContentValidation] = useState(true);
 
   // Charger le CV depuis le profil utilisateur
   useEffect(() => {
@@ -1621,155 +1627,10 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
     }
   };
 
-  const steps = [
-    {
-      title: "Select CV",
-      description: "Choose which CV you want to analyze",
-      content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4">
-            {userCV && (
-              <button
-                onClick={() => {
-                  setSelectedCV(userCV.url);
-                  setCvFile(null);
-                }}
-                className={`flex items-center p-4 border-2 rounded-xl transition-all ${
-                  selectedCV === userCV.url
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-purple-300'
-                }`}
-              >
-                <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
-                  <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-medium text-gray-900 dark:text-white">
-                    Use Profile CV
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {userCV.name}
-                  </p>
-                </div>
-                {selectedCV === userCV.url && (
-                  <Check className="w-5 h-5 text-purple-600" />
-                )}
-              </button>
-            )}
-
-            <div
-              className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                cvFile 
-                  ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-purple-300'
-              }`}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
-                <Upload className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <h3 className="font-medium text-gray-900 dark:text-white">
-                  Upload New CV
-                </h3>
-                {cvFile ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {cvFile.name} ({(cvFile.size/1024).toFixed(1)} KB)
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Upload a different CV for this analysis
-                  </p>
-                )}
-              </div>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                ref={fileInputRef}
-                className="hidden"
-              />
-              {cvFile && (
-                <Check className="w-5 h-5 text-purple-600" />
-              )}
-            </div>
-          </div>
-
-          {!selectedCV && !cvFile && (
-            <p className="text-sm text-red-500">
-              Please select or upload a CV to continue
-            </p>
-          )}
-        </div>
-      )
-    },
-    {
-      title: "Job Details",
-      description: "Enter the position details you're applying for",
-      content: (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Job Title
-            </label>
-            <input
-              type="text"
-              value={formData.jobTitle}
-              onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-              placeholder="e.g., Full Stack Developer"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Enter the exact job title for better analysis
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Company
-            </label>
-            <input
-              type="text"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
-              placeholder="e.g., Google"
-            />
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Job Description",
-      description: "Paste the job description for analysis",
-      content: (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Job Description
-          </label>
-          <textarea
-            value={formData.jobDescription}
-            onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-            className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white h-64"
-            placeholder="Paste the job description here..."
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            The more detailed the description, the more accurate the analysis. Include required skills, responsibilities, and qualifications.
-          </p>
-        </div>
-      )
-    }
-  ];
-
   const handleNextStep = () => {
-    if (currentStep === 1 && !selectedCV) {
-      toast.error('Please select or upload a CV first');
-      return;
-    }
-    
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Call handleAnalysis instead of just closing the modal
       handleAnalysis();
     }
   };
@@ -1977,7 +1838,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                 >
                   <div className="flex items-center">
                     <FileText className="w-5 h-5 mr-2 text-purple-500" />
-                    <span className="font-medium">Résumé exécutif</span>
+                    <span className="font-medium">Executive Summary</span>
                   </div>
                   {expandedSection === 'summary' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
@@ -1996,7 +1857,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                 >
                   <div className="flex items-center">
                     <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
-                    <span className="font-medium">Compétences correspondantes</span>
+                    <span className="font-medium">Matching Skills</span>
                   </div>
                   {expandedSection === 'skills' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
@@ -2015,7 +1876,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                     
                     {analysis.skillsMatch.missing.length > 0 && (
                       <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Compétences manquantes</h4>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Missing Skills</h4>
                         <div className="flex flex-wrap gap-2">
                           {analysis.skillsMatch.missing.map((skill, idx) => (
                             <SkillTag 
@@ -2039,7 +1900,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                 >
                   <div className="flex items-center">
                     <Briefcase className="w-5 h-5 mr-2 text-blue-500" />
-                    <span className="font-medium">Analyse d'expérience</span>
+                    <span className="font-medium">Experience Analysis</span>
                   </div>
                   {expandedSection === 'experience' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
@@ -2065,7 +1926,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                 >
                   <div className="flex items-center">
                     <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
-                    <span className="font-medium">Recommandations</span>
+                    <span className="font-medium">Recommendations</span>
                   </div>
                   {expandedSection === 'recommendations' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
@@ -2520,6 +2381,133 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
     }
   };
 
+  const steps = [
+    {
+      title: "Select CV",
+      description: "Choose which CV you want to analyze",
+      content: (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4">
+            {userCV && (
+              <button
+                onClick={() => {
+                  setSelectedCV(userCV.url);
+                  setCvFile(null);
+                }}
+                className={`flex items-center p-4 border-2 rounded-xl transition-all ${
+                  selectedCV === userCV.url
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-purple-300'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
+                  <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="font-medium text-gray-900 dark:text-white">
+                    Use Profile CV
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {userCV.name}
+                  </p>
+                </div>
+                {selectedCV === userCV.url && (
+                  <Check className="w-5 h-5 text-purple-600" />
+                )}
+              </button>
+            )}
+            
+            <button
+              onClick={() => setCvModalOpen(true)}
+              className="flex items-center p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center mr-4">
+                <Upload className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </div>
+              <div className="flex-1 text-left">
+                <h3 className="font-medium text-gray-900 dark:text-white">
+                  {cvFile ? "Change Resume" : "Upload Resume"}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {cvFile ? cvFile.name : "Select a PDF file"}
+                </p>
+              </div>
+              {cvFile && (
+                <Check className="w-5 h-5 text-purple-600" />
+              )}
+            </button>
+          </div>
+          
+          {(selectedCV || cvFile) && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleNextStep}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Job Details",
+      description: "Enter the position details you're applying for",
+      content: (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Job Title
+            </label>
+            <input
+              type="text"
+              value={formData.jobTitle}
+              onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+              placeholder="e.g., Full Stack Developer"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the exact job title for better analysis
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Company
+            </label>
+            <input
+              type="text"
+              value={formData.company}
+              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+              placeholder="e.g., Google"
+            />
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Job Description",
+      description: "Paste the job description for analysis",
+      content: (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Job Description
+          </label>
+          <textarea
+            value={formData.jobDescription}
+            onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
+            className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white h-64"
+            placeholder="Paste the job description here..."
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            The more detailed the description, the more accurate the analysis. Include required skills, responsibilities, and qualifications.
+          </p>
+        </div>
+      )
+    }
+  ];
+
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -2724,6 +2712,24 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           {isLoading && <LoadingScreen />}
         </AnimatePresence>
       </div>
+      
+      {/* CV Selection Modal */}
+      <CVSelectionModal
+        isOpen={cvModalOpen}
+        onClose={() => setCvModalOpen(false)}
+        onCVSelected={(file) => {
+          if (file instanceof File) {
+            setCvFile(file);
+            setSelectedCV(null);
+          } else {
+            setSelectedCV(file);
+            setCvFile(null);
+          }
+          setCvModalOpen(false);
+        }}
+        enableContentValidation={enableContentValidation}
+        setEnableContentValidation={setEnableContentValidation}
+      />
     </AuthLayout>
   );
 }

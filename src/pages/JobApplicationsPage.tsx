@@ -301,13 +301,45 @@ export default function JobApplicationsPage() {
     
     try {
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', deleteModal.application.id);
+      
+      // Optimistically update the UI first
+      setApplications(prevApplications => 
+        prevApplications.filter(app => app.id !== deleteModal.application?.id)
+      );
+      
+      // Then delete from Firestore
       await deleteDoc(applicationRef);
       
+      // Close the modal
       setDeleteModal({ show: false });
+      
+      // Show success toast
       toast.success('Application deleted successfully');
+      
+      // Close timeline modal if it's open for the deleted application
+      if (timelineModal && selectedApplication?.id === deleteModal.application.id) {
+        setTimelineModal(false);
+        setSelectedApplication(null);
+      }
     } catch (error) {
       console.error('Error deleting application:', error);
       toast.error('Failed to delete application');
+      
+      // If there was an error, revert the optimistic update
+      // by refreshing the applications from Firestore
+      const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+      const q = query(applicationsRef, orderBy('createdAt', 'desc'));
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const applicationsData: JobApplication[] = [];
+        snapshot.forEach((doc) => {
+          applicationsData.push({ id: doc.id, ...doc.data() } as JobApplication);
+        });
+        setApplications(applicationsData);
+      });
+      
+      // Cleanup the temporary listener
+      setTimeout(() => unsubscribe(), 2000);
     }
   };
 
