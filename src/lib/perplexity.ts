@@ -44,16 +44,32 @@ export async function queryPerplexity(prompt: string): Promise<any> {
   try {
     const apiKey = await getPerplexityApiKey();
     
+    console.log('Sending request to Perplexity API...');
+    
     const response = await axios.post(
       'https://api.perplexity.ai/chat/completions',
       {
         model: 'sonar-reasoning',
         messages: [
-          { role: 'system', content: 'You are an expert career coach helping with job interview preparation. You can browse the web to analyze job postings.' },
+          { 
+            role: 'system', 
+            content: `You are a conversational interview coach helping with job interview preparation. 
+
+Follow these strict guidelines:
+1. Keep responses extremely brief and direct - first paragraph should contain the key answer.
+2. Limit to 1-2 short paragraphs total unless explicitly asked for more detail.
+3. Never reveal or explain your thinking process - just provide the final answer.
+4. Use natural, friendly language as if chatting with a friend.
+5. When giving advice, jump straight to the actionable tips.
+6. Avoid lengthy explanations or theoretical background information.
+7. Use bullet points sparingly and only for very short lists.
+
+You can browse the web when needed for specific information, but keep search results brief.`
+          },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 1500, // Further reduced to encourage brevity
         // Enable web browsing capability
         tools: [
           {
@@ -73,16 +89,55 @@ export async function queryPerplexity(prompt: string): Promise<any> {
       }
     );
 
-    return response.data;
+    console.log('Perplexity API response received:', response.status);
+    
+    // Parse the response properly
+    if (response.data && response.data.choices && response.data.choices.length > 0) {
+      const textContent = response.data.choices[0].message.content;
+      console.log('Response content:', textContent.substring(0, 100) + '...');
+      
+      return {
+        ...response.data,
+        text: textContent
+      };
+    } else {
+      console.error('Unexpected response structure:', response.data);
+      return {
+        text: "I received a response from the API but couldn't extract the answer. Please try again.",
+        error: true,
+        errorMessage: "Invalid response structure"
+      };
+    }
   } catch (error) {
     console.error('Error querying Perplexity API:', error);
     
-    // Extract and return the error message from the API response if available
-    if (axios.isAxiosError(error) && error.response) {
-      const errorMessage = error.response.data?.error?.message || 'Unknown API error';
-      throw new Error(`Perplexity API Error: ${errorMessage}`);
+    // First check if it's a network error (like being blocked by an extension)
+    if (axios.isAxiosError(error) && !error.response) {
+      console.error('Network error or request blocked:', error.message);
+      return {
+        text: "It looks like your browser might be blocking the connection to our AI service. This could be due to an ad blocker, privacy extension, or network issues. Try disabling any extensions that might interfere with API requests.",
+        error: true,
+        errorMessage: error.message
+      };
     }
     
-    throw new Error('Failed to query Perplexity API: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    // Then check for API errors
+    if (axios.isAxiosError(error) && error.response) {
+      const errorMessage = error.response.data?.error?.message || 'Unknown API error';
+      console.error('Perplexity API Error Details:', error.response.data);
+      
+      return {
+        text: `Sorry, there was a problem with the AI service: ${errorMessage}. Please try again later.`,
+        error: true,
+        errorMessage: errorMessage
+      };
+    }
+    
+    // Generic error fallback
+    return {
+      text: "I'm sorry, I couldn't process your request due to a technical issue. This could be a network problem, an issue with the Perplexity API, or with your browser settings blocking certain requests. Please try again later.",
+      error: true,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 } 
