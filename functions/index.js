@@ -42,16 +42,11 @@ app.post('/api/claude', async (req, res) => {
     
     console.log("Firebase Config:", JSON.stringify(functions.config()));
     
-    // IMPORTANT: Ceci est temporaire pour tester - À SUPPRIMER APRÈS RÉSOLUTION DU PROBLÈME
-    // Mettre votre clé API directement dans le code UNIQUEMENT pour tester
-    const hardcodedApiKey = "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";
-    
     // Obtenir la clé API et valider - s'assurer que nous vérifions toutes les possibilités
     const apiKey = process.env.ANTHROPIC_API_KEY || 
                    process.env.VITE_ANTHROPIC_API_KEY || 
                    functions.config().anthropic?.apiKey ||
-                   functions.config().anthropic?.apikey ||
-                   hardcodedApiKey; // TEMPORAIRE: à supprimer après le test
+                   functions.config().anthropic?.apikey;
     
     console.log("API Key found:", apiKey ? "YES" : "NO");
     
