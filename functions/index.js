@@ -42,15 +42,12 @@ app.post('/api/claude', async (req, res) => {
     
     console.log("Firebase Config:", JSON.stringify(functions.config()));
     
-    // IMPORTANT: Ceci est temporaire pour tester - À SUPPRIMER APRÈS RÉSOLUTION DU PROBLÈME
-    // Mettre votre clé API directement dans le code UNIQUEMENT pour tester
-    const hardcodedApiKey = "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";
+    // IMPORTANT: Solution temporaire - Clé API hardcodée
+    const hardcodedApiKey = "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";
     
-    // Obtenir la clé API et valider - s'assurer que nous vérifions toutes les possibilités
+    // Priorité: 1) Variable d'environnement Firebase 2) Variable .env 3) Clé hardcodée
     const apiKey = process.env.ANTHROPIC_API_KEY || 
                    process.env.VITE_ANTHROPIC_API_KEY || 
-                   functions.config().anthropic?.apiKey ||
-                   functions.config().anthropic?.apikey ||
                    hardcodedApiKey; // TEMPORAIRE: à supprimer après le test
     
     console.log("API Key found:", apiKey ? "YES" : "NO");

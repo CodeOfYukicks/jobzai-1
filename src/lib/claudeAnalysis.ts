@@ -57,6 +57,33 @@ export async function analyzeCVWithClaude(
     
     console.log('Sending request to Claude API with PDF...');
     
+    // Configuration de la requête Claude
+    const claudeRequest = {
+      model: "claude-3-5-sonnet-20241022", // Modèle qui supporte les entrées PDF
+      max_tokens: 4000, // Réponse assez longue pour l'analyse
+      temperature: 0.2,
+      system: "You are an expert ATS (Applicant Tracking System) analyzer and career coach. Your task is to provide detailed, accurate, and helpful analysis of how well a resume matches a specific job description. Return your analysis as structured JSON data only.",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt  // Simplified format without nesting
+            },
+            {
+              type: "document",
+              source: {
+                type: "base64",
+                media_type: "application/pdf",
+                data: base64PDF
+              }
+            }
+          ]
+        }
+      ]
+    };
+    
     // Create the Claude API request with the PDF file using a model that supports PDF
     // Using the latest format expected by Claude API
     const response = await fetch(apiUrl, {
@@ -64,31 +91,7 @@ export async function analyzeCVWithClaude(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022", // Using a model that supports PDF input
-        max_tokens: 4000,
-        temperature: 0.2,
-        system: "You are an expert ATS (Applicant Tracking System) analyzer and career coach. Your task is to provide detailed, accurate, and helpful analysis of how well a resume matches a specific job description. Return your analysis as structured JSON data only.",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: prompt  // Simplified format without nesting
-              },
-              {
-                type: "document",
-                source: {
-                  type: "base64",
-                  media_type: "application/pdf",
-                  data: base64PDF
-                }
-              }
-            ]
-          }
-        ]
-      })
+      body: JSON.stringify(claudeRequest)
     });
     
     if (!response.ok) {
