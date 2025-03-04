@@ -199,13 +199,16 @@ export default function InterviewPrepPage() {
       if (interview.stickyNotes && interview.stickyNotes.length > 0) {
         setStickyNotes(interview.stickyNotes);
         
-        // Initialize note positions
-        const positions: Record<string, { x: number; y: number }> = {};
+        // Initialize note positions only once or for newly added notes
+        const positions = { ...notePositions };
         interview.stickyNotes.forEach((note, index) => {
-          positions[note.id] = note.position || {
-            x: (index % 3) * 300 + 50,
-            y: Math.floor(index / 3) * 200 + 50
-          };
+          // Only set position if it doesn't already exist in notePositions
+          if (!positions[note.id]) {
+            positions[note.id] = note.position || {
+              x: (index % 3) * 300 + 50,
+              y: Math.floor(index / 3) * 200 + 50
+            };
+          }
         });
         setNotePositions(positions);
       } else {
@@ -527,6 +530,35 @@ export default function InterviewPrepPage() {
     }));
   };
 
+  const updateInterviewNotes = (updatedNotes: Note[]) => {
+    if (!currentUser || !application || !interview || !applicationId) return;
+    
+    const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+    
+    if (interviewIndex !== -1) {
+      const updatedInterviews = [...(application.interviews || [])];
+      updatedInterviews[interviewIndex] = {
+        ...interview,
+        stickyNotes: updatedNotes
+      };
+      
+      const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+      updateDoc(applicationRef, {
+        interviews: updatedInterviews,
+        updatedAt: serverTimestamp()
+      }).catch(error => {
+        console.error('Error updating notes:', error);
+        toast.error('Failed to update notes');
+      });
+      
+      // Update the interview object without affecting notePositions or other state
+      setInterview({
+        ...interview,
+        stickyNotes: updatedNotes
+      });
+    }
+  };
+
   const saveNotes = async () => {
     if (!currentUser || !application || !interview || !applicationId) return;
     
@@ -549,9 +581,14 @@ export default function InterviewPrepPage() {
         });
         
         // Update local interview state
-        setInterview({
-          ...interview,
-          notes: notes
+        setInterview(prev => {
+          if (prev) {
+            return {
+              ...prev,
+              notes: notes
+            };
+          }
+          return prev;
         });
         
         toast.success('Notes saved successfully');
@@ -607,8 +644,9 @@ export default function InterviewPrepPage() {
         );
       } else {
         // Create new note
+        const newNoteId = uuidv4();
         const newNote: Note = {
-          id: uuidv4(),
+          id: newNoteId,
           title: noteTitle,
           content: noteContent,
           color: noteColor,
@@ -617,34 +655,20 @@ export default function InterviewPrepPage() {
           position: { x: 50, y: 50 }
         };
         updatedNotes = [...stickyNotes, newNote];
+        
+        // Add new note position to notePositions
+        setNotePositions(prev => ({
+          ...prev,
+          [newNoteId]: { x: 50, y: 50 }
+        }));
       }
       
       setStickyNotes(updatedNotes);
       
-      // Save to Firestore
-      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      // Use the helper function to update the interview
+      updateInterviewNotes(updatedNotes);
       
-      if (interviewIndex !== -1) {
-        const updatedInterviews = [...(application.interviews || [])];
-        updatedInterviews[interviewIndex] = {
-          ...interview,
-          stickyNotes: updatedNotes
-        };
-        
-        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-        await updateDoc(applicationRef, {
-          interviews: updatedInterviews,
-          updatedAt: serverTimestamp()
-        });
-        
-        // Update local interview state
-        setInterview({
-          ...interview,
-          stickyNotes: updatedNotes
-        });
-        
-        toast.success(activeNote ? 'Note updated successfully' : 'Note created successfully');
-      }
+      toast.success(activeNote ? 'Note updated successfully' : 'Note created successfully');
       
       // Close the modal
       setIsNoteModalOpen(false);
@@ -660,32 +684,14 @@ export default function InterviewPrepPage() {
     try {
       // Filter out the deleted note
       const updatedNotes = stickyNotes.filter(note => note.id !== noteId);
+      
+      // Update the sticky notes state
       setStickyNotes(updatedNotes);
       
-      // Save to Firestore
-      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      // Use our helper function to update the interview
+      updateInterviewNotes(updatedNotes);
       
-      if (interviewIndex !== -1) {
-        const updatedInterviews = [...(application.interviews || [])];
-        updatedInterviews[interviewIndex] = {
-          ...interview,
-          stickyNotes: updatedNotes
-        };
-        
-        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-        await updateDoc(applicationRef, {
-          interviews: updatedInterviews,
-          updatedAt: serverTimestamp()
-        });
-        
-        // Update local interview state
-        setInterview({
-          ...interview,
-          stickyNotes: updatedNotes
-        });
-        
-        toast.success('Note deleted successfully');
-      }
+      toast.success('Note deleted successfully');
       
       // If the note modal is open and this note is being edited, close it
       if (isNoteModalOpen && activeNote && activeNote.id === noteId) {
@@ -2073,7 +2079,7 @@ Return the questions in a JSON format like this:
                           bounds="parent"
                         >
                           <div 
-                            className="absolute w-[250px] rounded-lg shadow-lg cursor-move"
+                            className="absolute w-[250px] h-[200px] rounded-lg shadow-lg cursor-move"
                             style={{ backgroundColor: note.color }}
                           >
                             <div className="p-4">
@@ -2092,7 +2098,7 @@ Return the questions in a JSON format like this:
                                 </button>
                               </div>
                               <div 
-                                className="text-sm text-gray-700 line-clamp-3"
+                                className="text-sm text-gray-700 max-h-[150px] overflow-y-auto"
                                 onClick={(e) => {
                                   if (!isDragging) {
                                     handleNoteClick(note.id, e);
@@ -2118,7 +2124,7 @@ Return the questions in a JSON format like this:
                       exit={{ opacity: 0, scale: 0.8 }}
                       whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
                       className="group relative"
-                      style={{ height: '200px' }}
+                      style={{ height: '220px' }}
                     >
                       <div
                         className="absolute inset-0 rounded-xl p-4 flex flex-col shadow-md transition-all duration-300 cursor-pointer border border-transparent"
@@ -2139,8 +2145,8 @@ Return the questions in a JSON format like this:
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div className="mt-2 flex-1 overflow-hidden">
-                          <p className="text-sm text-gray-700 line-clamp-6">
+                        <div className="mt-2 flex-1 overflow-y-auto">
+                          <p className="text-sm text-gray-700">
                             {note.content}
                           </p>
                         </div>
