@@ -29,6 +29,8 @@ import {
   TrendingUp,
   Users,
   X,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
@@ -43,12 +45,11 @@ interface Interview {
   interviewers?: string[];
   status: 'scheduled' | 'completed' | 'cancelled';
   notes?: string;
-  feedback?: string;
   location?: string;
 }
 
 interface StatusChange {
-  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
+  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived' | 'pending_decision';
   date: string;
   notes?: string;
 }
@@ -58,7 +59,7 @@ interface JobApplication {
   companyName: string;
   position: string;
   location: string;
-  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
+  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived' | 'pending_decision';
   appliedDate: string;
   url?: string;
   contactName?: string;
@@ -351,28 +352,30 @@ export default function JobApplicationsPage() {
   const applicationsByStatus = {
     applied: filteredApplications.filter(app => app.status === 'applied'),
     interview: filteredApplications.filter(app => app.status === 'interview'),
+    pending_decision: filteredApplications.filter(app => app.status === 'pending_decision'),
     offer: filteredApplications.filter(app => app.status === 'offer'),
     rejected: filteredApplications.filter(app => app.status === 'rejected'),
     archived: filteredApplications.filter(app => app.status === 'archived')
   };
 
-  const columnOrder = ['applied', 'interview', 'offer', 'rejected', 'archived'];
+  const columnOrder = ['applied', 'interview', 'pending_decision', 'offer', 'rejected', 'archived'];
   
   // Analytics helper functions
   const getMonthlyApplicationData = () => {
-    const monthData: { [key: string]: { applied: number, interviews: number, offers: number, rejected: number }} = {};
+    const monthData: { [key: string]: { applied: number, interviews: number, pending: number, offers: number, rejected: number }} = {};
     
     applications.forEach(app => {
       const date = new Date(app.appliedDate);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
       if (!monthData[monthKey]) {
-        monthData[monthKey] = { applied: 0, interviews: 0, offers: 0, rejected: 0 };
+        monthData[monthKey] = { applied: 0, interviews: 0, pending: 0, offers: 0, rejected: 0 };
       }
       
       // Count applications by current status
       if (app.status === 'applied') monthData[monthKey].applied++;
       else if (app.status === 'interview') monthData[monthKey].interviews++;
+      else if (app.status === 'pending_decision') monthData[monthKey].pending++;
       else if (app.status === 'offer') monthData[monthKey].offers++;
       else if (app.status === 'rejected') monthData[monthKey].rejected++;
     });
@@ -617,10 +620,11 @@ END:VCALENDAR`;
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+            className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
             {[
               { label: 'Applied', count: applications.filter(a => a.status === 'applied').length, color: 'blue' },
               { label: 'Interview', count: applications.filter(a => a.status === 'interview').length, color: 'purple' },
+              { label: 'Pending', count: applications.filter(a => a.status === 'pending_decision').length, color: 'amber' },
               { label: 'Offer', count: applications.filter(a => a.status === 'offer').length, color: 'green' },
               { label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length, color: 'red' }
             ].map((stat, index) => (
@@ -679,9 +683,9 @@ END:VCALENDAR`;
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
-                  className="flex overflow-x-auto pb-4 sm:pb-6 -mx-2 px-2 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 hide-scrollbar"
+                  className="flex overflow-x-auto pb-4 sm:pb-6 -mx-2 px-2 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4 hide-scrollbar"
                 >
-                  {['applied', 'interview', 'offer', 'rejected'].map((status, columnIndex) => (
+                  {['applied', 'interview', 'pending_decision', 'offer', 'rejected'].map((status, columnIndex) => (
                     <Droppable key={status} droppableId={status}>
                       {(provided, snapshot) => (
                         <motion.div
@@ -694,7 +698,7 @@ END:VCALENDAR`;
                         >
                           <div className="flex items-center justify-between mb-2 sm:mb-3">
                             <h3 className="font-semibold text-gray-900 dark:text-white capitalize text-xs sm:text-sm">
-                              {status}
+                              {status === 'pending_decision' ? 'Pending Decision' : status}
                             </h3>
                             <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                               {applications.filter(a => a.status === status).length}
@@ -929,7 +933,7 @@ END:VCALENDAR`;
                       
                       <div className="h-60 flex items-end justify-between px-2">
                         {getMonthlyApplicationData().map(([month, data], i) => {
-                          const total = data.applied + data.interviews + data.offers + data.rejected;
+                          const total = data.applied + data.interviews + data.pending + data.offers + data.rejected;
                           const maxHeight = 200; // max height in pixels
                           
                           return (
@@ -939,6 +943,7 @@ END:VCALENDAR`;
                                 {[
                                   { type: 'rejected', count: data.rejected, color: 'bg-red-500' },
                                   { type: 'offers', count: data.offers, color: 'bg-green-500' },
+                                  { type: 'pending', count: data.pending, color: 'bg-amber-500' },
                                   { type: 'interviews', count: data.interviews, color: 'bg-purple-500' },
                                   { type: 'applied', count: data.applied, color: 'bg-blue-500' }
                                 ].map((segment, j) => {
@@ -971,6 +976,7 @@ END:VCALENDAR`;
                         {[
                           { label: 'Applied', color: 'bg-blue-500' },
                           { label: 'Interviews', color: 'bg-purple-500' },
+                          { label: 'Pending', color: 'bg-amber-500' },
                           { label: 'Offers', color: 'bg-green-500' },
                           { label: 'Rejected', color: 'bg-red-500' }
                         ].map(item => (
@@ -1584,6 +1590,8 @@ END:VCALENDAR`;
                           status.status === 'applied' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
                           status.status === 'interview' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' :
                           status.status === 'offer' ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
+                          status.status === 'pending_decision' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' :
+                          status.status === 'archived' ? 'bg-gray-100 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400' :
                           'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
                         }`}>
                           <span className="text-xs capitalize">{status.status.slice(0, 1)}</span>
@@ -1596,9 +1604,11 @@ END:VCALENDAR`;
                               status.status === 'applied' ? 'text-blue-600 dark:text-blue-400' :
                               status.status === 'interview' ? 'text-purple-600 dark:text-purple-400' :
                               status.status === 'offer' ? 'text-green-600 dark:text-green-400' :
+                              status.status === 'pending_decision' ? 'text-amber-600 dark:text-amber-400' :
+                              status.status === 'archived' ? 'text-gray-600 dark:text-gray-400' :
                               'text-red-600 dark:text-red-400'
                             }`}>
-                              {status.status}
+                              {status.status === 'pending_decision' ? 'Pending Decision' : status.status}
                             </p>
                             <time className="text-sm text-gray-500">
                               {new Date(status.date).toLocaleDateString()}

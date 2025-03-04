@@ -103,6 +103,7 @@ export default function InterviewPrepPage() {
   const [tab, setTab] = useState<'overview' | 'questions' | 'skills' | 'resources' | 'chat'>('overview');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [skillRatings, setSkillRatings] = useState<Record<string, number>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -986,6 +987,15 @@ Return the questions in a JSON format like this:
     }
   };
 
+  // Add a toggle function for expanding/collapsing sections
+  const toggleSection = (skillIndex: number, sectionName: string) => {
+    const key = `skill-${skillIndex}-${sectionName}`;
+    setExpandedSections(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
   if (isLoading) {
     return (
       <AuthLayout>
@@ -1423,7 +1433,7 @@ Return the questions in a JSON format like this:
                   >
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
                       <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">
-                        Required Skills & Qualifications
+                        Skill Preparation Tips
                       </h3>
                       
                       <div className="space-y-4">
@@ -1433,15 +1443,187 @@ Return the questions in a JSON format like this:
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className="flex items-start"
+                            className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg"
                           >
-                            <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-1.5 rounded-md mr-3 flex-shrink-0">
-                              <Check className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <p className="text-gray-700 dark:text-gray-300">
-                                {skill}
-                              </p>
+                            <h4 className="font-medium text-purple-700 dark:text-purple-400 mb-3 flex items-center">
+                              <Briefcase className="w-4 h-4 mr-2" />
+                              {skill}
+                            </h4>
+                            <div className="space-y-2">
+                              {/* Practice Questions Section */}
+                              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <button 
+                                  onClick={() => toggleSection(index, 'questions')}
+                                  className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                >
+                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                                    <HelpCircle className="w-3.5 h-3.5 mr-1.5 text-purple-500" />
+                                    Practice Questions
+                                  </span>
+                                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections[`skill-${index}-questions`] ? 'transform rotate-180' : ''}`} />
+                                </button>
+                                
+                                {expandedSections[`skill-${index}-questions`] && (
+                                  <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                    {skill === "Project management for enterprise implementations" && (
+                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
+                                        <li>Describe a complex implementation project you managed. What challenges did you face and how did you overcome them?</li>
+                                        <li>How do you handle scope creep during enterprise implementations?</li>
+                                        <li>How do you ensure all stakeholders stay aligned during a long implementation process?</li>
+                                      </ul>
+                                    )}
+                                    
+                                    {skill === "Technical knowledge of payment processing systems" && (
+                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
+                                        <li>What payment gateways have you integrated with and what were the key differences between them?</li>
+                                        <li>How would you design a payment system that needs to handle multiple currencies and payment methods?</li>
+                                        <li>How do you ensure PCI compliance in a payment implementation?</li>
+                                      </ul>
+                                    )}
+                                    
+                                    {skill === "Client relationship management" && (
+                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
+                                        <li>Tell me about a difficult client situation you managed. How did you resolve it?</li>
+                                        <li>How do you maintain clear communication with clients during complex technical implementations?</li>
+                                        <li>How do you set and manage client expectations throughout a project?</li>
+                                      </ul>
+                                    )}
+                                    
+                                    {skill === "API integration experience" && (
+                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
+                                        <li>What's your approach to designing an integration between two complex systems?</li>
+                                        <li>How do you handle API versioning and backward compatibility?</li>
+                                        <li>Describe how you would troubleshoot a failing API integration in production.</li>
+                                      </ul>
+                                    )}
+                                    
+                                    {skill === "Analytical problem-solving" && (
+                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
+                                        <li>Describe a situation where you had to analyze complex data to solve a business problem.</li>
+                                        <li>How do you approach breaking down ambiguous problems?</li>
+                                        <li>Tell me about a time when your analysis led to a significant business improvement.</li>
+                                      </ul>
+                                    )}
+                                    
+                                    {skill === "Communication with technical/non-technical stakeholders" && (
+                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
+                                        <li>How do you explain complex technical concepts to non-technical stakeholders?</li>
+                                        <li>Describe a situation where you bridged a communication gap between technical and business teams.</li>
+                                        <li>How do you tailor your communication based on your audience?</li>
+                                      </ul>
+                                    )}
+                                    
+                                    {skill && !["Project management for enterprise implementations", "Technical knowledge of payment processing systems", "Client relationship management", "API integration experience", "Analytical problem-solving", "Communication with technical/non-technical stakeholders"].includes(skill) && (
+                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
+                                        <li>Describe a specific situation where you demonstrated this skill in a professional setting.</li>
+                                        <li>What tools or methodologies do you use when applying this skill?</li>
+                                        <li>How do you measure success when using this skill in a project?</li>
+                                      </ul>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Company Insights Section */}
+                              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <button 
+                                  onClick={() => toggleSection(index, 'insights')}
+                                  className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                >
+                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                                    <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+                                    What {application.companyName} Might Be Looking For
+                                  </span>
+                                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections[`skill-${index}-insights`] ? 'transform rotate-180' : ''}`} />
+                                </button>
+                                
+                                {expandedSections[`skill-${index}-insights`] && (
+                                  <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                    {skill === "Project management for enterprise implementations" && (
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Stripe likely wants to see experience managing complex payment implementations for large enterprises, with a focus on timeline management, resource allocation, and risk mitigation. They value candidates who can demonstrate leadership in coordinating multiple stakeholders and adapting to changing requirements while maintaining high client satisfaction.
+                                      </p>
+                                    )}
+                                    
+                                    {skill === "Technical knowledge of payment processing systems" && (
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        As a payment company, Stripe wants consultants with deep knowledge of payment architectures, security standards, and industry regulations. Experience with multiple payment gateways, understanding of payment flows, authorization, settlement, and reconciliation processes would be highly valued. Familiarity with fraud prevention and compliance requirements would be a plus.
+                                      </p>
+                                    )}
+                                    
+                                    {skill === "Client relationship management" && (
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Stripe values consultants who can build strong, trust-based relationships with enterprise clients. They're looking for candidates who can navigate complex organizational structures, manage expectations effectively, and turn clients into advocates. The ability to handle difficult conversations and negotiate scope changes professionally is important.
+                                      </p>
+                                    )}
+                                    
+                                    {skill === "API integration experience" && (
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Stripe's core product is its API, so they're seeking consultants with hands-on experience implementing REST APIs in enterprise environments. Knowledge of web hooks, authentication methods, error handling, and testing methodologies would be valuable. Experience with Stripe's API specifically would be a significant advantage.
+                                      </p>
+                                    )}
+                                    
+                                    {skill === "Analytical problem-solving" && (
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Implementation consultants at Stripe need to troubleshoot complex integration issues and optimize payment flows. They value candidates who can analyze transaction data, identify patterns, and develop solutions that balance technical constraints with business requirements. The ability to quantify results and demonstrate business impact is important.
+                                      </p>
+                                    )}
+                                    
+                                    {skill === "Communication with technical/non-technical stakeholders" && (
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Stripe consultants bridge the gap between developers implementing their API and business stakeholders focused on revenue and customer experience. They need consultants who can translate technical concepts for executives while also providing detailed guidance to engineering teams. Clear documentation skills and presentation abilities are likely valued.
+                                      </p>
+                                    )}
+                                    
+                                    {skill && !["Project management for enterprise implementations", "Technical knowledge of payment processing systems", "Client relationship management", "API integration experience", "Analytical problem-solving", "Communication with technical/non-technical stakeholders"].includes(skill) && (
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        For this skill, {application.companyName} is likely looking for candidates who can demonstrate practical application in real-world scenarios. Focus on how you've used this skill to drive business outcomes, collaborate effectively with teams, and deliver measurable results in previous roles. Consider how this skill specifically applies to their industry and business model.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Sample Response Section */}
+                              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <button 
+                                  onClick={() => toggleSection(index, 'response')}
+                                  className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                >
+                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                                    <CheckCircle className="w-3.5 h-3.5 mr-1.5 text-green-500" />
+                                    Sample Response
+                                  </span>
+                                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections[`skill-${index}-response`] ? 'transform rotate-180' : ''}`} />
+                                </button>
+                                
+                                {expandedSections[`skill-${index}-response`] && (
+                                  <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                                      {skill === "Project management for enterprise implementations" && 
+                                        "In my last role at ABC Corp, I led a cross-functional team implementing a new payment system across 5 regional offices. I created a detailed implementation roadmap, established clear KPIs, and instituted weekly check-ins. When we encountered integration issues in the APAC region, I prioritized resources and developed a contingency plan. The project was delivered on time, 10% under budget, with a 98% satisfaction rate from stakeholders."}
+                                      
+                                      {skill === "Technical knowledge of payment processing systems" && 
+                                        "I've worked extensively with various payment gateways including Stripe, PayPal, and Braintree. At XYZ Company, I architected an integration solution that handled complex multi-currency transactions with automated reconciliation. I'm familiar with PCI compliance requirements and have implemented tokenization solutions to enhance security while reducing scope. This reduced our chargebacks by 23% and improved transaction approval rates by 8%."}
+                                      
+                                      {skill === "Client relationship management" && 
+                                        "While implementing solutions for Fortune 500 clients, I established a structured communication framework that included weekly status updates, monthly strategic reviews, and quarterly business reviews. For one particularly challenging client, I developed a custom dashboard showing real-time implementation metrics that increased transparency and trust. This approach resulted in a client expanding their initial scope by 40% and becoming a reference account."}
+                                      
+                                      {skill === "API integration experience" && 
+                                        "I've led several complex API integrations connecting payment systems with client ERPs and CRMs. For example, at FinTech Solutions, I designed a REST API architecture that synchronized transaction data between Stripe and SAP. I documented the integration patterns with Swagger, set up automated testing with Postman, and created fallback mechanisms for API failures. This integration processed over $5M in daily transactions with 99.99% uptime."}
+                                      
+                                      {skill === "Analytical problem-solving" && 
+                                        "When faced with unexplained payment declines at a global client, I implemented a data-driven approach to solve the issue. I designed SQL queries to analyze transaction patterns, visualized the data in Tableau, and identified a correlation between declines and specific issuing banks. By working with the banks directly and adjusting our processing parameters, we reduced decline rates by 36%, recovering approximately $2.2M in monthly revenue for the client."}
+                                      
+                                      {skill === "Communication with technical/non-technical stakeholders" && 
+                                        "I regularly translate complex technical concepts for diverse audiences. When implementing Stripe for an e-commerce client, I created separate documentation for the development team, business stakeholders, and finance department. For technical teams, I provided detailed API specifications; for executives, I focused on business outcomes and ROI timelines; and for operations, I designed visual workflow diagrams. This approach ensured all stakeholders remained aligned throughout the 9-month implementation."}
+                                      
+                                      {skill && !["Project management for enterprise implementations", "Technical knowledge of payment processing systems", "Client relationship management", "API integration experience", "Analytical problem-solving", "Communication with technical/non-technical stakeholders"].includes(skill) && 
+                                        `When discussing ${skill}, I'd highlight a specific situation where I demonstrated this capability. I would explain the challenge faced, my specific approach, the actions I took, and most importantly, the measurable results achieved. I'd then connect this experience to how it would benefit ${application.companyName} in similar scenarios.`}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </motion.div>
                         ))}
