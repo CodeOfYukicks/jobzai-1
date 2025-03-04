@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
 import { analyzeJobPost, JobPostAnalysisResult } from '../services/jobPostAnalyzer';
 import { queryPerplexity } from '../lib/perplexity';
+import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
+import Xarrow, { Xwrapper } from 'react-xarrows';
 import { 
   ArrowLeft, Briefcase, Building, MapPin, Calendar, Clock, LinkIcon, 
   MessageSquare, Check, AlertTriangle, BookOpen, FileText, 
@@ -14,7 +16,8 @@ import {
   CheckCircle, XCircle, Clock as ClockIcon, ChevronDown,
   Loader2, Send, User, Bot, Save, Plus, X, StickyNote,
   ChevronLeft, LayoutDashboard, HelpCircle, CalendarDays,
-  Search, RefreshCw
+  Search, RefreshCw, Maximize2, Minimize2, ArrowRight,
+  MousePointer, Square, Circle, Minus
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,6 +30,15 @@ interface Note {
   color: string;
   createdAt: number;
   updatedAt: number;
+  position?: { x: number; y: number };
+  connections?: string[];
+}
+
+interface Connection {
+  id: string;
+  start: string;
+  end: string;
+  label?: string;
 }
 
 interface Interview {
@@ -38,6 +50,7 @@ interface Interview {
   status: 'scheduled' | 'completed' | 'cancelled';
   notes?: string;
   stickyNotes?: Note[];
+  noteConnections?: Connection[];
   feedback?: string;
   location?: string;
   preparation?: JobPostAnalysisResult;
@@ -64,6 +77,17 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+}
+
+interface Shape {
+  id: string;
+  type: 'arrow' | 'line' | 'rectangle' | 'circle';
+  startX: number;
+  startY: number;
+  endX?: number;
+  endY?: number;
+  color: string;
+  label?: string;
 }
 
 export default function InterviewPrepPage() {
@@ -93,6 +117,19 @@ export default function InterviewPrepPage() {
   const [noteContent, setNoteContent] = useState('');
   const [noteColor, setNoteColor] = useState('#ffeb3b');
   const [isRegeneratingQuestions, setIsRegeneratingQuestions] = useState(false);
+  const [isNotesExpanded, setIsNotesExpanded] = useState(false);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [isDrawingConnection, setIsDrawingConnection] = useState(false);
+  const [notePositions, setNotePositions] = useState<Record<string, { x: number; y: number }>>({});
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartTime, setDragStartTime] = useState(0);
+  const [selectedTool, setSelectedTool] = useState<'select' | 'arrow' | 'line' | 'rectangle' | 'circle'>('select');
+  const [drawingShape, setDrawingShape] = useState<Shape | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [showConnectionMenu, setShowConnectionMenu] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<string | null>(null);
+  const [connectionMenuPosition, setConnectionMenuPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -160,6 +197,16 @@ export default function InterviewPrepPage() {
       // Initialize sticky notes
       if (interview.stickyNotes && interview.stickyNotes.length > 0) {
         setStickyNotes(interview.stickyNotes);
+        
+        // Initialize note positions
+        const positions: Record<string, { x: number; y: number }> = {};
+        interview.stickyNotes.forEach((note, index) => {
+          positions[note.id] = note.position || {
+            x: (index % 3) * 300 + 50,
+            y: Math.floor(index / 3) * 200 + 50
+          };
+        });
+        setNotePositions(positions);
       } else {
         // If there are no sticky notes but there are old notes, convert them
         if (interview.notes && !interview.stickyNotes) {
@@ -169,10 +216,16 @@ export default function InterviewPrepPage() {
             content: interview.notes,
             color: '#ffeb3b',
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
+            position: { x: 50, y: 50 }
           };
           setStickyNotes([initialNote]);
         }
+      }
+      
+      // Initialize connections
+      if (interview.noteConnections) {
+        setConnections(interview.noteConnections);
       }
     }
   }, [interview]);
@@ -538,7 +591,17 @@ export default function InterviewPrepPage() {
         // Update existing note
         updatedNotes = stickyNotes.map(note => 
           note.id === activeNote.id 
-            ? { ...note, title: noteTitle, content: noteContent, color: noteColor, updatedAt: timestamp }
+            ? { 
+                ...note, 
+                title: noteTitle, 
+                content: noteContent, 
+                color: noteColor, 
+                updatedAt: timestamp,
+                position: notePositions[note.id],
+                connections: connections
+                  .filter(conn => conn.start === note.id || conn.end === note.id)
+                  .map(conn => conn.start === note.id ? conn.end : conn.start)
+              }
             : note
         );
       } else {
@@ -549,7 +612,8 @@ export default function InterviewPrepPage() {
           content: noteContent,
           color: noteColor,
           createdAt: timestamp,
-          updatedAt: timestamp
+          updatedAt: timestamp,
+          position: { x: 50, y: 50 }
         };
         updatedNotes = [...stickyNotes, newNote];
       }
@@ -723,6 +787,202 @@ Return the questions in a JSON format like this:
       toast.error('Failed to generate new questions: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsRegeneratingQuestions(false);
+    }
+  };
+
+  const handleDragStart = (_e: DraggableEvent, _data: DraggableData) => {
+    setIsDragging(true);
+    setDragStartTime(Date.now());
+  };
+
+  const handleDragStop = (noteId: string, e: DraggableEvent, data: DraggableData) => {
+    const dragDuration = Date.now() - dragStartTime;
+    setIsDragging(false);
+    
+    // Si le drag a duré moins de 200ms, c'est considéré comme un clic
+    if (dragDuration < 200) {
+      return;
+    }
+
+    // Update position
+    setNotePositions(prev => ({
+      ...prev,
+      [noteId]: { x: data.x, y: data.y }
+    }));
+
+    // Save positions to Firestore
+    if (currentUser && application && interview && applicationId) {
+      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      
+      if (interviewIndex !== -1) {
+        const updatedInterviews = [...(application.interviews || [])];
+        const updatedNotes = stickyNotes.map(note => ({
+          ...note,
+          position: note.id === noteId ? { x: data.x, y: data.y } : notePositions[note.id]
+        }));
+        
+        updatedInterviews[interviewIndex] = {
+          ...interview,
+          stickyNotes: updatedNotes
+        };
+        
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        updateDoc(applicationRef, {
+          interviews: updatedInterviews,
+          updatedAt: serverTimestamp()
+        }).catch(error => {
+          console.error('Error saving note positions:', error);
+          toast.error('Failed to save note positions');
+        });
+      }
+    }
+  };
+
+  const handleToolDragStart = (tool: 'arrow' | 'line' | 'rectangle' | 'circle', e: React.DragEvent) => {
+    e.dataTransfer.setData('tool', tool);
+    setDraggedTool(tool);
+  };
+
+  const handleToolDragEnd = (e: React.DragEvent) => {
+    e.preventDefault();
+    const tool = e.dataTransfer.getData('tool') as 'arrow' | 'line' | 'rectangle' | 'circle';
+    if (!tool) return;
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const newShape: Shape = {
+      id: uuidv4(),
+      type: tool,
+      startX: x,
+      startY: y,
+      endX: x + 100,
+      endY: y + 100,
+      color: '#6b21a8'
+    };
+
+    setShapes(prev => [...prev, newShape]);
+    setSelectedShape(newShape.id);
+    setDraggedTool(null);
+  };
+
+  const handleShapeClick = (shapeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedShape(shapeId);
+    setSelectedTool('select');
+  };
+
+  const handleShapeMouseDown = (e: React.MouseEvent, shape: Shape) => {
+    if (selectedTool !== 'select') return;
+    e.stopPropagation();
+    setIsResizingShape(true);
+    setSelectedShape(shape.id);
+  };
+
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    if (selectedTool === 'select') {
+      setSelectedShape(null);
+      return;
+    }
+    
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setIsDrawingShape(true);
+    const newShape: Shape = {
+      id: uuidv4(),
+      type: selectedTool,
+      startX: x,
+      startY: y,
+      color: '#6b21a8'
+    };
+
+    setDrawingShape(newShape);
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (isDrawingShape && drawingShape) {
+      setDrawingShape({
+        ...drawingShape,
+        endX: x,
+        endY: y
+      });
+    } else if (isResizingShape && selectedShape) {
+      setShapes(prev => prev.map(shape => 
+        shape.id === selectedShape
+          ? { ...shape, endX: x, endY: y }
+          : shape
+      ));
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    if (isDrawingShape && drawingShape) {
+      setShapes(prev => [...prev, drawingShape]);
+      setDrawingShape(null);
+      setIsDrawingShape(false);
+      setSelectedTool('select');
+    }
+    setIsResizingShape(false);
+  };
+
+  const handleNoteClick = (noteId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDragging) return;
+    
+    const note = stickyNotes.find(note => note.id === noteId);
+    if (note) {
+      openNote(note);
+    }
+  };
+
+  const deleteShape = (shapeId: string) => {
+    setShapes(prev => prev.filter(shape => shape.id !== shapeId));
+  };
+
+  const openConnectionMenu = (noteId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedNote(noteId);
+    setShowConnectionMenu(true);
+    setConnectionMenuPosition({ x: e.clientX, y: e.clientY });
+  };
+
+  const startConnection = (noteId: string) => {
+    setIsDrawingConnection(true);
+    setConnectionStart(noteId);
+    setShowConnectionMenu(false);
+  };
+
+  const deleteConnection = (connectionId: string) => {
+    setConnections(prev => prev.filter(conn => conn.id !== connectionId));
+  };
+
+  const toggleNotesExpanded = () => {
+    setIsNotesExpanded(prev => !prev);
+    if (!isNotesExpanded) {
+      // Initialize positions for notes that don't have them
+      const newPositions = { ...notePositions };
+      stickyNotes.forEach((note, index) => {
+        if (!notePositions[note.id]) {
+          newPositions[note.id] = {
+            x: (index % 3) * 300 + 50,
+            y: Math.floor(index / 3) * 200 + 50
+          };
+        }
+      });
+      setNotePositions(newPositions);
     }
   };
 
@@ -1575,41 +1835,96 @@ Return the questions in a JSON format like this:
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-8"
+            className={`${
+              isNotesExpanded 
+                ? 'fixed inset-4 z-50 bg-white dark:bg-gray-800 overflow-hidden'
+                : 'bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-8'
+            }`}
           >
-            <div className="flex justify-between items-center mb-6">
+            {/* Header with title and buttons */}
+            <div className={`flex justify-between items-center ${isNotesExpanded ? 'p-6 border-b border-gray-200 dark:border-gray-700' : 'mb-6'}`}>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <StickyNote className="w-5 h-5 text-amber-500" />
                 Interview Notes
               </h3>
-              <button
-                onClick={createNewNote}
-                className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-1.5 shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                New Note
-              </button>
-            </div>
-            
-            <AnimatePresence>
-              {stickyNotes.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="text-center py-16 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/40"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={createNewNote}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-1.5 shadow-sm"
                 >
-                  <StickyNote className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 font-medium mb-3">No notes yet</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                    Create notes to keep track of important points for your interview preparation
-                  </p>
-                  <button
-                    onClick={createNewNote}
-                    className="mt-6 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  <Plus className="w-4 h-4" />
+                  New Note
+                </button>
+                <button
+                  onClick={toggleNotesExpanded}
+                  className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  {isNotesExpanded ? (
+                    <Minimize2 className="w-5 h-5" />
+                  ) : (
+                    <Maximize2 className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {isNotesExpanded ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="relative h-[calc(100%-80px)] overflow-hidden bg-gray-50 dark:bg-gray-900/50"
+                >
+                  {/* Canvas area */}
+                  <div 
+                    className="relative h-full p-4"
+                    ref={canvasRef}
                   >
-                    Create your first note
-                  </button>
+                    <Xwrapper>
+                      {stickyNotes.map((note) => (
+                        <Draggable
+                          key={note.id}
+                          position={notePositions[note.id] || { x: 0, y: 0 }}
+                          onStart={handleDragStart}
+                          onStop={(e, data) => handleDragStop(note.id, e, data)}
+                          bounds="parent"
+                        >
+                          <div 
+                            className="absolute w-[250px] rounded-lg shadow-lg cursor-move"
+                            style={{ backgroundColor: note.color }}
+                          >
+                            <div className="p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className="font-medium text-gray-800 truncate flex-1">
+                                  {note.title || 'Untitled Note'}
+                                </h4>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteNote(note.id);
+                                  }}
+                                  className="p-1 hover:bg-black/10 rounded-full"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <div 
+                                className="text-sm text-gray-700 line-clamp-3"
+                                onClick={(e) => {
+                                  if (!isDragging) {
+                                    handleNoteClick(note.id, e);
+                                  }
+                                }}
+                              >
+                                {note.content}
+                              </div>
+                            </div>
+                          </div>
+                        </Draggable>
+                      ))}
+                    </Xwrapper>
+                  </div>
                 </motion.div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -1626,7 +1941,7 @@ Return the questions in a JSON format like this:
                       <div
                         className="absolute inset-0 rounded-xl p-4 flex flex-col shadow-md transition-all duration-300 cursor-pointer border border-transparent"
                         style={{ backgroundColor: note.color }}
-                        onDoubleClick={() => openNote(note)}
+                        onClick={() => openNote(note)}
                       >
                         <div className="flex justify-between items-start">
                           <h4 className="font-medium text-gray-800 truncate">
