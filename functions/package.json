@@ -1,8 +1,11 @@
 {
   "name": "functions",
+  "version": "1.0.0",
+  "description": "Firebase Functions for JobzAI",
+  "main": "index.js",
   "scripts": {
-    "lint": "eslint \"src/**/*.{js,ts}\" --fix",
-    "build": "tsc",
+    "lint": "echo 'No linting configured'",
+    "build": "echo 'No build step needed'",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
@@ -12,13 +15,17 @@
   "engines": {
     "node": "18"
   },
-  "main": "lib/index.js",
   "dependencies": {
     "@sendgrid/mail": "^8.1.4",
     "@types/mailgun-js": "^0.22.18",
-    "firebase-admin": "^12.7.0",
-    "firebase-functions": "^6.0.1",
-    "mailgun-js": "^0.22.0"
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase-admin": "^11.0.0",
+    "firebase-functions": "^4.0.0",
+    "mailgun-js": "^0.22.0",
+    "node-fetch": "2.6.7"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.0",

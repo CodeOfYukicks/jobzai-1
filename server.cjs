@@ -17,7 +17,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Liste des domaines autorisés
 const allowedOrigins = isProduction 
   ? [process.env.PRODUCTION_DOMAIN, 'https://jobzai.com', 'https://www.jobzai.com'].filter(Boolean) // Domaines de production 
-  : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173', 'http://127.0.0.1:5174']; // Domaines de développement
+  : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:5174', 'http://localhost:5177', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173', 'http://127.0.0.1:5174']; // Domaines de développement
 
 console.log('CORS configuration:');
 console.log('- Environment:', isProduction ? 'Production' : 'Development');
@@ -53,6 +53,13 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// En production, servir les fichiers statiques du build Vite
+if (isProduction) {
+  console.log('Serving static files from dist directory');
+  // Servir les fichiers statiques du répertoire dist (créé par vite build)
+  app.use(express.static(path.join(__dirname, 'dist')));
+}
 
 // Simple test endpoint
 app.get('/api/test', (req, res) => {
@@ -245,10 +252,24 @@ app.post('/api/claude', async (req, res) => {
   }
 });
 
+// En production, pour toutes les autres routes, servir index.html
+// Cela permet à React Router de gérer les routes côté client
+if (isProduction) {
+  app.get('*', (req, res) => {
+    // Ne pas rediriger les routes API
+    if (!req.path.startsWith('/api/')) {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    }
+  });
+}
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
   console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
   console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
   console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
+  if (isProduction) {
+    console.log(`Application available at http://localhost:${PORT}`);
+  }
 }); 

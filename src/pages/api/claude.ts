@@ -2,9 +2,22 @@ import axios from 'axios';
 
 // Define the request and response types
 interface ClaudeRequest {
-  prompt: string;
-  type: string;
-  cvContent?: string | null;
+  model: string;
+  max_tokens: number;
+  temperature: number;
+  system: string;
+  messages: {
+    role: string;
+    content: Array<{
+      type: string;
+      text?: string;
+      source?: {
+        type: string;
+        media_type: string;
+        data: string;
+      }
+    }>
+  }[];
 }
 
 interface ClaudeResponse {
@@ -18,17 +31,11 @@ interface ClaudeResponse {
  * This should be deployed as a serverless function
  */
 export default async function handler(
-  req: { method: string; body: ClaudeRequest },
+  req: { method: string; body: any },
   res: { status: (code: number) => { json: (data: ClaudeResponse) => void } }
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ status: 'error', message: 'Method not allowed' });
-  }
-
-  const { prompt, type, cvContent } = req.body;
-
-  if (!prompt || !type) {
-    return res.status(400).json({ status: 'error', message: 'Prompt and type are required' });
   }
 
   try {
@@ -42,24 +49,11 @@ export default async function handler(
       });
     }
     
-    // Create message format for Claude API
-    const messages = [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: prompt }
-        ]
-      }
-    ];
+    // Forward the entire request body to Claude API
+    // The client now formats the request correctly
+    const claudeRequest = req.body;
     
-    // Create Claude API request
-    const claudeRequest = {
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 4000,
-      temperature: 0.2,
-      system: "You are an expert career coach helping job candidates prepare for interviews and job applications. Your responses should be practical, specific, and actionable.",
-      messages: messages
-    };
+    console.log('Sending request to Claude API...');
     
     // Send request to Claude API
     const claudeResponse = await axios.post("https://api.anthropic.com/v1/messages", claudeRequest, {
@@ -70,25 +64,10 @@ export default async function handler(
       }
     });
     
-    // Extract the response content
-    let content = claudeResponse.data.content[0].text;
+    console.log('Claude API response received');
     
-    // For interview-prep type, try to parse as JSON
-    if (type === 'interview-prep') {
-      try {
-        // Extract JSON from the response if it's wrapped in markdown code blocks
-        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-          content = JSON.parse(jsonMatch[1]);
-        } else {
-          // Try to parse directly
-          content = JSON.parse(content);
-        }
-      } catch (error) {
-        console.error('Error parsing interview prep response as JSON:', error);
-        // Fall back to text content
-      }
-    }
+    // Extract the response content
+    const content = claudeResponse.data;
     
     return res.status(200).json({
       status: 'success',
