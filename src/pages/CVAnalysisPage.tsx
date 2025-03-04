@@ -7,7 +7,8 @@ import {
   Flame as FireIcon, AlertTriangle, 
   Info as InformationCircleIcon, Code as CodeBracketIcon,
   BarChart as ChartBarIcon, Trash2, ChevronUp, ChevronDown, Calendar,
-  Building2, CalendarDays as CalendarIcon
+  Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
+  SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -30,7 +31,6 @@ import {
   MagnifyingGlassIcon,
   ChevronDownIcon,
   DocumentPlusIcon,
-  CheckIcon,
   PlusIcon,
   XMarkIcon as XIcon
 } from '@heroicons/react/24/outline';
@@ -72,6 +72,22 @@ interface ATSAnalysis {
     priority: 'high' | 'medium' | 'low';
     examples?: string;
   }[];
+  marketPositioning?: {
+    competitiveAdvantages: string[];
+    competitiveDisadvantages: string[];
+    industryTrends: string;
+  };
+  atsOptimization?: {
+    score: number;
+    formatting: string;
+    keywordOptimization: string;
+    improvements: string[];
+  };
+  applicationStrategy?: {
+    coverLetterFocus: string;
+    interviewPreparation: string;
+    portfolioSuggestions: string;
+  };
 }
 
 interface CVOption {
@@ -1281,69 +1297,101 @@ export default function CVAnalysisPage() {
     console.log('📡 Envoi direct à l\'API OpenAI en cours...');
     
     const prompt = `
-# Analyse ATS de CV
+# Enhanced ATS Resume Analysis Engine
 
-## Instructions
-Analysez le CV fourni par rapport à la description de poste ci-dessous.
-Fournissez une analyse détaillée, précise et véritablement utile de la correspondance entre le CV et les exigences du poste.
+## Core Instructions
+Perform a comprehensive, highly nuanced analysis of the provided resume against the job description below.
+Your goal is to deliver actionable, evidence-based insights that will genuinely help the candidate improve their application.
 
-## Détails du poste
-- Poste: ${jobDetails.jobTitle}
-- Entreprise: ${jobDetails.company}
-- Description du poste:
+## Job Position Details
+- Position: ${jobDetails.jobTitle}
+- Company: ${jobDetails.company}
+- Job Description:
 \`\`\`
 ${jobDetails.jobDescription}
 \`\`\`
 
-## Exigences d'analyse
-1. Examinez ATTENTIVEMENT à la fois le CV et la description du poste
-2. Fournissez une analyse de correspondance HONNÊTE et PRÉCISE sans gonflement artificiel des scores
-3. Variez vos scores de manière significative en fonction de la qualité réelle de la correspondance
-4. Identifiez les forces et lacunes SPÉCIFIQUES, pas des conseils génériques
+## Analysis Framework
+1. EXTRACT ALL RELEVANT INFORMATION from both the resume and job description
+2. COMPARE the resume against industry standards for ${jobDetails.jobTitle} positions
+3. EVALUATE the resume against ATS optimization best practices
+4. IDENTIFY specific strengths and weaknesses with examples from the resume
+5. PRIORITIZE recommendations based on potential impact on application success
 
-## Format de sortie
-Retournez UNIQUEMENT un objet JSON avec la structure suivante:
+## Depth Requirements
+- Provide PRECISE and SPECIFIC feedback rather than generic observations
+- Consider both EXPLICIT requirements and IMPLICIT expectations for the role
+- Analyze for KEYWORD optimization without suggesting keyword stuffing
+- Evaluate QUANTIFIABLE ACHIEVEMENTS and their relevance to the position
+- Assess FORMATTING, STRUCTURE, and CONTENT from an ATS perspective
+- Identify CAREER PROGRESSION patterns and their alignment with the role
+- Check for INDUSTRY-SPECIFIC conventions and best practices
+
+## Competitive Analysis Section
+- Compare candidate's profile against typical competitive candidates
+- Identify unique selling points and competitive disadvantages
+- Suggest positioning strategies to stand out from other applicants
+
+## Response Format
+Return ONLY a structured JSON object with the following schema:
 
 \`\`\`json
 {
-  "matchScore": <entier_entre_0_et_100>,
-  "keyFindings": [<tableau_de_5-7_constats_clés_spécifiques>],
+  "matchScore": <integer_0-100>,
+  "keyFindings": [<array_of_5-7_specific_key_findings>],
   "skillsMatch": {
-    "matching": [{"name": <nom_compétence>, "relevance": <entier_0-100>}, ...],
-    "missing": [{"name": <nom_compétence>, "relevance": <entier_0-100>}, ...],
-    "alternative": [{"name": <nom_compétence>, "alternativeTo": <compétence_requise>}, ...]
+    "matching": [{"name": <skill_name>, "relevance": <relevance_0-100>}, ...],
+    "missing": [{"name": <skill_name>, "relevance": <relevance_0-100>}, ...],
+    "alternative": [{"name": <alternative_skill>, "alternativeTo": <required_skill>}, ...]
   },
   "categoryScores": {
-    "skills": <entier_entre_0_et_100>,
-    "experience": <entier_entre_0_et_100>,
-    "education": <entier_entre_0_et_100>,
-    "industryFit": <entier_entre_0_et_100>
+    "skills": <score_0-100>,
+    "experience": <score_0-100>,
+    "education": <score_0-100>,
+    "industryFit": <score_0-100>
   },
-  "executiveSummary": <résumé_de_la_qualité_globale_de_correspondance>,
+  "executiveSummary": <concise_overall_assessment>,
   "experienceAnalysis": [
-    {"aspect": <nom_aspect>, "analysis": <analyse_détaillée>},
+    {"aspect": <experience_aspect>, "analysis": <detailed_analysis>},
     ...
   ],
+  "marketPositioning": {
+    "competitiveAdvantages": [<list_of_strengths_vs_typical_candidates>],
+    "competitiveDisadvantages": [<list_of_weaknesses_vs_typical_candidates>],
+    "industryTrends": <how_resume_aligns_with_current_industry_trends>
+  },
+  "atsOptimization": {
+    "score": <score_0-100>,
+    "formatting": <formatting_assessment>,
+    "keywordOptimization": <keyword_assessment>,
+    "improvements": [<specific_ats_improvement_points>]
+  },
   "recommendations": [
     {
-      "title": <titre_recommandation>,
-      "description": <recommandation_détaillée>,
+      "title": <recommendation_title>,
+      "description": <detailed_recommendation>,
       "priority": <"high"|"medium"|"low">,
-      "examples": <exemple_texte_ou_null>
+      "examples": <example_or_template_text>
     },
     ...
-  ]
+  ],
+  "applicationStrategy": {
+    "coverLetterFocus": <what_to_emphasize_in_cover_letter>,
+    "interviewPreparation": <key_points_to_prepare_for_interviews>,
+    "portfolioSuggestions": <portfolio_improvement_suggestions>
+  }
 }
 \`\`\`
 
-## Directives importantes
-- Assurez-vous que les scores soient SIGNIFICATIFS et DIFFÉRENCIÉS (pas regroupés dans la plage 70-80%)
-- Attribuez des scores plus bas (30-60%) pour les mauvaises correspondances
-- Attribuez des scores plus élevés (80-95%) uniquement pour les correspondances exceptionnellement fortes
-- N'INFLATIONNER JAMAIS automatiquement les scores - soyez honnête et précis
-- Incluez des MOTS-CLÉS pertinents pour le poste trouvés/manquants dans le CV
-- Fournissez des recommandations détaillées et exploitables, spécifiques à ce CV et à ce poste
-- Donnez des exemples réels et des solutions dans vos recommandations
+## Critical Guidelines
+- Ensure score differentiation: Use the FULL RANGE between 30-95% based on genuine fit
+- Low match (30-50%): For significant misalignment with core requirements
+- Medium match (51-75%): For meeting basic requirements with notable gaps
+- High match (76-95%): Only for exceptional alignment with most requirements
+- Never inflate scores artificially - honesty helps candidates improve
+- Provide SPECIFIC, ACTIONABLE recommendations tied to concrete resume elements
+- Focus on EVIDENCE-BASED analysis rather than assumptions
+- Include BEFORE/AFTER examples in recommendations when possible
 `;
 
     try {
@@ -1358,7 +1406,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           messages: [
             {
               role: "system",
-              content: "Vous êtes un analyste ATS expert et coach de carrière. Votre tâche est de fournir une analyse détaillée, précise et utile de la correspondance entre un CV et une description de poste spécifique."
+              content: "You are an elite ATS optimization expert, career coach, and industry analyst. Your analysis must be exceptionally detailed, honest, and actionable. Provide specific evidence from the resume for each point you make. Think step by step, and ensure all feedback is constructive and implementation-ready."
             },
             {
               role: "user",
@@ -1441,27 +1489,141 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
     ]
   };
 
-  // Ajouter un composant LoadingScreen minimal sans animation complexe
+  // LoadingScreen component with elegant UI and animations
   const LoadingScreen = () => {
+    const steps = [
+      { key: 'preparing', label: 'Preparing Analysis', icon: '🔍' },
+      { key: 'analyzing', label: 'Analyzing Resume', icon: '📄' },
+      { key: 'matching', label: 'Matching Skills', icon: '🎯' },
+      { key: 'finalizing', label: 'Finalizing Report', icon: '📊' }
+    ];
+
+    // Find current step index
+    const currentStepIndex = steps.findIndex(step => step.key === loadingStep);
+
     return (
-      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white dark:bg-gray-900 bg-opacity-90 dark:bg-opacity-90 backdrop-blur-sm">
-        <div className="w-20 h-20 rounded-full border-t-4 border-b-4 border-purple-600 dark:border-purple-400 animate-spin mb-5"></div>
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white dark:bg-gray-900 bg-opacity-95 dark:bg-opacity-95 backdrop-blur-sm transition-all duration-300">
+        <div className="w-full max-w-xl p-8 rounded-xl bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700">
+          {/* Logo + Title */}
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <div className="animate-pulse absolute -inset-4 rounded-full bg-gradient-to-r from-purple-600/20 to-indigo-600/20 blur-lg"></div>
+              <div className="w-24 h-24 relative flex items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg shadow-purple-500/20">
+                <div className="text-4xl">✨</div>
+              </div>
+            </div>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+              AI Resume Analysis
+            </span>
+          </h2>
+
+          {/* Message with typing animation */}
+          <div className="text-center mb-6 h-16">
+            <p className="text-lg text-gray-700 dark:text-gray-300 font-medium animate-fade-in">
+              {loadingMessage}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {loadingStep === 'analyzing' && 'This might take up to a minute...'}
+            </p>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full mb-6 overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
+              style={{ width: `${loadingProgress}%` }}
+            ></div>
+          </div>
+          
+          {/* Steps visualization */}
+          <div className="w-full flex justify-between mb-2 relative">
+            {/* Progress line */}
+            <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700 z-0"></div>
+            <div 
+              className="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 z-0 transition-all duration-700"
+              style={{ 
+                width: `${currentStepIndex >= 0 
+                  ? (currentStepIndex / (steps.length - 1)) * 100 
+                  : 0}%` 
+              }}
+            ></div>
+            
+            {/* Steps */}
+            {steps.map((step, index) => {
+              // Calculate step status
+              const isActive = loadingStep === step.key;
+              const isCompleted = steps.findIndex(s => s.key === loadingStep) > index;
+              
+              return (
+                <div 
+                  key={step.key} 
+                  className="flex flex-col items-center relative z-10"
+                >
+                  {/* Step circle */}
+                  <div 
+                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300 border-2 
+                    ${isActive 
+                      ? 'bg-gradient-to-br from-purple-500 to-indigo-600 border-purple-300 dark:border-purple-700 scale-110 shadow-lg shadow-purple-500/20' 
+                      : isCompleted 
+                        ? 'bg-gradient-to-br from-purple-500 to-indigo-600 border-transparent' 
+                        : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'}`}
+                  >
+                    {isCompleted ? (
+                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <span className={`text-xs font-medium ${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                        {step.icon}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Step label */}
+                  <span 
+                    className={`mt-2 text-xs font-medium transition-all duration-300
+                    ${isActive 
+                      ? 'text-purple-600 dark:text-purple-400' 
+                      : isCompleted 
+                        ? 'text-gray-700 dark:text-gray-300' 
+                        : 'text-gray-500 dark:text-gray-500'}`}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Percentage indicator */}
+          <div className="flex justify-center mt-4">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {Math.round(loadingProgress)}% complete
+            </span>
+          </div>
+        </div>
         
-        <div className="text-center mb-8">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{loadingMessage}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {loadingStep === 'analyzing' && 'This may take up to a minute...'}
+        {/* Processing hints */}
+        <div className="mt-6 max-w-md text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+            Our AI is carefully analyzing your resume against job requirements to provide the most accurate feedback.
           </p>
-        </div>
-        
-        <div className="w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 mb-2">
-          <div 
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 h-2.5 rounded-full transition-all duration-500 ease-out" 
-            style={{ width: `${loadingProgress}%` }}
-          ></div>
-        </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          {loadingProgress}%
+          
+          {/* ATS Tip */}
+          <div className="mt-4 flex items-center justify-center">
+            <div className="bg-purple-50 dark:bg-purple-900/20 px-4 py-2 rounded-lg inline-flex items-center max-w-sm text-sm">
+              <Lightbulb className="w-4 h-4 mr-2 text-purple-500 flex-shrink-0" />
+              <p className="text-purple-700 dark:text-purple-300 text-xs">
+                {loadingStep === 'preparing' && "75% of resumes are rejected by ATS before a human sees them. Our analysis helps beat these systems."}
+                {loadingStep === 'analyzing' && "Including relevant keywords from the job description can boost your ATS score significantly."}
+                {loadingStep === 'matching' && "Quantify your achievements with specific numbers and percentages to stand out from other applicants."}
+                {loadingStep === 'finalizing' && "Customizing your resume for each application improves interview chances by up to 70%!"}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1814,6 +1976,56 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
             transition={{ duration: 0.3 }}
             className="px-5 pb-5"
           >
+            {/* Score Explanation Card */}
+            <div className="mb-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-900 dark:text-white flex items-center">
+                    <Target className="w-5 h-5 mr-2 text-purple-500" />
+                    Match Score Explained
+                  </h3>
+                  <div className={`text-2xl font-bold ${getScoreColorClass(analysis.matchScore)}`}>
+                    {analysis.matchScore}%
+                  </div>
+                </div>
+                
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  {analysis.matchScore >= 80 ? 
+                    "Your resume is very well aligned with this position! You appear to be a strong candidate based on the requirements." :
+                    analysis.matchScore >= 65 ?
+                    "Your resume meets many of the key requirements, but there are some areas that could be improved." :
+                    "Your resume needs significant adjustments to better align with this position's requirements."
+                  }
+                </p>
+                
+                <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full mb-3 overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full ${
+                      analysis.matchScore >= 80 ? 'bg-green-500' : 
+                      analysis.matchScore >= 65 ? 'bg-yellow-500' : 
+                      'bg-red-500'
+                    }`}
+                    style={{ width: `${analysis.matchScore}%` }}
+                  ></div>
+                </div>
+                
+                <div className="grid grid-cols-3 text-xs text-center">
+                  <div className="text-red-500">
+                    <div className="font-medium">Low Match</div>
+                    <div>30-65%</div>
+                  </div>
+                  <div className="text-yellow-500">
+                    <div className="font-medium">Medium Match</div>
+                    <div>66-79%</div>
+                  </div>
+                  <div className="text-green-500">
+                    <div className="font-medium">Strong Match</div>
+                    <div>80-95%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Category Scores */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 mb-5">
               {Object.entries(analysis.categoryScores).map(([category, score], idx) => (
@@ -1950,7 +2162,7 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                           <p className="text-sm text-gray-600 dark:text-gray-400">{rec.description}</p>
                           {rec.examples && (
                             <div className="mt-2 text-sm bg-gray-50 dark:bg-gray-700/30 p-2 rounded-md text-gray-700 dark:text-gray-300">
-                              <span className="font-medium text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Exemple</span>
+                              <span className="font-medium text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Example</span>
                               {rec.examples}
                             </div>
                           )}
@@ -1960,6 +2172,153 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                   </div>
                 )}
               </div>
+              
+              {/* ATS Optimization Section */}
+              {analysis.atsOptimization && (
+                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('atsOptimization')}
+                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <SearchCheck className="w-5 h-5 mr-2 text-purple-500" />
+                      <span className="font-medium">ATS Optimization</span>
+                      {analysis.atsOptimization.score && (
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${getScoreColorClass(analysis.atsOptimization.score)}`}>
+                          {analysis.atsOptimization.score}%
+                        </span>
+                      )}
+                    </div>
+                    {expandedSection === 'atsOptimization' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {expandedSection === 'atsOptimization' && (
+                    <div className="p-4 bg-white dark:bg-gray-800">
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">Formatting</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{analysis.atsOptimization.formatting}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">Keyword Optimization</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{analysis.atsOptimization.keywordOptimization}</p>
+                        </div>
+                        {analysis.atsOptimization.improvements.length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white mb-1">Recommended Improvements</h4>
+                            <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                              {analysis.atsOptimization.improvements.map((improvement, idx) => (
+                                <li key={idx}>{improvement}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Market Positioning Section */}
+              {analysis.marketPositioning && (
+                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('marketPositioning')}
+                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <LineChart className="w-5 h-5 mr-2 text-indigo-500" />
+                      <span className="font-medium">Competitive Analysis</span>
+                    </div>
+                    {expandedSection === 'marketPositioning' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {expandedSection === 'marketPositioning' && (
+                    <div className="p-4 bg-white dark:bg-gray-800">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-green-50 dark:bg-green-900/10 rounded-lg p-3">
+                          <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
+                            <TrendingUp className="w-4 h-4 mr-1.5 text-green-500" /> 
+                            Your Competitive Advantages
+                          </h4>
+                          <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                            {analysis.marketPositioning.competitiveAdvantages.map((advantage, idx) => (
+                              <li key={idx} className="text-sm">{advantage}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-3">
+                          <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
+                            <TrendingDown className="w-4 h-4 mr-1.5 text-orange-500" />
+                            Areas for Improvement
+                          </h4>
+                          <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                            {analysis.marketPositioning.competitiveDisadvantages.map((disadvantage, idx) => (
+                              <li key={idx} className="text-sm">{disadvantage}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="mt-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg p-3">
+                        <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
+                          <Activity className="w-4 h-4 mr-1.5 text-blue-500" />
+                          Industry Trends Alignment
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {analysis.marketPositioning.industryTrends}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Application Strategy Section */}
+              {analysis.applicationStrategy && (
+                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('applicationStrategy')}
+                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <Target className="w-5 h-5 mr-2 text-teal-500" />
+                      <span className="font-medium">Application Strategy</span>
+                    </div>
+                    {expandedSection === 'applicationStrategy' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {expandedSection === 'applicationStrategy' && (
+                    <div className="p-4 bg-white dark:bg-gray-800">
+                      <div className="space-y-4">
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                          <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
+                            <FileText className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
+                            Cover Letter Focus
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {analysis.applicationStrategy.coverLetterFocus}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                          <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
+                            <UserRound className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
+                            Interview Preparation
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {analysis.applicationStrategy.interviewPreparation}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                          <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
+                            <Palette className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
+                            Portfolio Suggestions
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {analysis.applicationStrategy.portfolioSuggestions}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -2016,6 +2375,63 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
             </Dialog>
           )}
         </AnimatePresence>
+
+        {/* User Guidance Section - shows when analysis is expanded */}
+        {isExpanded && (
+          <div className="px-5 pt-1 pb-5">
+            <details className="bg-purple-50 dark:bg-purple-900/10 rounded-xl overflow-hidden text-sm border border-purple-100 dark:border-purple-800/20">
+              <summary className="cursor-pointer p-3 font-medium text-purple-700 dark:text-purple-300 flex items-center">
+                <InformationCircleIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>How to use this analysis</span>
+              </summary>
+              <div className="p-3 pt-0 text-gray-600 dark:text-gray-400 space-y-3 text-sm">
+                <div className="border-t border-purple-100 dark:border-purple-800/20 pt-3">
+                  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1">Understanding Your Results</h4>
+                  <p>
+                    This AI-powered analysis compares your resume to the job description and industry standards, providing scores and recommendations to improve your application.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                    <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Match Score</h5>
+                    <p className="text-xs">Indicates your overall alignment with the job requirements. A score above 75% is considered strong.</p>
+                  </div>
+                  
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                    <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Skills Match</h5>
+                    <p className="text-xs">Shows which skills from the job you have and which are missing. Focus on adding missing high-relevance skills.</p>
+                  </div>
+                  
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                    <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">ATS Optimization</h5>
+                    <p className="text-xs">Evaluates how well your resume will perform in Applicant Tracking Systems. Implement formatting suggestions for better results.</p>
+                  </div>
+                  
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                    <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Competitive Analysis</h5>
+                    <p className="text-xs">Shows how you compare to typical candidates for this role. Highlight your advantages in your application.</p>
+                  </div>
+                </div>
+                
+                <div className="border-t border-purple-100 dark:border-purple-800/20 pt-3">
+                  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1">Action Steps</h4>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Review high-priority recommendations first</li>
+                    <li>Update your resume with missing skills you actually possess</li>
+                    <li>Implement formatting improvements for better ATS compatibility</li>
+                    <li>Use the Application Strategy section to prepare your complete application package</li>
+                    <li>After making changes, run a new analysis to see your improved score</li>
+                  </ol>
+                </div>
+
+                <div className="bg-indigo-50 dark:bg-indigo-900/10 p-2 rounded-lg text-xs italic">
+                  Note: This analysis is powered by AI and should be used as a helpful guide, not as a definitive assessment of your qualifications.
+                </div>
+              </div>
+            </details>
+          </div>
+        )}
       </div>
     );
   };
@@ -2063,7 +2479,13 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
       
       <div 
         className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        onClick={() => fileInputRef.current?.click()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Utiliser l'input file global
+          const input = document.getElementById("global-file-input") as HTMLInputElement;
+          if (input) input.click();
+        }}
       >
         {cvFile ? (
           <div className="flex flex-col items-center">
@@ -2098,11 +2520,10 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
           onChange={(e) => {
             if (e.target.files && e.target.files[0]) {
               setCvFile(e.target.files[0]);
-              toast.success('Resume selected successfully');
             }
           }}
-          accept=".pdf"
           className="hidden"
+          accept=".pdf"
         />
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
@@ -2383,103 +2804,90 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
 
   const steps = [
     {
-      title: "Select CV",
-      description: "Choose which CV you want to analyze",
+      title: "Upload Resume",
+      description: "Select or upload your resume for analysis",
+      icon: <FileText className="w-5 h-5" />,
       content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4">
-            {userCV && (
-              <button
-                onClick={() => {
-                  setSelectedCV(userCV.url);
-                  setCvFile(null);
-                }}
-                className={`flex items-center p-4 border-2 rounded-xl transition-all ${
-                  selectedCV === userCV.url
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-purple-300'
-                }`}
-              >
-                <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
-                  <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-medium text-gray-900 dark:text-white">
-                    Use Profile CV
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {userCV.name}
-                  </p>
-                </div>
-                {selectedCV === userCV.url && (
-                  <Check className="w-5 h-5 text-purple-600" />
-                )}
-              </button>
-            )}
-            
+        <div>
+          <div className="mb-4">
             <button
-              onClick={() => setCvModalOpen(true)}
-              className="flex items-center p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 transition-all"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="w-full flex items-center p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 transition-all bg-white dark:bg-gray-800"
             >
-              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center mr-4">
-                <Upload className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-5">
+                {cvFile ? 
+                  <Check className="w-7 h-7 text-green-600 dark:text-green-400" /> : 
+                  <Upload className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                }
               </div>
               <div className="flex-1 text-left">
-                <h3 className="font-medium text-gray-900 dark:text-white">
-                  {cvFile ? "Change Resume" : "Upload Resume"}
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
+                  {cvFile ? "Resume Selected" : "Upload Resume"}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {cvFile ? cvFile.name : "Select a PDF file"}
-                </p>
+                {cvFile ? (
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                      {cvFile.name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {(cvFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Select a PDF file for ATS analysis
+                  </p>
+                )}
               </div>
               {cvFile && (
-                <Check className="w-5 h-5 text-purple-600" />
+                <span className="ml-4 flex-shrink-0 rounded-full bg-green-100 dark:bg-green-900/30 p-2">
+                  <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </span>
               )}
             </button>
           </div>
-          
-          {(selectedCV || cvFile) && (
-            <div className="flex justify-end">
-              <button
-                onClick={handleNextStep}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-3">
+            <Info className="w-4 h-4 mr-1.5 inline" />
+            Your resume will be analyzed to determine its match with the job description
+          </div>
         </div>
       ),
     },
     {
       title: "Job Details",
       description: "Enter the position details you're applying for",
+      icon: <Briefcase className="w-5 h-5" />,
       content: (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Job Title
             </label>
             <input
               type="text"
               value={formData.jobTitle}
               onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-base"
               placeholder="e.g., Full Stack Developer"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 mt-1.5 flex items-center">
+              <Info className="w-3.5 h-3.5 mr-1 inline" />
               Enter the exact job title for better analysis
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Company
             </label>
             <input
               type="text"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-base"
               placeholder="e.g., Google"
             />
           </div>
@@ -2488,25 +2896,70 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
     },
     {
       title: "Job Description",
-      description: "Paste the job description for analysis",
+      description: "Enter the job description for accurate matching",
+      icon: <AlignLeft className="w-5 h-5" />,
       content: (
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Job Description
           </label>
           <textarea
             value={formData.jobDescription}
-            onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-            className="w-full h-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white h-64"
+            onChange={(e) => setFormData({...formData, jobDescription: e.target.value})}
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white h-60 text-base"
             placeholder="Paste the job description here..."
           />
-          <p className="text-xs text-gray-500 mt-2">
-            The more detailed the description, the more accurate the analysis. Include required skills, responsibilities, and qualifications.
+          <p className="text-xs text-gray-500 mt-1.5 flex items-center">
+            <Info className="w-3.5 h-3.5 mr-1 inline" />
+            Include the full job description for the most accurate results
           </p>
         </div>
       )
     }
   ];
+
+  useEffect(() => {
+    // Créer un input file global pour l'upload
+    const createGlobalFileInput = () => {
+      // Supprimer l'ancien input s'il existe
+      const oldInput = document.getElementById("global-file-input");
+      if (oldInput) {
+        document.body.removeChild(oldInput);
+      }
+      
+      // Créer un nouvel input file
+      const input = document.createElement("input");
+      input.type = "file";
+      input.id = "global-file-input";
+      input.accept = ".pdf";
+      input.style.display = "none";
+      
+      // Ajouter un gestionnaire d'événement pour l'upload
+      input.addEventListener("change", (e) => {
+        const target = e.target as HTMLInputElement;
+        if (target.files && target.files[0]) {
+          setCvFile(target.files[0]);
+        }
+      });
+      
+      // Ajouter l'input au body
+      document.body.appendChild(input);
+      
+      // Nous n'assignons pas directement à fileInputRef.current
+      // car c'est une propriété en lecture seule
+      // À la place, nous utiliserons l'id pour retrouver l'élément
+    };
+    
+    createGlobalFileInput();
+    
+    // Nettoyer lors du démontage
+    return () => {
+      const input = document.getElementById("global-file-input");
+      if (input) {
+        document.body.removeChild(input);
+      }
+    };
+  }, []);
 
   return (
     <AuthLayout>
@@ -2586,10 +3039,71 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                   transition={{ duration: 0.25 }}
                   className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full mx-auto p-6 md:p-8 overflow-hidden"
                 >
+                  {/* Step Progress Indicator */}
+                  <div className="mb-8">
+                    <div className="flex justify-between items-center w-full relative">
+                      {/* Progress Bar */}
+                      <div className="absolute h-1 bg-gray-200 dark:bg-gray-700 left-0 right-0 top-1/2 -translate-y-1/2 z-0"></div>
+                      <div 
+                        className="absolute h-1 bg-gradient-to-r from-purple-500 to-indigo-600 left-0 top-1/2 -translate-y-1/2 z-10 transition-all duration-300"
+                        style={{ width: `${(currentStep / steps.length) * 100 - (100 / steps.length / 2)}%` }}
+                      ></div>
+                      
+                      {/* Step Circles */}
+                      {steps.map((step, index) => {
+                        const stepNumber = index + 1;
+                        const isActive = currentStep === stepNumber;
+                        const isCompleted = currentStep > stepNumber;
+                        
+                        return (
+                          <div 
+                            key={step.title} 
+                            className="z-20 flex flex-col items-center"
+                          >
+                            <div 
+                              className={`
+                                w-10 h-10 rounded-full flex items-center justify-center mb-2
+                                transition-all duration-300 transform
+                                ${isActive 
+                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-4 ring-purple-100 dark:ring-purple-900/30 scale-110' 
+                                  : isCompleted 
+                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
+                                    : 'bg-white dark:bg-gray-700 text-gray-400 border-2 border-gray-200 dark:border-gray-600'
+                                }
+                              `}
+                            >
+                              {isCompleted ? (
+                                <Check className="w-5 h-5" />
+                              ) : (
+                                <span className="text-sm font-medium">
+                                  {stepNumber}
+                                </span>
+                              )}
+                            </div>
+                            <span className={`
+                              text-xs font-medium hidden md:block transition-colors duration-300
+                              ${isActive 
+                                ? 'text-purple-600 dark:text-purple-400'
+                                : isCompleted
+                                  ? 'text-gray-700 dark:text-gray-300'
+                                  : 'text-gray-400 dark:text-gray-500'
+                              }
+                            `}>
+                              {step.title}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
                   {/* Modal Header */}
                   <div className="flex justify-between items-center mb-6">
                     <div>
-                      <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white">
+                      <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                        <span className="mr-3 inline-flex p-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                          {steps[currentStep - 1].icon}
+                        </span>
                         {steps[currentStep - 1].title}
                       </Dialog.Title>
                       <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -2605,68 +3119,29 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                   </div>
 
                   {/* Modal Content */}
-                  <div className="max-h-[70vh] overflow-y-auto pr-1 -mr-1 mb-6">
-                    {currentStep === 1 && renderFileUpload()}
-                    {currentStep === 2 && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Job Title
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.jobTitle}
-                            onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                            placeholder="e.g. Frontend Developer"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Company
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.company}
-                            onChange={(e) => setFormData({...formData, company: e.target.value})}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                            placeholder="e.g. Acme Corp"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Job Description
-                          </label>
-                          
-                          {/* Ajout du contrôle de validation */}
-                          <ValidationToggle />
-                          
-                          <textarea
-                            value={formData.jobDescription}
-                            onChange={(e) => setFormData({...formData, jobDescription: e.target.value})}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent dark:bg-gray-700 dark:text-white h-64"
-                            placeholder="Paste the job description here..."
-                          />
-                        </div>
-                      </div>
-                    )}
+                  <div className="max-h-[60vh] overflow-y-auto pr-1 -mr-1 mb-6">
+                    {steps[currentStep - 1].content}
                   </div>
                   
                   {/* Modal Footer */}
                   <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                    {currentStep > 1 && (
-                      <button
-                        onClick={() => setCurrentStep(currentStep - 1)}
-                        className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Back
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        if (currentStep > 1) {
+                          setCurrentStep(currentStep - 1);
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ${
+                        currentStep === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700' 
+                      }`}
+                      disabled={currentStep === 1}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Back
+                    </button>
+                    
                     <button
                       onClick={() => {
                         if (currentStep < steps.length) {
@@ -2676,8 +3151,8 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                           handleAnalysis();
                         }
                       }}
-                      className={`px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium flex items-center ${
-                        (currentStep === 1 && !cvFile) || isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      className={`px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium flex items-center shadow hover:shadow-md transition-all ${
+                        (currentStep === 1 && !cvFile) || isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:from-purple-700 hover:to-indigo-700'
                       }`}
                       disabled={(currentStep === 1 && !cvFile) || isLoading}
                     >
@@ -2689,16 +3164,16 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
                           </svg>
                           Analysis in progress...
                         </>
-                      ) : (
+                      ) :
                         <>
-                          {currentStep === steps.length ? 'Analyze' : 'Next'}
+                          {currentStep === steps.length ? 'Analyze Resume' : 'Continue'}
                           {currentStep < steps.length && (
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                           )}
                         </>
-                      )}
+                      }
                     </button>
                   </div>
                 </motion.div>
@@ -2714,21 +3189,36 @@ Retournez UNIQUEMENT un objet JSON avec la structure suivante:
       </div>
       
       {/* CV Selection Modal */}
-      <CVSelectionModal
-        isOpen={cvModalOpen}
-        onClose={() => setCvModalOpen(false)}
-        onCVSelected={(file) => {
-          if (file instanceof File) {
-            setCvFile(file);
-            setSelectedCV(null);
-          } else {
-            setSelectedCV(file);
-            setCvFile(null);
+      {cvModalOpen && false && (
+        <CVSelectionModal
+          isOpen={cvModalOpen}
+          onClose={() => setCvModalOpen(false)}
+          onCVSelected={(file) => {
+            if (file instanceof File) {
+              setCvFile(file);
+              setSelectedCV(null);
+            } else {
+              setSelectedCV(file);
+              setCvFile(null);
+            }
+            setCvModalOpen(false);
+          }}
+          enableContentValidation={enableContentValidation}
+          setEnableContentValidation={setEnableContentValidation}
+        />
+      )}
+      
+      {/* Input file global pour s'assurer qu'il est toujours accessible */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            setCvFile(e.target.files[0]);
           }
-          setCvModalOpen(false);
         }}
-        enableContentValidation={enableContentValidation}
-        setEnableContentValidation={setEnableContentValidation}
+        className="hidden"
+        accept=".pdf"
       />
     </AuthLayout>
   );
