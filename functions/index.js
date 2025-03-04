@@ -42,21 +42,13 @@ app.post('/api/claude', async (req, res) => {
     
     console.log("Firebase Config:", JSON.stringify(functions.config()));
     
-<<<<<<< HEAD
-    // IMPORTANT: Solution temporaire - Clé API hardcodée
-    const hardcodedApiKey = "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";
+    // IMPORTANT: Ne plus utiliser de clé API hardcodée - Utiliser les variables d'environnement
+    const hardcodedApiKey = "REMOVED_API_KEY"; // La clé a été supprimée pour des raisons de sécurité
     
-    // Priorité: 1) Variable d'environnement Firebase 2) Variable .env 3) Clé hardcodée
+    // Priorité: 1) Variable d'environnement Firebase 2) Variable .env
     const apiKey = process.env.ANTHROPIC_API_KEY || 
-                   process.env.VITE_ANTHROPIC_API_KEY || 
-                   hardcodedApiKey; // TEMPORAIRE: à supprimer après le test
-=======
-    // Obtenir la clé API et valider - s'assurer que nous vérifions toutes les possibilités
-    const apiKey = process.env.ANTHROPIC_API_KEY || 
-                   process.env.VITE_ANTHROPIC_API_KEY || 
-                   functions.config().anthropic?.apiKey ||
-                   functions.config().anthropic?.apikey;
->>>>>>> bc4da219af5b7ef137a3c0c0e2f41b4d565f7992
+                   process.env.VITE_ANTHROPIC_API_KEY;
+                   // Ne pas utiliser de clé API hardcodée
     
     console.log("API Key found:", apiKey ? "YES" : "NO");
     

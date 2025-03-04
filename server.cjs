@@ -76,13 +76,13 @@ app.get('/api/claude/test', (req, res) => {
   console.log('- ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? 'définie' : 'non définie');
   console.log('- VITE_ANTHROPIC_API_KEY:', process.env.VITE_ANTHROPIC_API_KEY ? 'définie' : 'non définie');
   
-  // IMPORTANT: Solution temporaire - Clé API hardcodée
-  const hardcodedApiKey = "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";
+  // IMPORTANT: Ne plus utiliser de clé API hardcodée - Utiliser les variables d'environnement
+  const hardcodedApiKey = "REMOVED_API_KEY"; // La clé a été supprimée pour des raisons de sécurité
   
   // Check for API key
   const apiKey = process.env.ANTHROPIC_API_KEY || 
-                process.env.VITE_ANTHROPIC_API_KEY || 
-                hardcodedApiKey; // Utiliser la clé hardcodée en dernier recours
+                process.env.VITE_ANTHROPIC_API_KEY;
+                // Ne pas utiliser de clé API hardcodée
   
   console.log("API Key being used (first 10 chars):", apiKey ? apiKey.substring(0, 10) + "..." : "No key found");
   
@@ -156,13 +156,13 @@ app.post('/api/claude', async (req, res) => {
     console.log('- ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? 'définie' : 'non définie');
     console.log('- VITE_ANTHROPIC_API_KEY:', process.env.VITE_ANTHROPIC_API_KEY ? 'définie' : 'non définie');
     
-    // IMPORTANT: Solution temporaire - Clé API hardcodée
-    const hardcodedApiKey = "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";
+    // IMPORTANT: Ne plus utiliser de clé API hardcodée - Utiliser les variables d'environnement
+    const hardcodedApiKey = "REMOVED_API_KEY"; // La clé a été supprimée pour des raisons de sécurité
     
     // Check for API key
     const apiKey = process.env.ANTHROPIC_API_KEY || 
-                  process.env.VITE_ANTHROPIC_API_KEY || 
-                  hardcodedApiKey; // Utiliser la clé hardcodée en dernier recours
+                  process.env.VITE_ANTHROPIC_API_KEY;
+                  // Ne pas utiliser de clé API hardcodée
     
     console.log("API Key being used (first 10 chars):", apiKey ? apiKey.substring(0, 10) + "..." : "No key found");
     console.log("API Key length:", apiKey ? apiKey.length : 0);
@@ -261,13 +261,12 @@ app.get('/api/claude/auth-test', async (req, res) => {
   try {
     console.log("Claude API auth test endpoint called");
     
-    // IMPORTANT: Solution temporaire - Clé API hardcodée
-    const hardcodedApiKey = "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";
+    // IMPORTANT: Ne plus utiliser de clé API hardcodée - Utiliser les variables d'environnement
+    const hardcodedApiKey = "REMOVED_API_KEY"; // La clé a été supprimée pour des raisons de sécurité
     
     // Check for API key
     const apiKey = process.env.ANTHROPIC_API_KEY || 
-                  process.env.VITE_ANTHROPIC_API_KEY || 
-                  hardcodedApiKey;
+                  process.env.VITE_ANTHROPIC_API_KEY;
     
     console.log("Testing API Key (first 10 chars):", apiKey ? apiKey.substring(0, 10) + "..." : "No key found");
     

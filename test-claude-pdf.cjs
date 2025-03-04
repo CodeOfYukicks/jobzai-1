@@ -4,8 +4,13 @@ const path = require('path');
 
 async function testClaudePDFAnalysis() {
   try {
-    // Clé API à tester
-    const apiKey = "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";
+    // Obtenir la clé API depuis les variables d'environnement
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
+    
+    if (!apiKey) {
+      console.error("No API key found in environment variables. Please set ANTHROPIC_API_KEY or VITE_ANTHROPIC_API_KEY.");
+      return;
+    }
     
     console.log("Testing Claude API with key starting with:", apiKey.substring(0, 15) + "...");
     
