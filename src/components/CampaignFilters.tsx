@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Filter, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -19,7 +19,8 @@ export function CampaignFilters({ filters, onFilterChange }: CampaignFiltersProp
   const [isOpen, setIsOpen] = useState(false);
 
   const handleStatusChange = (status: string) => {
-    onFilterChange({ ...filters, status });
+    onFilterChange({ ...filters, status: status ? status.toLowerCase() : undefined });
+    setIsOpen(false);
   };
 
   const handleDateChange = (key: 'start' | 'end', value: string) => {
@@ -30,6 +31,7 @@ export function CampaignFilters({ filters, onFilterChange }: CampaignFiltersProp
         [key]: value ? new Date(value) : null
       }
     });
+    setIsOpen(false);
   };
 
   const clearFilters = () => {
@@ -47,11 +49,6 @@ export function CampaignFilters({ filters, onFilterChange }: CampaignFiltersProp
       >
         <Filter className="h-5 w-5 text-gray-500" />
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters</span>
-        {hasActiveFilters && (
-          <span className="ml-1 bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 text-xs font-medium px-2 py-0.5 rounded-full">
-            Active
-          </span>
-        )}
       </button>
 
       <AnimatePresence>
@@ -80,6 +77,7 @@ export function CampaignFilters({ filters, onFilterChange }: CampaignFiltersProp
                 </label>
                 <div className="relative">
                   <select
+                    key={filters.status || 'all'}
                     value={filters.status || ''}
                     onChange={(e) => handleStatusChange(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-700 dark:text-gray-300 appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"

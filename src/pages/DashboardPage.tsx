@@ -913,37 +913,45 @@ export default function DashboardPage() {
                         </div>
                         
                         {/* Application Pie Chart */}
-                        <div className="flex items-center justify-center">
-                          <div className="h-[180px] w-[180px]">
+                        <div className="flex flex-col items-center justify-center w-full">
+                          <div className="h-[260px] w-[260px]">
                             <ResponsiveContainer width="100%" height="100%">
                               <RechartsPieChart>
                                 <Pie
                                   data={applicationStatusData}
                                   cx="50%"
                                   cy="50%"
-                                  innerRadius={60}
-                                  outerRadius={80}
+                                  innerRadius={80}
+                                  outerRadius={120}
                                   paddingAngle={5}
                                   dataKey="value"
-                                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                  labelLine={false}
+                                  label={false}
                                 >
                                   {applicationStatusData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                   ))}
                                 </Pie>
                                 <Tooltip />
-                                <Legend 
-                                  layout="horizontal" 
-                                  verticalAlign="bottom" 
-                                  align="center"
-                                  wrapperStyle={{
-                                    paddingTop: "10px"
-                                  }}
-                                  formatter={(value: string) => <span className="text-xs font-medium">{value}</span>}
-                                />
                               </RechartsPieChart>
                             </ResponsiveContainer>
+                          </div>
+                          {/* Légende centrée sous le graphique */}
+                          <div className="flex justify-center gap-6 mt-4">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[0] }}></span>
+                              <span className="text-xs font-medium">Pending</span>
+                              <span className="text-xs text-gray-500 ml-1">({stats.pendingApplications})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[1] }}></span>
+                              <span className="text-xs font-medium">Successful</span>
+                              <span className="text-xs text-gray-500 ml-1">({stats.successfulApplications})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[2] }}></span>
+                              <span className="text-xs font-medium">Rejected</span>
+                              <span className="text-xs text-gray-500 ml-1">({stats.rejectedApplications})</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1596,58 +1604,47 @@ export default function DashboardPage() {
                 {/* Application Analytics */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                   {/* Application Status Distribution */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Application Status</h3>
-                    </div>
-                    
-                    <div className="h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPieChart>
-                          <Pie
-                            data={applicationStatusData}
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={100}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {applicationStatusData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                          <Legend 
-                            layout="horizontal" 
-                            verticalAlign="bottom" 
-                            align="center"
-                            wrapperStyle={{
-                              paddingTop: "10px",
-                              fontSize: "14px",
-                              fontWeight: 500
-                            }}
-                            content={(props) => {
-                              const { payload } = props;
-                              return (
-                                <div className="flex justify-center items-center gap-4 mt-2">
-                                  {payload?.map((entry, index) => (
-                                    <span key={`legend-item-${index}`} className="flex items-center gap-2">
-                                      <span 
-                                        className="inline-block w-3 h-3 rounded-full" 
-                                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                                      />
-                                      <span className="text-xs font-medium">{entry.value}</span>
-                                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        ({applicationStatusData[index].value})
-                                      </span>
-                                    </span>
-                                  ))}
-                                </div>
-                              );
-                            }}
-                          />
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center justify-center w-full">
+                      <div className="h-[260px] w-[260px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsPieChart>
+                            <Pie
+                              data={applicationStatusData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={80}
+                              outerRadius={120}
+                              paddingAngle={5}
+                              dataKey="value"
+                              label={false}
+                            >
+                              {applicationStatusData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </RechartsPieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      {/* Légende centrée sous le graphique */}
+                      <div className="flex justify-center gap-6 mt-4">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[0] }}></span>
+                          <span className="text-xs font-medium">Pending</span>
+                          <span className="text-xs text-gray-500 ml-1">({stats.pendingApplications})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[1] }}></span>
+                          <span className="text-xs font-medium">Successful</span>
+                          <span className="text-xs text-gray-500 ml-1">({stats.successfulApplications})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[2] }}></span>
+                          <span className="text-xs font-medium">Rejected</span>
+                          <span className="text-xs text-gray-500 ml-1">({stats.rejectedApplications})</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   

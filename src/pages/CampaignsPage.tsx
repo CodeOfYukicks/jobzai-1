@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Trash2, Filter, Mail, MessageSquare, Target, Calendar, Inbox, PlayCircle, LayoutGrid, List, ChevronRight } from 'lucide-react';
-import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy, updateDoc, serverTimestamp, getDoc, Timestamp } from 'firebase/firestore';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
@@ -26,7 +26,7 @@ interface Campaign {
   status: string;
   emailsSent: number;
   responses: number;
-  createdAt: string;
+  createdAt: string | Date | import('firebase/firestore').Timestamp;
   blacklistedCompanies: { id: string; name: string; }[];
   credits: number;
   cv: string;
@@ -54,9 +54,12 @@ export default function CampaignsPage() {
   const [userCredits, setUserCredits] = useState<number>(0);
   const [startModal, setStartModal] = useState<StartModalType>({ show: false });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
+    setIsLoading(true);
+    console.log('Filtres appliqués:', filters); // DEBUG
 
     const campaignsRef = collection(db, 'users', currentUser.uid, 'campaigns');
     let q = query(campaignsRef);
@@ -68,17 +71,17 @@ export default function CampaignsPage() {
 
     // Apply date range filters
     if (filters.dateRange?.start) {
-      // Convert Date to Firestore Timestamp or ISO string format depending on your data model
-      const startDate = filters.dateRange.start;
+      const startDate = filters.dateRange.start instanceof Date
+        ? Timestamp.fromDate(filters.dateRange.start)
+        : filters.dateRange.start;
       q = query(q, where('createdAt', '>=', startDate));
     }
     
     if (filters.dateRange?.end) {
-      // Convert Date to Firestore Timestamp or ISO string format depending on your data model
-      const endDate = filters.dateRange.end;
-      // Set time to end of day for the end date
+      let endDate = filters.dateRange.end;
       if (endDate instanceof Date) {
         endDate.setHours(23, 59, 59, 999);
+        endDate = Timestamp.fromDate(endDate);
       }
       q = query(q, where('createdAt', '<=', endDate));
     }
@@ -93,11 +96,14 @@ export default function CampaignsPage() {
           id: doc.id,
           ...doc.data()
         })) as Campaign[];
+        console.log('Campagnes récupérées:', campaignsList); // DEBUG
         setCampaigns(campaignsList);
+        setIsLoading(false);
       },
       (error) => {
-        console.error('Error fetching campaigns:', error);
+        console.error('Erreur Firestore lors du fetch des campagnes:', error); // DEBUG
         setError('Failed to load campaigns');
+        setIsLoading(false);
       }
     );
 
@@ -137,28 +143,36 @@ export default function CampaignsPage() {
     }
   };
 
-  const formatDate = (date: string | Date | any): string => {
+  const formatDate = (date: string | Date | import('firebase/firestore').Timestamp | any): string => {
     try {
       if (!date) return "N/A";
-      
       // Si c'est un timestamp Firestore
-      if (date?.toDate) {
+      if (date instanceof Object && typeof date.toDate === 'function') {
         return new Intl.DateTimeFormat("fr-FR", {
           year: "numeric",
           month: "short",
           day: "numeric",
         }).format(date.toDate());
       }
-      
       // Si c'est une date standard
+      if (date instanceof Date) {
+        if (isNaN(date.getTime())) return "N/A";
+        return new Intl.DateTimeFormat("fr-FR", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }).format(date);
+      }
+      // Si c'est une string parsable
       const d = new Date(date);
-      if (isNaN(d.getTime())) return "N/A";
-      
-      return new Intl.DateTimeFormat("fr-FR", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }).format(d);
+      if (!isNaN(d.getTime())) {
+        return new Intl.DateTimeFormat("fr-FR", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }).format(d);
+      }
+      return "N/A";
     } catch (error) {
       console.error("Error formatting date:", error);
       return "N/A";
@@ -651,21 +665,26 @@ export default function CampaignsPage() {
         </div>
 
         {/* Campaigns View (Grid or List) */}
-        {viewMode === 'grid' ? renderGridView() : renderListView()}
+        {isLoading && (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+          </div>
+        )}
+        {!isLoading && viewMode === 'grid' ? renderGridView() : renderListView()}
 
         {/* Empty State */}
-        {filteredCampaigns.length === 0 && (
+        {!isLoading && filteredCampaigns.length === 0 && (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
               <Inbox className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No campaigns found
+              Aucun résultat trouvé
             </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
-              {searchQuery 
-                ? "No campaigns match your search criteria" 
-                : "Get started by creating your first campaign"}
+              {Object.keys(filters).length > 0 || searchQuery ?
+                "Aucune campagne ne correspond à vos filtres ou à votre recherche."
+                : "Commencez par créer votre première campagne !"}
             </p>
           </div>
         )}
