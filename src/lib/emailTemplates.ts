@@ -12,6 +12,12 @@ interface UserProfile {
   gender: 'male' | 'female' | '';
   contractType: 'full-time' | 'part-time' | 'contract' | 'internship' | '';
   motivation: string;
+  // Additional professional profile information
+  currentPosition?: string;
+  yearsOfExperience?: string;
+  skills?: string[];
+  targetPosition?: string;
+  targetSectors?: string[];
 }
 
 export type GenerateOptions = {
@@ -25,6 +31,12 @@ export type GenerateOptions = {
     gender: 'male' | 'female' | '';
     contractType: 'full-time' | 'part-time' | 'contract' | 'internship' | '';
     motivation: string;
+    // Additional professional profile information
+    currentPosition?: string;
+    yearsOfExperience?: string;
+    skills?: string[];
+    targetPosition?: string;
+    targetSectors?: string[];
   };
 };
 
@@ -411,12 +423,26 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
       ? `Vous êtes un expert en emails de prise de contact professionnelle ${getLengthInstruction(options.length, options.language)}.`
       : `You are an expert in ${getLengthInstruction(options.length, options.language)} professional networking emails.`;
 
-    // Construction du contexte utilisateur avec focus sur la signature
+    // Gather professional information
+    const skillsList = options.userProfile.skills && options.userProfile.skills.length > 0 
+      ? options.userProfile.skills.slice(0, 3).join(', ') 
+      : '';
+      
+    const targetSectorsList = options.userProfile.targetSectors && options.userProfile.targetSectors.length > 0 
+      ? options.userProfile.targetSectors.slice(0, 2).join(', ') 
+      : '';
+
+    // Construction du contexte utilisateur étendu avec données professionnelles
     const userContext = options.language === 'fr'
       ? `Contexte du candidat :
          - Signature : ${options.userProfile.firstName}
          - Motivation : ${options.userProfile.motivation}
          - Type de contrat : ${options.userProfile.contractType}
+         ${options.userProfile.currentPosition ? `- Poste actuel : ${options.userProfile.currentPosition}` : ''}
+         ${options.userProfile.yearsOfExperience ? `- Années d'expérience : ${options.userProfile.yearsOfExperience}` : ''}
+         ${skillsList ? `- Compétences clés : ${skillsList}` : ''}
+         ${options.userProfile.targetPosition ? `- Poste recherché : ${options.userProfile.targetPosition}` : ''}
+         ${targetSectorsList ? `- Secteurs ciblés : ${targetSectorsList}` : ''}
          
          IMPORTANT : 
          - Signez uniquement avec "${options.userProfile.firstName}"
@@ -426,6 +452,11 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
          - Signature: ${options.userProfile.firstName}
          - Motivation: ${options.userProfile.motivation}
          - Contract type: ${options.userProfile.contractType}
+         ${options.userProfile.currentPosition ? `- Current position: ${options.userProfile.currentPosition}` : ''}
+         ${options.userProfile.yearsOfExperience ? `- Years of experience: ${options.userProfile.yearsOfExperience}` : ''}
+         ${skillsList ? `- Key skills: ${skillsList}` : ''}
+         ${options.userProfile.targetPosition ? `- Target position: ${options.userProfile.targetPosition}` : ''}
+         ${targetSectorsList ? `- Target sectors: ${targetSectorsList}` : ''}
          
          IMPORTANT:
          - Sign only with "${options.userProfile.firstName}"
@@ -439,54 +470,62 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
           role: "system",
           content: `${systemInstruction}\n${languageInstruction}
           
-          You are a highly skilled professional who writes authentic, human-sounding emails. Your writing style:
-          1. Sounds completely natural and conversational - NEVER robotic or formulaic
-          2. Includes occasional minor imperfections (e.g., a brief tangent, slight informality)
-          3. Varies sentence structure and length for natural rhythm
-          4. Avoids obvious templates and corporate jargon
-          5. Has subtle personality traits that make it feel authentically human
+          You are a highly skilled professional who writes authentic, human-sounding emails that get responses. Your writing style:
+          1. Sounds like a message from a real person - conversational, warm, and genuine
+          2. Includes subtle imperfections to feel authentic (occasional informality, conversational asides)
+          3. Avoids robotic structure or template-like phrasing that makes AI content obvious
+          4. Balances professionalism with approachability and humanity
+          
+          PROFILE CONTEXT UTILIZATION GUIDELINES:
+          - Use professional background information to establish credibility naturally
+          - For NETWORKING emails: Reference 1-2 relevant skills or experience that create a genuine connection point
+          - For OPPORTUNITY emails: Subtly mention target position/sectors to show authentic interest and research
+          - For INTRODUCTION emails: Incorporate background that explains "why them specifically"
+          - IMPORTANT: Incorporate professional details ONLY if they create a compelling reason for the recipient to respond
+          - Never list qualifications - weave relevant background organically into the message
+          - Goal is authentic human connection, not credential presentation
+          
+          HUMAN WRITING PATTERNS:
+          - People vary sentence structures, occasionally use fragments, and don't optimize every line
+          - Real people communicate with a conversational flow that conveys personality
+          - Use occasional contractions, simple transitions, and natural pauses
+          - Sometimes include micro-details that show genuine interest/knowledge
+          - When very brief (short emails), focus on one clear ask or point
+          - Avoid the perfectly balanced paragraphs that AI often creates
+          - Sound like a specific person, not a generic professional
           
           LENGTH REQUIREMENTS - STRICT:
           ${options.length === 'short' 
-            ? '- VERY SHORT: 3-4 lines total (body text only, excluding greeting/signature)'
+            ? '- VERY SHORT: 3-4 lines total (excluding greeting/signature)'
             : options.length === 'medium'
-              ? '- MEDIUM: 5-7 lines total (body text only, excluding greeting/signature)'
-              : '- DETAILED: 8-12 lines total (body text only, excluding greeting/signature)'
+              ? '- MEDIUM: 5-7 lines total (excluding greeting/signature)'
+              : '- DETAILED: 8-12 lines total (excluding greeting/signature)'
           }
           - A line is approximately 60-80 characters
           - Do not exceed the maximum number of lines under any circumstances
           - Content must fit within a quick glance on mobile
-          
-          ANTI-AI GUIDELINES:
-          - Occasional use of contractions, even in professional contexts
-          - Some sentences may start with conjunctions (But, And)
-          - Include a subtle personal touch that suggests a real person wrote this
-          - Vary paragraph length unpredictably (sometimes very short, sometimes medium)
-          - Carefully use an occasional comma splice for natural flow
-          - When appropriate, use a more casual closing line before the signature
-          - Never include overly perfect parallel structure or formulaic transitions
           
           IMPORTANT FORMAT:
           ${options.language === 'fr' 
             ? `1. Commencez par "Subject: [Objet d'email qui paraît naturel et efficace]"
                Exemples d'objets :
                - "Échange rapide sur companyField?"
-               - "Une idée pour companyField"
-               - "Connexion professionnelle - companyField"
-               - "Question sur votre équipe chez companyField"`
+               - "Question sur votre équipe chez companyField"
+               - "Intérêt pour companyField - [mention brève du contexte]"
+               - "Connexion professionnelle - [point commun spécifique]"`
             : `1. Start with "Subject: [Natural, effective subject line]"
                Example subjects:
                - "Quick thought about companyField"
-               - "Question about your team at companyField"
-               - "companyField - professional connection"
-               - "Following up on companyField opportunity"`
+               - "Question about your team at companyField" 
+               - "Interest in companyField - [brief context mention]"
+               - "Professional connection - [specific common ground]"`
           }
           
           2. Sautez une ligne
           3. Écrivez le contenu de l'email avec:
-             - Une ouverture authentique qui semble naturelle et personnalisée
-             - Un corps qui évite les phrases toutes faites
-             - Une conclusion qui sonne humaine et pas trop parfaite
+             - Une ouverture authentique qui crée une connexion personnelle
+             - Un corps qui évite les phrases toutes faites et montre de l'intérêt spécifique
+             - Une conclusion avec une demande claire et facile à satisfaire
           4. Terminez par une signature simple avec UNIQUEMENT le prénom fourni
           
           IMPORTANT MERGE FIELDS - USE THESE NATURALLY:
@@ -497,24 +536,54 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
           - positionField (Poste ou rôle professionnel)
           
           MERGE FIELD USAGE GUIDELINES:
-          - Use merge fields organically where they naturally fit
-          - Don't force all merge fields if they don't fit naturally
-          - Make the greeting feel authentic to a real correspondence
-          - Occasionally refer to firstNameField in the body if it feels natural
-          - Reference companyField in a way that suggests genuine knowledge/interest
-          - Avoid robotic placement of merge fields in identical positions across templates
+          - Use merge fields only where they naturally fit in human writing
+          - The greeting should feel natural for professional correspondence
+          - Occasionally use firstNameField in the body if it feels conversational
+          - Reference companyField in a way showing genuine interest/research
+          - Don't force fields if they don't fit naturally in your message
           
+          IMPORTANT - NATURAL COMPANY REFERENCES:
+          Instead of awkward phrasing like "companyField's pioneering work", use more natural forms:
+          - "what you're doing at companyField"
+          - "the work being done at companyField"
+          - "your team at companyField"
+          - "companyField's approach to [industry topic]"
+          - Just "companyField" when that flows naturally
+          
+          The goal is to reference the company as a real person would, not with an obvious template pattern. 
+          Think about how you'd naturally mention a company name in conversation.
+
           DO NOT use any other merge fields or variables.
           DO NOT use double curly braces {{}} format.
           Always use the format: wordField (example: firstNameField)
           
-          WRITING GUIDELINES FOR AUTHENTICITY:
-          - Write like a human professional would in a real work situation
-          - Include occasional subtle verbal flourishes that AI typically avoids
-          - Balance professionalism with genuine human warmth
-          - Subtly vary your style so templates don't all sound identical
-          - Use phrasing that wouldn't appear in every other email template
-          - Add a slight touch of unique personality appropriate to the context`
+          KEYS TO EFFECTIVE EMAILS THAT GET RESPONSES:
+          - Provide a clear, specific reason for connecting (beyond just networking)
+          - Show you've done your research on them/their company
+          - Include a VERY simple call-to-action that's easy to respond to
+          - Demonstrate value or relevance to THEIR interests
+          - Keep short emails focused on ONE clear point or question
+          - For detailed emails, still maintain clarity of purpose
+          - Sound like someone they would WANT to talk to
+          
+          AUTHENTIC OPENINGS:
+          Instead of clichés like "I recently came across your work", try more authentic openings:
+          - "I've been following what companyField is doing in [specific area]"
+          - "After reading about your approach to [topic], I wanted to reach out"
+          - "Your recent work on [specific project] caught my attention"
+          - "I noticed companyField is focusing on [specific initiative]"
+          - "A colleague mentioned your expertise in [specific area]"
+          
+          Always be specific about WHY you're reaching out. Vague statements like "pioneering work" or 
+          "impressive achievements" sound like templates. Reference something concrete that shows 
+          genuine interest or connection.
+          
+          GENUINE CONNECTIONS:
+          - Mention a specific project, article, presentation, or initiative that interested you
+          - Reference a real connection point (event, mutual contact, shared interest)
+          - Explain why you're contacting THIS specific person/company
+          - Be precise about why you're reaching out NOW (timing adds authenticity)
+          - Make your interest feel genuinely researched, not generic`
         },
         {
           role: "user",

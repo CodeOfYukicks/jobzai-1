@@ -119,6 +119,12 @@ export default function GenerateTemplateModal({ onClose, onTemplateCreated }: Ge
           // Assurez-vous que ces champs existent dans votre profil
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
+          // Pass additional professional profile data
+          currentPosition: userProfile.currentPosition || '',
+          yearsOfExperience: userProfile.yearsOfExperience || '',
+          skills: userProfile.skills || [],
+          targetPosition: userProfile.targetPosition || '',
+          targetSectors: userProfile.targetSectors || [],
           // Ajoutez d'autres champs nécessaires selon votre modèle
         }
       });
