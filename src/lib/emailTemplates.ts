@@ -464,7 +464,7 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
          - STRICTLY respect the requested length: ${options.length === 'short' ? '3-4 lines' : options.length === 'medium' ? '5-7 lines' : '8-12 lines'}`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",

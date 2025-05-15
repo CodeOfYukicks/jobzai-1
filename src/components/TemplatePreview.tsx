@@ -13,17 +13,25 @@ export default function TemplatePreview({ content, className = '' }: TemplatePre
     lastName: 'Doe',
     company: 'Acme Corp',
     jobPosition: 'Senior Developer',
-    fullName: 'John Doe'
+    fullName: 'John Doe',
+    salutation: 'Hi'
   });
   const [showFields, setShowFields] = useState(false);
 
   const replaceFields = (text: string) => {
+    // Handle both formats of merge fields
     return text
+      // Replace parenthesis format
       .replace(/\(First name\)/g, previewData.firstName)
       .replace(/\(Last name\)/g, previewData.lastName)
       .replace(/\(Company\)/g, previewData.company)
       .replace(/\(Job position\)/g, previewData.jobPosition)
-      .replace(/\(Full name\)/g, previewData.fullName);
+      .replace(/\(Full name\)/g, previewData.fullName)
+      // Replace AI-generated field format
+      .replace(/salutationField/g, previewData.salutation)
+      .replace(/firstNameField/g, previewData.firstName)
+      .replace(/lastNameField/g, previewData.lastName)
+      .replace(/companyField/g, previewData.company);
   };
 
   return (
@@ -94,6 +102,15 @@ export default function TemplatePreview({ content, className = '' }: TemplatePre
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             />
           </div>
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">Salutation</label>
+            <input
+              type="text"
+              value={previewData.salutation}
+              onChange={(e) => setPreviewData(prev => ({ ...prev, salutation: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
         </div>
       )}
 
@@ -103,7 +120,7 @@ export default function TemplatePreview({ content, className = '' }: TemplatePre
         className="bg-gray-50 p-4 rounded-lg"
       >
         <div className="whitespace-pre-wrap font-sans text-sm text-gray-700">
-          {showFields ? content : replaceFields(content)}
+          {replaceFields(content)}
         </div>
       </motion.div>
     </div>

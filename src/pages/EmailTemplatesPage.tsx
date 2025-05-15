@@ -138,6 +138,14 @@ export default function EmailTemplatesPage() {
         ...doc.data()
       })) as EmailTemplate[];
       
+      // Sort templates by creation date (newest first)
+      templatesData.sort((a, b) => {
+        // Convert Firebase timestamps to milliseconds if necessary
+        const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : a.createdAt;
+        const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : b.createdAt;
+        return dateB - dateA; // Descending order
+      });
+      
       setTemplates(templatesData);
     } catch (error) {
       console.error('Error fetching templates:', error);
@@ -155,6 +163,14 @@ export default function EmailTemplatesPage() {
           id: doc.id,
           ...doc.data()
         })) as EmailTemplate[];
+        
+        // Sort templates by creation date (newest first)
+        templatesData.sort((a, b) => {
+          // Convert Firebase timestamps to milliseconds if necessary
+          const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : a.createdAt;
+          const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : b.createdAt;
+          return dateB - dateA; // Descending order
+        });
         
         setTemplates(templatesData);
         setIsLoading(false);
@@ -190,23 +206,31 @@ export default function EmailTemplatesPage() {
   };
 
   const filteredTemplates = useMemo(() => {
-    return templates.filter(template => {
-      // Filtre de recherche
-      const matchesSearch = searchQuery
-        ? template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          template.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-        : true;
+    return templates
+      .filter(template => {
+        // Filtre de recherche
+        const matchesSearch = searchQuery
+          ? template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            template.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+          : true;
 
-      // Filtre par catégorie
-      const matchesFilter = 
-        filter === 'all' ? true :
-        filter === 'favorites' ? template.liked :
-        filter === 'ai' ? template.aiGenerated :
-        true;
+        // Filtre par catégorie
+        const matchesFilter = 
+          filter === 'all' ? true :
+          filter === 'favorites' ? template.liked :
+          filter === 'ai' ? template.aiGenerated :
+          true;
 
-      return matchesSearch && matchesFilter;
-    });
+        return matchesSearch && matchesFilter;
+      })
+      // Sort by creation date (newest first)
+      .sort((a, b) => {
+        // Convert Firebase timestamps to milliseconds if necessary
+        const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : a.createdAt;
+        const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : b.createdAt;
+        return dateB - dateA; // Descending order
+      });
   }, [templates, filter, searchQuery]);
 
   return (
