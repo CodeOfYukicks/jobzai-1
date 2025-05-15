@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, Eye, EyeOff, Save } from 'lucide-react';
+import { X, Eye, EyeOff, Save, Sparkles, ArrowLeft, Tag as TagIcon } from 'lucide-react';
 import { doc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,12 +9,29 @@ import MergeFieldSelector from './MergeFieldSelector';
 import TemplatePreview from './TemplatePreview';
 import TemplateEditMobile from './mobile/TemplateEditMobile';
 
+// Custom hook for checking if on mobile
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  return isMobile;
+};
+
 interface EmailTemplate {
   id: string;
   name: string;
   subject: string;
   content: string;
   tags: string[];
+  liked: boolean;
+  aiGenerated: boolean;
+  createdAt: any;
+  updatedAt: any;
 }
 
 interface TemplateEditModalProps {
@@ -23,21 +40,6 @@ interface TemplateEditModalProps {
   onSave?: (templateId: string) => void;
   inCampaignFlow?: boolean;
 }
-
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  return isMobile;
-};
 
 export default function TemplateEditModal({ 
   template, 
@@ -54,7 +56,28 @@ export default function TemplateEditModal({
   });
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   const isMobile = useIsMobile();
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleMergeFieldSelect = (field: string) => {
+    if (!contentRef.current) return;
+
+    const start = contentRef.current.selectionStart;
+    const end = contentRef.current.selectionEnd;
+    const currentContent = editedTemplate.content;
+    
+    const newContent = currentContent.substring(0, start) + field + currentContent.substring(end);
+    setEditedTemplate(prev => ({ ...prev, content: newContent }));
+
+    setTimeout(() => {
+      if (contentRef.current) {
+        const newPosition = start + field.length;
+        contentRef.current.focus();
+        contentRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
+  };
 
   const handleSave = async () => {
     if (!currentUser) return;
@@ -102,179 +125,183 @@ export default function TemplateEditModal({
   }
 
   return (
-    <div className={`${inCampaignFlow ? '' : 'fixed inset-0 bg-black/20 dark:bg-black/50 z-50'}`}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      onClick={onClose}
+    >
       <motion.div
-        initial={{ opacity: 0, y: '100%' }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: '100%' }}
-        className={`
-          bg-white dark:bg-[#0A0A1B] 
-          text-gray-900 dark:text-white
-          ${inCampaignFlow ? 'w-full h-[calc(100vh-180px)]' : 'h-full'}
-          flex flex-col
-          rounded-xl
-          shadow-2xl
-        `}
+        initial={{ scale: 0.95 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.95 }}
+        className="w-full max-w-4xl h-[85vh] bg-white dark:bg-gray-900 
+          rounded-xl overflow-hidden shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800/50">
-          <div className="flex items-center space-x-4">
-            <button
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <button 
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
             >
-              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <ArrowLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Template Studio
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Create your perfect email</p>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {template ? 'Edit Template' : 'Create Template'}
+            </h2>
           </div>
+          
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowPreview(!showPreview)}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 
-                hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
-            >
-              {showPreview ? (
-                <>
-                  <EyeOff className="h-4 w-4" />
-                  <span className="text-sm">Hide Preview</span>
-                </>
-              ) : (
-                <>
-                  <Eye className="h-4 w-4" />
-                  <span className="text-sm">Show Preview</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800/50">
-          <div className="flex items-center justify-between max-w-2xl">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#8D75E6] text-white">
-                ✓
-              </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Goal</span>
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('editor')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'editor'
+                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Editor
+              </button>
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'preview'
+                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Preview
+              </button>
             </div>
-            <div className="flex-1 h-[2px] mx-4 bg-[#8D75E6]/50" />
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#8D75E6] text-white">
-                2
-              </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Content</span>
-            </div>
-            <div className="flex-1 h-[2px] mx-4 bg-gray-200 dark:bg-gray-800" />
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full 
-                border-2 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
-                3
-              </div>
-              <span className="text-sm text-gray-400 dark:text-gray-500">Settings</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#0A0A1B]">
-          <div className="space-y-6 p-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Template Name
-              </label>
-              <input
-                type="text"
-                value={editedTemplate.name}
-                onChange={(e) => setEditedTemplate(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
-                  border border-gray-200 dark:border-gray-700 
-                  rounded-lg text-gray-900 dark:text-white 
-                  placeholder-gray-400 dark:placeholder-gray-500
-                  focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]"
-                placeholder="e.g., Professional Introduction"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject Line
-              </label>
-              <input
-                type="text"
-                value={editedTemplate.subject}
-                onChange={(e) => setEditedTemplate(prev => ({ ...prev, subject: e.target.value }))}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-[#8D75E6] focus:border-[#8D75E6]"
-                placeholder="e.g., Application for (Job position) at (Company)"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Content
-              </label>
-              <div className="mb-4 overflow-x-auto whitespace-nowrap pb-2">
-                <MergeFieldSelector 
-                  onSelectField={(field) => {
-                    setEditedTemplate(prev => ({
-                      ...prev,
-                      content: prev.content + field
-                    }));
-                  }}
-                />
-              </div>
-              <textarea
-                value={editedTemplate.content}
-                onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
-                rows={12}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-[#8D75E6] focus:border-[#8D75E6] font-mono"
-                placeholder="Dear (First name),
-
-I am writing to express my interest in the (Job position) position at (Company)..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={editedTemplate.tags}
-                onChange={(e) => setEditedTemplate(prev => ({ ...prev, tags: e.target.value }))}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-[#8D75E6] focus:border-[#8D75E6]"
-                placeholder="e.g., professional, introduction, follow-up"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-800/50 bg-white dark:bg-[#0A0A1B]">
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 text-gray-600 dark:text-gray-300 
-                border border-gray-200 dark:border-gray-700 
-                hover:bg-gray-100 dark:hover:bg-gray-800/50 
-                rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
+            
             <button
               onClick={handleSave}
-              className="px-6 py-2.5 bg-[#8D75E6] hover:bg-[#7B64D5] 
-                text-white font-medium rounded-lg transition-colors"
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg
+                bg-gradient-to-r from-purple-600 to-indigo-600
+                text-white font-medium text-sm
+                hover:opacity-90 transition-all duration-200
+                disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continue
+              {isSaving ? (
+                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save
             </button>
           </div>
         </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden flex">
+          {activeTab === 'editor' ? (
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Template Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editedTemplate.name}
+                    onChange={(e) => setEditedTemplate(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                      border border-gray-200 dark:border-gray-700 
+                      rounded-lg text-gray-900 dark:text-white 
+                      placeholder-gray-400 dark:placeholder-gray-500
+                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    placeholder="e.g., Professional Introduction"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Subject Line
+                  </label>
+                  <input
+                    type="text"
+                    value={editedTemplate.subject}
+                    onChange={(e) => setEditedTemplate(prev => ({ ...prev, subject: e.target.value }))}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                      border border-gray-200 dark:border-gray-700 
+                      rounded-lg text-gray-900 dark:text-white 
+                      placeholder-gray-400 dark:placeholder-gray-500
+                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    placeholder="e.g., Application for (Job position) at (Company)"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Content
+                  </label>
+                  <div className="flex items-center text-xs text-purple-600 dark:text-purple-400">
+                    <Sparkles className="h-3.5 w-3.5 mr-1" />
+                    <span>Add merge fields to personalize your email</span>
+                  </div>
+                </div>
+                
+                <div className="mb-4 overflow-x-auto whitespace-nowrap pb-2">
+                  <MergeFieldSelector 
+                    onSelectField={handleMergeFieldSelect}
+                  />
+                </div>
+                
+                <textarea
+                  ref={contentRef}
+                  value={editedTemplate.content}
+                  onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
+                  rows={12}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                    border border-gray-200 dark:border-gray-700 
+                    rounded-lg text-gray-900 dark:text-white 
+                    placeholder-gray-400 dark:placeholder-gray-500
+                    focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
+                    font-mono text-sm"
+                  placeholder="Dear (First name),
+
+I am writing to express my interest in the (Job position) position at (Company)..."
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <TagIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Tags (comma-separated)
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={editedTemplate.tags}
+                  onChange={(e) => setEditedTemplate(prev => ({ ...prev, tags: e.target.value }))}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                    border border-gray-200 dark:border-gray-700 
+                    rounded-lg text-gray-900 dark:text-white 
+                    placeholder-gray-400 dark:placeholder-gray-500
+                    focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  placeholder="e.g., professional, introduction, follow-up"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-6">
+              <TemplatePreview 
+                content={editedTemplate.content} 
+                className="max-w-2xl mx-auto bg-white dark:bg-gray-800 
+                  p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              />
+            </div>
+          )}
+        </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

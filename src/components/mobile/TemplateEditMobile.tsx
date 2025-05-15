@@ -1,51 +1,43 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
-import { EmailTemplate } from '../../types';
+import { ArrowLeft, Save, Sparkles, Tag as TagIcon } from 'lucide-react';
+import { doc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
 import MergeFieldSelector from '../MergeFieldSelector';
 
-const MERGE_FIELDS = [
-  { 
-    label: 'Salutation', 
-    value: '{{salutation}}', 
-    example: 'Mr/Ms',
-    description: 'Formal title (Mr, Ms, Dr, etc.)'
-  },
-  { 
-    label: 'First Name', 
-    value: '{{firstName}}', 
-    example: 'John' 
-  },
-  { 
-    label: 'Last Name', 
-    value: '{{lastName}}', 
-    example: 'Doe' 
-  },
-  { 
-    label: 'Company', 
-    value: '{{company}}', 
-    example: 'Acme Corp' 
-  },
-  { 
-    label: 'Position', 
-    value: '{{position}}', 
-    example: 'Software Engineer' 
-  }
-];
+interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  content: string;
+  tags: string[];
+  liked: boolean;
+  aiGenerated: boolean;
+  createdAt: any;
+  updatedAt: any;
+}
 
 interface TemplateEditMobileProps {
   template: EmailTemplate | null;
   onClose: () => void;
-  onSave: (templateId: string) => void;
+  onSave?: (templateId: string) => void;
 }
 
-export default function TemplateEditMobile({ template, onClose, onSave }: TemplateEditMobileProps) {
+export default function TemplateEditMobile({ 
+  template, 
+  onClose, 
+  onSave 
+}: TemplateEditMobileProps) {
+  const { currentUser } = useAuth();
   const [editedTemplate, setEditedTemplate] = useState({
     name: template?.name || '',
     subject: template?.subject || '',
     content: template?.content || '',
     tags: template?.tags?.join(', ') || ''
   });
+  const [isSaving, setIsSaving] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
   const handleMergeFieldSelect = (field: string) => {
@@ -67,128 +59,176 @@ export default function TemplateEditMobile({ template, onClose, onSave }: Templa
     }, 0);
   };
 
+  const handleSave = async () => {
+    if (!currentUser) return;
+
+    try {
+      setIsSaving(true);
+
+      const templateData = {
+        name: editedTemplate.name,
+        subject: editedTemplate.subject,
+        content: editedTemplate.content,
+        tags: editedTemplate.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        updatedAt: serverTimestamp()
+      };
+
+      if (template) {
+        // Update existing template
+        const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', template.id);
+        await updateDoc(templateRef, templateData);
+        if (onSave) onSave(template.id);
+      } else {
+        // Create new template
+        const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
+        const docRef = await addDoc(templatesRef, {
+          ...templateData,
+          aiGenerated: false,
+          liked: false,
+          createdAt: serverTimestamp()
+        });
+        if (onSave) onSave(docRef.id);
+      }
+
+      toast.success(`Template ${template ? 'updated' : 'created'} successfully!`);
+      onClose();
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast.error(`Failed to ${template ? 'update' : 'create'} template`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ y: '100%' }}
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
-      className="fixed inset-0 bg-white dark:bg-[#0A0A1B] flex flex-col h-full w-full z-50"
+      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+      className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
-        <div className="flex items-center space-x-3">
-          <button onClick={onClose} className="p-2">
-            <X className="h-5 w-5" />
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </button>
-          <div>
-            <h2 className="text-lg font-medium">Template Studio</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Create your perfect email</p>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {template ? 'Edit Template' : 'Create Template'}
+          </h2>
         </div>
+        
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="flex items-center gap-2 px-4 py-2 rounded-full
+            bg-gradient-to-r from-purple-600 to-indigo-600
+            text-white font-medium text-sm
+            hover:opacity-90 transition-all duration-200
+            disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? (
+            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          Save
+        </button>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Template Name
-            </label>
-            <input
-              type="text"
-              value={editedTemplate.name}
-              onChange={(e) => setEditedTemplate(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-lg border-0"
-              placeholder="e.g., Professional Introduction"
-            />
-          </div>
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Template Name
+          </label>
+          <input
+            type="text"
+            value={editedTemplate.name}
+            onChange={(e) => setEditedTemplate(prev => ({ ...prev, name: e.target.value }))}
+            className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+              border border-gray-200 dark:border-gray-700 
+              rounded-lg text-gray-900 dark:text-white 
+              placeholder-gray-400 dark:placeholder-gray-500
+              focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            placeholder="e.g., Professional Introduction"
+          />
+        </div>
 
-          <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Subject Line
-            </label>
-            <input
-              type="text"
-              value={editedTemplate.subject}
-              onChange={(e) => setEditedTemplate(prev => ({ ...prev, subject: e.target.value }))}
-              className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-lg border-0"
-              placeholder="Professional Contact Request"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Subject Line
+          </label>
+          <input
+            type="text"
+            value={editedTemplate.subject}
+            onChange={(e) => setEditedTemplate(prev => ({ ...prev, subject: e.target.value }))}
+            className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+              border border-gray-200 dark:border-gray-700 
+              rounded-lg text-gray-900 dark:text-white 
+              placeholder-gray-400 dark:placeholder-gray-500
+              focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            placeholder="e.g., Application for (Job position) at (Company)"
+          />
+        </div>
 
-          {/* Merge Fields */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm text-gray-500 dark:text-gray-400">
-                Available merge fields
-              </label>
-              <span className="text-xs text-gray-500">
-                • Recipient's information
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {MERGE_FIELDS.map(field => (
-                <button
-                  key={field.value}
-                  onClick={() => handleMergeFieldSelect(field.value)}
-                  className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-left"
-                >
-                  <div className="text-sm font-mono text-purple-600 dark:text-purple-400">
-                    {field.value}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Example: {field.example}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Content
             </label>
-            <textarea
-              ref={contentRef}
-              value={editedTemplate.content}
-              onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
-              rows={8}
-              className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-lg border-0 font-mono"
-              placeholder="Dear {{firstName}},
-
-I hope this message finds you well..."
+            <div className="flex items-center text-xs text-purple-600 dark:text-purple-400">
+              <Sparkles className="h-3.5 w-3.5 mr-1" />
+              <span>Add merge fields</span>
+            </div>
+          </div>
+          
+          <div className="mb-4 overflow-x-auto pb-2">
+            <MergeFieldSelector 
+              onSelectField={handleMergeFieldSelect}
             />
           </div>
+          
+          <textarea
+            ref={contentRef}
+            value={editedTemplate.content}
+            onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
+            rows={10}
+            className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+              border border-gray-200 dark:border-gray-700 
+              rounded-lg text-gray-900 dark:text-white 
+              placeholder-gray-400 dark:placeholder-gray-500
+              focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
+              font-mono text-sm"
+            placeholder="Dear (First name),
 
-          <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">
+I am writing to express my interest in the (Job position) position at (Company)..."
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <TagIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Tags (comma-separated)
             </label>
-            <input
-              type="text"
-              value={editedTemplate.tags}
-              onChange={(e) => setEditedTemplate(prev => ({ ...prev, tags: e.target.value }))}
-              className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-lg border-0"
-              placeholder="explore, en, detailed, ai-generated"
-            />
           </div>
+          <input
+            type="text"
+            value={editedTemplate.tags}
+            onChange={(e) => setEditedTemplate(prev => ({ ...prev, tags: e.target.value }))}
+            className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+              border border-gray-200 dark:border-gray-700 
+              rounded-lg text-gray-900 dark:text-white 
+              placeholder-gray-400 dark:placeholder-gray-500
+              focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            placeholder="e.g., professional, introduction, follow-up"
+          />
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 grid grid-cols-2 gap-3 border-t dark:border-gray-800">
-        <button
-          onClick={onClose}
-          className="px-4 py-3 text-center border dark:border-gray-700 rounded-lg"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => template && onSave(template.id)}
-          className="px-4 py-3 text-center bg-purple-600 text-white rounded-lg font-medium"
-        >
-          Save Changes
-        </button>
       </div>
     </motion.div>
   );

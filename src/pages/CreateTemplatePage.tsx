@@ -1,7 +1,10 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Mail, MessageSquare, Globe2, Tags, Eye, Save, Target, InfoCircle, ChevronLeft, X } from 'lucide-react';
+import { 
+  ArrowLeft, Mail, MessageSquare, Globe2, Tags, Eye, EyeOff, Save, 
+  Target, Sparkles, X, Tag as TagIcon, FileText
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import { toast } from 'sonner';
@@ -9,8 +12,10 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { EMAIL_GOALS, type EmailGoal } from '../lib/constants/emailGoals';
 import { MobileCreateTemplate } from '../components/mobile/MobileCreateTemplate';
+import TemplatePreview from '../components/TemplatePreview';
 
 type Step = 'config' | 'compose';
+type LanguageType = 'en' | 'fr';
 
 export default function CreateTemplatePage() {
   const navigate = useNavigate();
@@ -24,14 +29,23 @@ export default function CreateTemplatePage() {
     tags: ''
   });
 
-  const [currentStep, setCurrentStep] = useState<Step>('config');
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+  const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [progress, setProgress] = useState(0);
+  
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    // Update progress when template changes
+    setProgress(calculateProgress());
+  }, [template]);
 
   const handleChange = (field: string, value: string) => {
     setTemplate(prev => ({ ...prev, [field]: value }));
@@ -47,6 +61,8 @@ export default function CreateTemplatePage() {
       toast.error('Please fill in all required fields');
       return;
     }
+
+    setIsLoading(true);
 
     try {
       const templateData = {
@@ -70,35 +86,30 @@ export default function CreateTemplatePage() {
     } catch (error) {
       console.error('Error saving template:', error);
       toast.error('Failed to save template. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const insertMergeField = (field: string) => {
-    const textarea = document.getElementById('template-content') as HTMLTextAreaElement;
-    const subject = document.getElementById('template-subject') as HTMLInputElement;
-    const activeElement = document.activeElement;
+    if (!contentRef.current) return;
+
+    const start = contentRef.current.selectionStart;
+    const end = contentRef.current.selectionEnd;
+    const newContent = template.content.substring(0, start) + field + template.content.substring(end);
     
-    if (activeElement === subject) {
-      const start = subject.selectionStart;
-      const end = subject.selectionEnd;
-      const newSubject = template.subject.substring(0, start) + field + template.subject.substring(end);
-      handleChange('subject', newSubject);
-      setTimeout(() => {
-        subject.selectionStart = subject.selectionEnd = start + field.length;
-        subject.focus();
-      }, 0);
-    } else {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newContent = template.content.substring(0, start) + field + template.content.substring(end);
-      handleChange('content', newContent);
-      setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + field.length;
-        textarea.focus();
-      }, 0);
-    }
+    handleChange('content', newContent);
+    
+    setTimeout(() => {
+      if (contentRef.current) {
+        const newPosition = start + field.length;
+        contentRef.current.focus();
+        contentRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
   };
 
+  // Calculate progress based on filled fields
   const calculateProgress = () => {
     const requiredFields = [
       template.name.trim(),
@@ -122,247 +133,261 @@ export default function CreateTemplatePage() {
     );
   }
 
+  const MERGE_FIELDS = [
+    { id: 'salutationField', label: 'Salutation', value: 'salutationField', example: 'Mr/Ms' },
+    { id: 'firstNameField', label: 'First name', value: 'firstNameField', example: 'John' },
+    { id: 'lastNameField', label: 'Last name', value: 'lastNameField', example: 'Doe' },
+    { id: 'companyField', label: 'Company', value: 'companyField', example: 'Acme Corp' },
+    { id: 'positionField', label: 'Position', value: 'positionField', example: 'Software Engineer' }
+  ];
+
   return (
-    <div className="relative h-screen overflow-hidden">
-      {/* Layout principal avec flou amélioré */}
-      <AuthLayout>
-        <div className="filter blur-md opacity-50">
-          <div className="container mx-auto px-4">
-            {/* ... contenu normal ... */}
-          </div>
-        </div>
-      </AuthLayout>
-
-      {/* Modal overlay avec scroll */}
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        {/* Background overlay */}
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm" />
-
-        {/* Container du modal avec padding et min-height pour centrage */}
-        <div className="relative min-h-full p-4 flex items-start justify-center">
-          {/* Modal avec hauteur maximale et scroll interne */}
-          <div className="relative w-full max-w-3xl my-4 bg-white dark:bg-[#0B1120] rounded-3xl shadow-xl flex flex-col">
-            {/* Header fixe */}
-            <div className="sticky top-0 z-20 bg-white dark:bg-[#0B1120] rounded-t-3xl border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-[#9333EA]/10 flex items-center justify-center relative">
-                    {/* Cercle de progression */}
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        className="text-[#9333EA]/20"
-                      />
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        className="text-[#9333EA]"
-                        strokeDasharray={`${(calculateProgress() / 100) * (2 * Math.PI * 20)} ${2 * Math.PI * 20}`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className="text-[#9333EA] font-medium relative">
-                      {calculateProgress()}%
-                    </span>
-                  </div>
-                  <div>
-                    <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Template Studio</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Create your perfect email</p>
-                  </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto backdrop-blur-sm bg-black/30 p-0"
+      onClick={() => navigate('/email-templates')}
+    >
+      <motion.div
+        initial={{ scale: 0.95 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.95 }}
+        className="w-full max-w-4xl h-[90vh] my-4 bg-white dark:bg-gray-900 
+          rounded-xl overflow-hidden shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate('/email-templates')}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            </button>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Create New Template
+              </h2>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="h-1.5 w-24 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
-                <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300">
-                  <X className="w-5 h-5" />
-                </button>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {progress === 100 ? 'Ready to save' : `${progress}% complete`}
+                </span>
               </div>
             </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('editor')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'editor'
+                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Editor
+              </button>
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'preview'
+                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Preview
+              </button>
+            </div>
+            
+            <button
+              onClick={handleSave}
+              disabled={!template.name || !template.subject || !template.content || isLoading}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg
+                bg-gradient-to-r from-purple-600 to-indigo-600
+                text-white font-medium text-sm
+                transition-all duration-200
+                disabled:opacity-50 disabled:cursor-not-allowed
+                ${progress === 100 ? 'opacity-100 hover:opacity-90' : 'opacity-70'}`}
+            >
+              {isLoading ? (
+                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save Template
+            </button>
+          </div>
+        </div>
 
-            {/* Zone de contenu scrollable */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-6 space-y-6">
-                {/* Template Name */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Template Name</label>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden flex">
+          {activeTab === 'editor' ? (
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Template Name
+                  </label>
                   <input
                     type="text"
                     value={template.name}
                     onChange={(e) => handleChange('name', e.target.value)}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                      border border-gray-200 dark:border-gray-700 
+                      rounded-lg text-gray-900 dark:text-white 
+                      placeholder-gray-400 dark:placeholder-gray-500
+                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                     placeholder="e.g., Professional Introduction"
-                    className="w-full px-3 py-2 rounded-lg 
-                      bg-white dark:bg-[#0B1120]
-                      border border-gray-200 dark:border-gray-800
-                      text-gray-900 dark:text-gray-100
-                      placeholder:text-gray-400 dark:placeholder:text-gray-500
-                      focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]"
                   />
                 </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Subject Line
+                  </label>
+                  <input
+                    type="text"
+                    value={template.subject}
+                    onChange={(e) => handleChange('subject', e.target.value)}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                      border border-gray-200 dark:border-gray-700 
+                      rounded-lg text-gray-900 dark:text-white 
+                      placeholder-gray-400 dark:placeholder-gray-500
+                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    placeholder="e.g., Follow-up: positionField opportunity at companyField"
+                  />
+                </div>
+              </div>
 
-                {/* Merge Fields */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <Mail className="w-4 h-4" />
-                    <span>Available merge fields</span>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-500">Recipient's information that will be automatically replaced</span>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Content
+                  </label>
+                  <div className="flex items-center text-xs text-purple-600 dark:text-purple-400">
+                    <Sparkles className="h-3.5 w-3.5 mr-1" />
+                    <span>Add merge fields to personalize your email</span>
                   </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {[
-                      { field: 'salutationField', example: 'Mr/Ms', note: 'Formal title' },
-                      { field: 'firstNameField', example: 'John' },
-                      { field: 'lastNameField', example: 'Doe' },
-                      { field: 'companyField', example: 'Acme Corp' }
-                    ].map(({ field, example, note }) => (
+                </div>
+                
+                <div className="mb-4 overflow-x-auto whitespace-nowrap pb-2">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {MERGE_FIELDS.map((field) => (
                       <button
-                        key={field}
-                        onClick={() => insertMergeField(field)}
-                        className="flex flex-col items-start p-3 rounded-lg 
-                          bg-white dark:bg-[#0B1120]
-                          border border-gray-200 dark:border-gray-800
-                          hover:border-[#9333EA]
-                          transition-colors text-left"
+                        key={field.id}
+                        onClick={() => insertMergeField(field.value)}
+                        className="flex-none inline-flex items-center px-4 py-2 rounded-lg 
+                          bg-purple-50 dark:bg-purple-900/10 
+                          text-purple-600 dark:text-purple-400 
+                          text-sm font-medium 
+                          hover:bg-purple-100 dark:hover:bg-purple-900/20 
+                          transition-colors"
                       >
-                        <span className="font-mono text-sm text-[#9333EA]">{field}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Example: {example}</span>
-                        {note && <span className="text-xs text-purple-500 dark:text-purple-400 mt-1">{note}</span>}
+                        <TagIcon className="w-4 h-4 mr-2" />
+                        {field.label}
                       </button>
                     ))}
                   </div>
                 </div>
+                
+                <textarea
+                  ref={contentRef}
+                  value={template.content}
+                  onChange={(e) => handleChange('content', e.target.value)}
+                  rows={12}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                    border border-gray-200 dark:border-gray-700 
+                    rounded-lg text-gray-900 dark:text-white 
+                    placeholder-gray-400 dark:placeholder-gray-500
+                    focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
+                    font-mono text-sm"
+                  placeholder="Dear salutationField lastNameField,
 
-                {/* Subject Line */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Subject Line</label>
-                  <input
-                    id="template-subject"
-                    type="text"
-                    value={template.subject}
-                    onChange={(e) => handleChange('subject', e.target.value)}
-                    placeholder="e.g., Follow-up: {{position}} opportunity at {{company}}"
-                    className="w-full px-3 py-2 rounded-lg 
-                      bg-white dark:bg-gray-900
-                      border border-gray-200 dark:border-gray-700
-                      text-gray-900 dark:text-gray-100
-                      placeholder:text-gray-400 dark:placeholder:text-gray-500
-                      focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0"
-                  />
+I hope this message finds you well..."
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <TagIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Tags (comma-separated)
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={template.tags}
+                  onChange={(e) => handleChange('tags', e.target.value)}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                    border border-gray-200 dark:border-gray-700 
+                    rounded-lg text-gray-900 dark:text-white 
+                    placeholder-gray-400 dark:placeholder-gray-500
+                    focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  placeholder="e.g., professional, follow-up, introduction"
+                />
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-purple-500" />
+                    Email Goal
+                  </label>
+                  <select
+                    value={template.goal}
+                    onChange={(e) => handleChange('goal', e.target.value as EmailGoal)}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                      border border-gray-200 dark:border-gray-700 
+                      rounded-lg text-gray-900 dark:text-white 
+                      placeholder-gray-400 dark:placeholder-gray-500
+                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  >
+                    {Object.entries(EMAIL_GOALS).map(([key, goal]) => (
+                      <option key={key} value={key}>{goal.label}</option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Content */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Content</label>
-                  <textarea
-                    id="template-content"
-                    value={template.content}
-                    onChange={(e) => handleChange('content', e.target.value)}
-                    rows={8}
-                    className="w-full px-3 py-2 rounded-lg 
-                      bg-white dark:bg-gray-900
-                      border border-gray-200 dark:border-gray-700
-                      text-gray-900 dark:text-gray-100
-                      placeholder:text-gray-400 dark:placeholder:text-gray-500
-                      focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0
-                      font-mono text-sm"
-                    placeholder={`Dear salutationField lastNameField,\n\nI hope this message finds you well...\n\nBest regards,\n[Your name]`}
-                  />
-                </div>
-
-                {/* Settings Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Email Goal */}
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-2 text-sm font-medium">
-                      <Target className="w-4 h-4" />
-                      Email Goal
-                    </label>
-                    <div className="space-y-2">
-                      {['Build Connection', 'Explore Opportunities', 'Make Introduction'].map((goal) => (
-                        <button
-                          key={goal}
-                          onClick={() => handleChange('goal', goal.toLowerCase())}
-                          className={`w-full p-3 text-left rounded-lg border transition-colors
-                            ${template.goal === goal.toLowerCase()
-                              ? 'bg-[#9333EA]/10 border-[#9333EA] text-white'
-                              : 'bg-white dark:bg-[#0B1120] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-[#9333EA]'
-                            }`}
-                        >
-                          {goal}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Language & Tags */}
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-sm font-medium">
-                        <Globe2 className="w-4 h-4" />
-                        Language
-                      </label>
-                      <select
-                        value={template.language}
-                        onChange={(e) => handleChange('language', e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg 
-                          bg-white dark:bg-gray-900
-                          border border-gray-200 dark:border-gray-700
-                          text-gray-900 dark:text-gray-100
-                          focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0"
-                      >
-                        <option value="en">English</option>
-                        <option value="fr">Français</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-sm font-medium">
-                        <Tags className="w-4 h-4" />
-                        Tags (comma-separated)
-                      </label>
-                      <input
-                        type="text"
-                        value={template.tags}
-                        onChange={(e) => handleChange('tags', e.target.value)}
-                        placeholder="e.g., professional, introduction, job-application"
-                        className="w-full px-3 py-2 rounded-lg 
-                          bg-white dark:bg-gray-900
-                          border border-gray-200 dark:border-gray-700
-                          text-gray-900 dark:text-gray-100
-                          placeholder:text-gray-400 dark:placeholder:text-gray-500
-                          focus:border-purple-500 dark:focus:border-purple-400 focus:ring-0"
-                      />
-                    </div>
-                  </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <Globe2 className="h-4 w-4 text-purple-500" />
+                    Language
+                  </label>
+                  <select
+                    value={template.language}
+                    onChange={(e) => handleChange('language', e.target.value as LanguageType)}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                      border border-gray-200 dark:border-gray-700 
+                      rounded-lg text-gray-900 dark:text-white 
+                      placeholder-gray-400 dark:placeholder-gray-500
+                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  >
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                  </select>
                 </div>
               </div>
             </div>
-
-            {/* Footer fixe avec bouton */}
-            <div className="sticky bottom-0 z-20 bg-white dark:bg-[#0B1120] rounded-b-3xl border-t border-gray-200 dark:border-gray-800">
-              <div className="p-6">
-                <button
-                  onClick={handleSave}
-                  className="w-full py-3 px-4 bg-[#9333EA] hover:bg-[#9333EA]/90
-                    text-white font-medium rounded-xl transition-colors
-                    flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 4V20M20 12L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  Generate Template
-                </button>
-              </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-6">
+              <TemplatePreview 
+                content={template.content} 
+                className="max-w-2xl mx-auto bg-white dark:bg-gray-800 
+                  p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              />
             </div>
-          </div>
+          )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
