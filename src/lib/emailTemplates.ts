@@ -65,35 +65,33 @@ interface PromptTemplate {
 const GOAL_PROMPTS: Record<EmailGoal, Record<EmailLength, Record<LanguageType, string>>> = {
   network: {
     short: {
-      fr: `Rédigez un email TRÈS COURT et PROFESSIONNEL pour établir un premier contact professionnel.
+      fr: `Rédigez un email TRÈS COURT et naturel (3-4 lignes maximum) pour établir une connexion professionnelle.
       
-      Structure obligatoire :
-      1. Salutation personnalisée et formelle (utilisez salutationField et lastNameField)
-      2. 2-3 lignes percutantes sur votre intérêt spécifique pour cette personne/entreprise (mentionnez companyField et positionField)
-      3. Proposition précise d'un appel de 15-20 minutes avec dates/heures possibles
-      4. Signature professionnelle
-      
-      Style :
-      - Concis mais impactant
-      - Direct avec une proposition de valeur claire
-      - Professionnel mais engageant
-      - Une phrase d'accroche mémorable
-      - Utilisez firstNameField au moins une fois dans le corps pour un ton plus personnel`,
-
-      en: `Write a VERY SHORT and PROFESSIONAL email to establish a first professional contact.
-      
-      Mandatory structure:
-      1. Personalized and formal greeting (use salutationField and lastNameField)
-      2. 2-3 impactful lines about your specific interest in this person/company (mention companyField and positionField)
-      3. Precise proposal for a 15-20 minute call with possible dates/times
-      4. Professional signature
+      Points clés à intégrer:
+      - Salutation brève (utilisez salutationField et lastNameField)
+      - Mention concise de votre intérêt pour companyField
+      - Proposition d'échange simple en 1 ligne maximum
+      - Signature avec votre prénom uniquement
       
       Style:
-      - Concise but impactful
-      - Direct with a clear value proposition
-      - Professional yet engaging
-      - A memorable opening line
-      - Use firstNameField at least once in the body for a more personal tone`
+      - Extrêmement concis mais humain
+      - Chaque mot doit apporter de la valeur
+      - Priorisez l'essentiel pour tenir en 3-4 lignes au TOTAL
+      - Évitez les formules banales pour économiser l'espace`,
+
+      en: `Write a VERY SHORT and natural email (3-4 lines maximum) to establish a professional connection.
+      
+      Key points to include:
+      - Brief greeting (use salutationField and lastNameField)
+      - Concise mention of your interest in companyField
+      - Simple exchange proposal in 1 line maximum
+      - Signature with your first name only
+      
+      Style:
+      - Extremely concise yet human
+      - Every word must add value
+      - Prioritize essentials to fit within 3-4 lines TOTAL
+      - Avoid generic phrases to save space`
     },
     medium: {
       fr: `Rédigez un email ÉQUILIBRÉ et EFFICACE pour établir un premier contact professionnel.
@@ -169,35 +167,35 @@ const GOAL_PROMPTS: Record<EmailGoal, Record<EmailLength, Record<LanguageType, s
 
   explore: {
     short: {
-      fr: `Rédigez un email TRÈS COURT et PERCUTANT de candidature spontanée.
+      fr: `Rédigez un email TRÈS COURT et authentique (3-4 lignes maximum) pour explorer des opportunités professionnelles.
       
-      Structure obligatoire :
-      1. Salutation professionnelle et personnalisée (avec salutationField et lastNameField)
-      2. Accroche impactante liée à l'entreprise ou au secteur (1 ligne, mentionnez companyField)
-      3. Votre proposition de valeur unique et spécifique (1-2 lignes, référencez positionField)
-      4. Call-to-action précis avec proposition d'un appel de 15 minutes (utilisez firstNameField pour personnaliser)
-      5. Signature professionnelle
+      Éléments à inclure:
+      - Salutation concise (avec salutationField et lastNameField)
+      - Mention ultra-brève montrant votre intérêt pour companyField
+      - Valeur ajoutée en 1-2 phrases maximum
+      - Proposition d'échange en une seule ligne
+      - Signature simple
       
-      Style :
-      - Ultra concis mais démontrant votre recherche sur l'entreprise
-      - Confiant sans être arrogant
-      - Spécifique à cette entreprise (pas un email générique)
-      - Ton enthousiaste mais professionnel`,
+      Style recherché:
+      - Extrêmement concis mais authentique
+      - Maximum 3-4 lignes au TOTAL, greetings/signature inclus
+      - Chaque mot doit être essentiel
+      - Naturel et précis sans détails superflus`,
 
-      en: `Write a VERY SHORT and IMPACTFUL spontaneous application email.
+      en: `Write a VERY SHORT and authentic email (3-4 lines maximum) to explore professional opportunities.
       
-      Mandatory structure:
-      1. Professional and personalized greeting (with salutationField and lastNameField)
-      2. Impactful opening related to the company or industry (1 line, mention companyField)
-      3. Your unique and specific value proposition (1-2 lines, reference positionField)
-      4. Precise call-to-action with a 15-minute call proposal (use firstNameField to personalize)
-      5. Professional signature
+      Elements to include:
+      - Concise greeting (with salutationField and lastNameField)
+      - Ultra-brief mention showing your interest in companyField
+      - Added value in 1-2 sentences maximum
+      - Exchange proposal in a single line
+      - Simple signature
       
-      Style:
-      - Ultra concise but showing your research on the company
-      - Confident without being arrogant
-      - Specific to this company (not a generic email)
-      - Enthusiastic yet professional tone`
+      Desired style:
+      - Extremely concise yet authentic
+      - Maximum 3-4 lines TOTAL, including greeting/signature
+      - Every word must be essential
+      - Natural and precise without superfluous details`
     },
     medium: {
       fr: `Rédigez un email ÉQUILIBRÉ et CIBLÉ de candidature spontanée.
@@ -275,37 +273,35 @@ const GOAL_PROMPTS: Record<EmailGoal, Record<EmailLength, Record<LanguageType, s
 
   introduction: {
     short: {
-      fr: `Rédigez un email TRÈS COURT et MÉMORABLE de présentation.
+      fr: `Rédigez un email TRÈS COURT et personnel (3-4 lignes maximum) pour vous présenter professionnellement.
       
-      Structure obligatoire :
-      1. Salutation professionnelle et personnalisée (avec salutationField et lastNameField)
-      2. Introduction impactante qui capte immédiatement l'attention (1 ligne, mentionnez companyField)
-      3. Votre proposition de valeur unique et spécifique (1-2 lignes, référencez positionField)
-      4. Call-to-action précis et facile à accepter (utilisez firstNameField pour personnaliser)
-      5. Signature professionnelle
+      Éléments à inclure dans ces 3-4 lignes:
+      - Salutation concise (avec salutationField et lastNameField)
+      - Introduction brève mais mémorable
+      - Mention rapide de votre intérêt pour companyField
+      - Suggestion d'échange en une phrase
+      - Signature simple
       
-      Style :
-      - Direct mais sophistiqué
-      - Ultra concis mais chaque mot compte
-      - Une accroche mémorable
-      - Ton confiant mais pas arrogant
-      - Intégrez naturellement tous les champs de fusion`,
+      Ton et style:
+      - Ultra-concis mais chaleureux
+      - Maximum 3-4 lignes au TOTAL
+      - Chaque mot doit être indispensable
+      - Simple mais efficace`,
 
-      en: `Write a VERY SHORT and MEMORABLE introduction email.
+      en: `Write a VERY SHORT and personal email (3-4 lines maximum) to introduce yourself professionally.
       
-      Mandatory structure:
-      1. Professional and personalized greeting (with salutationField and lastNameField)
-      2. Impactful introduction that immediately captures attention (1 line, mention companyField)
-      3. Your unique and specific value proposition (1-2 lines, reference positionField)
-      4. Precise and easy-to-accept call-to-action (use firstNameField to personalize)
-      5. Professional signature
+      Elements to include within these 3-4 lines:
+      - Concise greeting (with salutationField and lastNameField)
+      - Brief but memorable introduction
+      - Quick mention of your interest in companyField
+      - Exchange suggestion in one sentence
+      - Simple signature
       
-      Style:
-      - Direct yet sophisticated
-      - Ultra concise but every word counts
-      - A memorable hook
-      - Confident but not arrogant tone
-      - Naturally integrate all merge fields`
+      Tone and style:
+      - Ultra-concise yet warm
+      - Maximum 3-4 lines TOTAL
+      - Every word must be indispensable
+      - Simple but effective`
     },
     medium: {
       fr: `Rédigez un email ÉQUILIBRÉ et ENGAGEANT de présentation.
@@ -398,14 +394,22 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
       ? "IMPORTANT: Répondez UNIQUEMENT en français."
       : "IMPORTANT: Reply ONLY in English.";
 
-    // Instructions système adaptées selon la longueur
+    // Instructions système adaptées selon la longueur avec limites spécifiques
+    const getLengthInstruction = (length: EmailLength, language: LanguageType) => {
+      if (language === 'fr') {
+        if (length === 'short') return 'très courts (3-4 lignes, max 250 caractères)';
+        if (length === 'medium') return 'équilibrés (5-7 lignes, max 400 caractères)';
+        return 'détaillés mais concis (8-12 lignes, max 800 caractères)';
+      } else {
+        if (length === 'short') return 'very short (3-4 lines, max 250 characters)';
+        if (length === 'medium') return 'balanced (5-7 lines, max 400 characters)';
+        return 'detailed yet concise (8-12 lines, max 800 characters)';
+      }
+    };
+
     const systemInstruction = options.language === 'fr'
-      ? `Vous êtes un expert en emails de prise de contact professionnelle ${
-          options.length === 'short' ? 'courts et percutants' : 'professionnels et engageants'
-        }.`
-      : `You are an expert in ${
-          options.length === 'short' ? 'short, impactful' : 'professional, engaging'
-        } professional networking emails.`;
+      ? `Vous êtes un expert en emails de prise de contact professionnelle ${getLengthInstruction(options.length, options.language)}.`
+      : `You are an expert in ${getLengthInstruction(options.length, options.language)} professional networking emails.`;
 
     // Construction du contexte utilisateur avec focus sur la signature
     const userContext = options.language === 'fr'
@@ -416,7 +420,8 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
          
          IMPORTANT : 
          - Signez uniquement avec "${options.userProfile.firstName}"
-         - Créez un objet d'email clair et accrocheur qui mentionne le but de l'email`
+         - Créez un objet d'email clair et accrocheur qui mentionne le but de l'email
+         - Respectez STRICTEMENT la longueur demandée: ${options.length === 'short' ? '3-4 lignes' : options.length === 'medium' ? '5-7 lignes' : '8-12 lignes'}`
       : `Candidate context:
          - Signature: ${options.userProfile.firstName}
          - Motivation: ${options.userProfile.motivation}
@@ -424,7 +429,8 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
          
          IMPORTANT:
          - Sign only with "${options.userProfile.firstName}"
-         - Create a clear and engaging subject line that mentions the email's purpose`;
+         - Create a clear and engaging subject line that mentions the email's purpose
+         - STRICTLY respect the requested length: ${options.length === 'short' ? '3-4 lines' : options.length === 'medium' ? '5-7 lines' : '8-12 lines'}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
@@ -433,36 +439,57 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
           role: "system",
           content: `${systemInstruction}\n${languageInstruction}
           
-          You are a highly skilled professional with expertise in crafting exceptional business communication. Your emails are:
-          1. Tailored to specific professional contexts
-          2. Written with precise, concise and impactful language
-          3. Structured for maximum effectiveness
-          4. Always appropriate in tone and formality level
+          You are a highly skilled professional who writes authentic, human-sounding emails. Your writing style:
+          1. Sounds completely natural and conversational - NEVER robotic or formulaic
+          2. Includes occasional minor imperfections (e.g., a brief tangent, slight informality)
+          3. Varies sentence structure and length for natural rhythm
+          4. Avoids obvious templates and corporate jargon
+          5. Has subtle personality traits that make it feel authentically human
+          
+          LENGTH REQUIREMENTS - STRICT:
+          ${options.length === 'short' 
+            ? '- VERY SHORT: 3-4 lines total (body text only, excluding greeting/signature)'
+            : options.length === 'medium'
+              ? '- MEDIUM: 5-7 lines total (body text only, excluding greeting/signature)'
+              : '- DETAILED: 8-12 lines total (body text only, excluding greeting/signature)'
+          }
+          - A line is approximately 60-80 characters
+          - Do not exceed the maximum number of lines under any circumstances
+          - Content must fit within a quick glance on mobile
+          
+          ANTI-AI GUIDELINES:
+          - Occasional use of contractions, even in professional contexts
+          - Some sentences may start with conjunctions (But, And)
+          - Include a subtle personal touch that suggests a real person wrote this
+          - Vary paragraph length unpredictably (sometimes very short, sometimes medium)
+          - Carefully use an occasional comma splice for natural flow
+          - When appropriate, use a more casual closing line before the signature
+          - Never include overly perfect parallel structure or formulaic transitions
           
           IMPORTANT FORMAT:
           ${options.language === 'fr' 
-            ? `1. Commencez par "Subject: [Objet clair et engageant]"
+            ? `1. Commencez par "Subject: [Objet d'email qui paraît naturel et efficace]"
                Exemples d'objets :
-               - "Échange de 15 minutes sur les opportunités chez companyField"
-               - "Collaboration potentielle chez companyField"
-               - "Proposition de valeur pour companyField"
-               - "Intérêt pour rejoindre l'équipe de companyField"`
-            : `1. Start with "Subject: [Clear, engaging subject]"
+               - "Échange rapide sur companyField?"
+               - "Une idée pour companyField"
+               - "Connexion professionnelle - companyField"
+               - "Question sur votre équipe chez companyField"`
+            : `1. Start with "Subject: [Natural, effective subject line]"
                Example subjects:
-               - "Quick chat about collaboration at companyField"
-               - "Let's connect about opportunities at companyField"
-               - "15-min call to discuss value proposition at companyField"
-               - "Interest in joining the team at companyField"`
+               - "Quick thought about companyField"
+               - "Question about your team at companyField"
+               - "companyField - professional connection"
+               - "Following up on companyField opportunity"`
           }
           
           2. Sautez une ligne
           3. Écrivez le contenu de l'email avec:
-             - Une ouverture qui capte l'attention
-             - Un corps qui offre de la valeur au destinataire
-             - Une conclusion avec une call-to-action claire
+             - Une ouverture authentique qui semble naturelle et personnalisée
+             - Un corps qui évite les phrases toutes faites
+             - Une conclusion qui sonne humaine et pas trop parfaite
           4. Terminez par une signature simple avec UNIQUEMENT le prénom fourni
           
-          IMPORTANT MERGE FIELDS - USE ALL OF THESE NATURALLY THROUGHOUT THE EMAIL:
+          IMPORTANT MERGE FIELDS - USE THESE NATURALLY:
           - salutationField (Titre formel, ex: "Mr.", "Ms.", "Dr.")
           - firstNameField (Prénom du destinataire)
           - lastNameField (Nom de famille du destinataire)
@@ -470,32 +497,32 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
           - positionField (Poste ou rôle professionnel)
           
           MERGE FIELD USAGE GUIDELINES:
-          - ALWAYS use proper salutation with salutationField and lastNameField in the greeting
-          - Use firstNameField in the body of the email for a more personal touch
-          - Reference companyField at least twice in different contexts
-          - Refer to positionField when discussing potential value or collaboration
-          - Incorporate merge fields naturally - they should flow with the text
-          - Do not overuse fields or place them artificially
+          - Use merge fields organically where they naturally fit
+          - Don't force all merge fields if they don't fit naturally
+          - Make the greeting feel authentic to a real correspondence
+          - Occasionally refer to firstNameField in the body if it feels natural
+          - Reference companyField in a way that suggests genuine knowledge/interest
+          - Avoid robotic placement of merge fields in identical positions across templates
           
           DO NOT use any other merge fields or variables.
           DO NOT use double curly braces {{}} format.
           Always use the format: wordField (example: firstNameField)
           
-          WRITING GUIDELINES:
-          - Be specific and concrete rather than generic
-          - Avoid clichés and overused phrases
-          - Use active voice and confident language
-          - Maintain professional warmth appropriate to context
-          - Respect cultural norms of professional communication
-          - Ensure the email feels personalized, not mass-produced`
+          WRITING GUIDELINES FOR AUTHENTICITY:
+          - Write like a human professional would in a real work situation
+          - Include occasional subtle verbal flourishes that AI typically avoids
+          - Balance professionalism with genuine human warmth
+          - Subtly vary your style so templates don't all sound identical
+          - Use phrasing that wouldn't appear in every other email template
+          - Add a slight touch of unique personality appropriate to the context`
         },
         {
           role: "user",
           content: `${prompt}\n\n${userContext}\n\n${options.specificPoints ? `Additional context: ${options.specificPoints}` : ''}`
         }
       ],
-      temperature: options.length === 'short' ? 0.6 : 0.7,
-      max_tokens: options.length === 'short' ? 600 : 1000
+      temperature: options.length === 'short' ? 0.75 : 0.85,
+      max_tokens: options.length === 'short' ? 350 : options.length === 'medium' ? 600 : 1000
     });
 
     const content = completion.choices[0]?.message?.content;

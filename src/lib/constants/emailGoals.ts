@@ -2,22 +2,22 @@ export const EMAIL_GOALS = {
   network: {
     label: 'Build Connection',
     examples: {
-      en: 'Perfect for: expanding network, getting known in the company',
-      fr: 'Parfait pour : développer son réseau, se faire connaître dans l\'entreprise'
+      en: 'Perfect for: reaching out to new contacts and strengthening professional relationships',
+      fr: 'Parfait pour : contacter de nouvelles personnes et renforcer vos relations professionnelles'
     }
   },
   explore: {
     label: 'Explore Opportunities',
     examples: {
-      en: 'Perfect for: targeted spontaneous application, active job search',
-      fr: 'Parfait pour : candidature spontanée ciblée, recherche active'
+      en: 'Perfect for: inquiring about roles, expressing interest in specific companies',
+      fr: 'Parfait pour : s\'informer sur des postes, exprimer un intérêt pour certaines entreprises'
     }
   },
   introduction: {
     label: 'Make Introduction',
     examples: {
-      en: 'Perfect for: positioning for the future, staying on the radar',
-      fr: 'Parfait pour : se positionner pour le futur, rester dans le radar'
+      en: 'Perfect for: presenting yourself professionally, making a memorable first impression',
+      fr: 'Parfait pour : vous présenter professionnellement, faire une première impression mémorable'
     }
   }
 } as const;
