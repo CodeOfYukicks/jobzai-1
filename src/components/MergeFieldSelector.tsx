@@ -6,11 +6,11 @@ interface MergeFieldSelectorProps {
 }
 
 const MERGE_FIELDS = [
-  { id: 'firstName', label: 'First name', value: '(First name)' },
-  { id: 'lastName', label: 'Last name', value: '(Last name)' },
-  { id: 'fullName', label: 'Full name', value: '(Full name)' },
-  { id: 'company', label: 'Company', value: '(Company)' },
-  { id: 'jobPosition', label: 'Job position', value: '(Job position)' }
+  { id: 'salutation', label: 'Salutation', value: 'salutationField' },
+  { id: 'firstName', label: 'First name', value: 'firstNameField' },
+  { id: 'lastName', label: 'Last name', value: 'lastNameField' },
+  { id: 'company', label: 'Company', value: 'companyField' },
+  { id: 'jobPosition', label: 'Job position', value: 'positionField' }
 ];
 
 export default function MergeFieldSelector({ onSelectField }: MergeFieldSelectorProps) {

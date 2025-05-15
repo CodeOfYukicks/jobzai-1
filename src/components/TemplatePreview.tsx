@@ -32,7 +32,8 @@ export default function TemplatePreview({ content, className = '' }: TemplatePre
       .replace(/firstNameField/g, previewData.firstName)
       .replace(/lastNameField/g, previewData.lastName)
       .replace(/companyField/g, previewData.company)
-      .replace(/positionField/g, previewData.jobPosition);
+      .replace(/positionField/g, previewData.jobPosition)
+      .replace(/fullNameField/g, previewData.fullName);
   };
 
   return (
