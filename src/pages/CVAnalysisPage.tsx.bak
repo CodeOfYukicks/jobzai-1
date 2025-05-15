@@ -2975,7 +2975,7 @@ Return ONLY a structured JSON object with the following schema:
                 hover:opacity-90 transition-all duration-200
                 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto"
             >
-              <Sparkles className="h-4 w-4 text-white" />
+              <Sparkles className="h-5 w-5 text-white" />
               <span className="text-sm font-medium text-white">New Analysis</span>
             </button>
           </div>
