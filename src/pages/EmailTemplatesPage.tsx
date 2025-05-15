@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, PanInfo, useAnimation } from 'framer-motion';
 import { Search, Folder, Heart, Plus, Wand2, Trash2, ArrowLeft, X, Pencil, Mail, LayoutGrid, List as ListIcon } from 'lucide-react';
@@ -107,6 +107,18 @@ export default function EmailTemplatesPage() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [filter, setFilter] = useState<'all' | 'favorites' | 'ai'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [lastGeneratedTemplateId, setLastGeneratedTemplateId] = useState<string | null>(null);
+  
+  // Timer to clear the highlight effect
+  useEffect(() => {
+    if (lastGeneratedTemplateId) {
+      const timer = setTimeout(() => {
+        setLastGeneratedTemplateId(null);
+      }, 5000); // Animation disappears after 5 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [lastGeneratedTemplateId]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -387,13 +399,57 @@ export default function EmailTemplatesPage() {
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTemplates.map((template) => (
-              <div
+              <motion.div
                 key={template.id}
-                className="group bg-white dark:bg-gray-800 rounded-xl p-6 
+                className={`group bg-white dark:bg-gray-800 rounded-xl p-6 
                   border border-gray-200 dark:border-gray-700
                   hover:shadow-lg hover:border-purple-500 dark:hover:border-purple-500
-                  transition-all duration-200"
+                  transition-all duration-200 relative
+                  ${template.id === lastGeneratedTemplateId ? 'z-10' : ''}`}
+                animate={template.id === lastGeneratedTemplateId ? {
+                  boxShadow: [
+                    '0 0 0 0 rgba(147, 51, 234, 0)',
+                    '0 0 0 10px rgba(147, 51, 234, 0.3)',
+                    '0 0 0 0 rgba(147, 51, 234, 0)'
+                  ],
+                  scale: [1, 1.03, 1],
+                  borderColor: [
+                    'rgba(147, 51, 234, 0.5)',
+                    'rgba(147, 51, 234, 1)',
+                    'rgba(147, 51, 234, 0.5)'
+                  ]
+                } : {}}
+                transition={template.id === lastGeneratedTemplateId ? {
+                  duration: 1.8,
+                  ease: "easeInOut",
+                  times: [0, 0.5, 1],
+                  repeat: 2,
+                  repeatType: 'loop'
+                } : {}}
               >
+                {template.id === lastGeneratedTemplateId && (
+                  <motion.div
+                    className="absolute inset-0 rounded-xl pointer-events-none"
+                    initial={{ opacity: 0.5 }}
+                    animate={{ 
+                      opacity: [0.5, 1, 0.5],
+                      borderColor: ['rgba(147, 51, 234, 0.3)', 'rgba(147, 51, 234, 0.8)', 'rgba(147, 51, 234, 0.3)'],
+                      borderWidth: [2, 3, 2],
+                      boxShadow: [
+                        'inset 0 0 0 0 rgba(147, 51, 234, 0.1)',
+                        'inset 0 0 0 3px rgba(147, 51, 234, 0.2)',
+                        'inset 0 0 0 0 rgba(147, 51, 234, 0.1)'
+                      ]
+                    }}
+                    transition={{ 
+                      duration: 1.8, 
+                      ease: "easeInOut",
+                      times: [0, 0.5, 1],
+                      repeat: 2, 
+                      repeatType: 'loop' 
+                    }}
+                  />
+                )}
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600 truncate max-w-[70%]">
                     {template.name}
@@ -448,7 +504,7 @@ export default function EmailTemplatesPage() {
                     <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         ) : (
@@ -473,10 +529,45 @@ export default function EmailTemplatesPage() {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredTemplates.map((template) => (
-                    <tr 
+                    <motion.tr 
                       key={template.id} 
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 relative"
+                      animate={template.id === lastGeneratedTemplateId ? {
+                        backgroundColor: [
+                          'rgba(147, 51, 234, 0.02)',
+                          'rgba(147, 51, 234, 0.12)',
+                          'rgba(147, 51, 234, 0.02)'
+                        ],
+                        boxShadow: [
+                          'inset 0 0 0 0 rgba(147, 51, 234, 0)',
+                          'inset 0 0 0 1px rgba(147, 51, 234, 0.3)',
+                          'inset 0 0 0 0 rgba(147, 51, 234, 0)'
+                        ]
+                      } : {}}
+                      transition={template.id === lastGeneratedTemplateId ? {
+                        duration: 1.8,
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        repeat: 2,
+                        repeatType: 'loop'
+                      } : {}}
                     >
+                      {template.id === lastGeneratedTemplateId && (
+                        <motion.td 
+                          className="absolute inset-0 pointer-events-none" 
+                          initial={{ opacity: 0 }}
+                          animate={{ 
+                            opacity: [0.3, 0.6, 0.3]
+                          }}
+                          transition={{ 
+                            duration: 1.8, 
+                            ease: "easeInOut",
+                            times: [0, 0.5, 1],
+                            repeat: 2, 
+                            repeatType: 'loop' 
+                          }}
+                        />
+                      )}
                       <td className="px-6 py-4">
                         <div className="flex flex-col cursor-pointer" onClick={() => setTemplateToEdit(template)}>
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -540,7 +631,7 @@ export default function EmailTemplatesPage() {
                           </button>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
@@ -551,7 +642,10 @@ export default function EmailTemplatesPage() {
         {/* Modals */}
         <AnimatePresence>
           {showGenerateModal && (
-            <GenerateTemplateModal onClose={() => setShowGenerateModal(false)} />
+            <GenerateTemplateModal 
+              onClose={() => setShowGenerateModal(false)} 
+              onTemplateCreated={(templateId) => setLastGeneratedTemplateId(templateId)}
+            />
           )}
           {templateToDelete && (
             <DeleteTemplateDialog
