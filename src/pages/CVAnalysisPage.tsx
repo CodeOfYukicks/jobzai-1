@@ -1722,14 +1722,6 @@ Return ONLY a structured JSON object with the following schema:
             jobDescription: formData.jobDescription || 'Not provided'
           };
           
-          // Get API key safely using Vite's import.meta.env
-          const apiKey = window.ENV?.VITE_ANTHROPIC_API_KEY || 
-                        import.meta.env.VITE_ANTHROPIC_API_KEY as string;
-          
-          if (!apiKey) {
-            throw new Error('Anthropic API key is missing. Please check your .env file and restart the server');
-          }
-          
           console.log('📡 Sending request to Claude API for PDF analysis...');
           
           // Update loading step

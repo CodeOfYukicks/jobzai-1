@@ -553,6 +553,27 @@ END:VCALENDAR`;
       border-width: 2px !important;
       transform-origin: center center !important;
     }
+
+    /* Styles pour les actions de la carte */
+    .card-actions {
+      opacity: 0.5;
+      transition: opacity 0.2s ease;
+    }
+
+    .card-container:hover .card-actions,
+    .card-actions:hover {
+      opacity: 1;
+    }
+
+    /* Animation hover des cartes */
+    .card-container {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card-container:hover:not(.dragging-card) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    }
   `;
 
   return (
@@ -724,9 +745,41 @@ END:VCALENDAR`;
                                         }}
                                       >
                                         <div
-                                          className={`bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 lg:p-4 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-200 ${snapshot.isDragging ? 'ring-2 ring-purple-500 ring-opacity-50 dragging' : 'hover:shadow-md'}`}
+                                          className={`card-container bg-white dark:bg-gray-800 rounded-lg p-2.5 sm:p-3 lg:p-4 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-200 relative overflow-hidden ${snapshot.isDragging ? 'ring-2 ring-purple-500 ring-opacity-50 dragging' : 'hover:shadow-md'}`}
                                         >
-                                          {/* Add onClick to show timeline */}
+                                          {/* Position absolute pour les boutons avec un effet de fond subtil */}
+                                          <div className="absolute top-0 right-0 h-full flex items-start pt-2.5 px-2.5 card-actions">
+                                            <div className="absolute inset-0 bg-gradient-to-l from-white/80 dark:from-gray-800/80 to-transparent w-16 h-full pointer-events-none"></div>
+                                            <div className="relative flex z-10">
+                                              <motion.button
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setFormData(app);
+                                                  setEditModal({ show: true, application: app });
+                                                }}
+                                                className="w-6 h-6 mr-1 flex items-center justify-center bg-gray-50/90 dark:bg-gray-700/90 text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/40 rounded-full focus:outline-none shadow-sm backdrop-blur-sm"
+                                                aria-label="Edit application"
+                                              >
+                                                <Edit3 className="w-3 h-3" />
+                                              </motion.button>
+                                              <motion.button
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setDeleteModal({ show: true, application: app });
+                                                }}
+                                                className="w-6 h-6 flex items-center justify-center bg-gray-50/90 dark:bg-gray-700/90 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-full focus:outline-none shadow-sm backdrop-blur-sm"
+                                                aria-label="Delete application"
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </motion.button>
+                                            </div>
+                                          </div>
+
+                                          {/* Add onClick to show timeline - avec padding pour éviter le chevauchement avec les boutons */}
                                           <div 
                                             onClick={() => {
                                               if (!snapshot.isDragging) {
@@ -734,43 +787,16 @@ END:VCALENDAR`;
                                                 setTimelineModal(true);
                                               }
                                             }}
-                                            className="cursor-pointer"
+                                            className="cursor-pointer pr-14"
                                           >
                                             {/* Contenu de la carte */}
-                                            <div className="flex justify-between items-start mb-2">
-                                              <div>
-                                                <h4 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">
-                                                  {app.companyName}
-                                                </h4>
-                                                <p className="text-purple-600 dark:text-purple-400 text-xs">
-                                                  {app.position}
-                                                </p>
-                                              </div>
-                                              <div className="flex gap-1 sm:gap-2">
-                                                <motion.button
-                                                  whileHover={{ scale: 1.1 }}
-                                                  whileTap={{ scale: 0.9 }}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setFormData(app);
-                                                    setEditModal({ show: true, application: app });
-                                                  }}
-                                                  className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                                                >
-                                                  <Edit3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500" />
-                                                </motion.button>
-                                                <motion.button
-                                                  whileHover={{ scale: 1.1 }}
-                                                  whileTap={{ scale: 0.9 }}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setDeleteModal({ show: true, application: app });
-                                                  }}
-                                                  className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                                                >
-                                                  <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500" />
-                                                </motion.button>
-                                              </div>
+                                            <div className="mb-2">
+                                              <h4 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm truncate">
+                                                {app.companyName}
+                                              </h4>
+                                              <p className="text-purple-600 dark:text-purple-400 text-xs truncate">
+                                                {app.position}
+                                              </p>
                                             </div>
 
                                             {/* Indicateurs d'entretien avec petite animation sur hover */}
@@ -1095,12 +1121,15 @@ END:VCALENDAR`;
               <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-semibold">New Application</h2>
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setNewApplicationModal(false)} 
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center"
+                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                    aria-label="Close modal"
                   >
-                    <X className="w-5 h-5" />
-                  </button>
+                    <X className="w-4 h-4" />
+                  </motion.button>
                 </div>
               </div>
 
@@ -1213,13 +1242,15 @@ END:VCALENDAR`;
               <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-semibold">Edit Application</h2>
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setEditModal({ show: false })} 
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center"
+                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                    aria-label="Close modal"
                   >
-                    <X className="w-5 h-5" />
-                    <span className="sr-only">Close</span>
-                  </button>
+                    <X className="w-4 h-4" />
+                  </motion.button>
                 </div>
               </div>
 
@@ -1361,15 +1392,18 @@ END:VCALENDAR`;
                               <option value="cancelled">Cancelled</option>
                             </select>
                           </div>
-                          <button
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => {
                               const newInterviews = formData.interviews?.filter((_, i) => i !== index);
                               setFormData(prev => ({ ...prev, interviews: newInterviews }));
                             }}
-                            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                            aria-label="Remove interview"
                           >
-                            <X className="w-4 h-4 text-gray-500" />
-                          </button>
+                            <X className="w-4 h-4" />
+                          </motion.button>
                         </div>
 
                         {/* Corps de l'entretien */}
@@ -1504,34 +1538,40 @@ END:VCALENDAR`;
               <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-semibold">Application Timeline</h2>
-                  <div className="flex items-center gap-2">
-                    <button 
+                  <div className="flex items-center">
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         setTimelineModal(false);
                         setEditModal({ show: true, application: selectedApplication });
                       }} 
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full transition-colors"
                       aria-label="Edit application"
                     >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    <button 
+                      <Edit2 className="w-4.5 h-4.5" />
+                    </motion.button>
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         setTimelineModal(false);
                         setDeleteModal({ show: true, application: selectedApplication });
                       }} 
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center text-red-500"
+                      className="w-9 h-9 ml-1 flex items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                       aria-label="Delete application"
                     >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                    <button 
+                      <Trash2 className="w-4.5 h-4.5" />
+                    </motion.button>
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => setTimelineModal(false)} 
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex items-center justify-center"
+                      className="w-9 h-9 ml-1 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                       aria-label="Close modal"
                     >
-                      <X className="w-5 h-5" />
-                    </button>
+                      <X className="w-4.5 h-4.5" />
+                    </motion.button>
                   </div>
                 </div>
               </div>
@@ -1715,9 +1755,15 @@ END:VCALENDAR`;
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="text-lg font-semibold">Delete Application</h2>
-                <button onClick={() => setDeleteModal({ show: false })} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <X className="w-5 h-5" />
-                </button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setDeleteModal({ show: false })}
+                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
               </div>
               
               <p className="text-gray-600 dark:text-gray-300 mb-6">

@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { db } from '../../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Define the request and response types
 interface ClaudeRequest {
@@ -39,13 +41,14 @@ export default async function handler(
   }
 
   try {
-    // Get API key from environment variables
-    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
+    // Get API key from Firestore (settings/anthropic)
+    const settingsDoc = await getDoc(doc(db, 'settings', 'anthropic'));
+    const apiKey = settingsDoc.exists() ? settingsDoc.data().apiKey : null;
     
     if (!apiKey) {
       return res.status(500).json({ 
         status: 'error', 
-        message: 'Claude API key is missing in environment' 
+        message: 'Claude API key is missing in Firestore (settings/anthropic)' 
       });
     }
     

@@ -415,19 +415,26 @@ export default function InterviewPrepPage() {
 
   const sendMessage = async () => {
     if (!message.trim() || isSending || !currentUser || !application || !interview || !applicationId) return;
-    
+
     // Add user message to chat
     const userMessage: ChatMessage = {
       role: 'user',
       content: message,
       timestamp: Date.now()
     };
-    
-    const updatedMessages = [...chatMessages, userMessage];
+
+    // Add a temporary assistant message for 'thinking...'
+    const thinkingMessage: ChatMessage = {
+      role: 'assistant',
+      content: '__thinking__',
+      timestamp: Date.now() + 1 // ensure unique timestamp
+    };
+
+    const updatedMessages = [...chatMessages, userMessage, thinkingMessage];
     setChatMessages(updatedMessages);
     setMessage('');
     setIsSending(true);
-    
+
     try {
       // Build context for the AI based on the job details
       const context = `
@@ -449,73 +456,43 @@ export default function InterviewPrepPage() {
         USER'S CHAT HISTORY (for context only - don't reference this directly):
         ${chatMessages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}
       `;
-      
-      console.log('Sending message to Perplexity API');
-      
+
       // Query Perplexity API with a single argument
       const response = await queryPerplexity(
         context + "\n\nUser message: " + message
       );
-      
-      console.log('Response received from Perplexity API:', response);
-      
+
       // Check if the response contains an error
-      if (response.error) {
-        console.error('Error in Perplexity response:', response.errorMessage);
-        
-        // Add error message to chat
-        const errorMessage: ChatMessage = {
-          role: 'assistant',
-          content: response.text || "I'm sorry, I couldn't process your request. Please try again later.",
-          timestamp: Date.now()
-        };
-        
-        const newMessages = [...updatedMessages, errorMessage];
-        setChatMessages(newMessages);
-        
-        // Save error message to chat history
-        await saveChatHistory(newMessages);
-        return;
-      }
-      
-      if (!response.text) {
-        throw new Error("Response from AI is empty or invalid");
-      }
-      
-      // Add AI response to chat
+      let aiContent = response.text || "I'm sorry, I couldn't process your request. Please try again later.";
+      // Remove <think> tags if present
+      aiContent = aiContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      // Remove references like [1], [2], [3], etc.
+      aiContent = aiContent.replace(/\[\d+\]/g, '');
+
       const aiMessage: ChatMessage = {
         role: 'assistant',
-        content: response.text,
+        content: aiContent,
         timestamp: Date.now()
       };
-      
-      const newMessages = [...updatedMessages, aiMessage];
+
+      // Replace the last thinking message with the real response
+      const newMessages = updatedMessages.slice(0, -1).concat(aiMessage);
       setChatMessages(newMessages);
-      
-      // Save chat history to Firestore
       await saveChatHistory(newMessages);
-      
     } catch (error) {
-      console.error('Error sending message:', error);
-      
-      // Add error message to chat so user knows what happened
+      // Replace the last thinking message with an error message
       const errorMessage: ChatMessage = {
         role: 'assistant',
         content: "I'm sorry, I encountered an error while processing your request. This might be due to network issues or browser settings blocking requests. Please try again later.",
         timestamp: Date.now()
       };
-      
-      const newMessages = [...updatedMessages, errorMessage];
+      const newMessages = updatedMessages.slice(0, -1).concat(errorMessage);
       setChatMessages(newMessages);
-      
-      // Try to save the error message to chat history
       try {
         await saveChatHistory(newMessages);
       } catch (saveError) {
-        console.error('Error saving chat history:', saveError);
         toast.error('Failed to save chat history');
       }
-      
       toast.error('Failed to send message: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSending(false);
@@ -1865,10 +1842,60 @@ Return the questions in a JSON format like this:
                         </div>
                       ) : (
                         chatMessages.map((msg, index) => {
+                          // Handle the special thinking message
+                          if (msg.role === 'assistant' && msg.content === '__thinking__') {
+                            return (
+                              <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex justify-start mb-4"
+                              >
+                                <div className="flex items-start gap-3 max-w-[85%] flex-row">
+                                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-400 to-indigo-600 shadow-md">
+                                    <Bot className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div className="p-4 rounded-2xl shadow-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700">
+                                    <span className="flex items-center gap-2 text-sm">
+                                      <span>AI is thinking...</span>
+                                      <span className="inline-block">
+                                        <span className="dot-typing">
+                                          <span className="dot"></span>
+                                          <span className="dot"></span>
+                                          <span className="dot"></span>
+                                        </span>
+                                      </span>
+                                    </span>
+                                  </div>
+                                </div>
+                                <style>{`
+                                  .dot-typing {
+                                    display: inline-flex;
+                                    gap: 2px;
+                                  }
+                                  .dot {
+                                    width: 6px;
+                                    height: 6px;
+                                    background: #6366f1;
+                                    border-radius: 50%;
+                                    display: inline-block;
+                                    animation: dot-typing 1s infinite linear alternate;
+                                  }
+                                  .dot:nth-child(2) { animation-delay: 0.2s; }
+                                  .dot:nth-child(3) { animation-delay: 0.4s; }
+                                  @keyframes dot-typing {
+                                    0% { opacity: 0.2; transform: translateY(0); }
+                                    50% { opacity: 1; transform: translateY(-3px); }
+                                    100% { opacity: 0.2; transform: translateY(0); }
+                                  }
+                                `}</style>
+                              </motion.div>
+                            );
+                          }
                           // Process assistant messages to make them more concise
                           let displayContent = msg.content;
                           let isLongMessage = false;
-                          
+                          let isTruncated = false;
                           if (msg.role === 'assistant' && msg.content.length > 250) {
                             isLongMessage = true;
                             if (!expandedMessages[index]) {
@@ -1877,9 +1904,9 @@ Return the questions in a JSON format like this:
                               displayContent = firstParagraphMatch ? 
                                 firstParagraphMatch[0].slice(0, 250) : 
                                 msg.content.slice(0, 250);
-                              
                               if (displayContent.length < msg.content.length) {
                                 displayContent += '...';
+                                isTruncated = true;
                               }
                             }
                           }
@@ -1930,7 +1957,7 @@ Return the questions in a JSON format like this:
                                 `}>
                                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{displayContent}</p>
                                   
-                                  {isLongMessage && (
+                                  {isLongMessage && isTruncated && (
                                     <button
                                       onClick={() => toggleMessageExpansion(index)}
                                       className={`text-xs mt-2 font-medium hover:underline inline-flex items-center
