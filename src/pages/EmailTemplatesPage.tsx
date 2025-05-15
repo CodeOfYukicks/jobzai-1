@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, PanInfo, useAnimation } from 'framer-motion';
-import { Search, Folder, Heart, Plus, Wand2, Trash2, ArrowLeft, X, Pencil, Mail } from 'lucide-react';
+import { Search, Folder, Heart, Plus, Wand2, Trash2, ArrowLeft, X, Pencil, Mail, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { collection, query, onSnapshot, doc, deleteDoc, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,7 +43,6 @@ const SwipeableTemplateCard: React.FC<SwipeableTemplateCardProps> = ({
     onSwipedRight: () => onFavorite(template),
     trackMouse: true,
     delta: 50, // distance minimum pour déclencher le swipe
-    preventDefaultTouchmoveEvent: true,
     trackTouch: true,
   });
 
@@ -107,6 +106,7 @@ export default function EmailTemplatesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [filter, setFilter] = useState<'all' | 'favorites' | 'ai'>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -164,7 +164,7 @@ export default function EmailTemplatesPage() {
     }
   };
 
-  const handleFavorite = async (template) => {
+  const handleFavorite = async (template: EmailTemplate) => {
     if (!currentUser) return;
     try {
       const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', template.id);
@@ -190,7 +190,7 @@ export default function EmailTemplatesPage() {
       const matchesFilter = 
         filter === 'all' ? true :
         filter === 'favorites' ? template.liked :
-        filter === 'ai generated' ? template.aiGenerated === true :
+        filter === 'ai' ? template.aiGenerated :
         true;
 
       return matchesSearch && matchesFilter;
@@ -289,24 +289,56 @@ export default function EmailTemplatesPage() {
 
         {/* Search and Filters */}
         <div className="mb-8">
-          <div className="relative mb-4">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by template name, content or tags..."
-              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 
-                border border-gray-200 dark:border-gray-700 rounded-xl
-                focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by template name, content or tags..."
+                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 
+                  border border-gray-200 dark:border-gray-700 rounded-xl
+                  focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+            
+            {/* View Toggle Buttons */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 flex">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg flex items-center justify-center ${
+                  viewMode === 'grid' 
+                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                aria-label="Grid View"
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg flex items-center justify-center ${
+                  viewMode === 'list' 
+                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                aria-label="List View"
+              >
+                <ListIcon className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
             {['All', 'Favorites', 'AI Generated'].map((filterOption) => (
               <button
                 key={filterOption}
-                onClick={() => setFilter(filterOption === 'AI Generated' ? 'ai' : filterOption.toLowerCase())}
+                onClick={() => setFilter(
+                  filterOption === 'AI Generated' 
+                    ? 'ai' 
+                    : filterOption.toLowerCase() as 'all' | 'favorites' | 'ai'
+                )}
                 className={`
                   flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                   ${(filter === filterOption.toLowerCase() || (filter === 'ai' && filterOption === 'AI Generated'))
@@ -324,76 +356,12 @@ export default function EmailTemplatesPage() {
           </div>
         </div>
 
-        {/* Templates Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map((template) => (
-            <div
-              key={template.id}
-              className="group bg-white dark:bg-gray-800 rounded-xl p-6 
-                border border-gray-200 dark:border-gray-700
-                hover:shadow-lg hover:border-purple-500 dark:hover:border-purple-500
-                transition-all duration-200"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600">
-                  {template.name}
-                </h3>
-                {template.aiGenerated && (
-                  <span className="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/30 
-                    text-purple-600 dark:text-purple-400 rounded-full">
-                    AI
-                  </span>
-                )}
-              </div>
-
-              <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">
-                {template.content}
-              </p>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                {template.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 
-                      text-gray-600 dark:text-gray-400 rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleFavorite(template)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <Heart 
-                      className={`h-4 w-4 ${template.liked 
-                        ? 'fill-red-500 text-red-500' 
-                        : 'text-gray-400 hover:text-red-500'}`} 
-                    />
-                  </button>
-                  <button
-                    onClick={() => setTemplateToEdit(template)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <Pencil className="h-4 w-4 text-gray-400 hover:text-purple-500" />
-                  </button>
-                </div>
-                <button
-                  onClick={() => setTemplateToDelete(template)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredTemplates.length === 0 && (
+        {/* Templates (Grid or List) */}
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+          </div>
+        ) : filteredTemplates.length === 0 ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 
               rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
@@ -415,6 +383,168 @@ export default function EmailTemplatesPage() {
               <Wand2 className="h-4 w-4 mr-2" />
               Generate with AI
             </button>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTemplates.map((template) => (
+              <div
+                key={template.id}
+                className="group bg-white dark:bg-gray-800 rounded-xl p-6 
+                  border border-gray-200 dark:border-gray-700
+                  hover:shadow-lg hover:border-purple-500 dark:hover:border-purple-500
+                  transition-all duration-200"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600 truncate max-w-[70%]">
+                    {template.name}
+                  </h3>
+                  {template.aiGenerated && (
+                    <span className="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/30 
+                      text-purple-600 dark:text-purple-400 rounded-full">
+                      AI
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-4 break-words pr-2">
+                  {template.content}
+                </p>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {template.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 
+                        text-gray-600 dark:text-gray-400 rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleFavorite(template)}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Heart 
+                        className={`h-4 w-4 ${template.liked 
+                          ? 'fill-red-500 text-red-500' 
+                          : 'text-gray-400 hover:text-red-500'}`} 
+                      />
+                    </button>
+                    <button
+                      onClick={() => setTemplateToEdit(template)}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Pencil className="h-4 w-4 text-gray-400 hover:text-purple-500" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setTemplateToDelete(template)}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-hidden bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900/50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-2/5">
+                      Template
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-2/5">
+                      Tags
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/10">
+                      Type
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/10">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredTemplates.map((template) => (
+                    <tr 
+                      key={template.id} 
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col cursor-pointer" onClick={() => setTemplateToEdit(template)}>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {template.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[300px]">
+                            {template.content}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-wrap gap-2">
+                          {template.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 
+                                text-gray-600 dark:text-gray-400 rounded-full"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {template.aiGenerated && (
+                          <span className="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/30 
+                            text-purple-600 dark:text-purple-400 rounded-full">
+                            AI
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFavorite(template);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            <Heart 
+                              className={`h-4 w-4 ${template.liked 
+                                ? 'fill-red-500 text-red-500' 
+                                : 'text-gray-400 hover:text-red-500'}`} 
+                            />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTemplateToDelete(template);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                          </button>
+                          <button
+                            onClick={() => setTemplateToEdit(template)}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            <Pencil className="h-4 w-4 text-gray-400 hover:text-purple-500" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
