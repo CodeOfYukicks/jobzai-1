@@ -17,7 +17,9 @@ import {
   Loader2, Send, User, Bot, Save, Plus, X, StickyNote,
   ChevronLeft, LayoutDashboard, HelpCircle, CalendarDays,
   Search, RefreshCw, Maximize2, Minimize2, ArrowRight,
-  MousePointer, Square, Circle, Minus
+  MousePointer, Square, Circle, Minus, Link2, ArrowUp,
+  CheckSquare, ExternalLink, BarChart2, Bookmark, ThumbsUp,
+  Newspaper, Users, PieChart, Award, Flag
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -90,6 +92,26 @@ interface Shape {
   label?: string;
 }
 
+interface ChecklistItem {
+  id: string;
+  task: string;
+  completed: boolean;
+  section: 'overview' | 'questions' | 'skills' | 'resources' | 'chat';
+  priority?: boolean;
+}
+
+interface PreparationDay {
+  day: string;
+  tasks: string[];
+}
+
+interface NewsItem {
+  title: string;
+  date: string;
+  sentiment: 'positive' | 'neutral' | 'negative';
+  summary: string;
+}
+
 export default function InterviewPrepPage() {
   const { applicationId, interviewId } = useParams<{ applicationId: string, interviewId: string }>();
   const { currentUser } = useAuth();
@@ -103,7 +125,11 @@ export default function InterviewPrepPage() {
   const [tab, setTab] = useState<'overview' | 'questions' | 'skills' | 'resources' | 'chat'>('overview');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [skillRatings, setSkillRatings] = useState<Record<string, number>>({});
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    'company-profile': true,
+    'position-details': true,
+    'culture-fit': true
+  });
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -131,6 +157,39 @@ export default function InterviewPrepPage() {
   const [showConnectionMenu, setShowConnectionMenu] = useState(false);
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [connectionMenuPosition, setConnectionMenuPosition] = useState({ x: 0, y: 0 });
+  const [preparationProgress, setPreparationProgress] = useState<number>(0);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([
+    { id: '1', task: 'Research company background', completed: false, section: 'overview' },
+    { id: '2', task: 'Prepare 3-5 STAR stories', completed: false, section: 'questions' },
+    { id: '3', task: 'Self-assess required skills', completed: false, section: 'skills', priority: true },
+    { id: '4', task: 'Complete mock interview', completed: false, section: 'chat' },
+    { id: '5', task: 'Prepare questions to ask interviewer', completed: false, section: 'resources' }
+  ]);
+  const [prepPlan, setPrepPlan] = useState<PreparationDay[]>([
+    { day: 'Day 1 (Today)', tasks: ['Review company mission & values (15m)', 'Practice introducing yourself (10m)', 'Identify 3 relevant experiences (20m)'] },
+    { day: 'Day 2', tasks: ['Research recent company news (20m)', 'Complete skills self-assessment (15m)', 'Practice 2 behavioral questions (30m)'] },
+    { day: 'Day 3', tasks: ['Review interviewer LinkedIn (if known) (10m)', 'Full mock interview practice (45m)', 'Prepare questions to ask (15m)'] }
+  ]);
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([
+    { 
+      title: 'Salesforce Reports Strong Q3 Earnings', 
+      date: '2 days ago', 
+      sentiment: 'positive', 
+      summary: 'The company reported earnings exceeding analyst expectations with cloud services revenue up 20%.' 
+    },
+    { 
+      title: 'New AI Integration for Sales Cloud Announced', 
+      date: '1 week ago', 
+      sentiment: 'positive',
+      summary: 'Salesforce unveiled new Einstein AI capabilities for its Sales Cloud platform.' 
+    },
+    { 
+      title: 'Executive Leadership Changes', 
+      date: '2 weeks ago', 
+      sentiment: 'neutral',
+      summary: 'COO Brian Smith stepping down, Jane Williams from Microsoft appointed as replacement.' 
+    }
+  ]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -971,12 +1030,46 @@ Return the questions in a JSON format like this:
   };
 
   // Add a toggle function for expanding/collapsing sections
-  const toggleSection = (skillIndex: number, sectionName: string) => {
-    const key = `skill-${skillIndex}-${sectionName}`;
+  const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [section]: !prev[section]
     }));
+  };
+
+  // Calculate days until interview
+  const getDaysUntilInterview = () => {
+    if (!interview?.date) return { days: 0, hours: 0 };
+    
+    const interviewDate = new Date(`${interview.date}T${interview.time || '09:00'}`);
+    const now = new Date();
+    const diffMs = interviewDate.getTime() - now.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    return { days: diffDays, hours: diffHours };
+  };
+
+  // Calculate preparation progress
+  useEffect(() => {
+    // Simple algorithm to calculate progress:
+    // 30% from checklist completion
+    // 40% from skills self-assessment
+    // 30% from practice activity
+    
+    const checklistCompletion = checklist.filter(item => item.completed).length / checklist.length;
+    const skillsAssessed = Object.keys(skillRatings).length / (interview?.preparation?.requiredSkills?.length || 1);
+    const practiceActivity = chatMessages.length > 0 ? Math.min(chatMessages.length / 10, 1) : 0;
+    
+    const progress = (checklistCompletion * 0.3) + (skillsAssessed * 0.4) + (practiceActivity * 0.3);
+    setPreparationProgress(Math.min(Math.round(progress * 100), 100));
+  }, [checklist, skillRatings, chatMessages, interview?.preparation?.requiredSkills]);
+
+  // Toggle checklist item completion
+  const toggleChecklistItem = (id: string) => {
+    setChecklist(prev => prev.map(item => 
+      item.id === id ? { ...item, completed: !item.completed } : item
+    ));
   };
 
   if (isLoading) {
@@ -1020,48 +1113,56 @@ Return the questions in a JSON format like this:
     <AuthLayout>
       <MotionConfig transition={{ duration: 0.3 }}>
         <div className="max-w-6xl mx-auto pb-12">
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <div className="flex items-center justify-between mb-2">
-              <Link 
-                to="/applications" 
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 flex items-center gap-1 group transition-colors"
+            <div className="flex items-center justify-between mb-5">
+              <Link
+                to="/applications"
+                className="flex items-center text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                <ChevronLeft className="w-4 h-4 mr-1" />
                 <span>Back to Applications</span>
               </Link>
+              
               {interview && (
-                <span className="text-sm bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 py-1 px-3 rounded-full flex items-center gap-1">
-                  <ClockIcon className="w-3.5 h-3.5" />
-                  {new Date(interview.date).toLocaleDateString()} at {interview.time}
-                </span>
+                <div className="flex items-center px-3 py-1.5 rounded-full bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-sm">
+                  <Clock className="w-3.5 h-3.5 mr-1.5" />
+                  {new Date(`${interview.date}T${interview.time || '00:00'}`).toLocaleDateString(undefined, {
+                    dateStyle: 'long'
+                  })} at {interview.time || '00:00'}
+                </div>
               )}
             </div>
+            
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-violet-500 to-indigo-600 bg-clip-text text-transparent mb-1">
                   Interview Preparation
                 </h1>
                 {application && (
-                  <p className="text-gray-600 dark:text-gray-300">
+                  <p className="text-gray-600 dark:text-gray-300 font-medium">
                     {application.position} at {application.companyName}
                   </p>
                 )}
               </div>
               
               {interview && (
-                <div className="flex items-center gap-3">
-                  <div className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-lg p-1 flex">
+                <div className="flex items-center">
+                  <div className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-full p-1 flex">
                     {(['scheduled', 'completed', 'cancelled'] as const).map((status) => (
                       <button
                         key={status}
                         onClick={() => updateInterviewStatus(status)}
-                        className={`text-xs px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                        className={`text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
                           interview.status === status
-                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
+                            ? status === 'scheduled' 
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' 
+                              : status === 'completed'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
                             : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
                         }`}
                       >
@@ -1082,39 +1183,46 @@ Return the questions in a JSON format like this:
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-800/50 dark:to-purple-900/20 p-6 rounded-xl shadow-sm border border-purple-100 dark:border-gray-700 mb-8"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8"
           >
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Analyze Job Posting</h2>
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1">
+            <div className="border-b border-gray-100 dark:border-gray-700 px-6 py-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Job Posting Analysis</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Enter a job posting URL to generate personalized interview preparation
+              </p>
+            </div>
+            
+            <div className="p-6">
+              <div className="relative">
                 <input
                   type="url"
                   value={jobUrl}
                   onChange={(e) => setJobUrl(e.target.value)}
-                  placeholder="Paste job posting URL here"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="https://example.com/job-posting"
+                  className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white pr-32"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Enter a URL to a job posting to get personalized interview preparation materials
-                </p>
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                  <Link2 className="w-4 h-4" />
+                </div>
+                <button
+                  onClick={handleAnalyzeJobPost}
+                  disabled={isAnalyzing || !jobUrl}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 
+                    text-white rounded-md transition-colors flex items-center justify-center gap-1.5 text-sm font-medium disabled:cursor-not-allowed"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-3.5 h-3.5" />
+                      <span>Analyze</span>
+                    </>
+                  )}
+                </button>
               </div>
-              <button
-                onClick={handleAnalyzeJobPost}
-                disabled={isAnalyzing || !jobUrl}
-                className="whitespace-nowrap px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-purple-400 disabled:to-purple-400 text-white rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:shadow disabled:cursor-not-allowed transform hover:translate-y-[-1px] active:translate-y-[0px]"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Analyzing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4 h-4" />
-                    <span>Analyze Job Post</span>
-                  </>
-                )}
-              </button>
             </div>
           </motion.div>
 
@@ -1166,32 +1274,32 @@ Return the questions in a JSON format like this:
             )}
           </AnimatePresence>
 
-          {/* Replace the tabs with a more modern design */}
-          <div className="mb-6">
-            <div className="border-b border-gray-200 dark:border-gray-700">
-              <div className="flex space-x-3 overflow-x-auto scrollbar-hide">
-                {['overview', 'questions', 'skills', 'resources', 'chat'].map((tabName) => (
-                  <button
-                    key={tabName}
-                    onClick={() => setTab(tabName as any)}
-                    className={`
-                      whitespace-nowrap px-4 py-3 font-medium text-sm border-b-2 transition-colors hover:text-purple-700 dark:hover:text-purple-400
-                      ${tab === tabName
-                        ? 'border-purple-500 text-purple-700 dark:text-purple-400 dark:border-purple-400'
-                        : 'border-transparent text-gray-600 dark:text-gray-300'}
-                    `}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {tabName === 'overview' && <LayoutDashboard className="w-4 h-4" />}
-                      {tabName === 'questions' && <HelpCircle className="w-4 h-4" />}
-                      {tabName === 'skills' && <Briefcase className="w-4 h-4" />}
-                      {tabName === 'resources' && <BookOpen className="w-4 h-4" />}
-                      {tabName === 'chat' && <MessageSquare className="w-4 h-4" />}
-                      <span className="capitalize">{tabName === 'chat' ? 'Interview Trainer' : tabName}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
+          {/* Tab navigation */}
+          <div className="mb-8">
+            <div className="grid grid-cols-5 gap-2 md:gap-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-2">
+              {[
+                { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+                { id: 'questions', label: 'Questions', icon: <HelpCircle className="w-4 h-4" /> },
+                { id: 'skills', label: 'Skills', icon: <Briefcase className="w-4 h-4" /> },
+                { id: 'resources', label: 'Resources', icon: <BookOpen className="w-4 h-4" /> },
+                { id: 'chat', label: 'Practice', icon: <MessageSquare className="w-4 h-4" /> }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setTab(item.id as any)}
+                  className={`
+                    text-center py-3 rounded-md transition-all flex flex-col items-center
+                    ${tab === item.id
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}
+                  `}
+                >
+                  <div className={`mb-1 ${tab === item.id ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {item.icon}
+                  </div>
+                  <span className="text-xs font-medium">{item.label}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1220,18 +1328,37 @@ Return the questions in a JSON format like this:
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 text-center shadow-sm"
               >
-                <div className="mx-auto w-20 h-20 text-gray-300 dark:text-gray-700 mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
+                <div className="max-w-md mx-auto">
+                  <div className="mx-auto w-16 h-16 bg-purple-100 dark:bg-purple-900/30 
+                    rounded-full flex items-center justify-center mb-5">
+                    <Search className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">Get started with your preparation</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Enter a job posting URL above and click "Analyze" to get personalized interview preparation guidance.
+                  </p>
+                  
+                  <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg text-left mb-2">
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                      What you'll get:
+                    </h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-2 pl-6">
+                      <li className="list-disc">Company and position insights</li>
+                      <li className="list-disc">Tailored interview questions with answer guidance</li>
+                      <li className="list-disc">Key skills assessment</li>
+                      <li className="list-disc">Practice with an AI interview trainer</li>
+                    </ul>
+                  </div>
+                  
+                  <button
+                    onClick={() => document.querySelector('input[type="url"]')?.focus()}
+                    className="mt-2 inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                  >
+                    <ArrowUp className="w-4 h-4 mr-1.5" />
+                    Analyze a Job Posting
+                  </button>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">No analysis available</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-lg mx-auto">
-                  Enter a job posting URL above and click "Analyze Job Post" to get personalized interview preparation.
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-lg mx-auto">
-                  Our AI will analyze the job post and provide key insights, likely interview questions, and preparation tips tailored to this position.
-                </p>
               </motion.div>
             ) : (
               <AnimatePresence mode="wait">
@@ -1241,81 +1368,351 @@ Return the questions in a JSON format like this:
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                    className="space-y-6"
                   >
-                    {/* Company overview card */}
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
-                    >
-                      <h3 className="flex items-center text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                        <Building className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                        Company Overview
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        {interview.preparation.companyInfo || 'No company information available.'}
-                      </p>
-                    </motion.div>
-                    
-                    {/* Position details card */}
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
-                    >
-                      <h3 className="flex items-center text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                        <Briefcase className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                        Position Details
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        {interview.preparation.positionDetails || 'No position details available.'}
-                      </p>
-                    </motion.div>
-                    
-                    {/* Culture fit card */}
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
-                    >
-                      <h3 className="flex items-center text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                        <MessageSquare className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                        Cultural Fit
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        {interview.preparation.cultureFit || 'No culture information available.'}
-                      </p>
-                    </motion.div>
-                    
-                    {/* Key points card */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
-                      className="md:col-span-3 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
-                    >
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                        Key Points to Emphasize
-                      </h3>
-                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {interview.preparation.keyPoints?.map((point, index) => (
-                          <motion.li 
-                            key={index}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 + index * 0.05 }}
-                            className="flex items-start text-gray-600 dark:text-gray-300"
-                          >
-                            <Check className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                            <span>{point}</span>
-                          </motion.li>
+                    {/* Interview Countdown & Progress Tracker */}
+                    <div className="flex flex-col md:flex-row gap-6">
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex items-center flex-1">
+                        <div className="flex-shrink-0 w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
+                          <Clock className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">Interview in</div>
+                          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {getDaysUntilInterview().days} days {getDaysUntilInterview().hours} hours
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)} interview` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'})}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex-1">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-medium text-gray-900 dark:text-white flex items-center">
+                            <BarChart2 className="w-4 h-4 mr-2 text-purple-600" />
+                            Preparation Progress
+                          </h3>
+                          <span className="text-xl font-bold text-purple-600 dark:text-purple-400">{preparationProgress}%</span>
+                        </div>
+                        <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
+                          <div 
+                            className="h-full bg-gradient-to-r from-purple-500 to-indigo-600" 
+                            style={{width: `${preparationProgress}%`}}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center text-sm">
+                            <div className="flex items-center mr-4">
+                              <div className="w-2 h-2 rounded-full bg-amber-500 mr-1.5"></div>
+                              <span className="text-gray-600 dark:text-gray-400">To Do</span>
+                            </div>
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></div>
+                              <span className="text-gray-600 dark:text-gray-400">Completed</span>
+                            </div>
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 flex items-center">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 mr-1.5" />
+                            <div className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                              Focus today: Skills Review
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preparation Checklist and Interview Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Interactive Preparation Checklist */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+                          <CheckSquare className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                          Preparation Checklist
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          {checklist.map((item) => (
+                            <div key={item.id} className={`flex items-center p-3 rounded-lg ${
+                              item.priority ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800' : ''
+                            }`}>
+                              <div className="mr-3">
+                                <button 
+                                  onClick={() => toggleChecklistItem(item.id)}
+                                  className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                                    item.completed 
+                                      ? 'bg-green-500 border-green-500 text-white' 
+                                      : 'border-gray-300 dark:border-gray-600'
+                                  }`}
+                                >
+                                  {item.completed && <Check className="w-3 h-3" />}
+                                </button>
+                              </div>
+                              <div className="flex-1">
+                                <div className={`${item.completed ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}>
+                                  {item.task}
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => setTab(item.section)} 
+                                className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                              >
+                                Go
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Interview Details */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+                          <Calendar className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                          Interview Details
+                        </h3>
+                        
+                        <div className="space-y-5">
+                          <div className="flex items-start">
+                            <div className="mr-3 flex-shrink-0 bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                              <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Company</h4>
+                              <p className="text-gray-900 dark:text-white font-medium">{application.companyName}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start">
+                            <div className="mr-3 flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
+                              <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Position</h4>
+                              <p className="text-gray-900 dark:text-white font-medium">{application.position}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start">
+                            <div className="mr-3 flex-shrink-0 bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg">
+                              <Users className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Interview Type</h4>
+                              <p className="text-gray-900 dark:text-white font-medium capitalize">{interview?.type || 'Unknown'} Interview</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start">
+                            <div className="mr-3 flex-shrink-0 bg-green-100 dark:bg-green-900/30 p-2 rounded-lg">
+                              <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Location</h4>
+                              <p className="text-gray-900 dark:text-white font-medium">{interview?.location || application.location || 'Remote/Virtual'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Personalized Preparation Plan */}
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+                          <Calendar className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                          Your Preparation Plan
+                        </h3>
+                        <button className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center transition-colors">
+                          <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                          Refresh
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-5">
+                        {prepPlan.map((day, i) => (
+                          <div key={i}>
+                            <div className="font-medium text-gray-800 dark:text-white mb-2.5">{day.day}</div>
+                            <div className="pl-4 border-l-2 border-purple-200 dark:border-purple-800 space-y-2.5">
+                              {day.tasks.map((task, j) => (
+                                <div key={j} className="text-sm text-gray-600 dark:text-gray-300 flex items-center">
+                                  <div className="w-2 h-2 bg-purple-400 dark:bg-purple-600 rounded-full mr-2 flex-shrink-0"></div>
+                                  {task}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         ))}
-                      </ul>
-                    </motion.div>
+                      </div>
+                    </div>
+
+                    {/* Company & Position Insights */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Company Profile */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div 
+                          className="px-5 py-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30 flex justify-between items-center cursor-pointer"
+                          onClick={() => toggleSection('company-profile')}
+                        >
+                          <div className="flex items-center">
+                            <Building className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />
+                            <h3 className="font-medium text-gray-900 dark:text-white">Company Profile</h3>
+                          </div>
+                          <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections['company-profile'] ? 'transform rotate-180' : ''}`} />
+                        </div>
+                        
+                        {expandedSections['company-profile'] && (
+                          <div className="p-5">
+                            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-4">
+                              <p>
+                                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-0.5 rounded mr-1">KEY</span>
+                                {interview?.preparation?.companyInfo?.split('.')[0] || `${application.companyName} is a leading company in its industry.`}
+                              </p>
+                              
+                              {interview?.preparation?.companyInfo ? (
+                                <p>{interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}</p>
+                              ) : (
+                                <p>No additional company information available. Run the job post analysis to generate company information.</p>
+                              )}
+                              
+                              <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-3 border-l-4 border-blue-500 dark:border-blue-700">
+                                <div className="font-medium text-sm text-gray-900 dark:text-white mb-1">Focus points:</div>
+                                <ul className="list-disc pl-4 text-xs space-y-1 text-gray-700 dark:text-gray-300">
+                                  <li>Research their mission and values</li>
+                                  <li>Review recent company achievements</li>
+                                  <li>Understand their market position</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Position Details */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div 
+                          className="px-5 py-4 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30 flex justify-between items-center cursor-pointer"
+                          onClick={() => toggleSection('position-details')}
+                        >
+                          <div className="flex items-center">
+                            <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-2" />
+                            <h3 className="font-medium text-gray-900 dark:text-white">Position Details</h3>
+                          </div>
+                          <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections['position-details'] ? 'transform rotate-180' : ''}`} />
+                        </div>
+                        
+                        {expandedSections['position-details'] && (
+                          <div className="p-5">
+                            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-4">
+                              <p>
+                                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs px-2 py-0.5 rounded mr-1">KEY</span>
+                                {interview?.preparation?.positionDetails?.split('.')[0] || `The ${application.position} role involves key responsibilities in the organization.`}
+                              </p>
+                              
+                              {interview?.preparation?.positionDetails ? (
+                                <p>{interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}</p>
+                              ) : (
+                                <p>No detailed position information available. Run the job post analysis to generate position details.</p>
+                              )}
+                              
+                              <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-3 border-l-4 border-purple-500 dark:border-purple-700">
+                                <div className="font-medium text-sm text-gray-900 dark:text-white mb-1">Required skills:</div>
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {interview?.preparation?.requiredSkills ? (
+                                    interview.preparation.requiredSkills.map((skill, index) => (
+                                      <div 
+                                        key={index} 
+                                        className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs px-2 py-1 rounded-full"
+                                      >
+                                        {skill}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">No skills information available</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Key Points to Emphasize */}
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+                      <div className="flex items-center mb-5">
+                        <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded-lg mr-3">
+                          <Flag className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                          Key Points to Emphasize
+                        </h3>
+                      </div>
+                      
+                      {interview?.preparation?.keyPoints && interview.preparation.keyPoints.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {interview.preparation.keyPoints.map((point, index) => (
+                            <motion.div 
+                              key={index}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.1 + index * 0.05 }}
+                              className="flex items-start py-3 px-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg"
+                            >
+                              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{point}</span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 text-center">
+                          <p className="text-gray-500 dark:text-gray-400 mb-3">
+                            No key points available yet. Run the job post analysis to generate key points to emphasize in your interview.
+                          </p>
+                          <button
+                            onClick={() => document.querySelector('input[type="url"]')?.focus()}
+                            className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center justify-center mx-auto"
+                          >
+                            <ArrowUp className="w-4 h-4 mr-1.5" />
+                            Analyze a Job Posting
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Company News & Updates */}
+                    {interview?.preparation && (
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+                        <div className="flex justify-between items-center mb-5">
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+                            <Newspaper className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                            Company Updates
+                          </h3>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Last updated: Today</div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {newsItems.map((news, i) => (
+                            <div key={i} className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0 last:pb-0">
+                              <div className="flex items-center mb-1.5">
+                                <span className={`w-2 h-2 rounded-full mr-2 ${
+                                  news.sentiment === 'positive' ? 'bg-green-500' : 
+                                  news.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-500'
+                                }`}></span>
+                                <h4 className="font-medium text-gray-900 dark:text-white text-sm">{news.title}</h4>
+                                <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{news.date}</span>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-300 pl-4 mb-2">{news.summary}</p>
+                              <div className="mt-1 pl-4">
+                                <button className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium flex items-center">
+                                  <MessageSquare className="w-3 h-3 mr-1" />
+                                  Talking point ideas
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 )}
                 
@@ -1436,7 +1833,7 @@ Return the questions in a JSON format like this:
                               {/* Practice Questions Section */}
                               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                 <button 
-                                  onClick={() => toggleSection(index, 'questions')}
+                                  onClick={() => toggleSection('questions')}
                                   className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                                 >
                                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
@@ -1510,7 +1907,7 @@ Return the questions in a JSON format like this:
                               {/* Company Insights Section */}
                               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                 <button 
-                                  onClick={() => toggleSection(index, 'insights')}
+                                  onClick={() => toggleSection('insights')}
                                   className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                                 >
                                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
@@ -1570,7 +1967,7 @@ Return the questions in a JSON format like this:
                               {/* Sample Response Section */}
                               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                 <button 
-                                  onClick={() => toggleSection(index, 'response')}
+                                  onClick={() => toggleSection('response')}
                                   className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                                 >
                                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">

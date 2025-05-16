@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Rocket, LineChart, Mail, Target, Coins, Search,
-  Bell, Settings, ChevronRight, TrendingUp, Users, LogOut
+  Bell, Settings, ChevronRight, TrendingUp, Users, LogOut, 
+  Calendar, FileText, Briefcase, Sparkles
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserStats } from '../hooks/useUserStats';
-import { ThemeToggle } from '../components/ui/theme-toggle';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import type { Activity } from '../types/stats';
@@ -15,6 +15,7 @@ import FirebaseImage from '../components/FirebaseImage';
 import PageTransition from '../components/PageTransition';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 export default function HubPage() {
   const { currentUser, userData } = useAuth();
@@ -33,6 +34,24 @@ export default function HubPage() {
   });
   const [completedCampaigns, setCompletedCampaigns] = useState(0);
   const [emailTemplates, setEmailTemplates] = useState(0);
+  const [activeInterviews, setActiveInterviews] = useState(0);
+  const [logoUrl, setLogoUrl] = useState<string>('');
+
+  // Charger le logo depuis Firebase Storage
+  useEffect(() => {
+    const loadLogo = async () => {
+      try {
+        const storage = getStorage();
+        const logoRef = ref(storage, 'images/logo-only.png');
+        const url = await getDownloadURL(logoRef);
+        setLogoUrl(url);
+      } catch (error) {
+        console.error('Error loading logo:', error);
+      }
+    };
+
+    loadLogo();
+  }, []);
 
   const handleCardClick = (e: React.MouseEvent, card: any) => {
     e.preventDefault();
@@ -45,15 +64,16 @@ export default function HubPage() {
     };
 
     const colorMap = {
-      'bg-violet-50': '#f5f3ff',
-      'bg-blue-50': '#eff6ff',
-      'bg-emerald-50': '#ecfdf5',
-      'bg-amber-50': '#fff7ed'
+      'purple': '#8D75E5',
+      'green': '#5EBC88',
+      'orange': '#FBBD74',
+      'pink': '#F9A3CA',
+      'blue': '#60A5FA'
     };
 
     setTransition({
       isOpen: true,
-      color: colorMap[card.bgColor as keyof typeof colorMap] || '#ffffff',
+      color: colorMap[card.colorName as keyof typeof colorMap] || '#ffffff',
       path: card.path,
       clickPosition
     });
@@ -121,61 +141,23 @@ export default function HubPage() {
     };
   }, [currentUser]);
 
-  // Cartes principales dynamiques
-  const mainCards = [
-    {
-      title: 'Campaigns',
-      description: 'Create and manage your job applications',
-      icon: Rocket,
-      stats: { 
-        value: !statsLoading && stats ? stats.activeCampaigns.toString() : '-',
-        label: 'Active',
-        trend: null
-      },
-      bgColor: 'bg-violet-50',
-      iconColor: 'text-violet-600',
-      path: '/campaigns'
-    },
-    {
-      title: 'Analytics Dashboard',
-      description: 'Track your application progress',
-      icon: LineChart,
-      stats: { 
-        value: !statsLoading && stats ? `${stats.responseRate}%` : '-',
-        label: 'Success Rate',
-        trend: null
-      },
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      path: '/dashboard'
-    },
-    {
-      title: 'Recommendations',
-      description: 'View your job recommendations',
-      icon: Target,
-      stats: { 
-        value: !statsLoading && stats ? stats.newMatches.toString() : '-',
-        label: 'New Matches',
-        trend: null
-      },
-      bgColor: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
-      path: '/recommendations'
-    },
-    {
-      title: 'Email Templates',
-      description: 'Manage your email templates',
-      icon: Mail,
-      stats: { 
-        value: !statsLoading && stats ? stats.templates.toString() : '-',
-        label: 'Templates',
-        trend: null
-      },
-      bgColor: 'bg-amber-50',
-      iconColor: 'text-amber-600',
-      path: '/email-templates'
-    }
-  ];
+  // Récupérer le nombre d'entretiens actifs
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const interviewsQuery = query(
+      collection(db, `users/${currentUser.uid}/interviews`),
+      where('status', '==', 'scheduled')
+    );
+
+    const unsubscribeInterviews = onSnapshot(interviewsQuery, (snapshot) => {
+      setActiveInterviews(snapshot.size);
+    });
+
+    return () => {
+      unsubscribeInterviews();
+    };
+  }, [currentUser]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,33 +182,149 @@ export default function HubPage() {
     }
   };
 
+  // Cartes des statistiques clés
+  const keyStats = [
+    { 
+      label: 'Completed Campaigns', 
+      value: completedCampaigns,
+      icon: Rocket, 
+      colorName: 'purple',
+      color: '#8D75E5',
+      description: 'Finished campaigns'
+    },
+    { 
+      label: 'Response Rate', 
+      value: `${stats?.responseRate || '0'}%`, 
+      icon: LineChart, 
+      colorName: 'green',
+      color: '#5EBC88',
+      description: 'Average success rate'
+    },
+    { 
+      label: 'Templates Created', 
+      value: emailTemplates,
+      icon: Mail, 
+      colorName: 'pink',
+      color: '#F9A3CA',
+      description: 'Email templates'
+    }
+  ];
+
+  // Cartes principales des fonctionnalités
+  const mainFeatures = [
+    { 
+      title: 'Campaigns', 
+      desc: 'Create and manage your job applications', 
+      icon: Rocket, 
+      colorName: 'purple',
+      color: '#8D75E5', 
+      path: '/campaigns',
+      stats: { value: stats?.activeCampaigns || '0', label: 'Active Campaigns' }
+    },
+    { 
+      title: 'Analytics', 
+      desc: 'Track your application progress', 
+      icon: LineChart, 
+      colorName: 'green',
+      color: '#5EBC88', 
+      path: '/dashboard',
+      stats: { value: `${stats?.responseRate || '0'}%`, label: 'Success Rate' }
+    },
+    { 
+      title: 'Application Tracking', 
+      desc: 'Monitor and manage your job applications', 
+      icon: Calendar, 
+      colorName: 'blue',
+      color: '#60A5FA', 
+      path: '/applications',
+      stats: { value: activeInterviews.toString(), label: 'Active' }
+    },
+    { 
+      title: 'Recommendations', 
+      desc: 'Discover jobs matched to your profile', 
+      icon: Target, 
+      colorName: 'orange',
+      color: '#FBBD74', 
+      path: '/recommendations',
+      stats: { value: stats?.newMatches?.toString() || '0', label: 'New Matches' }
+    }
+  ];
+
+  // Cartes secondaires des outils
+  const secondaryTools = [
+    { 
+      title: 'Email Templates', 
+      desc: 'Create and manage your email templates', 
+      icon: Mail, 
+      colorName: 'pink',
+      color: '#F9A3CA', 
+      path: '/email-templates' 
+    },
+    { 
+      title: 'CV Analysis', 
+      desc: 'Get insights and improve your CV', 
+      icon: FileText, 
+      colorName: 'purple',
+      color: '#8D75E5', 
+      path: '/cv-analysis' 
+    },
+    { 
+      title: 'Interview Prep', 
+      desc: 'Practice with AI interview simulations', 
+      icon: Briefcase, 
+      colorName: 'green',
+      color: '#5EBC88', 
+      path: '/upcoming-interviews' 
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <PageTransition {...transition} />
+      <PageTransition 
+        {...transition} 
+        onAnimationComplete={() => {}} 
+      />
       
-      <motion.div animate={{ opacity: transition.isOpen ? 0 : 1 }}>
+      <motion.div 
+        animate={{ opacity: transition.isOpen ? 0 : 1 }}
+        className="h-full"
+      >
         <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-8">
-            <div className="flex items-center justify-between h-20">
-              <FirebaseImage 
-                path="logo-dark.png"
-                alt="Jobz.ai"
-                className="h-8 w-auto"
-              />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 lg:h-20">
+              <div className="w-1/3"></div>
+              
+              <div className="flex items-center justify-center w-1/3">
+                <Link 
+                  to="/"
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                >
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" className="h-8 w-auto" />
+                  ) : (
+                    <div className="h-8 w-8 bg-gray-100 animate-pulse rounded-full" />
+                  )}
+                </Link>
+              </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 bg-gradient-to-r from-[#8D75E5]/10 to-[#8D75E5]/5 px-6 py-3 rounded-2xl">
-                  <Coins className="w-5 h-5 text-[#8D75E5]" />
-                  <span className="font-semibold text-gray-900 text-lg">{userData?.credits ?? 0}</span>
-                  <span className="text-sm text-gray-500">credits</span>
-                </div>
+              <div className="flex items-center justify-end gap-4 w-1/3">
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-[#8D75E5]/10 to-[#8D75E5]/5 px-4 py-2 rounded-full"
+                >
+                  <Coins className="w-4 h-4 text-[#8D75E5]" />
+                  <span className="font-medium text-gray-900">{userData?.credits ?? 0}</span>
+                  <span className="text-xs text-gray-500">credits</span>
+                </motion.div>
 
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:text-gray-900 
                     hover:bg-gray-100 transition-all duration-200"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4" />
                   <span className="hidden sm:inline text-sm font-medium">Sign Out</span>
                 </button>
               </div>
@@ -234,54 +332,54 @@ export default function HubPage() {
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-8 py-12">
-          <div className="mb-14">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">
-              {isNewUser 
-                ? `Welcome to Jobz.ai, ${firstName}! ✨` 
-                : `Welcome back, ${firstName}`
-              }
-            </h1>
-            <p className="text-gray-600 text-lg font-light">
-              {isNewUser 
-                ? "Let's start your job search journey. Here's what you can do:"
-                : "Here's what's happening with your job search today."
-              }
-            </p>
-          </div>
-
-          <div className="flex flex-row gap-4 overflow-x-auto pb-4 mb-14 snap-x snap-mandatory -mx-8 px-8 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:gap-8">
-            {[
-              { 
-                label: 'Completed Campaigns', 
-                value: completedCampaigns,
-                icon: Rocket, 
-                color: '#8D75E5',
-                description: 'Finished campaigns'
-              },
-              { 
-                label: 'Response Rate', 
-                value: `${stats?.responseRate || '0'}%`, 
-                icon: LineChart, 
-                color: '#5EBC88',
-                description: 'Average success rate'
-              },
-              { 
-                label: 'Templates Created', 
-                value: emailTemplates,
-                icon: Mail, 
-                color: '#F9A3CA',
-                description: 'Email templates'
-              }
-            ].map((stat) => (
-              <div key={stat.label} 
-                className="flex-shrink-0 w-[80%] snap-center sm:w-auto flex flex-col bg-white p-6 rounded-2xl border border-gray-100
-                  hover:border-gray-200 transition-all duration-300"
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mb-10"
+          >
+            <div className="flex flex-col">
+              <motion.h1 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-gray-900 via-[#8D75E5]/90 to-gray-800 bg-clip-text text-transparent"
               >
-                <div className="flex items-center gap-3 mb-4">
+                {isNewUser 
+                  ? `Welcome to Jobz.ai, ${firstName}! ✨` 
+                  : `Welcome back, ${firstName}`
+                }
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="text-gray-600 text-base md:text-lg"
+              >
+                {isNewUser 
+                  ? "Let's start your job search journey. Here's what you can do:"
+                  : "Here's what's happening with your job search today."
+                }
+              </motion.p>
+            </div>
+          </motion.div>
+          
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-10">
+            {keyStats.map((stat, index) => (
+              <motion.div 
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                className="bg-white p-5 rounded-xl border border-gray-100 hover:border-gray-200 
+                  hover:shadow-sm transition-all duration-300 flex flex-col h-full"
+              >
+                <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 rounded-lg" 
-                    style={{ backgroundColor: `${stat.color}10` }}>
-                    <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
+                    style={{ backgroundColor: `${stat.color}15` }}>
+                    <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
                   </div>
                   <span className="text-sm font-medium text-gray-500">
                     {stat.description}
@@ -289,46 +387,128 @@ export default function HubPage() {
                 </div>
 
                 <div className="mt-auto">
-                  <p className="text-3xl font-semibold text-gray-900 mb-1">
+                  <motion.p 
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
+                    className="text-2xl md:text-3xl font-semibold text-gray-900 mb-1"
+                  >
                     {stat.value}
-                  </p>
+                  </motion.p>
                   <p className="text-sm text-gray-500">
                     {stat.label}
                   </p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {[
-              { title: 'Campaigns', desc: 'Create and manage your job applications', icon: Rocket, color: '#8D75E5', path: '/campaigns' },
-              { title: 'Analytics', desc: 'Track your application progress', icon: LineChart, color: '#5EBC88', path: '/dashboard' },
-              { title: 'Recommendations', desc: 'View your job recommendations', icon: Target, color: '#FBBD74', path: '/recommendations' },
-              { title: 'Email Templates', desc: 'Manage your email templates', icon: Mail, color: '#F9A3CA', path: '/email-templates' }
-            ].map((card) => (
-              <button
-                key={card.title}
-                onClick={(e) => handleCardClick(e, card)}
-                className="relative overflow-hidden group p-8 rounded-3xl bg-white shadow-[0_2px_10px_-3px_rgba(6,6,6,0.1)] 
-                  hover:shadow-[0_8px_30px_-5px_rgba(6,6,6,0.1)] transition-all duration-300 text-left border border-gray-100"
+          
+          {/* Main Feature Cards */}
+          <motion.h2 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="text-xl md:text-2xl font-semibold text-gray-900 mb-4"
+          >
+            Job Search Dashboard
+          </motion.h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
+            {mainFeatures.map((feature, index) => (
+              <motion.button
+                key={feature.title}
+                onClick={(e) => handleCardClick(e, feature)}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
+                whileHover={{ y: -5 }}
+                className="relative overflow-hidden group p-5 rounded-xl bg-white shadow-sm 
+                  hover:shadow-md transition-all duration-300 text-left border border-gray-100 flex flex-col h-full"
               >
-                <div className="relative z-10">
-                  <div className="p-4 rounded-2xl mb-6 w-fit" 
-                    style={{ backgroundColor: `${card.color}15` }}>
-                    <card.icon className="w-7 h-7" style={{ color: card.color }} />
+                <div className="relative z-10 h-full flex flex-col">
+                  <div className="p-3 rounded-xl mb-4 w-fit" 
+                    style={{ backgroundColor: `${feature.color}15` }}>
+                    <feature.icon className="w-5 h-5" style={{ color: feature.color }} />
                   </div>
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-3">
-                    {card.title}
+                  
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                    {feature.title}
                   </h2>
-                  <p className="text-gray-600">{card.desc}</p>
+                  
+                  <p className="text-gray-600 text-sm mb-4">
+                    {feature.desc}
+                  </p>
+                  
+                  <div className="mt-auto pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-lg font-medium text-gray-900">
+                          {feature.stats.value}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {feature.stats.label}
+                        </p>
+                      </div>
+                      
+                      <motion.div 
+                        whileHover={{ x: 5 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center text-gray-500 group-hover:text-gray-900"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </motion.div>
+                    </div>
+                  </div>
                 </div>
 
-                <div 
-                  className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full opacity-10 transition-transform duration-300 group-hover:scale-150"
-                  style={{ backgroundColor: card.color }}
+                <motion.div 
+                  initial={{ scale: 0.8, opacity: 0.5 }}
+                  whileHover={{ scale: 1.5, opacity: 0.8 }}
+                  className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full opacity-10"
+                  style={{ backgroundColor: feature.color }}
                 />
-              </button>
+              </motion.button>
+            ))}
+          </div>
+          
+          {/* Secondary Tools */}
+          <motion.h2 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            className="text-xl md:text-2xl font-semibold text-gray-900 mb-4"
+          >
+            Helpful Tools
+          </motion.h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {secondaryTools.map((tool, index) => (
+              <motion.button
+                key={tool.title}
+                onClick={(e) => handleCardClick(e, tool)}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+                className="relative overflow-hidden group p-5 rounded-xl bg-white 
+                  hover:shadow-sm transition-all duration-300 text-left border border-gray-100 flex h-full"
+              >
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="p-3 rounded-xl" 
+                    style={{ backgroundColor: `${tool.color}15` }}>
+                    <tool.icon className="w-5 h-5" style={{ color: tool.color }} />
+                  </div>
+                  
+                  <div>
+                    <h2 className="text-lg font-medium text-gray-900">
+                      {tool.title}
+                    </h2>
+                    <p className="text-gray-600 text-sm mt-1">
+                      {tool.desc}
+                    </p>
+                  </div>
+                </div>
+              </motion.button>
             ))}
           </div>
         </main>

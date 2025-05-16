@@ -336,61 +336,61 @@ END:VCALENDAR`;
   return (
     <AuthLayout>
       <div className="px-4 sm:px-6 py-8 max-w-6xl mx-auto">
-        <header className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <header className="mb-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-violet-500 to-indigo-600 bg-clip-text text-transparent">
                 Upcoming Interviews
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-1">
+              <p className="text-gray-600 dark:text-gray-300 mt-2">
                 Prepare for your upcoming job interviews
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="inline-flex rounded-md shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex rounded-full shadow-md bg-white/90 dark:bg-gray-800/90 p-1 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setFilterType('all')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-l-md border 
+                  className={`px-4 py-2 text-xs font-medium rounded-full transition-all 
                     ${filterType === 'all' 
-                      ? 'bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300' 
-                      : 'bg-white border-gray-300 text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'}`}
+                      ? 'bg-purple-600 text-white shadow-sm' 
+                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
                 >
                   All
                 </button>
                 <button
                   onClick={() => setFilterType('hr')}
-                  className={`px-3 py-1.5 text-xs font-medium border-t border-b 
+                  className={`px-4 py-2 text-xs font-medium rounded-full transition-all
                     ${filterType === 'hr' 
-                      ? 'bg-pink-100 border-pink-300 text-pink-800 dark:bg-pink-900/30 dark:border-pink-700 dark:text-pink-300' 
-                      : 'bg-white border-gray-300 text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'}`}
+                      ? 'bg-pink-500 text-white shadow-sm' 
+                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
                 >
                   HR
                 </button>
                 <button
                   onClick={() => setFilterType('technical')}
-                  className={`px-3 py-1.5 text-xs font-medium border-t border-b 
+                  className={`px-4 py-2 text-xs font-medium rounded-full transition-all
                     ${filterType === 'technical' 
-                      ? 'bg-teal-100 border-teal-300 text-teal-800 dark:bg-teal-900/30 dark:border-teal-700 dark:text-teal-300' 
-                      : 'bg-white border-gray-300 text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'}`}
+                      ? 'bg-teal-500 text-white shadow-sm' 
+                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
                 >
                   Technical
                 </button>
                 <button
                   onClick={() => setFilterType('manager')}
-                  className={`px-3 py-1.5 text-xs font-medium border-t border-b 
+                  className={`px-4 py-2 text-xs font-medium rounded-full transition-all
                     ${filterType === 'manager' 
-                      ? 'bg-amber-100 border-amber-300 text-amber-800 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-300' 
-                      : 'bg-white border-gray-300 text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'}`}
+                      ? 'bg-amber-500 text-white shadow-sm' 
+                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
                 >
                   Manager
                 </button>
                 <button
                   onClick={() => setFilterType('final')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-r-md border 
+                  className={`px-4 py-2 text-xs font-medium rounded-full transition-all
                     ${filterType === 'final' 
-                      ? 'bg-green-100 border-green-300 text-green-800 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300' 
-                      : 'bg-white border-gray-300 text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'}`}
+                      ? 'bg-green-500 text-white shadow-sm' 
+                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
                 >
                   Final
                 </button>
@@ -398,32 +398,67 @@ END:VCALENDAR`;
 
               <button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="p-1.5 text-xs font-medium rounded-md border border-gray-300 bg-white 
-                  text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 
-                  dark:text-gray-300 dark:hover:bg-gray-700/50"
+                className="p-2.5 text-xs font-medium rounded-full border border-gray-200 bg-white/90 
+                  text-gray-700 hover:bg-gray-50 dark:bg-gray-800/90 dark:border-gray-700 
+                  dark:text-gray-300 dark:hover:bg-gray-700/50 shadow-md backdrop-blur-sm"
+                aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
               >
-                <Calendar className="h-4 w-4" />
+                <Calendar className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''} transition-transform`} />
               </button>
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-900/20 dark:border-blue-800">
-            <p className="text-sm text-blue-800 dark:text-blue-300">
-              <strong>Pro Tip:</strong> Click on "Prepare for Interview" to access our AI-powered interview preparation tool. 
-              It will analyze the job posting and generate personalized questions and answers to help you succeed.
-            </p>
+          <div className="bg-gradient-to-r from-purple-100 to-blue-50 border border-purple-200 rounded-xl p-5 
+            dark:from-purple-900/20 dark:to-blue-900/20 dark:border-purple-800 shadow-sm">
+            <div className="flex items-start md:items-center gap-4">
+              <div className="bg-white/90 p-2 rounded-full shadow-sm dark:bg-gray-800/90">
+                <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-purple-900 dark:text-purple-300 mb-1">Pro Tip</h3>
+                <p className="text-sm text-purple-800 dark:text-purple-200">
+                  Click on "Prepare for Interview" to access our AI-powered interview preparation tool. 
+                  It will analyze the job posting and generate personalized questions and answers to help you succeed.
+                </p>
+              </div>
+            </div>
           </div>
         </header>
 
         {isLoading ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {[...Array(3)].map((_, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 animate-pulse">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                  <div className="flex-1">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden animate-pulse">
+                <div className="relative">
+                  <div className="absolute inset-0 h-1.5 bg-gray-200 dark:bg-gray-700" />
+                  
+                  <div className="p-6 pt-8">
+                    <div className="flex flex-col sm:flex-row gap-6 sm:items-start">
+                      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-xl shadow-sm"></div>
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                          <div>
+                            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2"></div>
+                            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-40"></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-28"></div>
+                            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-24"></div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                          <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                          <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                      <div className="flex-1 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -431,235 +466,298 @@ END:VCALENDAR`;
           </div>
         ) : getFilteredInterviews().length === 0 ? (
           <div className="text-center py-12 px-4">
-            <div className="mx-auto w-24 h-24 text-gray-200 dark:text-gray-700 mb-6">
-              <Calendar className="w-full h-full" />
+            <div className="mx-auto w-28 h-28 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 
+              rounded-full flex items-center justify-center mb-8 shadow-md">
+              <Calendar className="w-12 h-12 text-indigo-500 dark:text-indigo-400" />
             </div>
-            <h2 className="text-xl font-medium text-gray-900 dark:text-white mb-3">
+            <h2 className="text-2xl font-medium text-gray-900 dark:text-white mb-4">
               No upcoming interviews
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-10">
               {filterType !== 'all' 
                 ? `You don't have any upcoming ${filterType} interviews scheduled.` 
                 : "Track all your upcoming interviews in one place and get prepared with AI-powered interview tools."}
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-md mx-auto">
+            <div className="flex flex-col sm:flex-row justify-center gap-5 max-w-md mx-auto">
               <Link
                 to="/applications"
-                className="inline-flex items-center justify-center px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="inline-flex items-center justify-center px-5 py-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 
+                  border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 hover:shadow-md dark:hover:bg-gray-700/70 transition-all"
               >
-                <Briefcase className="w-4 h-4 mr-2" />
-                <span>Track Applications</span>
+                <Briefcase className="w-5 h-5 mr-2 text-indigo-500" />
+                <span className="font-medium">Track Applications</span>
               </Link>
               <Link
                 to="/calendar"
-                className="inline-flex items-center justify-center px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="inline-flex items-center justify-center px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700
+                  text-white rounded-lg shadow-md hover:shadow-lg transition-all"
               >
-                <Calendar className="w-4 h-4 mr-2" />
-                <span>Schedule Interview</span>
+                <Calendar className="w-5 h-5 mr-2" />
+                <span className="font-medium">Schedule Interview</span>
               </Link>
             </div>
             
-            {/* Section d'aide contextuelle avec icônes et tiles */}
-            <div className="mt-12 max-w-3xl mx-auto">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">
-                Get Ready for Success
+            {/* Features section with cards */}
+            <div className="mt-16 max-w-4xl mx-auto">
+              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">
+                Get Ready for Success with JobZAI
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-4 text-left">
-                  <FileText className="w-8 h-8 text-blue-500 mb-2" />
-                  <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-gradient-to-b from-indigo-50 to-white dark:from-indigo-900/20 dark:to-gray-800/90 
+                    border border-indigo-100 dark:border-indigo-800/30 rounded-xl p-5 text-left shadow-sm group hover:shadow-md transition-all"
+                >
+                  <div className="bg-white/80 dark:bg-gray-800/80 w-12 h-12 rounded-lg flex items-center justify-center 
+                    text-indigo-500 mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-semibold text-indigo-900 dark:text-indigo-300 mb-2">
                     Mock Interviews
                   </h4>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                  <p className="text-sm text-indigo-700 dark:text-indigo-400">
                     Practice with AI-generated questions specific to your industry and role.
                   </p>
-                </div>
-                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg p-4 text-left">
-                  <MessageSquare className="w-8 h-8 text-purple-500 mb-2" />
-                  <h4 className="font-medium text-purple-700 dark:text-purple-300 mb-1">
+                </motion.div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-gradient-to-b from-purple-50 to-white dark:from-purple-900/20 dark:to-gray-800/90 
+                    border border-purple-100 dark:border-purple-800/30 rounded-xl p-5 text-left shadow-sm group hover:shadow-md transition-all"
+                >
+                  <div className="bg-white/80 dark:bg-gray-800/80 w-12 h-12 rounded-lg flex items-center justify-center 
+                    text-purple-500 mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                    <MessageSquare className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-semibold text-purple-900 dark:text-purple-300 mb-2">
                     Answer Coaching
                   </h4>
-                  <p className="text-xs text-purple-600 dark:text-purple-400">
+                  <p className="text-sm text-purple-700 dark:text-purple-400">
                     Get personalized feedback on your interview answers to improve your responses.
                   </p>
-                </div>
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg p-4 text-left">
-                  <Building className="w-8 h-8 text-amber-500 mb-2" />
-                  <h4 className="font-medium text-amber-700 dark:text-amber-300 mb-1">
+                </motion.div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-gradient-to-b from-amber-50 to-white dark:from-amber-900/20 dark:to-gray-800/90 
+                    border border-amber-100 dark:border-amber-800/30 rounded-xl p-5 text-left shadow-sm group hover:shadow-md transition-all"
+                >
+                  <div className="bg-white/80 dark:bg-gray-800/80 w-12 h-12 rounded-lg flex items-center justify-center 
+                    text-amber-500 mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                    <Building className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-semibold text-amber-900 dark:text-amber-300 mb-2">
                     Company Research
                   </h4>
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
                     Analyze job listings to understand key requirements and prepare tailored responses.
                   </p>
-                </div>
+                </motion.div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {getFilteredInterviews().map((item, index) => (
               <motion.div
                 key={`${item.application.id}-${item.interview.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow"
               >
-                <div className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
-                    <div 
-                      className={`w-14 h-14 rounded-full flex items-center justify-center text-white shrink-0
-                        ${item.interview.type === 'hr' ? 'bg-pink-500' :
-                          item.interview.type === 'technical' ? 'bg-teal-500' :
-                          item.interview.type === 'manager' ? 'bg-amber-500' :
-                          item.interview.type === 'final' ? 'bg-green-500' :
-                          'bg-indigo-500'}`}
-                    >
-                      {item.interview.type === 'hr' && <Briefcase className="w-6 h-6" />}
-                      {item.interview.type === 'technical' && <FileText className="w-6 h-6" />}
-                      {item.interview.type === 'manager' && <Building className="w-6 h-6" />}
-                      {item.interview.type === 'final' && <Calendar className="w-6 h-6" />}
-                      {(item.interview.type !== 'hr' && 
-                        item.interview.type !== 'technical' && 
-                        item.interview.type !== 'manager' && 
-                        item.interview.type !== 'final') && <Calendar className="w-6 h-6" />}
-                    </div>
+                <div className="relative">
+                  <div className={`absolute inset-0 h-1.5 
+                    ${item.interview.type === 'hr' ? 'bg-pink-500' :
+                      item.interview.type === 'technical' ? 'bg-teal-500' :
+                      item.interview.type === 'manager' ? 'bg-amber-500' :
+                      item.interview.type === 'final' ? 'bg-green-500' :
+                      'bg-indigo-500'}`}
+                  />
+                  
+                  <div className="p-6 pt-8">
+                    <div className="flex flex-col sm:flex-row gap-6 sm:items-start">
+                      <div 
+                        className={`w-16 h-16 rounded-xl flex items-center justify-center text-white shrink-0 shadow-md
+                          ${item.interview.type === 'hr' ? 'bg-gradient-to-br from-pink-400 to-pink-600' :
+                            item.interview.type === 'technical' ? 'bg-gradient-to-br from-teal-400 to-teal-600' :
+                            item.interview.type === 'manager' ? 'bg-gradient-to-br from-amber-400 to-amber-600' :
+                            item.interview.type === 'final' ? 'bg-gradient-to-br from-green-400 to-green-600' :
+                            'bg-gradient-to-br from-indigo-400 to-indigo-600'}`}
+                      >
+                        {item.interview.type === 'hr' && <Briefcase className="w-7 h-7" />}
+                        {item.interview.type === 'technical' && <FileText className="w-7 h-7" />}
+                        {item.interview.type === 'manager' && <Building className="w-7 h-7" />}
+                        {item.interview.type === 'final' && <Calendar className="w-7 h-7" />}
+                        {(item.interview.type !== 'hr' && 
+                          item.interview.type !== 'technical' && 
+                          item.interview.type !== 'manager' && 
+                          item.interview.type !== 'final') && <Calendar className="w-7 h-7" />}
+                      </div>
 
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
-                        <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-                          {item.application.companyName}
-                        </h2>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                            bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                            {item.interview.type} Interview
-                          </span>
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                          <div>
+                            <h2 className="text-xl font-semibold text-gray-800 dark:text-white group-hover:text-indigo-600 transition-colors">
+                              {item.application.companyName}
+                            </h2>
+                            <p className="text-lg text-gray-600 dark:text-gray-300">
+                              {item.application.position}
+                            </p>
+                          </div>
                           
-                          {/* Status dropdown */}
-                          <div className="relative">
-                            <button
-                              onClick={() => setStatusMenuOpen(statusMenuOpen === `${item.application.id}-${item.interview.id}` 
-                                ? null 
-                                : `${item.application.id}-${item.interview.id}`)}
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
-                                ${item.interview.status === 'scheduled' 
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' 
-                                  : item.interview.status === 'completed'
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}`}
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize shadow-sm
+                              ${item.interview.type === 'hr' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300' :
+                                item.interview.type === 'technical' ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300' :
+                                item.interview.type === 'manager' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
+                                item.interview.type === 'final' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                                'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'}`}
                             >
-                              {item.interview.status === 'scheduled' && <ClockIcon className="w-3 h-3" />}
-                              {item.interview.status === 'completed' && <CheckCircle className="w-3 h-3" />}
-                              {item.interview.status === 'cancelled' && <XCircle className="w-3 h-3" />}
-                              <span className="capitalize">{item.interview.status}</span>
-                              <ChevronDown className="w-3 h-3" />
-                            </button>
+                              {item.interview.type} Interview
+                            </span>
                             
-                            {/* Dropdown menu */}
-                            <AnimatePresence>
-                              {statusMenuOpen === `${item.application.id}-${item.interview.id}` && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -5 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -5 }}
-                                  className="absolute right-0 mt-1 z-10 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1"
-                                >
-                                  <button
-                                    onClick={() => updateInterviewStatus(item.application.id, item.interview.id, 'scheduled')}
-                                    className={`flex w-full items-center gap-2 px-3 py-2 text-xs ${
-                                      item.interview.status === 'scheduled' 
-                                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' 
-                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                                    }`}
+                            {/* Status dropdown */}
+                            <div className="relative">
+                              <button
+                                onClick={() => setStatusMenuOpen(statusMenuOpen === `${item.application.id}-${item.interview.id}` 
+                                  ? null 
+                                  : `${item.application.id}-${item.interview.id}`)}
+                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium shadow-sm
+                                  ${item.interview.status === 'scheduled' 
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' 
+                                    : item.interview.status === 'completed'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}`}
+                              >
+                                {item.interview.status === 'scheduled' && <ClockIcon className="w-3 h-3" />}
+                                {item.interview.status === 'completed' && <CheckCircle className="w-3 h-3" />}
+                                {item.interview.status === 'cancelled' && <XCircle className="w-3 h-3" />}
+                                <span className="capitalize">{item.interview.status}</span>
+                                <ChevronDown className="w-3 h-3" />
+                              </button>
+                              
+                              {/* Dropdown menu */}
+                              <AnimatePresence>
+                                {statusMenuOpen === `${item.application.id}-${item.interview.id}` && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -5 }}
+                                    className="absolute right-0 mt-2 z-10 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1.5 overflow-hidden"
                                   >
-                                    <ClockIcon className="w-3.5 h-3.5" />
-                                    Scheduled
-                                  </button>
-                                  <button
-                                    onClick={() => updateInterviewStatus(item.application.id, item.interview.id, 'completed')}
-                                    className={`flex w-full items-center gap-2 px-3 py-2 text-xs ${
-                                      item.interview.status === 'completed' 
-                                        ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' 
-                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                                    }`}
-                                  >
-                                    <CheckCircle className="w-3.5 h-3.5" />
-                                    Completed
-                                  </button>
-                                  <button
-                                    onClick={() => updateInterviewStatus(item.application.id, item.interview.id, 'cancelled')}
-                                    className={`flex w-full items-center gap-2 px-3 py-2 text-xs ${
-                                      item.interview.status === 'cancelled' 
-                                        ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20' 
-                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                                    }`}
-                                  >
-                                    <XCircle className="w-3.5 h-3.5" />
-                                    Cancelled
-                                  </button>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
+                                    <button
+                                      onClick={() => updateInterviewStatus(item.application.id, item.interview.id, 'scheduled')}
+                                      className={`flex w-full items-center gap-2 px-4 py-2 text-xs ${
+                                        item.interview.status === 'scheduled' 
+                                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+                                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                                      }`}
+                                    >
+                                      <ClockIcon className="w-3.5 h-3.5" />
+                                      Scheduled
+                                    </button>
+                                    <button
+                                      onClick={() => updateInterviewStatus(item.application.id, item.interview.id, 'completed')}
+                                      className={`flex w-full items-center gap-2 px-4 py-2 text-xs ${
+                                        item.interview.status === 'completed' 
+                                          ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' 
+                                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                                      }`}
+                                    >
+                                      <CheckCircle className="w-3.5 h-3.5" />
+                                      Completed
+                                    </button>
+                                    <button
+                                      onClick={() => updateInterviewStatus(item.application.id, item.interview.id, 'cancelled')}
+                                      className={`flex w-full items-center gap-2 px-4 py-2 text-xs ${
+                                        item.interview.status === 'cancelled' 
+                                          ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20' 
+                                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                                      }`}
+                                    >
+                                      <XCircle className="w-3.5 h-3.5" />
+                                      Cancelled
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <p className="text-gray-600 dark:text-gray-300 mb-3">
-                        {item.application.position}
-                      </p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          {formatDate(item.interview.date)}
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                          <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                          {item.interview.time || 'Time not specified'}
-                        </div>
-                        {item.interview.location && (
-                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                            <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                            {item.interview.location}
+                        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="flex items-center rounded-lg bg-gray-50 dark:bg-gray-700/30 p-3 shadow-sm">
+                            <Calendar className="w-5 h-5 mr-3 text-indigo-500 dark:text-indigo-400" />
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Date</p>
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {formatDate(item.interview.date)}
+                              </p>
+                            </div>
                           </div>
-                        )}
+                          <div className="flex items-center rounded-lg bg-gray-50 dark:bg-gray-700/30 p-3 shadow-sm">
+                            <Clock className="w-5 h-5 mr-3 text-indigo-500 dark:text-indigo-400" />
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Time</p>
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {item.interview.time || 'Time not specified'}
+                              </p>
+                            </div>
+                          </div>
+                          {item.interview.location && (
+                            <div className="flex items-center rounded-lg bg-gray-50 dark:bg-gray-700/30 p-3 shadow-sm">
+                              <MapPin className="w-5 h-5 mr-3 text-indigo-500 dark:text-indigo-400" />
+                              <div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {item.interview.location}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {item.interview.notes && (
-                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Notes
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {item.interview.notes}
-                      </p>
+                    {item.interview.notes && (
+                      <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                        <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2 flex items-center">
+                          <MessageSquare className="w-4 h-4 mr-2 text-indigo-500" />
+                          Notes
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 p-3 rounded-lg">
+                          {item.interview.notes}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={() => downloadICS(item.interview, item.application.companyName, item.application.position)}
+                        className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 py-2.5 
+                          hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Add to Calendar
+                      </button>
+                      
+                      <Link
+                        to={`/interview-prep/${item.application.id}/${item.interview.id}`}
+                        className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-white py-2.5 
+                          bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700
+                          rounded-lg transition-all shadow-md hover:shadow-lg"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Prepare for Interview
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
                     </div>
-                  )}
-
-                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={() => downloadICS(item.interview, item.application.companyName, item.application.position)}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-sm text-purple-600 dark:text-purple-400 py-2 
-                        hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800"
-                    >
-                      <Download className="w-4 h-4" />
-                      Add to Calendar
-                    </button>
-                    
-                    <Link
-                      to={`/interview-prep/${item.application.id}/${item.interview.id}`}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-sm text-white py-2 
-                        bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 
-                        rounded-lg transition-colors"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Prepare for Interview
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
                   </div>
                 </div>
               </motion.div>
