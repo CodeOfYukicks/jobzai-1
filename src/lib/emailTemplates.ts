@@ -654,3 +654,94 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
     throw error;
   }
 }
+
+/**
+ * Rewrites text using AI with the specified tone while preserving merge fields
+ */
+export async function rewriteTextWithAI(options: {
+  text: string;
+  tone: string;
+  language?: string;
+}): Promise<string> {
+  try {
+    // First, identify and extract merge fields
+    const mergeFieldRegex = /\w+Field/g;
+    const mergeFields: string[] = [];
+    const mergeFieldsMap = new Map<string, string>();
+    
+    // Create a placeholder version of the text with merge fields replaced by unique placeholders
+    let placeholderText = options.text;
+    let counter = 0;
+    
+    // Extract all merge fields
+    const foundMergeFields = options.text.match(mergeFieldRegex) || [];
+    foundMergeFields.forEach(field => {
+      if (!mergeFields.includes(field)) {
+        mergeFields.push(field);
+        const placeholder = `__MERGE_FIELD_${counter++}__`;
+        mergeFieldsMap.set(placeholder, field);
+        placeholderText = placeholderText.replace(new RegExp(field, 'g'), placeholder);
+      }
+    });
+    
+    // Now process with OpenAI using the placeholder text
+    const openai = await getOpenAIInstance();
+    
+    // Default to English if no language is specified
+    const language = options.language || 'en';
+    
+    // Create language-specific instruction
+    let languageInstruction = '';
+    if (language === 'fr') {
+      languageInstruction = 'Répondez en français.';
+    } else if (language === 'es') {
+      languageInstruction = 'Responda en español.';
+    } else if (language === 'de') {
+      languageInstruction = 'Antworten Sie auf Deutsch.';
+    }
+    
+    const mergeFieldsInstructions = mergeFields.length > 0 
+      ? `IMPORTANT: This text contains special placeholders that must remain intact in your rewriting. 
+         These placeholders are: ${Array.from(mergeFieldsMap.values()).join(', ')}. 
+         I've temporarily replaced them with the following tokens which you MUST keep in the rewritten text: 
+         ${Array.from(mergeFieldsMap.keys()).join(', ')}.`
+      : '';
+    
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a professional writer who helps rephrase text to match specific tones while maintaining the original meaning. ${languageInstruction}
+          
+          ${mergeFieldsInstructions}
+          
+          Ensure your rewritten text:
+          1. Maintains exactly the same meaning as the original
+          2. Uses a ${options.tone} tone throughout
+          3. Preserves all placeholders exactly as they appear in the original text
+          4. Keeps approximately the same length as the original text
+          5. Fits naturally into a professional email context`
+        },
+        {
+          role: "user",
+          content: `Rewrite the following text in a ${options.tone} tone, being careful to preserve all special placeholders:\n\n${placeholderText}`
+        }
+      ],
+      temperature: 0.7
+    });
+    
+    let response = completion.choices[0]?.message?.content || '';
+    if (!response) throw new Error('No response from AI');
+    
+    // Replace placeholders back with original merge fields
+    mergeFieldsMap.forEach((originalField, placeholder) => {
+      response = response.replace(new RegExp(placeholder, 'g'), originalField);
+    });
+    
+    return response.trim();
+  } catch (error) {
+    console.error('Error rewriting text with AI:', error);
+    throw error;
+  }
+}

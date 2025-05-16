@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import MergeFieldSelector from './MergeFieldSelector';
 import TemplatePreview from './TemplatePreview';
 import TemplateEditMobile from './mobile/TemplateEditMobile';
+import TextHighlightPopover from './TextHighlightPopover';
+import { rewriteTextWithAI } from '../lib/emailTemplates';
 
 // Custom hook for checking if on mobile
 const useIsMobile = () => {
@@ -59,6 +61,13 @@ export default function TemplateEditModal({
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   const isMobile = useIsMobile();
   const contentRef = useRef<HTMLTextAreaElement>(null);
+  const [selectionPosition, setSelectionPosition] = useState<{ x: number, y: number } | null>(null);
+  const [selectedText, setSelectedText] = useState('');
+  const [showFloatingButton, setShowFloatingButton] = useState(false);
+  const [selectionRect, setSelectionRect] = useState<DOMRect | null>(null);
+  const [isTextSelected, setIsTextSelected] = useState(false);
+  const [contentHistory, setContentHistory] = useState<string[]>([template?.content || '']);
+  const [historyIndex, setHistoryIndex] = useState(0);
 
   const handleMergeFieldSelect = (field: string) => {
     if (!contentRef.current) return;
@@ -79,6 +88,107 @@ export default function TemplateEditModal({
     }, 0);
   };
 
+  const handleTextSelection = () => {
+    setTimeout(() => {
+      const selection = window.getSelection();
+      const selectedText = selection?.toString().trim() || '';
+      
+      setSelectedText(selectedText);
+      setIsTextSelected(!!selectedText);
+      
+      // Log selection for debugging
+      if (selectedText) {
+        console.log('Text selected:', selectedText);
+      }
+    }, 10);
+  };
+
+  const handleToneSelect = async (tone: string) => {
+    if (!selectedText || !contentRef.current) return;
+    
+    try {
+      toast.loading(`Rewriting in ${tone} tone...`);
+      
+      const rewrittenText = await rewriteTextWithAI({
+        text: selectedText,
+        tone: tone
+      });
+      
+      // Replace in textarea
+      const curContent = editedTemplate.content;
+      const selStart = contentRef.current.selectionStart;
+      const selEnd = contentRef.current.selectionEnd;
+      
+      const newContent = 
+        curContent.substring(0, selStart) + 
+        rewrittenText + 
+        curContent.substring(selEnd);
+      
+      setEditedTemplate(prev => ({ ...prev, content: newContent }));
+      
+      toast.dismiss();
+      toast.success(`Text rewritten in ${tone} tone`);
+      
+      // Reset selection state
+      setIsTextSelected(false);
+      setSelectedText('');
+      
+    } catch (error) {
+      console.error('Error rewriting text:', error);
+      toast.dismiss();
+      toast.error('Failed to rewrite text. Please try again.');
+    }
+  };
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    
+    // Only add to history if the content has changed
+    if (newContent !== editedTemplate.content) {
+      setEditedTemplate(prev => ({ ...prev, content: newContent }));
+      
+      // Add new state to history, removing any "future" states
+      const newHistory = contentHistory.slice(0, historyIndex + 1);
+      newHistory.push(newContent);
+      
+      // Limit history size to prevent memory issues
+      if (newHistory.length > 100) {
+        newHistory.shift();
+      }
+      
+      setContentHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    }
+  };
+  
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Undo: Ctrl+Z or Command+Z
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        setHistoryIndex(historyIndex - 1);
+        setEditedTemplate(prev => ({ 
+          ...prev, 
+          content: contentHistory[historyIndex - 1] 
+        }));
+      }
+    }
+    
+    // Redo: Ctrl+Shift+Z or Command+Shift+Z or Ctrl+Y
+    if (((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) || 
+        ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+      e.preventDefault();
+      if (historyIndex < contentHistory.length - 1) {
+        setHistoryIndex(historyIndex + 1);
+        setEditedTemplate(prev => ({ 
+          ...prev, 
+          content: contentHistory[historyIndex + 1] 
+        }));
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!currentUser) return;
 
@@ -94,12 +204,10 @@ export default function TemplateEditModal({
       };
 
       if (template) {
-        // Update existing template
         const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', template.id);
         await updateDoc(templateRef, templateData);
         if (onSave) onSave(template.id);
       } else {
-        // Create new template
         const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
         const docRef = await addDoc(templatesRef, {
           ...templateData,
@@ -254,21 +362,65 @@ export default function TemplateEditModal({
                   />
                 </div>
                 
-                <textarea
-                  ref={contentRef}
-                  value={editedTemplate.content}
-                  onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
-                  rows={12}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
-                    border border-gray-200 dark:border-gray-700 
-                    rounded-lg text-gray-900 dark:text-white 
-                    placeholder-gray-400 dark:placeholder-gray-500
-                    focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                    font-mono text-sm"
-                  placeholder="Dear (First name),
+                <div className="flex">
+                  {/* Main textarea */}
+                  <div className="flex-1 relative">
+                    <textarea
+                      ref={contentRef}
+                      value={editedTemplate.content}
+                      onChange={handleContentChange}
+                      onKeyDown={handleKeyDown}
+                      onMouseUp={handleTextSelection}
+                      onKeyUp={handleTextSelection}
+                      rows={12}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                        border border-gray-200 dark:border-gray-700 
+                        rounded-lg text-gray-900 dark:text-white 
+                        placeholder-gray-400 dark:placeholder-gray-500
+                        focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
+                        font-mono text-sm"
+                      placeholder="Dear (First name),
 
 I am writing to express my interest in the (Job position) position at (Company)..."
-                />
+                    />
+                  </div>
+                  
+                  {/* Side panel for AI options - always visible */}
+                  <div className={`ml-4 w-40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${isTextSelected ? 'opacity-100' : 'opacity-30'}`}>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-2 text-center border-b border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-center space-x-1 text-purple-600 dark:text-purple-400 text-xs font-medium">
+                        <Sparkles className="h-3 w-3" />
+                        <span>AI Rewrite</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-2">
+                      {isTextSelected ? (
+                        <div className="space-y-1.5">
+                          {['formal', 'friendly', 'persuasive', 'concise', 'enthusiastic'].map((tone) => (
+                            <button
+                              key={tone}
+                              onClick={() => handleToneSelect(tone)}
+                              disabled={!isTextSelected}
+                              className="w-full text-left px-3 py-1.5 rounded-md flex items-center space-x-2
+                                hover:bg-purple-50 dark:hover:bg-purple-900/20
+                                text-sm text-gray-700 dark:text-gray-300
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                                transition-colors duration-150
+                              "
+                            >
+                              <span className="capitalize">{tone}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-4 px-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                          Select text to rewrite
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>

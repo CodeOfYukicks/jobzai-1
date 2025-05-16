@@ -6,6 +6,8 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import MergeFieldSelector from '../MergeFieldSelector';
+import TextHighlightPopover from '../TextHighlightPopover';
+import { rewriteTextWithAI } from '../../lib/emailTemplates';
 
 interface EmailTemplate {
   id: string;
@@ -39,6 +41,13 @@ export default function TemplateEditMobile({
   });
   const [isSaving, setIsSaving] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
+  const [selectionPosition, setSelectionPosition] = useState<{ x: number, y: number } | null>(null);
+  const [selectedText, setSelectedText] = useState('');
+  const [showFloatingButton, setShowFloatingButton] = useState(false);
+  const [selectionRect, setSelectionRect] = useState<DOMRect | null>(null);
+  const [isTextSelected, setIsTextSelected] = useState(false);
+  const [contentHistory, setContentHistory] = useState<string[]>([template?.content || '']);
+  const [historyIndex, setHistoryIndex] = useState(0);
 
   const handleMergeFieldSelect = (field: string) => {
     if (!contentRef.current) return;
@@ -57,6 +66,107 @@ export default function TemplateEditMobile({
         contentRef.current.setSelectionRange(newPosition, newPosition);
       }
     }, 0);
+  };
+
+  const handleTextSelection = () => {
+    setTimeout(() => {
+      const selection = window.getSelection();
+      const selectedText = selection?.toString().trim() || '';
+      
+      setSelectedText(selectedText);
+      setIsTextSelected(!!selectedText);
+      
+      // Log selection for debugging
+      if (selectedText) {
+        console.log('Mobile: Text selected:', selectedText);
+      }
+    }, 10);
+  };
+
+  const handleToneSelect = async (tone: string) => {
+    if (!selectedText || !contentRef.current) return;
+    
+    try {
+      toast.loading(`Rewriting in ${tone} tone...`);
+      
+      const rewrittenText = await rewriteTextWithAI({
+        text: selectedText,
+        tone: tone
+      });
+      
+      // Replace in textarea
+      const curContent = editedTemplate.content;
+      const selStart = contentRef.current.selectionStart;
+      const selEnd = contentRef.current.selectionEnd;
+      
+      const newContent = 
+        curContent.substring(0, selStart) + 
+        rewrittenText + 
+        curContent.substring(selEnd);
+      
+      setEditedTemplate(prev => ({ ...prev, content: newContent }));
+      
+      toast.dismiss();
+      toast.success(`Text rewritten in ${tone} tone`);
+      
+      // Reset selection state
+      setIsTextSelected(false);
+      setSelectedText('');
+      
+    } catch (error) {
+      console.error('Error rewriting text:', error);
+      toast.dismiss();
+      toast.error('Failed to rewrite text. Please try again.');
+    }
+  };
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    
+    // Only add to history if the content has changed
+    if (newContent !== editedTemplate.content) {
+      setEditedTemplate(prev => ({ ...prev, content: newContent }));
+      
+      // Add new state to history, removing any "future" states
+      const newHistory = contentHistory.slice(0, historyIndex + 1);
+      newHistory.push(newContent);
+      
+      // Limit history size to prevent memory issues
+      if (newHistory.length > 100) {
+        newHistory.shift();
+      }
+      
+      setContentHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    }
+  };
+  
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Undo: Ctrl+Z or Command+Z
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        setHistoryIndex(historyIndex - 1);
+        setEditedTemplate(prev => ({ 
+          ...prev, 
+          content: contentHistory[historyIndex - 1] 
+        }));
+      }
+    }
+    
+    // Redo: Ctrl+Shift+Z or Command+Shift+Z or Ctrl+Y
+    if (((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) || 
+        ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+      e.preventDefault();
+      if (historyIndex < contentHistory.length - 1) {
+        setHistoryIndex(historyIndex + 1);
+        setEditedTemplate(prev => ({ 
+          ...prev, 
+          content: contentHistory[historyIndex + 1] 
+        }));
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -193,21 +303,64 @@ export default function TemplateEditMobile({
             />
           </div>
           
-          <textarea
-            ref={contentRef}
-            value={editedTemplate.content}
-            onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
-            rows={10}
-            className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
-              border border-gray-200 dark:border-gray-700 
-              rounded-lg text-gray-900 dark:text-white 
-              placeholder-gray-400 dark:placeholder-gray-500
-              focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-              font-mono text-sm"
-            placeholder="Dear (First name),
+          <div className="space-y-2">
+            <textarea
+              ref={contentRef}
+              value={editedTemplate.content}
+              onChange={handleContentChange}
+              onKeyDown={handleKeyDown}
+              onMouseUp={handleTextSelection}
+              onKeyUp={handleTextSelection}
+              rows={10}
+              className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 
+                border border-gray-200 dark:border-gray-700 
+                rounded-lg text-gray-900 dark:text-white 
+                placeholder-gray-400 dark:placeholder-gray-500
+                focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
+                font-mono text-sm"
+              placeholder="Dear (First name),
 
 I am writing to express my interest in the (Job position) position at (Company)..."
-          />
+            />
+            
+            {/* AI Rewrite Panel - always visible on bottom for mobile */}
+            <div className={`rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${isTextSelected ? 'opacity-100' : 'opacity-50'}`}>
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-2 text-center border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-center space-x-1 text-purple-600 dark:text-purple-400 text-xs font-medium">
+                  <Sparkles className="h-3 w-3" />
+                  <span>AI Rewrite Selected Text</span>
+                </div>
+              </div>
+              
+              <div className="p-2">
+                {isTextSelected ? (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {['formal', 'friendly', 'persuasive', 'concise', 'enthusiastic'].map((tone) => (
+                      <button
+                        key={tone}
+                        onClick={() => handleToneSelect(tone)}
+                        disabled={!isTextSelected}
+                        className="px-3 py-2 rounded-md text-center
+                          bg-white dark:bg-gray-800
+                          hover:bg-purple-50 dark:hover:bg-purple-900/20
+                          text-sm text-gray-700 dark:text-gray-300
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                          transition-colors duration-150
+                          border border-gray-100 dark:border-gray-700
+                        "
+                      >
+                        <span className="capitalize">{tone}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-4 px-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                    Select text to rewrite with AI
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div>
