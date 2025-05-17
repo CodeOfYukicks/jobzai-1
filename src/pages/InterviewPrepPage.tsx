@@ -19,7 +19,7 @@ import {
   Search, RefreshCw, Maximize2, Minimize2, ArrowRight,
   MousePointer, Square, Circle, Minus, Link2, ArrowUp,
   CheckSquare, ExternalLink, BarChart2, Bookmark, ThumbsUp,
-  Newspaper, Users, PieChart, Award, Flag
+  Newspaper, Users, PieChart, Award, Flag, Edit
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -190,6 +190,10 @@ export default function InterviewPrepPage() {
       summary: 'COO Brian Smith stepping down, Jane Williams from Microsoft appointed as replacement.' 
     }
   ]);
+  
+  // État pour suivre les questions sauvegardées et celles qui sont réduites/étendues
+  const [savedQuestionsState, setSavedQuestionsState] = useState<string[]>([]);
+  const [collapsedQuestions, setCollapsedQuestions] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -745,10 +749,16 @@ export default function InterviewPrepPage() {
       return;
     }
     
-    toast.info('Generating new interview questions...');
+    // Ne pas afficher d'info toast car nous avons un loader visuel
     setIsRegeneratingQuestions(true);
     
+    // Remonter en haut de la page pour voir le chargement
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     try {
+      // Récupérer les questions sauvegardées du localStorage
+      const savedQuestions: string[] = JSON.parse(localStorage.getItem('savedQuestions') || '[]');
+      
       // Call Perplexity to generate different questions
       const prompt = `
 Based on this job posting for a ${application.position} position at ${application.companyName}: ${interview.jobPostUrl}
@@ -782,12 +792,48 @@ Return the questions in a JSON format like this:
         const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
         const newQuestionsData = JSON.parse(jsonString);
         
+        // Combiner les questions sauvegardées avec les nouvelles questions
+        let combinedQuestions: string[] = [...savedQuestions];
+        let combinedAnswers: {question: string, answer: string}[] = [];
+        
+        // Ajouter les nouvelles questions qui ne sont pas déjà sauvegardées
+        if (newQuestionsData.questions) {
+          newQuestionsData.questions.forEach((question: string, idx: number) => {
+            if (!savedQuestions.includes(question)) {
+              combinedQuestions.push(question);
+              
+              // Ajouter la réponse correspondante si disponible
+              if (newQuestionsData.answers && newQuestionsData.answers[idx]) {
+                combinedAnswers.push(newQuestionsData.answers[idx]);
+              }
+            }
+          });
+        }
+        
+        // Ajouter les réponses des questions sauvegardées
+        savedQuestions.forEach((savedQuestion: string) => {
+          // Chercher la réponse dans les réponses existantes
+          const existingAnswer = interview.preparation?.suggestedAnswers?.find(a => 
+            typeof a === 'object' && 'question' in a && a.question === savedQuestion
+          );
+          
+          if (existingAnswer) {
+            combinedAnswers.push(existingAnswer as {question: string, answer: string});
+          } else {
+            // Créer une réponse générique si aucune n'est trouvée
+            combinedAnswers.push({
+              question: savedQuestion,
+              answer: "Structure your answer using the STAR method: Situation, Task, Action, Result."
+            });
+          }
+        });
+        
         // Create updated preparation object with required fields
         const updatedPreparation: JobPostAnalysisResult = {
           keyPoints: interview.preparation?.keyPoints || [],
           requiredSkills: interview.preparation?.requiredSkills || [],
-          suggestedQuestions: newQuestionsData.questions || [],
-          suggestedAnswers: newQuestionsData.answers || [],
+          suggestedQuestions: combinedQuestions,
+          suggestedAnswers: combinedAnswers,
           companyInfo: interview.preparation?.companyInfo,
           positionDetails: interview.preparation?.positionDetails,
           cultureFit: interview.preparation?.cultureFit
@@ -820,6 +866,9 @@ Return the questions in a JSON format like this:
           ...interview,
           preparation: updatedPreparation
         });
+        
+        // Attendre un court instant pour que l'animation soit plus fluide
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         toast.success('New interview questions generated successfully!');
       } else {
@@ -1064,6 +1113,12 @@ Return the questions in a JSON format like this:
     const progress = (checklistCompletion * 0.3) + (skillsAssessed * 0.4) + (practiceActivity * 0.3);
     setPreparationProgress(Math.min(Math.round(progress * 100), 100));
   }, [checklist, skillRatings, chatMessages, interview?.preparation?.requiredSkills]);
+  
+  // Charger les questions sauvegardées depuis localStorage au chargement
+  useEffect(() => {
+    const savedQuestions: string[] = JSON.parse(localStorage.getItem('savedQuestions') || '[]');
+    setSavedQuestionsState(savedQuestions);
+  }, []);
 
   // Toggle checklist item completion
   const toggleChecklistItem = (id: string) => {
@@ -1102,7 +1157,7 @@ Return the questions in a JSON format like this:
             onClick={() => navigate('/applications')}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
-            Back to Applications
+            Return to Applications
           </button>
         </div>
       </AuthLayout>
@@ -1112,26 +1167,20 @@ Return the questions in a JSON format like this:
   return (
     <AuthLayout>
       <MotionConfig transition={{ duration: 0.3 }}>
-        <div className="max-w-6xl mx-auto pb-12">
+        <div className="max-w-6xl mx-auto pb-12 px-4 sm:px-6 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <div className="flex items-center justify-between mb-5">
-              <Link
-                to="/applications"
-                className="flex items-center text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                <span>Back to Applications</span>
-              </Link>
-              
+            <div className="flex items-center justify-end mb-5 mr-1">
               {interview && (
                 <div className="flex items-center px-3 py-1.5 rounded-full bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-sm">
                   <Clock className="w-3.5 h-3.5 mr-1.5" />
-                  {new Date(`${interview.date}T${interview.time || '00:00'}`).toLocaleDateString(undefined, {
-                    dateStyle: 'long'
+                  {new Date(`${interview.date}T${interview.time || '00:00'}`).toLocaleDateString('fr-FR', {
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric'
                   })} at {interview.time || '00:00'}
                 </div>
               )}
@@ -1377,10 +1426,36 @@ Return the questions in a JSON format like this:
                           <Clock className="w-7 h-7 text-purple-600 dark:text-purple-400" />
                         </div>
                         <div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">Interview in</div>
+                          {(() => {
+                            // Calculer la différence de temps ici même
+                            const interviewDate = new Date(`${interview?.date}T${interview?.time || '09:00'}`);
+                            const now = new Date();
+                            const diffMs = interviewDate.getTime() - now.getTime();
+                            const isPast = diffMs < 0;
+                            
+                            if (isPast) {
+                              // Interview passée
+                              return (
+                                <>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">Interview passé</div>
+                                  <div className="text-2xl font-bold text-gray-900 dark:text-white">Terminé</div>
+                                </>
+                              );
+                            } else {
+                              // Interview future
+                              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                              const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                              
+                              return (
+                                <>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">Interview dans</div>
                           <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {getDaysUntilInterview().days} days {getDaysUntilInterview().hours} hours
+                                    {diffDays} jours {diffHours} heures
                           </div>
+                                </>
+                              );
+                            }
+                          })()}
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)} interview` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'})}
                           </div>
@@ -1512,36 +1587,6 @@ Return the questions in a JSON format like this:
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Personalized Preparation Plan */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
-                          <Calendar className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                          Your Preparation Plan
-                        </h3>
-                        <button className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center transition-colors">
-                          <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                          Refresh
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-5">
-                        {prepPlan.map((day, i) => (
-                          <div key={i}>
-                            <div className="font-medium text-gray-800 dark:text-white mb-2.5">{day.day}</div>
-                            <div className="pl-4 border-l-2 border-purple-200 dark:border-purple-800 space-y-2.5">
-                              {day.tasks.map((task, j) => (
-                                <div key={j} className="text-sm text-gray-600 dark:text-gray-300 flex items-center">
-                                  <div className="w-2 h-2 bg-purple-400 dark:bg-purple-600 rounded-full mr-2 flex-shrink-0"></div>
-                                  {task}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
                       </div>
                     </div>
 
@@ -1726,76 +1771,468 @@ Return the questions in a JSON format like this:
                   >
                     {/* Loading overlay pour la section questions uniquement */}
                     {isRegeneratingQuestions && (
-                      <div className="absolute inset-0 bg-white/60 dark:bg-gray-900/60 z-10 flex items-center justify-center rounded-xl backdrop-blur-sm">
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg flex items-center gap-3">
-                          <div className="relative">
-                            <div className="w-8 h-8 border-3 border-t-purple-500 border-purple-200 rounded-full animate-spin"></div>
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="fixed inset-0 bg-white/80 dark:bg-gray-900/80 z-50 flex items-center justify-center backdrop-blur-md"
+                      >
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl flex flex-col items-center max-w-md">
+                          <div className="relative mb-4">
+                            <div className="w-16 h-16 border-4 border-purple-100 dark:border-gray-700 border-t-purple-500 dark:border-t-purple-400 rounded-full animate-spin"></div>
+                            <motion.div
+                              initial={{ rotate: 0 }}
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                              className="absolute inset-0 flex items-center justify-center"
+                            >
+                              <RefreshCw className="w-7 h-7 text-purple-500 dark:text-purple-400" />
+                            </motion.div>
                           </div>
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Generating new questions...</span>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                            Generating New Questions
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-4">
+                            Our AI is creating personalized interview questions based on the job description and your profile.
+                          </p>
+                          <motion.div 
+                            initial={{ width: "0%" }}
+                            animate={{ width: "100%" }}
+                            transition={{ duration: 8 }}
+                            className="h-1.5 bg-purple-500 rounded-full w-full max-w-xs"
+                          ></motion.div>
                         </div>
-                      </div>
+                      </motion.div>
                     )}
                     
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                        Interview Questions
-                      </h3>
+                    {/* Responsive header section */}
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                      <div>
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex flex-wrap items-center gap-2">
+                          <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
+                          <span>Interview Questions</span>
+                          {interview.preparation?.suggestedQuestions && !isRegeneratingQuestions && (
+                            <span className="text-xs sm:text-sm font-normal bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
+                              {interview.preparation.suggestedQuestions.length} questions
+                            </span>
+                          )}
+                        </h2>
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Personalized questions for your {application.position} interview
+                        </p>
+                      </div>
+                      
                       {interview.preparation?.suggestedQuestions && interview.preparation.suggestedQuestions.length > 0 && (
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={regenerateQuestions}
                           disabled={isRegeneratingQuestions}
-                          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-start sm:self-auto"
                         >
                           {isRegeneratingQuestions ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                           ) : (
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
                           )}
-                          <span>Generate New Questions</span>
+                          <span>{isRegeneratingQuestions ? "Generating..." : "Generate New Questions"}</span>
                         </motion.button>
                       )}
                     </div>
                     
-                    {interview.preparation?.suggestedQuestions?.map((question, index) => (
+                    {/* Question filters - responsive scrolling */}
+                    <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] sm:text-xs whitespace-nowrap shadow-sm flex-shrink-0">
+                        All Questions
+                      </button>
+                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 text-[10px] sm:text-xs whitespace-nowrap transition-colors flex-shrink-0">
+                        Technical
+                      </button>
+                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 text-[10px] sm:text-xs whitespace-nowrap transition-colors flex-shrink-0">
+                        Behavioral
+                      </button>
+                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 text-[10px] sm:text-xs whitespace-nowrap transition-colors flex-shrink-0">
+                        Company Specific
+                      </button>
+                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 text-[10px] sm:text-xs whitespace-nowrap transition-colors flex-shrink-0">
+                        Role Specific
+                      </button>
+                    </div>
+                    
+                    {/* Add custom CSS for scrollbar styling */}
+                    <style>{`
+                      .scrollbar-none::-webkit-scrollbar {
+                        display: none;
+                      }
+                      .scrollbar-none {
+                        -ms-overflow-style: none;
+                        scrollbar-width: none;
+                      }
+                    `}</style>
+                    
+                    {/* Questions with Mind Maps - Masqués pendant la régénération */}
+                    {!isRegeneratingQuestions && interview.preparation?.suggestedQuestions?.map((question, index) => (
                       <motion.div
                         key={index}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow mb-6"
                       >
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
-                          Question {index + 1}
-                        </h3>
-                        <p className="mb-5 text-gray-700 dark:text-gray-200">
+                        <div className="flex items-start gap-3 sm:gap-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-semibold flex-shrink-0 text-sm sm:text-base">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start gap-2 mb-2 sm:mb-3">
+                              <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white leading-tight">
                           {question}
-                        </p>
-                        
-                        <div className="pl-5 border-l-2 border-purple-200 dark:border-purple-900">
-                          <h4 className="text-sm font-medium text-purple-700 dark:text-purple-400 mb-2">
+                              </h3>
+                              <button 
+                                onClick={() => setCollapsedQuestions(prev => ({
+                                  ...prev,
+                                  [index]: !prev[index]
+                                }))}
+                                className="p-1 sm:p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors flex-shrink-0 mt-0.5"
+                                aria-label={collapsedQuestions[index] ? "Expand question" : "Collapse question"}
+                              >
+                                <ChevronDown 
+                                  className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400 transition-transform ${
+                                    collapsedQuestions[index] ? "" : "transform rotate-180"
+                                  }`} 
+                                />
+                              </button>
+                            </div>
+                            
+                            {/* Contenu déroulant - caché lorsque la question est réduite */}
+                            <AnimatePresence>
+                              {!collapsedQuestions[index] && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                                  animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                                  exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  {/* Mind Map for suggested answer - Optimized for mobile */}
+                                  <div className="mt-3 sm:mt-5 border-t border-gray-100 dark:border-gray-700 pt-3 sm:pt-4">
+                                    <h4 className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-400 mb-3 sm:mb-4">
                             Suggested Answer Approach
                           </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    
+                                    {/* Mind Map Visualization - Simplified for mobile */}
+                                    <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-3 sm:p-6 pb-3 sm:pb-4 relative min-h-[150px] sm:min-h-[180px]">
+                                      {/* Central Node - Adapté au type de question */}
+                                      <div className="absolute w-24 sm:w-28 h-8 sm:h-9 bg-purple-600 text-white rounded-md flex items-center justify-center text-[10px] sm:text-xs font-medium left-1/2 top-4 sm:top-6 transform -translate-x-1/2 z-10 shadow-sm">
+                                        {question.toLowerCase().includes('tell me about') || question.toLowerCase().includes('describe a time') ? 'STAR Method' : 
+                                         question.toLowerCase().includes('how would you') ? 'Strategy' :
+                                         question.toLowerCase().includes('what is') || question.toLowerCase().includes('define') ? 'Knowledge' : 
+                                         question.toLowerCase().includes('why') ? 'Reasoning' : 'Approach'}
+                                      </div>
+                                
+                                {/* First level nodes - Responsive layout for mobile */}
+                                <div className="flex flex-wrap justify-center gap-x-3 sm:gap-x-10 gap-y-3 sm:gap-y-4 mt-14 sm:mt-16 mb-2 sm:mb-3 pt-1 sm:pt-2">
+                                  {/* Structure adaptative basée sur le type de question */}
+                                  {(() => {
+                                    // Questions comportementales (STAR)
+                                    if (question.toLowerCase().includes('tell me about') || 
+                                        question.toLowerCase().includes('describe a time') || 
+                                        question.toLowerCase().includes('example of') ||
+                                        question.toLowerCase().includes('experience with')) {
+                                      return (
+                                        <>
+                                          <div className="relative pt-6 sm:pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="25" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="25" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-20 sm:w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-1.5 sm:p-2 rounded text-[10px] sm:text-xs text-center shadow-sm">
+                                              Situation
+                                              <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 text-gray-600 dark:text-gray-400">Set the context</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-6 sm:pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="25" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="25" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-20 sm:w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-1.5 sm:p-2 rounded text-[10px] sm:text-xs text-center shadow-sm">
+                                              Action
+                                              <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 text-gray-600 dark:text-gray-400">What you did</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-6 sm:pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="25" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="25" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-20 sm:w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-1.5 sm:p-2 rounded text-[10px] sm:text-xs text-center shadow-sm">
+                                              Results
+                                              <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 text-gray-600 dark:text-gray-400">Measurable impact</div>
+                                            </div>
+                                          </div>
+                                        </>
+                                      );
+                                    }
+                                    
+                                    // Questions techniques / définitions
+                                    else if (question.toLowerCase().includes('what is') || 
+                                             question.toLowerCase().includes('define') || 
+                                             question.toLowerCase().includes('explain')) {
+                                      return (
+                                        <>
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Definition
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Core concept</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Examples
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Practical cases</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Application
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">In this role</div>
+                                            </div>
+                                          </div>
+                                        </>
+                                      );
+                                    }
+                                    
+                                    // Questions "Comment" / approche
+                                    else if (question.toLowerCase().includes('how would you') || 
+                                             question.toLowerCase().includes('how do you') ||
+                                             question.toLowerCase().includes('approach') ||
+                                             question.toLowerCase().includes('strategy')) {
+                                      return (
+                                        <>
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Analysis
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Assess situation</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Methodology
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Step by step</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Evaluation
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Measure success</div>
+                                            </div>
+                                          </div>
+                                        </>
+                                      );
+                                    }
+                                    
+                                    // Questions "Pourquoi" / motivations
+                                    else if (question.toLowerCase().includes('why') ||
+                                             question.toLowerCase().includes('reason') ||
+                                             question.toLowerCase().includes('motivat')) {
+                                      return (
+                                        <>
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Personal
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Your motivation</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Professional
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Career alignment</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Contribution
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Value you bring</div>
+                                            </div>
+                                          </div>
+                                        </>
+                                      );
+                                    }
+                                    
+                                    // Default pour les autres types de questions
+                                    else {
+                                      return (
+                                        <>
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Context
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Background</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Key Points
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Main arguments</div>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="relative pt-8">
+                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
+                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
+                                            </svg>
+                                            <div className="w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-2 rounded text-xs text-center shadow-sm">
+                                              Conclusion
+                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Takeaway</div>
+                                            </div>
+                                          </div>
+                                        </>
+                                      );
+                                    }
+                                  })()}
+                                </div>
+                                
+                                {/* Answer content and examples - Streamlined for mobile */}
+                                <div className="mt-4 sm:mt-6 text-xs sm:text-sm text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-4 max-h-[120px] sm:max-h-none overflow-y-auto">
                             {interview.preparation?.suggestedAnswers && 
                              interview.preparation.suggestedAnswers[index] && 
                              typeof interview.preparation.suggestedAnswers[index] === 'object' && 
                              'answer' in interview.preparation.suggestedAnswers[index]
                               ? (interview.preparation.suggestedAnswers[index] as { answer: string }).answer
                               : "Structure your answer using the STAR method: Situation, Task, Action, Result. Focus on highlighting relevant experience and skills from your background that match the job requirements."}
-                          </p>
+                                </div>
+                                
+                                {/* Key examples - Responsive grid for mobile */}
+                                <div className="flex flex-col sm:flex-row flex-wrap justify-between gap-2 mt-3 sm:mt-4">
+                                  <div className="w-full text-[10px] sm:text-xs p-1.5 sm:p-2 bg-gray-100 dark:bg-gray-800 rounded border-l-2 border-blue-500 dark:border-blue-700">
+                                    <span className="font-medium">Example opener:</span> "In my role at [Previous Company], I..."
+                                  </div>
+                                  <div className="w-full text-[10px] sm:text-xs p-1.5 sm:p-2 bg-gray-100 dark:bg-gray-800 rounded border-l-2 border-green-500 dark:border-green-700">
+                                    <span className="font-medium">Key point:</span> "This resulted in [measurable outcome]..."
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Interaction buttons - Mobile friendly */}
+                              <div className="flex justify-between items-center mt-3 sm:mt-4">
+                                <div className="flex gap-1.5 sm:gap-2">
+                                  <button 
+                                    onClick={() => {
+                                      // Définir la question comme sauvegardée
+                                      const savedQuestions: string[] = JSON.parse(localStorage.getItem('savedQuestions') || '[]');
+                                      if (!savedQuestions.includes(question)) {
+                                        savedQuestions.push(question);
+                                        localStorage.setItem('savedQuestions', JSON.stringify(savedQuestions));
+                                        setSavedQuestionsState(savedQuestions);
+                                        toast.success('Question saved');
+                                      } else {
+                                        // Si la question est déjà sauvegardée, la retirer
+                                        const updatedSavedQuestions = savedQuestions.filter(q => q !== question);
+                                        localStorage.setItem('savedQuestions', JSON.stringify(updatedSavedQuestions));
+                                        setSavedQuestionsState(updatedSavedQuestions);
+                                        toast.info('Question removed from saved list');
+                                      }
+                                    }}
+                                    className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 transition-colors
+                                      ${savedQuestionsState.includes(question) 
+                                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/30 font-medium' 
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                      }`}
+                                    aria-label={savedQuestionsState.includes(question) ? "Unsave question" : "Save question"}
+                                  >
+                                    <Bookmark className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${savedQuestionsState.includes(question) ? 'fill-current' : ''}`} />
+                                    <span>{savedQuestionsState.includes(question) ? 'Saved' : 'Save'}</span>
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      // Créer une nouvelle note avec la question
+                                      const newNoteId = uuidv4();
+                                      const newNote: Note = {
+                                        id: newNoteId,
+                                        title: `Interview Question ${index + 1}`,
+                                        content: question,
+                                        color: '#f48fb1', // Rose pour les questions d'entretien
+                                        createdAt: Date.now(),
+                                        updatedAt: Date.now(),
+                                        position: { x: 50, y: 50 }
+                                      };
+                                      
+                                      // Ajouter la note à la liste des notes
+                                      const updatedNotes = [...stickyNotes, newNote];
+                                      setStickyNotes(updatedNotes);
+                                      
+                                      // Positionner la note
+                                      setNotePositions(prev => ({
+                                        ...prev,
+                                        [newNoteId]: { x: 50, y: 50 }
+                                      }));
+                                      
+                                      // Mettre à jour l'entretien avec la nouvelle note
+                                      updateInterviewNotes(updatedNotes);
+                                      
+                                      toast.success('Note created from question');
+                                    }}
+                                    className="text-[10px] sm:text-xs bg-gray-100 dark:bg-gray-800 px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                    aria-label="Create note from question"
+                                  >
+                                    <Edit className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                    <span>Notes</span>
+                                  </button>
+                                </div>
+                              </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
                     
-                    {(!interview.preparation?.suggestedQuestions || interview.preparation.suggestedQuestions.length === 0) && (
-                      <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <MessageSquare className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">
+                    {(!isRegeneratingQuestions && (!interview.preparation?.suggestedQuestions || interview.preparation.suggestedQuestions.length === 0)) && (
+                      <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                        <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium">
                           No suggested questions available
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 px-4">
                           Analyze a job posting to get AI-generated interview questions
                         </p>
                       </div>
