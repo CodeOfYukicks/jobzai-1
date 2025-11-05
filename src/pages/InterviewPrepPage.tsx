@@ -61,6 +61,18 @@ interface Interview {
   lastAnalyzed?: string;
   skillRatings?: Record<string, number>;
   chatHistory?: ChatMessage[];
+  checklist?: ChecklistItem[];
+  companyNews?: NewsItem[];
+  lastCompanyNewsUpdated?: string;
+  skillCoach?: {
+    microTasks?: Record<string, { id: string; label: string; done: boolean }[]>;
+    starStories?: Record<string, { id: string; situation: string; action: string; result: string }[]>;
+    readiness?: Record<string, 'ready' | 'needs_work'>;
+  };
+  resourcesData?: {
+    reviewedTips?: string[];
+    savedLinks?: { id: string; title: string; url: string }[];
+  };
 }
 
 interface JobApplication {
@@ -110,6 +122,8 @@ interface NewsItem {
   date: string;
   sentiment: 'positive' | 'neutral' | 'negative';
   summary: string;
+  source?: string;
+  url?: string;
 }
 
 export default function InterviewPrepPage() {
@@ -171,25 +185,100 @@ export default function InterviewPrepPage() {
     { day: 'Day 3', tasks: ['Review interviewer LinkedIn (if known) (10m)', 'Full mock interview practice (45m)', 'Prepare questions to ask (15m)'] }
   ]);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([
-    { 
-      title: 'Salesforce Reports Strong Q3 Earnings', 
-      date: '2 days ago', 
-      sentiment: 'positive', 
-      summary: 'The company reported earnings exceeding analyst expectations with cloud services revenue up 20%.' 
-    },
-    { 
-      title: 'New AI Integration for Sales Cloud Announced', 
-      date: '1 week ago', 
-      sentiment: 'positive',
-      summary: 'Salesforce unveiled new Einstein AI capabilities for its Sales Cloud platform.' 
-    },
-    { 
-      title: 'Executive Leadership Changes', 
-      date: '2 weeks ago', 
-      sentiment: 'neutral',
-      summary: 'COO Brian Smith stepping down, Jane Williams from Microsoft appointed as replacement.' 
-    }
   ]);
+  const [isNewsLoading, setIsNewsLoading] = useState(false);
+  const [newsError, setNewsError] = useState<string | null>(null);
+  const [skillCoach, setSkillCoach] = useState<Interview['skillCoach']>({ microTasks: {}, starStories: {}, readiness: {} });
+  const [resourcesData, setResourcesData] = useState<Interview['resourcesData']>({ reviewedTips: [], savedLinks: [] });
+  const [newResourceTitle, setNewResourceTitle] = useState('');
+  const [newResourceUrl, setNewResourceUrl] = useState('');
+  
+
+  // Reusable company news fetcher
+  const fetchCompanyNews = async () => {
+    if (!currentUser || !application || !interview || !applicationId) return;
+    try {
+      setIsNewsLoading(true);
+      setNewsError(null);
+      const prompt = `
+Return 4-6 RECENT company updates about ${application.companyName} helpful for a candidate interviewing for "${application.position}". Use this job post if helpful: ${(interview.jobPostUrl || jobUrl)}.
+Output ONLY JSON like {"items":[{"title":"...","date":"2 days ago","sentiment":"positive|neutral|negative","summary":"...","source":"Company Website","url":"https://..."}]}.
+Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL when available.
+`;
+      const resp = await queryPerplexity(prompt);
+      let content: any = resp?.text ?? resp?.choices?.[0]?.message?.content ?? '';
+      if (typeof content !== 'string') content = String(content ?? '');
+      content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+      const parsed = JSON.parse(jsonString);
+      const items: NewsItem[] = (parsed.items || parsed || []).map((it: any) => ({
+        title: String(it.title || ''),
+        date: String(it.date || ''),
+        sentiment: (['positive','neutral','negative'].includes((it.sentiment||'').toLowerCase()) ? (it.sentiment||'').toLowerCase() : 'neutral') as 'positive'|'neutral'|'negative',
+        summary: String(it.summary || ''),
+        source: it.source ? String(it.source) : undefined,
+        url: it.url ? String(it.url) : undefined
+      })).filter((n: NewsItem) => n.title && n.summary);
+      if (!items.length) throw new Error('No items parsed');
+      setNewsItems(items);
+      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      if (interviewIndex !== -1) {
+        const updatedInterviews = [...(application.interviews || [])];
+        updatedInterviews[interviewIndex] = {
+          ...interview,
+          companyNews: items,
+          lastCompanyNewsUpdated: new Date().toISOString()
+        };
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        await updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() });
+        setInterview({ ...interview, companyNews: items, lastCompanyNewsUpdated: new Date().toISOString() });
+      }
+    } catch (e) {
+      console.error('Error fetching company updates:', e);
+      setNewsError('Failed to load company updates');
+    } finally {
+      setIsNewsLoading(false);
+    }
+  };
+
+  // Create a note from a news item
+  const createNoteFromNews = (news: NewsItem) => {
+    if (!currentUser || !application || !interview || !applicationId) return;
+    
+    const content = `Talking Points for Interview:
+
+${news.title}
+
+${news.summary}
+
+${news.source ? `Source: ${news.source}` : ''}
+${news.url ? `Link: ${news.url}` : ''}
+
+Key points to mention:
+- ${news.title}
+- ${news.summary.split('.')[0]}`;
+    
+    const newNoteId = uuidv4();
+    const newNote: Note = {
+      id: newNoteId,
+      title: `Talking Points: ${news.title.substring(0, 30)}${news.title.length > 30 ? '...' : ''}`,
+      content,
+      color: '#4fc3f7',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      position: { x: 50, y: 50 }
+    };
+    
+    const updatedNotes = [...stickyNotes, newNote];
+    setStickyNotes(updatedNotes);
+    setNotePositions(prev => ({
+      ...prev,
+      [newNoteId]: { x: 50, y: 50 }
+    }));
+    updateInterviewNotes(updatedNotes);
+    toast.success('Talking points note created');
+  };
   
   // État pour suivre les questions sauvegardées et celles qui sont réduites/étendues
   const [savedQuestionsState, setSavedQuestionsState] = useState<string[]>([]);
@@ -240,6 +329,24 @@ export default function InterviewPrepPage() {
     }
   }, [interview]);
 
+  // Remove undefined fields recursively for Firestore
+  const sanitizeForFirestore = (value: any): any => {
+    if (Array.isArray(value)) {
+      return value.map(sanitizeForFirestore);
+    }
+    if (value && typeof value === 'object') {
+      const result: Record<string, any> = {};
+      Object.keys(value).forEach((k) => {
+        const v = (value as any)[k];
+        if (v !== undefined) {
+          result[k] = sanitizeForFirestore(v);
+        }
+      });
+      return result;
+    }
+    return value;
+  };
+
   useEffect(() => {
     // Load chat history from interview data if available
     if (interview?.chatHistory) {
@@ -257,6 +364,12 @@ export default function InterviewPrepPage() {
   useEffect(() => {
     if (interview) {
       setNotes(interview.notes || '');
+      // Load checklist from interview if available
+      if (interview.checklist && interview.checklist.length > 0) {
+        setChecklist(interview.checklist);
+      }
+      if (interview.skillCoach) setSkillCoach(interview.skillCoach);
+      if (interview.resourcesData) setResourcesData(interview.resourcesData);
       
       // Initialize sticky notes
       if (interview.stickyNotes && interview.stickyNotes.length > 0) {
@@ -297,6 +410,26 @@ export default function InterviewPrepPage() {
     }
   }, [interview]);
 
+  // Fetch dynamic company updates based on job post/company using Perplexity
+  useEffect(() => {
+    const shouldFetch = !!application?.companyName && !!interview?.preparation && !!(interview?.jobPostUrl || jobUrl);
+    if (!shouldFetch || !currentUser || !application || !interview || !applicationId) return;
+
+    const isStale = (() => {
+      if (!interview.lastCompanyNewsUpdated) return true;
+      const last = new Date(interview.lastCompanyNewsUpdated).getTime();
+      const now = Date.now();
+      return now - last > 1000 * 60 * 60 * 24; // refresh if older than 24h
+    })();
+
+    if (interview.companyNews && interview.companyNews.length > 0 && !isStale) {
+      setNewsItems(interview.companyNews);
+      return;
+    }
+
+    fetchCompanyNews();
+  }, [application?.companyName, application?.position, interview?.preparation, interview?.jobPostUrl, jobUrl, currentUser, application, interview, applicationId]);
+
   const handleAnalyzeJobPost = async () => {
     if (!currentUser || !application || !interview || !applicationId) return;
     
@@ -308,12 +441,13 @@ export default function InterviewPrepPage() {
     setIsAnalyzing(true);
     
     try {
-      const analysisResult = await analyzeJobPost(
+      const analysisRaw = await analyzeJobPost(
         jobUrl,
         application.position,
         application.companyName,
         'perplexity' // Use Perplexity as default
       );
+      const analysisResult = sanitizeForFirestore(analysisRaw);
       
       if (analysisResult.error) {
         toast.error(analysisResult.error);
@@ -1100,19 +1234,178 @@ Return the questions in a JSON format like this:
   };
 
   // Calculate preparation progress
+  const getProgressMilestones = () => {
+    const requiredSkills = interview?.preparation?.requiredSkills || [];
+    const skillsRated = Object.keys(skillRatings).length;
+    const skillsComplete = requiredSkills.length > 0 ? skillsRated >= Math.min(Math.ceil(requiredSkills.length * 0.6), requiredSkills.length) : false;
+    
+    const milestones = [
+      {
+        id: 'analysis',
+        label: 'Job Analysis',
+        icon: <Search className="w-4 h-4" />,
+        completed: !!interview?.preparation && !!interview?.preparation?.requiredSkills?.length,
+        description: 'Analyze job posting',
+        action: () => (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()
+      },
+      {
+        id: 'skills',
+        label: 'Skills Assessment',
+        icon: <Briefcase className="w-4 h-4" />,
+        completed: skillsComplete,
+        description: `Rate at least ${requiredSkills.length > 0 ? Math.ceil(requiredSkills.length * 0.6) : 3} skills (${skillsRated}/${requiredSkills.length || '?'})`,
+        action: () => setTab('skills')
+      },
+      {
+        id: 'questions',
+        label: 'Questions Review',
+        icon: <HelpCircle className="w-4 h-4" />,
+        completed: interview?.preparation?.suggestedQuestions ? interview.preparation.suggestedQuestions.length > 0 && savedQuestionsState.length >= 2 : false,
+        description: `Save at least 2 questions (${savedQuestionsState.length} saved)`,
+        action: () => setTab('questions')
+      },
+      {
+        id: 'resources',
+        label: 'Resources',
+        icon: <BookOpen className="w-4 h-4" />,
+        completed: (resourcesData?.reviewedTips?.length || 0) >= 4 || (resourcesData?.savedLinks?.length || 0) >= 2,
+        description: 'Review 4+ tips OR add 2+ resources',
+        action: () => setTab('resources')
+      },
+      {
+        id: 'practice',
+        label: 'Practice Chat',
+        icon: <MessageSquare className="w-4 h-4" />,
+        completed: chatMessages.filter(m => m.role === 'user').length >= 3 && chatMessages.filter(m => m.role === 'assistant').length >= 2,
+        description: 'Have 3+ exchanges with AI coach',
+        action: () => setTab('chat')
+      }
+    ];
+    return milestones;
+  };
+
   useEffect(() => {
-    // Simple algorithm to calculate progress:
-    // 30% from checklist completion
-    // 40% from skills self-assessment
-    // 30% from practice activity
-    
-    const checklistCompletion = checklist.filter(item => item.completed).length / checklist.length;
-    const skillsAssessed = Object.keys(skillRatings).length / (interview?.preparation?.requiredSkills?.length || 1);
-    const practiceActivity = chatMessages.length > 0 ? Math.min(chatMessages.length / 10, 1) : 0;
-    
-    const progress = (checklistCompletion * 0.3) + (skillsAssessed * 0.4) + (practiceActivity * 0.3);
-    setPreparationProgress(Math.min(Math.round(progress * 100), 100));
-  }, [checklist, skillRatings, chatMessages, interview?.preparation?.requiredSkills]);
+    const milestones = getProgressMilestones();
+    const completed = milestones.filter(m => m.completed).length;
+    const total = milestones.length;
+    setPreparationProgress(Math.round((completed / total) * 100));
+  }, [interview?.preparation, skillRatings, savedQuestionsState, resourcesData, chatMessages]);
+
+  // Compute gaps (descending) from requiredSkills and self-ratings
+  const skillGaps = useMemo(() => {
+    const required = interview?.preparation?.requiredSkills || [];
+    const items = required.map((skill) => {
+      const rating = skillRatings[skill] || 0;
+      const gap = Math.max(0, 5 - rating);
+      return { skill, rating, gap };
+    });
+    return items.sort((a, b) => b.gap - a.gap).slice(0, 5);
+  }, [interview?.preparation?.requiredSkills, skillRatings]);
+
+  // Helpers to update SkillCoach in Firestore
+  const saveSkillCoach = async (updated: Interview['skillCoach']) => {
+    if (!currentUser || !application || !interview || !applicationId) return;
+    const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+    if (interviewIndex === -1) return;
+    const sanitized = sanitizeForFirestore(updated);
+    const updatedInterviews = [...(application.interviews || [])];
+    updatedInterviews[interviewIndex] = { ...interview, skillCoach: sanitized } as Interview;
+    const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+    await updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() });
+    setInterview({ ...interview, skillCoach: sanitized });
+  };
+
+  const saveResourcesData = async (updated: Interview['resourcesData']) => {
+    if (!currentUser || !application || !interview || !applicationId) return;
+    const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+    if (interviewIndex === -1) return;
+    const sanitized = sanitizeForFirestore(updated);
+    const updatedInterviews = [...(application.interviews || [])];
+    updatedInterviews[interviewIndex] = { ...interview, resourcesData: sanitized } as Interview;
+    const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+    await updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() });
+    setInterview({ ...interview, resourcesData: sanitized });
+  };
+
+  const toggleMicroTask = async (skill: string, taskId: string) => {
+    const current = skillCoach?.microTasks?.[skill] || [];
+    const nextTasks = current.map(t => t.id === taskId ? { ...t, done: !t.done } : t);
+    const next = { ...skillCoach, microTasks: { ...(skillCoach?.microTasks || {}), [skill]: nextTasks } } as Interview['skillCoach'];
+    setSkillCoach(next);
+    await saveSkillCoach(next);
+  };
+
+  const ensureDefaultTasks = (skill: string) => {
+    const base = skillCoach?.microTasks?.[skill];
+    if (base && base.length) return base;
+    const tasks = [
+      { id: uuidv4(), label: 'Review role-specific docs/notes for this skill', done: false },
+      { id: uuidv4(), label: 'Draft 1 STAR story showcasing this skill', done: false },
+      { id: uuidv4(), label: 'Practise 2 targeted questions in Chat', done: false }
+    ];
+    const next = { ...skillCoach, microTasks: { ...(skillCoach?.microTasks || {}), [skill]: tasks } } as Interview['skillCoach'];
+    setSkillCoach(next);
+    saveSkillCoach(next);
+    return tasks;
+  };
+
+  const addStarStory = async (skill: string) => {
+    const stories = skillCoach?.starStories?.[skill] || [];
+    const nextStories = [...stories, { id: uuidv4(), situation: '', action: '', result: '' }];
+    const next = { ...skillCoach, starStories: { ...(skillCoach?.starStories || {}), [skill]: nextStories } } as Interview['skillCoach'];
+    setSkillCoach(next);
+    await saveSkillCoach(next);
+  };
+
+  const updateStarField = async (skill: string, storyId: string, field: 'situation' | 'action' | 'result', value: string) => {
+    const stories = skillCoach?.starStories?.[skill] || [];
+    const nextStories = stories.map(s => s.id === storyId ? { ...s, [field]: value } : s);
+    const next = { ...skillCoach, starStories: { ...(skillCoach?.starStories || {}), [skill]: nextStories } } as Interview['skillCoach'];
+    setSkillCoach(next);
+    await saveSkillCoach(next);
+  };
+
+  const deleteStarStory = async (skill: string, storyId: string) => {
+    const stories = skillCoach?.starStories?.[skill] || [];
+    const nextStories = stories.filter(s => s.id !== storyId);
+    const next = { ...skillCoach, starStories: { ...(skillCoach?.starStories || {}), [skill]: nextStories } } as Interview['skillCoach'];
+    setSkillCoach(next);
+    await saveSkillCoach(next);
+  };
+
+  const exportStoryToNotes = (skill: string, storyId: string) => {
+    const story = (skillCoach?.starStories?.[skill] || []).find(s => s.id === storyId);
+    if (!story) return;
+    const content = `STAR for ${skill}\n\nSituation: ${story.situation}\nAction: ${story.action}\nResult: ${story.result}`;
+    const newNoteId = uuidv4();
+    const newNote: Note = {
+      id: newNoteId,
+      title: `${skill} - STAR story`,
+      content,
+      color: '#b39ddb',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      position: { x: 50, y: 50 }
+    };
+    const updatedNotes = [...stickyNotes, newNote];
+    setStickyNotes(updatedNotes);
+    setNotePositions(prev => ({ ...prev, [newNoteId]: { x: 50, y: 50 } }));
+    updateInterviewNotes(updatedNotes);
+    toast.success('STAR story exported to Notes');
+  };
+
+  const practiceInChat = (skill: string) => {
+    const latestStory = (skillCoach?.starStories?.[skill] || [])[0];
+    const basePrompt = `Help me practise a targeted question about ${skill} for ${application?.position} at ${application?.companyName}.`;
+    const story = latestStory ? `\nHere is my STAR draft: Situation: ${latestStory.situation}. Action: ${latestStory.action}. Result: ${latestStory.result}. Please critique briefly and ask one follow-up.` : '';
+    setTab('chat');
+    setMessage(basePrompt + story);
+  };
+
+  const shortenText = (text: string, max = 48) => {
+    if (!text) return '';
+    return text.length > max ? text.slice(0, max - 1) + '…' : text;
+  };
   
   // Charger les questions sauvegardées depuis localStorage au chargement
   useEffect(() => {
@@ -1122,9 +1415,69 @@ Return the questions in a JSON format like this:
 
   // Toggle checklist item completion
   const toggleChecklistItem = (id: string) => {
-    setChecklist(prev => prev.map(item => 
-      item.id === id ? { ...item, completed: !item.completed } : item
-    ));
+    const updated = checklist.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
+    setChecklist(updated);
+    // persist
+    if (currentUser && application && interview && applicationId) {
+      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      if (interviewIndex !== -1) {
+        const updatedInterviews = [...(application.interviews || [])];
+        updatedInterviews[interviewIndex] = { ...interview, checklist: updated };
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() }).catch(() => {});
+        setInterview({ ...interview, checklist: updated });
+      }
+    }
+  };
+
+  // Checklist CRUD
+  const [newTaskText, setNewTaskText] = useState('');
+  const addChecklistItem = () => {
+    const text = newTaskText.trim();
+    if (!text) return;
+    const item: ChecklistItem = { id: uuidv4(), task: text, completed: false, section: 'overview' };
+    const updated = [...checklist, item];
+    setChecklist(updated);
+    setNewTaskText('');
+    if (currentUser && application && interview && applicationId) {
+      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      if (interviewIndex !== -1) {
+        const updatedInterviews = [...(application.interviews || [])];
+        updatedInterviews[interviewIndex] = { ...interview, checklist: updated };
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() }).catch(() => {});
+        setInterview({ ...interview, checklist: updated });
+      }
+    }
+  };
+  const deleteChecklistItem = (id: string) => {
+    const updated = checklist.filter(i => i.id !== id);
+    setChecklist(updated);
+    if (currentUser && application && interview && applicationId) {
+      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      if (interviewIndex !== -1) {
+        const updatedInterviews = [...(application.interviews || [])];
+        updatedInterviews[interviewIndex] = { ...interview, checklist: updated };
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() }).catch(() => {});
+        setInterview({ ...interview, checklist: updated });
+      }
+    }
+  };
+
+  const updateChecklistItemText = (id: string, text: string) => {
+    const updated = checklist.map(i => i.id === id ? { ...i, task: text } : i);
+    setChecklist(updated);
+    if (currentUser && application && interview && applicationId) {
+      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      if (interviewIndex !== -1) {
+        const updatedInterviews = [...(application.interviews || [])];
+        updatedInterviews[interviewIndex] = { ...interview, checklist: updated };
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() }).catch(() => {});
+        setInterview({ ...interview, checklist: updated });
+      }
+    }
   };
 
   if (isLoading) {
@@ -1401,7 +1754,7 @@ Return the questions in a JSON format like this:
                   </div>
                   
                   <button
-                    onClick={() => document.querySelector('input[type="url"]')?.focus()}
+                    onClick={() => (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()}
                     className="mt-2 inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
                   >
                     <ArrowUp className="w-4 h-4 mr-1.5" />
@@ -1421,44 +1774,43 @@ Return the questions in a JSON format like this:
                   >
                     {/* Interview Countdown & Progress Tracker */}
                     <div className="flex flex-col md:flex-row gap-6">
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex items-center flex-1">
-                        <div className="flex-shrink-0 w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
-                          <Clock className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 flex items-center">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3">
+                          <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           {(() => {
-                            // Calculer la différence de temps ici même
                             const interviewDate = new Date(`${interview?.date}T${interview?.time || '09:00'}`);
                             const now = new Date();
                             const diffMs = interviewDate.getTime() - now.getTime();
                             const isPast = diffMs < 0;
                             
                             if (isPast) {
-                              // Interview passée
                               return (
                                 <>
-                                  <div className="text-sm text-gray-500 dark:text-gray-400">Interview passé</div>
-                                  <div className="text-2xl font-bold text-gray-900 dark:text-white">Terminé</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Interview passé</div>
+                                  <div className="text-lg font-bold text-gray-900 dark:text-white">Terminé</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)}` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}
+                                  </div>
                                 </>
                               );
                             } else {
-                              // Interview future
                               const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                               const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                              
                               return (
                                 <>
-                                  <div className="text-sm text-gray-500 dark:text-gray-400">Interview dans</div>
-                          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Interview dans</div>
+                                  <div className="text-lg font-bold text-gray-900 dark:text-white">
                                     {diffDays} jours {diffHours} heures
-                          </div>
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)}` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}
+                                  </div>
                                 </>
                               );
                             }
                           })()}
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)} interview` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'})}
-                          </div>
                         </div>
                       </div>
                       
@@ -1468,31 +1820,58 @@ Return the questions in a JSON format like this:
                             <BarChart2 className="w-4 h-4 mr-2 text-purple-600" />
                             Preparation Progress
                           </h3>
-                          <span className="text-xl font-bold text-purple-600 dark:text-purple-400">{preparationProgress}%</span>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{preparationProgress}%</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {getProgressMilestones().filter(m => m.completed).length}/5 completed
+                            </div>
+                          </div>
                         </div>
-                        <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
+                        <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-4">
                           <div 
-                            className="h-full bg-gradient-to-r from-purple-500 to-indigo-600" 
+                            className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-500" 
                             style={{width: `${preparationProgress}%`}}
                           ></div>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center text-sm">
-                            <div className="flex items-center mr-4">
-                              <div className="w-2 h-2 rounded-full bg-amber-500 mr-1.5"></div>
-                              <span className="text-gray-600 dark:text-gray-400">To Do</span>
-                            </div>
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></div>
-                              <span className="text-gray-600 dark:text-gray-400">Completed</span>
-                            </div>
-                          </div>
-                          <div className="bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 flex items-center">
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 mr-1.5" />
-                            <div className="text-xs font-medium text-amber-800 dark:text-amber-300">
-                              Focus today: Skills Review
-                            </div>
-                          </div>
+                        <div className="space-y-2">
+                          {getProgressMilestones().map((milestone) => (
+                            <button
+                              key={milestone.id}
+                              onClick={milestone.action}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-lg border transition-all ${
+                                milestone.completed
+                                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                  : 'bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className={`p-1.5 rounded-lg ${
+                                  milestone.completed
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {milestone.icon}
+                                </div>
+                                <div className="text-left">
+                                  <div className={`font-medium text-sm ${
+                                    milestone.completed
+                                      ? 'text-green-700 dark:text-green-300'
+                                      : 'text-gray-800 dark:text-gray-200'
+                                  }`}>
+                                    {milestone.label}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {milestone.description}
+                                  </div>
+                                </div>
+                              </div>
+                              {milestone.completed ? (
+                                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                              ) : (
+                                <ArrowRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                              )}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -1505,7 +1884,22 @@ Return the questions in a JSON format like this:
                           <CheckSquare className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
                           Preparation Checklist
                         </h3>
-                        
+                        <div className="flex items-center gap-2 mb-4">
+                          <input
+                            type="text"
+                            value={newTaskText}
+                            onChange={(e) => setNewTaskText(e.target.value)}
+                            placeholder="Add a new task"
+                            className="flex-1 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            onKeyDown={(e) => { if (e.key === 'Enter') addChecklistItem(); }}
+                          />
+                          <button
+                            onClick={addChecklistItem}
+                            className="px-3 py-2 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                          >
+                            Add
+                          </button>
+                        </div>
                         <div className="space-y-3">
                           {checklist.map((item) => (
                             <div key={item.id} className={`flex items-center p-3 rounded-lg ${
@@ -1524,16 +1918,26 @@ Return the questions in a JSON format like this:
                                 </button>
                               </div>
                               <div className="flex-1">
-                                <div className={`${item.completed ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}>
-                                  {item.task}
-                                </div>
+                                <input
+                                  value={item.task}
+                                  onChange={(e) => updateChecklistItemText(item.id, e.target.value)}
+                                  className={`w-full bg-transparent outline-none text-sm ${item.completed ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}
+                                />
                               </div>
-                              <button 
-                                onClick={() => setTab(item.section)} 
-                                className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                              >
-                                Go
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => setTab(item.section)} 
+                                  className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                >
+                                  Go
+                                </button>
+                                <button
+                                  onClick={() => deleteChecklistItem(item.id)}
+                                  className="text-xs px-2.5 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1714,7 +2118,7 @@ Return the questions in a JSON format like this:
                             No key points available yet. Run the job post analysis to generate key points to emphasize in your interview.
                           </p>
                           <button
-                            onClick={() => document.querySelector('input[type="url"]')?.focus()}
+                            onClick={() => (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()}
                             className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center justify-center mx-auto"
                           >
                             <ArrowUp className="w-4 h-4 mr-1.5" />
@@ -1732,26 +2136,65 @@ Return the questions in a JSON format like this:
                             <Newspaper className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
                             Company Updates
                           </h3>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Last updated: Today</div>
+                          <div className="flex items-center gap-2">
+                            {isNewsLoading && <div className="text-xs text-gray-500 dark:text-gray-400">Loading…</div>}
+                            {newsError && <div className="text-xs text-red-600 dark:text-red-400">{newsError}</div>}
+                            <button
+                              onClick={() => { fetchCompanyNews(); }}
+                              className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                            >
+                              Refresh
+                            </button>
+                          </div>
                         </div>
                         
                         <div className="space-y-4">
+                          {newsItems.length === 0 && !isNewsLoading && !newsError && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400">No company updates yet.</div>
+                          )}
                           {newsItems.map((news, i) => (
                             <div key={i} className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0 last:pb-0">
-                              <div className="flex items-center mb-1.5">
-                                <span className={`w-2 h-2 rounded-full mr-2 ${
+                              <div className="flex items-start mb-1.5">
+                                <span className={`w-2 h-2 rounded-full mr-2 mt-1.5 flex-shrink-0 ${
                                   news.sentiment === 'positive' ? 'bg-green-500' : 
                                   news.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-500'
                                 }`}></span>
-                                <h4 className="font-medium text-gray-900 dark:text-white text-sm">{news.title}</h4>
-                                <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{news.date}</span>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1">{news.title}</h4>
+                                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                    <span>{news.date}</span>
+                                    {news.source && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="flex items-center">
+                                          <Newspaper className="w-3 h-3 mr-1" />
+                                          {news.source}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-300 pl-4 mb-2">{news.summary}</p>
-                              <div className="mt-1 pl-4">
-                                <button className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium flex items-center">
+                              <p className="text-sm text-gray-600 dark:text-gray-300 pl-4 mb-3">{news.summary}</p>
+                              <div className="flex items-center justify-between pl-4">
+                                <button
+                                  onClick={() => createNoteFromNews(news)}
+                                  className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 px-2 py-1 rounded transition-colors"
+                                >
                                   <MessageSquare className="w-3 h-3 mr-1" />
                                   Talking point ideas
                                 </button>
+                                {news.url && (
+                                  <a
+                                    href={news.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center"
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    Read more
+                                  </a>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -2249,206 +2692,51 @@ Return the questions in a JSON format like this:
                     className="grid grid-cols-1 md:grid-cols-2 gap-6"
                   >
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">
-                        Skill Preparation Tips
-                      </h3>
-                      
-                      <div className="space-y-4">
-                        {interview.preparation.requiredSkills?.map((skill, index) => (
-                          <motion.div
-                            key={index}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg"
-                          >
-                            <h4 className="font-medium text-purple-700 dark:text-purple-400 mb-3 flex items-center">
-                              <Briefcase className="w-4 h-4 mr-2" />
-                              {skill}
-                            </h4>
-                            <div className="space-y-2">
-                              {/* Practice Questions Section */}
-                              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                                <button 
-                                  onClick={() => toggleSection('questions')}
-                                  className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                                >
-                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                                    <HelpCircle className="w-3.5 h-3.5 mr-1.5 text-purple-500" />
-                                    Practice Questions
-                                  </span>
-                                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections[`skill-${index}-questions`] ? 'transform rotate-180' : ''}`} />
-                                </button>
-                                
-                                {expandedSections[`skill-${index}-questions`] && (
-                                  <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                                    {skill === "Project management for enterprise implementations" && (
-                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
-                                        <li>Describe a complex implementation project you managed. What challenges did you face and how did you overcome them?</li>
-                                        <li>How do you handle scope creep during enterprise implementations?</li>
-                                        <li>How do you ensure all stakeholders stay aligned during a long implementation process?</li>
-                                      </ul>
-                                    )}
-                                    
-                                    {skill === "Technical knowledge of payment processing systems" && (
-                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
-                                        <li>What payment gateways have you integrated with and what were the key differences between them?</li>
-                                        <li>How would you design a payment system that needs to handle multiple currencies and payment methods?</li>
-                                        <li>How do you ensure PCI compliance in a payment implementation?</li>
-                                      </ul>
-                                    )}
-                                    
-                                    {skill === "Client relationship management" && (
-                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
-                                        <li>Tell me about a difficult client situation you managed. How did you resolve it?</li>
-                                        <li>How do you maintain clear communication with clients during complex technical implementations?</li>
-                                        <li>How do you set and manage client expectations throughout a project?</li>
-                                      </ul>
-                                    )}
-                                    
-                                    {skill === "API integration experience" && (
-                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
-                                        <li>What's your approach to designing an integration between two complex systems?</li>
-                                        <li>How do you handle API versioning and backward compatibility?</li>
-                                        <li>Describe how you would troubleshoot a failing API integration in production.</li>
-                                      </ul>
-                                    )}
-                                    
-                                    {skill === "Analytical problem-solving" && (
-                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
-                                        <li>Describe a situation where you had to analyze complex data to solve a business problem.</li>
-                                        <li>How do you approach breaking down ambiguous problems?</li>
-                                        <li>Tell me about a time when your analysis led to a significant business improvement.</li>
-                                      </ul>
-                                    )}
-                                    
-                                    {skill === "Communication with technical/non-technical stakeholders" && (
-                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
-                                        <li>How do you explain complex technical concepts to non-technical stakeholders?</li>
-                                        <li>Describe a situation where you bridged a communication gap between technical and business teams.</li>
-                                        <li>How do you tailor your communication based on your audience?</li>
-                                      </ul>
-                                    )}
-                                    
-                                    {skill && !["Project management for enterprise implementations", "Technical knowledge of payment processing systems", "Client relationship management", "API integration experience", "Analytical problem-solving", "Communication with technical/non-technical stakeholders"].includes(skill) && (
-                                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside pl-1">
-                                        <li>Describe a specific situation where you demonstrated this skill in a professional setting.</li>
-                                        <li>What tools or methodologies do you use when applying this skill?</li>
-                                        <li>How do you measure success when using this skill in a project?</li>
-                                      </ul>
-                                    )}
-                                  </div>
-                                )}
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Skill Coach</h3>
+                      <div className="space-y-5">
+                        {skillGaps.map(({ skill, rating, gap }, idx) => (
+                          <div key={skill} className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-medium text-purple-700 dark:text-purple-400 mb-1">{skill}</h4>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Rating {rating}/5 • Gap {gap}</div>
                               </div>
-                              
-                              {/* Company Insights Section */}
-                              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                                <button 
-                                  onClick={() => toggleSection('insights')}
-                                  className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                                >
-                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                                    <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-                                    What {application.companyName} Might Be Looking For
-                                  </span>
-                                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections[`skill-${index}-insights`] ? 'transform rotate-180' : ''}`} />
-                                </button>
-                                
-                                {expandedSections[`skill-${index}-insights`] && (
-                                  <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                                    {skill === "Project management for enterprise implementations" && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        Stripe likely wants to see experience managing complex payment implementations for large enterprises, with a focus on timeline management, resource allocation, and risk mitigation. They value candidates who can demonstrate leadership in coordinating multiple stakeholders and adapting to changing requirements while maintaining high client satisfaction.
-                                      </p>
-                                    )}
-                                    
-                                    {skill === "Technical knowledge of payment processing systems" && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        As a payment company, Stripe wants consultants with deep knowledge of payment architectures, security standards, and industry regulations. Experience with multiple payment gateways, understanding of payment flows, authorization, settlement, and reconciliation processes would be highly valued. Familiarity with fraud prevention and compliance requirements would be a plus.
-                                      </p>
-                                    )}
-                                    
-                                    {skill === "Client relationship management" && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        Stripe values consultants who can build strong, trust-based relationships with enterprise clients. They're looking for candidates who can navigate complex organizational structures, manage expectations effectively, and turn clients into advocates. The ability to handle difficult conversations and negotiate scope changes professionally is important.
-                                      </p>
-                                    )}
-                                    
-                                    {skill === "API integration experience" && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        Stripe's core product is its API, so they're seeking consultants with hands-on experience implementing REST APIs in enterprise environments. Knowledge of web hooks, authentication methods, error handling, and testing methodologies would be valuable. Experience with Stripe's API specifically would be a significant advantage.
-                                      </p>
-                                    )}
-                                    
-                                    {skill === "Analytical problem-solving" && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        Implementation consultants at Stripe need to troubleshoot complex integration issues and optimize payment flows. They value candidates who can analyze transaction data, identify patterns, and develop solutions that balance technical constraints with business requirements. The ability to quantify results and demonstrate business impact is important.
-                                      </p>
-                                    )}
-                                    
-                                    {skill === "Communication with technical/non-technical stakeholders" && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        Stripe consultants bridge the gap between developers implementing their API and business stakeholders focused on revenue and customer experience. They need consultants who can translate technical concepts for executives while also providing detailed guidance to engineering teams. Clear documentation skills and presentation abilities are likely valued.
-                                      </p>
-                                    )}
-                                    
-                                    {skill && !["Project management for enterprise implementations", "Technical knowledge of payment processing systems", "Client relationship management", "API integration experience", "Analytical problem-solving", "Communication with technical/non-technical stakeholders"].includes(skill) && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        For this skill, {application.companyName} is likely looking for candidates who can demonstrate practical application in real-world scenarios. Focus on how you've used this skill to drive business outcomes, collaborate effectively with teams, and deliver measurable results in previous roles. Consider how this skill specifically applies to their industry and business model.
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Sample Response Section */}
-                              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                                <button 
-                                  onClick={() => toggleSection('response')}
-                                  className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                                >
-                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                                    <CheckCircle className="w-3.5 h-3.5 mr-1.5 text-green-500" />
-                                    Sample Response
-                                  </span>
-                                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections[`skill-${index}-response`] ? 'transform rotate-180' : ''}`} />
-                                </button>
-                                
-                                {expandedSections[`skill-${index}-response`] && (
-                                  <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                                      {skill === "Project management for enterprise implementations" && 
-                                        "In my last role at ABC Corp, I led a cross-functional team implementing a new payment system across 5 regional offices. I created a detailed implementation roadmap, established clear KPIs, and instituted weekly check-ins. When we encountered integration issues in the APAC region, I prioritized resources and developed a contingency plan. The project was delivered on time, 10% under budget, with a 98% satisfaction rate from stakeholders."}
-                                      
-                                      {skill === "Technical knowledge of payment processing systems" && 
-                                        "I've worked extensively with various payment gateways including Stripe, PayPal, and Braintree. At XYZ Company, I architected an integration solution that handled complex multi-currency transactions with automated reconciliation. I'm familiar with PCI compliance requirements and have implemented tokenization solutions to enhance security while reducing scope. This reduced our chargebacks by 23% and improved transaction approval rates by 8%."}
-                                      
-                                      {skill === "Client relationship management" && 
-                                        "While implementing solutions for Fortune 500 clients, I established a structured communication framework that included weekly status updates, monthly strategic reviews, and quarterly business reviews. For one particularly challenging client, I developed a custom dashboard showing real-time implementation metrics that increased transparency and trust. This approach resulted in a client expanding their initial scope by 40% and becoming a reference account."}
-                                      
-                                      {skill === "API integration experience" && 
-                                        "I've led several complex API integrations connecting payment systems with client ERPs and CRMs. For example, at FinTech Solutions, I designed a REST API architecture that synchronized transaction data between Stripe and SAP. I documented the integration patterns with Swagger, set up automated testing with Postman, and created fallback mechanisms for API failures. This integration processed over $5M in daily transactions with 99.99% uptime."}
-                                      
-                                      {skill === "Analytical problem-solving" && 
-                                        "When faced with unexplained payment declines at a global client, I implemented a data-driven approach to solve the issue. I designed SQL queries to analyze transaction patterns, visualized the data in Tableau, and identified a correlation between declines and specific issuing banks. By working with the banks directly and adjusting our processing parameters, we reduced decline rates by 36%, recovering approximately $2.2M in monthly revenue for the client."}
-                                      
-                                      {skill === "Communication with technical/non-technical stakeholders" && 
-                                        "I regularly translate complex technical concepts for diverse audiences. When implementing Stripe for an e-commerce client, I created separate documentation for the development team, business stakeholders, and finance department. For technical teams, I provided detailed API specifications; for executives, I focused on business outcomes and ROI timelines; and for operations, I designed visual workflow diagrams. This approach ensured all stakeholders remained aligned throughout the 9-month implementation."}
-                                      
-                                      {skill && !["Project management for enterprise implementations", "Technical knowledge of payment processing systems", "Client relationship management", "API integration experience", "Analytical problem-solving", "Communication with technical/non-technical stakeholders"].includes(skill) && 
-                                        `When discussing ${skill}, I'd highlight a specific situation where I demonstrated this capability. I would explain the challenge faced, my specific approach, the actions I took, and most importantly, the measurable results achieved. I'd then connect this experience to how it would benefit ${application.companyName} in similar scenarios.`}
-                                    </p>
-                                  </div>
-                                )}
+                              <button onClick={() => practiceInChat(skill)} className="text-xs px-2 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700">Practise in Chat</button>
+                            </div>
+                            <div className="mt-3">
+                              <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">30‑minute plan</div>
+                              <div className="space-y-2">
+                                {(ensureDefaultTasks(skill)).map(t => (
+                                  <label key={t.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <input type="checkbox" checked={t.done} onChange={() => toggleMicroTask(skill, t.id)} className="rounded" />
+                                    <span className={`${t.done ? 'line-through text-gray-500' : ''}`}>{t.label}</span>
+                                  </label>
+                                ))}
                               </div>
                             </div>
-                          </motion.div>
+                            <div className="mt-4">
+                              <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">STAR stories</div>
+                              <div className="space-y-3">
+                                {(skillCoach?.starStories?.[skill] || []).map(story => (
+                                  <div key={story.id} className="space-y-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                      <textarea rows={3} value={story.situation} onChange={(e)=>updateStarField(skill, story.id, 'situation', e.target.value)} placeholder="Situation (context, stakes, constraints)" className="px-2 py-2 text-sm rounded border dark:bg-gray-800 dark:border-gray-700 resize-y" />
+                                      <textarea rows={3} value={story.action} onChange={(e)=>updateStarField(skill, story.id, 'action', e.target.value)} placeholder="Action (what you did, how, tools)" className="px-2 py-2 text-sm rounded border dark:bg-gray-800 dark:border-gray-700 resize-y" />
+                                      <textarea rows={3} value={story.result} onChange={(e)=>updateStarField(skill, story.id, 'result', e.target.value)} placeholder="Result (impact, metrics, lessons)" className="px-2 py-2 text-sm rounded border dark:bg-gray-800 dark:border-gray-700 resize-y" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button onClick={()=>exportStoryToNotes(skill, story.id)} className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">Export to Notes</button>
+                                      <button onClick={()=>deleteStarStory(skill, story.id)} className="text-xs px-2 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900/50">Delete</button>
+                                    </div>
+                                  </div>
+                                ))}
+                                <button onClick={()=>addStarStory(skill)} className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">Add story</button>
+                              </div>
+                            </div>
+                          </div>
                         ))}
-                        
-                        {(!interview.preparation.requiredSkills || interview.preparation.requiredSkills.length === 0) && (
-                          <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                            No skills information available
-                          </p>
+                        {skillGaps.length === 0 && (
+                          <p className="text-gray-500 dark:text-gray-400 text-center py-8">No priority gaps detected. Rate your skills on the right.</p>
                         )}
                       </div>
                     </div>
@@ -2500,114 +2788,118 @@ Return the questions in a JSON format like this:
                     className="grid grid-cols-1 md:grid-cols-3 gap-6"
                   >
                     <div className="md:col-span-3 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">
-                        Preparation Tips
-                      </h3>
-                      
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Preparation Tips</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {[
-                          {
-                            title: 'Research the Company',
-                            description: 'Look up their mission, values, recent news, and products/services.',
-                            icon: <Building className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          },
-                          {
-                            title: 'Prepare Your STAR Stories',
-                            description: 'Create specific examples using the Situation, Task, Action, Result format.',
-                            icon: <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          },
-                          {
-                            title: 'Practice Your Responses',
-                            description: 'Rehearse answers to common questions out loud or with a friend.',
-                            icon: <PlayCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          },
-                          {
-                            title: 'Prepare Questions to Ask',
-                            description: 'Have thoughtful questions ready about the role, team, and company.',
-                            icon: <BookmarkPlus className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          },
-                          {
-                            title: 'Review Job Description',
-                            description: 'Align your talking points with the skills and qualifications listed.',
-                            icon: <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          },
-                          {
-                            title: 'Plan Your Presentation',
-                            description: 'Prepare what to wear, test your tech for virtual interviews, plan your route.',
-                            icon: <Share2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          }
-                        ].map((tip, index) => (
-                          <motion.div
-                            key={index}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
-                          >
-                            <div className="flex items-start">
-                              <div className="mr-3 mt-0.5">
-                                {tip.icon}
+                          { id: 'research', title: 'Research the Company', description: 'Look up their mission, values, recent news, and products/services.', icon: <Building className="w-5 h-5 text-purple-600 dark:text-purple-400" /> },
+                          { id: 'star', title: 'Prepare Your STAR Stories', description: 'Create specific examples using the Situation, Task, Action, Result format.', icon: <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" /> },
+                          { id: 'practice', title: 'Practice Your Responses', description: 'Rehearse answers to common questions aloud or with a friend.', icon: <PlayCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" /> },
+                          { id: 'ask', title: 'Prepare Questions to Ask', description: 'Have thoughtful questions ready about the role, team, and company.', icon: <BookmarkPlus className="w-5 h-5 text-purple-600 dark:text-purple-400" /> },
+                          { id: 'jd', title: 'Review Job Description', description: 'Align your talking points with the skills and qualifications listed.', icon: <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" /> },
+                          { id: 'presentation', title: 'Plan Your Presentation', description: 'Prepare what to wear, test your tech for virtual interviews, plan your route.', icon: <Share2 className="w-5 h-5 text-purple-600 dark:text-purple-400" /> }
+                        ].map((tip, index) => {
+                          const checked = resourcesData?.reviewedTips?.includes(tip.id);
+                          return (
+                            <motion.div key={tip.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className={`p-5 rounded-xl shadow-sm border ${checked ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800'}`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start">
+                                  <div className="mr-3 mt-0.5">{tip.icon}</div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-800 dark:text-white text-base mb-1">{tip.title}</h4>
+                                    <p className="text-gray-600 dark:text-gray-400 text-sm">{tip.description}</p>
+                                  </div>
+                                </div>
+                                <div>
+                                  <input type="checkbox" checked={!!checked} onChange={async ()=>{
+                                    const list = new Set(resourcesData?.reviewedTips || []);
+                                    if (checked) list.delete(tip.id); else list.add(tip.id);
+                                    const next = { ...(resourcesData||{}), reviewedTips: Array.from(list) } as Interview['resourcesData'];
+                                    setResourcesData(next);
+                                    await saveResourcesData(next);
+                                  }} />
+                                </div>
                               </div>
-                              <div>
-                                <h4 className="font-medium text-gray-800 dark:text-white text-base mb-2">
-                                  {tip.title}
-                                </h4>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                  {tip.description}
-                                </p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
+                            </motion.div>
+                          );
+                        })}
                       </div>
                     </div>
                     
                     <div className="md:col-span-3 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">
-                        Helpful Resources
-                      </h3>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Helpful Resources</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                         {[
-                          {
-                            title: 'Company Glassdoor Reviews',
-                            url: `https://www.glassdoor.com/Search/results.htm?keyword=${encodeURIComponent(application.companyName)}`,
-                            description: 'Check employee reviews and interview experiences'
-                          },
-                          {
-                            title: 'LinkedIn Company Page',
-                            url: `https://www.linkedin.com/company/${encodeURIComponent(application.companyName)}`,
-                            description: 'Research employees and company updates'
-                          },
-                          {
-                            title: 'Interview Question Database',
-                            url: `https://www.glassdoor.com/Interview/index.htm`,
-                            description: 'Browse thousands of real interview questions'
-                          }
+                          { id:'glassdoor', title: 'Company Glassdoor Reviews', url: `https://www.glassdoor.com/Search/results.htm?keyword=${encodeURIComponent(application.companyName)}`, description: 'Check employee reviews and interview experiences' },
+                          { id:'linkedin', title: 'LinkedIn Company Page', url: `https://www.linkedin.com/company/${encodeURIComponent(application.companyName)}`, description: 'Research employees and company updates' },
+                          { id:'db', title: 'Interview Question Database', url: `https://www.glassdoor.com/Interview/index.htm`, description: 'Browse thousands of real interview questions' }
                         ].map((resource, index) => (
-                          <motion.a
-                            key={index}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            href={resource.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-start p-5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors hover:shadow-sm group"
-                          >
-                            <div className="mr-3 mt-0.5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">
-                              <LinkIcon className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-gray-800 dark:text-white text-base mb-1 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">
-                                {resource.title}
-                              </h4>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {resource.description}
-                              </p>
-                            </div>
-                          </motion.a>
+                            <motion.a key={resource.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className="flex items-start p-5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors hover:shadow-sm"
+                              href={resource.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <div className="mr-3 mt-0.5 text-purple-600 dark:text-purple-400">
+                                <LinkIcon className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-800 dark:text-white text-base mb-1">{resource.title}</div>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{resource.description}</p>
+                              </div>
+                            </motion.a>
                         ))}
+                      </div>
+                      <div className="mt-6 p-4 border-t border-gray-200 dark:border-gray-700">
+                        <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">Your resources</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                          {(resourcesData?.savedLinks||[]).map(link => (
+                            <div key={link.id} className="relative p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-shadow bg-white dark:bg-gray-800 group">
+                              <button 
+                                onClick={async ()=>{
+                                  const updated = { ...(resourcesData||{}), savedLinks: (resourcesData?.savedLinks||[]).filter(l => l.id !== link.id) } as Interview['resourcesData'];
+                                  setResourcesData(updated);
+                                  await saveResourcesData(updated);
+                                }} 
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-opacity p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
+                                title="Remove"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                              <div className="flex items-start gap-3 pr-8">
+                                <div className="mt-0.5 text-purple-600 dark:text-purple-400 flex-shrink-0"><LinkIcon className="w-4 h-4" /></div>
+                                <div className="flex-1 min-w-0">
+                                  <a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-gray-800 dark:text-white text-sm hover:text-purple-700 dark:hover:text-purple-300 block mb-1 truncate" title={link.title}>{link.title}</a>
+                                  <div className="text-xs text-gray-500 truncate" title={link.url}>{shortenText(link.url, 40)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {(!resourcesData?.savedLinks || resourcesData.savedLinks.length === 0) && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 col-span-full text-center py-4">No custom resources yet. Add one below.</div>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <input value={newResourceTitle} onChange={(e)=>setNewResourceTitle(e.target.value)} placeholder="Title" className="px-3 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700"/>
+                          <input value={newResourceUrl} onChange={(e)=>setNewResourceUrl(e.target.value)} placeholder="https://..." className="px-3 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700"/>
+                          <button onClick={async ()=>{
+                            const t = newResourceTitle.trim();
+                            const u = newResourceUrl.trim();
+                            if (!t || !u) return;
+                            const newLink = { id: uuidv4(), title: t, url: u };
+                            const updated = { ...(resourcesData||{}), savedLinks: [ ...(resourcesData?.savedLinks || []), newLink ] } as Interview['resourcesData'];
+                            setResourcesData(updated);
+                            setNewResourceTitle(''); setNewResourceUrl('');
+                            await saveResourcesData(updated);
+                          }} className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700">Add</button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -2749,6 +3041,8 @@ Return the questions in a JSON format like this:
                           if (msg.role === 'assistant' && displayContent.includes('<think>')) {
                             displayContent = displayContent.replace(/<think>[\s\S]*<\/think>/g, '');
                           }
+                          
+                          
                           
                           return (
                             <motion.div
