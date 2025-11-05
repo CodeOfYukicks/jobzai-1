@@ -49,7 +49,7 @@ export async function queryPerplexity(prompt: string): Promise<any> {
     const response = await axios.post(
       'https://api.perplexity.ai/chat/completions',
       {
-        model: 'sonar-reasoning',
+        model: 'sonar',
         messages: [
           { 
             role: 'system', 
@@ -69,17 +69,7 @@ You can browse the web when needed for specific information, but keep search res
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 1500, // Further reduced to encourage brevity
-        // Enable web browsing capability
-        tools: [
-          {
-            type: "web_search",
-            web_search: {
-              enable: true
-            }
-          }
-        ],
-        tool_choice: "auto"
+        max_tokens: 1500 // Further reduced to encourage brevity
       },
       {
         headers: {
@@ -127,7 +117,7 @@ You can browse the web when needed for specific information, but keep search res
       console.error('Perplexity API Error Details:', error.response.data);
       
       return {
-        text: `Sorry, there was a problem with the AI service: ${errorMessage}. Please try again later.`,
+        text: `Sorry, there was a problem with the AI service: ${errorMessage}.`,
         error: true,
         errorMessage: errorMessage
       };

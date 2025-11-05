@@ -219,22 +219,72 @@ Your response should be in this exact JSON format:
 }
 
 Make sure the output is a valid JSON object with the exact fields described above.
+Return ONLY valid JSON. Do not include code fences or any prose before/after the JSON. Keep arrays of strings strictly quoted and comma-separated.
 `;
 
     // Call the Perplexity API
     const response = await queryPerplexity(prompt);
     
-    if (response && response.choices && response.choices[0]?.message?.content) {
+    if (response?.error) {
+      return {
+        keyPoints: [], suggestedQuestions: [], suggestedAnswers: [], requiredSkills: [],
+        error: response.errorMessage || response.text || 'Perplexity returned an error'
+      };
+    }
+
+    const contentFromAPI = response?.choices?.[0]?.message?.content || response?.text || '';
+    if (contentFromAPI) {
       try {
         // Extract the JSON content from the response
-        const content = response.choices[0].message.content;
+        const content = String(contentFromAPI).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
         
+        // If there is no JSON-looking content, return a clean error instead of throwing
+        if (!/\{[\s\S]*\}/.test(content) && !/```json/.test(content)) {
+          return {
+            keyPoints: [], suggestedQuestions: [], suggestedAnswers: [], requiredSkills: [],
+            error: content.substring(0, 200) || 'Unexpected response from Perplexity'
+          };
+        }
+
         // Find JSON content within the response
         const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
                          content.match(/\{[\s\S]*?\}/);
                          
-        const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
-        const jsonData = JSON.parse(jsonString);
+        let jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+        const tryParse = (s: string) => {
+          try { return JSON.parse(s); } catch { return null; }
+        };
+        let jsonData = tryParse(jsonString);
+        if (!jsonData) {
+          // Attempt minimal repairs: remove trailing commas, fix missing commas between quoted strings
+          let repaired = jsonString
+            .replace(/,\s*\]/g, ']')
+            .replace(/,\s*\}/g, '}')
+            .replace(/"\s+"/g, '", "');
+          jsonData = tryParse(repaired);
+          if (!jsonData) {
+            // Fallback: derive sections heuristically from free text
+            const fallbackFromText = (txt: string) => {
+              const lines = txt.split(/\n|\r/).map(l => l.trim());
+              const bullets = lines.filter(l => /^[-*•]/.test(l)).map(l => l.replace(/^[-*•]\s*/, ''));
+              const keyPointsGuess = bullets.slice(0, 5);
+              const skillsGuess = bullets.filter(l => /skill|experience|knowledge/i.test(l)).slice(0, 8);
+              const questionsGuess = lines.filter(l => /\?$/.test(l)).slice(0, 8);
+              return { keyPoints: keyPointsGuess, requiredSkills: skillsGuess, suggestedQuestions: questionsGuess };
+            };
+            const fb = fallbackFromText(content);
+            return {
+              keyPoints: fb.keyPoints,
+              requiredSkills: fb.requiredSkills,
+              suggestedQuestions: fb.suggestedQuestions,
+              suggestedAnswers: [],
+              companyInfo: '',
+              positionDetails: '',
+              cultureFit: '',
+              error: undefined
+            };
+          }
+        }
         
         // Process suggested answers to ensure they're in the correct format
         let suggestedAnswers = jsonData.suggestedAnswers || [];
@@ -250,15 +300,31 @@ Make sure the output is a valid JSON object with the exact fields described abov
           }
         }
         
+        // Normalize keys and shapes in case the model used alternate names
+        const normalizeToArray = (val: any): string[] => {
+          if (!val) return [];
+          if (Array.isArray(val)) return val.map((v) => String(v));
+          if (typeof val === 'string') {
+            // split bullets/lines into array
+            return val
+              .split(/\n|•|\-|\d+\.|\*/)
+              .map(s => s.trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+        const keyPoints = normalizeToArray(jsonData.keyPoints || jsonData.key_points || jsonData.highlights);
+        const requiredSkills = normalizeToArray(jsonData.requiredSkills || jsonData.skills || jsonData.requirements);
+        const suggestedQuestions = normalizeToArray(jsonData.suggestedQuestions || jsonData.questions || jsonData.interviewQuestions);
         // Ensure the result has the correct structure
         return {
-          keyPoints: jsonData.keyPoints || [],
-          requiredSkills: jsonData.requiredSkills || [],
-          suggestedQuestions: jsonData.suggestedQuestions || [],
+          keyPoints,
+          requiredSkills,
+          suggestedQuestions,
           suggestedAnswers: suggestedAnswers,
-          companyInfo: jsonData.companyInfo || '',
-          positionDetails: jsonData.positionDetails || '',
-          cultureFit: jsonData.cultureFit || ''
+          companyInfo: jsonData.companyInfo || jsonData.company || '',
+          positionDetails: jsonData.positionDetails || jsonData.role || jsonData.responsibilities || '',
+          cultureFit: jsonData.cultureFit || jsonData.culture || ''
         };
       } catch (parseError) {
         console.error('Error parsing Perplexity API response:', parseError);
@@ -377,22 +443,67 @@ Your response should be in this exact JSON format:
 }
 
 Make sure the output is a valid JSON object with the exact fields described above.
+Return ONLY valid JSON. Do not include code fences or any prose before/after the JSON. Keep arrays of strings strictly quoted and comma-separated.
 `;
 
     // Call the Perplexity API
     const response = await queryPerplexity(prompt);
     
-    if (response && response.choices && response.choices[0]?.message?.content) {
+    if (response?.error) {
+      return {
+        keyPoints: [], suggestedQuestions: [], suggestedAnswers: [], requiredSkills: [],
+        error: response.errorMessage || response.text || 'Perplexity returned an error'
+      };
+    }
+
+    const contentFromAPI = response?.choices?.[0]?.message?.content || response?.text || '';
+    if (contentFromAPI) {
       try {
         // Extract the JSON content from the response
-        const content = response.choices[0].message.content;
+        const content = String(contentFromAPI).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
         
+        if (!/\{[\s\S]*\}/.test(content) && !/```json/.test(content)) {
+          return {
+            keyPoints: [], suggestedQuestions: [], suggestedAnswers: [], requiredSkills: [],
+            error: content.substring(0, 200) || 'Unexpected response from Perplexity'
+          };
+        }
+
         // Find JSON content within the response
         const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
                          content.match(/\{[\s\S]*?\}/);
                          
-        const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
-        const jsonData = JSON.parse(jsonString);
+        let jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+        const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
+        let jsonData = tryParse(jsonString);
+        if (!jsonData) {
+          let repaired = jsonString
+            .replace(/,\s*\]/g, ']')
+            .replace(/,\s*\}/g, '}')
+            .replace(/"\s+"/g, '", "');
+          jsonData = tryParse(repaired);
+          if (!jsonData) {
+            const fallbackFromText = (txt: string) => {
+              const lines = txt.split(/\n|\r/).map(l => l.trim());
+              const bullets = lines.filter(l => /^[-*•]/.test(l)).map(l => l.replace(/^[-*•]\s*/, ''));
+              const keyPointsGuess = bullets.slice(0, 5);
+              const skillsGuess = bullets.filter(l => /skill|experience|knowledge/i.test(l)).slice(0, 8);
+              const questionsGuess = lines.filter(l => /\?$/.test(l)).slice(0, 8);
+              return { keyPoints: keyPointsGuess, requiredSkills: skillsGuess, suggestedQuestions: questionsGuess };
+            };
+            const fb = fallbackFromText(content);
+            return {
+              keyPoints: fb.keyPoints,
+              requiredSkills: fb.requiredSkills,
+              suggestedQuestions: fb.suggestedQuestions,
+              suggestedAnswers: [],
+              companyInfo: '',
+              positionDetails: '',
+              cultureFit: '',
+              error: undefined
+            };
+          }
+        }
         
         // Process suggested answers to ensure they're in the correct format
         let suggestedAnswers = jsonData.suggestedAnswers || [];
@@ -408,15 +519,29 @@ Make sure the output is a valid JSON object with the exact fields described abov
           }
         }
         
-        // Ensure the result has the correct structure
+        // Normalize keys and shapes in case the model used alternate names
+        const normalizeToArray = (val: any): string[] => {
+          if (!val) return [];
+          if (Array.isArray(val)) return val.map((v) => String(v));
+          if (typeof val === 'string') {
+            return val
+              .split(/\n|•|\-|\d+\.|\*/)
+              .map(s => s.trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+        const keyPoints = normalizeToArray(jsonData.keyPoints || jsonData.key_points || jsonData.highlights);
+        const requiredSkills = normalizeToArray(jsonData.requiredSkills || jsonData.skills || jsonData.requirements);
+        const suggestedQuestions = normalizeToArray(jsonData.suggestedQuestions || jsonData.questions || jsonData.interviewQuestions);
         return {
-          keyPoints: jsonData.keyPoints || [],
-          requiredSkills: jsonData.requiredSkills || [],
-          suggestedQuestions: jsonData.suggestedQuestions || [],
+          keyPoints,
+          requiredSkills,
+          suggestedQuestions,
           suggestedAnswers: suggestedAnswers,
-          companyInfo: jsonData.companyInfo || '',
-          positionDetails: jsonData.positionDetails || '',
-          cultureFit: jsonData.cultureFit || ''
+          companyInfo: jsonData.companyInfo || jsonData.company || '',
+          positionDetails: jsonData.positionDetails || jsonData.role || jsonData.responsibilities || '',
+          cultureFit: jsonData.cultureFit || jsonData.culture || ''
         };
       } catch (parseError) {
         console.error('Error parsing Perplexity API response:', parseError);
