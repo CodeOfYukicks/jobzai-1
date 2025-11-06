@@ -130,4 +130,101 @@ You can browse the web when needed for specific information, but keep search res
       errorMessage: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+}
+
+/**
+ * Makes a specialized request to Perplexity API for job posting extraction
+ * Uses sonar-online model which is better at visiting URLs and extracting exact information
+ */
+export async function queryPerplexityForJobExtraction(prompt: string): Promise<any> {
+  try {
+    const apiKey = await getPerplexityApiKey();
+    
+    console.log('Sending job extraction request to Perplexity API...');
+    
+    const response = await axios.post(
+      'https://api.perplexity.ai/chat/completions',
+      {
+        model: 'sonar', // Use sonar model for web browsing (sonar-pro may not be available)
+        messages: [
+          { 
+            role: 'system', 
+            content: `You are a precise job posting information extractor. Your ONLY task is to visit URLs and extract EXACT information from job posting pages.
+
+CRITICAL RULES - FOLLOW THESE EXACTLY:
+1. You MUST visit the URL provided and read the ACTUAL content of the page
+2. Extract ONLY information that is VISIBLY DISPLAYED on the page
+3. Do NOT guess, infer, or use information from your training data
+4. Do NOT use information from similar job postings
+5. The job title/position must be the EXACT title shown on the page header/title
+6. The location must be the EXACT location shown on the page
+7. The company name must be the EXACT company name shown on the page
+8. Return ONLY valid JSON with no markdown, no code blocks, no explanations, no additional text
+9. All string values must be properly escaped in JSON format
+10. If you cannot access the URL or see the page content, return an error - do NOT guess`
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1, // Lower temperature for more precise extraction
+        max_tokens: 2000 // More tokens for complete extraction
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        }
+      }
+    );
+
+    console.log('Perplexity API response received:', response.status);
+    
+    // Parse the response properly
+    if (response.data && response.data.choices && response.data.choices.length > 0) {
+      const textContent = response.data.choices[0].message.content;
+      console.log('Response content:', textContent.substring(0, 200) + '...');
+      
+      return {
+        ...response.data,
+        text: textContent
+      };
+    } else {
+      console.error('Unexpected response structure:', response.data);
+      return {
+        text: "I received a response from the API but couldn't extract the answer. Please try again.",
+        error: true,
+        errorMessage: "Invalid response structure"
+      };
+    }
+  } catch (error) {
+    console.error('Error querying Perplexity API for job extraction:', error);
+    
+    // First check if it's a network error (like being blocked by an extension)
+    if (axios.isAxiosError(error) && !error.response) {
+      console.error('Network error or request blocked:', error.message);
+      return {
+        text: "It looks like your browser might be blocking the connection to our AI service. This could be due to an ad blocker, privacy extension, or network issues. Try disabling any extensions that might interfere with API requests.",
+        error: true,
+        errorMessage: error.message
+      };
+    }
+    
+    // Then check for API errors
+    if (axios.isAxiosError(error) && error.response) {
+      const errorMessage = error.response.data?.error?.message || 'Unknown API error';
+      console.error('Perplexity API Error Details:', error.response.data);
+      
+      return {
+        text: `Sorry, there was a problem with the AI service: ${errorMessage}.`,
+        error: true,
+        errorMessage: errorMessage
+      };
+    }
+    
+    // Generic error fallback
+    return {
+      text: "I'm sorry, I couldn't process your request due to a technical issue. This could be a network problem, an issue with the Perplexity API, or with your browser settings blocking certain requests. Please try again later.",
+      error: true,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 } 

@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
-import { queryPerplexity } from '../lib/perplexity';
+import { queryPerplexityForJobExtraction } from '../lib/perplexity';
 
 interface Interview {
   id: string;
@@ -232,64 +232,178 @@ export default function JobApplicationsPage() {
 
     try {
       // Utiliser Perplexity pour analyser l'URL et extraire les informations
+      // Construire un prompt très explicite qui force la visite de l'URL
+      const jobUrl = formData.url.trim();
       const prompt = `
-Visit and analyze this job posting URL: ${formData.url}
+You are a web scraper. Your task is to visit this URL and extract job posting information: ${jobUrl}
 
-Extract the following information and return ONLY a valid JSON object with these exact fields:
+MANDATORY STEPS - DO NOT SKIP:
+1. You MUST use web search/browsing to visit: ${jobUrl}
+2. Read the ACTUAL HTML content of the page
+3. Find the job title in the page HTML (look for <h1>, <h2>, or title tags)
+4. Find the company name (usually in the header or near the job title)
+5. Find the location (usually with a map pin icon or in job details section)
+6. Extract these EXACT strings as they appear in the page content
+
+CRITICAL: Do NOT use your training data or make assumptions. You MUST visit the URL and read the actual page.
+
+Return ONLY a valid JSON object (no markdown, no code blocks, no explanations):
 {
-  "companyName": "the company name (e.g., Google, Microsoft, etc.)",
-  "position": "the job title/position (e.g., Software Engineer, Product Manager, etc.)",
-  "location": "the job location (city, state/country format, e.g., San Francisco, CA or Paris, France)",
-  "summary": "a concise 2-3 sentence summary of the key responsibilities and requirements"
+  "companyName": "the exact company name from the page",
+  "position": "the EXACT job title from the page - copy it exactly as shown",
+  "location": "the exact location from the page",
+  "summary": "brief 2-3 sentence summary"
 }
 
-Important:
-- Visit the URL and extract real information from the job posting
-- If the URL is from LinkedIn, Indeed, or other job sites, extract the actual job details
-- The summary should be brief and highlight the most important aspects of the role
-- Return ONLY the JSON object, no markdown, no code blocks, no additional text
-- If you cannot access the URL, try to infer from the URL structure (e.g., linkedin.com/jobs/view/...)
+VERY IMPORTANT:
+- The "position" field is CRITICAL - it must be the exact job title shown on the page
+- If the page shows "Solution Consultant - Benelux market", return exactly that
+- If the page shows "Dublin, Ireland", return exactly that
+- Do NOT return generic titles like "Senior Software Engineer" unless that's what's actually on the page
+- Do NOT infer information from the URL or domain name
+- Visit the URL and read the actual content
+
+URL to visit: ${jobUrl}
 `;
 
-      const response = await queryPerplexity(prompt);
+      // Utiliser une requête spécialisée pour l'extraction de job posting
+      const response = await queryPerplexityForJobExtraction(prompt);
       
       if (response.error) {
         throw new Error(response.errorMessage || 'Failed to analyze job posting');
       }
 
-      // Parser la réponse JSON
+      console.log('Perplexity response:', response.text);
+
+      // Parser la réponse JSON avec amélioration
       let extractedData;
       try {
-        // Essayer de parser directement
-        const jsonMatch = response.text?.match(/\{[\s\S]*\}/);
+        let jsonString = response.text || '';
+        
+        // Nettoyer la réponse pour extraire le JSON
+        // Enlever les markdown code blocks si présents
+        jsonString = jsonString.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+        
+        // Trouver le JSON object - chercher le premier { jusqu'au dernier }
+        const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          extractedData = JSON.parse(jsonMatch[0]);
-        } else {
-          // Si pas de JSON trouvé, essayer de parser toute la réponse
-          extractedData = JSON.parse(response.text);
+          jsonString = jsonMatch[0];
         }
+        
+        // Essayer de réparer les erreurs JSON communes
+        const tryParseJSON = (str: string) => {
+          try {
+            return JSON.parse(str);
+          } catch (e) {
+            // Essayer de réparer les erreurs communes
+            let repaired = str
+              .replace(/,\s*\]/g, ']')  // Remove trailing commas before ]
+              .replace(/,\s*\}/g, '}')   // Remove trailing commas before }
+              .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3') // Quote unquoted keys
+              .replace(/:\s*'([^']*)'/g, ': "$1"') // Replace single quotes with double quotes
+              .replace(/:\s*([^",{\[\]}\s]+)(\s*[,}\]])/g, ': "$1"$2'); // Quote unquoted string values
+            
+            try {
+              return JSON.parse(repaired);
+            } catch (e2) {
+              console.error('JSON repair failed:', e2);
+              return null;
+            }
+          }
+        };
+        
+        // Essayer de parser le JSON
+        extractedData = tryParseJSON(jsonString);
+        
+        if (!extractedData) {
+          throw new Error('Failed to parse JSON response');
+        }
+        
+        // Valider que les données sont présentes
+        if (!extractedData.position || extractedData.position.length < 3) {
+          throw new Error('Missing or invalid position field in extracted data');
+        }
+        
+        if (!extractedData.companyName || extractedData.companyName.length < 2) {
+          throw new Error('Missing or invalid companyName field in extracted data');
+        }
+        
+        console.log('Successfully extracted data:', extractedData);
+        
       } catch (parseError) {
-        // Si le parsing échoue, essayer d'extraire les informations manuellement
+        console.error('JSON parse error:', parseError);
+        console.log('Response text:', response.text);
+        
+        // Si le parsing échoue, essayer d'extraire les informations manuellement avec des regex améliorées
         const text = response.text || '';
         
-        // Extraire company name
-        const companyMatch = text.match(/"companyName"\s*:\s*"([^"]+)"/i) || 
-                           text.match(/company[:\s]+([A-Z][a-zA-Z\s&]+)/i);
-        const companyName = companyMatch ? companyMatch[1] : '';
+        // Extraire company name - chercher dans différents formats
+        let companyName = '';
+        const companyPatterns = [
+          /"companyName"\s*:\s*"([^"]+)"/i,
+          /companyName["\s]*:["\s]*([^",\n}]+)/i,
+          /company["\s]*:["\s]*([^",\n}]+)/i,
+          /"company"\s*:\s*"([^"]+)"/i
+        ];
+        for (const pattern of companyPatterns) {
+          const match = text.match(pattern);
+          if (match && match[1]) {
+            companyName = match[1].trim();
+            break;
+          }
+        }
         
-        // Extraire position
-        const positionMatch = text.match(/"position"\s*:\s*"([^"]+)"/i) || 
-                            text.match(/position[:\s]+([A-Z][a-zA-Z\s]+)/i);
-        const position = positionMatch ? positionMatch[1] : '';
+        // Extraire position - chercher dans différents formats et être plus précis
+        let position = '';
+        const positionPatterns = [
+          /"position"\s*:\s*"([^"]+)"/i,
+          /position["\s]*:["\s]*"([^"]+)"/i,
+          /"jobTitle"\s*:\s*"([^"]+)"/i,
+          /"title"\s*:\s*"([^"]+)"/i,
+          /job\s+title["\s]*:["\s]*"([^"]+)"/i,
+          /position["\s]*:["\s]*([^",\n}]+)/i
+        ];
+        for (const pattern of positionPatterns) {
+          const match = text.match(pattern);
+          if (match && match[1]) {
+            position = match[1].trim();
+            // Nettoyer la position des caractères indésirables
+            position = position.replace(/^["']+|["']+$/g, '').trim();
+            if (position.length > 5) { // Au moins 5 caractères pour être valide
+              break;
+            }
+          }
+        }
         
         // Extraire location
-        const locationMatch = text.match(/"location"\s*:\s*"([^"]+)"/i) || 
-                            text.match(/location[:\s]+([A-Z][a-zA-Z\s,]+)/i);
-        const location = locationMatch ? locationMatch[1] : '';
+        let location = '';
+        const locationPatterns = [
+          /"location"\s*:\s*"([^"]+)"/i,
+          /location["\s]*:["\s]*"([^"]+)"/i,
+          /location["\s]*:["\s]*([^",\n}]+)/i
+        ];
+        for (const pattern of locationPatterns) {
+          const match = text.match(pattern);
+          if (match && match[1]) {
+            location = match[1].trim();
+            location = location.replace(/^["']+|["']+$/g, '').trim();
+            if (location.length > 3) {
+              break;
+            }
+          }
+        }
         
         // Extraire summary
-        const summaryMatch = text.match(/"summary"\s*:\s*"([^"]+)"/i);
-        const summary = summaryMatch ? summaryMatch[1] : text.substring(0, 200);
+        let summary = '';
+        const summaryMatch = text.match(/"summary"\s*:\s*"([^"]+)"/i) || 
+                           text.match(/summary["\s]*:["\s]*"([^"]+)"/i);
+        if (summaryMatch) {
+          summary = summaryMatch[1].trim();
+        } else {
+          // Prendre les premières lignes utiles si pas de summary trouvé
+          const lines = text.split('\n').filter((l: string) => l.trim().length > 20);
+          summary = lines.slice(0, 3).join(' ').substring(0, 200);
+        }
         
         extractedData = {
           companyName: companyName.trim(),
@@ -297,21 +411,52 @@ Important:
           location: location.trim(),
           summary: summary.trim()
         };
+        
+        console.log('Extracted data (fallback):', extractedData);
       }
+
+      // Valider les données extraites
+      if (!extractedData.position || extractedData.position.length < 3) {
+        throw new Error('Could not extract valid job position from the posting');
+      }
+      
+      if (!extractedData.companyName || extractedData.companyName.length < 2) {
+        throw new Error('Could not extract valid company name from the posting');
+      }
+
+      // Validation supplémentaire : vérifier que les données semblent cohérentes
+      // Si la position contient des mots très génériques, c'est peut-être une mauvaise extraction
+      const genericTitles = ['engineer', 'developer', 'manager', 'consultant', 'analyst', 'specialist'];
+      const positionLower = extractedData.position.toLowerCase();
+      const isTooGeneric = genericTitles.some(word => positionLower === word || positionLower === `${word} at ${extractedData.companyName.toLowerCase()}`);
+      
+      if (isTooGeneric && extractedData.position.length < 20) {
+        console.warn('Extracted position seems too generic:', extractedData.position);
+        // Ne pas bloquer, mais logger un avertissement
+      }
+
+      // Nettoyer les données extraites
+      const cleanedData = {
+        companyName: extractedData.companyName.trim(),
+        position: extractedData.position.trim(),
+        location: extractedData.location.trim(),
+        summary: extractedData.summary?.trim() || ''
+      };
 
       // Mettre à jour le formulaire avec les données extraites
       setFormData(prev => ({
         ...prev,
-        companyName: extractedData.companyName || prev.companyName,
-        position: extractedData.position || prev.position,
-        location: extractedData.location || prev.location,
-        notes: extractedData.summary || prev.notes || ''
+        companyName: cleanedData.companyName || prev.companyName,
+        position: cleanedData.position || prev.position,
+        location: cleanedData.location || prev.location,
+        notes: cleanedData.summary || prev.notes || ''
       }));
 
       toast.success('Job information extracted successfully!');
+      console.log('Extracted and cleaned data:', cleanedData);
     } catch (error) {
       console.error('Error extracting job info:', error);
-      toast.error('Failed to extract job information. Please fill in the fields manually.');
+      toast.error(`Failed to extract job information: ${error instanceof Error ? error.message : 'Unknown error'}. Please fill in the fields manually.`);
     } finally {
       setIsAnalyzingJob(false);
     }
