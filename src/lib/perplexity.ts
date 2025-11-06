@@ -156,19 +156,22 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
 2. Extract ONLY information that is VISIBLY DISPLAYED on the page
 3. Do NOT guess, infer, or use information from your training data
 4. Do NOT use information from similar job postings
-5. Do NOT summarize or shorten the job description - include EVERYTHING
+5. Do NOT summarize, shorten, condense, or abbreviate the job description - include EVERYTHING word for word
 6. The job title/position must be the EXACT title shown on the page header/title
 7. The company name must be the EXACT company name shown on the page
-8. The job description must include ALL sections: overview, responsibilities, requirements, qualifications, skills, experience, education, location, benefits, company culture, etc.
-9. Return ONLY valid JSON with no markdown, no code blocks, no explanations, no additional text
-10. All string values must be properly escaped in JSON format (use \\n for newlines, \\" for quotes)
-11. If you cannot access the URL or see the page content, return an error - do NOT guess
-12. For the jobDescription field, include the COMPLETE text from ALL sections - completeness is critical for accurate CV matching`
+8. The job description must include ALL sections visible on the page: overview, responsibilities, requirements, qualifications, skills, experience, education, location, benefits, company culture, team info, application process, etc.
+9. Include ALL paragraphs, ALL bullet points, ALL lists, ALL text - nothing should be omitted
+10. If the job description is very long (5000+ characters), that's correct - include EVERYTHING
+11. Return ONLY valid JSON with no markdown, no code blocks, no explanations, no additional text
+12. All string values must be properly escaped in JSON format (use \\n for newlines, \\" for quotes)
+13. If you cannot access the URL or see the page content, return an error - do NOT guess
+14. For the jobDescription field, include the COMPLETE, FULL text from ALL sections - completeness is critical for accurate CV matching
+15. A complete job description should typically be 1000-5000+ characters - if shorter, you likely missed sections`
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.05, // Very low temperature for maximum precision and no creativity
-        max_tokens: 8000 // Much more tokens to allow complete job descriptions (can be very long)
+        temperature: 0.0, // Zero temperature for maximum precision - no creativity or summarization
+        max_tokens: 16000 // Maximum tokens to allow very long, complete job descriptions
       },
       {
         headers: {

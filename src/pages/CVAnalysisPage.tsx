@@ -9,7 +9,8 @@ import {
   BarChart as ChartBarIcon, Trash2, ChevronUp, ChevronDown, Calendar,
   Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
   SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound,
-  Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2
+  Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2,
+  Eye, Zap
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -64,9 +65,9 @@ interface ATSAnalysis {
   userId: string;
   keyFindings: string[];
   skillsMatch: {
-    matching: { name: string; relevance: number }[];
+    matching: { name: string; relevance: number; location?: string }[];
     missing: { name: string; relevance: number }[];
-    alternative: { name: string; alternativeTo: string }[];
+    alternative: { name: string; alternativeTo: string; explanation?: string }[];
   };
   categoryScores: {
     skills: number;
@@ -92,11 +93,41 @@ interface ATSAnalysis {
     formatting: string;
     keywordOptimization: string;
     improvements: string[];
+    keywordDensity?: {
+      criticalKeywords: { keyword: string; found: boolean; frequency: number; optimalFrequency: number }[];
+      overallDensity: number;
+      recommendations: string[];
+    };
+    sectionCompleteness?: {
+      sections: { name: string; present: boolean; quality: number; recommendations?: string }[];
+      overallScore: number;
+    };
+    readability?: {
+      score: number;
+      issues: string[];
+      recommendations: string[];
+    };
+  };
+  resumeQuality?: {
+    actionVerbs: { count: number; examples: string[]; recommendations: string[] };
+    quantification: { score: number; achievementsWithNumbers: number; totalAchievements: number; recommendations: string[] };
+    achievements: { quantified: number; unquantified: number; examples: string[] };
+    careerProgression: { score: number; analysis: string; recommendations: string[] };
+    contactInfo: { complete: boolean; missing: string[]; recommendations: string[] };
+    resumeLength: { pages: number; words: number; optimal: boolean; recommendations: string[] };
   };
   applicationStrategy?: {
     coverLetterFocus: string;
     interviewPreparation: string;
     portfolioSuggestions: string;
+    networkingTips?: string[];
+    followUpStrategy?: string;
+  };
+  interviewProbability?: {
+    atsPass: number;
+    recruiterScreening: number;
+    overall: number;
+    factors: { positive: string[]; negative: string[] };
   };
 }
 
@@ -1509,143 +1540,48 @@ Return ONLY a structured JSON object with the following schema:
     ]
   };
 
-  // LoadingScreen component - Modern, clean, simple and fun
+  // LoadingScreen component - Modern, clean, simple and elegant
   const LoadingScreen = () => {
-    const steps = [
-      { key: 'preparing', label: 'Preparing', icon: '⚙️' },
-      { key: 'analyzing', label: 'Analyzing', icon: '📄' },
-      { key: 'matching', label: 'Matching', icon: '🎯' },
-      { key: 'finalizing', label: 'Finalizing', icon: '✨' }
-    ];
-
-    // Find current step index
-    const currentStepIndex = steps.findIndex(step => step.key === loadingStep);
-
-    // Fun tips based on step
-    const funTips = {
-      preparing: "💡 75% of resumes are rejected by ATS before a human even sees them. We'll help you beat the system!",
-      analyzing: "💡 Adding relevant keywords from the job posting can significantly boost your ATS score.",
-      matching: "💡 Quantify your achievements with specific numbers to stand out from other candidates.",
-      finalizing: "💡 Customizing your resume for each application improves your interview chances by up to 70%!"
-    };
-
     return (
-      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white/95 dark:bg-gray-900/95">
-        <div className="w-full max-w-2xl p-8 md:p-10 rounded-3xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700">
-          {/* Icon */}
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
+        <div className="w-full max-w-lg px-6 py-12">
+          {/* Minimalist Icon with subtle animation */}
           <div className="flex justify-center mb-8">
             <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400/20 via-indigo-400/20 to-purple-400/20 blur-2xl"></div>
-              <div className="relative w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 via-indigo-500 to-purple-600 shadow-lg shadow-purple-500/30">
-                <div className="text-3xl">
-                  ✨
-                </div>
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                <div className="text-2xl">✨</div>
               </div>
+              {/* Subtle pulse effect */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 opacity-20 animate-pulse"></div>
             </div>
           </div>
           
           {/* Title */}
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600">
-              AI Resume Analysis
-            </span>
+          <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+            Analyzing Your Resume
           </h2>
 
           {/* Message */}
-          <div className="text-center mb-8 min-h-[4rem] flex items-center justify-center">
-            <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-medium">
+          <div className="text-center mb-8 min-h-[3rem] flex items-center justify-center">
+            <p className="text-base text-gray-600 dark:text-gray-300 font-medium">
               {loadingMessage}
             </p>
           </div>
 
-          {/* Progress Bar */}
-          <div className="mb-8">
-            <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden shadow-inner">
-              <div 
-                className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 rounded-full shadow-lg shadow-purple-500/30 transition-all duration-500 ease-out"
-                style={{ width: `${loadingProgress}%` }}
-              />
-            </div>
-            <div className="flex justify-between items-center mt-3">
-              <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
-                {Math.round(loadingProgress)}%
-              </span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                Almost done...
-              </span>
-            </div>
-          </div>
-          
-          {/* Simplified Steps */}
-          <div className="relative mb-6">
-            <div className="absolute top-5 left-0 right-0 h-1 bg-gray-100 dark:bg-gray-700/50 rounded-full z-0"></div>
+          {/* Modern Progress Bar */}
+          <div className="mb-6">
+            <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
             <div 
-              className="absolute top-5 left-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full z-0 transition-all duration-500 ease-out"
-              style={{ 
-                width: `${currentStepIndex >= 0 
-                  ? ((currentStepIndex + 1) / steps.length) * 100 
-                  : 0}%` 
-              }}
-            ></div>
-            
-            <div className="relative flex justify-between">
-              {steps.map((step, index) => {
-                const isActive = loadingStep === step.key;
-                const isCompleted = steps.findIndex(s => s.key === loadingStep) > index;
-                
-                return (
-                  <div 
-                    key={step.key}
-                    className="flex flex-col items-center relative z-10"
-                  >
-                    <div 
-                      className={`w-10 h-10 flex items-center justify-center rounded-full text-lg transition-all duration-300 ${
-                        isActive 
-                          ? 'bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/40' 
-                          : isCompleted 
-                            ? 'bg-gradient-to-br from-purple-500 to-indigo-600' 
-                            : 'bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600'
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <svg 
-                          className="w-5 h-5 text-white" 
-                          fill="none" 
-                          viewBox="0 0 24 24" 
-                          stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <span className={isActive ? 'text-white' : 'text-gray-400 dark:text-gray-500'}>
-                          {step.icon}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <span 
-                      className={`mt-2 text-xs font-semibold transition-all duration-300 whitespace-nowrap ${
-                        isActive 
-                          ? 'text-purple-600 dark:text-purple-400' 
-                          : isCompleted 
-                            ? 'text-gray-600 dark:text-gray-400' 
-                            : 'text-gray-400 dark:text-gray-500'
-                      }`}
-                    >
-                      {step.label}
-                    </span>
+              className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
+              style={{ width: `${loadingProgress}%` }}
+              />
+          </div>
+            <div className="flex justify-center mt-3">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                {Math.round(loadingProgress)}%
+                      </span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {/* Fun Tip */}
-          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-100 dark:border-purple-800/30">
-            <p className="text-sm text-purple-700 dark:text-purple-300 text-center leading-relaxed">
-              {funTips[loadingStep as keyof typeof funTips]}
-            </p>
-          </div>
+                </div>
         </div>
       </div>
     );
@@ -1666,21 +1602,21 @@ Return ONLY a structured JSON object with the following schema:
       const messages = loadingMessages[loadingStep as keyof typeof loadingMessages];
       
       if (messages && messages.length > 0) {
-        setLoadingMessage(prev => {
-          // Sélectionner un nouveau message différent de l'actuel
+      setLoadingMessage(prev => {
+        // Sélectionner un nouveau message différent de l'actuel
           const currentMessage = prev;
-          let newMessage;
+        let newMessage;
           let attempts = 0;
-          do {
-            const idx = Math.floor(Math.random() * messages.length);
-            newMessage = messages[idx];
+        do {
+          const idx = Math.floor(Math.random() * messages.length);
+          newMessage = messages[idx];
             attempts++;
             // Éviter une boucle infinie
             if (attempts > 10) break;
-          } while (newMessage === currentMessage && messages.length > 1);
-          
+        } while (newMessage === currentMessage && messages.length > 1);
+        
           return newMessage || messages[0];
-        });
+      });
       }
     }, 8000); // Intervalle plus long pour réduire le clignotement
     
@@ -1731,6 +1667,7 @@ CRITICAL INSTRUCTIONS - FOLLOW EXACTLY:
 1. YOU MUST VISIT THE URL: Use web browsing to access ${jobUrl} and read the ACTUAL page content
 2. DO NOT USE TRAINING DATA: Extract ONLY what is VISIBLY DISPLAYED on the page - never guess or infer
 3. DO NOT INVENT INFORMATION: If information is not on the page, do NOT make it up or use similar job postings
+4. DO NOT SUMMARIZE: Extract the COMPLETE, FULL text - word for word when possible
 
 EXTRACTION REQUIREMENTS:
 
@@ -1745,36 +1682,48 @@ For "position":
 - Copy it EXACTLY as shown (case-sensitive, with exact spelling)
 - This is CRITICAL for accurate CV matching
 
-For "jobDescription":
-- Extract the COMPLETE job description including ALL sections:
-  * Job Overview/Summary
-  * Key Responsibilities/Duties
-  * Required Qualifications
-  * Preferred Qualifications
-  * Required Skills (technical and soft skills)
-  * Experience Requirements
-  * Education Requirements
+For "jobDescription" - THIS IS THE MOST IMPORTANT FIELD:
+- Extract the COMPLETE, FULL job description with ABSOLUTELY EVERYTHING from the page
+- Include ALL sections you see on the page, including but not limited to:
+  * Job Overview/Summary/About the Role
+  * Key Responsibilities/Duties/What You'll Do
+  * Required Qualifications/Must Have
+  * Preferred Qualifications/Nice to Have
+  * Required Skills (technical and soft skills) - list EVERY skill mentioned
+  * Preferred Skills
+  * Experience Requirements (years, type, industry)
+  * Education Requirements (degree, certifications)
   * Location/Remote work information
-  * Salary/Benefits (if mentioned)
-  * Company Culture/Values
-  * Any other sections present
-- Include ALL text from these sections - do NOT summarize or shorten
-- Preserve the structure and formatting as much as possible
-- If the description is very long, include EVERYTHING - completeness is more important than brevity
-- The jobDescription field must contain the FULL, COMPLETE description for accurate CV analysis
+  * Salary/Benefits/Compensation (if mentioned)
+  * Company Culture/Values/Mission
+  * Team Information
+  * Application Process
+  * Equal Opportunity statements
+  * Any other text, paragraphs, or sections visible on the page
+- DO NOT summarize, shorten, or condense ANY section
+- DO NOT skip any paragraphs or bullet points
+- Include ALL text, even if it seems repetitive or long
+- Preserve the structure, formatting, and ALL details
+- If the description is 5000+ characters, that's fine - include EVERYTHING
+- The jobDescription MUST be the COMPLETE, FULL description - nothing less
+- This is CRITICAL: Missing information will make the CV analysis inaccurate
 
-VALIDATION:
-- Before returning, verify that:
-  1. The job title matches what's on the page
-  2. The company name matches what's on the page
-  3. The job description includes ALL major sections visible on the page
-  4. You have NOT added any information that wasn't on the page
+VALIDATION CHECKLIST - Before returning, verify:
+1. ✓ The job title matches EXACTLY what's on the page
+2. ✓ The company name matches EXACTLY what's on the page
+3. ✓ The job description includes EVERY section visible on the page
+4. ✓ You have NOT summarized or shortened any section
+5. ✓ You have NOT skipped any paragraphs or bullet points
+6. ✓ You have NOT added any information that wasn't on the page
+7. ✓ The jobDescription field contains the FULL, COMPLETE text from the page
+
+IMPORTANT: The jobDescription field should typically be 1000-5000+ characters for a complete job posting. If it's shorter than 500 characters, you likely missed sections.
 
 Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, no additional text):
 {
   "companyName": "exact company name from page",
   "position": "exact job title from page",
-  "jobDescription": "complete job description with ALL sections from the page"
+  "jobDescription": "COMPLETE FULL job description with ALL sections, ALL paragraphs, ALL bullet points, ALL text from the page - nothing omitted"
 }
 
 URL to visit: ${jobUrl}
@@ -1847,21 +1796,21 @@ URL to visit: ${jobUrl}
         // Si le parsing échoue, essayer une extraction manuelle améliorée
         if (!extractedData) {
           console.log('JSON parsing failed, attempting manual extraction...');
-          const text = response.text || '';
-          
+        const text = response.text || '';
+        
           // Extraction améliorée avec support pour descriptions longues
-          let companyName = '';
+        let companyName = '';
           const companyMatch = text.match(/"companyName"\s*:\s*"((?:[^"\\]|\\.)*)"/i) || 
-                             text.match(/companyName["\s]*:["\s]*([^",\n}]+)/i);
-          if (companyMatch) companyName = companyMatch[1].trim();
-          
-          let position = '';
+                           text.match(/companyName["\s]*:["\s]*([^",\n}]+)/i);
+        if (companyMatch) companyName = companyMatch[1].trim();
+        
+        let position = '';
           const positionMatch = text.match(/"position"\s*:\s*"((?:[^"\\]|\\.)*)"/i) || 
                               text.match(/position["\s]*:["\s]*"((?:[^"\\]|\\.)*)"/i);
-          if (positionMatch) position = positionMatch[1].trim();
-          
+        if (positionMatch) position = positionMatch[1].trim();
+        
           // Extraction améliorée pour jobDescription (peut être très long)
-          let jobDescription = '';
+        let jobDescription = '';
           // Chercher jobDescription avec support pour chaînes multi-lignes
           const descMatch = text.match(/"jobDescription"\s*:\s*"((?:[^"\\]|\\.|\\n|\\r)*)"/s) ||
                            text.match(/"jobDescription"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/);
@@ -1878,7 +1827,7 @@ URL to visit: ${jobUrl}
           }
           
           // Si on a au moins le titre et la company, créer l'objet
-          if (position && companyName) {
+        if (position && companyName) {
             extractedData = {
               companyName,
               position,
@@ -1894,26 +1843,48 @@ URL to visit: ${jobUrl}
           throw new Error('Missing required fields: position and companyName are required');
         }
         
-        // Validation de la longueur de la description
+        // Validation stricte de la longueur de la description
         const descriptionLength = extractedData.jobDescription?.length || 0;
-        if (descriptionLength < 100) {
-          console.warn('Job description seems too short. It may be incomplete.');
-          toast.warning('The job description extracted seems short. Please verify it contains all sections.');
+        const description = (extractedData.jobDescription || '').toLowerCase();
+        
+        // Vérifications de complétude
+        const hasRequirements = description.includes('requirement') || description.includes('qualification') || description.includes('skill') || description.includes('must have');
+        const hasResponsibilities = description.includes('responsibilit') || description.includes('dutie') || description.includes('role') || description.includes('what you');
+        const hasExperience = description.includes('experience') || description.includes('years') || description.includes('minimum');
+        const hasEducation = description.includes('education') || description.includes('degree') || description.includes('bachelor') || description.includes('master');
+        
+        // Avertissements selon la longueur et le contenu
+        if (descriptionLength < 300) {
+          console.warn('Job description seems very short. It may be incomplete.');
+          toast.warning('The job description extracted seems very short (< 300 chars). Please verify it contains all sections from the page.');
+        } else if (descriptionLength < 800) {
+          console.warn('Job description may be incomplete. Most job postings are longer.');
+          toast.warning('The extracted description may be incomplete. Please review and ensure all sections were captured.');
         }
         
-        // Vérifier que la description contient des sections importantes
-        const description = (extractedData.jobDescription || '').toLowerCase();
-        const hasRequirements = description.includes('requirement') || description.includes('qualification') || description.includes('skill');
-        const hasResponsibilities = description.includes('responsibilit') || description.includes('dutie') || description.includes('role');
+        // Vérifier les sections critiques manquantes
+        const missingSections = [];
+        if (!hasRequirements && !hasResponsibilities) {
+          missingSections.push('requirements or responsibilities');
+        }
+        if (!hasExperience && descriptionLength < 1000) {
+          missingSections.push('experience requirements');
+        }
         
-        if (!hasRequirements && !hasResponsibilities && descriptionLength > 0) {
-          console.warn('Job description may be missing key sections (requirements or responsibilities)');
-          toast.warning('The extracted description may be incomplete. Please review and add missing sections manually if needed.');
+        if (missingSections.length > 0 && descriptionLength < 1000) {
+          console.warn(`Job description may be missing key sections: ${missingSections.join(', ')}`);
+          toast.warning(`The extracted description may be missing some sections (${missingSections.join(', ')}). Please review the original page and add missing information manually if needed.`);
+        }
+        
+        // Log pour vérification
+        console.log(`Extracted job description length: ${descriptionLength} characters`);
+        if (descriptionLength > 2000) {
+          console.log('✓ Long description extracted - likely complete');
         }
         
         // Mettre à jour le formulaire avec les données extraites
-        setFormData({
-          ...formData,
+          setFormData({
+            ...formData,
           jobTitle: extractedData.position.trim(),
           company: extractedData.companyName.trim(),
           jobDescription: (extractedData.jobDescription || '').trim(),
@@ -2552,8 +2523,171 @@ URL to visit: ${jobUrl}
                           <h4 className="font-medium text-gray-900 dark:text-white mb-1">Keyword Optimization</h4>
                           <p className="text-sm text-gray-600 dark:text-gray-400">{analysis.atsOptimization.keywordOptimization}</p>
                         </div>
-                        {analysis.atsOptimization.improvements.length > 0 && (
+                        
+                        {/* Keyword Density Analysis */}
+                        {analysis.atsOptimization.keywordDensity && (
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                              <Target className="w-4 h-4 mr-2 text-purple-500" />
+                              Keyword Density Analysis
+                            </h4>
+                            <div className="mb-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Overall Density</span>
+                                <span className={`text-sm font-semibold ${getScoreColorClass(analysis.atsOptimization.keywordDensity.overallDensity)}`}>
+                                  {analysis.atsOptimization.keywordDensity.overallDensity}%
+                                </span>
+                              </div>
+                              <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full transition-all ${
+                                    analysis.atsOptimization.keywordDensity.overallDensity >= 80 
+                                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
+                                      : analysis.atsOptimization.keywordDensity.overallDensity >= 60
+                                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                                      : 'bg-gradient-to-r from-pink-500 to-rose-500'
+                                  }`}
+                                  style={{ width: `${analysis.atsOptimization.keywordDensity.overallDensity}%` }}
+                                />
+                              </div>
+                            </div>
+                            {analysis.atsOptimization.keywordDensity.criticalKeywords.length > 0 && (
+                              <div className="space-y-2 mb-3">
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Critical Keywords</p>
+                                <div className="grid grid-cols-1 gap-2">
+                                  {analysis.atsOptimization.keywordDensity.criticalKeywords.slice(0, 10).map((kw, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
+                                      <div className="flex items-center">
+                                        {kw.found ? (
+                                          <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                                        ) : (
+                                          <X className="w-4 h-4 text-red-500 mr-2" />
+                                        )}
+                                        <span className="text-sm font-medium text-gray-900 dark:text-white">{kw.keyword}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        {kw.found && (
+                                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                                            {kw.frequency}/{kw.optimalFrequency}
+                                          </span>
+                                        )}
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                          kw.found 
+                                            ? kw.frequency >= kw.optimalFrequency 
+                                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                              : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                        }`}>
+                                          {kw.found ? (kw.frequency >= kw.optimalFrequency ? 'Optimal' : 'Low') : 'Missing'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {analysis.atsOptimization.keywordDensity.recommendations.length > 0 && (
                           <div>
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Recommendations</p>
+                                <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                  {analysis.atsOptimization.keywordDensity.recommendations.map((rec, idx) => (
+                                    <li key={idx}>{rec}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Section Completeness */}
+                        {analysis.atsOptimization.sectionCompleteness && (
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                              <FileText className="w-4 h-4 mr-2 text-indigo-500" />
+                              Section Completeness
+                            </h4>
+                            <div className="mb-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Overall Score</span>
+                                <span className={`text-sm font-semibold ${getScoreColorClass(analysis.atsOptimization.sectionCompleteness.overallScore)}`}>
+                                  {analysis.atsOptimization.sectionCompleteness.overallScore}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {analysis.atsOptimization.sectionCompleteness.sections.map((section, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
+                                  <div className="flex items-center">
+                                    {section.present ? (
+                                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                                    ) : (
+                                      <X className="w-4 h-4 text-red-500 mr-2" />
+                                    )}
+                                    <span className="text-sm text-gray-900 dark:text-white">{section.name}</span>
+                                  </div>
+                                  {section.present && (
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${getScoreColorClass(section.quality)}`}>
+                                      {section.quality}%
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Readability */}
+                        {analysis.atsOptimization.readability && (
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                              <Eye className="w-4 h-4 mr-2 text-blue-500" />
+                              Readability Score
+                            </h4>
+                            <div className="mb-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Score</span>
+                                <span className={`text-sm font-semibold ${getScoreColorClass(analysis.atsOptimization.readability.score)}`}>
+                                  {analysis.atsOptimization.readability.score}%
+                                </span>
+                              </div>
+                              <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full transition-all ${
+                                    analysis.atsOptimization.readability.score >= 80 
+                                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
+                                      : analysis.atsOptimization.readability.score >= 60
+                                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                                      : 'bg-gradient-to-r from-pink-500 to-rose-500'
+                                  }`}
+                                  style={{ width: `${analysis.atsOptimization.readability.score}%` }}
+                                />
+                              </div>
+                            </div>
+                            {analysis.atsOptimization.readability.issues.length > 0 && (
+                              <div className="mb-3">
+                                <p className="text-xs font-medium text-red-600 dark:text-red-400 uppercase tracking-wide mb-2">Issues</p>
+                                <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                  {analysis.atsOptimization.readability.issues.map((issue, idx) => (
+                                    <li key={idx}>{issue}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {analysis.atsOptimization.readability.recommendations.length > 0 && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Recommendations</p>
+                                <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                  {analysis.atsOptimization.readability.recommendations.map((rec, idx) => (
+                                    <li key={idx}>{rec}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {analysis.atsOptimization.improvements.length > 0 && (
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                             <h4 className="font-medium text-gray-900 dark:text-white mb-1">Recommended Improvements</h4>
                             <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
                               {analysis.atsOptimization.improvements.map((improvement, idx) => (
@@ -2664,10 +2798,34 @@ URL to visit: ${jobUrl}
                             {analysis.applicationStrategy.portfolioSuggestions}
                           </p>
                         </div>
+                        {analysis.applicationStrategy.networkingTips && analysis.applicationStrategy.networkingTips.length > 0 && (
+                          <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                            <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
+                              <UserRound className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
+                              Networking Tips
+                            </h4>
+                            <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                              {analysis.applicationStrategy.networkingTips.map((tip, idx) => (
+                                <li key={idx}>{tip}</li>
+                              ))}
+                            </ul>
                       </div>
+                        )}
+                        {analysis.applicationStrategy.followUpStrategy && (
+                          <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                            <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
+                              <Activity className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
+                              Follow-Up Strategy
+                            </h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {analysis.applicationStrategy.followUpStrategy}
+                            </p>
                     </div>
                   )}
+                      </div>
                 </div>
+              )}
+            </div>
               )}
             </div>
           </div>
