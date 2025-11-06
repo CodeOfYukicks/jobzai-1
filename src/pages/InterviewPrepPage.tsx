@@ -19,7 +19,7 @@ import {
   Search, RefreshCw, Maximize2, Minimize2, ArrowRight,
   MousePointer, Square, Circle, Minus, Link2, ArrowUp,
   CheckSquare, ExternalLink, BarChart2, Bookmark, ThumbsUp,
-  Newspaper, Users, PieChart, Award, Flag, Edit
+  Newspaper, Users, PieChart, Award, Flag, Edit, Mic
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -34,6 +34,8 @@ interface Note {
   updatedAt: number;
   position?: { x: number; y: number };
   connections?: string[];
+  width?: number;
+  height?: number;
 }
 
 interface Connection {
@@ -149,6 +151,8 @@ export default function InterviewPrepPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [expandedMessages, setExpandedMessages] = useState<Record<number, boolean>>({});
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const [notes, setNotes] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [stickyNotes, setStickyNotes] = useState<Note[]>([]);
@@ -162,6 +166,10 @@ export default function InterviewPrepPage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isDrawingConnection, setIsDrawingConnection] = useState(false);
   const [notePositions, setNotePositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [noteSizes, setNoteSizes] = useState<Record<string, { width: number; height: number }>>({});
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizingNoteId, setResizingNoteId] = useState<string | null>(null);
+  const [resizeStart, setResizeStart] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartTime, setDragStartTime] = useState(0);
@@ -171,6 +179,7 @@ export default function InterviewPrepPage() {
   const [showConnectionMenu, setShowConnectionMenu] = useState(false);
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [connectionMenuPosition, setConnectionMenuPosition] = useState({ x: 0, y: 0 });
+  const [filterColor, setFilterColor] = useState<string | null>(null);
   const [preparationProgress, setPreparationProgress] = useState<number>(0);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     { id: '1', task: 'Research company background', completed: false, section: 'overview' },
@@ -276,9 +285,19 @@ Key points to mention:
       ...prev,
       [newNoteId]: { x: 50, y: 50 }
     }));
+    setNoteSizes(prev => ({
+      ...prev,
+      [newNoteId]: { width: 250, height: 200 }
+    }));
     updateInterviewNotes(updatedNotes);
     toast.success('Talking points note created');
   };
+
+  // Filter notes by color
+  const filteredNotes = useMemo(() => {
+    if (!filterColor) return stickyNotes;
+    return stickyNotes.filter(note => note.color === filterColor);
+  }, [stickyNotes, filterColor]);
   
   // État pour suivre les questions sauvegardées et celles qui sont réduites/étendues
   const [savedQuestionsState, setSavedQuestionsState] = useState<string[]>([]);
@@ -377,6 +396,7 @@ Key points to mention:
         
         // Initialize note positions only once or for newly added notes
         const positions = { ...notePositions };
+        const sizes = { ...noteSizes };
         interview.stickyNotes.forEach((note, index) => {
           // Only set position if it doesn't already exist in notePositions
           if (!positions[note.id]) {
@@ -385,8 +405,16 @@ Key points to mention:
               y: Math.floor(index / 3) * 200 + 50
             };
           }
+          // Initialize sizes
+          if (!sizes[note.id]) {
+            sizes[note.id] = {
+              width: note.width || 250,
+              height: note.height || 200
+            };
+          }
         });
         setNotePositions(positions);
+        setNoteSizes(sizes);
       } else {
         // If there are no sticky notes but there are old notes, convert them
         if (interview.notes && !interview.stickyNotes) {
@@ -704,16 +732,220 @@ Key points to mention:
     }));
   };
 
+  // Initialize Speech Recognition
+  useEffect(() => {
+    // Check if browser supports Speech Recognition
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition && !recognitionRef.current) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US'; // You can change this to 'fr-FR' for French
+
+      recognition.onresult = async (event: any) => {
+        const transcript = event.results[0][0].transcript.trim();
+        setIsListening(false);
+        
+        if (!transcript) return;
+        
+        // Create user message directly
+        const userMessage: ChatMessage = {
+          role: 'user',
+          content: transcript,
+          timestamp: Date.now()
+        };
+
+        // Add a temporary assistant message for 'thinking...'
+        const thinkingMessage: ChatMessage = {
+          role: 'assistant',
+          content: '__thinking__',
+          timestamp: Date.now() + 1
+        };
+
+        // Get current messages using functional update
+        setChatMessages(prevMessages => {
+          const updatedMessages = [...prevMessages, userMessage, thinkingMessage];
+          
+          // Send to Perplexity asynchronously
+          (async () => {
+            setIsSending(true);
+            
+            try {
+              // Build context for the AI based on the job details
+              const context = `
+                You are a conversational AI interview coach helping the user prepare for their ${interview?.type || 'interview'} interview at ${application?.companyName || 'the company'} for the ${application?.position || 'position'} position.
+
+                KEY CONTEXT:
+                - Position: ${application?.position || 'Not specified'}
+                - Company: ${application?.companyName || 'Not specified'}
+                - Required Skills: ${interview?.preparation?.requiredSkills?.join(', ') || "Not specified"}
+                
+                CONVERSATIONAL GUIDELINES:
+                - Keep your responses short and concise (2-3 paragraphs max)
+                - Start with a brief, casual response before diving into advice
+                - Don't dump all information at once - let the conversation flow naturally
+                - If the user says "hello" or similar, respond with a brief greeting and ask how you can help
+                - Ask follow-up questions to guide the conversation
+                - Avoid walls of text - use short paragraphs with one main point each
+                
+                USER'S CHAT HISTORY (for context only - don't reference this directly):
+                ${prevMessages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}
+              `;
+
+              // Query Perplexity API
+              const response = await queryPerplexity(
+                context + "\n\nUser message: " + transcript
+              );
+
+              // Check if the response contains an error
+              let aiContent = response.text || "I'm sorry, I couldn't process your request. Please try again later.";
+              // Remove <think> tags if present
+              aiContent = aiContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+              aiContent = aiContent.replace(/<think>[\s\S]*?<\/redacted_reasoning>/g, '').trim();
+              // Remove references like [1], [2], [3], etc.
+              aiContent = aiContent.replace(/\[\d+\]/g, '');
+
+              const aiMessage: ChatMessage = {
+                role: 'assistant',
+                content: aiContent,
+                timestamp: Date.now()
+              };
+
+              // Replace the last thinking message with the real response
+              setChatMessages(prev => {
+                const newMessages = prev.slice(0, -1).concat(aiMessage);
+                saveChatHistory(newMessages).catch(() => {
+                  toast.error('Failed to save chat history');
+                });
+                return newMessages;
+              });
+            } catch (error) {
+              // Replace the last thinking message with an error message
+              const errorMessage: ChatMessage = {
+                role: 'assistant',
+                content: "I'm sorry, I encountered an error while processing your request. This might be due to network issues or browser settings blocking requests. Please try again later.",
+                timestamp: Date.now()
+              };
+              
+              setChatMessages(prev => {
+                const newMessages = prev.slice(0, -1).concat(errorMessage);
+                saveChatHistory(newMessages).catch(() => {
+                  toast.error('Failed to save chat history');
+                });
+                return newMessages;
+              });
+              
+              toast.error('Failed to send message: ' + (error instanceof Error ? error.message : 'Unknown error'));
+            } finally {
+              setIsSending(false);
+            }
+          })();
+          
+          return updatedMessages;
+        });
+        
+        setMessage(''); // Clear message field
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        if (event.error === 'no-speech') {
+          toast.info('No speech detected. Please try again.');
+        } else if (event.error === 'not-allowed') {
+          toast.error('Microphone access denied. Please enable it in your browser settings.');
+        } else {
+          toast.error('Speech recognition error. Please try again.');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore errors when stopping on unmount
+        }
+      }
+    };
+  }, [interview, application]);
+
+  // Start/Stop voice recording
+  const startVoiceRecording = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    if (!recognitionRef.current) {
+      toast.error('Speech recognition not initialized. Please refresh the page.');
+      return;
+    }
+
+    if (isListening) {
+      return; // Already listening
+    }
+
+    try {
+      recognitionRef.current.start();
+      setIsListening(true);
+      toast.success('Listening... Speak now!');
+    } catch (error) {
+      console.error('Error starting recognition:', error);
+      setIsListening(false);
+      toast.error('Failed to start voice recording. Please try again.');
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (recognitionRef.current && isListening) {
+      try {
+        recognitionRef.current.stop();
+        setIsListening(false);
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+        setIsListening(false);
+      }
+    }
+  };
+
+  // Toggle for single click (auto-stop mode)
+  const toggleVoiceRecording = () => {
+    if (isListening) {
+      stopVoiceRecording();
+    } else {
+      startVoiceRecording();
+    }
+  };
+
   const updateInterviewNotes = (updatedNotes: Note[]) => {
     if (!currentUser || !application || !interview || !applicationId) return;
     
     const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
     
     if (interviewIndex !== -1) {
+      // Include sizes from noteSizes state
+      const notesWithSizes = updatedNotes.map(note => ({
+        ...note,
+        width: noteSizes[note.id]?.width || note.width || 250,
+        height: noteSizes[note.id]?.height || note.height || 200,
+        position: notePositions[note.id] || note.position
+      }));
+      
       const updatedInterviews = [...(application.interviews || [])];
       updatedInterviews[interviewIndex] = {
         ...interview,
-        stickyNotes: updatedNotes
+        stickyNotes: notesWithSizes
       };
       
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
@@ -728,7 +960,7 @@ Key points to mention:
       // Update the interview object without affecting notePositions or other state
       setInterview({
         ...interview,
-        stickyNotes: updatedNotes
+        stickyNotes: notesWithSizes
       });
     }
   };
@@ -835,6 +1067,11 @@ Key points to mention:
           ...prev,
           [newNoteId]: { x: 50, y: 50 }
         }));
+        // Add new note size to noteSizes
+        setNoteSizes(prev => ({
+          ...prev,
+          [newNoteId]: { width: 250, height: 200 }
+        }));
       }
       
       setStickyNotes(updatedNotes);
@@ -898,6 +1135,14 @@ Key points to mention:
 Based on this job posting for a ${application.position} position at ${application.companyName}: ${interview.jobPostUrl}
 
 Please generate 5 different interview questions that might be asked during this interview. Make them varied - some behavioral, some technical, some about the company fit.
+
+For EACH question, provide a SPECIFIC and DETAILED suggested answer approach that:
+1. Is tailored to that specific question (not generic)
+2. Provides concrete guidance on how to structure the answer
+3. Includes relevant points to mention based on the job requirements
+4. Suggests what skills or experiences to highlight
+5. Is practical and actionable (2-4 sentences, not just "use STAR method")
+
 Return the questions in a JSON format like this:
 {
   "questions": [
@@ -908,103 +1153,407 @@ Return the questions in a JSON format like this:
     "Question 5"
   ],
   "answers": [
-    {"question": "Question 1", "answer": "Approach to answering this question"},
-    {"question": "Question 2", "answer": "Approach to answering this question"},
-    {"question": "Question 3", "answer": "Approach to answering this question"},
-    {"question": "Question 4", "answer": "Approach to answering this question"},
-    {"question": "Question 5", "answer": "Approach to answering this question"}
+    {"question": "Question 1", "answer": "Specific detailed guidance for answering Question 1, tailored to the job requirements and role"},
+    {"question": "Question 2", "answer": "Specific detailed guidance for answering Question 2, tailored to the job requirements and role"},
+    {"question": "Question 3", "answer": "Specific detailed guidance for answering Question 3, tailored to the job requirements and role"},
+    {"question": "Question 4", "answer": "Specific detailed guidance for answering Question 4, tailored to the job requirements and role"},
+    {"question": "Question 5", "answer": "Specific detailed guidance for answering Question 5, tailored to the job requirements and role"}
   ]
 }
+
+Make sure each answer is unique and specific to its question, not generic advice.
 `;
 
       const response = await queryPerplexity(prompt);
       
       if (response) {
-        // Extract the JSON from the response
-        const content = response.choices[0].message.content;
-        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/\{[\s\S]*?\}/);
-        const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
-        const newQuestionsData = JSON.parse(jsonString);
-        
-        // Combiner les questions sauvegardées avec les nouvelles questions
-        let combinedQuestions: string[] = [...savedQuestions];
-        let combinedAnswers: {question: string, answer: string}[] = [];
-        
-        // Ajouter les nouvelles questions qui ne sont pas déjà sauvegardées
-        if (newQuestionsData.questions) {
-          newQuestionsData.questions.forEach((question: string, idx: number) => {
-            if (!savedQuestions.includes(question)) {
-              combinedQuestions.push(question);
-              
-              // Ajouter la réponse correspondante si disponible
-              if (newQuestionsData.answers && newQuestionsData.answers[idx]) {
-                combinedAnswers.push(newQuestionsData.answers[idx]);
-              }
-            }
-          });
-        }
-        
-        // Ajouter les réponses des questions sauvegardées
-        savedQuestions.forEach((savedQuestion: string) => {
-          // Chercher la réponse dans les réponses existantes
-          const existingAnswer = interview.preparation?.suggestedAnswers?.find(a => 
-            typeof a === 'object' && 'question' in a && a.question === savedQuestion
-          );
-          
-          if (existingAnswer) {
-            combinedAnswers.push(existingAnswer as {question: string, answer: string});
-          } else {
-            // Créer une réponse générique si aucune n'est trouvée
-            combinedAnswers.push({
-              question: savedQuestion,
-              answer: "Structure your answer using the STAR method: Situation, Task, Action, Result."
-            });
-          }
-        });
-        
-        // Create updated preparation object with required fields
-        const updatedPreparation: JobPostAnalysisResult = {
-          keyPoints: interview.preparation?.keyPoints || [],
-          requiredSkills: interview.preparation?.requiredSkills || [],
-          suggestedQuestions: combinedQuestions,
-          suggestedAnswers: combinedAnswers,
-          companyInfo: interview.preparation?.companyInfo,
-          positionDetails: interview.preparation?.positionDetails,
-          cultureFit: interview.preparation?.cultureFit
-        };
-        
-        // Update Firestore - find the interview index
-        const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
-        
-        if (interviewIndex === -1) {
-          toast.error('Could not find interview to update');
+        // Extract and clean the JSON from the response
+        const contentFromAPI = response?.choices?.[0]?.message?.content || response?.text || '';
+        if (!contentFromAPI) {
+          toast.error('Empty response from Perplexity API');
           return;
         }
         
-        // Create updated interviews array
-        const updatedInterviews = [...(application.interviews || [])];
-        updatedInterviews[interviewIndex] = {
-          ...interview,
-          preparation: updatedPreparation
-        };
-        
-        // Update Firestore
-        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-        await updateDoc(applicationRef, {
-          interviews: updatedInterviews,
-          updatedAt: serverTimestamp()
-        });
-        
-        // Update local state
-        setInterview({
-          ...interview,
-          preparation: updatedPreparation
-        });
-        
-        // Attendre un court instant pour que l'animation soit plus fluide
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        toast.success('New interview questions generated successfully!');
+        try {
+          // Clean content: remove <think> and <think> tags and other unwanted content
+          const content = String(contentFromAPI)
+            .replace(/<think>[\s\S]*?<\/think>/g, '')
+            .replace(/<think>[\s\S]*?<\/redacted_reasoning>/g, '')
+            .trim();
+          
+          // Check if there's JSON-looking content
+          if (!/\{[\s\S]*\}/.test(content) && !/```json/.test(content)) {
+            toast.error('Unexpected response format from Perplexity API');
+            return;
+          }
+          
+          // Find JSON content within the response
+          const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                           content.match(/\{[\s\S]*?\}/);
+          
+          let jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+          
+          // Try to parse JSON
+          const tryParse = (s: string) => {
+            try { 
+              return JSON.parse(s); 
+            } catch { 
+              return null; 
+            }
+          };
+          
+          let newQuestionsData = tryParse(jsonString);
+          
+          // If parsing failed, try to repair the JSON
+          if (!newQuestionsData) {
+            // Attempt minimal repairs: remove trailing commas, fix missing commas
+            let repaired = jsonString
+              .replace(/,\s*\]/g, ']')  // Remove trailing commas before ]
+              .replace(/,\s*\}/g, '}')  // Remove trailing commas before }
+              .replace(/"\s+"/g, '", "'); // Fix missing commas between quoted strings
+            
+            newQuestionsData = tryParse(repaired);
+            
+            // If still failing, try to extract questions from plain text
+            if (!newQuestionsData) {
+              const lines = content.split(/\n|\r/).map(l => l.trim());
+              const questionsGuess = lines
+                .filter(l => /\?$/.test(l) || /question/i.test(l))
+                .map(l => l.replace(/^[-*•\d+\.]\s*/, '').replace(/^["']|["']$/g, ''))
+                .filter(Boolean)
+                .slice(0, 5);
+              
+              if (questionsGuess.length > 0) {
+                newQuestionsData = { questions: questionsGuess };
+              } else {
+                toast.error('Failed to parse questions from API response');
+                return;
+              }
+            }
+          }
+          
+          // Fonction pour nettoyer les chaînes des préfixes JSON
+          const cleanString = (str: string): string => {
+            if (!str || typeof str !== 'string') return '';
+            return str
+              .trim()
+              // Enlever les préfixes JSON comme "question": " ou "answer": "
+              .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+              .replace(/^["']?answer["']?\s*:\s*["']?/i, '')
+              // Enlever les séparateurs JSON au milieu comme ", "answer": "
+              .replace(/["']?\s*,\s*["']?answer["']?\s*:\s*["']?/gi, '')
+              .replace(/["']?\s*,\s*["']?question["']?\s*:\s*["']?/gi, '')
+              // Enlever les virgules à la fin (après les guillemets)
+              .replace(/["']\s*,\s*$/g, '')
+              .replace(/,\s*$/g, '')
+              // Enlever les accolades et crochets à la fin
+              .replace(/["']?\s*\}\s*$/g, '')
+              .replace(/["']?\s*\]\s*$/g, '')
+              .replace(/["']?\s*\}\s*,?\s*$/g, '')
+              .replace(/["']?\s*\]\s*,?\s*$/g, '')
+              // Enlever les guillemets au début
+              .replace(/^["']?/g, '')
+              // Enlever les guillemets à la fin (après avoir enlevé les virgules)
+              .replace(/["']\s*$/g, '')
+              .replace(/["']?$/g, '')
+              // Enlever les objets JSON au début
+              .replace(/^\{.*?:\s*["']?/, '')
+              .replace(/^\[.*?:\s*["']?/, '')
+              // Enlever les crochets/parenthèses non fermés au début
+              .replace(/^\[+\s*/, '')
+              .replace(/^\{+\s*/, '')
+              .replace(/^\(+\s*/, '')
+              // Enlever les crochets/parenthèses non fermés à la fin
+              .replace(/\s*\[+$/, '')
+              .replace(/\s*\{+$/, '')
+              .replace(/\s*\(+$/, '')
+              // Enlever les parenthèses non fermées (sans fermeture correspondante)
+              .replace(/^\(([^)]*)$/, '$1') // Enlever parenthèse ouverte au début si pas de fermeture
+              .replace(/^([^(]*)\)$/, '$1') // Enlever parenthèse fermée à la fin si pas d'ouverture
+              .trim();
+          };
+
+          // Fonction pour séparer une question et une réponse si elles sont mélangées
+          const splitQuestionAndAnswer = (str: string): { question: string | null, answer: string | null } => {
+            if (!str || typeof str !== 'string') return { question: null, answer: null };
+            
+            // Chercher le pattern ", "answer": " dans la chaîne
+            const answerMatch = str.match(/["']?\s*,\s*["']?answer["']?\s*:\s*["']?/i);
+            if (answerMatch) {
+              const index = answerMatch.index!;
+              const question = str.substring(0, index).trim();
+              const answer = str.substring(index + answerMatch[0].length).trim();
+              
+              // Nettoyer les deux parties
+              const cleanedQuestion = cleanString(question);
+              const cleanedAnswer = cleanString(answer);
+              
+              return {
+                question: cleanedQuestion && cleanedQuestion.length > 10 ? cleanedQuestion : null,
+                answer: cleanedAnswer && cleanedAnswer.length > 10 ? cleanedAnswer : null
+              };
+            }
+            
+            return { question: null, answer: null };
+          };
+
+          // Normaliser les données extraites
+          const normalizeQuestions = (questions: any): string[] => {
+            if (!questions) return [];
+            if (!Array.isArray(questions)) return [];
+            const result: string[] = [];
+            
+            questions.forEach(q => {
+              if (typeof q === 'string') {
+                // Filtrer les éléments invalides comme "questions": [ ou autres clés JSON
+                if (q.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/)) {
+                  return; // Ignorer les clés JSON qui commencent par un crochet ou accolade
+                }
+                
+                // Vérifier si la chaîne contient à la fois question et answer
+                const split = splitQuestionAndAnswer(q);
+                if (split.question) {
+                  result.push(split.question);
+                } else {
+                  // Sinon, nettoyer la chaîne normalement
+                  const cleaned = cleanString(q);
+                  // Filtrer les valeurs invalides
+                  if (cleaned && 
+                      cleaned !== 'question' && 
+                      cleaned !== 'answer' && 
+                      cleaned !== 'questions' &&
+                      !cleaned.match(/^["']?\w+["']?\s*:\s*[\[{]/) &&
+                      cleaned.length > 10) {
+                    result.push(cleaned);
+                  }
+                }
+              } else if (typeof q === 'object' && q !== null) {
+                // Si c'est un objet avec une propriété question, extraire la question
+                if ('question' in q && typeof q.question === 'string') {
+                  const cleaned = cleanString(q.question);
+                  if (cleaned && cleaned.length > 10) {
+                    result.push(cleaned);
+                  }
+                }
+              }
+            });
+            
+            return result.filter((q): q is string => q !== null && q.length > 10);
+          };
+
+          const normalizeAnswers = (answers: any): {question: string, answer: string}[] => {
+            if (!answers) return [];
+            if (!Array.isArray(answers)) return [];
+            const result: {question: string, answer: string}[] = [];
+            
+            answers.forEach(a => {
+              if (typeof a === 'object' && a !== null) {
+                // Vérifier que c'est un objet avec question et answer
+                const question = typeof a.question === 'string' ? cleanString(a.question) : null;
+                const answer = typeof a.answer === 'string' ? cleanString(a.answer) : null;
+                
+                // Filtrer les valeurs invalides
+                if (question && question !== 'question' && question.length > 10 &&
+                    answer && answer !== 'answer' && answer.length > 10) {
+                  result.push({ question, answer });
+                }
+              } else if (typeof a === 'string') {
+                // Si c'est une chaîne, essayer de la séparer
+                const split = splitQuestionAndAnswer(a);
+                if (split.question && split.answer) {
+                  result.push({ question: split.question, answer: split.answer });
+                }
+              }
+            });
+            
+            return result;
+          };
+
+          // Normaliser les questions et réponses extraites
+          const normalizedQuestions = normalizeQuestions(newQuestionsData.questions);
+          const normalizedAnswers = normalizeAnswers(newQuestionsData.answers);
+          
+          // Fonction pour normaliser et comparer les questions (matching flexible)
+          const normalizeForMatch = (str: string): string => {
+            if (!str || typeof str !== 'string') return '';
+            return str
+              .toLowerCase()
+              .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+              .replace(/^["']?/g, '')
+              .replace(/["']?$/g, '')
+              .replace(/[^\w\s]/g, '') // Enlever la ponctuation
+              .replace(/\s+/g, ' ') // Normaliser les espaces
+              .trim();
+          };
+          
+          // Combiner les questions sauvegardées avec les nouvelles questions
+          let combinedQuestions: string[] = [...savedQuestions];
+          let combinedAnswers: {question: string, answer: string}[] = [];
+          
+          // Ajouter les nouvelles questions qui ne sont pas déjà sauvegardées
+          // D'abord, vérifier si les questions d'origine contiennent des réponses
+          if (newQuestionsData.questions) {
+            newQuestionsData.questions.forEach((q: any, idx: number) => {
+              if (typeof q === 'string') {
+                // Vérifier si cette question contient aussi une réponse
+                const split = splitQuestionAndAnswer(q);
+                if (split.question && split.answer) {
+                  // Extraire la question et la réponse
+                  const normalizedQ = cleanString(split.question);
+                  if (normalizedQ && normalizedQ.length > 10 && !savedQuestions.includes(normalizedQ)) {
+                    combinedQuestions.push(normalizedQ);
+                    combinedAnswers.push({
+                      question: normalizedQ,
+                      answer: cleanString(split.answer)
+                    });
+                  }
+                } else {
+                  // Question normale, utiliser les données normalisées
+                  const normalizedQ = normalizedQuestions[idx];
+                  if (normalizedQ && !savedQuestions.includes(normalizedQ)) {
+                    combinedQuestions.push(normalizedQ);
+                    
+                    // Chercher la réponse correspondante avec matching flexible
+                    let matchingAnswer = normalizedAnswers.find(a => {
+                      const aQuestionNorm = normalizeForMatch(a.question);
+                      const qQuestionNorm = normalizeForMatch(normalizedQ);
+                      return aQuestionNorm === qQuestionNorm;
+                    });
+                    
+                    // Si pas trouvé, chercher une correspondance partielle
+                    if (!matchingAnswer) {
+                      matchingAnswer = normalizedAnswers.find(a => {
+                        const aQuestionNorm = normalizeForMatch(a.question);
+                        const qQuestionNorm = normalizeForMatch(normalizedQ);
+                        return aQuestionNorm.includes(qQuestionNorm) || qQuestionNorm.includes(aQuestionNorm);
+                      });
+                    }
+                    
+                    // Si toujours pas trouvé, utiliser l'index correspondant
+                    if (!matchingAnswer && normalizedAnswers[idx]) {
+                      matchingAnswer = normalizedAnswers[idx];
+                      // Vérifier que la question correspond (au moins partiellement)
+                      const aQuestionNorm = normalizeForMatch(matchingAnswer.question);
+                      const qQuestionNorm = normalizeForMatch(normalizedQ);
+                      if (!aQuestionNorm.includes(qQuestionNorm) && !qQuestionNorm.includes(aQuestionNorm)) {
+                        // Si la question ne correspond pas du tout, créer une nouvelle paire
+                        matchingAnswer = { question: normalizedQ, answer: matchingAnswer.answer };
+                      }
+                    }
+                    
+                    if (matchingAnswer) {
+                      combinedAnswers.push({
+                        question: normalizedQ,
+                        answer: matchingAnswer.answer
+                      });
+                    }
+                  }
+                }
+              } else if (typeof q === 'object' && q !== null) {
+                // Objet avec question et answer
+                const question = typeof q.question === 'string' ? cleanString(q.question) : null;
+                const answer = typeof q.answer === 'string' ? cleanString(q.answer) : null;
+                if (question && question.length > 10 && !savedQuestions.includes(question)) {
+                  combinedQuestions.push(question);
+                  if (answer && answer.length > 10) {
+                    combinedAnswers.push({ question, answer });
+                  }
+                }
+              }
+            });
+          }
+          
+          // Ajouter les réponses des questions sauvegardées
+          savedQuestions.forEach((savedQuestion: string) => {
+            // Chercher la réponse dans les réponses existantes
+            const existingAnswer = interview.preparation?.suggestedAnswers?.find(a => 
+              typeof a === 'object' && 'question' in a && a.question === savedQuestion
+            );
+            
+            if (existingAnswer) {
+              combinedAnswers.push(existingAnswer as {question: string, answer: string});
+            }
+            // Ne pas créer de réponse générique - on laissera l'affichage gérer le fallback
+          });
+          
+          // S'assurer que chaque question a sa réponse correspondante
+          // Si une question n'a pas de réponse, essayer de la trouver dans les réponses normalisées
+          const finalAnswers: {question: string, answer: string}[] = [];
+          combinedQuestions.forEach((q, idx) => {
+            // Chercher si cette question a déjà une réponse
+            const existingAnswer = combinedAnswers.find(a => {
+              const aQuestionNorm = normalizeForMatch(a.question);
+              const qQuestionNorm = normalizeForMatch(q);
+              return aQuestionNorm === qQuestionNorm || 
+                     aQuestionNorm.includes(qQuestionNorm) || 
+                     qQuestionNorm.includes(aQuestionNorm);
+            });
+            
+            if (existingAnswer) {
+              finalAnswers.push(existingAnswer);
+            } else if (normalizedAnswers[idx]) {
+              // Utiliser l'index correspondant si disponible
+              finalAnswers.push({
+                question: q,
+                answer: normalizedAnswers[idx].answer
+              });
+            } else if (normalizedAnswers.length > 0) {
+              // Utiliser la première réponse disponible comme fallback
+              finalAnswers.push({
+                question: q,
+                answer: normalizedAnswers[0].answer
+              });
+            }
+            // Si aucune réponse n'est trouvée, on ne l'ajoute pas (le fallback générique sera utilisé à l'affichage)
+          });
+          
+          // Create updated preparation object with required fields
+          const updatedPreparation: JobPostAnalysisResult = {
+            keyPoints: interview.preparation?.keyPoints || [],
+            requiredSkills: interview.preparation?.requiredSkills || [],
+            suggestedQuestions: combinedQuestions,
+            suggestedAnswers: finalAnswers.length > 0 ? finalAnswers : combinedAnswers, // Utiliser finalAnswers si disponible
+            companyInfo: interview.preparation?.companyInfo,
+            positionDetails: interview.preparation?.positionDetails,
+            cultureFit: interview.preparation?.cultureFit
+          };
+          
+          // Update Firestore - find the interview index
+          const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+          
+          if (interviewIndex === -1) {
+            toast.error('Could not find interview to update');
+            return;
+          }
+          
+          // Create updated interviews array
+          const updatedInterviews = [...(application.interviews || [])];
+          updatedInterviews[interviewIndex] = {
+            ...interview,
+            preparation: updatedPreparation
+          };
+          
+          // Update Firestore
+          const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+          await updateDoc(applicationRef, {
+            interviews: updatedInterviews,
+            updatedAt: serverTimestamp()
+          });
+          
+          // Update local state
+          setInterview({
+            ...interview,
+            preparation: updatedPreparation
+          });
+          
+          // Attendre un court instant pour que l'animation soit plus fluide
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          toast.success('New interview questions generated successfully!');
+        } catch (parseError) {
+          console.error('Error parsing questions JSON:', parseError);
+          toast.error('Failed to parse questions from API response: ' + (parseError instanceof Error ? parseError.message : 'Unknown error'));
+        }
       } else {
         toast.error('Failed to generate new questions');
       }
@@ -1166,13 +1715,108 @@ Return the questions in a JSON format like this:
 
   const handleNoteClick = (noteId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isDragging) return;
+    if (isDragging || isResizing) return;
     
     const note = stickyNotes.find(note => note.id === noteId);
     if (note) {
       openNote(note);
     }
   };
+
+  // Resize handlers
+  const handleResizeStart = (noteId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsResizing(true);
+    setResizingNoteId(noteId);
+    
+    const size = noteSizes[noteId] || { width: 250, height: 200 };
+    
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: size.width,
+      height: size.height
+    });
+  };
+
+  const handleResizeMove = (e: MouseEvent) => {
+    if (!isResizing || !resizingNoteId || !resizeStart) return;
+    
+    const deltaX = e.clientX - resizeStart.x;
+    const deltaY = e.clientY - resizeStart.y;
+    
+    const minWidth = 200;
+    const minHeight = 150;
+    const maxWidth = 600;
+    const maxHeight = 500;
+    
+    const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStart.width + deltaX));
+    const newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStart.height + deltaY));
+    
+    setNoteSizes(prev => ({
+      ...prev,
+      [resizingNoteId]: { width: newWidth, height: newHeight }
+    }));
+  };
+
+  const handleResizeEnd = () => {
+    if (!isResizing || !resizingNoteId || !currentUser || !application || !interview || !applicationId) {
+      setIsResizing(false);
+      setResizingNoteId(null);
+      setResizeStart(null);
+      return;
+    }
+    
+    // Save sizes to Firestore
+    const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+    if (interviewIndex !== -1) {
+      const updatedInterviews = [...(application.interviews || [])];
+      const updatedNotes = stickyNotes.map(note => ({
+        ...note,
+        width: noteSizes[note.id]?.width || note.width || 250,
+        height: noteSizes[note.id]?.height || note.height || 200,
+        position: notePositions[note.id] || note.position
+      }));
+      
+      updatedInterviews[interviewIndex] = {
+        ...interview,
+        stickyNotes: updatedNotes
+      };
+      
+      const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+      updateDoc(applicationRef, {
+        interviews: updatedInterviews,
+        updatedAt: serverTimestamp()
+      }).catch(error => {
+        console.error('Error saving note sizes:', error);
+      });
+      
+      setInterview({
+        ...interview,
+        stickyNotes: updatedNotes
+      });
+    }
+    
+    setIsResizing(false);
+    setResizingNoteId(null);
+    setResizeStart(null);
+  };
+
+  // Add event listeners for resize
+  useEffect(() => {
+    if (isResizing) {
+      const handleMouseMove = (e: MouseEvent) => handleResizeMove(e);
+      const handleMouseUp = () => handleResizeEnd();
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing, resizingNoteId, resizeStart, stickyNotes, noteSizes, currentUser, application, interview, applicationId]);
 
   const deleteShape = (shapeId: string) => {
     setShapes(prev => prev.filter(shape => shape.id !== shapeId));
@@ -1200,6 +1844,7 @@ Return the questions in a JSON format like this:
     if (!isNotesExpanded) {
       // Initialize positions for notes that don't have them
       const newPositions = { ...notePositions };
+      const newSizes = { ...noteSizes };
       stickyNotes.forEach((note, index) => {
         if (!notePositions[note.id]) {
           newPositions[note.id] = {
@@ -1207,8 +1852,15 @@ Return the questions in a JSON format like this:
             y: Math.floor(index / 3) * 200 + 50
           };
         }
+        if (!noteSizes[note.id]) {
+          newSizes[note.id] = {
+            width: note.width || 250,
+            height: note.height || 200
+          };
+        }
       });
       setNotePositions(newPositions);
+      setNoteSizes(newSizes);
     }
   };
 
@@ -1390,6 +2042,7 @@ Return the questions in a JSON format like this:
     const updatedNotes = [...stickyNotes, newNote];
     setStickyNotes(updatedNotes);
     setNotePositions(prev => ({ ...prev, [newNoteId]: { x: 50, y: 50 } }));
+    setNoteSizes(prev => ({ ...prev, [newNoteId]: { width: 250, height: 200 } }));
     updateInterviewNotes(updatedNotes);
     toast.success('STAR story exported to Notes');
   };
@@ -1803,7 +2456,7 @@ Return the questions in a JSON format like this:
                                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Interview dans</div>
                                   <div className="text-lg font-bold text-gray-900 dark:text-white">
                                     {diffDays} jours {diffHours} heures
-                                  </div>
+                          </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)}` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}
                                   </div>
@@ -1824,7 +2477,7 @@ Return the questions in a JSON format like this:
                             <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{preparationProgress}%</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
                               {getProgressMilestones().filter(m => m.completed).length}/5 completed
-                            </div>
+                        </div>
                           </div>
                         </div>
                         <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-4">
@@ -1851,7 +2504,7 @@ Return the questions in a JSON format like this:
                                     : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                                 }`}>
                                   {milestone.icon}
-                                </div>
+                            </div>
                                 <div className="text-left">
                                   <div className={`font-medium text-sm ${
                                     milestone.completed
@@ -1859,12 +2512,12 @@ Return the questions in a JSON format like this:
                                       : 'text-gray-800 dark:text-gray-200'
                                   }`}>
                                     {milestone.label}
-                                  </div>
+                            </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
                                     {milestone.description}
-                                  </div>
-                                </div>
-                              </div>
+                          </div>
+                            </div>
+                          </div>
                               {milestone.completed ? (
                                 <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                               ) : (
@@ -1923,14 +2576,14 @@ Return the questions in a JSON format like this:
                                   onChange={(e) => updateChecklistItemText(item.id, e.target.value)}
                                   className={`w-full bg-transparent outline-none text-sm ${item.completed ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}
                                 />
-                              </div>
+                                </div>
                               <div className="flex items-center gap-2">
-                                <button 
-                                  onClick={() => setTab(item.section)} 
-                                  className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                                >
-                                  Go
-                                </button>
+                              <button 
+                                onClick={() => setTab(item.section)} 
+                                className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                              >
+                                Go
+                              </button>
                                 <button
                                   onClick={() => deleteChecklistItem(item.id)}
                                   className="text-xs px-2.5 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
@@ -2172,7 +2825,7 @@ Return the questions in a JSON format like this:
                                         </span>
                                       </>
                                     )}
-                                  </div>
+                              </div>
                                 </div>
                               </div>
                               <p className="text-sm text-gray-600 dark:text-gray-300 pl-4 mb-3">{news.summary}</p>
@@ -2313,7 +2966,29 @@ Return the questions in a JSON format like this:
                     `}</style>
                     
                     {/* Questions with Mind Maps - Masqués pendant la régénération */}
-                    {!isRegeneratingQuestions && interview.preparation?.suggestedQuestions?.map((question, index) => (
+                    {!isRegeneratingQuestions && interview.preparation?.suggestedQuestions
+                      ?.filter(q => {
+                        // Filtrer les éléments invalides comme "questions": [
+                        if (typeof q !== 'string') return false;
+                        return !q.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/);
+                      })
+                      ?.map((question, index) => {
+                        // Nettoyer la question pour vérifier qu'elle est valide
+                        const cleaned = typeof question === 'string' 
+                          ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
+                                     .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
+                                     .replace(/["']\s*,\s*$/g, '')
+                                     .replace(/,\s*$/g, '')
+                                     .replace(/["']?\s*\]\s*,?\s*$/g, '')
+                                     .replace(/["']?\s*\}\s*,?\s*$/g, '')
+                                     .replace(/^["']?/g, '')
+                                     .replace(/["']?$/g, '')
+                                     .trim()
+                          : '';
+                        if (!cleaned || cleaned.length < 10 || cleaned === 'question' || cleaned === 'questions') {
+                          return null;
+                        }
+                        return (
                       <motion.div
                         key={index}
                         initial={{ opacity: 0, y: 20 }}
@@ -2328,7 +3003,52 @@ Return the questions in a JSON format like this:
                           <div className="flex-1">
                             <div className="flex justify-between items-start gap-2 mb-2 sm:mb-3">
                               <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white leading-tight">
-                          {question}
+                          {(() => {
+                            if (typeof question !== 'string') return 'Invalid question';
+                            
+                            // Filtrer les éléments invalides comme "questions": [
+                            if (question.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/)) {
+                              return null; // Ne pas afficher ce type d'élément
+                            }
+                            
+                            // Nettoyer les préfixes JSON et séparer question/answer si mélangés
+                            let cleaned = question
+                              .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+                              .replace(/^["']?answer["']?\s*:\s*["']?/i, '')
+                              .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
+                              // Enlever les séparateurs JSON au milieu comme ", "answer": "
+                              .replace(/["']?\s*,\s*["']?answer["']?\s*:\s*["']?.*?$/gi, '')
+                              .replace(/["']?\s*,\s*["']?question["']?\s*:\s*["']?.*?$/gi, '')
+                              // Enlever les virgules à la fin (après les guillemets)
+                              .replace(/["']\s*,\s*$/g, '')
+                              .replace(/,\s*$/g, '')
+                              // Enlever les accolades et crochets à la fin
+                              .replace(/["']?\s*\}\s*$/g, '')
+                              .replace(/["']?\s*\]\s*$/g, '')
+                              .replace(/["']?\s*\}\s*,?\s*$/g, '')
+                              .replace(/["']?\s*\]\s*,?\s*$/g, '')
+                              // Enlever les guillemets au début
+                              .replace(/^["']?/g, '')
+                              // Enlever les guillemets à la fin (après avoir enlevé les virgules)
+                              .replace(/["']\s*$/g, '')
+                              .replace(/["']?$/g, '')
+                              // Enlever les crochets/parenthèses non fermés au début
+                              .replace(/^\[+\s*/, '')
+                              .replace(/^\{+\s*/, '')
+                              .replace(/^\(+\s*/, '')
+                              // Enlever les crochets/parenthèses non fermés à la fin
+                              .replace(/\s*\[+$/, '')
+                              .replace(/\s*\{+$/, '')
+                              .replace(/\s*\(+$/, '')
+                              // Enlever les parenthèses non fermées (sans fermeture correspondante)
+                              .replace(/^\(([^)]*)$/, '$1') // Enlever parenthèse ouverte au début si pas de fermeture
+                              .replace(/^([^(]*)\)$/, '$1') // Enlever parenthèse fermée à la fin si pas d'ouverture
+                              .trim();
+                            if (cleaned && cleaned !== 'question' && cleaned !== 'answer' && cleaned !== 'questions' && cleaned.length > 10) {
+                              return cleaned;
+                            }
+                            return 'Invalid question';
+                          })()}
                               </h3>
                               <button 
                                 onClick={() => setCollapsedQuestions(prev => ({
@@ -2355,311 +3075,201 @@ Return the questions in a JSON format like this:
                                   exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
                                   transition={{ duration: 0.3 }}
                                 >
-                                  {/* Mind Map for suggested answer - Optimized for mobile */}
+                                  {/* Suggested Answer Approach */}
                                   <div className="mt-3 sm:mt-5 border-t border-gray-100 dark:border-gray-700 pt-3 sm:pt-4">
                                     <h4 className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-400 mb-3 sm:mb-4">
                             Suggested Answer Approach
                           </h4>
                                     
-                                    {/* Mind Map Visualization - Simplified for mobile */}
-                                    <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-3 sm:p-6 pb-3 sm:pb-4 relative min-h-[150px] sm:min-h-[180px]">
-                                      {/* Central Node - Adapté au type de question */}
-                                      <div className="absolute w-24 sm:w-28 h-8 sm:h-9 bg-purple-600 text-white rounded-md flex items-center justify-center text-[10px] sm:text-xs font-medium left-1/2 top-4 sm:top-6 transform -translate-x-1/2 z-10 shadow-sm">
-                                        {question.toLowerCase().includes('tell me about') || question.toLowerCase().includes('describe a time') ? 'STAR Method' : 
-                                         question.toLowerCase().includes('how would you') ? 'Strategy' :
-                                         question.toLowerCase().includes('what is') || question.toLowerCase().includes('define') ? 'Knowledge' : 
-                                         question.toLowerCase().includes('why') ? 'Reasoning' : 'Approach'}
-                                      </div>
-                                
-                                {/* First level nodes - Responsive layout for mobile */}
-                                <div className="flex flex-wrap justify-center gap-x-3 sm:gap-x-10 gap-y-3 sm:gap-y-4 mt-14 sm:mt-16 mb-2 sm:mb-3 pt-1 sm:pt-2">
-                                  {/* Structure adaptative basée sur le type de question */}
-                                  {(() => {
-                                    // Questions comportementales (STAR)
-                                    if (question.toLowerCase().includes('tell me about') || 
-                                        question.toLowerCase().includes('describe a time') || 
-                                        question.toLowerCase().includes('example of') ||
-                                        question.toLowerCase().includes('experience with')) {
-                                      return (
-                                        <>
-                                          <div className="relative pt-6 sm:pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="25" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="25" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-20 sm:w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-1.5 sm:p-2 rounded text-[10px] sm:text-xs text-center shadow-sm">
-                                              Situation
-                                              <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 text-gray-600 dark:text-gray-400">Set the context</div>
-                                            </div>
-                                          </div>
+                                    {/* Answer Content - Primary focus on specific answer */}
+                                    <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-4 sm:p-6">
+                                      {(() => {
+                                        // Fonction pour nettoyer les chaînes
+                                        const cleanAnswer = (str: string): string => {
+                                          if (!str || typeof str !== 'string') return '';
+                                          return str
+                                            .trim()
+                                            .replace(/^["']?answer["']?\s*:\s*["']?/i, '')
+                                            .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+                                            // Enlever les virgules à la fin
+                                            .replace(/["']\s*,\s*$/g, '')
+                                            .replace(/,\s*$/g, '')
+                                            // Enlever les accolades et crochets à la fin
+                                            .replace(/["']?\s*\}\s*$/g, '')
+                                            .replace(/["']?\s*\]\s*$/g, '')
+                                            .replace(/["']?\s*\}\s*,?\s*$/g, '')
+                                            .replace(/["']?\s*\]\s*,?\s*$/g, '')
+                                            // Enlever les guillemets au début
+                                            .replace(/^["']?/g, '')
+                                            // Enlever les guillemets à la fin (après avoir enlevé les virgules)
+                                            .replace(/["']\s*$/g, '')
+                                            .replace(/["']?$/g, '')
+                                            // Enlever les crochets/parenthèses non fermés
+                                            .replace(/^\[+\s*/, '')
+                                            .replace(/^\{+\s*/, '')
+                                            .replace(/^\(+\s*/, '')
+                                            .replace(/\s*\[+$/, '')
+                                            .replace(/\s*\{+$/, '')
+                                            .replace(/\s*\(+$/, '')
+                                            // Enlever les parenthèses non fermées (sans fermeture correspondante)
+                                            .replace(/^\(([^)]*)$/, '$1') // Enlever parenthèse ouverte au début si pas de fermeture
+                                            .replace(/^([^(]*)\)$/, '$1') // Enlever parenthèse fermée à la fin si pas d'ouverture
+                                            .trim();
+                                        };
+
+                                        // Fonction pour normaliser et comparer les questions (matching flexible)
+                                        const normalizeForMatch = (str: string): string => {
+                                          if (!str || typeof str !== 'string') return '';
+                                          return str
+                                            .toLowerCase()
+                                            .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+                                            .replace(/^["']?/g, '')
+                                            .replace(/["']?$/g, '')
+                                            .replace(/[^\w\s]/g, '') // Enlever la ponctuation
+                                            .replace(/\s+/g, ' ') // Normaliser les espaces
+                                            .trim();
+                                        };
+                                        
+                                        const answerObj = interview.preparation?.suggestedAnswers?.[index];
+                                        let answerText = '';
+                                        
+                                        // Essayer d'abord par index (ordre direct)
+                                        if (answerObj && typeof answerObj === 'object' && 'answer' in answerObj) {
+                                          const answer = (answerObj as { answer: string }).answer;
+                                          if (typeof answer === 'string') {
+                                            const cleaned = cleanAnswer(answer);
+                                            if (cleaned && cleaned !== 'answer' && cleaned.length > 10) {
+                                              answerText = cleaned;
+                                            }
+                                          }
+                                        }
+                                        
+                                        // Si pas trouvé par index, chercher par matching flexible de question
+                                        if (!answerText && typeof question === 'string') {
+                                          const cleanedQuestion = normalizeForMatch(question);
                                           
-                                          <div className="relative pt-6 sm:pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="25" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="25" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-20 sm:w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-1.5 sm:p-2 rounded text-[10px] sm:text-xs text-center shadow-sm">
-                                              Action
-                                              <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 text-gray-600 dark:text-gray-400">What you did</div>
-                                            </div>
-                                          </div>
+                                          // Chercher une correspondance exacte d'abord
+                                          let matchingAnswer = interview.preparation?.suggestedAnswers?.find((a: any) => {
+                                            if (typeof a !== 'object' || !('question' in a) || !('answer' in a)) return false;
+                                            const aQuestion = normalizeForMatch(String(a.question));
+                                            return aQuestion === cleanedQuestion;
+                                          });
                                           
-                                          <div className="relative pt-6 sm:pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="25" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="25" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-20 sm:w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-1.5 sm:p-2 rounded text-[10px] sm:text-xs text-center shadow-sm">
-                                              Results
-                                              <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 text-gray-600 dark:text-gray-400">Measurable impact</div>
-                                            </div>
-                                          </div>
-                                        </>
-                                      );
-                                    }
-                                    
-                                    // Questions techniques / définitions
-                                    else if (question.toLowerCase().includes('what is') || 
-                                             question.toLowerCase().includes('define') || 
-                                             question.toLowerCase().includes('explain')) {
-                                      return (
-                                        <>
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Definition
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Core concept</div>
-                                            </div>
-                                          </div>
+                                          // Si pas trouvé, chercher une correspondance partielle (au moins 80% de similarité)
+                                          if (!matchingAnswer) {
+                                            matchingAnswer = interview.preparation?.suggestedAnswers?.find((a: any) => {
+                                              if (typeof a !== 'object' || !('question' in a) || !('answer' in a)) return false;
+                                              const aQuestion = normalizeForMatch(String(a.question));
+                                              // Comparaison partielle : si une question contient l'autre ou vice versa
+                                              return aQuestion.includes(cleanedQuestion) || cleanedQuestion.includes(aQuestion) ||
+                                                     (cleanedQuestion.length > 0 && aQuestion.length > 0 && 
+                                                      (cleanedQuestion.length / Math.max(aQuestion.length, cleanedQuestion.length)) > 0.8);
+                                            });
+                                          }
                                           
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Examples
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Practical cases</div>
-                                            </div>
-                                          </div>
+                                          // Si toujours pas trouvé, utiliser l'index correspondant dans le tableau des réponses
+                                          if (!matchingAnswer && interview.preparation?.suggestedAnswers && 
+                                              interview.preparation.suggestedAnswers.length > index) {
+                                            const answerByIndex = interview.preparation.suggestedAnswers[index];
+                                            if (typeof answerByIndex === 'object' && 'answer' in answerByIndex) {
+                                              matchingAnswer = answerByIndex;
+                                            }
+                                          }
                                           
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Application
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">In this role</div>
-                                            </div>
-                                          </div>
-                                        </>
-                                      );
-                                    }
-                                    
-                                    // Questions "Comment" / approche
-                                    else if (question.toLowerCase().includes('how would you') || 
-                                             question.toLowerCase().includes('how do you') ||
-                                             question.toLowerCase().includes('approach') ||
-                                             question.toLowerCase().includes('strategy')) {
-                                      return (
-                                        <>
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Analysis
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Assess situation</div>
-                                            </div>
-                                          </div>
-                                          
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Methodology
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Step by step</div>
-                                            </div>
-                                          </div>
-                                          
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Evaluation
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Measure success</div>
-                                            </div>
-                                          </div>
-                                        </>
-                                      );
-                                    }
-                                    
-                                    // Questions "Pourquoi" / motivations
-                                    else if (question.toLowerCase().includes('why') ||
-                                             question.toLowerCase().includes('reason') ||
-                                             question.toLowerCase().includes('motivat')) {
-                                      return (
-                                        <>
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Personal
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Your motivation</div>
-                                            </div>
-                                          </div>
-                                          
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Professional
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Career alignment</div>
-                                            </div>
-                                          </div>
-                                          
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Contribution
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Value you bring</div>
-                                            </div>
-                                          </div>
-                                        </>
-                                      );
-                                    }
-                                    
-                                    // Default pour les autres types de questions
-                                    else {
-                                      return (
-                                        <>
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Context
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Background</div>
-                                            </div>
-                                          </div>
-                                          
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Key Points
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Main arguments</div>
-                                            </div>
-                                          </div>
-                                          
-                                          <div className="relative pt-8">
-                                            <svg className="absolute top-0 left-1/2 transform -translate-x-1/2" width="2" height="30" xmlns="http://www.w3.org/2000/svg">
-                                              <line x1="1" y1="0" x2="1" y2="30" stroke="#9061F9" strokeWidth="2" />
-                                            </svg>
-                                            <div className="w-28 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-2 rounded text-xs text-center shadow-sm">
-                                              Conclusion
-                                              <div className="text-[10px] mt-1 text-gray-600 dark:text-gray-400">Takeaway</div>
-                                            </div>
-                                          </div>
-                                        </>
-                                      );
-                                    }
-                                  })()}
-                                </div>
-                                
-                                {/* Answer content and examples - Streamlined for mobile */}
-                                <div className="mt-4 sm:mt-6 text-xs sm:text-sm text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-4 max-h-[120px] sm:max-h-none overflow-y-auto">
-                            {interview.preparation?.suggestedAnswers && 
-                             interview.preparation.suggestedAnswers[index] && 
-                             typeof interview.preparation.suggestedAnswers[index] === 'object' && 
-                             'answer' in interview.preparation.suggestedAnswers[index]
-                              ? (interview.preparation.suggestedAnswers[index] as { answer: string }).answer
-                              : "Structure your answer using the STAR method: Situation, Task, Action, Result. Focus on highlighting relevant experience and skills from your background that match the job requirements."}
-                                </div>
-                                
-                                {/* Key examples - Responsive grid for mobile */}
-                                <div className="flex flex-col sm:flex-row flex-wrap justify-between gap-2 mt-3 sm:mt-4">
-                                  <div className="w-full text-[10px] sm:text-xs p-1.5 sm:p-2 bg-gray-100 dark:bg-gray-800 rounded border-l-2 border-blue-500 dark:border-blue-700">
-                                    <span className="font-medium">Example opener:</span> "In my role at [Previous Company], I..."
+                                          if (matchingAnswer && typeof matchingAnswer === 'object' && 'answer' in matchingAnswer) {
+                                            const cleaned = cleanAnswer(String(matchingAnswer.answer));
+                                            if (cleaned && cleaned.length > 10) {
+                                              answerText = cleaned;
+                                            }
+                                          }
+                                        }
+                                        
+                                        // Fallback si aucune réponse spécifique trouvée
+                                        if (!answerText || answerText.length < 10) {
+                                          answerText = "Structure your answer using the STAR method: Situation, Task, Action, Result. Focus on highlighting relevant experience and skills from your background that match the job requirements.";
+                                        }
+                                        
+                                        return (
+                                          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                                            {answerText}
+                                          </p>
+                                        );
+                                      })()}
+                                    </div>
                                   </div>
-                                  <div className="w-full text-[10px] sm:text-xs p-1.5 sm:p-2 bg-gray-100 dark:bg-gray-800 rounded border-l-2 border-green-500 dark:border-green-700">
-                                    <span className="font-medium">Key point:</span> "This resulted in [measurable outcome]..."
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              {/* Interaction buttons - Mobile friendly */}
-                              <div className="flex justify-between items-center mt-3 sm:mt-4">
-                                <div className="flex gap-1.5 sm:gap-2">
-                                  <button 
-                                    onClick={() => {
-                                      // Définir la question comme sauvegardée
-                                      const savedQuestions: string[] = JSON.parse(localStorage.getItem('savedQuestions') || '[]');
-                                      if (!savedQuestions.includes(question)) {
-                                        savedQuestions.push(question);
-                                        localStorage.setItem('savedQuestions', JSON.stringify(savedQuestions));
-                                        setSavedQuestionsState(savedQuestions);
-                                        toast.success('Question saved');
-                                      } else {
-                                        // Si la question est déjà sauvegardée, la retirer
-                                        const updatedSavedQuestions = savedQuestions.filter(q => q !== question);
-                                        localStorage.setItem('savedQuestions', JSON.stringify(updatedSavedQuestions));
-                                        setSavedQuestionsState(updatedSavedQuestions);
-                                        toast.info('Question removed from saved list');
-                                      }
-                                    }}
-                                    className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 transition-colors
-                                      ${savedQuestionsState.includes(question) 
-                                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/30 font-medium' 
-                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                                      }`}
-                                    aria-label={savedQuestionsState.includes(question) ? "Unsave question" : "Save question"}
-                                  >
-                                    <Bookmark className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${savedQuestionsState.includes(question) ? 'fill-current' : ''}`} />
-                                    <span>{savedQuestionsState.includes(question) ? 'Saved' : 'Save'}</span>
-                                  </button>
-                                  <button 
-                                    onClick={() => {
-                                      // Créer une nouvelle note avec la question
-                                      const newNoteId = uuidv4();
-                                      const newNote: Note = {
-                                        id: newNoteId,
-                                        title: `Interview Question ${index + 1}`,
-                                        content: question,
-                                        color: '#f48fb1', // Rose pour les questions d'entretien
-                                        createdAt: Date.now(),
-                                        updatedAt: Date.now(),
-                                        position: { x: 50, y: 50 }
-                                      };
-                                      
-                                      // Ajouter la note à la liste des notes
-                                      const updatedNotes = [...stickyNotes, newNote];
-                                      setStickyNotes(updatedNotes);
-                                      
-                                      // Positionner la note
-                                      setNotePositions(prev => ({
-                                        ...prev,
-                                        [newNoteId]: { x: 50, y: 50 }
-                                      }));
-                                      
-                                      // Mettre à jour l'entretien avec la nouvelle note
-                                      updateInterviewNotes(updatedNotes);
-                                      
-                                      toast.success('Note created from question');
-                                    }}
-                                    className="text-[10px] sm:text-xs bg-gray-100 dark:bg-gray-800 px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                                    aria-label="Create note from question"
-                                  >
-                                    <Edit className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                    <span>Notes</span>
-                                  </button>
-                                </div>
-                              </div>
+                                  
+                                  {/* Interaction buttons - Mobile friendly */}
+                                  <div className="flex justify-between items-center mt-3 sm:mt-4">
+                                    <div className="flex gap-1.5 sm:gap-2">
+                                      <button 
+                                        onClick={() => {
+                                          // Définir la question comme sauvegardée
+                                          const savedQuestions: string[] = JSON.parse(localStorage.getItem('savedQuestions') || '[]');
+                                          if (!savedQuestions.includes(question)) {
+                                            savedQuestions.push(question);
+                                            localStorage.setItem('savedQuestions', JSON.stringify(savedQuestions));
+                                            setSavedQuestionsState(savedQuestions);
+                                            toast.success('Question saved');
+                                          } else {
+                                            // Si la question est déjà sauvegardée, la retirer
+                                            const updatedSavedQuestions = savedQuestions.filter(q => q !== question);
+                                            localStorage.setItem('savedQuestions', JSON.stringify(updatedSavedQuestions));
+                                            setSavedQuestionsState(updatedSavedQuestions);
+                                            toast.info('Question removed from saved list');
+                                          }
+                                        }}
+                                        className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 transition-colors
+                                          ${savedQuestionsState.includes(question) 
+                                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/30 font-medium' 
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                          }`}
+                                        aria-label={savedQuestionsState.includes(question) ? "Unsave question" : "Save question"}
+                                      >
+                                        <Bookmark className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${savedQuestionsState.includes(question) ? 'fill-current' : ''}`} />
+                                        <span>{savedQuestionsState.includes(question) ? 'Saved' : 'Save'}</span>
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          // Créer une nouvelle note avec la question
+                                          const newNoteId = uuidv4();
+                                          const newNote: Note = {
+                                            id: newNoteId,
+                                            title: `Interview Question ${index + 1}`,
+                                            content: question,
+                                            color: '#f48fb1', // Rose pour les questions d'entretien
+                                            createdAt: Date.now(),
+                                            updatedAt: Date.now(),
+                                            position: { x: 50, y: 50 }
+                                          };
+                                          
+                                          // Ajouter la note à la liste des notes
+                                          const updatedNotes = [...stickyNotes, newNote];
+                                          setStickyNotes(updatedNotes);
+                                          
+                                          // Positionner la note
+                                          setNotePositions(prev => ({
+                                            ...prev,
+                                            [newNoteId]: { x: 50, y: 50 }
+                                          }));
+                                          
+                                          // Initialiser la taille de la note
+                                          setNoteSizes(prev => ({
+                                            ...prev,
+                                            [newNoteId]: { width: 250, height: 200 }
+                                          }));
+                                          
+                                          // Mettre à jour l'entretien avec la nouvelle note
+                                          updateInterviewNotes(updatedNotes);
+                                          
+                                          toast.success('Note created from question');
+                                        }}
+                                        className="text-[10px] sm:text-xs bg-gray-100 dark:bg-gray-800 px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                        aria-label="Create note from question"
+                                      >
+                                        <Edit className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                        <span>Notes</span>
+                                      </button>
+                                    </div>
                                   </div>
                                 </motion.div>
                               )}
@@ -2667,7 +3277,9 @@ Return the questions in a JSON format like this:
                           </div>
                         </div>
                       </motion.div>
-                    ))}
+                        );
+                      })
+                      .filter(Boolean)}
                     
                     {(!isRegeneratingQuestions && (!interview.preparation?.suggestedQuestions || interview.preparation.suggestedQuestions.length === 0)) && (
                       <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
@@ -2705,15 +3317,15 @@ Return the questions in a JSON format like this:
                             </div>
                             <div className="mt-3">
                               <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">30‑minute plan</div>
-                              <div className="space-y-2">
+                            <div className="space-y-2">
                                 {(ensureDefaultTasks(skill)).map(t => (
                                   <label key={t.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                     <input type="checkbox" checked={t.done} onChange={() => toggleMicroTask(skill, t.id)} className="rounded" />
                                     <span className={`${t.done ? 'line-through text-gray-500' : ''}`}>{t.label}</span>
                                   </label>
                                 ))}
+                                  </div>
                               </div>
-                            </div>
                             <div className="mt-4">
                               <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">STAR stories</div>
                               <div className="space-y-3">
@@ -2723,11 +3335,11 @@ Return the questions in a JSON format like this:
                                       <textarea rows={3} value={story.situation} onChange={(e)=>updateStarField(skill, story.id, 'situation', e.target.value)} placeholder="Situation (context, stakes, constraints)" className="px-2 py-2 text-sm rounded border dark:bg-gray-800 dark:border-gray-700 resize-y" />
                                       <textarea rows={3} value={story.action} onChange={(e)=>updateStarField(skill, story.id, 'action', e.target.value)} placeholder="Action (what you did, how, tools)" className="px-2 py-2 text-sm rounded border dark:bg-gray-800 dark:border-gray-700 resize-y" />
                                       <textarea rows={3} value={story.result} onChange={(e)=>updateStarField(skill, story.id, 'result', e.target.value)} placeholder="Result (impact, metrics, lessons)" className="px-2 py-2 text-sm rounded border dark:bg-gray-800 dark:border-gray-700 resize-y" />
-                                    </div>
+                                  </div>
                                     <div className="flex gap-2">
                                       <button onClick={()=>exportStoryToNotes(skill, story.id)} className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">Export to Notes</button>
                                       <button onClick={()=>deleteStarStory(skill, story.id)} className="text-xs px-2 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900/50">Delete</button>
-                                    </div>
+                              </div>
                                   </div>
                                 ))}
                                 <button onClick={()=>addStarStory(skill)} className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">Add story</button>
@@ -2801,20 +3413,20 @@ Return the questions in a JSON format like this:
                           const checked = resourcesData?.reviewedTips?.includes(tip.id);
                           return (
                             <motion.div key={tip.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.05 }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
                               className={`p-5 rounded-xl shadow-sm border ${checked ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800'}`}
-                            >
+                          >
                               <div className="flex items-start justify-between">
-                                <div className="flex items-start">
+                            <div className="flex items-start">
                                   <div className="mr-3 mt-0.5">{tip.icon}</div>
                                   <div>
                                     <h4 className="font-medium text-gray-800 dark:text-white text-base mb-1">{tip.title}</h4>
                                     <p className="text-gray-600 dark:text-gray-400 text-sm">{tip.description}</p>
                                   </div>
-                                </div>
-                                <div>
+                              </div>
+                              <div>
                                   <input type="checkbox" checked={!!checked} onChange={async ()=>{
                                     const list = new Set(resourcesData?.reviewedTips || []);
                                     if (checked) list.delete(tip.id); else list.add(tip.id);
@@ -2822,9 +3434,9 @@ Return the questions in a JSON format like this:
                                     setResourcesData(next);
                                     await saveResourcesData(next);
                                   }} />
-                                </div>
                               </div>
-                            </motion.div>
+                            </div>
+                          </motion.div>
                           );
                         })}
                       </div>
@@ -2839,22 +3451,22 @@ Return the questions in a JSON format like this:
                           { id:'db', title: 'Interview Question Database', url: `https://www.glassdoor.com/Interview/index.htm`, description: 'Browse thousands of real interview questions' }
                         ].map((resource, index) => (
                             <motion.a key={resource.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.05 }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
                               className="flex items-start p-5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors hover:shadow-sm"
-                              href={resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
+                            href={resource.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                               <div className="mr-3 mt-0.5 text-purple-600 dark:text-purple-400">
-                                <LinkIcon className="w-5 h-5" />
-                              </div>
+                              <LinkIcon className="w-5 h-5" />
+                            </div>
                               <div className="flex-1">
                                 <div className="font-medium text-gray-800 dark:text-white text-base mb-1">{resource.title}</div>
                                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{resource.description}</p>
-                              </div>
-                            </motion.a>
+                            </div>
+                          </motion.a>
                         ))}
                       </div>
                       <div className="mt-6 p-4 border-t border-gray-200 dark:border-gray-700">
@@ -2911,30 +3523,78 @@ Return the questions in a JSON format like this:
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col h-[600px] shadow-md overflow-hidden"
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm"
                   >
-                    <div className="p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-gray-800 dark:to-purple-900/20">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1 flex items-center">
-                        <MessageSquare className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                        Interview Trainer Chat
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {/* Header avec gradient moderne */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 via-purple-50/50 to-white dark:from-gray-800 dark:via-purple-900/10 dark:to-gray-800"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md">
+                          <MessageSquare className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                          Interview Trainer Chat
+                        </h3>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 ml-[52px]">
                         Practice for your interview by chatting with our AI assistant. Ask questions about the job, request interview tips, or practice answering questions.
                       </p>
-                    </div>
+                    </motion.div>
                     
-                    <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50 dark:bg-gray-900/20">
+                    {/* Chat messages area avec scroll personnalisé */}
+                    <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-gray-900/30 dark:via-gray-900/20 dark:to-gray-900/30 scrollbar-thin scrollbar-thumb-purple-200 scrollbar-track-transparent">
+                      <style>{`
+                        .scrollbar-thin::-webkit-scrollbar {
+                          width: 6px;
+                        }
+                        .scrollbar-thin::-webkit-scrollbar-track {
+                          background: transparent;
+                        }
+                        .scrollbar-thin::-webkit-scrollbar-thumb {
+                          background: rgba(196, 181, 253, 0.5);
+                          border-radius: 10px;
+                        }
+                        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+                          background: rgba(196, 181, 253, 0.8);
+                        }
+                      `}</style>
+                      
                       {chatMessages.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                          <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-6">
-                            <MessageSquare className="w-10 h-10 text-purple-500 dark:text-purple-400" />
-                          </div>
-                          <p className="text-center max-w-md font-medium mb-3 text-lg text-gray-700 dark:text-gray-200">
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.4 }}
+                          className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400"
+                        >
+                          <motion.div 
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                            className="w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 flex items-center justify-center mb-6 shadow-lg"
+                          >
+                            <MessageSquare className="w-12 h-12 text-purple-500 dark:text-purple-400" />
+                          </motion.div>
+                          <motion.p 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="text-center max-w-md font-semibold mb-2 text-lg text-gray-700 dark:text-gray-200"
+                          >
                             Start a conversation with your AI interview trainer
-                          </p>
-                          <p className="text-center text-sm max-w-md mb-8 text-gray-500 dark:text-gray-400">
+                          </motion.p>
+                          <motion.p 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="text-center text-sm max-w-md mb-8 text-gray-500 dark:text-gray-400"
+                          >
                             Ask about the position, company culture, or try practicing some interview questions
-                          </p>
+                          </motion.p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
                             {[
                               "How should I introduce myself?",
@@ -2944,28 +3604,30 @@ Return the questions in a JSON format like this:
                             ].map((suggestion, i) => (
                               <motion.button
                                 key={i}
-                                initial={{ opacity: 0.8, y: 5 }}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 + i * 0.1 }}
                                 whileHover={{ 
-                                  opacity: 1, 
-                                  y: 0,
-                                  backgroundColor: "rgba(139, 92, 246, 0.1)",
+                                  scale: 1.02,
+                                  y: -2,
                                   transition: { duration: 0.2 }
                                 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => {
                                   setMessage(suggestion);
                                 }}
-                                className="text-sm text-left p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-800 transition-all shadow-sm"
+                                className="text-sm text-left p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50/50 dark:hover:bg-purple-900/10 transition-all shadow-sm hover:shadow-md backdrop-blur-sm"
                               >
-                                <div className="flex items-center">
-                                  <div className="mr-3 text-purple-500 dark:text-purple-400">
-                                    <MessageSquare className="w-4 h-4" />
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                    <MessageSquare className="w-4 h-4 text-purple-500 dark:text-purple-400" />
                                   </div>
-                                  <span className="text-gray-700 dark:text-gray-300">{suggestion}</span>
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">{suggestion}</span>
                                 </div>
                               </motion.button>
                             ))}
                           </div>
-                        </div>
+                        </motion.div>
                       ) : (
                         chatMessages.map((msg, index) => {
                           // Handle the special thinking message
@@ -2973,51 +3635,57 @@ Return the questions in a JSON format like this:
                             return (
                               <motion.div
                                 key={index}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="flex justify-start mb-4"
+                                initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                                animate={{ opacity: 1, x: 0, scale: 1 }}
+                                transition={{ 
+                                  type: "spring",
+                                  stiffness: 300,
+                                  damping: 25,
+                                  duration: 0.4 
+                                }}
+                                className="flex justify-start"
                               >
-                                <div className="flex items-start gap-3 max-w-[85%] flex-row">
-                                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-400 to-indigo-600 shadow-md">
-                                    <Bot className="w-5 h-5 text-white" />
-                                  </div>
-                                  <div className="p-4 rounded-2xl shadow-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700">
-                                    <span className="flex items-center gap-2 text-sm">
-                                      <span>AI is thinking...</span>
-                                      <span className="inline-block">
-                                        <span className="dot-typing">
-                                          <span className="dot"></span>
-                                          <span className="dot"></span>
-                                          <span className="dot"></span>
-                                        </span>
+                                <div className="flex items-start gap-4 max-w-[70%] sm:max-w-[65%] flex-row">
+                                  <motion.div 
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-400 via-indigo-500 to-indigo-600 shadow-lg ring-2 ring-blue-200 dark:ring-blue-900/50"
+                                  >
+                                    <Bot className="w-6 h-6 text-white" />
+                                  </motion.div>
+                                  <motion.div 
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.1 }}
+                                    className="px-6 py-4 rounded-2xl rounded-tl-sm shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                                  >
+                                    <span className="flex items-center gap-2.5 text-base text-gray-600 dark:text-gray-300">
+                                      <span className="font-medium">AI is thinking</span>
+                                      <span className="inline-flex gap-1">
+                                        <motion.span
+                                          animate={{ y: [0, -4, 0] }}
+                                          transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                                          className="w-1.5 h-1.5 bg-indigo-500 rounded-full"
+                                        />
+                                        <motion.span
+                                          animate={{ y: [0, -4, 0] }}
+                                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                                          className="w-1.5 h-1.5 bg-indigo-500 rounded-full"
+                                        />
+                                        <motion.span
+                                          animate={{ y: [0, -4, 0] }}
+                                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                                          className="w-1.5 h-1.5 bg-indigo-500 rounded-full"
+                                        />
                                       </span>
                                     </span>
-                                  </div>
+                                  </motion.div>
                                 </div>
-                                <style>{`
-                                  .dot-typing {
-                                    display: inline-flex;
-                                    gap: 2px;
-                                  }
-                                  .dot {
-                                    width: 6px;
-                                    height: 6px;
-                                    background: #6366f1;
-                                    border-radius: 50%;
-                                    display: inline-block;
-                                    animation: dot-typing 1s infinite linear alternate;
-                                  }
-                                  .dot:nth-child(2) { animation-delay: 0.2s; }
-                                  .dot:nth-child(3) { animation-delay: 0.4s; }
-                                  @keyframes dot-typing {
-                                    0% { opacity: 0.2; transform: translateY(0); }
-                                    50% { opacity: 1; transform: translateY(-3px); }
-                                    100% { opacity: 0.2; transform: translateY(0); }
-                                  }
-                                `}</style>
                               </motion.div>
                             );
                           }
+                          
                           // Process assistant messages to make them more concise
                           let displayContent = msg.content;
                           let isLongMessage = false;
@@ -3025,7 +3693,6 @@ Return the questions in a JSON format like this:
                           if (msg.role === 'assistant' && msg.content.length > 250) {
                             isLongMessage = true;
                             if (!expandedMessages[index]) {
-                              // Get the first paragraph or 250 characters
                               const firstParagraphMatch = msg.content.match(/^.+?(?:\n\n|\n|$)/);
                               displayContent = firstParagraphMatch ? 
                                 firstParagraphMatch[0].slice(0, 250) : 
@@ -3042,81 +3709,91 @@ Return the questions in a JSON format like this:
                             displayContent = displayContent.replace(/<think>[\s\S]*<\/think>/g, '');
                           }
                           
-                          
-                          
                           return (
                             <motion.div
                               key={index}
-                              initial={{ opacity: 0, y: 10 }}
+                              initial={{ opacity: 0, y: 15, scale: 0.96 }}
                               animate={{ 
                                 opacity: 1, 
                                 y: 0,
+                                scale: 1,
                                 transition: { 
                                   type: "spring",
-                                  stiffness: 300,
+                                  stiffness: 400,
                                   damping: 30,
-                                  delay: index * 0.1,
-                                  duration: 0.4 
+                                  duration: 0.5 
                                 } 
                               }}
-                              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
+                              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                               <div className={`
-                                flex items-start gap-3 max-w-[85%] 
+                                flex items-start gap-4 max-w-[70%] sm:max-w-[65%] 
                                 ${msg.role === 'user' 
                                   ? 'flex-row-reverse' 
                                   : 'flex-row'}
                               `}>
-                                <div className={`
-                                  w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
-                                  ${msg.role === 'user'
-                                    ? 'bg-gradient-to-br from-purple-400 to-purple-600 shadow-md'
-                                    : 'bg-gradient-to-br from-blue-400 to-indigo-600 shadow-md'}
-                                `}>
+                                <motion.div 
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+                                  className={`
+                                    w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ring-2
+                                    ${msg.role === 'user'
+                                      ? 'bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 ring-purple-200 dark:ring-purple-900/50'
+                                      : 'bg-gradient-to-br from-blue-400 via-indigo-500 to-indigo-600 ring-blue-200 dark:ring-blue-900/50'}
+                                  `}
+                                >
                                   {msg.role === 'user' 
-                                    ? <User className="w-5 h-5 text-white" /> 
-                                    : <Bot className="w-5 h-5 text-white" />}
-                                </div>
-                                <div className={`
-                                  p-4 rounded-2xl shadow-sm
-                                  ${msg.role === 'user'
-                                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-tr-none'
-                                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700'}
-                                `}>
-                                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{displayContent}</p>
+                                    ? <User className="w-6 h-6 text-white" /> 
+                                    : <Bot className="w-6 h-6 text-white" />}
+                                </motion.div>
+                                <motion.div 
+                                  initial={{ opacity: 0, scale: 0.95 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ delay: 0.05 }}
+                                  className={`
+                                    px-6 py-4 rounded-2xl shadow-md backdrop-blur-sm
+                                    ${msg.role === 'user'
+                                      ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-tr-sm'
+                                      : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-100 dark:border-gray-700'}
+                                  `}
+                                >
+                                  <p className="text-base leading-7 whitespace-pre-wrap break-words">{displayContent}</p>
                                   
                                   {isLongMessage && isTruncated && (
-                                    <button
+                                    <motion.button
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
                                       onClick={() => toggleMessageExpansion(index)}
-                                      className={`text-xs mt-2 font-medium hover:underline inline-flex items-center
+                                      className={`text-sm mt-4 font-semibold hover:underline inline-flex items-center gap-1.5 transition-all
                                         ${msg.role === 'user'
-                                          ? 'text-purple-100'
-                                          : 'text-purple-500 dark:text-purple-400'}
+                                          ? 'text-purple-100 hover:text-white'
+                                          : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'}
                                       `}
                                     >
                                       {expandedMessages[index] ? (
                                         <>
-                                          <ChevronDown className="w-3 h-3 mr-1" />
+                                          <ChevronDown className="w-4 h-4" />
                                           Show less
                                         </>
                                       ) : (
                                         <>
-                                          <ChevronDown className="w-3 h-3 mr-1 transform rotate-180" />
+                                          <ChevronDown className="w-4 h-4 transform rotate-180" />
                                           Show more
                                         </>
                                       )}
-                                    </button>
+                                    </motion.button>
                                   )}
                                   
-                                  <div className={`text-xs mt-1 flex items-center justify-end
+                                  <div className={`text-xs mt-3 flex items-center justify-end gap-1.5
                                     ${msg.role === 'user'
-                                      ? 'text-purple-200'
-                                      : 'text-gray-400'}
+                                      ? 'text-purple-200/90'
+                                      : 'text-gray-400 dark:text-gray-500'}
                                   `}>
-                                    <ClockIcon className="w-3 h-3 mr-1 inline" />
+                                    <ClockIcon className="w-3.5 h-3.5" />
                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                   </div>
-                                </div>
+                                </motion.div>
                               </div>
                             </motion.div>
                           );
@@ -3125,10 +3802,16 @@ Return the questions in a JSON format like this:
                       <div ref={chatEndRef} />
                     </div>
                     
-                    <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                      <div className="flex gap-3 items-end">
+                    {/* Input area améliorée */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="px-8 py-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 backdrop-blur-sm"
+                    >
+                      <div className="flex gap-4 items-end">
                         <div className="relative flex-1">
-                          <textarea
+                          <motion.textarea
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             onKeyDown={(e) => {
@@ -3137,21 +3820,48 @@ Return the questions in a JSON format like this:
                                 sendMessage();
                               }
                             }}
-                            placeholder="Type your message..."
+                            placeholder="Type your message or use voice..."
                             rows={1}
-                            className="w-full p-4 pr-12 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:text-white resize-none min-h-[50px] max-h-[120px] transition-all"
+                            className="w-full p-5 pr-28 text-base bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:text-white resize-none min-h-[60px] max-h-[160px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-6"
                             style={{ 
                               height: 'auto',
                               overflow: 'hidden'
                             }}
-                            disabled={isSending}
+                            disabled={isSending || isListening}
+                            whileFocus={{ scale: 1.01 }}
                           />
+                          {/* Microphone button - Press and hold or click */}
                           <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onMouseDown={startVoiceRecording}
+                            onMouseUp={stopVoiceRecording}
+                            onMouseLeave={stopVoiceRecording}
+                            onTouchStart={startVoiceRecording}
+                            onTouchEnd={stopVoiceRecording}
+                            onClick={(e) => {
+                              // Only handle click if not already listening (for auto-stop mode)
+                              if (!isListening) {
+                                toggleVoiceRecording();
+                              }
+                            }}
+                            disabled={isSending}
+                            className={`absolute right-14 bottom-3 p-2.5 rounded-xl transition-all flex items-center justify-center shadow-md hover:shadow-lg ${
+                              isListening
+                                ? 'bg-red-500 text-white animate-pulse ring-2 ring-red-300 dark:ring-red-700'
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                            }`}
+                            title={isListening ? 'Release to stop recording' : 'Click or hold to record'}
+                          >
+                            <Mic className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`} />
+                          </motion.button>
+                          {/* Send button */}
+                          <motion.button
+                            whileHover={{ scale: 1.08, rotate: 5 }}
+                            whileTap={{ scale: 0.92 }}
                             onClick={sendMessage}
-                            disabled={!message.trim() || isSending}
-                            className="absolute right-3 bottom-2 p-2 rounded-full bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            disabled={!message.trim() || isSending || isListening}
+                            className="absolute right-3 bottom-3 p-3 rounded-xl bg-gradient-to-br from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center shadow-md hover:shadow-lg"
                           >
                             {isSending ? (
                               <Loader2 className="w-5 h-5 animate-spin" />
@@ -3161,11 +3871,22 @@ Return the questions in a JSON format like this:
                           </motion.button>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 ml-2 mt-1 flex items-center">
-                        <HelpCircle className="w-3 h-3 mr-1" />
-                        Press Enter to send. Shift+Enter for a new line.
-                      </p>
-                    </div>
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                        className="text-xs text-gray-500 dark:text-gray-400 mt-3 ml-2 flex items-center gap-4 flex-wrap"
+                      >
+                        <span className="flex items-center gap-2">
+                          <HelpCircle className="w-4 h-4" />
+                          Press Enter to send. Shift+Enter for a new line.
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <Mic className="w-4 h-4" />
+                          Click or hold microphone to record
+                        </span>
+                      </motion.p>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -3189,8 +3910,35 @@ Return the questions in a JSON format like this:
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <StickyNote className="w-5 h-5 text-amber-500" />
                 Interview Notes
+                {filteredNotes.length !== stickyNotes.length && (
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                    ({filteredNotes.length}/{stickyNotes.length})
+                  </span>
+                )}
               </h3>
               <div className="flex items-center gap-2">
+                <select
+                  value={filterColor || ''}
+                  onChange={(e) => setFilterColor(e.target.value || null)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">All Colors</option>
+                  <option value="#ffeb3b">Yellow</option>
+                  <option value="#4fc3f7">Blue</option>
+                  <option value="#81c784">Green</option>
+                  <option value="#ff8a65">Orange</option>
+                  <option value="#f48fb1">Pink</option>
+                  <option value="#ba68c8">Purple</option>
+                </select>
+                {filterColor && (
+                  <button
+                    onClick={() => setFilterColor(null)}
+                    className="px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    title="Clear filter"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   onClick={createNewNote}
                   className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-1.5 shadow-sm"
@@ -3224,21 +3972,41 @@ Return the questions in a JSON format like this:
                     className="relative h-full p-4"
                     ref={canvasRef}
                   >
-                    <Xwrapper>
-                      {stickyNotes.map((note) => (
-                        <Draggable
-                          key={note.id}
-                          position={notePositions[note.id] || { x: 0, y: 0 }}
-                          onStart={handleDragStart}
-                          onStop={(e, data) => handleDragStop(note.id, e, data)}
-                          bounds="parent"
-                        >
-                          <div 
-                            className="absolute w-[250px] h-[200px] rounded-lg shadow-lg cursor-move"
-                            style={{ backgroundColor: note.color }}
+                    {filteredNotes.length === 0 ? (
+                      <div className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                        <div className="text-center">
+                          <StickyNote className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p className="mb-2">No notes found matching your filter.</p>
+                          {filterColor && (
+                            <button
+                              onClick={() => setFilterColor(null)}
+                              className="text-purple-600 dark:text-purple-400 hover:underline"
+                            >
+                              Clear filter
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <Xwrapper>
+                        {filteredNotes.map((note) => (
+                          <Draggable
+                            key={note.id}
+                            position={notePositions[note.id] || { x: 0, y: 0 }}
+                            onStart={handleDragStart}
+                            onStop={(e, data) => handleDragStop(note.id, e, data)}
+                            bounds="parent"
                           >
-                            <div className="p-4">
-                              <div className="flex justify-between items-start mb-2">
+                          <div 
+                            className="absolute rounded-lg shadow-lg cursor-move"
+                            style={{ 
+                              backgroundColor: note.color,
+                              width: `${noteSizes[note.id]?.width || note.width || 250}px`,
+                              height: `${noteSizes[note.id]?.height || note.height || 200}px`
+                            }}
+                          >
+                            <div className="p-4 h-full flex flex-col">
+                              <div className="flex justify-between items-start mb-2 flex-shrink-0">
                                 <h4 className="font-medium text-gray-800 truncate flex-1">
                                   {note.title || 'Untitled Note'}
                                 </h4>
@@ -3247,40 +4015,64 @@ Return the questions in a JSON format like this:
                                     e.stopPropagation();
                                     deleteNote(note.id);
                                   }}
-                                  className="p-1 hover:bg-black/10 rounded-full"
+                                  className="p-1 hover:bg-black/10 rounded-full flex-shrink-0 ml-2"
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                               <div 
-                                className="text-sm text-gray-700 max-h-[150px] overflow-y-auto"
+                                className="text-sm text-gray-700 flex-1 overflow-y-auto"
                                 onClick={(e) => {
-                                  if (!isDragging) {
+                                  if (!isDragging && !isResizing) {
                                     handleNoteClick(note.id, e);
                                   }
                                 }}
                               >
                                 {note.content}
                               </div>
+                              {/* Resize handle */}
+                              <div
+                                className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize bg-black/10 hover:bg-black/20 rounded-tl-lg transition-colors"
+                                onMouseDown={(e) => handleResizeStart(note.id, e)}
+                                style={{ cursor: isResizing && resizingNoteId === note.id ? 'se-resize' : 'se-resize' }}
+                              >
+                                <div className="absolute bottom-0.5 right-0.5 w-2 h-2 border-r-2 border-b-2 border-gray-600"></div>
+                              </div>
                             </div>
                           </div>
                         </Draggable>
-                      ))}
-                    </Xwrapper>
+                        ))}
+                      </Xwrapper>
+                    )}
                   </div>
                 </motion.div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {stickyNotes.map(note => (
-                    <motion.div
-                      key={note.id}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
-                      className="group relative"
-                      style={{ height: '220px' }}
-                    >
+                <>
+                  {filteredNotes.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                      <StickyNote className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No notes found matching your filter.</p>
+                      {filterColor && (
+                        <button
+                          onClick={() => setFilterColor(null)}
+                          className="mt-2 text-purple-600 dark:text-purple-400 hover:underline"
+                        >
+                          Clear filter
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {filteredNotes.map(note => (
+                        <motion.div
+                          key={note.id}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
+                          className="group relative"
+                          style={{ height: '220px' }}
+                        >
                       <div
                         className="absolute inset-0 rounded-xl p-4 flex flex-col shadow-md transition-all duration-300 cursor-pointer border border-transparent"
                         style={{ backgroundColor: note.color }}
@@ -3311,8 +4103,10 @@ Return the questions in a JSON format like this:
                         </div>
                       </div>
                     </motion.div>
-                  ))}
-                </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </AnimatePresence>
           </motion.div>
