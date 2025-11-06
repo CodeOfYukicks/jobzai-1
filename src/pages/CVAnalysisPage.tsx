@@ -1480,169 +1480,171 @@ Return ONLY a structured JSON object with the following schema:
 
   const loadingMessages = {
     preparing: [
-      "Warming up the AI engines...",
-      "Dusting off the digital magnifying glass...",
-      "Powering up the resume analyzer...",
-      "Preparing the virtual interview room...",
-      "Loading professional assessment tools..."
+      "Warming up the AI engines... 🧠",
+      "Preparing the analysis machine... ⚙️",
+      "Loading super analysis powers... 💪",
+      "Starting the talent detector... 🎯",
+      "Initializing genius mode... ✨"
     ],
     analyzing: [
-      "Scanning your resume with AI-powered vision...",
-      "Comparing your skills with job requirements...",
-      "Analyzing your professional experience...",
-      "Evaluating career progression patterns...",
-      "Identifying your unique strengths..."
+      "Reading your resume carefully... 👀",
+      "Decoding your super skills... 🔍",
+      "Analyzing your professional journey... 📊",
+      "Detecting career patterns... 🎨",
+      "Identifying your hidden strengths... 💎"
     ],
     matching: [
-      "Calculating match score with scientific precision...",
-      "Finding perfect-fit skills in your profile...",
-      "Discovering hidden talents in your experience...",
-      "Measuring educational alignment with requirements...",
-      "Quantifying your industry expertise..."
+      "Calculating compatibility score... 🎲",
+      "Finding perfect skills match... 🎯",
+      "Discovering hidden talents... 💫",
+      "Measuring educational alignment... 📐",
+      "Quantifying your expertise... 📈"
     ],
     finalizing: [
-      "Crafting personalized recommendations...",
-      "Polishing the final analysis report...",
-      "Preparing actionable insights...",
-      "Formatting results for maximum clarity...",
-      "Adding final touches to your career advice..."
+      "Crafting personalized recommendations... ✍️",
+      "Polishing the final report... ✨",
+      "Preparing actionable insights... 🚀",
+      "Formatting for maximum clarity... 📋",
+      "Adding the final touch... 🎁"
     ]
   };
 
-  // LoadingScreen component with elegant UI and animations
+  // LoadingScreen component - Modern, clean, simple and fun
   const LoadingScreen = () => {
     const steps = [
-      { key: 'preparing', label: 'Preparing Analysis', icon: '🔍' },
-      { key: 'analyzing', label: 'Analyzing Resume', icon: '📄' },
-      { key: 'matching', label: 'Matching Skills', icon: '🎯' },
-      { key: 'finalizing', label: 'Finalizing Report', icon: '📊' }
+      { key: 'preparing', label: 'Preparing', icon: '⚙️' },
+      { key: 'analyzing', label: 'Analyzing', icon: '📄' },
+      { key: 'matching', label: 'Matching', icon: '🎯' },
+      { key: 'finalizing', label: 'Finalizing', icon: '✨' }
     ];
 
     // Find current step index
     const currentStepIndex = steps.findIndex(step => step.key === loadingStep);
 
+    // Fun tips based on step
+    const funTips = {
+      preparing: "💡 75% of resumes are rejected by ATS before a human even sees them. We'll help you beat the system!",
+      analyzing: "💡 Adding relevant keywords from the job posting can significantly boost your ATS score.",
+      matching: "💡 Quantify your achievements with specific numbers to stand out from other candidates.",
+      finalizing: "💡 Customizing your resume for each application improves your interview chances by up to 70%!"
+    };
+
     return (
-      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white dark:bg-gray-900 bg-opacity-95 dark:bg-opacity-95 backdrop-blur-sm transition-all duration-300">
-        <div className="w-full max-w-xl p-8 rounded-xl bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700">
-          {/* Logo + Title */}
-          <div className="flex justify-center mb-6">
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white/95 dark:bg-gray-900/95">
+        <div className="w-full max-w-2xl p-8 md:p-10 rounded-3xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700">
+          {/* Icon */}
+          <div className="flex justify-center mb-8">
             <div className="relative">
-              <div className="animate-pulse absolute -inset-4 rounded-full bg-gradient-to-r from-purple-600/20 to-indigo-600/20 blur-lg"></div>
-              <div className="w-24 h-24 relative flex items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg shadow-purple-500/20">
-                <div className="text-4xl">✨</div>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400/20 via-indigo-400/20 to-purple-400/20 blur-2xl"></div>
+              <div className="relative w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 via-indigo-500 to-purple-600 shadow-lg shadow-purple-500/30">
+                <div className="text-3xl">
+                  ✨
+                </div>
               </div>
             </div>
           </div>
           
-          <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+          {/* Title */}
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600">
               AI Resume Analysis
             </span>
           </h2>
 
-          {/* Message with typing animation */}
-          <div className="text-center mb-6 h-16">
-            <p className="text-lg text-gray-700 dark:text-gray-300 font-medium animate-fade-in">
+          {/* Message */}
+          <div className="text-center mb-8 min-h-[4rem] flex items-center justify-center">
+            <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-medium">
               {loadingMessage}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {loadingStep === 'analyzing' && 'This might take up to a minute...'}
             </p>
           </div>
 
-          {/* Progress bar */}
-          <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full mb-6 overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
-              style={{ width: `${loadingProgress}%` }}
-            ></div>
+          {/* Progress Bar */}
+          <div className="mb-8">
+            <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden shadow-inner">
+              <div 
+                className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 rounded-full shadow-lg shadow-purple-500/30 transition-all duration-500 ease-out"
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-3">
+              <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                {Math.round(loadingProgress)}%
+              </span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                Almost done...
+              </span>
+            </div>
           </div>
           
-          {/* Steps visualization */}
-          <div className="w-full flex justify-between mb-2 relative">
-            {/* Progress line */}
-            <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700 z-0"></div>
+          {/* Simplified Steps */}
+          <div className="relative mb-6">
+            <div className="absolute top-5 left-0 right-0 h-1 bg-gray-100 dark:bg-gray-700/50 rounded-full z-0"></div>
             <div 
-              className="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 z-0 transition-all duration-700"
+              className="absolute top-5 left-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full z-0 transition-all duration-500 ease-out"
               style={{ 
                 width: `${currentStepIndex >= 0 
-                  ? (currentStepIndex / (steps.length - 1)) * 100 
+                  ? ((currentStepIndex + 1) / steps.length) * 100 
                   : 0}%` 
               }}
             ></div>
             
-            {/* Steps */}
-            {steps.map((step, index) => {
-              // Calculate step status
-              const isActive = loadingStep === step.key;
-              const isCompleted = steps.findIndex(s => s.key === loadingStep) > index;
-              
-              return (
-                <div 
-                  key={step.key} 
-                  className="flex flex-col items-center relative z-10"
-                >
-                  {/* Step circle */}
+            <div className="relative flex justify-between">
+              {steps.map((step, index) => {
+                const isActive = loadingStep === step.key;
+                const isCompleted = steps.findIndex(s => s.key === loadingStep) > index;
+                
+                return (
                   <div 
-                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300 border-2 
-                    ${isActive 
-                      ? 'bg-gradient-to-br from-purple-500 to-indigo-600 border-purple-300 dark:border-purple-700 scale-110 shadow-lg shadow-purple-500/20' 
-                      : isCompleted 
-                        ? 'bg-gradient-to-br from-purple-500 to-indigo-600 border-transparent' 
-                        : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'}`}
+                    key={step.key}
+                    className="flex flex-col items-center relative z-10"
                   >
-                    {isCompleted ? (
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <span className={`text-xs font-medium ${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-                        {step.icon}
-                      </span>
-                    )}
+                    <div 
+                      className={`w-10 h-10 flex items-center justify-center rounded-full text-lg transition-all duration-300 ${
+                        isActive 
+                          ? 'bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/40' 
+                          : isCompleted 
+                            ? 'bg-gradient-to-br from-purple-500 to-indigo-600' 
+                            : 'bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <svg 
+                          className="w-5 h-5 text-white" 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <span className={isActive ? 'text-white' : 'text-gray-400 dark:text-gray-500'}>
+                          {step.icon}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <span 
+                      className={`mt-2 text-xs font-semibold transition-all duration-300 whitespace-nowrap ${
+                        isActive 
+                          ? 'text-purple-600 dark:text-purple-400' 
+                          : isCompleted 
+                            ? 'text-gray-600 dark:text-gray-400' 
+                            : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      {step.label}
+                    </span>
                   </div>
-                  
-                  {/* Step label */}
-                  <span 
-                    className={`mt-2 text-xs font-medium transition-all duration-300
-                    ${isActive 
-                      ? 'text-purple-600 dark:text-purple-400' 
-                      : isCompleted 
-                        ? 'text-gray-700 dark:text-gray-300' 
-                        : 'text-gray-500 dark:text-gray-500'}`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          
-          {/* Percentage indicator */}
-          <div className="flex justify-center mt-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {Math.round(loadingProgress)}% complete
-            </span>
-          </div>
-        </div>
-        
-        {/* Processing hints */}
-        <div className="mt-6 max-w-md text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-            Our AI is carefully analyzing your resume against job requirements to provide the most accurate feedback.
-          </p>
-          
-          {/* ATS Tip */}
-          <div className="mt-4 flex items-center justify-center">
-            <div className="bg-purple-50 dark:bg-purple-900/20 px-4 py-2 rounded-lg inline-flex items-center max-w-sm text-sm">
-              <Lightbulb className="w-4 h-4 mr-2 text-purple-500 flex-shrink-0" />
-              <p className="text-purple-700 dark:text-purple-300 text-xs">
-                {loadingStep === 'preparing' && "75% of resumes are rejected by ATS before a human sees them. Our analysis helps beat these systems."}
-                {loadingStep === 'analyzing' && "Including relevant keywords from the job description can boost your ATS score significantly."}
-                {loadingStep === 'matching' && "Quantify your achievements with specific numbers and percentages to stand out from other applicants."}
-                {loadingStep === 'finalizing' && "Customizing your resume for each application improves interview chances by up to 70%!"}
-              </p>
+                );
+              })}
             </div>
+          </div>
+          
+          {/* Fun Tip */}
+          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-100 dark:border-purple-800/30">
+            <p className="text-sm text-purple-700 dark:text-purple-300 text-center leading-relaxed">
+              {funTips[loadingStep as keyof typeof funTips]}
+            </p>
           </div>
         </div>
       </div>
@@ -1653,24 +1655,34 @@ Return ONLY a structured JSON object with the following schema:
   useEffect(() => {
     if (!isLoading) return;
     
-    // Change message every 5 seconds avec une transition plus douce
+    // Initialiser le message pour l'étape actuelle
+    const messages = loadingMessages[loadingStep as keyof typeof loadingMessages];
+    if (messages && messages.length > 0) {
+      setLoadingMessage(messages[0]);
+    }
+    
+    // Change message every 8 seconds (plus long pour éviter le clignotement)
     const messageInterval = setInterval(() => {
       const messages = loadingMessages[loadingStep as keyof typeof loadingMessages];
       
-      // Animation de fondu entre les messages
-      setLoadingMessage(prev => {
-        // Sauvegarder le message actuel pour éviter la répétition
-        const currentMessage = prev;
-        // Sélectionner un nouveau message différent de l'actuel
-        let newMessage;
-        do {
-          const idx = Math.floor(Math.random() * messages.length);
-          newMessage = messages[idx];
-        } while (newMessage === currentMessage && messages.length > 1);
-        
-        return newMessage;
-      });
-    }, 5000); // Intervalle plus long
+      if (messages && messages.length > 0) {
+        setLoadingMessage(prev => {
+          // Sélectionner un nouveau message différent de l'actuel
+          const currentMessage = prev;
+          let newMessage;
+          let attempts = 0;
+          do {
+            const idx = Math.floor(Math.random() * messages.length);
+            newMessage = messages[idx];
+            attempts++;
+            // Éviter une boucle infinie
+            if (attempts > 10) break;
+          } while (newMessage === currentMessage && messages.length > 1);
+          
+          return newMessage || messages[0];
+        });
+      }
+    }, 8000); // Intervalle plus long pour réduire le clignotement
     
     // Simulate progress plus fluide et progressif
     const progressInterval = setInterval(() => {
@@ -1682,16 +1694,16 @@ Return ONLY a structured JSON object with the following schema:
           'matching': 85,
           'finalizing': 95
         };
-        const cap = caps[loadingStep as keyof typeof caps];
+        const cap = caps[loadingStep as keyof typeof caps] || 95;
         
         if (prev >= cap) return prev;
         
         // Increment plus petit et plus progressif
         const remainingProgress = cap - prev;
-        const increment = Math.max(0.2, remainingProgress * 0.02);
+        const increment = Math.max(0.1, remainingProgress * 0.01);
         return Math.min(prev + increment, cap);
       });
-    }, 350);
+    }, 500); // Plus lent pour éviter les sauts
     
     return () => {
       clearInterval(messageInterval);
@@ -1707,35 +1719,63 @@ Return ONLY a structured JSON object with the following schema:
     }
 
     setIsExtractingJob(true);
-    toast.info('Analyzing job posting with AI...', { duration: 2000 });
+    toast.info('Extracting job information with AI...', { duration: 2000 });
 
     try {
       const jobUrl = formData.jobUrl.trim();
       const prompt = `
-You are a web scraper. Your task is to visit this URL and extract job posting information: ${jobUrl}
+You are a precise web scraper. Your ONLY task is to visit this URL and extract EXACT information from the job posting page: ${jobUrl}
 
-MANDATORY STEPS - DO NOT SKIP:
-1. You MUST use web search/browsing to visit: ${jobUrl}
-2. Read the ACTUAL HTML content of the page
-3. Find the job title in the page HTML (look for <h1>, <h2>, or title tags)
-4. Find the company name (usually in the header or near the job title)
-5. Extract the FULL job description from the page
-6. Extract these EXACT strings as they appear in the page content
+CRITICAL INSTRUCTIONS - FOLLOW EXACTLY:
 
-CRITICAL: Do NOT use your training data or make assumptions. You MUST visit the URL and read the actual page.
+1. YOU MUST VISIT THE URL: Use web browsing to access ${jobUrl} and read the ACTUAL page content
+2. DO NOT USE TRAINING DATA: Extract ONLY what is VISIBLY DISPLAYED on the page - never guess or infer
+3. DO NOT INVENT INFORMATION: If information is not on the page, do NOT make it up or use similar job postings
 
-Return ONLY a valid JSON object (no markdown, no code blocks, no explanations):
+EXTRACTION REQUIREMENTS:
+
+For "companyName":
+- Find the EXACT company name as displayed on the page
+- Look in the header, job title area, or company information section
+- Copy it EXACTLY as shown (case-sensitive, with exact spelling)
+
+For "position":
+- Find the EXACT job title as displayed on the page
+- Look for <h1>, <h2>, title tags, or the main job title element
+- Copy it EXACTLY as shown (case-sensitive, with exact spelling)
+- This is CRITICAL for accurate CV matching
+
+For "jobDescription":
+- Extract the COMPLETE job description including ALL sections:
+  * Job Overview/Summary
+  * Key Responsibilities/Duties
+  * Required Qualifications
+  * Preferred Qualifications
+  * Required Skills (technical and soft skills)
+  * Experience Requirements
+  * Education Requirements
+  * Location/Remote work information
+  * Salary/Benefits (if mentioned)
+  * Company Culture/Values
+  * Any other sections present
+- Include ALL text from these sections - do NOT summarize or shorten
+- Preserve the structure and formatting as much as possible
+- If the description is very long, include EVERYTHING - completeness is more important than brevity
+- The jobDescription field must contain the FULL, COMPLETE description for accurate CV analysis
+
+VALIDATION:
+- Before returning, verify that:
+  1. The job title matches what's on the page
+  2. The company name matches what's on the page
+  3. The job description includes ALL major sections visible on the page
+  4. You have NOT added any information that wasn't on the page
+
+Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, no additional text):
 {
-  "companyName": "the exact company name from the page",
-  "position": "the EXACT job title from the page - copy it exactly as shown",
-  "jobDescription": "the complete job description from the page - include all requirements, responsibilities, and details"
+  "companyName": "exact company name from page",
+  "position": "exact job title from page",
+  "jobDescription": "complete job description with ALL sections from the page"
 }
-
-VERY IMPORTANT:
-- The "position" field is CRITICAL - it must be the exact job title shown on the page
-- The "jobDescription" must be the COMPLETE description including all sections
-- Do NOT return generic titles or descriptions
-- Visit the URL and read the actual content
 
 URL to visit: ${jobUrl}
 `;
@@ -1746,65 +1786,154 @@ URL to visit: ${jobUrl}
         throw new Error(response.errorMessage || 'Failed to analyze job posting');
       }
 
-      // Parser la réponse JSON
+      // Parser la réponse JSON avec amélioration pour gérer les descriptions longues
       let extractedData;
       try {
         let jsonString = response.text || '';
+        
+        // Nettoyer la réponse pour extraire le JSON
         jsonString = jsonString.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+        jsonString = jsonString.trim();
+        
+        // Trouver le JSON object - chercher le premier { jusqu'au dernier }
+        // Utiliser une approche plus robuste pour gérer les descriptions longues avec guillemets
         const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           jsonString = jsonMatch[0];
         }
         
-        extractedData = JSON.parse(jsonString);
+        // Fonction pour réparer les erreurs JSON communes (surtout pour les descriptions longues)
+        const tryParseJSON = (str: string) => {
+          try {
+            return JSON.parse(str);
+          } catch (e) {
+            console.log('Initial JSON parse failed, attempting repair...');
+            // Essayer de réparer les erreurs communes
+            let repaired = str
+              // Réparer les guillemets échappés dans les chaînes
+              .replace(/\\"/g, '\\"')  // Préserver les guillemets échappés
+              // Réparer les sauts de ligne dans les chaînes JSON
+              .replace(/("jobDescription"\s*:\s*")([\s\S]*?)(")/g, (_match, prefix, content, suffix) => {
+                // Échapper les guillemets et sauts de ligne dans le contenu
+                const escaped = content
+                  .replace(/\\/g, '\\\\')
+                  .replace(/"/g, '\\"')
+                  .replace(/\n/g, '\\n')
+                  .replace(/\r/g, '\\r')
+                  .replace(/\t/g, '\\t');
+                return prefix + escaped + suffix;
+              })
+              // Réparer les virgules finales
+              .replace(/,\s*\]/g, ']')
+              .replace(/,\s*\}/g, '}')
+              // Réparer les clés non citées
+              .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
+              // Réparer les valeurs avec guillemets simples
+              .replace(/:\s*'([^']*)'/g, ': "$1"');
+            
+            try {
+              return JSON.parse(repaired);
+            } catch (e2) {
+              console.error('JSON repair failed:', e2);
+              // Dernière tentative : extraire manuellement avec regex amélioré
+              return null;
+            }
+          }
+        };
         
+        // Essayer de parser le JSON
+        extractedData = tryParseJSON(jsonString);
+        
+        // Si le parsing échoue, essayer une extraction manuelle améliorée
+        if (!extractedData) {
+          console.log('JSON parsing failed, attempting manual extraction...');
+          const text = response.text || '';
+          
+          // Extraction améliorée avec support pour descriptions longues
+          let companyName = '';
+          const companyMatch = text.match(/"companyName"\s*:\s*"((?:[^"\\]|\\.)*)"/i) || 
+                             text.match(/companyName["\s]*:["\s]*([^",\n}]+)/i);
+          if (companyMatch) companyName = companyMatch[1].trim();
+          
+          let position = '';
+          const positionMatch = text.match(/"position"\s*:\s*"((?:[^"\\]|\\.)*)"/i) || 
+                              text.match(/position["\s]*:["\s]*"((?:[^"\\]|\\.)*)"/i);
+          if (positionMatch) position = positionMatch[1].trim();
+          
+          // Extraction améliorée pour jobDescription (peut être très long)
+          let jobDescription = '';
+          // Chercher jobDescription avec support pour chaînes multi-lignes
+          const descMatch = text.match(/"jobDescription"\s*:\s*"((?:[^"\\]|\\.|\\n|\\r)*)"/s) ||
+                           text.match(/"jobDescription"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/);
+          
+          if (descMatch && descMatch[1]) {
+            // Décoder les séquences d'échappement
+            jobDescription = descMatch[1]
+              .replace(/\\n/g, '\n')
+              .replace(/\\r/g, '\r')
+              .replace(/\\t/g, '\t')
+              .replace(/\\"/g, '"')
+              .replace(/\\\\/g, '\\')
+              .trim();
+          }
+          
+          // Si on a au moins le titre et la company, créer l'objet
+          if (position && companyName) {
+            extractedData = {
+              companyName,
+              position,
+              jobDescription: jobDescription || ''
+            };
+          } else {
+            throw new Error('Could not extract required fields from the response');
+          }
+        }
+        
+        // Validation des données extraites
         if (!extractedData.position || !extractedData.companyName) {
-          throw new Error('Missing required fields in extracted data');
+          throw new Error('Missing required fields: position and companyName are required');
+        }
+        
+        // Validation de la longueur de la description
+        const descriptionLength = extractedData.jobDescription?.length || 0;
+        if (descriptionLength < 100) {
+          console.warn('Job description seems too short. It may be incomplete.');
+          toast.warning('The job description extracted seems short. Please verify it contains all sections.');
+        }
+        
+        // Vérifier que la description contient des sections importantes
+        const description = (extractedData.jobDescription || '').toLowerCase();
+        const hasRequirements = description.includes('requirement') || description.includes('qualification') || description.includes('skill');
+        const hasResponsibilities = description.includes('responsibilit') || description.includes('dutie') || description.includes('role');
+        
+        if (!hasRequirements && !hasResponsibilities && descriptionLength > 0) {
+          console.warn('Job description may be missing key sections (requirements or responsibilities)');
+          toast.warning('The extracted description may be incomplete. Please review and add missing sections manually if needed.');
         }
         
         // Mettre à jour le formulaire avec les données extraites
         setFormData({
           ...formData,
-          jobTitle: extractedData.position || '',
-          company: extractedData.companyName || '',
-          jobDescription: extractedData.jobDescription || '',
+          jobTitle: extractedData.position.trim(),
+          company: extractedData.companyName.trim(),
+          jobDescription: (extractedData.jobDescription || '').trim(),
         });
         
-        toast.success('Job information extracted successfully!');
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        // Essayer d'extraire manuellement avec regex
-        const text = response.text || '';
-        
-        let companyName = '';
-        const companyMatch = text.match(/"companyName"\s*:\s*"([^"]+)"/i) || 
-                           text.match(/companyName["\s]*:["\s]*([^",\n}]+)/i);
-        if (companyMatch) companyName = companyMatch[1].trim();
-        
-        let position = '';
-        const positionMatch = text.match(/"position"\s*:\s*"([^"]+)"/i) || 
-                            text.match(/position["\s]*:["\s]*"([^"]+)"/i);
-        if (positionMatch) position = positionMatch[1].trim();
-        
-        let jobDescription = '';
-        const descMatch = text.match(/"jobDescription"\s*:\s*"([^"]+)"/i);
-        if (descMatch) jobDescription = descMatch[1].trim();
-        
-        if (position && companyName) {
-          setFormData({
-            ...formData,
-            jobTitle: position,
-            company: companyName,
-            jobDescription: jobDescription || formData.jobDescription,
-          });
-          toast.success('Job information extracted successfully!');
+        // Message de succès avec information sur la longueur
+        const descLength = (extractedData.jobDescription || '').length;
+        if (descLength > 500) {
+          toast.success(`Job information extracted successfully! (${descLength} characters)`);
         } else {
-          throw new Error('Could not extract job information from the response');
+          toast.success('Job information extracted successfully!');
         }
+      } catch (parseError: any) {
+        console.error('Error parsing extracted data:', parseError);
+        toast.error(`Failed to parse extracted information: ${parseError.message || 'Unknown error'}. Please try again or enter the information manually.`);
+        throw parseError;
       }
     } catch (error: any) {
       console.error('Error extracting job info:', error);
-      toast.error(`Failed to extract job information: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to extract job information: ${error.message || 'Unknown error'}. Please try again or enter the information manually.`);
     } finally {
       setIsExtractingJob(false);
     }
@@ -2061,11 +2190,9 @@ URL to visit: ${jobUrl}
     const isGrid = viewMode === 'grid';
     
     return (
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 
-          hover:shadow-lg transition-all duration-300 overflow-hidden
+      <div 
+        className={`bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 
+          hover:shadow-xl hover:border-purple-200 dark:hover:border-purple-800 transition-all duration-300 overflow-hidden
           ${isGrid ? 'h-full flex flex-col' : ''}`}
       >
         {/* Card Header - Always visible and clickable */}
@@ -2081,34 +2208,36 @@ URL to visit: ${jobUrl}
         >
           <div className={`flex ${isGrid ? 'flex-col items-center text-center space-y-4' : 'items-center space-x-5 flex-1'}`}>
             {/* Score Circle */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <CircularProgressWithCenterText 
                 value={analysis.matchScore} 
-                size={isGrid ? 80 : 70}
-                strokeWidth={7}
-                textSize={isGrid ? "text-2xl font-semibold" : "text-xl font-semibold"}
+                size={isGrid ? 90 : 80}
+                strokeWidth={8}
+                textSize={isGrid ? "text-2xl font-bold" : "text-xl font-bold"}
                 colorClass={getScoreColorClass(analysis.matchScore)}
               />
-              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <Trophy className={`${isGrid ? 'w-6 h-6' : 'w-5 h-5'} ${
+              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1.5 shadow-lg border-2 border-white dark:border-gray-800">
+                <div className={`${isGrid ? 'w-7 h-7' : 'w-6 h-6'} rounded-full flex items-center justify-center ${
                   analysis.matchScore >= 80 
-                    ? 'text-yellow-500' 
+                    ? 'bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 shadow-amber-200/50' 
                     : analysis.matchScore >= 65 
-                    ? 'text-blue-400' 
-                    : 'text-red-400'
-                }`} />
+                    ? 'bg-gradient-to-br from-blue-400 via-cyan-400 to-blue-500 shadow-blue-200/50' 
+                    : 'bg-gradient-to-br from-pink-400 via-rose-400 to-pink-500 shadow-pink-200/50'
+                } shadow-lg`}>
+                  <Trophy className={`${isGrid ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-white drop-shadow-sm`} />
+                </div>
               </div>
             </div>
             
             {/* Job Title and Company */}
             <div className={`flex-1 ${isGrid ? 'w-full' : ''}`}>
               <div className={`flex items-center ${isGrid ? 'justify-center flex-col' : ''}`}>
-                <h3 className={`${isGrid ? 'text-xl' : 'text-lg md:text-xl'} font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors ${isGrid ? 'mb-2' : ''}`}>
+                <h3 className={`${isGrid ? 'text-xl' : 'text-lg md:text-xl'} font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors ${isGrid ? 'mb-2' : ''}`}>
                   {analysis.jobTitle}
                 </h3>
                 {analysis.matchScore >= 80 && (
-                  <div className={`${isGrid ? 'mt-2' : 'ml-2'} flex items-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs font-medium px-2.5 py-0.5 rounded-full`}>
-                    <CheckCircle className="w-3 h-3 mr-1" />
+                  <div className={`${isGrid ? 'mt-2' : 'ml-2'} flex items-center bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400 text-xs font-semibold px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800`}>
+                    <CheckCircle className="w-3 h-3 mr-1.5" />
                     High match
                   </div>
                 )}
@@ -2195,12 +2324,7 @@ URL to visit: ${jobUrl}
         
         {/* Expanded Content */}
         {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="px-5 pb-5"
+          <div className="px-5 pb-5"
           >
             {/* Score Explanation Card */}
             <div className="mb-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -2224,29 +2348,29 @@ URL to visit: ${jobUrl}
                   }
                 </p>
                 
-                <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full mb-3 overflow-hidden">
+                <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full mb-3 overflow-hidden">
                   <div 
-                    className={`h-full rounded-full ${
-                      analysis.matchScore >= 80 ? 'bg-green-500' : 
-                      analysis.matchScore >= 65 ? 'bg-yellow-500' : 
-                      'bg-red-500'
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      analysis.matchScore >= 80 ? 'bg-gradient-to-r from-purple-500 to-indigo-500' : 
+                      analysis.matchScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 
+                      'bg-gradient-to-r from-pink-500 to-rose-500'
                     }`}
                     style={{ width: `${analysis.matchScore}%` }}
                   ></div>
                 </div>
                 
-                <div className="grid grid-cols-3 text-xs text-center">
-                  <div className="text-red-500">
+                <div className="grid grid-cols-3 text-xs text-center gap-2">
+                  <div className="text-pink-600 dark:text-pink-400">
                     <div className="font-medium">Low Match</div>
-                    <div>30-65%</div>
+                    <div className="text-gray-500 dark:text-gray-400">30-65%</div>
                   </div>
-                  <div className="text-yellow-500">
+                  <div className="text-blue-600 dark:text-blue-400">
                     <div className="font-medium">Medium Match</div>
-                    <div>66-79%</div>
+                    <div className="text-gray-500 dark:text-gray-400">66-79%</div>
                   </div>
-                  <div className="text-green-500">
+                  <div className="text-purple-600 dark:text-purple-400">
                     <div className="font-medium">Strong Match</div>
-                    <div>80-95%</div>
+                    <div className="text-gray-500 dark:text-gray-400">80-95%</div>
                   </div>
                 </div>
               </div>
@@ -2546,7 +2670,7 @@ URL to visit: ${jobUrl}
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Delete Confirmation Dialog */}
@@ -2658,7 +2782,7 @@ URL to visit: ${jobUrl}
             </details>
           </div>
         )}
-      </motion.div>
+      </div>
     );
   };
 
@@ -2765,9 +2889,22 @@ URL to visit: ${jobUrl}
     const progress = (100 - value) / 100 * circumference;
     
     const getGradientColors = () => {
-      if (value >= 80) return { start: '#10B981', end: '#34D399', mid: '#059669' };  // Green
-      if (value >= 65) return { start: '#F59E0B', end: '#FBBF24', mid: '#D97706' };  // Yellow/Orange
-      return { start: '#DC2626', end: '#EF4444', mid: '#B91C1C' };  // Red
+      // Modern gradient colors - more sophisticated and cohesive
+      if (value >= 80) return { 
+        start: '#8B5CF6',   // Purple-500
+        end: '#6366F1',    // Indigo-500
+        mid: '#7C3AED'     // Purple-600
+      };
+      if (value >= 65) return { 
+        start: '#3B82F6',  // Blue-500
+        end: '#06B6D4',    // Cyan-500
+        mid: '#2563EB'     // Blue-600
+      };
+      return { 
+        start: '#EC4899',  // Pink-500
+        end: '#F43F5E',    // Rose-500
+        mid: '#DB2777'     // Pink-600
+      };
     };
     
     const { start, end, mid } = getGradientColors();
@@ -2775,11 +2912,11 @@ URL to visit: ${jobUrl}
     return (
       <div className="relative inline-flex">
         <svg width={size} height={size} className="transform -rotate-90">
-          {/* Background Circle with subtle gradient */}
+          {/* Background Circle - softer and more subtle */}
           <defs>
-            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(229, 231, 235, 0.5)" />
-              <stop offset="100%" stopColor="rgba(209, 213, 219, 0.8)" />
+            <linearGradient id={`bgGradient-${value}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="rgba(243, 244, 246, 0.4)" />
+              <stop offset="100%" stopColor="rgba(229, 231, 235, 0.6)" />
             </linearGradient>
           </defs>
           
@@ -2788,21 +2925,24 @@ URL to visit: ${jobUrl}
             cy={size / 2} 
             r={radius}
             strokeWidth={strokeWidth}
-            stroke="url(#bgGradient)"
+            stroke={`url(#bgGradient-${value})`}
             fill="transparent"
-            className="dark:opacity-20"
+            className="dark:opacity-10"
           />
           
-          {/* Progress Circle with Gradient */}
+          {/* Progress Circle with Modern Gradient */}
           <defs>
             <linearGradient id={`circleGradient-${value}`} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={start} />
               <stop offset="50%" stopColor={mid} />
               <stop offset="100%" stopColor={end} />
             </linearGradient>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            <filter id={`glow-${value}`} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
             </filter>
           </defs>
           
@@ -2816,11 +2956,11 @@ URL to visit: ${jobUrl}
             strokeDashoffset={progress}
             strokeLinecap="round"
             fill="transparent"
-            className="transition-all duration-1000 ease-out-expo"
-            filter={value >= 80 ? "url(#glow)" : ""}
+            className="transition-all duration-1000 ease-out"
+            style={{ filter: value >= 80 ? `url(#glow-${value})` : 'none' }}
           />
         </svg>
-        <div className={`absolute inset-0 flex items-center justify-center ${textSize} font-bold ${colorClass}`}>
+        <div className={`absolute inset-0 flex items-center justify-center ${textSize} font-semibold ${colorClass}`}>
           <span className="animate-fadeIn">{value}%</span>
         </div>
       </div>
@@ -2887,9 +3027,10 @@ URL to visit: ${jobUrl}
   );
 
   const getScoreColorClass = (score: number): string => {
-    if (score >= 80) return "text-green-600 dark:text-green-400";
-    if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
-    return "text-red-600 dark:text-red-400";
+    // Modern, cohesive color scheme matching the gradient circles
+    if (score >= 80) return "text-purple-600 dark:text-purple-400";
+    if (score >= 60) return "text-blue-600 dark:text-blue-400";
+    return "text-pink-600 dark:text-pink-400";
   };
 
   const generateExecutiveSummary = (matchScore: number, keyFindings: any[]): string => {
@@ -3311,7 +3452,7 @@ URL to visit: ${jobUrl}
 
   return (
     <AuthLayout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isLoading ? 'overflow-hidden' : ''}`}>
         {/* Hero Section */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -3342,8 +3483,8 @@ URL to visit: ${jobUrl}
                 hover:opacity-90 transition-all duration-200
                 shadow-lg shadow-purple-500/20"
             >
-              <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-white" />
+              <div className="flex items-center gap-2 whitespace-nowrap">
+              <Sparkles className="h-4 w-4 text-white flex-shrink-0" />
               <span className="text-sm font-medium text-white">New Analysis</span>
               </div>
             </button>
@@ -3486,10 +3627,10 @@ URL to visit: ${jobUrl}
 
         {/* Analyses List/Grid */}
         {filteredAnalyses.length > 0 ? (
-          <div className={viewMode === 'grid' 
+          <div className={`${viewMode === 'grid' 
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
             : 'space-y-4'
-          }>
+          } ${isLoading ? 'pointer-events-none opacity-50' : ''}`}>
             {filteredAnalyses.map((analysis) => (
               <AnalysisCard 
                 key={analysis.id} 
@@ -3525,9 +3666,9 @@ URL to visit: ${jobUrl}
                     setJobInputMode('ai');
                     setIsModalOpen(true);
                   }}
-                  className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto"
+                  className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto whitespace-nowrap"
                 >
-                  <Sparkles className="h-5 w-5 text-white" />
+                  <Sparkles className="h-5 w-5 text-white flex-shrink-0" />
                   <span className="text-sm font-medium text-white">Start your first analysis</span>
                 </button>
               </div>
@@ -3779,14 +3920,16 @@ URL to visit: ${jobUrl}
                         textSize="text-xl font-semibold"
                         colorClass={getScoreColorClass(selectedAnalysis.matchScore)}
                       />
-                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-gray-700">
-                        <Trophy className={`w-5 h-5 ${
+                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md border border-gray-100 dark:border-gray-700">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
                           selectedAnalysis.matchScore >= 80 
-                            ? 'text-yellow-500' 
+                            ? 'bg-gradient-to-br from-amber-400 to-amber-500' 
                             : selectedAnalysis.matchScore >= 65 
-                            ? 'text-blue-400' 
-                            : 'text-red-400'
-                        }`} />
+                            ? 'bg-gradient-to-br from-blue-400 to-cyan-400' 
+                            : 'bg-gradient-to-br from-pink-400 to-rose-400'
+                        }`}>
+                          <Trophy className="w-3.5 h-3.5 text-white" />
+                        </div>
                       </div>
                     </div>
                     <div className="flex-1">
@@ -3803,7 +3946,7 @@ URL to visit: ${jobUrl}
                           {formatDateString(selectedAnalysis.date)}
                         </div>
                         {selectedAnalysis.matchScore >= 80 && (
-                          <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full text-xs font-medium">
+                          <div className="flex items-center gap-1.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-full text-xs font-semibold border border-purple-200 dark:border-purple-800">
                             <CheckCircle className="w-3 h-3" />
                             High match
                           </div>
@@ -3840,12 +3983,12 @@ URL to visit: ${jobUrl}
                         "Your resume needs significant adjustments to better align with this position's requirements."
                       }
                     </p>
-                    <div className="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div 
                         className={`h-full rounded-full transition-all duration-500 ${
-                          selectedAnalysis.matchScore >= 80 ? 'bg-green-500' : 
-                          selectedAnalysis.matchScore >= 65 ? 'bg-yellow-500' : 
-                          'bg-red-500'
+                          selectedAnalysis.matchScore >= 80 ? 'bg-gradient-to-r from-purple-500 to-indigo-500' : 
+                          selectedAnalysis.matchScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 
+                          'bg-gradient-to-r from-pink-500 to-rose-500'
                         }`}
                         style={{ width: `${selectedAnalysis.matchScore}%` }}
                       ></div>

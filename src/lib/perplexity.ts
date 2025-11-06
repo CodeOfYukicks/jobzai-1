@@ -156,17 +156,19 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
 2. Extract ONLY information that is VISIBLY DISPLAYED on the page
 3. Do NOT guess, infer, or use information from your training data
 4. Do NOT use information from similar job postings
-5. The job title/position must be the EXACT title shown on the page header/title
-6. The location must be the EXACT location shown on the page
+5. Do NOT summarize or shorten the job description - include EVERYTHING
+6. The job title/position must be the EXACT title shown on the page header/title
 7. The company name must be the EXACT company name shown on the page
-8. Return ONLY valid JSON with no markdown, no code blocks, no explanations, no additional text
-9. All string values must be properly escaped in JSON format
-10. If you cannot access the URL or see the page content, return an error - do NOT guess`
+8. The job description must include ALL sections: overview, responsibilities, requirements, qualifications, skills, experience, education, location, benefits, company culture, etc.
+9. Return ONLY valid JSON with no markdown, no code blocks, no explanations, no additional text
+10. All string values must be properly escaped in JSON format (use \\n for newlines, \\" for quotes)
+11. If you cannot access the URL or see the page content, return an error - do NOT guess
+12. For the jobDescription field, include the COMPLETE text from ALL sections - completeness is critical for accurate CV matching`
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.1, // Lower temperature for more precise extraction
-        max_tokens: 2000 // More tokens for complete extraction
+        temperature: 0.05, // Very low temperature for maximum precision and no creativity
+        max_tokens: 8000 // Much more tokens to allow complete job descriptions (can be very long)
       },
       {
         headers: {
