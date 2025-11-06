@@ -16,5 +16,11 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  optimizeDeps: {
+    include: ['pdfjs-dist']
+  },
+  worker: {
+    format: 'es'
   }
 })

@@ -8,8 +8,8 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "api"
+        "source": "/api/analyze-cv-vision",
+        "function": "analyzeCVVision"
       },
       {
         "source": "**",

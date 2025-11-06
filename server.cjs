@@ -8,6 +8,10 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
+// Note: We'll use Firebase Client SDK to read from Firestore
+// This works with firebase login credentials
+// For production, use Firebase Admin SDK with service account
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -324,6 +328,146 @@ app.get('/api/claude/auth-test', async (req, res) => {
   }
 });
 
+// GPT-4o Vision API route for CV analysis
+app.post('/api/analyze-cv-vision', async (req, res) => {
+  try {
+    console.log("GPT-4o Vision API endpoint called");
+    
+    // Get API key from environment variables (simplest solution for now)
+    // In production, Firebase Functions will use Firestore automatically
+    let apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    
+    if (apiKey) {
+      console.log("✅ API Key from environment (first 10 chars):", apiKey.substring(0, 10) + "...");
+    } else {
+      console.log("❌ No API Key found in environment variables");
+      console.log("   Please add to .env file: OPENAI_API_KEY=sk-...");
+      console.log("   Or configure in Firestore (settings/openai) for production");
+    }
+    
+    if (!apiKey) {
+      console.error('❌ ERREUR: Clé API OpenAI manquante');
+      console.error('   Solution: Créez un fichier .env à la racine du projet avec:');
+      console.error('   OPENAI_API_KEY=sk-...');
+      return res.status(500).json({ 
+        status: 'error', 
+        message: 'OpenAI API key is missing. Please add OPENAI_API_KEY to your .env file.' 
+      });
+    }
+    
+    // Extract request data
+    const { model, messages, response_format, max_tokens, temperature } = req.body;
+    
+    // Validate request
+    if (!model || !messages || !Array.isArray(messages)) {
+      console.error('Invalid request format:', { model, hasMessages: !!messages });
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid request format: model and messages array are required'
+      });
+    }
+    
+    console.log('📡 Sending request to GPT-4o Vision API...');
+    console.log(`   Model: ${model}`);
+    console.log(`   Messages: ${messages.length}`);
+    // Count images in messages (content can be string or array)
+    let imageCount = 0;
+    messages.forEach(msg => {
+      if (Array.isArray(msg.content)) {
+        imageCount += msg.content.filter((c) => c.type === 'image_url').length;
+      }
+    });
+    console.log(`   Images: ${imageCount}`);
+    
+    // Call OpenAI API
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model || 'gpt-4o',
+        messages: messages,
+        response_format: response_format || { type: 'json_object' },
+        max_tokens: max_tokens || 6000, // Increased for more detailed analysis
+        temperature: temperature || 0.1, // Lower temperature for more precise, consistent analysis
+      })
+    });
+    
+    console.log(`OpenAI API response status: ${openaiResponse.status}`);
+    
+    // Handle response
+    const responseText = await openaiResponse.text();
+    console.log("Response received, length:", responseText.length);
+    
+    if (!openaiResponse.ok) {
+      console.error("Non-200 response:", responseText);
+      try {
+        const errorData = JSON.parse(responseText);
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
+          error: errorData.error
+        });
+      } catch (e) {
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${responseText.substring(0, 200)}`
+        });
+      }
+    }
+    
+    // Parse and return response
+    try {
+      const parsedResponse = JSON.parse(responseText);
+      const content = parsedResponse.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('Empty response from GPT-4o Vision API');
+      }
+      
+      // Parse JSON if needed
+      let parsedContent;
+      try {
+        parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+      } catch (e) {
+        // If parsing fails, try to extract JSON from markdown
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                          content.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          throw new Error('Could not parse JSON from response');
+        }
+      }
+      
+      console.log('✅ GPT-4o Vision analysis completed successfully');
+      
+      return res.json({
+        status: 'success',
+        content: parsedContent,
+        usage: parsedResponse.usage
+      });
+    } catch (parseError) {
+      console.error("Parse error:", parseError);
+      return res.status(500).json({
+        status: 'error',
+        message: "Failed to parse response",
+        rawResponse: responseText.substring(0, 500) + "..."
+      });
+    }
+    
+  } catch (error) {
+    console.error("Error in GPT-4o Vision API handler:", error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || "An error occurred processing your request",
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 // En production, pour toutes les autres routes, servir index.html
 // Cela permet à React Router de gérer les routes côté client
 if (isProduction) {
@@ -339,6 +483,7 @@ if (isProduction) {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
   console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
+  console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
   console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
   console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
   if (isProduction) {

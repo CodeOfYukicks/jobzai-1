@@ -8,7 +8,8 @@ import {
   Info as InformationCircleIcon, Code as CodeBracketIcon,
   BarChart as ChartBarIcon, Trash2, ChevronUp, ChevronDown, Calendar,
   Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
-  SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound
+  SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound,
+  Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -35,13 +36,22 @@ import {
   XMarkIcon as XIcon
 } from '@heroicons/react/24/outline';
 import { validateCVContent, validateJobDescription, setValidationOptions, analyzeCVWithGPT } from '../lib/cvAnalysis';
-// Import Claude Analysis functions
+// Import Claude Analysis functions (legacy, kept for backward compatibility)
 import { analyzeCVWithClaude, fileToBase64 } from '../lib/claudeAnalysis';
+// Import GPT-4o Vision Analysis functions (new optimized approach)
+import { pdfToImages } from '../lib/pdfToImages';
+import { analyzeCVWithGPT4Vision } from '../lib/gpt4VisionAnalysis';
 // Add this import
 import CVSelectionModal from '../components/CVSelectionModal';
+// Import Perplexity for job extraction
+import { queryPerplexityForJobExtraction } from '../lib/perplexity';
 
-// Configurer le worker correctement
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// Configurer le worker correctement pour utiliser le fichier local depuis public
+// Cela évite les problèmes CORS et 404 depuis les CDN externes
+if (typeof window !== 'undefined') {
+  // Use worker from public folder (copied from node_modules)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+}
 
 console.log('PDF.js version:', pdfjsLib.version);
 
@@ -1000,7 +1010,10 @@ export default function CVAnalysisPage() {
     jobTitle: '',
     company: '',
     jobDescription: '',
+    jobUrl: '',
   });
+  const [jobInputMode, setJobInputMode] = useState<'ai' | 'manual'>('ai');
+  const [isExtractingJob, setIsExtractingJob] = useState(false);
   const [analyses, setAnalyses] = useState<ATSAnalysis[]>([]);
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -1013,6 +1026,13 @@ export default function CVAnalysisPage() {
   // Add these state variables for CV selection modal
   const [cvModalOpen, setCvModalOpen] = useState(false);
   const [enableContentValidation, setEnableContentValidation] = useState(true);
+  
+  // States for search, filters and view
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'date' | 'score' | 'company'>('date');
+  const [filterScore, setFilterScore] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [selectedAnalysis, setSelectedAnalysis] = useState<ATSAnalysis | null>(null);
 
   // Charger le CV depuis le profil utilisateur
   useEffect(() => {
@@ -1679,6 +1699,117 @@ Return ONLY a structured JSON object with the following schema:
     };
   }, [isLoading, loadingStep]);
 
+  // Fonction pour extraire les informations du job depuis l'URL
+  const handleExtractJobInfo = async () => {
+    if (!formData.jobUrl || !formData.jobUrl.trim()) {
+      toast.error('Please enter a job URL first');
+      return;
+    }
+
+    setIsExtractingJob(true);
+    toast.info('Analyzing job posting with AI...', { duration: 2000 });
+
+    try {
+      const jobUrl = formData.jobUrl.trim();
+      const prompt = `
+You are a web scraper. Your task is to visit this URL and extract job posting information: ${jobUrl}
+
+MANDATORY STEPS - DO NOT SKIP:
+1. You MUST use web search/browsing to visit: ${jobUrl}
+2. Read the ACTUAL HTML content of the page
+3. Find the job title in the page HTML (look for <h1>, <h2>, or title tags)
+4. Find the company name (usually in the header or near the job title)
+5. Extract the FULL job description from the page
+6. Extract these EXACT strings as they appear in the page content
+
+CRITICAL: Do NOT use your training data or make assumptions. You MUST visit the URL and read the actual page.
+
+Return ONLY a valid JSON object (no markdown, no code blocks, no explanations):
+{
+  "companyName": "the exact company name from the page",
+  "position": "the EXACT job title from the page - copy it exactly as shown",
+  "jobDescription": "the complete job description from the page - include all requirements, responsibilities, and details"
+}
+
+VERY IMPORTANT:
+- The "position" field is CRITICAL - it must be the exact job title shown on the page
+- The "jobDescription" must be the COMPLETE description including all sections
+- Do NOT return generic titles or descriptions
+- Visit the URL and read the actual content
+
+URL to visit: ${jobUrl}
+`;
+
+      const response = await queryPerplexityForJobExtraction(prompt);
+      
+      if (response.error) {
+        throw new Error(response.errorMessage || 'Failed to analyze job posting');
+      }
+
+      // Parser la réponse JSON
+      let extractedData;
+      try {
+        let jsonString = response.text || '';
+        jsonString = jsonString.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+        const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[0];
+        }
+        
+        extractedData = JSON.parse(jsonString);
+        
+        if (!extractedData.position || !extractedData.companyName) {
+          throw new Error('Missing required fields in extracted data');
+        }
+        
+        // Mettre à jour le formulaire avec les données extraites
+        setFormData({
+          ...formData,
+          jobTitle: extractedData.position || '',
+          company: extractedData.companyName || '',
+          jobDescription: extractedData.jobDescription || '',
+        });
+        
+        toast.success('Job information extracted successfully!');
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        // Essayer d'extraire manuellement avec regex
+        const text = response.text || '';
+        
+        let companyName = '';
+        const companyMatch = text.match(/"companyName"\s*:\s*"([^"]+)"/i) || 
+                           text.match(/companyName["\s]*:["\s]*([^",\n}]+)/i);
+        if (companyMatch) companyName = companyMatch[1].trim();
+        
+        let position = '';
+        const positionMatch = text.match(/"position"\s*:\s*"([^"]+)"/i) || 
+                            text.match(/position["\s]*:["\s]*"([^"]+)"/i);
+        if (positionMatch) position = positionMatch[1].trim();
+        
+        let jobDescription = '';
+        const descMatch = text.match(/"jobDescription"\s*:\s*"([^"]+)"/i);
+        if (descMatch) jobDescription = descMatch[1].trim();
+        
+        if (position && companyName) {
+          setFormData({
+            ...formData,
+            jobTitle: position,
+            company: companyName,
+            jobDescription: jobDescription || formData.jobDescription,
+          });
+          toast.success('Job information extracted successfully!');
+        } else {
+          throw new Error('Could not extract job information from the response');
+        }
+      }
+    } catch (error: any) {
+      console.error('Error extracting job info:', error);
+      toast.error(`Failed to extract job information: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsExtractingJob(false);
+    }
+  };
+
   // Modifier la fonction handleAnalysis pour fermer le modal avant d'activer le chargement
   const handleAnalysis = async () => {
     try {
@@ -1688,7 +1819,7 @@ Return ONLY a structured JSON object with the following schema:
         logLevel: 2
       });
       
-      console.log("🚀 STARTING ANALYSIS - Validation disabled - Using Claude API for PDF analysis");
+      console.log("🚀 STARTING ANALYSIS - Using GPT-4o Vision for PDF analysis");
       
       // Fermer le modal avant d'afficher l'écran de chargement
       setIsModalOpen(false);
@@ -1707,13 +1838,22 @@ Return ONLY a structured JSON object with the following schema:
         return;
       }
 
-      // Use PDF file for Claude analysis
+      // Use PDF file for GPT-4o Vision analysis
       if (cvFile && cvFile.type === 'application/pdf') {
-        console.log('📄 Using Claude API for PDF analysis:', cvFile.name);
+        console.log('📄 Using GPT-4o Vision for PDF analysis:', cvFile.name);
         
         try {
-          // Artificial delay for better UX on preparation step (1.5 seconds)
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Step 1: Convert PDF to images
+          console.log('📸 Converting PDF to images...');
+          setLoadingStep('preparing');
+          setLoadingProgress(10);
+          
+          // Convert PDF to images (max 2 pages, optimized scale)
+          const images = await pdfToImages(cvFile, 2, 1.5);
+          console.log(`✅ PDF converted to ${images.length} image(s)`);
+          
+          setLoadingProgress(30);
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Prepare job details
           const jobDetails = {
@@ -1722,18 +1862,20 @@ Return ONLY a structured JSON object with the following schema:
             jobDescription: formData.jobDescription || 'Not provided'
           };
           
-          console.log('📡 Sending request to Claude API for PDF analysis...');
+          console.log('📡 Sending request to GPT-4o Vision API...');
           
           // Update loading step
           setLoadingStep('analyzing');
+          setLoadingProgress(40);
           
-          // Call Claude API with the PDF file
-          const analysis = await analyzeCVWithClaude(cvFile, jobDetails);
+          // Call GPT-4o Vision API with the images
+          const analysis = await analyzeCVWithGPT4Vision(images, jobDetails);
           
-          console.log('✅ Claude analysis successful!', analysis);
+          console.log('✅ GPT-4o Vision analysis successful!', analysis);
           
           // Update loading step
           setLoadingStep('matching');
+          setLoadingProgress(80);
           await new Promise(resolve => setTimeout(resolve, 2000));
           
           // Create analysis object
@@ -1748,6 +1890,7 @@ Return ONLY a structured JSON object with the following schema:
           
           // Update loading step
           setLoadingStep('finalizing');
+          setLoadingProgress(90);
           await new Promise(resolve => setTimeout(resolve, 1500));
           
           // Save and update UI
@@ -1763,11 +1906,12 @@ Return ONLY a structured JSON object with the following schema:
           setIsLoading(false);
           
           toast.dismiss();
-          toast.success('CV analysis with Claude completed!');
+          toast.success('CV analysis with GPT-4o Vision completed!');
         } catch (error: any) {
-          console.error('❌ Claude API call failed:', error);
+          console.error('❌ GPT-4o Vision API call failed:', error);
           setIsLoading(false);
-          throw new Error(`Claude analysis failed: ${error.message}`);
+          toast.error(`Analysis failed: ${error.message || 'Unknown error'}`);
+          throw error;
         }
       } else {
         toast.error('Please upload a PDF file for analysis');
@@ -1787,6 +1931,59 @@ Return ONLY a structured JSON object with the following schema:
     } else {
       handleAnalysis();
     }
+  };
+
+  // Filter and sort analyses
+  const filteredAndSortedAnalyses = () => {
+    let filtered = [...analyses];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (a) =>
+          a.jobTitle.toLowerCase().includes(query) ||
+          a.company.toLowerCase().includes(query) ||
+          a.date.toLowerCase().includes(query)
+      );
+    }
+
+    // Score filter
+    if (filterScore !== 'all') {
+      filtered = filtered.filter((a) => {
+        if (filterScore === 'high') return a.matchScore >= 80;
+        if (filterScore === 'medium') return a.matchScore >= 65 && a.matchScore < 80;
+        if (filterScore === 'low') return a.matchScore < 65;
+        return true;
+      });
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      if (sortBy === 'date') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+      if (sortBy === 'score') {
+        return b.matchScore - a.matchScore;
+      }
+      if (sortBy === 'company') {
+        return a.company.localeCompare(b.company);
+      }
+      return 0;
+    });
+
+    return filtered;
+  };
+
+  // Calculate statistics
+  const stats = {
+    total: analyses.length,
+    averageScore: analyses.length > 0
+      ? Math.round(analyses.reduce((sum, a) => sum + a.matchScore, 0) / analyses.length)
+      : 0,
+    highMatch: analyses.filter((a) => a.matchScore >= 80).length,
+    mediumMatch: analyses.filter((a) => a.matchScore >= 65 && a.matchScore < 80).length,
+    lowMatch: analyses.filter((a) => a.matchScore < 65).length,
   };
 
   // Supprimer une analyse
@@ -1821,7 +2018,17 @@ Return ONLY a structured JSON object with the following schema:
     }
   };
 
-  const AnalysisCard = ({ analysis, onDelete }: { analysis: ATSAnalysis, onDelete: (id: string) => void }) => {
+  const AnalysisCard = ({ 
+    analysis, 
+    onDelete, 
+    viewMode = 'list',
+    onSelect
+  }: { 
+    analysis: ATSAnalysis, 
+    onDelete: (id: string) => void,
+    viewMode?: 'grid' | 'list',
+    onSelect?: () => void
+  }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -1850,26 +2057,40 @@ Return ONLY a structured JSON object with the following schema:
     const formatDate = (dateString: string): string => {
       return formatDateString(dateString);
     };
+
+    const isGrid = viewMode === 'grid';
     
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden mb-6 border border-gray-100 dark:border-gray-700">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 
+          hover:shadow-lg transition-all duration-300 overflow-hidden
+          ${isGrid ? 'h-full flex flex-col' : ''}`}
+      >
         {/* Card Header - Always visible and clickable */}
         <div 
-          onClick={toggleExpand}
-          className="p-5 cursor-pointer flex items-center justify-between group"
+          onClick={() => {
+            if (onSelect) {
+              onSelect();
+            } else {
+              toggleExpand();
+            }
+          }}
+          className={`${isGrid ? 'p-6' : 'p-5'} cursor-pointer flex ${isGrid ? 'flex-col' : 'items-center justify-between'} group`}
         >
-          <div className="flex items-center space-x-5 flex-1">
+          <div className={`flex ${isGrid ? 'flex-col items-center text-center space-y-4' : 'items-center space-x-5 flex-1'}`}>
             {/* Score Circle */}
             <div className="relative">
               <CircularProgressWithCenterText 
                 value={analysis.matchScore} 
-                size={70}
+                size={isGrid ? 80 : 70}
                 strokeWidth={7}
-                textSize="text-xl font-semibold"
+                textSize={isGrid ? "text-2xl font-semibold" : "text-xl font-semibold"}
                 colorClass={getScoreColorClass(analysis.matchScore)}
               />
               <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <Trophy className={`w-5 h-5 ${
+                <Trophy className={`${isGrid ? 'w-6 h-6' : 'w-5 h-5'} ${
                   analysis.matchScore >= 80 
                     ? 'text-yellow-500' 
                     : analysis.matchScore >= 65 
@@ -1880,25 +2101,25 @@ Return ONLY a structured JSON object with the following schema:
             </div>
             
             {/* Job Title and Company */}
-            <div className="flex-1">
-              <div className="flex items-center">
-                <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+            <div className={`flex-1 ${isGrid ? 'w-full' : ''}`}>
+              <div className={`flex items-center ${isGrid ? 'justify-center flex-col' : ''}`}>
+                <h3 className={`${isGrid ? 'text-xl' : 'text-lg md:text-xl'} font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors ${isGrid ? 'mb-2' : ''}`}>
                   {analysis.jobTitle}
                 </h3>
                 {analysis.matchScore >= 80 && (
-                  <div className="ml-2 flex items-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  <div className={`${isGrid ? 'mt-2' : 'ml-2'} flex items-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs font-medium px-2.5 py-0.5 rounded-full`}>
                     <CheckCircle className="w-3 h-3 mr-1" />
                     High match
                   </div>
                 )}
               </div>
-              <div className="flex items-center mt-1">
-                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+              <div className={`flex items-center ${isGrid ? 'flex-col space-y-1 mt-3' : 'mt-1'}`}>
+                <p className={`text-sm text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
                   <Building2 className="w-4 h-4 mr-1.5 text-gray-400 dark:text-gray-500" /> 
                   {analysis.company}
                 </p>
-                <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>
-                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                {!isGrid && <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>}
+                <p className={`text-sm text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
                   <CalendarIcon className="w-4 h-4 mr-1.5 text-gray-400 dark:text-gray-500" /> 
                   {formatDate(analysis.date)}
                 </p>
@@ -1907,7 +2128,7 @@ Return ONLY a structured JSON object with the following schema:
           </div>
 
           {/* Actions Menu */}
-          <div className="flex items-center space-x-2">
+          <div className={`flex items-center ${isGrid ? 'justify-center mt-4' : 'space-x-2'}`}>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -1918,15 +2139,28 @@ Return ONLY a structured JSON object with the following schema:
             >
               <Trash2 className="w-4 h-4" />
             </button>
-            <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {!onSelect && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpand();
+                }}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full transition-colors"
+                aria-label={isExpanded ? "Collapse" : "Expand"}
+              >
+                {isExpanded ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
             </button>
+            )}
           </div>
         </div>
 
         {/* Skill Badges */}
         {!isExpanded && (
-          <div className="px-5 pb-5 pt-0 flex flex-wrap gap-2">
+          <div className={`${isGrid ? 'px-6' : 'px-5'} pb-5 pt-0 flex flex-wrap gap-2 ${isGrid ? 'justify-center' : ''}`}>
             {analysis.skillsMatch.matching
               .sort((a, b) => b.relevance - a.relevance)
               .slice(0, 3)
@@ -2424,7 +2658,7 @@ Return ONLY a structured JSON object with the following schema:
             </details>
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -2800,7 +3034,11 @@ Return ONLY a structured JSON object with the following schema:
       description: "Select or upload your resume for analysis",
       icon: <FileText className="w-5 h-5" />,
       content: (
-        <div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="mb-4">
             <button
               onClick={(e) => {
@@ -2808,17 +3046,17 @@ Return ONLY a structured JSON object with the following schema:
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              className="w-full flex items-center p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 transition-all bg-white dark:bg-gray-800"
+              className="w-full flex items-center p-5 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-400 dark:hover:border-purple-600 transition-all bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:shadow-md group"
             >
-              <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-5">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
                 {cvFile ? 
-                  <Check className="w-7 h-7 text-green-600 dark:text-green-400" /> : 
-                  <Upload className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                  <Check className="w-6 h-6 text-green-600 dark:text-green-400" /> : 
+                  <Upload className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 }
               </div>
               <div className="flex-1 text-left">
-                <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                  {cvFile ? "Resume Selected" : "Upload Resume"}
+                <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-1">
+                  {cvFile ? "Resume Selected" : "Upload Your Resume"}
                 </h3>
                 {cvFile ? (
                   <div>
@@ -2831,30 +3069,108 @@ Return ONLY a structured JSON object with the following schema:
                   </div>
                 ) : (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Select a PDF file for ATS analysis
+                    Click to select a PDF file for ATS analysis
                   </p>
                 )}
               </div>
               {cvFile && (
-                <span className="ml-4 flex-shrink-0 rounded-full bg-green-100 dark:bg-green-900/30 p-2">
-                  <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <span className="ml-3 flex-shrink-0 rounded-full bg-green-100 dark:bg-green-900/30 p-2">
+                  <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </span>
               )}
             </button>
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-3">
-            <Info className="w-4 h-4 mr-1.5 inline" />
+          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-2 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1.5 rounded-lg">
+            <Info className="w-3.5 h-3.5 mr-1.5 text-blue-600 dark:text-blue-400" />
             Your resume will be analyzed to determine its match with the job description
           </div>
-        </div>
+        </motion.div>
       ),
     },
     {
-      title: "Job Details",
-      description: "Enter the position details you're applying for",
+      title: "Job Information",
+      description: "Provide job details using AI or manual entry",
       icon: <Briefcase className="w-5 h-5" />,
       content: (
-        <div className="space-y-5">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="space-y-4"
+        >
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <button
+              onClick={() => setJobInputMode('ai')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                jobInputMode === 'ai'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              AI Extraction
+            </button>
+            <button
+              onClick={() => setJobInputMode('manual')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                jobInputMode === 'manual'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <AlignLeft className="w-3.5 h-3.5" />
+              Manual Entry
+            </button>
+          </div>
+
+          {/* AI Mode */}
+          {jobInputMode === 'ai' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3"
+            >
+          <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  Job Posting URL
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={formData.jobUrl}
+                    onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                    placeholder="https://linkedin.com/jobs/view/..."
+                  />
+                  <button
+                    onClick={handleExtractJobInfo}
+                    disabled={!formData.jobUrl.trim() || isExtractingJob}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-md shadow-purple-500/20"
+                  >
+                    {isExtractingJob ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Extracting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Extract
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  Paste the job posting URL and our AI will extract all information automatically
+                </p>
+              </div>
+
+              {/* Extracted/Manual Fields */}
+              <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Job Title
@@ -2863,13 +3179,9 @@ Return ONLY a structured JSON object with the following schema:
               type="text"
               value={formData.jobTitle}
               onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-base"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
               placeholder="e.g., Full Stack Developer"
             />
-            <p className="text-xs text-gray-500 mt-1.5 flex items-center">
-              <Info className="w-3.5 h-3.5 mr-1 inline" />
-              Enter the exact job title for better analysis
-            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -2879,18 +3191,10 @@ Return ONLY a structured JSON object with the following schema:
               type="text"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-base"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
               placeholder="e.g., Google"
             />
           </div>
-        </div>
-      )
-    },
-    {
-      title: "Job Description",
-      description: "Enter the job description for accurate matching",
-      icon: <AlignLeft className="w-5 h-5" />,
-      content: (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Job Description
@@ -2898,14 +3202,64 @@ Return ONLY a structured JSON object with the following schema:
           <textarea
             value={formData.jobDescription}
             onChange={(e) => setFormData({...formData, jobDescription: e.target.value})}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white h-60 text-base"
-            placeholder="Paste the job description here..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white h-36 text-sm resize-none"
+                    placeholder="Job description will be extracted automatically, or paste it manually..."
+                  />
+        </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Manual Mode */}
+          {jobInputMode === 'manual' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3"
+            >
+        <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Job Title
+                </label>
+                <input
+                  type="text"
+                  value={formData.jobTitle}
+                  onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                  placeholder="e.g., Full Stack Developer"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Company
+                </label>
+                <input
+                  type="text"
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                  placeholder="e.g., Google"
+                />
+              </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Job Description
+          </label>
+          <textarea
+            value={formData.jobDescription}
+            onChange={(e) => setFormData({...formData, jobDescription: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white h-40 text-sm resize-none"
+                  placeholder="Paste the complete job description here..."
           />
-          <p className="text-xs text-gray-500 mt-1.5 flex items-center">
-            <Info className="w-3.5 h-3.5 mr-1 inline" />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
+                  <Info className="w-3 h-3" />
             Include the full job description for the most accurate results
           </p>
         </div>
+            </motion.div>
+          )}
+        </motion.div>
       )
     }
   ];
@@ -2953,40 +3307,200 @@ Return ONLY a structured JSON object with the following schema:
     };
   }, []);
 
+  const filteredAnalyses = filteredAndSortedAnalyses();
+
   return (
     <AuthLayout>
-      <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white dark:from-gray-900 dark:to-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center mb-8">
+        {/* Hero Section */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   ATS Resume Analysis
-                </span>
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 max-w-2xl">
+              <p className="mt-2 text-gray-500 dark:text-gray-400">
                 Get detailed insights on how your resume matches specific job positions. Improve your chances with AI-powered recommendations.
               </p>
             </div>
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="group px-6 py-3 rounded-xl 
+              onClick={() => {
+                // Reset form when opening modal
+                setFormData({
+                  jobTitle: '',
+                  company: '',
+                  jobDescription: '',
+                  jobUrl: '',
+                });
+                setCvFile(null);
+                setCurrentStep(1);
+                setJobInputMode('ai');
+                setIsModalOpen(true);
+              }}
+              className="group px-4 py-2.5 rounded-xl 
                 bg-gradient-to-r from-purple-600 to-indigo-600
                 hover:opacity-90 transition-all duration-200
-                shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto"
+                shadow-lg shadow-purple-500/20"
             >
+              <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-white" />
               <span className="text-sm font-medium text-white">New Analysis</span>
+              </div>
             </button>
           </div>
   
-          {/* List of analyses */}
-          <div className="mt-8 space-y-6">
-            {analyses.map((analysis) => (
-              <AnalysisCard key={analysis.id} analysis={analysis} onDelete={deleteAnalysis} />
-            ))}
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.total}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Analyses</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.averageScore}%
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Average Score</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <Trophy className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.highMatch}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">High Match (80%+)</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.mediumMatch + stats.lowMatch}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Needs Improvement</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search, Filters and View Toggle */}
+        {analyses.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by job title, company, or date..."
+                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 
+                  border border-gray-200 dark:border-gray-700 rounded-xl
+                  focus:ring-2 focus:ring-purple-500 focus:border-purple-500
+                  text-sm"
+              />
+            </div>
             
-            {analyses.length === 0 && (
+            <div className="flex items-center gap-3">
+              {/* Score Filter */}
+              <div className="relative">
+                <select
+                  value={filterScore}
+                  onChange={(e) => setFilterScore(e.target.value as any)}
+                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+                    rounded-xl px-4 py-3 pr-10 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="all">All Scores</option>
+                  <option value="high">High (80%+)</option>
+                  <option value="medium">Medium (65-79%)</option>
+                  <option value="low">Low (&lt;65%)</option>
+                </select>
+                <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
+
+              {/* Sort By */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+                    rounded-xl px-4 py-3 pr-10 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="date">Sort by Date</option>
+                  <option value="score">Sort by Score</option>
+                  <option value="company">Sort by Company</option>
+                </select>
+                <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
+              
+              {/* View Toggle Buttons */}
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 flex">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-lg flex items-center justify-center ${
+                    viewMode === 'grid' 
+                      ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
+                      : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  aria-label="Grid View"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-lg flex items-center justify-center ${
+                    viewMode === 'list' 
+                      ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
+                      : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  aria-label="List View"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Analyses List/Grid */}
+        {filteredAnalyses.length > 0 ? (
+          <div className={viewMode === 'grid' 
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+            : 'space-y-4'
+          }>
+            {filteredAnalyses.map((analysis) => (
+              <AnalysisCard 
+                key={analysis.id} 
+                analysis={analysis} 
+                onDelete={deleteAnalysis}
+                viewMode={viewMode}
+                onSelect={() => setSelectedAnalysis(analysis)}
+              />
+            ))}
+          </div>
+        ) : analyses.length === 0 ? (
               <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
                   <FileText className="w-10 h-10 text-purple-600 dark:text-purple-400" />
@@ -2998,15 +3512,47 @@ Return ONLY a structured JSON object with the following schema:
                   Analyze your resume against specific job descriptions to see how well it matches and get personalized improvement suggestions.
                 </p>
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={() => {
+                    // Reset form when opening modal
+                    setFormData({
+                      jobTitle: '',
+                      company: '',
+                      jobDescription: '',
+                      jobUrl: '',
+                    });
+                    setCvFile(null);
+                    setCurrentStep(1);
+                    setJobInputMode('ai');
+                    setIsModalOpen(true);
+                  }}
                   className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto"
                 >
                   <Sparkles className="h-5 w-5 text-white" />
                   <span className="text-sm font-medium text-white">Start your first analysis</span>
                 </button>
               </div>
-            )}
+        ) : (
+          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Search className="w-10 h-10 text-gray-400 dark:text-gray-500" />
           </div>
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
+              No results found
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+              Try adjusting your search or filter criteria to find what you're looking for.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setFilterScore('all');
+              }}
+              className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
         </div>
         
         {/* Modal */}
@@ -3032,10 +3578,10 @@ Return ONLY a structured JSON object with the following schema:
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   transition={{ duration: 0.25 }}
-                  className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full mx-auto p-6 md:p-8 overflow-hidden"
+                  className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full mx-auto p-5 md:p-6 overflow-hidden border border-gray-100 dark:border-gray-700"
                 >
                   {/* Step Progress Indicator */}
-                  <div className="mb-8">
+                  <div className="mb-6">
                     <div className="flex justify-between items-center w-full relative">
                       {/* Progress Bar */}
                       <div className="absolute h-1 bg-gray-200 dark:bg-gray-700 left-0 right-0 top-1/2 -translate-y-1/2 z-0"></div>
@@ -3057,10 +3603,10 @@ Return ONLY a structured JSON object with the following schema:
                           >
                             <div 
                               className={`
-                                w-10 h-10 rounded-full flex items-center justify-center mb-2
+                                w-8 h-8 rounded-full flex items-center justify-center mb-1
                                 transition-all duration-300 transform
                                 ${isActive 
-                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-4 ring-purple-100 dark:ring-purple-900/30 scale-110' 
+                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-2 ring-purple-100 dark:ring-purple-900/30 scale-105' 
                                   : isCompleted 
                                     ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
                                     : 'bg-white dark:bg-gray-700 text-gray-400 border-2 border-gray-200 dark:border-gray-600'
@@ -3068,9 +3614,9 @@ Return ONLY a structured JSON object with the following schema:
                               `}
                             >
                               {isCompleted ? (
-                                <Check className="w-5 h-5" />
+                                <Check className="w-4 h-4" />
                               ) : (
-                                <span className="text-sm font-medium">
+                                <span className="text-xs font-medium">
                                   {stepNumber}
                                 </span>
                               )}
@@ -3093,79 +3639,92 @@ Return ONLY a structured JSON object with the following schema:
                   </div>
                   
                   {/* Modal Header */}
-                  <div className="flex justify-between items-center mb-6">
+                  <div className="flex justify-between items-center mb-5">
                     <div>
-                      <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                        <span className="mr-3 inline-flex p-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                      <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                        <span className="mr-2 inline-flex p-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
                           {steps[currentStep - 1].icon}
                         </span>
                         {steps[currentStep - 1].title}
                       </Dialog.Title>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         {steps[currentStep - 1].description}
                       </p>
                     </div>
                     <button
                       onClick={() => setIsModalOpen(false)}
-                      className="text-gray-400 hover:text-gray-500 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="text-gray-400 hover:text-gray-500 rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Modal Content */}
-                  <div className="max-h-[60vh] overflow-y-auto pr-1 -mr-1 mb-6">
+                  <div className="max-h-[50vh] overflow-y-auto pr-1 -mr-1 mb-5">
                     {steps[currentStep - 1].content}
                   </div>
                   
                   {/* Modal Footer */}
-                  <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
                     <button
                       onClick={() => {
                         if (currentStep > 1) {
                           setCurrentStep(currentStep - 1);
                         }
                       }}
-                      className={`px-4 py-2 rounded-lg font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ${
+                      className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ${
                         currentStep === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700' 
                       }`}
                       disabled={currentStep === 1}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
+                      <ChevronRight className="h-4 w-4 mr-1 rotate-180" />
                       Back
                     </button>
                     
                     <button
                       onClick={() => {
                         if (currentStep < steps.length) {
+                          // Validate step 2 before proceeding
+                          if (currentStep === 2) {
+                            if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
+                              toast.error('Please fill in all job information fields');
+                              return;
+                            }
+                          }
                           setCurrentStep(currentStep + 1);
                         } else {
                           // Call handleAnalysis instead of just closing the modal
                           handleAnalysis();
                         }
                       }}
-                      className={`px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium flex items-center shadow hover:shadow-md transition-all ${
-                        (currentStep === 1 && !cvFile) || isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:from-purple-700 hover:to-indigo-700'
+                      className={`px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-medium flex items-center shadow hover:shadow-md transition-all ${
+                        (currentStep === 1 && !cvFile) || 
+                        (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
+                        isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:from-purple-700 hover:to-indigo-700'
                       }`}
-                      disabled={(currentStep === 1 && !cvFile) || isLoading}
+                      disabled={
+                        (currentStep === 1 && !cvFile) || 
+                        (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
+                        isLoading
+                      }
                     >
                       {isLoading ? (
                         <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
+                          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
                           Analysis in progress...
                         </>
                       ) :
                         <>
-                          {currentStep === steps.length ? 'Analyze Resume' : 'Continue'}
-                          {currentStep < steps.length && (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                          {currentStep === steps.length ? (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Analyze Resume
+                            </>
+                          ) : (
+                            <>
+                              Continue
+                              <ChevronRight className="h-4 w-4 ml-1" />
+                            </>
                           )}
                         </>
                       }
@@ -3181,7 +3740,278 @@ Return ONLY a structured JSON object with the following schema:
         <AnimatePresence>
           {isLoading && <LoadingScreen />}
         </AnimatePresence>
+
+      {/* Analysis Detail Modal */}
+      <AnimatePresence>
+        {selectedAnalysis && (
+          <Dialog
+            open={!!selectedAnalysis}
+            onClose={() => setSelectedAnalysis(null)}
+            className="fixed inset-0 z-[60] overflow-y-auto"
+          >
+            <div className="flex items-center justify-center min-h-screen px-4 py-8">
+              <Dialog.Overlay 
+                as={motion.div}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={() => setSelectedAnalysis(null)}
+              />
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.3 }}
+                className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full mx-auto max-h-[90vh] overflow-hidden flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800">
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="relative">
+                      <CircularProgressWithCenterText 
+                        value={selectedAnalysis.matchScore} 
+                        size={70}
+                        strokeWidth={7}
+                        textSize="text-xl font-semibold"
+                        colorClass={getScoreColorClass(selectedAnalysis.matchScore)}
+                      />
+                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <Trophy className={`w-5 h-5 ${
+                          selectedAnalysis.matchScore >= 80 
+                            ? 'text-yellow-500' 
+                            : selectedAnalysis.matchScore >= 65 
+                            ? 'text-blue-400' 
+                            : 'text-red-400'
+                        }`} />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                        {selectedAnalysis.jobTitle}
+                      </h2>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="w-4 h-4" />
+                          {selectedAnalysis.company}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <CalendarIcon className="w-4 h-4" />
+                          {formatDateString(selectedAnalysis.date)}
+                        </div>
+                        {selectedAnalysis.matchScore >= 80 && (
+                          <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full text-xs font-medium">
+                            <CheckCircle className="w-3 h-3" />
+                            High match
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedAnalysis(null)}
+                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors ml-4"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
       </div>
+
+                {/* Modal Content - Scrollable */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Match Score Overview */}
+                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-700/30 dark:to-gray-700/30 rounded-xl p-6 border border-purple-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        Overall Match Score
+                      </h3>
+                      <div className={`text-3xl font-bold ${getScoreColorClass(selectedAnalysis.matchScore)}`}>
+                        {selectedAnalysis.matchScore}%
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      {selectedAnalysis.matchScore >= 80 ? 
+                        "Your resume is very well aligned with this position! You appear to be a strong candidate based on the requirements." :
+                        selectedAnalysis.matchScore >= 65 ?
+                        "Your resume meets many of the key requirements, but there are some areas that could be improved." :
+                        "Your resume needs significant adjustments to better align with this position's requirements."
+                      }
+                    </p>
+                    <div className="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          selectedAnalysis.matchScore >= 80 ? 'bg-green-500' : 
+                          selectedAnalysis.matchScore >= 65 ? 'bg-yellow-500' : 
+                          'bg-red-500'
+                        }`}
+                        style={{ width: `${selectedAnalysis.matchScore}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Category Scores Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(selectedAnalysis.categoryScores).map(([category, score], idx) => (
+                      <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 text-center">
+                        <div className="text-xs uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-2">
+                          {category.replace(/([A-Z])/g, ' $1').trim()}
+                        </div>
+                        <div className={`text-2xl font-bold ${getScoreColorClass(score)}`}>
+                          {Math.round(score)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Executive Summary */}
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      Executive Summary
+                    </h3>
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {selectedAnalysis.executiveSummary}
+                    </p>
+                  </div>
+
+                  {/* Skills Match */}
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      Matched Skills
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {selectedAnalysis.skillsMatch.matching
+                        .sort((a, b) => b.relevance - a.relevance)
+                        .map((skill, idx) => (
+                          <div 
+                            key={idx}
+                            className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-full text-sm font-medium"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            {skill.name}
+                            <span className="text-xs opacity-75">({skill.relevance}%)</span>
+                          </div>
+                        ))}
+                    </div>
+
+                    {selectedAnalysis.skillsMatch.missing.length > 0 && (
+                      <>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 mt-6">
+                          <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                          Missing Skills
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedAnalysis.skillsMatch.missing
+                            .sort((a, b) => b.relevance - a.relevance)
+                            .map((skill, idx) => (
+                              <div 
+                                key={idx}
+                                className="flex items-center gap-2 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 px-3 py-1.5 rounded-full text-sm font-medium"
+                              >
+                                <AlertCircle className="w-4 h-4" />
+                                {skill.name}
+                                <span className="text-xs opacity-75">({skill.relevance}%)</span>
+                              </div>
+                            ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Recommendations */}
+                  {selectedAnalysis.recommendations && selectedAnalysis.recommendations.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Lightbulb className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                        Recommendations
+                      </h3>
+                      <div className="space-y-4">
+                        {selectedAnalysis.recommendations.map((rec, idx) => (
+                          <div 
+                            key={idx}
+                            className={`p-4 rounded-lg border-l-4 ${
+                              rec.priority === 'high' 
+                                ? 'bg-red-50 dark:bg-red-900/10 border-red-500' 
+                                : rec.priority === 'medium'
+                                ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-500'
+                                : 'bg-blue-50 dark:bg-blue-900/10 border-blue-500'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="font-semibold text-gray-900 dark:text-white">
+                                {rec.title}
+                              </h4>
+                              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                rec.priority === 'high' 
+                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
+                                  : rec.priority === 'medium'
+                                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              }`}>
+                                {rec.priority.toUpperCase()}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                              {rec.description}
+                            </p>
+                            {rec.examples && (
+                              <div className="mt-2 p-2 bg-white dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400 font-mono">
+                                {rec.examples}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Key Findings */}
+                  {selectedAnalysis.keyFindings && selectedAnalysis.keyFindings.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        Key Findings
+                      </h3>
+                      <ul className="space-y-2">
+                        {selectedAnalysis.keyFindings.map((finding, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                            <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                            <span>{finding}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modal Footer */}
+                <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <button
+                    onClick={() => {
+                      deleteAnalysis(selectedAnalysis.id);
+                      setSelectedAnalysis(null);
+                    }}
+                    className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Analysis
+                  </button>
+                  <button
+                    onClick={() => setSelectedAnalysis(null)}
+                    className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium hover:opacity-90 transition-all shadow-lg shadow-purple-500/20"
+                  >
+                    Close
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </Dialog>
+        )}
+      </AnimatePresence>
       
       {/* CV Selection Modal */}
       {cvModalOpen && false && (

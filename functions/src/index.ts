@@ -11,9 +11,59 @@ import {onCall} from "firebase-functions/v2/https";
 import {onRequest} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { emailService } from './lib/mailgun.js';
+import OpenAI from 'openai';
+import * as functions from 'firebase-functions';
 
 // Initialize Firebase Admin
 admin.initializeApp();
+
+// Initialize OpenAI client with Firestore API key
+let openai: OpenAI | null = null;
+
+const getOpenAIApiKey = async (): Promise<string> => {
+  try {
+    // Get API key from Firestore (settings/openai)
+    const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
+    if (settingsDoc.exists()) {
+      const data = settingsDoc.data();
+      const apiKey = data?.apiKey;
+      if (apiKey) {
+        console.log('OpenAI API key retrieved from Firestore');
+        return apiKey;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to retrieve API key from Firestore:', error);
+  }
+  
+  // Fallback to environment variable
+  if (process.env.OPENAI_API_KEY) {
+    console.log('Using OpenAI API key from environment variable');
+    return process.env.OPENAI_API_KEY;
+  }
+  
+  // Fallback to Firebase config
+  try {
+    const config = functions.config();
+    if (config.openai?.api_key) {
+      console.log('Using OpenAI API key from Firebase config');
+      return config.openai.api_key;
+    }
+  } catch (e) {
+    console.warn('Could not access Firebase config:', e);
+  }
+  
+  throw new Error('OpenAI API key not found in Firestore (settings/openai), environment, or Firebase config');
+};
+
+// Initialize OpenAI client lazily
+const getOpenAIClient = async (): Promise<OpenAI> => {
+  if (!openai) {
+    const apiKey = await getOpenAIApiKey();
+    openai = new OpenAI({ apiKey });
+  }
+  return openai;
+};
 
 export const startCampaign = onCall({
   region: 'us-central1',
@@ -247,6 +297,136 @@ export const updateCampaignEmails = onRequest({
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Analyze CV with GPT-4o Vision
+ * Endpoint: POST /api/analyze-cv-vision
+ */
+export const analyzeCVVision = onRequest({
+  region: 'us-central1',
+  cors: true,
+  maxInstances: 10,
+  timeoutSeconds: 300, // 5 minutes timeout for large PDFs
+}, async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  // Only allow POST
+  if (req.method !== 'POST') {
+    res.status(405).json({
+      status: 'error',
+      message: 'Method not allowed'
+    });
+    return;
+  }
+
+  try {
+    console.log('🔍 CV Vision analysis request received');
+    
+    const { model, messages, response_format, max_tokens, temperature } = req.body;
+    
+    // Validate request
+    if (!model || !messages || !Array.isArray(messages)) {
+      console.error('Invalid request format:', { model, hasMessages: !!messages });
+      res.status(400).json({
+        status: 'error',
+        message: 'Invalid request format: model and messages array are required'
+      });
+      return;
+    }
+
+    // Get OpenAI client
+    let openaiClient: OpenAI;
+    try {
+      openaiClient = await getOpenAIClient();
+    } catch (error) {
+      console.error('Failed to get OpenAI client:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key not configured. Please set it in Firestore (settings/openai).'
+      });
+      return;
+    }
+
+    console.log('📡 Sending request to GPT-4o Vision API...');
+    console.log(`   Model: ${model}`);
+    console.log(`   Messages: ${messages.length}`);
+    const imageCount = messages[0]?.content?.filter((c: any) => c.type === 'image_url').length || 0;
+    console.log(`   Images: ${imageCount}`);
+    
+    // Call OpenAI API
+    const completion = await openaiClient.chat.completions.create({
+      model: model || 'gpt-4o',
+      messages: messages,
+      response_format: response_format || { type: 'json_object' },
+      max_tokens: max_tokens || 6000, // Increased for more detailed analysis
+      temperature: temperature || 0.1, // Lower temperature for more precise, consistent analysis
+    });
+
+    console.log('✅ GPT-4o Vision API response received');
+    
+    // Extract content
+    const content = completion.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('Empty response from GPT-4o Vision API');
+    }
+
+    // Parse JSON if needed
+    let parsedContent;
+    try {
+      parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+    } catch (e) {
+      // If parsing fails, try to extract JSON from markdown
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                        content.match(/{[\s\S]*}/);
+      if (jsonMatch) {
+        parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      } else {
+        throw new Error('Could not parse JSON from response');
+      }
+    }
+
+    console.log('✅ Analysis completed successfully');
+    
+    // Return success response
+    res.status(200).json({
+      status: 'success',
+      content: parsedContent,
+      usage: completion.usage
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error in analyzeCVVision:', error);
+    
+    // Handle OpenAI API errors
+    if (error.response) {
+      const statusCode = error.response.status || 500;
+      const errorMessage = error.response.data?.error?.message || error.message || 'Unknown error';
+      
+      res.status(statusCode).json({
+        status: 'error',
+        message: `OpenAI API error: ${errorMessage}`,
+        error: error.response.data?.error
+      });
+      return;
+    }
+
+    // Handle other errors
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Internal server error'
     });
   }
 });

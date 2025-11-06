@@ -172,8 +172,9 @@ async function extractTextFromPDF(file: File): Promise<string> {
     const arrayBuffer = await file.arrayBuffer();
     console.log("PDF loaded into memory, size:", arrayBuffer.byteLength);
     
-    // Configure PDF.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    // Configure PDF.js worker to use local file from public folder
+    // This avoids CORS issues and 404 errors from CDN
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
     
     // Load the PDF document
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
