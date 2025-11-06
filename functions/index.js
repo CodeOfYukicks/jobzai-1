@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const dotenv = require('dotenv');
+const serverlessFunctions = require('./lib/index.js');
 
 // Load environment variables
 dotenv.config();
@@ -163,4 +164,7 @@ app.post('/api/claude', async (req, res) => {
 });
 
 // Exporter l'app Express en tant que fonction Firebase
-exports.api = functions.https.onRequest(app); 
+exports.api = functions.https.onRequest(app);
+exports.startCampaign = serverlessFunctions.startCampaign;
+exports.updateCampaignEmails = serverlessFunctions.updateCampaignEmails;
+exports.analyzeCVVision = serverlessFunctions.analyzeCVVision;

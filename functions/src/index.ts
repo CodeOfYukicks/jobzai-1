@@ -23,17 +23,26 @@ let openai: OpenAI | null = null;
 const getOpenAIApiKey = async (): Promise<string> => {
   try {
     // Get API key from Firestore (settings/openai)
+    console.log('🔑 Attempting to retrieve OpenAI API key from Firestore...');
     const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
-    if (settingsDoc.exists()) {
+    
+    if (settingsDoc.exists) {
       const data = settingsDoc.data();
-      const apiKey = data?.apiKey;
+      console.log('   Document exists, fields:', Object.keys(data || {}));
+      const apiKey = data?.apiKey || data?.api_key;
       if (apiKey) {
-        console.log('OpenAI API key retrieved from Firestore');
+        console.log('✅ OpenAI API key retrieved from Firestore (first 10 chars):', apiKey.substring(0, 10) + '...');
         return apiKey;
+      } else {
+        console.warn('⚠️  Document exists but apiKey field is missing. Available fields:', Object.keys(data || {}));
       }
+    } else {
+      console.warn('⚠️  Document settings/openai does not exist in Firestore');
     }
-  } catch (error) {
-    console.warn('Failed to retrieve API key from Firestore:', error);
+  } catch (error: any) {
+    console.error('❌ Failed to retrieve API key from Firestore:', error);
+    console.error('   Error message:', error?.message);
+    console.error('   Error code:', error?.code);
   }
   
   // Fallback to environment variable
@@ -310,6 +319,7 @@ export const analyzeCVVision = onRequest({
   cors: true,
   maxInstances: 10,
   timeoutSeconds: 300, // 5 minutes timeout for large PDFs
+  invoker: 'public', // Allow public access (no authentication required)
 }, async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -333,6 +343,9 @@ export const analyzeCVVision = onRequest({
 
   try {
     console.log('🔍 CV Vision analysis request received');
+    console.log('   Request method:', req.method);
+    console.log('   Request headers:', JSON.stringify(req.headers));
+    console.log('   Request body keys:', Object.keys(req.body || {}));
     
     const { model, messages, response_format, max_tokens, temperature } = req.body;
     
@@ -350,11 +363,17 @@ export const analyzeCVVision = onRequest({
     let openaiClient: OpenAI;
     try {
       openaiClient = await getOpenAIClient();
-    } catch (error) {
-      console.error('Failed to get OpenAI client:', error);
+    } catch (error: any) {
+      console.error('❌ Failed to get OpenAI client:', error);
+      console.error('   Error message:', error?.message);
+      console.error('   Error stack:', error?.stack);
+      
+      // Return detailed error for debugging
+      const errorMessage = error?.message || 'Unknown error';
       res.status(500).json({
         status: 'error',
-        message: 'OpenAI API key not configured. Please set it in Firestore (settings/openai).'
+        message: `OpenAI API key configuration error: ${errorMessage}. Please check Firestore (settings/openai) document.`,
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
       });
       return;
     }
@@ -362,7 +381,13 @@ export const analyzeCVVision = onRequest({
     console.log('📡 Sending request to GPT-4o Vision API...');
     console.log(`   Model: ${model}`);
     console.log(`   Messages: ${messages.length}`);
-    const imageCount = messages[0]?.content?.filter((c: any) => c.type === 'image_url').length || 0;
+    // Count images in messages (content can be string or array)
+    let imageCount = 0;
+    messages.forEach((msg: any) => {
+      if (Array.isArray(msg.content)) {
+        imageCount += msg.content.filter((c: any) => c.type === 'image_url').length;
+      }
+    });
     console.log(`   Images: ${imageCount}`);
     
     // Call OpenAI API

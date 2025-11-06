@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "echo 'No linting configured'",
-    "build": "echo 'No build step needed'",
+    "build": "tsc -p tsconfig.json",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
@@ -13,7 +13,7 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.4",
