@@ -40,39 +40,136 @@ ${jobDetails.jobDescription}
 
 ## STEP-BY-STEP ANALYSIS METHODOLOGY
 
-### STEP 1: EXTRACT & CATEGORIZE REQUIREMENTS
-From the job description, identify:
-- **MUST-HAVE requirements** (deal-breakers if missing)
-- **NICE-TO-HAVE requirements** (bonus points)
-- **IMPLICIT requirements** (industry standards, soft skills, cultural fit)
-- **TECHNICAL SKILLS** (specific tools, technologies, certifications)
-- **EXPERIENCE LEVEL** (years, seniority, domain expertise)
-- **EDUCATION REQUIREMENTS** (degree, certifications, training)
+### STEP 1: EXTRACT & CATEGORIZE REQUIREMENTS (CRITICAL - BE RUTHLESS)
 
-### STEP 2: RESUME DECONSTRUCTION
-From the resume images, extract with precision:
+**THIS IS THE MOST IMPORTANT STEP. BE EXTREMELY PRECISE AND SEVERE.**
+
+From the job description, you MUST identify with surgical precision:
+
+### A. CRITICAL MUST-HAVE REQUIREMENTS (DEAL-BREAKERS)
+These are ABSOLUTE REQUIREMENTS that if missing, the candidate CANNOT get the job:
+- **PRIMARY TECHNICAL SKILLS**: Skills explicitly stated as "required", "must have", "essential", "mandatory"
+- **CORE EXPERIENCE**: Minimum years of experience, specific role experience, industry experience
+- **CRITICAL CERTIFICATIONS**: Certifications that are non-negotiable (e.g., security clearances, professional licenses)
+- **EDUCATION REQUIREMENTS**: Degree requirements that are explicitly stated as mandatory
+- **DOMAIN EXPERTISE**: Industry-specific knowledge that is fundamental to the role
+
+**SCORING IMPACT**: Missing even ONE critical must-have = automatic 20-40 point penalty to overall match score. Missing 2+ critical must-haves = 40-60 point penalty. This is NON-NEGOTIABLE.
+
+### B. HIGHLY IMPORTANT REQUIREMENTS (STRONG IMPACT)
+These are very important but not absolute deal-breakers:
+- Skills mentioned multiple times in the job description
+- Experience that is strongly preferred
+- Certifications that are highly valued
+- Education that is preferred but not mandatory
+
+**SCORING IMPACT**: Missing highly important requirements = 10-20 point penalty per missing item.
+
+### C. NICE-TO-HAVE REQUIREMENTS (BONUS POINTS)
+These are desirable but not critical:
+- Skills mentioned once or in "nice to have" sections
+- Additional certifications
+- Extra experience beyond minimum
+- Soft skills and cultural fit indicators
+
+**SCORING IMPACT**: Missing nice-to-haves = 0-5 point penalty. Having them = 0-5 point bonus.
+
+### D. IMPLICIT REQUIREMENTS
+Industry standards, soft skills, cultural fit that are expected but not explicitly stated.
+
+**SCORING IMPACT**: Missing implicit requirements = 0-10 point penalty depending on importance.
+
+**CRITICAL INSTRUCTION**: You MUST categorize EVERY requirement from the job description into one of these categories. Be RUTHLESS. If a skill is mentioned in "Required Qualifications" or "Must Have" section, it's CRITICAL. If it's mentioned 3+ times, it's HIGHLY IMPORTANT. If it's mentioned once in passing, it's NICE-TO-HAVE.
+
+### STEP 2: RESUME DECONSTRUCTION (CRITICAL - BE THOROUGH AND FLEXIBLE)
+
+**CRITICAL INSTRUCTION**: Read the resume images CAREFULLY and COMPLETELY. Do NOT miss information. Check EVERY section, EVERY line, EVERY detail.
+
+From the resume images, extract with EXTREME PRECISION and THOROUGHNESS:
+
 - **All skills mentioned** (hard skills, soft skills, tools, technologies)
+  - Look in ALL sections: Summary, Experience, Skills, Education, Certifications, Projects, etc.
+  - Check for variations, abbreviations, and alternative names
+  - Example: "JS" = JavaScript, "React.js" = React, "Node.js" = Node
+
+- **Languages and Language Skills** (CRITICAL - CHECK CAREFULLY)
+  - Look for: "native", "fluent", "proficient", "bilingual", language names in any form
+  - Check ALL sections: Skills, Summary, Experience, Education, Personal Info
+  - Examples: "French native" = speaks French, "français" = French, "French language" = French
+  - "Native English" = speaks English, "English native" = speaks English
+  - "Bilingual French/English" = speaks both French and English
+  - Check for language proficiency levels: A1, A2, B1, B2, C1, C2
+  - Check for language certifications: TOEFL, IELTS, DELF, etc.
+
 - **Work experience** (titles, companies, dates, responsibilities, achievements with metrics)
+  - Read EVERY bullet point, EVERY responsibility
+  - Extract ALL technologies, tools, and skills mentioned in job descriptions
+
 - **Education** (degrees, institutions, dates, honors, relevant coursework)
+  - Check for language courses, international programs, study abroad
+
 - **Certifications & Training** (names, dates, issuing organizations)
+  - Include language certifications, professional certifications, online courses
+
 - **Quantifiable achievements** (numbers, percentages, dollar amounts, timeframes)
+
 - **Keywords** (industry terms, technical jargon, role-specific terminology)
+  - Look for synonyms and variations
+  - Example: "front-end" = "frontend" = "front end" = "frontend development"
+
 - **Formatting elements** (sections, headers, bullet points, fonts, layout)
+
 - **ATS compatibility** (file structure, parsing-friendly format, keyword density)
+
+**CRITICAL VERIFICATION STEP**: 
+Before declaring ANY requirement as MISSING, you MUST:
+1. Search the ENTIRE resume for the exact term
+2. Search for synonyms and variations (e.g., "French" = "français" = "French native" = "French language")
+3. Search for related terms (e.g., "speaks French" = "French speaker" = "French native")
+4. Check ALL sections of the resume (not just Skills section)
+5. If you find it in ANY form, mark it as FOUND and note WHERE you found it
+
+**DO NOT declare something as missing if you haven't thoroughly searched the entire resume.**
 
 ### STEP 3: PRECISE MATCHING ANALYSIS
 
-#### A. SKILLS MATCHING (Be Surgical)
+#### A. SKILLS MATCHING (Be Surgical BUT Flexible - CRITICAL VERIFICATION)
+
+**CRITICAL INSTRUCTION**: Before marking ANY skill as MISSING, you MUST perform a THOROUGH search with FLEXIBLE matching.
+
 For EACH required skill in the job description:
-1. **Matching Skills**: If found in resume, calculate relevance (0-100):
+
+**STEP 1: FLEXIBLE SEARCH (MANDATORY BEFORE DECLARING MISSING)**
+1. Search for EXACT term in resume
+2. Search for SYNONYMS and VARIATIONS:
+   - Language skills: "French" = "français" = "French native" = "French speaker" = "French language" = "native French" = "fluent in French"
+   - Technical skills: "JavaScript" = "JS" = "javascript" = "JavaScript/ES6" = "JS/TS"
+   - Tools: "Git" = "GitHub" = "GitLab" = "version control" = "Git/GitHub"
+   - Frameworks: "React" = "React.js" = "ReactJS" = "React/Redux"
+3. Search for RELATED TERMS and CONTEXT:
+   - If job requires "French", check for: "French", "français", "French native", "native French", "French speaker", "fluent French", "French language", "bilingual French/English", "French proficiency", etc.
+   - If job requires "Python", check for: "Python", "Python 3", "Python/Django", "Python scripting", "Python development", etc.
+4. Check ALL SECTIONS: Summary, Skills, Experience, Education, Certifications, Projects, Languages, etc.
+5. Check for ABBREVIATIONS and ACRONYMS
+6. Check for PLURAL/SINGULAR forms
+7. Check for COMPOUND terms (e.g., "full stack" vs "fullstack" vs "full-stack")
+
+**STEP 2: MATCHING SKILLS** (Only if found after thorough search)
+If found in resume (in ANY form), calculate relevance (0-100):
    - 90-100: Exact match, prominently featured, with proof of use
    - 70-89: Strong match, mentioned with context
    - 50-69: Partial match, related skill or transferable
    - 30-49: Weak match, tangential connection
-   - 0-29: No match found
-   - Include WHERE in resume it appears (section, context)
+   - Include WHERE in resume it appears (exact section, context, quote the text if possible)
 
-2. **Missing Skills**: List ALL required skills NOT found:
+**STEP 3: MISSING SKILLS** (Only after THOROUGH verification)
+List ONLY skills that are TRULY NOT FOUND after:
+   - Searching for exact term
+   - Searching for all synonyms and variations
+   - Searching all sections of resume
+   - Checking for abbreviations and alternative names
+   
+For each missing skill:
    - Calculate impact score (0-100): How critical is this missing skill?
    - 90-100: Deal-breaker, explicitly required
    - 70-89: Highly important, frequently mentioned
@@ -80,10 +177,13 @@ For EACH required skill in the job description:
    - 30-49: Nice-to-have, mentioned once
    - Suggest alternatives if candidate has transferable skills
 
-3. **Alternative Skills**: If candidate has similar/transferable skills:
+**STEP 4: ALTERNATIVE SKILLS**
+If candidate has similar/transferable skills:
    - Map alternative skill → required skill
    - Explain transferability
    - Suggest how to reframe in resume
+
+**CRITICAL RULE**: If you're not 100% certain a skill is missing after thorough search, mark it as FOUND with lower relevance rather than MISSING. It's better to be cautious than to incorrectly mark something as missing.
 
 #### B. EXPERIENCE MATCHING (Be Rigorous)
 Evaluate experience alignment:
@@ -196,16 +296,114 @@ Calculate realistic interview probability:
 - **Negative Factors**: List specific factors that decrease interview probability
 - **Critical Blockers**: What would prevent this candidate from getting an interview?
 
-### STEP 9: EXECUTIVE ASSESSMENT
-Provide a concise, strategic assessment:
-- **Overall Match Score** (0-100): Be precise and justified based on ALL analysis above
-  - 90-100: Exceptional candidate, exceeds requirements, strong interview probability
-  - 80-89: Strong candidate, meets all requirements, good interview probability
-  - 70-79: Good candidate, meets most requirements, moderate interview probability
-  - 60-69: Qualified candidate, meets basic requirements, low-moderate interview probability
-  - 50-59: Borderline candidate, some concerns, low interview probability
-  - 40-49: Weak candidate, significant gaps, very low interview probability
-  - 0-39: Poor candidate, major misalignment, unlikely to get interview
+### STEP 9: CRITICAL REQUIREMENTS ANALYSIS (NEW - MOST IMPORTANT FOR USER UNDERSTANDING)
+
+**THIS SECTION IS CRITICAL - IT HELPS THE USER UNDERSTAND WHAT'S PRIMORDIAL VS SECONDARY**
+
+You MUST create a detailed breakdown of ALL requirements from the job description, categorized by importance:
+
+#### A. CRITICAL MUST-HAVE REQUIREMENTS (DEAL-BREAKERS - PRIMORDIAL)
+For EACH critical requirement identified in Step 1:
+- **Requirement**: Exact text or clear description from job description
+- **Category**: skill, experience, education, certification, or domain
+- **Found in Resume**: true/false
+- **Location**: Where in resume it appears (section name, context) OR null if not found
+- **Impact**: "deal-breaker" (always for critical requirements)
+- **Score Penalty**: 20-40 points if missing (be specific based on how critical)
+
+#### B. HIGHLY IMPORTANT REQUIREMENTS (STRONG IMPACT)
+For EACH highly important requirement:
+- **Requirement**: Exact text or clear description
+- **Category**: skill, experience, education, certification, or domain
+- **Found in Resume**: true/false
+- **Location**: Where in resume it appears OR null if not found
+- **Impact**: "strong"
+- **Score Penalty**: 10-20 points if missing
+
+#### C. NICE-TO-HAVE REQUIREMENTS (SECONDARY - MINOR IMPACT)
+For EACH nice-to-have requirement:
+- **Requirement**: Exact text or clear description
+- **Category**: skill, experience, education, certification, or domain
+- **Found in Resume**: true/false
+- **Location**: Where in resume it appears OR null if not found
+- **Impact**: "minor"
+- **Score Penalty**: 0-5 points if missing
+
+#### D. SUMMARY
+Provide a clear summary:
+- Critical requirements met: X / Y
+- Highly important requirements met: X / Y
+- Nice-to-have requirements met: X / Y
+
+**CRITICAL**: This section helps the user understand EXACTLY what the job requires and what they have/missing. Be COMPREHENSIVE and PRECISE.
+
+### STEP 10: GAP ANALYSIS (NEW - SHOWS WHAT'S MISSING AND WHY IT MATTERS)
+
+**THIS SECTION SHOWS THE USER WHAT THEY'RE MISSING AND THE IMPACT**
+
+#### A. CRITICAL GAPS (DEAL-BREAKERS)
+For EACH critical requirement that is MISSING:
+- **Requirement**: Exact missing requirement
+- **Category**: skill, experience, education, certification, or domain
+- **Impact**: Detailed explanation of WHY this is critical and HOW it affects their candidacy. Be SPECIFIC and SEVERE.
+- **Score Impact**: Exact points lost (20-40 points)
+- **Priority**: "critical"
+- **Recommendations**: 2-3 SPECIFIC, ACTIONABLE recommendations to address this gap
+- **Alternatives**: If candidate has transferable skills/experience that could compensate, list them. Otherwise null.
+
+#### B. IMPORTANT GAPS (STRONG IMPACT)
+For EACH highly important requirement that is MISSING:
+- **Requirement**: Exact missing requirement
+- **Category**: skill, experience, education, certification, or domain
+- **Impact**: Detailed explanation of WHY this is important and HOW it affects their candidacy
+- **Score Impact**: Exact points lost (10-20 points)
+- **Priority**: high, medium, or low
+- **Recommendations**: 1-2 SPECIFIC, ACTIONABLE recommendations to address this gap
+
+#### C. OVERALL IMPACT SUMMARY
+- **Total Score Penalty**: Sum of all penalties from missing requirements
+- **Critical Gaps Count**: Number of critical gaps
+- **Important Gaps Count**: Number of important gaps
+- **Estimated Interview Probability**: Realistic probability (0-100) of getting an interview given current gaps
+
+**CRITICAL**: This section must be BRUTALLY HONEST. If critical gaps exist, the interview probability MUST be low. Be SEVERE and REALISTIC.
+
+### STEP 11: EXECUTIVE ASSESSMENT (BE BRUTALLY HONEST AND POLARIZED)
+
+**CRITICAL SCORING PHILOSOPHY**: 
+- Use the FULL range of 0-100. Don't inflate scores.
+- Be POLARIZED: If critical requirements are missing, scores MUST be low (30-50). If all critical requirements are met, scores can be high (70-95).
+- ONE missing critical requirement = significant penalty (20-40 points).
+- Multiple missing critical requirements = severe penalty (40-60 points).
+- Perfect alignment with all critical requirements = high score (80-95).
+
+**Overall Match Score** (0-100): Be RUTHLESS, PRECISE, and POLARIZED based on ALL analysis above:
+
+**SCORING MATRIX (STRICT ENFORCEMENT)**:
+
+- **90-100**: EXCEPTIONAL - Exceeds ALL critical requirements, meets ALL highly important requirements, has most nice-to-haves. This is RARE. Only award if candidate is truly exceptional.
+
+- **80-89**: STRONG - Meets ALL critical requirements, meets most highly important requirements, has some nice-to-haves. Candidate is competitive.
+
+- **70-79**: GOOD - Meets ALL critical requirements, meets some highly important requirements. Candidate is viable but not standout.
+
+- **60-69**: QUALIFIED - Meets ALL critical requirements but missing several highly important requirements. Candidate is borderline viable.
+
+- **50-59**: BORDERLINE - Missing 1 critical requirement OR missing many highly important requirements. Candidate has significant concerns. LOW interview probability.
+
+- **40-49**: WEAK - Missing 1-2 critical requirements OR missing most highly important requirements. Candidate has major gaps. VERY LOW interview probability.
+
+- **30-39**: POOR - Missing 2+ critical requirements. Candidate has fundamental misalignment. UNLIKELY to get interview.
+
+- **0-29**: UNQUALIFIED - Missing 3+ critical requirements OR completely misaligned. Candidate should NOT apply for this role.
+
+**CRITICAL RULES FOR SCORING**:
+1. If ANY critical must-have requirement is missing → Maximum score is 60, regardless of other strengths
+2. If 2+ critical must-have requirements are missing → Maximum score is 40
+3. If 3+ critical must-have requirements are missing → Maximum score is 30
+4. Perfect alignment with critical requirements but missing highly important ones → Score range 60-75
+5. Perfect alignment with critical AND highly important requirements → Score range 75-95
+6. Exceeding requirements in all categories → Score range 90-100 (RARE)
 
 - **Key Strengths**: Top 3-5 strengths that make candidate compelling (be specific with evidence)
 - **Critical Gaps**: Top 3-5 gaps that could prevent interview (be specific with impact)
@@ -386,28 +584,163 @@ Return ONLY this JSON structure (no other text):
         ...
       ]
     }
+  },
+  "criticalRequirementsAnalysis": {
+    "criticalMustHave": [
+      {
+        "requirement": "<exact_requirement_from_job_description>",
+        "category": "<skill|experience|education|certification|domain>",
+        "found": <true|false>,
+        "location": "<where_in_resume_it_appears_or_null>",
+        "impact": "deal-breaker",
+        "scorePenalty": <0-40, penalty_if_missing>
+      },
+      ...
+    ],
+    "highlyImportant": [
+      {
+        "requirement": "<exact_requirement_from_job_description>",
+        "category": "<skill|experience|education|certification|domain>",
+        "found": <true|false>,
+        "location": "<where_in_resume_it_appears_or_null>",
+        "impact": "strong",
+        "scorePenalty": <0-20, penalty_if_missing>
+      },
+      ...
+    ],
+    "niceToHave": [
+      {
+        "requirement": "<exact_requirement_from_job_description>",
+        "category": "<skill|experience|education|certification|domain>",
+        "found": <true|false>,
+        "location": "<where_in_resume_it_appears_or_null>",
+        "impact": "minor",
+        "scorePenalty": <0-5, penalty_if_missing>
+      },
+      ...
+    ],
+    "summary": {
+      "criticalMet": <integer, number_of_critical_requirements_met>,
+      "criticalTotal": <integer, total_number_of_critical_requirements>,
+      "highlyImportantMet": <integer, number_of_highly_important_requirements_met>,
+      "highlyImportantTotal": <integer, total_number_of_highly_important_requirements>,
+      "niceToHaveMet": <integer, number_of_nice_to_have_requirements_met>,
+      "niceToHaveTotal": <integer, total_number_of_nice_to_have_requirements>
+    }
+  },
+  "gapAnalysis": {
+    "criticalGaps": [
+      {
+        "requirement": "<exact_missing_requirement>",
+        "category": "<skill|experience|education|certification|domain>",
+        "impact": "<detailed_explanation_of_why_this_is_critical_and_how_it_affects_candidacy>",
+        "scoreImpact": <0-40, points_lost_due_to_this_gap>,
+        "priority": "critical",
+        "recommendations": [
+          "<specific_actionable_recommendation_1>",
+          "<specific_actionable_recommendation_2>",
+          ...
+        ],
+        "alternatives": [
+          "<alternative_skill_or_experience_that_could_compensate_or_null>",
+          ...
+        ]
+      },
+      ...
+    ],
+    "importantGaps": [
+      {
+        "requirement": "<exact_missing_requirement>",
+        "category": "<skill|experience|education|certification|domain>",
+        "impact": "<detailed_explanation_of_why_this_is_important_and_how_it_affects_candidacy>",
+        "scoreImpact": <0-20, points_lost_due_to_this_gap>,
+        "priority": "<high|medium|low>",
+        "recommendations": [
+          "<specific_actionable_recommendation_1>",
+          ...
+        ]
+      },
+      ...
+    ],
+    "overallImpact": {
+      "totalScorePenalty": <integer, total_points_lost_due_to_all_gaps>,
+      "criticalGapsCount": <integer, number_of_critical_gaps>,
+      "importantGapsCount": <integer, number_of_important_gaps>,
+      "estimatedInterviewProbability": <0-100, estimated_probability_of_getting_interview_given_current_gaps>
+    }
   }
 }
 
-## CRITICAL QUALITY STANDARDS
+## CRITICAL QUALITY STANDARDS (MANDATORY - BE RUTHLESS BUT ACCURATE)
 
-1. **PRECISION**: Every score must be justified with specific evidence from resume
-2. **SPECIFICITY**: Use exact quotes, section names, and resume elements
-3. **ACTIONABILITY**: Every recommendation must be implementable
-4. **EVIDENCE-BASED**: No assumptions - only what you can see in resume images
-5. **HONESTY**: Don't inflate scores. Be realistic to help candidate improve
-6. **DIFFERENTIATION**: Use full score range (0-100) based on actual match quality
-7. **CONTEXT**: Consider industry standards, role level, and company expectations
-8. **STRATEGIC**: Think like a recruiter - what would make you call this candidate?
+1. **THOROUGH VERIFICATION**: Before declaring ANY requirement as MISSING, you MUST:
+   - Search the ENTIRE resume (all sections, all pages)
+   - Search for EXACT terms, SYNONYMS, VARIATIONS, ABBREVIATIONS
+   - Check for language variations (e.g., "French" = "français" = "French native")
+   - Check for technical variations (e.g., "JavaScript" = "JS" = "javascript")
+   - If you find it in ANY form, mark it as FOUND
+   - DO NOT mark something as missing if you haven't thoroughly searched
+
+2. **RUTHLESS PRECISION**: Every score must be justified with specific evidence from resume. NO GUESSING. NO INFLATION. But also NO FALSE NEGATIVES - if information exists, find it.
+
+3. **POLARIZED SCORING**: 
+   - Missing critical requirements = LOW scores (30-60). NO EXCEPTIONS.
+   - Meeting all critical requirements = HIGH scores (70-95).
+   - Use the FULL range. Don't cluster scores in the middle.
+
+4. **CRITICAL REQUIREMENT ENFORCEMENT**: 
+   - ONE missing critical must-have = automatic 20-40 point penalty
+   - TWO missing critical must-haves = automatic 40-60 point penalty
+   - THREE+ missing critical must-haves = automatic 60+ point penalty
+   - This is NON-NEGOTIABLE. Be SEVERE.
+
+5. **SPECIFICITY**: Use exact quotes, section names, and resume elements. Be surgical.
+
+6. **ACTIONABILITY**: Every recommendation must be implementable with specific steps.
+
+7. **EVIDENCE-BASED WITH FLEXIBLE MATCHING**: 
+   - No assumptions - only what you can see in resume images
+   - BUT: Search thoroughly for variations, synonyms, and alternative expressions
+   - If you can't see it after thorough search, it doesn't exist
+   - If you see it in ANY form (synonym, variation, abbreviation), it EXISTS
+   - Example: "French native" = "speaks French" = "French language" = FOUND
+
+8. **BRUTAL HONESTY**: Don't inflate scores to be "nice". Be REALISTIC and SEVERE. The candidate needs to know the truth to improve. A false high score helps NO ONE.
+
+9. **DIFFERENTIATION**: Use full score range (0-100) based on actual match quality. Don't be afraid of low scores if they're justified.
+
+10. **CONTEXT**: Consider industry standards, role level, and company expectations. Be aware of what's truly required vs. what's nice-to-have.
+
+11. **STRATEGIC THINKING**: Think like a recruiter making a hiring decision. Would you call this candidate? Be HONEST. If critical requirements are missing, you probably wouldn't call them. Reflect that in the score.
+
+12. **PRIMARY vs SECONDARY**: ALWAYS distinguish between what's PRIMORDIAL (critical) and what's SECONDARY (nice-to-have). Primary requirements missing = severe penalty. Secondary requirements missing = minor penalty.
+
+13. **RELIABILITY**: The candidate must be able to TRUST your analysis. If you're not severe and honest, they can't rely on your feedback. Be the analysis they can DEPEND ON.
 
 ## FINAL CHECKLIST BEFORE RESPONDING
 
 ✓ Extracted ALL requirements from job description
-✓ Analyzed ALL visible content in resume images
+✓ Analyzed ALL visible content in resume images (EVERY section, EVERY page)
+✓ For EACH requirement, searched for:
+  - Exact term
+  - Synonyms and variations
+  - Abbreviations and acronyms
+  - Language variations (e.g., "French" vs "français" vs "French native")
+  - Technical variations (e.g., "JavaScript" vs "JS" vs "javascript")
+  - Plural/singular forms
+  - Compound terms
+✓ Verified requirements are TRULY missing before marking as missing
 ✓ Calculated precise scores with evidence
 ✓ Identified specific strengths and weaknesses
 ✓ Provided actionable, prioritized recommendations
 ✓ Returned ONLY valid JSON (no markdown, no code blocks)
+
+**CRITICAL VERIFICATION**: Before marking ANY requirement as missing, ask yourself:
+- Did I search the ENTIRE resume?
+- Did I check for synonyms and variations?
+- Did I check all sections (Skills, Experience, Education, Summary, etc.)?
+- Did I check for abbreviations?
+- If the answer to ANY is NO, search again before marking as missing.
 `;
 }
 
@@ -469,7 +802,7 @@ export async function analyzeCVWithGPT4Vision(
         messages: [
           {
             role: "system",
-            content: "You are a senior ATS specialist with 15+ years of experience analyzing 50,000+ resumes, a certified HR recruiter, and a career strategist. You understand exactly what makes candidates pass or fail ATS filters and recruiter screening. Your analysis must be surgical, evidence-based, brutally honest, and hyper-precise. Every score, finding, and recommendation must be justified with specific evidence from the resume images. Think like a recruiter making a hiring decision. Return ONLY valid JSON - no markdown, no code blocks, no explanations outside the JSON structure."
+            content: "You are a senior ATS specialist with 15+ years of experience analyzing 50,000+ resumes, a certified HR recruiter, and a career strategist. You understand exactly what makes candidates pass or fail ATS filters and recruiter screening. Your analysis must be SURGICAL, EVIDENCE-BASED, BRUTALLY HONEST, RUTHLESSLY SEVERE, and HYPER-PRECISE. You MUST distinguish between CRITICAL requirements (primordial) and SECONDARY requirements (nice-to-have). Missing even ONE critical requirement MUST result in a significant score penalty (20-40 points). Missing multiple critical requirements MUST result in severe penalties (40-60+ points). Use the FULL score range (0-100) and be POLARIZED - don't inflate scores. The candidate needs to TRUST your analysis, so be HONEST and SEVERE. Every score, finding, and recommendation must be justified with specific evidence from the resume images. Think like a recruiter making a hiring decision - would you actually call this candidate? CRITICAL VERIFICATION RULE: Before marking ANY requirement as MISSING, you MUST thoroughly search the ENTIRE resume images for: (1) EXACT terms, (2) SYNONYMS and VARIATIONS (e.g., 'French' = 'français' = 'French native' = 'French speaker' = 'French language'), (3) ABBREVIATIONS (e.g., 'JS' = 'JavaScript'), (4) ALL sections (Skills, Experience, Education, Summary, Certifications, Languages, etc.). For languages specifically, check for: 'French native', 'native French', 'French speaker', 'fluent in French', 'French language', 'français', 'bilingual French/English', etc. If you find the requirement in ANY form, mark it as FOUND with the exact location. DO NOT mark as missing if you haven't thoroughly searched. Return ONLY valid JSON - no markdown, no code blocks, no explanations outside the JSON structure."
           },
           {
             role: "user",

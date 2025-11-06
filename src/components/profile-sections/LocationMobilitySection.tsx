@@ -83,7 +83,7 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
               type="text"
               value={formData.location}
               onChange={(e) => handleChange('location', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               placeholder="Enter your city"
             />
           </div>
@@ -96,7 +96,7 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
               type="text"
               value={formData.country}
               onChange={(e) => handleChange('country', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               placeholder="Enter your country"
             />
           </div>
@@ -128,8 +128,8 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
                 className={`
                   p-3 rounded-lg border-2 transition-all duration-200
                   ${formData.workPreference === pref.id
-                    ? 'border-purple-600 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-purple-200'
+                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                   }
                 `}
               >
@@ -147,7 +147,7 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
           <select
             value={formData.travelPreference}
             onChange={(e) => handleChange('travelPreference', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           >
             <option value="">Select travel preference</option>
             <option value="no-travel">No travel</option>

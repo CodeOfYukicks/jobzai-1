@@ -5,6 +5,10 @@ import { AuthProvider } from './contexts/AuthContext';
 import { RecommendationsProvider } from './contexts/RecommendationsContext';
 import App from './App';
 import './index.css';
+import { initializeTheme } from './lib/theme';
+
+// Initialize theme IMMEDIATELY before React renders to prevent flash
+initializeTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

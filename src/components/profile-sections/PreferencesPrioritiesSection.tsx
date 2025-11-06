@@ -89,8 +89,8 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
                 className={`
                   flex-1 py-2 rounded-lg border-2 transition-all duration-200
                   ${formData.workLifeBalance === value
-                    ? 'border-purple-600 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-purple-200'
+                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700'
                   }
                 `}
               >
@@ -108,7 +108,7 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
           <textarea
             value={formData.companyCulture}
             onChange={(e) => handleChange('companyCulture', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
             rows={3}
             placeholder="Describe your ideal company culture..."
           />
@@ -122,7 +122,7 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
           <textarea
             value={formData.careerGrowth}
             onChange={(e) => handleChange('careerGrowth', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
             rows={3}
             placeholder="Describe your career growth expectations..."
           />
@@ -141,8 +141,8 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
                 className={`
                   p-3 rounded-lg border-2 transition-all duration-200
                   ${formData.preferredCompanySize === scale.id
-                    ? 'border-purple-600 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-purple-200'
+                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                   }
                 `}
               >
@@ -161,7 +161,7 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
             <input
               type="text"
               placeholder="Add a sector to avoid and press Enter"
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                   e.preventDefault();

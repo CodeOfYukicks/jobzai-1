@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Type definition for recommendation types
-export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy';
+export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy' | 'career-path' | 'skills-gap' | 'market-insights';
 
 export interface RecommendationState {
   targetCompanies: {
@@ -23,6 +23,24 @@ export interface RecommendationState {
     lastUpdated: Date | null;
   };
   jobStrategy: {
+    isLoading: boolean;
+    error: string | null;
+    data: any | null;
+    lastUpdated: Date | null;
+  };
+  careerPath: {
+    isLoading: boolean;
+    error: string | null;
+    data: any | null;
+    lastUpdated: Date | null;
+  };
+  skillsGap: {
+    isLoading: boolean;
+    error: string | null;
+    data: any | null;
+    lastUpdated: Date | null;
+  };
+  marketInsights: {
     isLoading: boolean;
     error: string | null;
     data: any | null;
@@ -63,6 +81,24 @@ const initialState: RecommendationState = {
     data: null,
     lastUpdated: null,
   },
+  careerPath: {
+    isLoading: false,
+    error: null,
+    data: null,
+    lastUpdated: null,
+  },
+  skillsGap: {
+    isLoading: false,
+    error: null,
+    data: null,
+    lastUpdated: null,
+  },
+  marketInsights: {
+    isLoading: false,
+    error: null,
+    data: null,
+    lastUpdated: null,
+  },
 };
 
 // Helper to convert type to state key
@@ -76,6 +112,12 @@ export const getStateKey = (type: RecommendationType): keyof RecommendationState
       return 'salaryInsights';
     case 'job-strategy':
       return 'jobStrategy';
+    case 'career-path':
+      return 'careerPath';
+    case 'skills-gap':
+      return 'skillsGap';
+    case 'market-insights':
+      return 'marketInsights';
     default:
       return 'targetCompanies';
   }

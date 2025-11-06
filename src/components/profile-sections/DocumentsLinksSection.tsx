@@ -108,10 +108,10 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
           </label>
           <div className="flex items-center gap-4">
             {formData.cvUrl ? (
-              <div className="flex-1 flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+              <div className="flex-1 flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700">
                 <div className="flex items-center gap-3">
                   <FileText className="w-5 h-5 text-gray-500" />
-                  <span className="text-sm text-gray-600">{formData.cvName}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">{formData.cvName}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <a
@@ -131,10 +131,10 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
                 </div>
               </div>
             ) : (
-              <label className="flex-1 flex items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 transition-colors cursor-pointer">
+              <label className="flex-1 flex items-center justify-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-purple-500 dark:hover:border-purple-400 transition-colors cursor-pointer bg-white dark:bg-gray-700">
                 <div className="flex flex-col items-center gap-2">
                   <Upload className={`w-8 h-8 ${isUploading ? 'animate-bounce text-purple-600' : 'text-gray-400'}`} />
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {isUploading ? 'Uploading...' : 'Click to upload your CV'}
                   </span>
                 </div>
@@ -165,8 +165,8 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
                 type="url"
                 value={formData.linkedinUrl}
                 onChange={(e) => handleChange('linkedinUrl', e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-purple-600 focus:border-transparent
-                  ${!validateUrl(formData.linkedinUrl) ? 'border-red-300' : 'border-gray-300'}`}
+                className={`w-full pl-10 pr-4 py-2 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent
+                  ${!validateUrl(formData.linkedinUrl) ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'}`}
                 placeholder="https://linkedin.com/in/username"
               />
             </div>
@@ -185,8 +185,8 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
                 type="url"
                 value={formData.portfolioUrl}
                 onChange={(e) => handleChange('portfolioUrl', e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-purple-600 focus:border-transparent
-                  ${!validateUrl(formData.portfolioUrl) ? 'border-red-300' : 'border-gray-300'}`}
+                className={`w-full pl-10 pr-4 py-2 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent
+                  ${!validateUrl(formData.portfolioUrl) ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'}`}
                 placeholder="https://yourportfolio.com"
               />
             </div>
@@ -205,8 +205,8 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
                 type="url"
                 value={formData.githubUrl}
                 onChange={(e) => handleChange('githubUrl', e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-purple-600 focus:border-transparent
-                  ${!validateUrl(formData.githubUrl) ? 'border-red-300' : 'border-gray-300'}`}
+                className={`w-full pl-10 pr-4 py-2 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent
+                  ${!validateUrl(formData.githubUrl) ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'}`}
                 placeholder="https://github.com/username"
               />
             </div>

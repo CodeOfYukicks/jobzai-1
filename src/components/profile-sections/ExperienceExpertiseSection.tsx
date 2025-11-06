@@ -99,7 +99,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
               type="number"
               value={formData.yearsOfExperience}
               onChange={(e) => handleChange('yearsOfExperience', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               placeholder="e.g., 5"
             />
           </div>
@@ -112,7 +112,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
               type="text"
               value={formData.currentPosition}
               onChange={(e) => handleChange('currentPosition', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               placeholder="e.g., Senior Developer"
             />
           </div>
@@ -129,7 +129,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
               value={newSkill}
               onChange={(e) => setNewSkill(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               placeholder="Add a skill"
             />
             <button
@@ -168,7 +168,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
               value={newTool}
               onChange={(e) => setNewTool(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddTool()}
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               placeholder="Add a tool"
             />
             <button
@@ -212,7 +212,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
           
           <div className="space-y-4">
             {formData.certifications.map((cert, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-gray-200 rounded-lg">
+              <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                 <input
                   type="text"
                   value={cert.name}
@@ -221,7 +221,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
                     newCerts[index].name = e.target.value;
                     handleChange('certifications', newCerts);
                   }}
-                  className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   placeholder="Certification name"
                 />
                 <input
@@ -232,7 +232,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
                     newCerts[index].issuer = e.target.value;
                     handleChange('certifications', newCerts);
                   }}
-                  className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   placeholder="Issuing organization"
                 />
                 <div className="flex gap-2">
@@ -244,7 +244,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
                       newCerts[index].year = e.target.value;
                       handleChange('certifications', newCerts);
                     }}
-                    className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     placeholder="Year"
                   />
                   {index > 0 && (

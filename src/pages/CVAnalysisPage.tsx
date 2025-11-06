@@ -129,6 +129,65 @@ interface ATSAnalysis {
     overall: number;
     factors: { positive: string[]; negative: string[] };
   };
+  criticalRequirementsAnalysis?: {
+    criticalMustHave: {
+      requirement: string;
+      category: 'skill' | 'experience' | 'education' | 'certification' | 'domain';
+      found: boolean;
+      location?: string;
+      impact: 'deal-breaker';
+      scorePenalty: number;
+    }[];
+    highlyImportant: {
+      requirement: string;
+      category: 'skill' | 'experience' | 'education' | 'certification' | 'domain';
+      found: boolean;
+      location?: string;
+      impact: 'strong';
+      scorePenalty: number;
+    }[];
+    niceToHave: {
+      requirement: string;
+      category: 'skill' | 'experience' | 'education' | 'certification' | 'domain';
+      found: boolean;
+      location?: string;
+      impact: 'minor';
+      scorePenalty: number;
+    }[];
+    summary: {
+      criticalMet: number;
+      criticalTotal: number;
+      highlyImportantMet: number;
+      highlyImportantTotal: number;
+      niceToHaveMet: number;
+      niceToHaveTotal: number;
+    };
+  };
+  gapAnalysis?: {
+    criticalGaps: {
+      requirement: string;
+      category: 'skill' | 'experience' | 'education' | 'certification' | 'domain';
+      impact: string;
+      scoreImpact: number;
+      priority: 'critical' | 'high' | 'medium';
+      recommendations: string[];
+      alternatives?: string[];
+    }[];
+    importantGaps: {
+      requirement: string;
+      category: 'skill' | 'experience' | 'education' | 'certification' | 'domain';
+      impact: string;
+      scoreImpact: number;
+      priority: 'high' | 'medium' | 'low';
+      recommendations: string[];
+    }[];
+    overallImpact: {
+      totalScorePenalty: number;
+      criticalGapsCount: number;
+      importantGapsCount: number;
+      estimatedInterviewProbability: number;
+    };
+  };
 }
 
 interface CVOption {
@@ -571,25 +630,43 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
     weightedCategoryScore += categoryScore * data.weight;
   }
   
-  // FIX: Add a minimum baseline score to avoid excessively low overall scores
-  const baselineScore = 40;
+  // SEVERE SCORING: Apply critical requirement penalties FIRST
+  // If critical requirements are missing, apply severe penalties
+  let criticalPenalty = 0;
+  const criticalRequirementsMetRatio = criticalRequirements.length > 0 ?
+    (criticalRequirementsMet / criticalRequirements.length) : 1;
   
-  // Calculate overall match score with weighted components and fixed minimum
-  const matchScore = Math.round(
-    Math.max(
-      baselineScore,
-      (keywordMatchScore * 0.30) + // Base keyword matching (30%)
-      (weightedCategoryScore * 0.25) + // Category-specific matches (25%)  
-      (criticalRequirementsScore * 0.20) + // Critical requirements (20%)
-      (titleMatchScore) + // Job title match bonus (0-15%)
-      (experienceYearsScore) + // Experience years match (0-15%)
-      (exactPhraseBonus) + // Exact phrase matches (0-10%)
-      (Math.random() * 5) // Small random variation for natural feel (0 to +5)
-    )
+  // Calculate penalty based on missing critical requirements
+  if (criticalRequirements.length > 0) {
+    const missingCritical = 1 - criticalRequirementsMetRatio;
+    if (missingCritical > 0.5) {
+      // Missing more than 50% of critical requirements = severe penalty
+      criticalPenalty = 50 + (missingCritical - 0.5) * 30; // 50-80 point penalty
+    } else if (missingCritical > 0.25) {
+      // Missing 25-50% of critical requirements = significant penalty
+      criticalPenalty = 30 + (missingCritical - 0.25) * 20; // 30-50 point penalty
+    } else if (missingCritical > 0) {
+      // Missing less than 25% but still missing some = moderate penalty
+      criticalPenalty = 20 + missingCritical * 10; // 20-30 point penalty
+    }
+  }
+  
+  // Calculate base score without minimum baseline (more severe)
+  const baseScore = (
+    (keywordMatchScore * 0.30) + // Base keyword matching (30%)
+    (weightedCategoryScore * 0.25) + // Category-specific matches (25%)  
+    (criticalRequirementsScore * 0.20) + // Critical requirements (20%)
+    (titleMatchScore) + // Job title match bonus (0-15%)
+    (experienceYearsScore) + // Experience years match (0-15%)
+    (exactPhraseBonus) + // Exact phrase matches (0-10%)
+    (Math.random() * 5) // Small random variation for natural feel (0 to +5)
   );
   
-  // Constrain score to realistic range with proper minimum
-  const finalMatchScore = Math.min(98, matchScore);
+  // Apply critical penalty (SEVERE - this is the key change)
+  const matchScore = Math.round(Math.max(0, baseScore - criticalPenalty));
+  
+  // Constrain score to realistic range (no artificial minimum)
+  const finalMatchScore = Math.min(98, Math.max(0, matchScore));
   
   // Calculate highly specific category scores
   
@@ -1348,11 +1425,18 @@ export default function CVAnalysisPage() {
     console.log('📡 Envoi direct à l\'API OpenAI en cours...');
     
     const prompt = `
-# Enhanced ATS Resume Analysis Engine
+# RUTHLESS ATS RESUME ANALYSIS ENGINE - BE SEVERE AND POLARIZED
 
-## Core Instructions
-Perform a comprehensive, highly nuanced analysis of the provided resume against the job description below.
-Your goal is to deliver actionable, evidence-based insights that will genuinely help the candidate improve their application.
+## CRITICAL MISSION
+You are a RUTHLESS, SEVERE, and BRUTALLY HONEST ATS specialist. Your job is to analyze this resume with SURGICAL PRECISION and deliver a TRUTHFUL assessment that the candidate can RELY ON. 
+
+**CORE PHILOSOPHY**: 
+- Distinguish PRIMORDIAL (critical) requirements from SECONDARY (nice-to-have) requirements
+- Missing ONE critical requirement = SEVERE penalty (20-40 points)
+- Missing multiple critical requirements = MASSIVE penalty (40-60+ points)
+- Be POLARIZED in your scoring - use the FULL range (0-100)
+- Don't inflate scores to be "nice" - be HONEST and SEVERE
+- The candidate needs to TRUST your analysis - false high scores help NO ONE
 
 ## Job Position Details
 - Position: ${jobDetails.jobTitle}
@@ -1362,26 +1446,81 @@ Your goal is to deliver actionable, evidence-based insights that will genuinely 
 ${jobDetails.jobDescription}
 \`\`\`
 
+## STEP 1: EXTRACT & CATEGORIZE REQUIREMENTS (MOST CRITICAL STEP)
+
+**BE RUTHLESS IN CATEGORIZATION. THIS DETERMINES EVERYTHING.**
+
+**CRITICAL VERIFICATION RULE**: Before marking ANY requirement as MISSING, you MUST:
+1. Search the ENTIRE resume (all sections, all pages, all text)
+2. Search for EXACT terms, SYNONYMS, VARIATIONS, ABBREVIATIONS
+3. For languages: "French" = "français" = "French native" = "French speaker" = "French language" = "native French" = "fluent in French" = "bilingual French/English"
+4. For technical skills: "JavaScript" = "JS" = "javascript" = "JavaScript/ES6" = "JS/TS"
+5. Check ALL sections: Summary, Skills, Experience, Education, Certifications, Projects, Languages, Personal Info
+6. If you find it in ANY form, mark it as FOUND with the location
+7. DO NOT mark as missing if you haven't thoroughly searched
+
+From the job description, you MUST identify with surgical precision:
+
+### A. CRITICAL MUST-HAVE REQUIREMENTS (DEAL-BREAKERS - PRIMORDIAL)
+These are ABSOLUTE REQUIREMENTS that if missing, the candidate CANNOT get the job:
+- Skills explicitly stated as "required", "must have", "essential", "mandatory"
+- Minimum years of experience that are non-negotiable
+- Critical certifications/licenses that are mandatory
+- Education requirements explicitly stated as mandatory
+- Core domain expertise that is fundamental to the role
+
+**SCORING RULE**: Missing even ONE critical must-have = automatic 20-40 point penalty to overall match score. Missing 2+ = 40-60 point penalty. This is NON-NEGOTIABLE.
+
+### B. HIGHLY IMPORTANT REQUIREMENTS (STRONG IMPACT)
+- Skills mentioned multiple times in the job description
+- Experience that is strongly preferred
+- Certifications that are highly valued
+
+**SCORING RULE**: Missing highly important requirements = 10-20 point penalty per missing item.
+
+### C. NICE-TO-HAVE REQUIREMENTS (SECONDARY - BONUS POINTS)
+- Skills mentioned once or in "nice to have" sections
+- Additional certifications beyond core requirements
+- Extra experience beyond minimum
+
+**SCORING RULE**: Missing nice-to-haves = 0-5 point penalty. Having them = 0-5 point bonus.
+
+**CRITICAL**: You MUST categorize EVERY requirement. If a skill is in "Required Qualifications" or mentioned 3+ times, it's CRITICAL. If mentioned once in passing, it's SECONDARY.
+
 ## Analysis Framework
-1. EXTRACT ALL RELEVANT INFORMATION from both the resume and job description
-2. COMPARE the resume against industry standards for ${jobDetails.jobTitle} positions
-3. EVALUATE the resume against ATS optimization best practices
-4. IDENTIFY specific strengths and weaknesses with examples from the resume
-5. PRIORITIZE recommendations based on potential impact on application success
+1. EXTRACT ALL REQUIREMENTS and categorize them (CRITICAL vs SECONDARY)
+2. COMPARE resume against CRITICAL requirements first - these determine the base score
+3. EVALUATE resume against SECONDARY requirements - these adjust the score
+4. IDENTIFY specific strengths and weaknesses with examples
+5. PRIORITIZE recommendations - focus on CRITICAL gaps first
 
 ## Depth Requirements
-- Provide PRECISE and SPECIFIC feedback rather than generic observations
-- Consider both EXPLICIT requirements and IMPLICIT expectations for the role
-- Analyze for KEYWORD optimization without suggesting keyword stuffing
-- Evaluate QUANTIFIABLE ACHIEVEMENTS and their relevance to the position
-- Assess FORMATTING, STRUCTURE, and CONTENT from an ATS perspective
-- Identify CAREER PROGRESSION patterns and their alignment with the role
-- Check for INDUSTRY-SPECIFIC conventions and best practices
+- Provide PRECISE and SPECIFIC feedback with evidence
+- DISTINGUISH between what's PRIMORDIAL and what's SECONDARY
+- Be RUTHLESS - if critical requirements are missing, scores MUST be low
+- Be POLARIZED - use full score range, don't cluster in middle
+- Evaluate QUANTIFIABLE ACHIEVEMENTS and their relevance
+- Assess FORMATTING, STRUCTURE, and CONTENT from ATS perspective
 
-## Competitive Analysis Section
-- Compare candidate's profile against typical competitive candidates
-- Identify unique selling points and competitive disadvantages
-- Suggest positioning strategies to stand out from other applicants
+## SCORING PHILOSOPHY (STRICT ENFORCEMENT)
+
+**Overall Match Score** (0-100) - Be RUTHLESS:
+
+- **90-100**: EXCEPTIONAL - Exceeds ALL critical requirements. RARE.
+- **80-89**: STRONG - Meets ALL critical requirements, most highly important ones
+- **70-79**: GOOD - Meets ALL critical requirements, some highly important ones
+- **60-69**: QUALIFIED - Meets ALL critical requirements but missing many highly important ones
+- **50-59**: BORDERLINE - Missing 1 critical requirement OR missing most highly important ones
+- **40-49**: WEAK - Missing 1-2 critical requirements OR missing most highly important ones
+- **30-39**: POOR - Missing 2+ critical requirements
+- **0-29**: UNQUALIFIED - Missing 3+ critical requirements
+
+**MANDATORY RULES**:
+1. Missing ANY critical must-have → Maximum score is 60
+2. Missing 2+ critical must-haves → Maximum score is 40
+3. Missing 3+ critical must-haves → Maximum score is 30
+4. Perfect alignment with critical requirements → Score range 70-95
+5. Exceeding all requirements → Score range 90-100 (RARE)
 
 ## Response Format
 Return ONLY a structured JSON object with the following schema:
@@ -1430,19 +1569,121 @@ Return ONLY a structured JSON object with the following schema:
     "coverLetterFocus": <what_to_emphasize_in_cover_letter>,
     "interviewPreparation": <key_points_to_prepare_for_interviews>,
     "portfolioSuggestions": <portfolio_improvement_suggestions>
+  },
+  "criticalRequirementsAnalysis": {
+    "criticalMustHave": [
+      {
+        "requirement": "<exact_requirement_from_job_description>",
+        "category": "<skill|experience|education|certification|domain>",
+        "found": <true|false>,
+        "location": "<where_in_resume_it_appears_or_null>",
+        "impact": "deal-breaker",
+        "scorePenalty": <0-40, penalty_if_missing>
+      },
+      ...
+    ],
+    "highlyImportant": [
+      {
+        "requirement": "<exact_requirement_from_job_description>",
+        "category": "<skill|experience|education|certification|domain>",
+        "found": <true|false>,
+        "location": "<where_in_resume_it_appears_or_null>",
+        "impact": "strong",
+        "scorePenalty": <0-20, penalty_if_missing>
+      },
+      ...
+    ],
+    "niceToHave": [
+      {
+        "requirement": "<exact_requirement_from_job_description>",
+        "category": "<skill|experience|education|certification|domain>",
+        "found": <true|false>,
+        "location": "<where_in_resume_it_appears_or_null>",
+        "impact": "minor",
+        "scorePenalty": <0-5, penalty_if_missing>
+      },
+      ...
+    ],
+    "summary": {
+      "criticalMet": <integer>,
+      "criticalTotal": <integer>,
+      "highlyImportantMet": <integer>,
+      "highlyImportantTotal": <integer>,
+      "niceToHaveMet": <integer>,
+      "niceToHaveTotal": <integer>
+    }
+  },
+  "gapAnalysis": {
+    "criticalGaps": [
+      {
+        "requirement": "<exact_missing_requirement>",
+        "category": "<skill|experience|education|certification|domain>",
+        "impact": "<detailed_explanation_of_why_this_is_critical_and_how_it_affects_candidacy>",
+        "scoreImpact": <0-40, points_lost_due_to_this_gap>,
+        "priority": "critical",
+        "recommendations": ["<specific_actionable_recommendation_1>", ...],
+        "alternatives": ["<alternative_skill_or_experience_or_null>", ...]
+      },
+      ...
+    ],
+    "importantGaps": [
+      {
+        "requirement": "<exact_missing_requirement>",
+        "category": "<skill|experience|education|certification|domain>",
+        "impact": "<detailed_explanation_of_why_this_is_important_and_how_it_affects_candidacy>",
+        "scoreImpact": <0-20, points_lost_due_to_this_gap>,
+        "priority": "<high|medium|low>",
+        "recommendations": ["<specific_actionable_recommendation_1>", ...]
+      },
+      ...
+    ],
+    "overallImpact": {
+      "totalScorePenalty": <integer>,
+      "criticalGapsCount": <integer>,
+      "importantGapsCount": <integer>,
+      "estimatedInterviewProbability": <0-100>
+    }
   }
 }
 \`\`\`
 
-## Critical Guidelines
-- Ensure score differentiation: Use the FULL RANGE between 30-95% based on genuine fit
-- Low match (30-50%): For significant misalignment with core requirements
-- Medium match (51-75%): For meeting basic requirements with notable gaps
-- High match (76-95%): Only for exceptional alignment with most requirements
-- Never inflate scores artificially - honesty helps candidates improve
-- Provide SPECIFIC, ACTIONABLE recommendations tied to concrete resume elements
-- Focus on EVIDENCE-BASED analysis rather than assumptions
-- Include BEFORE/AFTER examples in recommendations when possible
+## Critical Guidelines (MANDATORY - BE RUTHLESS)
+
+**SCORING PHILOSOPHY - STRICT ENFORCEMENT**:
+
+1. **USE FULL RANGE (0-100)**: Don't cluster scores. Be POLARIZED.
+   - Low match (0-50%): For missing critical requirements or significant misalignment
+   - Medium match (51-70%): For meeting critical requirements but missing highly important ones
+   - High match (71-95%): Only for meeting ALL critical requirements AND most highly important ones
+   - Exceptional (96-100%): RARE - exceeds all requirements
+
+2. **CRITICAL REQUIREMENT ENFORCEMENT**:
+   - Missing 1 critical must-have → Maximum score: 60
+   - Missing 2+ critical must-haves → Maximum score: 40
+   - Missing 3+ critical must-haves → Maximum score: 30
+   - This is NON-NEGOTIABLE. Be SEVERE.
+
+3. **DISTINGUISH PRIMORDIAL vs SECONDARY**:
+   - Primary (critical) requirements missing = SEVERE penalty (20-40 points)
+   - Secondary (nice-to-have) requirements missing = MINOR penalty (0-5 points)
+   - Always identify what's PRIMORDIAL first
+
+4. **BRUTAL HONESTY**:
+   - Never inflate scores to be "nice" - be REALISTIC and SEVERE
+   - The candidate needs to TRUST your analysis
+   - False high scores help NO ONE - they prevent improvement
+   - If critical requirements are missing, the score MUST reflect that
+
+5. **EVIDENCE-BASED**:
+   - Provide SPECIFIC, ACTIONABLE recommendations with evidence
+   - Focus on EVIDENCE from resume, not assumptions
+   - Include BEFORE/AFTER examples when possible
+   - Tie every finding to concrete resume elements
+
+6. **RELIABILITY**:
+   - The candidate must be able to DEPEND ON your analysis
+   - Be the assessment they can TRUST
+   - If you're not severe and honest, they can't rely on you
 `;
 
     try {
@@ -1457,7 +1698,7 @@ Return ONLY a structured JSON object with the following schema:
           messages: [
             {
               role: "system",
-              content: "You are an elite ATS optimization expert, career coach, and industry analyst. Your analysis must be exceptionally detailed, honest, and actionable. Provide specific evidence from the resume for each point you make. Think step by step, and ensure all feedback is constructive and implementation-ready."
+              content: "You are a RUTHLESS, SEVERE, and BRUTALLY HONEST ATS specialist with 15+ years of experience. You MUST distinguish between PRIMORDIAL (critical) requirements and SECONDARY (nice-to-have) requirements. Missing even ONE critical requirement MUST result in a significant score penalty (20-40 points). Missing multiple critical requirements MUST result in severe penalties (40-60+ points). Use the FULL score range (0-100) and be POLARIZED - don't inflate scores. The candidate needs to TRUST your analysis, so be HONEST and SEVERE. Your analysis must be exceptionally detailed, evidence-based, and actionable. Provide specific evidence from the resume for each point. Think step by step. If critical requirements are missing, scores MUST be low. If all critical requirements are met, scores can be high. Be the analysis the candidate can DEPEND ON. CRITICAL: Before marking ANY requirement as MISSING, you MUST thoroughly search the ENTIRE resume for EXACT terms, SYNONYMS, VARIATIONS, and ABBREVIATIONS. For languages, check for all forms: 'French' = 'français' = 'French native' = 'French speaker' = 'French language' = 'native French' = 'fluent in French'. For technical skills, check for abbreviations and variations. Search ALL sections of the resume. If you find it in ANY form, mark it as FOUND. DO NOT mark as missing if you haven't thoroughly searched."
             },
             {
               role: "user",
@@ -2162,8 +2403,8 @@ URL to visit: ${jobUrl}
     
     return (
       <div 
-        className={`bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 
-          hover:shadow-xl hover:border-purple-200 dark:hover:border-purple-800 transition-all duration-300 overflow-hidden
+        className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 
+          hover:shadow-lg hover:border-purple-200 dark:hover:border-purple-800 transition-all duration-300 overflow-hidden
           ${isGrid ? 'h-full flex flex-col' : ''}`}
       >
         {/* Card Header - Always visible and clickable */}
@@ -2175,27 +2416,27 @@ URL to visit: ${jobUrl}
               toggleExpand();
             }
           }}
-          className={`${isGrid ? 'p-6' : 'p-5'} cursor-pointer flex ${isGrid ? 'flex-col' : 'items-center justify-between'} group`}
+          className={`${isGrid ? 'p-4' : 'p-3'} cursor-pointer flex ${isGrid ? 'flex-col' : 'items-center justify-between'} group`}
         >
-          <div className={`flex ${isGrid ? 'flex-col items-center text-center space-y-4' : 'items-center space-x-5 flex-1'}`}>
+          <div className={`flex ${isGrid ? 'flex-col items-center text-center space-y-2' : 'items-center space-x-3 flex-1'}`}>
             {/* Score Circle */}
             <div className="relative flex-shrink-0">
               <CircularProgressWithCenterText 
                 value={analysis.matchScore} 
-                size={isGrid ? 90 : 80}
-                strokeWidth={8}
-                textSize={isGrid ? "text-2xl font-bold" : "text-xl font-bold"}
+                size={isGrid ? 70 : 65}
+                strokeWidth={7}
+                textSize={isGrid ? "text-xl font-bold" : "text-lg font-bold"}
                 colorClass={getScoreColorClass(analysis.matchScore)}
               />
-              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1.5 shadow-lg border-2 border-white dark:border-gray-800">
-                <div className={`${isGrid ? 'w-7 h-7' : 'w-6 h-6'} rounded-full flex items-center justify-center ${
+              <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md border border-white dark:border-gray-800">
+                <div className={`${isGrid ? 'w-5 h-5' : 'w-4 h-4'} rounded-full flex items-center justify-center ${
                   analysis.matchScore >= 80 
                     ? 'bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 shadow-amber-200/50' 
                     : analysis.matchScore >= 65 
                     ? 'bg-gradient-to-br from-blue-400 via-cyan-400 to-blue-500 shadow-blue-200/50' 
                     : 'bg-gradient-to-br from-pink-400 via-rose-400 to-pink-500 shadow-pink-200/50'
-                } shadow-lg`}>
-                  <Trophy className={`${isGrid ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-white drop-shadow-sm`} />
+                }`}>
+                  <Trophy className={`${isGrid ? 'w-3 h-3' : 'w-2.5 h-2.5'} text-white drop-shadow-sm`} />
                 </div>
               </div>
             </div>
@@ -2203,24 +2444,24 @@ URL to visit: ${jobUrl}
             {/* Job Title and Company */}
             <div className={`flex-1 ${isGrid ? 'w-full' : ''}`}>
               <div className={`flex items-center ${isGrid ? 'justify-center flex-col' : ''}`}>
-                <h3 className={`${isGrid ? 'text-xl' : 'text-lg md:text-xl'} font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors ${isGrid ? 'mb-2' : ''}`}>
+                <h3 className={`${isGrid ? 'text-lg' : 'text-base md:text-lg'} font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors ${isGrid ? 'mb-1' : ''}`}>
                   {analysis.jobTitle}
                 </h3>
                 {analysis.matchScore >= 80 && (
-                  <div className={`${isGrid ? 'mt-2' : 'ml-2'} flex items-center bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400 text-xs font-semibold px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800`}>
-                    <CheckCircle className="w-3 h-3 mr-1.5" />
+                  <div className={`${isGrid ? 'mt-1.5' : 'ml-2'} flex items-center bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400 text-xs font-medium px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800`}>
+                    <CheckCircle className="w-2.5 h-2.5 mr-1" />
                     High match
                   </div>
                 )}
               </div>
-              <div className={`flex items-center ${isGrid ? 'flex-col space-y-1 mt-3' : 'mt-1'}`}>
-                <p className={`text-sm text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
-                  <Building2 className="w-4 h-4 mr-1.5 text-gray-400 dark:text-gray-500" /> 
+              <div className={`flex items-center ${isGrid ? 'flex-col space-y-0.5 mt-2' : 'mt-1'}`}>
+                <p className={`text-xs text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
+                  <Building2 className="w-3 h-3 mr-1 text-gray-400 dark:text-gray-500" /> 
                   {analysis.company}
                 </p>
-                {!isGrid && <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>}
-                <p className={`text-sm text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
-                  <CalendarIcon className="w-4 h-4 mr-1.5 text-gray-400 dark:text-gray-500" /> 
+                {!isGrid && <span className="mx-1.5 text-gray-300 dark:text-gray-600">•</span>}
+                <p className={`text-xs text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
+                  <CalendarIcon className="w-3 h-3 mr-1 text-gray-400 dark:text-gray-500" /> 
                   {formatDate(analysis.date)}
                 </p>
               </div>
@@ -2228,16 +2469,16 @@ URL to visit: ${jobUrl}
           </div>
 
           {/* Actions Menu */}
-          <div className={`flex items-center ${isGrid ? 'justify-center mt-4' : 'space-x-2'}`}>
+          <div className={`flex items-center ${isGrid ? 'justify-center mt-3' : 'space-x-1.5'}`}>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 setIsDeleteDialogOpen(true);
               }}
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
               aria-label="Delete analysis"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
             {!onSelect && (
               <button
@@ -2245,13 +2486,13 @@ URL to visit: ${jobUrl}
                   e.stopPropagation();
                   toggleExpand();
                 }}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full transition-colors"
                 aria-label={isExpanded ? "Collapse" : "Expand"}
               >
                 {isExpanded ? (
-                  <ChevronUp className="w-4 h-4" />
+                  <ChevronUp className="w-3.5 h-3.5" />
                 ) : (
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-3.5 h-3.5" />
                 )}
             </button>
             )}
@@ -2260,7 +2501,7 @@ URL to visit: ${jobUrl}
 
         {/* Skill Badges */}
         {!isExpanded && (
-          <div className={`${isGrid ? 'px-6' : 'px-5'} pb-5 pt-0 flex flex-wrap gap-2 ${isGrid ? 'justify-center' : ''}`}>
+          <div className={`${isGrid ? 'px-4' : 'px-3'} pb-3 pt-0 flex flex-wrap gap-1.5 ${isGrid ? 'justify-center' : ''}`}>
             {analysis.skillsMatch.matching
               .sort((a, b) => b.relevance - a.relevance)
               .slice(0, 3)
@@ -2286,7 +2527,7 @@ URL to visit: ${jobUrl}
               
             {/* Compteur pour les skills restantes */}
             {(analysis.skillsMatch.matching.length > 3 || analysis.skillsMatch.missing.length > 2) && (
-              <div className="text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full">
+              <div className="text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
                 +{(analysis.skillsMatch.matching.length - 3) + (analysis.skillsMatch.missing.length - 2)} plus
               </div>
             )}
@@ -2450,6 +2691,385 @@ URL to visit: ${jobUrl}
                   </div>
                 )}
               </div>
+
+              {/* Critical Requirements Analysis - NEW SECTION */}
+              {analysis.criticalRequirementsAnalysis && (
+                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('criticalRequirements')}
+                    className="w-full flex items-center justify-between p-3 text-left bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 hover:from-red-100 hover:to-orange-100 dark:hover:from-red-900/30 dark:hover:to-orange-900/30 transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <AlertTriangle className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
+                      <span className="font-medium">Critical Requirements Analysis</span>
+                      <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold">
+                        {analysis.criticalRequirementsAnalysis.summary.criticalMet}/{analysis.criticalRequirementsAnalysis.summary.criticalTotal} Critical Met
+                      </span>
+                    </div>
+                    {expandedSection === 'criticalRequirements' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {expandedSection === 'criticalRequirements' && (
+                    <div className="p-4 bg-white dark:bg-gray-800">
+                      {/* Summary Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="bg-red-50 dark:bg-red-900/10 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-red-700 dark:text-red-400">Critical Must-Have</span>
+                            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                          </div>
+                          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {analysis.criticalRequirementsAnalysis.summary.criticalMet}/{analysis.criticalRequirementsAnalysis.summary.criticalTotal}
+                          </div>
+                          <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            {analysis.criticalRequirementsAnalysis.summary.criticalTotal > 0 
+                              ? Math.round((analysis.criticalRequirementsAnalysis.summary.criticalMet / analysis.criticalRequirementsAnalysis.summary.criticalTotal) * 100) 
+                              : 100}% Met
+                          </div>
+                        </div>
+                        <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-orange-700 dark:text-orange-400">Highly Important</span>
+                            <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                          </div>
+                          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                            {analysis.criticalRequirementsAnalysis.summary.highlyImportantMet}/{analysis.criticalRequirementsAnalysis.summary.highlyImportantTotal}
+                          </div>
+                          <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                            {analysis.criticalRequirementsAnalysis.summary.highlyImportantTotal > 0 
+                              ? Math.round((analysis.criticalRequirementsAnalysis.summary.highlyImportantMet / analysis.criticalRequirementsAnalysis.summary.highlyImportantTotal) * 100) 
+                              : 100}% Met
+                          </div>
+                        </div>
+                        <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Nice-to-Have</span>
+                            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {analysis.criticalRequirementsAnalysis.summary.niceToHaveMet}/{analysis.criticalRequirementsAnalysis.summary.niceToHaveTotal}
+                          </div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            {analysis.criticalRequirementsAnalysis.summary.niceToHaveTotal > 0 
+                              ? Math.round((analysis.criticalRequirementsAnalysis.summary.niceToHaveMet / analysis.criticalRequirementsAnalysis.summary.niceToHaveTotal) * 100) 
+                              : 100}% Met
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Critical Must-Have Requirements */}
+                      {analysis.criticalRequirementsAnalysis.criticalMustHave.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            <AlertTriangle className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
+                            Critical Must-Have Requirements (Deal-Breakers)
+                          </h4>
+                          <div className="space-y-3">
+                            {analysis.criticalRequirementsAnalysis.criticalMustHave.map((req, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`p-4 rounded-lg border-2 ${
+                                  req.found 
+                                    ? 'bg-green-50 dark:bg-green-900/10 border-green-300 dark:border-green-800' 
+                                    : 'bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-800'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      {req.found ? (
+                                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                      ) : (
+                                        <X className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                                      )}
+                                      <span className="font-semibold text-gray-900 dark:text-white">{req.requirement}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                        req.category === 'skill' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
+                                        req.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                                        req.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
+                                        req.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                                        'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                                      }`}>
+                                        {req.category}
+                                      </span>
+                                      {!req.found && (
+                                        <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                                          -{req.scorePenalty} points
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                {req.found && req.location && (
+                                  <p className="text-xs text-green-700 dark:text-green-400 mt-2">
+                                    ✓ Found in: {req.location}
+                                  </p>
+                                )}
+                                {!req.found && (
+                                  <p className="text-xs text-red-700 dark:text-red-400 mt-2 font-medium">
+                                    ⚠ Missing - This is a DEAL-BREAKER. Your application will likely be rejected without this.
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Highly Important Requirements */}
+                      {analysis.criticalRequirementsAnalysis.highlyImportant.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            <AlertCircle className="w-5 h-5 mr-2 text-orange-600 dark:text-orange-400" />
+                            Highly Important Requirements
+                          </h4>
+                          <div className="space-y-2">
+                            {analysis.criticalRequirementsAnalysis.highlyImportant.map((req, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`p-3 rounded-lg border ${
+                                  req.found 
+                                    ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' 
+                                    : 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {req.found ? (
+                                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                    ) : (
+                                      <X className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                    )}
+                                    <span className="font-medium text-gray-900 dark:text-white">{req.requirement}</span>
+                                  </div>
+                                  {!req.found && (
+                                    <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                      -{req.scorePenalty} pts
+                                    </span>
+                                  )}
+                                </div>
+                                {req.found && req.location && (
+                                  <p className="text-xs text-green-700 dark:text-green-400 mt-1 ml-6">
+                                    Found in: {req.location}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Nice-to-Have Requirements */}
+                      {analysis.criticalRequirementsAnalysis.niceToHave.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            <Info className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                            Nice-to-Have Requirements (Secondary)
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {analysis.criticalRequirementsAnalysis.niceToHave.map((req, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`p-2 rounded-lg border text-sm ${
+                                  req.found 
+                                    ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' 
+                                    : 'bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {req.found ? (
+                                    <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                  ) : (
+                                    <span className="w-3.5 h-3.5 flex-shrink-0">•</span>
+                                  )}
+                                  <span className="text-gray-700 dark:text-gray-300">{req.requirement}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Gap Analysis - NEW SECTION */}
+              {analysis.gapAnalysis && (
+                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('gapAnalysis')}
+                    className="w-full flex items-center justify-between p-3 text-left bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 hover:from-red-100 hover:to-pink-100 dark:hover:from-red-900/30 dark:hover:to-pink-900/30 transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <Target className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
+                      <span className="font-medium">Gap Analysis - What's Missing & Why It Matters</span>
+                      {analysis.gapAnalysis.overallImpact.criticalGapsCount > 0 && (
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold">
+                          {analysis.gapAnalysis.overallImpact.criticalGapsCount} Critical Gaps
+                        </span>
+                      )}
+                    </div>
+                    {expandedSection === 'gapAnalysis' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {expandedSection === 'gapAnalysis' && (
+                    <div className="p-4 bg-white dark:bg-gray-800">
+                      {/* Overall Impact Summary */}
+                      <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 rounded-lg p-4 mb-6 border border-red-200 dark:border-red-800">
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Overall Impact Summary</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Score Penalty</div>
+                            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                              -{analysis.gapAnalysis.overallImpact.totalScorePenalty}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Critical Gaps</div>
+                            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                              {analysis.gapAnalysis.overallImpact.criticalGapsCount}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Important Gaps</div>
+                            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                              {analysis.gapAnalysis.overallImpact.importantGapsCount}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Interview Probability</div>
+                            <div className={`text-2xl font-bold ${getScoreColorClass(analysis.gapAnalysis.overallImpact.estimatedInterviewProbability)}`}>
+                              {analysis.gapAnalysis.overallImpact.estimatedInterviewProbability}%
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Critical Gaps */}
+                      {analysis.gapAnalysis.criticalGaps.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-3 flex items-center">
+                            <AlertTriangle className="w-5 h-5 mr-2" />
+                            Critical Gaps (Deal-Breakers) - {analysis.gapAnalysis.criticalGaps.length} Missing
+                          </h4>
+                          <div className="space-y-4">
+                            {analysis.gapAnalysis.criticalGaps.map((gap, idx) => (
+                              <div 
+                                key={idx} 
+                                className="bg-red-50 dark:bg-red-900/10 rounded-lg p-4 border-2 border-red-300 dark:border-red-800"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <X className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                                      <span className="font-semibold text-gray-900 dark:text-white text-lg">{gap.requirement}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                        gap.category === 'skill' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
+                                        gap.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                                        gap.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
+                                        gap.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                                        'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                                      }`}>
+                                        {gap.category}
+                                      </span>
+                                      <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
+                                        -{gap.scoreImpact} points | CRITICAL
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 mb-3 border border-red-200 dark:border-red-800">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-1">Why This Matters:</p>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">{gap.impact}</p>
+                                </div>
+                                {gap.alternatives && gap.alternatives.length > 0 && (
+                                  <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-3 mb-3 border border-blue-200 dark:border-blue-800">
+                                    <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Alternative Skills/Experience You Have:</p>
+                                    <ul className="list-disc list-inside text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                                      {gap.alternatives.map((alt, altIdx) => (
+                                        <li key={altIdx}>{alt}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-3 border border-yellow-200 dark:border-yellow-800">
+                                  <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-2 uppercase tracking-wide">Action Plan:</p>
+                                  <ul className="space-y-2">
+                                    {gap.recommendations.map((rec, recIdx) => (
+                                      <li key={recIdx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                        <span className="text-yellow-600 dark:text-yellow-400 mt-0.5">→</span>
+                                        <span>{rec}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Important Gaps */}
+                      {analysis.gapAnalysis.importantGaps.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-orange-600 dark:text-orange-400 mb-3 flex items-center">
+                            <AlertCircle className="w-5 h-5 mr-2" />
+                            Important Gaps - {analysis.gapAnalysis.importantGaps.length} Missing
+                          </h4>
+                          <div className="space-y-3">
+                            {analysis.gapAnalysis.importantGaps.map((gap, idx) => (
+                              <div 
+                                key={idx} 
+                                className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-200 dark:border-orange-800"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <X className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                      <span className="font-semibold text-gray-900 dark:text-white">{gap.requirement}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                        gap.category === 'skill' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
+                                        gap.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                                        gap.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
+                                        gap.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                                        'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                                      }`}>
+                                        {gap.category}
+                                      </span>
+                                      <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                        -{gap.scoreImpact} points | {gap.priority.toUpperCase()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 mb-2 border border-orange-200 dark:border-orange-800">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">{gap.impact}</p>
+                                </div>
+                                <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-2 border border-yellow-200 dark:border-yellow-800">
+                                  <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1">Recommendations:</p>
+                                  <ul className="space-y-1">
+                                    {gap.recommendations.map((rec, recIdx) => (
+                                      <li key={recIdx} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                        <span className="text-yellow-600 dark:text-yellow-400 mt-0.5">→</span>
+                                        <span>{rec}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Recommendations */}
               <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
@@ -3157,20 +3777,20 @@ URL to visit: ${jobUrl}
 
   const SkillTag = ({ skill, matched, relevance }: { skill: string; matched: boolean; relevance?: number }) => (
     <div 
-      className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
         matched 
           ? "bg-gradient-to-r from-green-50 to-teal-50 text-green-700 border border-green-100/80 dark:from-green-900/20 dark:to-teal-900/20 dark:text-green-400 dark:border-green-800/30 hover:shadow-sm hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/30 dark:hover:to-teal-900/30"
           : "bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border border-red-100/80 dark:from-red-900/20 dark:to-orange-900/20 dark:text-red-400 dark:border-red-800/30 hover:shadow-sm hover:from-red-100 hover:to-orange-100 dark:hover:from-red-900/30 dark:hover:to-orange-900/30"
       }`}
     >
       {matched ? (
-        <Check className="w-4 h-4 mr-1.5 text-green-600 dark:text-green-500" />
+        <Check className="w-3 h-3 mr-1 text-green-600 dark:text-green-500" />
       ) : (
-        <X className="w-4 h-4 mr-1.5 text-red-600 dark:text-red-500" />
+        <X className="w-3 h-3 mr-1 text-red-600 dark:text-red-500" />
       )}
       <span>{skill}</span>
       {matched && relevance && (
-        <span className="ml-1.5 bg-white dark:bg-gray-800 text-xs px-1.5 py-0.5 rounded-full text-gray-600 dark:text-gray-400 shadow-inner">
+        <span className="ml-1 bg-white dark:bg-gray-800 text-xs px-1 py-0.5 rounded-full text-gray-600 dark:text-gray-400 shadow-inner">
           {Math.round(relevance)}%
         </span>
       )}

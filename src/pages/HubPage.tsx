@@ -279,7 +279,7 @@ export default function HubPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
       <PageTransition 
         {...transition} 
         onAnimationComplete={() => {}} 
@@ -289,7 +289,7 @@ export default function HubPage() {
         animate={{ opacity: transition.isOpen ? 0 : 1 }}
         className="h-full"
       >
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+        <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 lg:h-20">
               <div className="w-1/3"></div>
@@ -302,7 +302,7 @@ export default function HubPage() {
                   {logoUrl ? (
                     <img src={logoUrl} alt="Logo" className="h-8 w-auto" />
                   ) : (
-                    <div className="h-8 w-8 bg-gray-100 animate-pulse rounded-full" />
+                    <div className="h-8 w-8 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-full" />
                   )}
                 </Link>
               </div>
@@ -312,17 +312,17 @@ export default function HubPage() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="flex items-center gap-2 bg-gradient-to-r from-[#8D75E5]/10 to-[#8D75E5]/5 px-4 py-2 rounded-full"
+                  className="flex items-center gap-2 bg-gradient-to-r from-[#8D75E5]/10 to-[#8D75E5]/5 dark:from-[#8D75E5]/20 dark:to-[#8D75E5]/10 px-4 py-2 rounded-full"
                 >
                   <Coins className="w-4 h-4 text-[#8D75E5]" />
-                  <span className="font-medium text-gray-900">{userData?.credits ?? 0}</span>
-                  <span className="text-xs text-gray-500">credits</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{userData?.credits ?? 0}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">credits</span>
                 </motion.div>
 
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:text-gray-900 
-                    hover:bg-gray-100 transition-all duration-200"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100
+                    hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="hidden sm:inline text-sm font-medium">Sign Out</span>
@@ -344,7 +344,7 @@ export default function HubPage() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-gray-900 via-[#8D75E5]/90 to-gray-800 bg-clip-text text-transparent"
+                className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-gray-900 via-[#8D75E5]/90 to-gray-800 dark:from-gray-100 dark:via-[#8D75E5]/90 dark:to-gray-200 bg-clip-text text-transparent"
               >
                 {isNewUser 
                   ? `Welcome to Jobz.ai, ${firstName}! ✨` 
@@ -355,7 +355,7 @@ export default function HubPage() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-gray-600 text-base md:text-lg"
+                className="text-gray-600 dark:text-gray-400 text-base md:text-lg"
               >
                 {isNewUser 
                   ? "Let's start your job search journey. Here's what you can do:"
@@ -373,15 +373,15 @@ export default function HubPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                className="bg-white p-5 rounded-xl border border-gray-100 hover:border-gray-200 
-                  hover:shadow-sm transition-all duration-300 flex flex-col h-full"
+                className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600
+                  hover:shadow-sm dark:hover:shadow-md transition-all duration-300 flex flex-col h-full"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 rounded-lg" 
                     style={{ backgroundColor: `${stat.color}15` }}>
                     <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
                   </div>
-                  <span className="text-sm font-medium text-gray-500">
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                     {stat.description}
                   </span>
                 </div>
@@ -391,11 +391,11 @@ export default function HubPage() {
                     initial={{ scale: 0.9 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                    className="text-2xl md:text-3xl font-semibold text-gray-900 mb-1"
+                    className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-1"
                   >
                     {stat.value}
                   </motion.p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     {stat.label}
                   </p>
                 </div>
@@ -408,7 +408,7 @@ export default function HubPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="text-xl md:text-2xl font-semibold text-gray-900 mb-4"
+            className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4"
           >
             Job Search Dashboard
           </motion.h2>
@@ -422,8 +422,8 @@ export default function HubPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
                 whileHover={{ y: -5 }}
-                className="relative overflow-hidden group p-5 rounded-xl bg-white shadow-sm 
-                  hover:shadow-md transition-all duration-300 text-left border border-gray-100 flex flex-col h-full"
+                className="relative overflow-hidden group p-5 rounded-xl bg-white dark:bg-gray-800 shadow-sm dark:shadow-md
+                  hover:shadow-md dark:hover:shadow-lg transition-all duration-300 text-left border border-gray-100 dark:border-gray-700 flex flex-col h-full"
               >
                 <div className="relative z-10 h-full flex flex-col">
                   <div className="p-3 rounded-xl mb-4 w-fit" 
@@ -431,21 +431,21 @@ export default function HubPage() {
                     <feature.icon className="w-5 h-5" style={{ color: feature.color }} />
                   </div>
                   
-                  <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                     {feature.title}
                   </h2>
                   
-                  <p className="text-gray-600 text-sm mb-4">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                     {feature.desc}
                   </p>
                   
-                  <div className="mt-auto pt-4 border-t border-gray-100">
+                  <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-lg font-medium text-gray-900">
+                        <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
                           {feature.stats.value}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {feature.stats.label}
                         </p>
                       </div>
@@ -453,7 +453,7 @@ export default function HubPage() {
                       <motion.div 
                         whileHover={{ x: 5 }}
                         transition={{ duration: 0.2 }}
-                        className="flex items-center text-gray-500 group-hover:text-gray-900"
+                        className="flex items-center text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </motion.div>
@@ -476,7 +476,7 @@ export default function HubPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
-            className="text-xl md:text-2xl font-semibold text-gray-900 mb-4"
+            className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4"
           >
             Helpful Tools
           </motion.h2>
@@ -490,8 +490,8 @@ export default function HubPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
                 whileHover={{ scale: 1.02 }}
-                className="relative overflow-hidden group p-5 rounded-xl bg-white 
-                  hover:shadow-sm transition-all duration-300 text-left border border-gray-100 flex h-full"
+                className="relative overflow-hidden group p-5 rounded-xl bg-white dark:bg-gray-800
+                  hover:shadow-sm dark:hover:shadow-md transition-all duration-300 text-left border border-gray-100 dark:border-gray-700 flex h-full"
               >
                 <div className="relative z-10 flex items-center gap-4">
                   <div className="p-3 rounded-xl" 
@@ -500,10 +500,10 @@ export default function HubPage() {
                   </div>
                   
                   <div>
-                    <h2 className="text-lg font-medium text-gray-900">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                       {tool.title}
                     </h2>
-                    <p className="text-gray-600 text-sm mt-1">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                       {tool.desc}
                     </p>
                   </div>

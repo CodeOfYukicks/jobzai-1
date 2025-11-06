@@ -94,22 +94,22 @@ export default function SignupPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg text-center"
+          className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg text-center border border-gray-200 dark:border-gray-700"
         >
           <div>
             <Mail className="mx-auto h-12 w-12 text-[#8D75E6]" />
-            <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
               Verify your email
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              We've sent a verification link to <strong>{email}</strong>. Please check your inbox and click the link to verify your account.
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              We've sent a verification link to <strong className="text-gray-900 dark:text-gray-100">{email}</strong>. Please check your inbox and click the link to verify your account.
             </p>
           </div>
 
           <div className="space-y-4">
             <button
               onClick={handleResendVerification}
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-[#8D75E6] bg-white border border-[#8D75E6] rounded-md hover:bg-[#8D75E6] hover:text-white transition-colors"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-[#8D75E6] dark:text-purple-400 bg-white dark:bg-gray-700 border border-[#8D75E6] dark:border-purple-500 rounded-md hover:bg-[#8D75E6] dark:hover:bg-purple-600 hover:text-white transition-colors"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Resend verification email
@@ -123,7 +123,7 @@ export default function SignupPage() {
             </Link>
           </div>
 
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Didn't receive the email? Check your spam folder or try another email address.
           </p>
         </motion.div>
@@ -132,7 +132,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Panneau de formulaire (gauche) */}
       <div className="w-full lg:w-1/2 p-8 flex items-center justify-center">
         <motion.div
@@ -140,7 +140,7 @@ export default function SignupPage() {
           animate={{ opacity: 1, x: 0 }}
           className="w-full max-w-md"
         >
-          <div className="bg-white/95 backdrop-blur-xl shadow-xl rounded-3xl p-8">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700">
             <div>
               <Link to="/" className="block text-center group">
                 <FirebaseImage 
@@ -152,9 +152,9 @@ export default function SignupPage() {
               <h2 className="mt-8 text-center text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Create your account
               </h2>
-              <p className="mt-3 text-center text-sm text-gray-500">
+              <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
                 Already have an account?{' '}
-                <Link to="/login" className="font-medium text-purple-600 hover:text-purple-500 transition-colors">
+                <Link to="/login" className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors">
                   Sign in
                 </Link>
               </p>
@@ -170,8 +170,8 @@ export default function SignupPage() {
                       type="text"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 border border-gray-200 
-                        rounded-xl text-gray-900 placeholder-gray-400 
+                      className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
+                        rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
                         focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
                         transition-all duration-200"
                       placeholder="First name"
@@ -185,8 +185,8 @@ export default function SignupPage() {
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 border border-gray-200 
-                        rounded-xl text-gray-900 placeholder-gray-400 
+                      className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
+                        rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
                         focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
                         transition-all duration-200"
                       placeholder="Last name"
@@ -201,8 +201,8 @@ export default function SignupPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 border border-gray-200 
-                      rounded-xl text-gray-900 placeholder-gray-400 
+                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
+                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
                       focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
                       transition-all duration-200"
                     placeholder="Email address"
@@ -216,8 +216,8 @@ export default function SignupPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 border border-gray-200 
-                      rounded-xl text-gray-900 placeholder-gray-400 
+                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
+                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
                       focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
                       transition-all duration-200"
                     placeholder="Password"
@@ -230,8 +230,8 @@ export default function SignupPage() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 border border-gray-200 
-                      rounded-xl text-gray-900 placeholder-gray-400 
+                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
+                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
                       focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
                       transition-all duration-200"
                     placeholder="Confirm password"
@@ -243,10 +243,10 @@ export default function SignupPage() {
               {/* Séparateur */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
+                  <div className="w-full border-t border-gray-200 dark:border-gray-700" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white/95 backdrop-blur-xl text-gray-500">
+                  <span className="px-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl text-gray-500 dark:text-gray-400">
                     Or continue with
                   </span>
                 </div>
@@ -257,7 +257,7 @@ export default function SignupPage() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3
-                  bg-white border border-gray-100 rounded-xl hover:bg-gray-50"
+                  bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
               >
                 {/* Google SVG icon */}
                 <svg width="18" height="18" viewBox="0 0 18 18" className="mr-2">
@@ -278,7 +278,7 @@ export default function SignupPage() {
                     d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"
                   />
                 </svg>
-                <span className="text-gray-700">Continue with Google</span>
+                <span className="text-gray-700 dark:text-gray-200">Continue with Google</span>
               </button>
 
               <button

@@ -85,7 +85,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Panneau de connexion (gauche) */}
       <div className="w-full lg:w-1/2 p-8 flex items-center justify-center">
         <motion.div
@@ -93,7 +93,7 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           className="w-full max-w-md"
         >
-          <div className="bg-white/95 backdrop-blur-xl shadow-xl rounded-3xl p-8">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700">
             <div>
               <Link to="/" className="block text-center group">
                 <FirebaseImage 
@@ -105,9 +105,9 @@ export default function LoginPage() {
               <h2 className="mt-8 text-center text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Sign in to your account
               </h2>
-              <p className="mt-3 text-center text-sm text-gray-500">
+              <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
                 Don't have an account?{' '}
-                <Link to="/signup" className="font-medium text-purple-600 hover:text-purple-500 transition-colors">
+                <Link to="/signup" className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors">
                   Create one
                 </Link>
               </p>
@@ -124,8 +124,8 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 border border-gray-200 
-                      rounded-xl text-gray-900 placeholder-gray-400 
+                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
+                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
                       focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
                       transition-all duration-200"
                     placeholder="Email address"
@@ -143,8 +143,8 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 border border-gray-200 
-                      rounded-xl text-gray-900 placeholder-gray-400
+                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
+                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
                       focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
                       transition-all duration-200"
                     placeholder="Password"
@@ -170,7 +170,7 @@ export default function LoginPage() {
                       toast.error('Please enter your email first');
                     }
                   }}
-                  className="text-sm font-medium text-purple-600 hover:text-purple-500 transition-colors"
+                  className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors"
                 >
                   Forgot your password?
                 </button>
@@ -178,10 +178,10 @@ export default function LoginPage() {
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
+                  <div className="w-full border-t border-gray-200 dark:border-gray-700" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white/95 backdrop-blur-xl text-gray-500">
+                  <span className="px-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl text-gray-500 dark:text-gray-400">
                     Or continue with
                   </span>
                 </div>
@@ -191,7 +191,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3
-                  bg-white border border-gray-100 rounded-xl hover:bg-gray-50"
+                  bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
               >
                 <svg width="18" height="18" viewBox="0 0 18 18" className="mr-2">
                   <path
@@ -211,7 +211,7 @@ export default function LoginPage() {
                     d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"
                   />
                 </svg>
-                <span className="text-gray-700">Continue with Google</span>
+                <span className="text-gray-700 dark:text-gray-200">Continue with Google</span>
               </button>
 
               <button

@@ -88,7 +88,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
             type="text"
             value={formData.targetPosition}
             onChange={(e) => handleChange('targetPosition', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
             placeholder="e.g., Senior Product Manager"
           />
         </div>
@@ -102,7 +102,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
             <input
               type="text"
               placeholder="Add a sector and press Enter"
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                   e.preventDefault();
@@ -143,8 +143,8 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
                 className={`
                   p-2 rounded-lg border-2 transition-all duration-200 text-sm
                   ${formData.contractType === type.id
-                    ? 'border-purple-600 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-purple-200'
+                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                   }
                 `}
               >
@@ -165,7 +165,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
                 type="number"
                 value={formData.salaryRange.min}
                 onChange={(e) => handleChange('salaryRange', { ...formData.salaryRange, min: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 placeholder="Min"
               />
             </div>
@@ -174,7 +174,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
                 type="number"
                 value={formData.salaryRange.max}
                 onChange={(e) => handleChange('salaryRange', { ...formData.salaryRange, max: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 placeholder="Max"
               />
             </div>
@@ -182,7 +182,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
               <select
                 value={formData.salaryRange.currency}
                 onChange={(e) => handleChange('salaryRange', { ...formData.salaryRange, currency: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               >
                 {currencies.map((currency) => (
                   <option key={currency} value={currency}>{currency}</option>
@@ -201,7 +201,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
             type="date"
             value={formData.availabilityDate}
             onChange={(e) => handleChange('availabilityDate', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           />
         </div>
       </div>

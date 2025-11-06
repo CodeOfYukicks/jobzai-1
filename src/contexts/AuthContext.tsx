@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { applyTheme, type Theme } from '../lib/theme';
 
 interface UserData {
   email: string;
@@ -15,6 +16,7 @@ interface UserData {
   profileCompleted: boolean;
   createdAt: string;
   lastLogin: string;
+  theme?: 'light' | 'dark' | 'system';
 }
 
 interface AuthContextType {
@@ -56,6 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = userDoc.data() as UserData;
         setUserData(userData);
         setIsProfileCompleted(userData?.profileCompleted ?? false);
+        
+        // Load and apply theme from Firestore if available
+        if (userData?.theme) {
+          applyTheme(userData.theme as Theme);
+        }
       } else {
         setUserData(null);
       }

@@ -91,7 +91,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             value={formData.firstName}
             onChange={(e) => handleChange('firstName', e.target.value)}
             placeholder="Enter your first name"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           />
         </div>
 
@@ -105,7 +105,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             value={formData.lastName}
             onChange={(e) => handleChange('lastName', e.target.value)}
             placeholder="Enter your last name"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           />
         </div>
 
@@ -118,7 +118,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             type="text"
             value={`${formData.firstName} ${formData.lastName}`.trim()}
             readOnly
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 cursor-not-allowed"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 cursor-not-allowed"
           />
         </div>
 
@@ -132,7 +132,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
             placeholder="Enter your email"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           />
         </div>
 
@@ -144,7 +144,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
           <select
             value={formData.gender}
             onChange={(e) => handleChange('gender', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           >
             <option value="">Select gender</option>
             <option value="male">Male</option>
@@ -163,7 +163,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             value={formData.location}
             onChange={(e) => handleChange('location', e.target.value)}
             placeholder="e.g., Paris, France"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           />
         </div>
 
@@ -175,7 +175,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
           <select
             value={formData.contractType}
             onChange={(e) => handleChange('contractType', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           >
             <option value="">Select contract type</option>
             <option value="full-time">Full Time</option>

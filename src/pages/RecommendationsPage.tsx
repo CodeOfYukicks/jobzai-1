@@ -1,223 +1,32 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building, Clock, DollarSign, Lightbulb, Sparkles, Lock, FileText, RefreshCw } from 'lucide-react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { 
+  Building, Clock, DollarSign, Lightbulb, Sparkles, Lock, FileText, 
+  RefreshCw, TrendingUp, Target, BarChart3, MapPin, Briefcase,
+  GraduationCap, Zap
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import AIRecommendationCard from '../components/AIRecommendationCard';
-import { UserData } from '../types';
-import { getClaudeRecommendation, generatePrompt } from '../services/claude';
+import { getClaudeRecommendation, generateEnhancedPrompt, RecommendationType } from '../services/claude';
 import { useNavigate } from 'react-router-dom';
-// @ts-ignore - Ignoring type checking for these imports
-import Lottie from "lottie-react";
-// @ts-ignore
-import Header from '../components/Header';
-// @ts-ignore
-import loadingAnimation from "../assets/loading.json";
-import { useRecommendations, RecommendationType, getStateKey } from '../contexts/RecommendationsContext';
+import { useRecommendations } from '../contexts/RecommendationsContext';
+import { fetchCompleteUserData, CompleteUserData } from '../lib/userDataFetcher';
 
-// Interface for recommendation state
-interface RecommendationState {
-  targetCompanies: {
-    isLoading: boolean;
-    error: string | null;
-    data: any | null;
-    lastUpdated: any;
-  };
-  applicationTiming: {
-    isLoading: boolean;
-    error: string | null;
-    data: any | null;
-    lastUpdated: any;
-  };
-  salaryInsights: {
-    isLoading: boolean;
-    error: string | null;
-    data: any | null;
-    lastUpdated: any;
-  };
-  jobStrategy: {
-    isLoading: boolean;
-    error: string | null;
-    data: any | null;
-    lastUpdated: any;
-  };
-}
+type TabType = 'all' | 'companies' | 'career' | 'skills' | 'market' | 'strategy';
 
 export default function RecommendationsPage() {
   const { currentUser } = useAuth();
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [completeUserData, setCompleteUserData] = useState<CompleteUserData | null>(null);
   const [profileCompleteness, setProfileCompleteness] = useState<number>(0);
   const { recommendations, setRecommendationLoading, setRecommendationError, setRecommendationData } = useRecommendations();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>('all');
   const navigate = useNavigate();
 
-  // Fetch user data from Firebase
-  useEffect(() => {
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as UserData;
-        setUserData(data);
-        
-        // Calculate profile completeness
-        const completeness = calculateProfileCompleteness(data);
-        setProfileCompleteness(completeness);
-      } else {
-        console.log('No user data found');
-      }
-      
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [currentUser, navigate]);
-
-  // Calculate profile completeness
-  const calculateProfileCompleteness = (data: UserData) => {
-    const fields = [
-      data.firstName,
-      data.lastName,
-      data.email,
-      data.phone,
-      data.location,
-      data.jobTitle,
-      data.industry,
-      data.yearsOfExperience,
-      data.skills,
-      data.education,
-      data.cvUrl
-    ];
-    
-    const filledFields = fields.filter(field => {
-      if (Array.isArray(field)) {
-        return field.length > 0;
-      }
-      return field !== undefined && field !== null && field !== '';
-    }).length;
-    
-    return Math.round((filledFields / fields.length) * 100);
-  };
-
-  // Add the safelyFormatTimestamp function
-  const safelyFormatTimestamp = (timestamp: any): string | undefined => {
-    if (!timestamp) return undefined;
-    
-    try {
-      // Handle Firestore timestamp
-      if (timestamp && typeof timestamp.toDate === 'function') {
-        return timestamp.toDate().toISOString();
-      }
-      
-      // Handle string timestamp
-      if (typeof timestamp === 'string') {
-        return new Date(timestamp).toISOString();
-      }
-      
-      // Handle Date object
-      if (timestamp instanceof Date) {
-        return timestamp.toISOString();
-      }
-      
-      // Handle number (milliseconds since epoch)
-      if (typeof timestamp === 'number') {
-        return new Date(timestamp).toISOString();
-      }
-    } catch (error) {
-      console.error('Error formatting timestamp:', error);
-    }
-    
-    return undefined;
-  };
-
-  // Function to generate proper prompts based on recommendation type
-  const getPromptForType = (type: RecommendationType, userData: any): string => {
-    const basePrompt = `Generate personalized career recommendations for a user with the following profile:
-    - Name: ${userData.firstName} ${userData.lastName}
-    - Job Title: ${userData.jobTitle || 'Not specified'}
-    - Industry: ${userData.industry || 'Not specified'}
-    - Years of Experience: ${userData.yearsOfExperience || 'Not specified'}
-    - Skills: ${userData.skills?.join(', ') || 'Not specified'}
-    - Education: ${userData.education?.join(', ') || 'Not specified'}
-    - Location: ${userData.location || 'Not specified'}
-    - CV/Resume: ${userData.cvUrl ? 'Provided' : 'Not provided'}`;
-    
-    switch (type) {
-      case 'target-companies':
-        return `${basePrompt}
-        
-        Please provide a list of 5-7 companies that would be a good match for this user's profile. For each company, include:
-        - Company name
-        - Match percentage (how well the user's profile matches the company)
-        - Growth potential (high, medium, low)
-        - Company size
-        - Industry
-        - Location
-        - Suitable roles for the user
-        - Why this company is a good match
-        
-        Also provide a brief summary of why these companies were selected.
-        
-        Format the response as a JSON object with a "companies" array and a "summary" field.`;
-        
-      case 'application-timing':
-        return `${basePrompt}
-        
-        Please provide recommendations on the optimal timing for job applications based on this user's profile. Include:
-        - Best days of the week to apply
-        - Best times of day to apply
-        - Best months to apply
-        - Best quarter to apply
-        - How quickly to apply after a job is posted
-        - When to follow up after applying
-        - 5-7 specific insights about application timing relevant to this user's profile
-        - A brief explanation of why these recommendations were made
-        
-        Format the response as a JSON object with a "timing" object containing these fields.`;
-        
-      case 'salary-insights':
-        return `${basePrompt}
-        
-        Please provide salary insights for this user based on their profile. Include:
-        - Salary range
-        - Average salary
-        - Entry-level salary
-        - Mid-level salary
-        - Senior-level salary
-        - Expected salary growth
-        - 4-5 negotiation tips
-        - 5 important benefits to consider
-        - Brief market context
-        
-        Format the response as a JSON object with a "salary" object containing these fields.`;
-        
-      case 'job-strategy':
-        return `${basePrompt}
-        
-        Please provide a comprehensive job search strategy for this user based on their profile. Include:
-        - 5 skills to highlight (skill name and reason)
-        - 3 skills to develop (skill name, reason, and a resource to learn it)
-        - ATS optimization tips (score and 3 resume tips)
-        - Networking strategy (overall strategy, 3 target groups with names and values, and 2 relevant events)
-        - Application strategy (approach and 3 optimization tips)
-        
-        Format the response as a JSON object with a "strategy" object containing these fields.`;
-        
-      default:
-        return basePrompt;
-    }
-  };
-
-  // Generate recommendation using Claude
+  // Generate recommendation using ChatGPT
   const generateRecommendation = async (type: RecommendationType) => {
-    if (!userData) {
+    if (!completeUserData) {
       console.error('No user data available');
       return;
     }
@@ -226,11 +35,15 @@ export default function RecommendationsPage() {
     setRecommendationLoading(type, true);
     
     try {
-      // Generate the prompt based on the recommendation type
-      const prompt = getPromptForType(type, userData);
+      // Generate the enhanced prompt with all user data
+      const prompt = generateEnhancedPrompt(type, completeUserData);
       
-      // Call the Claude API to get the recommendation
-      const response = await getClaudeRecommendation(prompt, type);
+      // Call the ChatGPT API to get the recommendation
+      const response = await getClaudeRecommendation(
+        prompt, 
+        type, 
+        completeUserData.cvContent || null
+      );
       
       if (response.error) {
         setRecommendationError(type, response.error);
@@ -243,8 +56,254 @@ export default function RecommendationsPage() {
     }
   };
 
+  // Fetch complete user data and auto-load recommendations
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    const loadUserData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchCompleteUserData(currentUser.uid);
+        setCompleteUserData(data);
+        
+        // Calculate profile completeness
+        const completeness = calculateProfileCompleteness(data);
+        console.log('Profile completeness calculated:', completeness);
+        setProfileCompleteness(completeness);
+        
+        // Auto-load only the most important recommendation (Target Companies) if it doesn't exist
+        // Other recommendations will be loaded on demand to avoid long loading times
+        if (!recommendations.targetCompanies?.data && data.cvUrl) {
+          // Only load if user has a CV
+          setRecommendationLoading('target-companies', true);
+          
+          try {
+            const prompt = generateEnhancedPrompt('target-companies', data);
+            const response = await getClaudeRecommendation(
+              prompt, 
+              'target-companies', 
+              data.cvContent || null
+            );
+            
+            if (response.error) {
+              setRecommendationError('target-companies', response.error);
+            } else {
+              setRecommendationData('target-companies', response.data);
+            }
+          } catch (error) {
+            console.error('Error generating target-companies recommendation:', error);
+            setRecommendationError('target-companies', 'Failed to generate recommendation. Please try again.');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, navigate]);
+
+  // Calculate profile completeness - matching ProfessionalProfilePage logic
+  const calculateProfileCompleteness = (data: CompleteUserData | null) => {
+    if (!data) return 0;
+    
+    // Use the same fields as ProfessionalProfilePage
+    const requiredFields = [
+      // Personal Information
+      { key: 'firstName', value: data.firstName },
+      { key: 'lastName', value: data.lastName },
+      { key: 'email', value: data.email },
+      { key: 'gender', value: (data as any).gender },
+      { key: 'location', value: data.location },
+      { key: 'contractType', value: data.contractType },
+      
+      // Location & Mobility
+      { key: 'willingToRelocate', value: data.willingToRelocate },
+      { key: 'workPreference', value: data.workPreference },
+      { key: 'travelPreference', value: data.travelPreference },
+      
+      // Experience & Expertise
+      { key: 'yearsOfExperience', value: data.yearsOfExperience },
+      { key: 'currentPosition', value: data.currentPosition || data.jobTitle },
+      { key: 'skills', value: data.skills },
+      { key: 'tools', value: data.tools },
+      
+      // Documents & Links
+      { key: 'cvUrl', value: data.cvUrl },
+      { key: 'linkedinUrl', value: data.linkedinUrl },
+      
+      // Professional Objectives
+      { key: 'targetPosition', value: data.targetPosition },
+      { key: 'targetSectors', value: data.targetSectors },
+      { key: 'salaryExpectations', value: data.salaryExpectations },
+      
+      // Preferences & Priorities
+      { key: 'workLifeBalance', value: data.workLifeBalance },
+      { key: 'companyCulture', value: data.companyCulture },
+      { key: 'preferredCompanySize', value: data.preferredCompanySize }
+    ];
+
+    let completedFields = 0;
+
+    requiredFields.forEach(({ key, value }) => {
+      if (Array.isArray(value)) {
+        if (value.length > 0) completedFields++;
+      } else if (typeof value === 'object' && value !== null) {
+        // For objects like salaryExpectations
+        if (Object.values(value).some(v => v !== '' && v !== null && v !== undefined)) completedFields++;
+      } else if (key === 'willingToRelocate') {
+        // willingToRelocate is a boolean, false is a valid value (means "not willing")
+        if (value === true || value === false) completedFields++;
+      } else if (value !== undefined && value !== null && value !== '') {
+        completedFields++;
+      }
+    });
+
+    const percentage = Math.round((completedFields / requiredFields.length) * 100);
+    return isNaN(percentage) ? 0 : percentage;
+  };
+
+  // Refresh all recommendations
+  const refreshAllRecommendations = async () => {
+    if (!completeUserData) return;
+    
+    const allTypes: RecommendationType[] = [
+      'target-companies',
+      'career-path',
+      'skills-gap',
+      'market-insights',
+      'application-timing',
+      'salary-insights',
+      'job-strategy'
+    ];
+    
+    // Generate all recommendations in parallel
+    await Promise.all(allTypes.map(async (type) => {
+      setRecommendationLoading(type, true);
+      try {
+        const prompt = generateEnhancedPrompt(type, completeUserData);
+        const response = await getClaudeRecommendation(
+          prompt, 
+          type, 
+          completeUserData.cvContent || null
+        );
+        if (response.error) {
+          setRecommendationError(type, response.error);
+        } else {
+          setRecommendationData(type, response.data);
+        }
+      } catch (error) {
+        console.error(`Error generating ${type} recommendation:`, error);
+        setRecommendationError(type, 'Failed to generate recommendation. Please try again.');
+      }
+    }));
+  };
+
   // Check if user has premium access
-  const hasPremiumAccess = userData?.isPremium || userData?.plan === 'premium' || userData?.plan === 'standard';
+  const hasPremiumAccess = completeUserData?.isPremium || completeUserData?.plan === 'premium' || completeUserData?.plan === 'standard';
+
+  // Filter recommendations based on active tab
+  const getFilteredRecommendations = () => {
+    const allRecommendations = [
+      {
+        type: 'target-companies' as RecommendationType,
+        title: 'Target Companies',
+        description: 'Discover companies that match your profile',
+        icon: Building,
+        color: 'purple',
+        data: recommendations.targetCompanies || { isLoading: false, error: null, data: null, lastUpdated: null },
+        tab: 'companies' as TabType
+      },
+      {
+        type: 'career-path' as RecommendationType,
+        title: 'Career Path',
+        description: 'Personalized career path recommendations',
+        icon: TrendingUp,
+        color: 'blue',
+        data: recommendations.careerPath || { isLoading: false, error: null, data: null, lastUpdated: null },
+        tab: 'career' as TabType
+      },
+      {
+        type: 'skills-gap' as RecommendationType,
+        title: 'Skills Gap Analysis',
+        description: 'Identify skills to develop and strengthen',
+        icon: GraduationCap,
+        color: 'green',
+        data: recommendations.skillsGap || { isLoading: false, error: null, data: null, lastUpdated: null },
+        tab: 'skills' as TabType
+      },
+      {
+        type: 'market-insights' as RecommendationType,
+        title: 'Market Insights',
+        description: 'Job market trends and opportunities',
+        icon: BarChart3,
+        color: 'orange',
+        data: recommendations.marketInsights || { isLoading: false, error: null, data: null, lastUpdated: null },
+        tab: 'market' as TabType
+      },
+      {
+        type: 'application-timing' as RecommendationType,
+        title: 'Application Timing',
+        description: 'Optimize your application timing',
+        icon: Clock,
+        color: 'cyan',
+        data: recommendations.applicationTiming || { isLoading: false, error: null, data: null, lastUpdated: null },
+        tab: 'strategy' as TabType
+      },
+      {
+        type: 'salary-insights' as RecommendationType,
+        title: 'Salary Insights',
+        description: 'Real-time compensation data',
+        icon: DollarSign,
+        color: 'emerald',
+        data: recommendations.salaryInsights || { isLoading: false, error: null, data: null, lastUpdated: null },
+        tab: 'strategy' as TabType
+      },
+      {
+        type: 'job-strategy' as RecommendationType,
+        title: 'Job Strategy',
+        description: 'Optimize your applications and skills',
+        icon: Lightbulb,
+        color: 'amber',
+        data: recommendations.jobStrategy || { isLoading: false, error: null, data: null, lastUpdated: null },
+        tab: 'strategy' as TabType
+      }
+    ];
+
+    if (activeTab === 'all') {
+      return allRecommendations;
+    }
+
+    return allRecommendations.filter(rec => rec.tab === activeTab);
+  };
+
+  // Calculate quick stats
+  const quickStats = {
+    matchScore: recommendations.targetCompanies?.data?.companies?.[0]?.match || 'N/A',
+    companiesFound: recommendations.targetCompanies?.data?.companies?.length || 0,
+    skillsGap: recommendations.skillsGap?.data?.skills_gap?.critical_missing_skills?.length || 0,
+    careerPaths: recommendations.careerPath?.data?.career_paths?.length || 0
+  };
+
+  // Don't block the page while loading - show content immediately
+  // if (isLoading) {
+  //   return (
+  //     <AuthLayout>
+  //       <div className="flex items-center justify-center min-h-screen">
+  //         <div className="text-center">
+  //           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+  //           <p className="mt-4 text-gray-500">Loading your recommendations...</p>
+  //         </div>
+  //       </div>
+  //     </AuthLayout>
+  //   );
+  // }
 
   return (
     <AuthLayout>
@@ -266,17 +325,28 @@ export default function RecommendationsPage() {
               </p>
             </div>
             
-            {userData?.cvUrl && (
+            <div className="flex items-center gap-3">
+              {completeUserData?.cvUrl && (
               <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                 <FileText className="h-4 w-4 text-green-500" />
                 <span>CV/Resume loaded</span>
               </div>
             )}
+              
+              <button
+                onClick={refreshAllRecommendations}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh All</span>
+              </button>
+            </div>
           </div>
         </motion.div>
 
-        {/* Profile Completeness Alert - if profile is incomplete */}
-        {profileCompleteness < 80 && (
+        {/* Profile Completeness Alert */}
+        {completeUserData && profileCompleteness < 100 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -287,7 +357,7 @@ export default function RecommendationsPage() {
               <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                 <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">
                   Complete your profile for better recommendations
                 </h3>
@@ -296,80 +366,163 @@ export default function RecommendationsPage() {
                 </p>
                 <div className="mt-2 w-full bg-amber-200 dark:bg-amber-900/50 rounded-full h-1.5">
                   <div 
-                    className="bg-amber-500 dark:bg-amber-500 h-1.5 rounded-full" 
+                    className="bg-amber-500 dark:bg-amber-500 h-1.5 rounded-full transition-all duration-300" 
                     style={{ width: `${profileCompleteness}%` }}
                   ></div>
                 </div>
               </div>
-              <button className="ml-auto px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 
-                bg-amber-100 dark:bg-amber-900/30 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors">
+              <button 
+                onClick={() => navigate('/professional-profile')}
+                className="ml-auto px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 
+                  bg-amber-100 dark:bg-amber-900/30 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+              >
                 Complete Profile
               </button>
         </div>
           </motion.div>
         )}
 
+        {/* Quick Stats Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <Target className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{quickStats.matchScore}</p>
+                <p className="text-xs text-gray-500">Top Match</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <Building className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{quickStats.companiesFound}</p>
+                <p className="text-xs text-gray-500">Companies</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <GraduationCap className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{quickStats.skillsGap}</p>
+                <p className="text-xs text-gray-500">Skills Gap</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{quickStats.careerPaths}</p>
+                <p className="text-xs text-gray-500">Career Paths</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tabs Navigation */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.4 }}
+          className="mb-6"
+        >
+          <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
+            {[
+              { id: 'all' as TabType, label: 'All', icon: Zap },
+              { id: 'companies' as TabType, label: 'Companies', icon: Building },
+              { id: 'career' as TabType, label: 'Career', icon: TrendingUp },
+              { id: 'skills' as TabType, label: 'Skills', icon: GraduationCap },
+              { id: 'market' as TabType, label: 'Market', icon: BarChart3 },
+              { id: 'strategy' as TabType, label: 'Strategy', icon: Lightbulb }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                    activeTab === tab.id
+                      ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+
         {/* Recommendations Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-          {/* Target Companies Card */}
+          {getFilteredRecommendations().map((rec, index) => (
+            <motion.div
+              key={rec.type}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 * index }}
+            >
           <AIRecommendationCard
-            type="target-companies"
-            title="Target Companies"
-            description="Discover companies that match your profile"
-            isLoading={recommendations.targetCompanies.isLoading}
-            error={recommendations.targetCompanies.error || undefined}
-            data={recommendations.targetCompanies.data}
-            lastUpdated={recommendations.targetCompanies.lastUpdated}
-            onAction={() => generateRecommendation('target-companies')}
-            actionLabel={recommendations.targetCompanies.data ? "Refresh Matches" : "Generate Matches"}
-          />
-
-          {/* Application Timing Card */}
-          <AIRecommendationCard
-            type="application-timing"
-            title="Application Timing"
-            description="Optimize your application timing for maximum success"
-            isLoading={recommendations.applicationTiming.isLoading}
-            error={recommendations.applicationTiming.error || undefined}
-            data={recommendations.applicationTiming.data}
-            lastUpdated={recommendations.applicationTiming.lastUpdated}
-            onAction={() => generateRecommendation('application-timing')}
-            actionLabel={recommendations.applicationTiming.data ? "Refresh Insights" : "Generate Insights"}
-          />
-
-          {/* Salary Insights Card */}
-          <AIRecommendationCard
-            type="salary-insights"
-            title="Salary Insights"
-            description="Real-time compensation data for your target roles"
-            isLoading={recommendations.salaryInsights.isLoading}
-            error={recommendations.salaryInsights.error || undefined}
-            data={recommendations.salaryInsights.data}
-            lastUpdated={recommendations.salaryInsights.lastUpdated}
-            onAction={() => generateRecommendation('salary-insights')}
-            actionLabel={recommendations.salaryInsights.data ? "Refresh Details" : "Generate Details"}
-          />
-
-          {/* Job Strategy Card */}
-          <AIRecommendationCard
-            type="job-strategy"
-            title="Job Strategy"
-            description="Optimize your applications and highlight key skills"
-            isLoading={recommendations.jobStrategy.isLoading}
-            error={recommendations.jobStrategy.error || undefined}
-            data={recommendations.jobStrategy.data}
-            lastUpdated={recommendations.jobStrategy.lastUpdated}
-            onAction={() => generateRecommendation('job-strategy')}
-            actionLabel={recommendations.jobStrategy.data ? "Refresh Strategy" : "Generate Strategy"}
-          />
+                type={rec.type}
+                title={rec.title}
+                description={rec.description}
+                isLoading={rec.data.isLoading}
+                error={rec.data.error || undefined}
+                data={rec.data.data}
+                lastUpdated={rec.data.lastUpdated}
+                onAction={async () => {
+                  if (!completeUserData) return;
+                  setRecommendationLoading(rec.type, true);
+                  try {
+                    const prompt = generateEnhancedPrompt(rec.type, completeUserData);
+                    const response = await getClaudeRecommendation(
+                      prompt, 
+                      rec.type, 
+                      completeUserData.cvContent || null
+                    );
+                    if (response.error) {
+                      setRecommendationError(rec.type, response.error);
+                    } else {
+                      setRecommendationData(rec.type, response.data);
+                    }
+                  } catch (error) {
+                    console.error(`Error generating ${rec.type} recommendation:`, error);
+                    setRecommendationError(rec.type, 'Failed to generate recommendation. Please try again.');
+                  }
+                }}
+                actionLabel="Refresh"
+                showActionButton={false}
+              />
+            </motion.div>
+          ))}
         </div>
 
-        {/* Premium Feature Lock Overlay - if needed */}
+        {/* Premium Feature Lock Overlay */}
         {!hasPremiumAccess && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
             className="mt-8 p-4 bg-gradient-to-r from-purple-600/10 to-indigo-600/10 
               border border-purple-200 dark:border-purple-800 rounded-xl"
           >
@@ -378,8 +531,11 @@ export default function RecommendationsPage() {
               <p className="text-sm text-purple-600 dark:text-purple-400">
                 Upgrade to Premium to unlock all AI recommendations
               </p>
-              <button className="ml-auto px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 
-                text-white text-sm font-medium transition-colors duration-200">
+              <button 
+                onClick={() => navigate('/pricing')}
+                className="ml-auto px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 
+                  text-white text-sm font-medium transition-colors duration-200"
+              >
                 Upgrade Now
               </button>
             </div>
@@ -390,7 +546,7 @@ export default function RecommendationsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
           className="mt-12"
         >
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -406,7 +562,7 @@ export default function RecommendationsPage() {
                 1. Profile Analysis
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Our AI analyzes your profile information and CV to understand your skills, experience, and preferences.
+                Our AI analyzes your complete profile, CV, skills, experience, and preferences to understand your career goals.
               </p>
             </div>
             

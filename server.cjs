@@ -4,13 +4,65 @@ const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const path = require('path');
 const dotenv = require('dotenv');
+const admin = require('firebase-admin');
 
 // Load environment variables
 dotenv.config();
 
-// Note: We'll use Firebase Client SDK to read from Firestore
-// This works with firebase login credentials
-// For production, use Firebase Admin SDK with service account
+// Initialize Firebase Admin SDK
+try {
+  // Try to initialize with service account if available
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: 'jobzai'
+    });
+    console.log('✅ Firebase Admin initialized with service account');
+  } else {
+    // Initialize with default credentials (uses Application Default Credentials)
+    // This works when running with firebase login or in Firebase Functions
+    admin.initializeApp({
+      projectId: 'jobzai'
+    });
+    console.log('✅ Firebase Admin initialized with default credentials');
+  }
+} catch (error) {
+  console.warn('⚠️  Firebase Admin initialization failed:', error.message);
+  console.warn('   Will fallback to environment variables for API keys');
+}
+
+// Function to get OpenAI API key from Firestore
+async function getOpenAIApiKey() {
+  try {
+    console.log('🔑 Attempting to retrieve OpenAI API key from Firestore...');
+    const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
+    
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      const apiKey = data?.apiKey || data?.api_key;
+      if (apiKey) {
+        console.log('✅ OpenAI API key retrieved from Firestore (first 10 chars):', apiKey.substring(0, 10) + '...');
+        return apiKey;
+      } else {
+        console.warn('⚠️  Document exists but apiKey field is missing. Available fields:', Object.keys(data || {}));
+      }
+    } else {
+      console.warn('⚠️  Document settings/openai does not exist in Firestore');
+    }
+  } catch (error) {
+    console.error('❌ Failed to retrieve API key from Firestore:', error.message);
+  }
+  
+  // Fallback to environment variable
+  if (process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY) {
+    const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    console.log('Using OpenAI API key from environment variable');
+    return apiKey;
+  }
+  
+  return null;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -328,30 +380,150 @@ app.get('/api/claude/auth-test', async (req, res) => {
   }
 });
 
+// ChatGPT API route for recommendations (replacing Claude)
+app.post('/api/chatgpt', async (req, res) => {
+  try {
+    console.log("ChatGPT API endpoint called for recommendations");
+    
+    // Get API key from Firestore or environment variables
+    let apiKey = await getOpenAIApiKey();
+    
+    if (!apiKey) {
+      console.error('❌ ERREUR: Clé API OpenAI manquante');
+      return res.status(500).json({ 
+        status: 'error', 
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).' 
+      });
+    }
+    
+    const { prompt, type, cvContent } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Prompt is required'
+      });
+    }
+    
+    // Build messages for ChatGPT
+    const messages = [
+      {
+        role: "system",
+        content: "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ];
+    
+    console.log('📡 Sending request to ChatGPT API...');
+    console.log(`   Type: ${type}`);
+    console.log(`   Prompt length: ${prompt.length}`);
+    
+    // Call OpenAI API
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o", // Using GPT-4o for better quality
+        messages: messages,
+        response_format: { type: 'json_object' },
+        max_tokens: 4000,
+        temperature: 0.3 // Lower temperature for more consistent, structured responses
+      })
+    });
+    
+    console.log(`OpenAI API response status: ${openaiResponse.status}`);
+    
+    // Handle response
+    const responseText = await openaiResponse.text();
+    console.log("Response received, length:", responseText.length);
+    
+    if (!openaiResponse.ok) {
+      console.error("Non-200 response:", responseText);
+      try {
+        const errorData = JSON.parse(responseText);
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
+          error: errorData.error
+        });
+      } catch (e) {
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${responseText.substring(0, 200)}`
+        });
+      }
+    }
+    
+    // Parse and return response
+    try {
+      const parsedResponse = JSON.parse(responseText);
+      const content = parsedResponse.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('Empty response from ChatGPT API');
+      }
+      
+      // Parse JSON content
+      let parsedContent;
+      try {
+        parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+      } catch (e) {
+        // If parsing fails, try to extract JSON from markdown
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                          content.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          throw new Error('Could not parse JSON from response');
+        }
+      }
+      
+      console.log('✅ ChatGPT recommendation completed successfully');
+      
+      return res.json({
+        status: 'success',
+        content: parsedContent,
+        usage: parsedResponse.usage
+      });
+    } catch (parseError) {
+      console.error("Parse error:", parseError);
+      return res.status(500).json({
+        status: 'error',
+        message: "Failed to parse response",
+        rawResponse: responseText.substring(0, 500) + "..."
+      });
+    }
+    
+  } catch (error) {
+    console.error("Error in ChatGPT API handler:", error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || "An error occurred processing your request",
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 // GPT-4o Vision API route for CV analysis
 app.post('/api/analyze-cv-vision', async (req, res) => {
   try {
     console.log("GPT-4o Vision API endpoint called");
     
-    // Get API key from environment variables (simplest solution for now)
-    // In production, Firebase Functions will use Firestore automatically
-    let apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-    
-    if (apiKey) {
-      console.log("✅ API Key from environment (first 10 chars):", apiKey.substring(0, 10) + "...");
-    } else {
-      console.log("❌ No API Key found in environment variables");
-      console.log("   Please add to .env file: OPENAI_API_KEY=sk-...");
-      console.log("   Or configure in Firestore (settings/openai) for production");
-    }
+    // Get API key from Firestore or environment variables
+    let apiKey = await getOpenAIApiKey();
     
     if (!apiKey) {
       console.error('❌ ERREUR: Clé API OpenAI manquante');
-      console.error('   Solution: Créez un fichier .env à la racine du projet avec:');
-      console.error('   OPENAI_API_KEY=sk-...');
+      console.error('   Solution: Ajoutez la clé dans Firestore (settings/openai) ou dans .env (OPENAI_API_KEY=sk-...)');
       return res.status(500).json({ 
         status: 'error', 
-        message: 'OpenAI API key is missing. Please add OPENAI_API_KEY to your .env file.' 
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).' 
       });
     }
     
@@ -483,6 +655,7 @@ if (isProduction) {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
   console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
+  console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
   console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
   console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
   console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);

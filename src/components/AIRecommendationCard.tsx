@@ -1,6 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Building, Clock, DollarSign, Lightbulb, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { 
+  Building, Clock, DollarSign, Lightbulb, Loader2, AlertCircle, RefreshCw,
+  TrendingUp, GraduationCap, BarChart3
+} from 'lucide-react';
 import LastUpdatedIndicator from './LastUpdatedIndicator';
 import { RecommendationType } from '../contexts/RecommendationsContext';
 
@@ -14,6 +17,7 @@ interface AIRecommendationCardProps {
   lastUpdated: Date | null;
   onAction: () => void;
   actionLabel: string;
+  showActionButton?: boolean;
 }
 
 const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
@@ -25,7 +29,8 @@ const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
   data,
   lastUpdated,
   onAction,
-  actionLabel
+  actionLabel,
+  showActionButton = true
 }) => {
   // Helper function to get the appropriate icon
   const getIcon = () => {
@@ -38,6 +43,12 @@ const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
         return <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />;
       case 'job-strategy':
         return <Lightbulb className="h-6 w-6 text-amber-600 dark:text-amber-400" />;
+      case 'career-path':
+        return <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />;
+      case 'skills-gap':
+        return <GraduationCap className="h-6 w-6 text-green-600 dark:text-green-400" />;
+      case 'market-insights':
+        return <BarChart3 className="h-6 w-6 text-orange-600 dark:text-orange-400" />;
       default:
         return <Building className="h-6 w-6 text-purple-600 dark:text-purple-400" />;
     }
@@ -54,6 +65,12 @@ const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
         return 'bg-green-100 dark:bg-green-900/30';
       case 'job-strategy':
         return 'bg-amber-100 dark:bg-amber-900/30';
+      case 'career-path':
+        return 'bg-blue-100 dark:bg-blue-900/30';
+      case 'skills-gap':
+        return 'bg-green-100 dark:bg-green-900/30';
+      case 'market-insights':
+        return 'bg-orange-100 dark:bg-orange-900/30';
       default:
         return 'bg-purple-100 dark:bg-purple-900/30';
     }
@@ -70,6 +87,12 @@ const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
         return 'bg-green-600 hover:bg-green-700';
       case 'job-strategy':
         return 'bg-amber-600 hover:bg-amber-700';
+      case 'career-path':
+        return 'bg-blue-600 hover:bg-blue-700';
+      case 'skills-gap':
+        return 'bg-green-600 hover:bg-green-700';
+      case 'market-insights':
+        return 'bg-orange-600 hover:bg-orange-700';
       default:
         return 'bg-purple-600 hover:bg-purple-700';
     }
@@ -86,6 +109,12 @@ const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
         return 'text-green-600 dark:text-green-400';
       case 'job-strategy':
         return 'text-amber-600 dark:text-amber-400';
+      case 'career-path':
+        return 'text-blue-600 dark:text-blue-400';
+      case 'skills-gap':
+        return 'text-green-600 dark:text-green-400';
+      case 'market-insights':
+        return 'text-orange-600 dark:text-orange-400';
       default:
         return 'text-purple-600 dark:text-purple-400';
     }
@@ -174,16 +203,43 @@ const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
                 </div>
               </div>
               
-              <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
+              <div className="max-h-60 overflow-y-auto pr-2 space-y-3">
                 {safeGet(data, 'companies', []).slice(0, 3).map((company: any, index: number) => (
                   <div key={index} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium text-gray-900 dark:text-white">{safeGet(company, 'name', 'Company')}</h4>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getBgColor()}`}>
+                      <span className={`text-xs px-2 py-1 rounded-full ${getBgColor()} font-medium`}>
                         {safeGet(company, 'match', 'N/A')}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{safeGet(company, 'industry', 'Industry')} • {safeGet(company, 'size', 'Size')}</p>
+                    <p className="text-xs text-gray-500 mb-2">{safeGet(company, 'industry', 'Industry')} • {safeGet(company, 'size', 'Size')} • {safeGet(company, 'location', 'Location')}</p>
+                    
+                    {/* Match breakdown if available */}
+                    {safeGet(company, 'match_breakdown') && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Match Breakdown:</p>
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          <span className="text-gray-600 dark:text-gray-400">Skills: {safeGet(company, 'match_breakdown.skills', 'N/A')}</span>
+                          <span className="text-gray-600 dark:text-gray-400">Culture: {safeGet(company, 'match_breakdown.culture', 'N/A')}</span>
+                          <span className="text-gray-600 dark:text-gray-400">Location: {safeGet(company, 'match_breakdown.location', 'N/A')}</span>
+                          <span className="text-gray-600 dark:text-gray-400">Salary: {safeGet(company, 'match_breakdown.salary', 'N/A')}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Suitable roles if available */}
+                    {safeGet(company, 'suitable_roles') && safeGet(company, 'suitable_roles').length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Suitable Roles:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {safeGet(company, 'suitable_roles', []).slice(0, 2).map((role: any, roleIndex: number) => (
+                            <span key={roleIndex} className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                              {typeof role === 'string' ? role : safeGet(role, 'title', 'Role')}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -293,6 +349,128 @@ const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
               </div>
             </div>
           )}
+
+          {type === 'career-path' && safeGet(data, 'career_paths') && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center">
+                  <p className={`text-xl font-bold ${getTextColor()}`}>{safeGet(data, 'career_paths.length', 0)}</p>
+                  <p className="text-xs text-gray-500">Career Paths</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center">
+                  <p className={`text-xl font-bold ${getTextColor()}`}>
+                    {safeGet(data, 'career_paths.0.success_probability', 'High')}
+                  </p>
+                  <p className="text-xs text-gray-500">Top Success Rate</p>
+                </div>
+              </div>
+              
+              <div className="max-h-48 overflow-y-auto pr-2 space-y-3">
+                {safeGet(data, 'career_paths', []).slice(0, 2).map((path: any, index: number) => (
+                  <div key={index} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium text-gray-900 dark:text-white">{safeGet(path, 'name', 'Career Path')}</h4>
+                      <span className={`text-xs px-2 py-1 rounded-full ${getBgColor()}`}>
+                        {safeGet(path, 'success_probability', 'Medium')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{safeGet(path, 'description', '')}</p>
+                    <div className="text-xs text-gray-500">
+                      <p><strong>1 Year:</strong> {safeGet(path, 'timeline.1_year.position', 'N/A')}</p>
+                      <p><strong>5 Years:</strong> {safeGet(path, 'timeline.5_years.position', 'N/A')}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {type === 'skills-gap' && safeGet(data, 'skills_gap') && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center">
+                  <p className={`text-xl font-bold ${getTextColor()}`}>
+                    {safeGet(data, 'skills_gap.critical_missing_skills.length', 0)}
+                  </p>
+                  <p className="text-xs text-gray-500">Critical Skills</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center">
+                  <p className={`text-xl font-bold ${getTextColor()}`}>
+                    {safeGet(data, 'skills_gap.skills_to_strengthen.length', 0)}
+                  </p>
+                  <p className="text-xs text-gray-500">To Strengthen</p>
+                </div>
+              </div>
+              
+              <div className="max-h-48 overflow-y-auto pr-2 space-y-2">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Critical Missing Skills:</h4>
+                  {safeGet(data, 'skills_gap.critical_missing_skills', []).slice(0, 3).map((skill: any, index: number) => (
+                    <div key={index} className="p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg mb-2">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {safeGet(skill, 'skill', 'Skill')}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${getBgColor()}`}>
+                          {safeGet(skill, 'priority', 'Medium')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{safeGet(skill, 'importance', '').substring(0, 60)}...</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {type === 'market-insights' && safeGet(data, 'market_insights') && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center">
+                  <p className={`text-xl font-bold ${getTextColor()}`}>
+                    {safeGet(data, 'market_insights.trends.growing_sectors.length', 0)}
+                  </p>
+                  <p className="text-xs text-gray-500">Growing Sectors</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center">
+                  <p className={`text-xl font-bold ${getTextColor()}`}>
+                    {safeGet(data, 'market_insights.hidden_opportunities.hiring_companies.length', 0)}
+                  </p>
+                  <p className="text-xs text-gray-500">Hiring Companies</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center">
+                  <p className={`text-xl font-bold ${getTextColor()}`}>
+                    {safeGet(data, 'market_insights.trends.in_demand_skills.length', 0)}
+                  </p>
+                  <p className="text-xs text-gray-500">In-Demand Skills</p>
+                </div>
+              </div>
+              
+              <div className="max-h-48 overflow-y-auto pr-2 space-y-2">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Growing Sectors:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {safeGet(data, 'market_insights.trends.growing_sectors', []).slice(0, 3).map((sector: any, index: number) => (
+                      <span key={index} className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                        {safeGet(sector, 'sector', 'Sector')}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">In-Demand Skills:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {safeGet(data, 'market_insights.trends.in_demand_skills', []).slice(0, 3).map((skill: any, index: number) => (
+                      <span key={index} className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                        {safeGet(skill, 'skill', 'Skill')}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-8">
@@ -300,29 +478,31 @@ const AIRecommendationCard: React.FC<AIRecommendationCardProps> = ({
         </div>
       )}
 
-      <div className="flex gap-2">
-        <button 
-          onClick={onAction}
-          disabled={isLoading}
-          className={`flex-1 py-2.5 px-4 rounded-lg ${getButtonColor()} 
-            text-white font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-            flex items-center justify-center gap-2`}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Generating...</span>
-            </>
-          ) : data ? (
-            <>
-              <RefreshCw className="h-4 w-4" />
+      {showActionButton && (
+        <div className="flex gap-2">
+          <button 
+            onClick={onAction}
+            disabled={isLoading}
+            className={`flex-1 py-2.5 px-4 rounded-lg ${getButtonColor()} 
+              text-white font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+              flex items-center justify-center gap-2`}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Generating...</span>
+              </>
+            ) : data ? (
+              <>
+                <RefreshCw className="h-4 w-4" />
+                <span>{actionLabel}</span>
+              </>
+            ) : (
               <span>{actionLabel}</span>
-            </>
-          ) : (
-            <span>{actionLabel}</span>
-          )}
-        </button>
-      </div>
+            )}
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 };
