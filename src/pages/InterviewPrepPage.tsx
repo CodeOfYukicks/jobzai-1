@@ -19,7 +19,7 @@ import {
   Search, RefreshCw, Maximize2, Minimize2, ArrowRight,
   MousePointer, Square, Circle, Minus, Link2, ArrowUp,
   CheckSquare, ExternalLink, BarChart2, Bookmark, ThumbsUp,
-  Newspaper, Users, PieChart, Award, Flag, Edit, Mic
+  Newspaper, Users, PieChart, Award, Flag, Edit
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -151,8 +151,6 @@ export default function InterviewPrepPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [expandedMessages, setExpandedMessages] = useState<Record<number, boolean>>({});
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
   const [notes, setNotes] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [stickyNotes, setStickyNotes] = useState<Note[]>([]);
@@ -475,18 +473,59 @@ Key points to mention:
         application.companyName,
         'perplexity' // Use Perplexity as default
       );
-      const analysisResult = sanitizeForFirestore(analysisRaw);
       
+      // Ensure all required fields are present with default values if missing
+      const analysisResult: JobPostAnalysisResult = {
+        keyPoints: analysisRaw.keyPoints || [],
+        requiredSkills: analysisRaw.requiredSkills || [],
+        suggestedQuestions: analysisRaw.suggestedQuestions || [],
+        suggestedAnswers: analysisRaw.suggestedAnswers || [],
+        companyInfo: analysisRaw.companyInfo || '',
+        positionDetails: analysisRaw.positionDetails || '',
+        cultureFit: analysisRaw.cultureFit || '',
+        error: analysisRaw.error
+      };
+      
+      // Check if there's an error
       if (analysisResult.error) {
         toast.error(analysisResult.error);
+        setIsAnalyzing(false);
         return;
       }
+      
+      // Validate that we have at least some data
+      const hasData = 
+        analysisResult.keyPoints.length > 0 ||
+        analysisResult.requiredSkills.length > 0 ||
+        analysisResult.suggestedQuestions.length > 0 ||
+        analysisResult.companyInfo ||
+        analysisResult.positionDetails;
+      
+      if (!hasData) {
+        toast.error('No data was extracted from the job posting. Please try again or check the URL.');
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // Log the data for debugging
+      console.log('Analysis result:', {
+        keyPoints: analysisResult.keyPoints.length,
+        requiredSkills: analysisResult.requiredSkills.length,
+        suggestedQuestions: analysisResult.suggestedQuestions.length,
+        suggestedAnswers: analysisResult.suggestedAnswers.length,
+        hasCompanyInfo: !!analysisResult.companyInfo,
+        hasPositionDetails: !!analysisResult.positionDetails,
+        hasCultureFit: !!analysisResult.cultureFit
+      });
+      
+      const sanitizedResult = sanitizeForFirestore(analysisResult);
       
       // Find the index of the interview in the application
       const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
       
       if (interviewIndex === -1) {
         toast.error('Could not find interview to update');
+        setIsAnalyzing(false);
         return;
       }
       
@@ -494,7 +533,7 @@ Key points to mention:
       const updatedInterviews = [...(application.interviews || [])];
       updatedInterviews[interviewIndex] = {
         ...interview,
-        preparation: analysisResult,
+        preparation: sanitizedResult,
         jobPostUrl: jobUrl,
         lastAnalyzed: new Date().toISOString()
       };
@@ -506,15 +545,21 @@ Key points to mention:
         updatedAt: serverTimestamp()
       });
       
-      // Update local state
+      // Update local state - also update the application state to ensure consistency
       setInterview({
         ...interview,
-        preparation: analysisResult,
+        preparation: sanitizedResult,
         jobPostUrl: jobUrl,
         lastAnalyzed: new Date().toISOString()
       });
       
-      toast.success('Job post analyzed successfully with Perplexity AI');
+      // Update application state to reflect the changes
+      setApplication({
+        ...application,
+        interviews: updatedInterviews
+      });
+      
+      toast.success('Job post analyzed successfully! All sections have been updated.');
     } catch (error) {
       console.error('Error analyzing job post:', error);
       toast.error('Failed to analyze job post: ' + (error instanceof Error ? error.message : 'Unknown error'));
@@ -732,202 +777,6 @@ Key points to mention:
     }));
   };
 
-  // Initialize Speech Recognition
-  useEffect(() => {
-    // Check if browser supports Speech Recognition
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (SpeechRecognition && !recognitionRef.current) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US'; // You can change this to 'fr-FR' for French
-
-      recognition.onresult = async (event: any) => {
-        const transcript = event.results[0][0].transcript.trim();
-        setIsListening(false);
-        
-        if (!transcript) return;
-        
-        // Create user message directly
-        const userMessage: ChatMessage = {
-          role: 'user',
-          content: transcript,
-          timestamp: Date.now()
-        };
-
-        // Add a temporary assistant message for 'thinking...'
-        const thinkingMessage: ChatMessage = {
-          role: 'assistant',
-          content: '__thinking__',
-          timestamp: Date.now() + 1
-        };
-
-        // Get current messages using functional update
-        setChatMessages(prevMessages => {
-          const updatedMessages = [...prevMessages, userMessage, thinkingMessage];
-          
-          // Send to Perplexity asynchronously
-          (async () => {
-            setIsSending(true);
-            
-            try {
-              // Build context for the AI based on the job details
-              const context = `
-                You are a conversational AI interview coach helping the user prepare for their ${interview?.type || 'interview'} interview at ${application?.companyName || 'the company'} for the ${application?.position || 'position'} position.
-
-                KEY CONTEXT:
-                - Position: ${application?.position || 'Not specified'}
-                - Company: ${application?.companyName || 'Not specified'}
-                - Required Skills: ${interview?.preparation?.requiredSkills?.join(', ') || "Not specified"}
-                
-                CONVERSATIONAL GUIDELINES:
-                - Keep your responses short and concise (2-3 paragraphs max)
-                - Start with a brief, casual response before diving into advice
-                - Don't dump all information at once - let the conversation flow naturally
-                - If the user says "hello" or similar, respond with a brief greeting and ask how you can help
-                - Ask follow-up questions to guide the conversation
-                - Avoid walls of text - use short paragraphs with one main point each
-                
-                USER'S CHAT HISTORY (for context only - don't reference this directly):
-                ${prevMessages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}
-              `;
-
-              // Query Perplexity API
-              const response = await queryPerplexity(
-                context + "\n\nUser message: " + transcript
-              );
-
-              // Check if the response contains an error
-              let aiContent = response.text || "I'm sorry, I couldn't process your request. Please try again later.";
-              // Remove <think> tags if present
-              aiContent = aiContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-              aiContent = aiContent.replace(/<think>[\s\S]*?<\/redacted_reasoning>/g, '').trim();
-              // Remove references like [1], [2], [3], etc.
-              aiContent = aiContent.replace(/\[\d+\]/g, '');
-
-              const aiMessage: ChatMessage = {
-                role: 'assistant',
-                content: aiContent,
-                timestamp: Date.now()
-              };
-
-              // Replace the last thinking message with the real response
-              setChatMessages(prev => {
-                const newMessages = prev.slice(0, -1).concat(aiMessage);
-                saveChatHistory(newMessages).catch(() => {
-                  toast.error('Failed to save chat history');
-                });
-                return newMessages;
-              });
-            } catch (error) {
-              // Replace the last thinking message with an error message
-              const errorMessage: ChatMessage = {
-                role: 'assistant',
-                content: "I'm sorry, I encountered an error while processing your request. This might be due to network issues or browser settings blocking requests. Please try again later.",
-                timestamp: Date.now()
-              };
-              
-              setChatMessages(prev => {
-                const newMessages = prev.slice(0, -1).concat(errorMessage);
-                saveChatHistory(newMessages).catch(() => {
-                  toast.error('Failed to save chat history');
-                });
-                return newMessages;
-              });
-              
-              toast.error('Failed to send message: ' + (error instanceof Error ? error.message : 'Unknown error'));
-            } finally {
-              setIsSending(false);
-            }
-          })();
-          
-          return updatedMessages;
-        });
-        
-        setMessage(''); // Clear message field
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        if (event.error === 'no-speech') {
-          toast.info('No speech detected. Please try again.');
-        } else if (event.error === 'not-allowed') {
-          toast.error('Microphone access denied. Please enable it in your browser settings.');
-        } else {
-          toast.error('Speech recognition error. Please try again.');
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {
-          // Ignore errors when stopping on unmount
-        }
-      }
-    };
-  }, [interview, application]);
-
-  // Start/Stop voice recording
-  const startVoiceRecording = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      toast.error('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
-      return;
-    }
-
-    if (!recognitionRef.current) {
-      toast.error('Speech recognition not initialized. Please refresh the page.');
-      return;
-    }
-
-    if (isListening) {
-      return; // Already listening
-    }
-
-    try {
-      recognitionRef.current.start();
-      setIsListening(true);
-      toast.success('Listening... Speak now!');
-    } catch (error) {
-      console.error('Error starting recognition:', error);
-      setIsListening(false);
-      toast.error('Failed to start voice recording. Please try again.');
-    }
-  };
-
-  const stopVoiceRecording = () => {
-    if (recognitionRef.current && isListening) {
-      try {
-        recognitionRef.current.stop();
-        setIsListening(false);
-      } catch (error) {
-        console.error('Error stopping recognition:', error);
-        setIsListening(false);
-      }
-    }
-  };
-
-  // Toggle for single click (auto-stop mode)
-  const toggleVoiceRecording = () => {
-    if (isListening) {
-      stopVoiceRecording();
-    } else {
-      startVoiceRecording();
-    }
-  };
-
   const updateInterviewNotes = (updatedNotes: Note[]) => {
     if (!currentUser || !application || !interview || !applicationId) return;
     
@@ -1136,32 +985,41 @@ Based on this job posting for a ${application.position} position at ${applicatio
 
 Please generate 5 different interview questions that might be asked during this interview. Make them varied - some behavioral, some technical, some about the company fit.
 
-For EACH question, provide a SPECIFIC and DETAILED suggested answer approach that:
-1. Is tailored to that specific question (not generic)
-2. Provides concrete guidance on how to structure the answer
-3. Includes relevant points to mention based on the job requirements
-4. Suggests what skills or experiences to highlight
-5. Is practical and actionable (2-4 sentences, not just "use STAR method")
+CRITICAL: For EACH question, provide a UNIQUE and HIGHLY SPECIFIC suggested answer approach that:
+1. Directly addresses the specific question asked (NOT generic advice like "use STAR method")
+2. Provides concrete, actionable guidance tailored to THAT EXACT question
+3. References specific aspects of the question (e.g., if the question mentions "data analytics", the answer should specifically address data analytics)
+4. Suggests specific skills, experiences, or examples relevant to THAT question
+5. Is 2-4 sentences of practical, question-specific advice
+6. Each answer must be DIFFERENT and UNIQUE - do not repeat the same guidance for different questions
+
+IMPORTANT: 
+- Do NOT use generic phrases like "Structure your answer using the STAR method" for all questions
+- Each answer must be tailored to its specific question
+- If a question is about technical skills, the answer should focus on technical aspects
+- If a question is about behavioral situations, the answer should focus on behavioral examples
+- Make each answer distinct and question-specific
 
 Return the questions in a JSON format like this:
 {
   "questions": [
-    "Question 1",
-    "Question 2",
-    "Question 3",
-    "Question 4",
-    "Question 5"
+    "Question 1 text here",
+    "Question 2 text here",
+    "Question 3 text here",
+    "Question 4 text here",
+    "Question 5 text here"
   ],
   "answers": [
-    {"question": "Question 1", "answer": "Specific detailed guidance for answering Question 1, tailored to the job requirements and role"},
-    {"question": "Question 2", "answer": "Specific detailed guidance for answering Question 2, tailored to the job requirements and role"},
-    {"question": "Question 3", "answer": "Specific detailed guidance for answering Question 3, tailored to the job requirements and role"},
-    {"question": "Question 4", "answer": "Specific detailed guidance for answering Question 4, tailored to the job requirements and role"},
-    {"question": "Question 5", "answer": "Specific detailed guidance for answering Question 5, tailored to the job requirements and role"}
+    {"question": "Question 1 text here", "answer": "Specific, detailed, unique guidance tailored specifically to Question 1, addressing its particular focus and requirements"},
+    {"question": "Question 2 text here", "answer": "Specific, detailed, unique guidance tailored specifically to Question 2, addressing its particular focus and requirements"},
+    {"question": "Question 3 text here", "answer": "Specific, detailed, unique guidance tailored specifically to Question 3, addressing its particular focus and requirements"},
+    {"question": "Question 4 text here", "answer": "Specific, detailed, unique guidance tailored specifically to Question 4, addressing its particular focus and requirements"},
+    {"question": "Question 5 text here", "answer": "Specific, detailed, unique guidance tailored specifically to Question 5, addressing its particular focus and requirements"}
   ]
 }
 
-Make sure each answer is unique and specific to its question, not generic advice.
+CRITICAL: The "question" field in each answer object must EXACTLY match the corresponding question in the questions array. This is essential for proper matching.
+Make sure each answer is completely unique and specific to its question - no generic advice.
 `;
 
       const response = await queryPerplexity(prompt);
@@ -1187,11 +1045,23 @@ Make sure each answer is unique and specific to its question, not generic advice
             return;
           }
           
-          // Find JSON content within the response
-          const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
-                           content.match(/\{[\s\S]*?\}/);
+          // Find JSON content within the response - improved regex to capture full JSON objects
+          let jsonString = '';
           
-          let jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+          // First try to find JSON in code blocks
+          const jsonCodeBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/i);
+          if (jsonCodeBlockMatch) {
+            jsonString = jsonCodeBlockMatch[1].trim();
+          } else {
+            // Try to find JSON object - match from first { to last }
+            const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonObjectMatch) {
+              jsonString = jsonObjectMatch[0];
+            } else {
+              // Last resort: use the whole content
+              jsonString = content;
+            }
+          }
           
           // Try to parse JSON
           const tryParse = (s: string) => {
@@ -1341,27 +1211,62 @@ Make sure each answer is unique and specific to its question, not generic advice
             return result.filter((q): q is string => q !== null && q.length > 10);
           };
 
-          const normalizeAnswers = (answers: any): {question: string, answer: string}[] => {
+          const normalizeAnswers = (answers: any, questions: string[]): {question: string, answer: string}[] => {
             if (!answers) return [];
             if (!Array.isArray(answers)) return [];
             const result: {question: string, answer: string}[] = [];
             
-            answers.forEach(a => {
+            answers.forEach((a, idx) => {
               if (typeof a === 'object' && a !== null) {
                 // Vérifier que c'est un objet avec question et answer
-                const question = typeof a.question === 'string' ? cleanString(a.question) : null;
+                let question = typeof a.question === 'string' ? cleanString(a.question) : null;
                 const answer = typeof a.answer === 'string' ? cleanString(a.answer) : null;
+                
+                // Si la question n'est pas présente mais qu'on a une question correspondante par index
+                if (!question && questions[idx]) {
+                  question = cleanString(questions[idx]);
+                }
                 
                 // Filtrer les valeurs invalides
                 if (question && question !== 'question' && question.length > 10 &&
                     answer && answer !== 'answer' && answer.length > 10) {
-                  result.push({ question, answer });
+                  // Vérifier que la réponse n'est pas trop générique (mais accepter les réponses qui mentionnent STAR de manière contextuelle)
+                  const answerLower = answer.toLowerCase();
+                  // Ne filtrer que les réponses vraiment génériques (juste "use STAR method" sans contexte)
+                  const isTooGeneric = (answerLower.includes('structure your answer using the star method') && answerLower.length < 100) ||
+                                     (answerLower === 'use the star method' || answerLower === 'use star method') ||
+                                     (answerLower.length < 30 && answerLower.includes('star method'));
+                  
+                  if (!isTooGeneric) {
+                    result.push({ question, answer });
+                  }
                 }
               } else if (typeof a === 'string') {
                 // Si c'est une chaîne, essayer de la séparer
                 const split = splitQuestionAndAnswer(a);
                 if (split.question && split.answer) {
-                  result.push({ question: split.question, answer: split.answer });
+                  // Vérifier que la réponse n'est pas générique
+                  const answerLower = split.answer.toLowerCase();
+                  const isGeneric = answerLower.includes('structure your answer using the star method') ||
+                                   answerLower.includes('use the star method') ||
+                                   answerLower.includes('situation, task, action, result');
+                  
+                  if (!isGeneric) {
+                    result.push({ question: split.question, answer: split.answer });
+                  }
+                } else if (questions[idx]) {
+                  // Si on a une question correspondante par index, l'utiliser
+                  const question = cleanString(questions[idx]);
+                  const answer = cleanString(a);
+                  if (question && question.length > 10 && answer && answer.length > 10) {
+                    const answerLower = answer.toLowerCase();
+                    const isGeneric = answerLower.includes('structure your answer using the star method') ||
+                                     answerLower.includes('use the star method');
+                    
+                    if (!isGeneric) {
+                      result.push({ question, answer });
+                    }
+                  }
                 }
               }
             });
@@ -1371,7 +1276,7 @@ Make sure each answer is unique and specific to its question, not generic advice
 
           // Normaliser les questions et réponses extraites
           const normalizedQuestions = normalizeQuestions(newQuestionsData.questions);
-          const normalizedAnswers = normalizeAnswers(newQuestionsData.answers);
+          const normalizedAnswers = normalizeAnswers(newQuestionsData.answers, normalizedQuestions);
           
           // Fonction pour normaliser et comparer les questions (matching flexible)
           const normalizeForMatch = (str: string): string => {
@@ -1477,42 +1382,147 @@ Make sure each answer is unique and specific to its question, not generic advice
           });
           
           // S'assurer que chaque question a sa réponse correspondante
-          // Si une question n'a pas de réponse, essayer de la trouver dans les réponses normalisées
+          // Améliorer le matching pour éviter les réponses génériques
           const finalAnswers: {question: string, answer: string}[] = [];
           combinedQuestions.forEach((q, idx) => {
-            // Chercher si cette question a déjà une réponse
-            const existingAnswer = combinedAnswers.find(a => {
+            // Chercher si cette question a déjà une réponse dans combinedAnswers
+            let matchingAnswer = combinedAnswers.find(a => {
               const aQuestionNorm = normalizeForMatch(a.question);
               const qQuestionNorm = normalizeForMatch(q);
+              // Matching exact ou partiel (au moins 50% de similarité)
               return aQuestionNorm === qQuestionNorm || 
-                     aQuestionNorm.includes(qQuestionNorm) || 
-                     qQuestionNorm.includes(aQuestionNorm);
+                     (aQuestionNorm.length > 0 && qQuestionNorm.length > 0 && 
+                      (aQuestionNorm.includes(qQuestionNorm) || qQuestionNorm.includes(aQuestionNorm)) &&
+                      Math.min(aQuestionNorm.length, qQuestionNorm.length) / Math.max(aQuestionNorm.length, qQuestionNorm.length) > 0.5);
             });
             
-            if (existingAnswer) {
-              finalAnswers.push(existingAnswer);
-            } else if (normalizedAnswers[idx]) {
-              // Utiliser l'index correspondant si disponible
-              finalAnswers.push({
+            // Si pas trouvé, utiliser directement la réponse par index dans normalizedAnswers
+            if (!matchingAnswer && normalizedAnswers[idx]) {
+              matchingAnswer = {
                 question: q,
                 answer: normalizedAnswers[idx].answer
-              });
-            } else if (normalizedAnswers.length > 0) {
-              // Utiliser la première réponse disponible comme fallback
-              finalAnswers.push({
-                question: q,
-                answer: normalizedAnswers[0].answer
-              });
+              };
             }
-            // Si aucune réponse n'est trouvée, on ne l'ajoute pas (le fallback générique sera utilisé à l'affichage)
+            
+            // Si toujours pas trouvé, chercher dans normalizedAnswers par matching flexible
+            if (!matchingAnswer && normalizedAnswers.length > 0) {
+              matchingAnswer = normalizedAnswers.find(a => {
+                const aQuestionNorm = normalizeForMatch(a.question);
+                const qQuestionNorm = normalizeForMatch(q);
+                // Matching plus souple : au moins 50% de similarité
+                const similarity = Math.min(aQuestionNorm.length, qQuestionNorm.length) / Math.max(aQuestionNorm.length, qQuestionNorm.length);
+                return (aQuestionNorm === qQuestionNorm || 
+                        aQuestionNorm.includes(qQuestionNorm) || 
+                        qQuestionNorm.includes(aQuestionNorm)) &&
+                       similarity > 0.5;
+              });
+              
+              if (matchingAnswer) {
+                // Utiliser la réponse trouvée mais avec la question exacte
+                matchingAnswer = {
+                  question: q,
+                  answer: matchingAnswer.answer
+                };
+              }
+            }
+            
+            // Si toujours pas trouvé, utiliser la réponse par index même sans vérification stricte
+            if (!matchingAnswer && normalizedAnswers.length > idx) {
+              matchingAnswer = {
+                question: q,
+                answer: normalizedAnswers[idx].answer
+              };
+            }
+            
+            // Si une réponse correspondante est trouvée, l'ajouter
+            if (matchingAnswer && matchingAnswer.answer && matchingAnswer.answer.length > 10) {
+              finalAnswers.push(matchingAnswer);
+            } else {
+              // Si aucune réponse n'est trouvée, utiliser la première réponse disponible comme dernier recours
+              if (normalizedAnswers.length > 0) {
+                finalAnswers.push({
+                  question: q,
+                  answer: normalizedAnswers[0].answer
+                });
+              } else {
+                console.warn(`No answer found for question: ${q.substring(0, 50)}...`);
+              }
+            }
           });
+          
+          // S'assurer que chaque question a sa réponse - utiliser directement l'index
+          // Priorité : normalizedAnswers par index > finalAnswers par matching > combinedAnswers
+          const completeAnswers: {question: string, answer: string}[] = [];
+          combinedQuestions.forEach((q, idx) => {
+            let answer: {question: string, answer: string} | null = null;
+            
+            // Priorité 1 : Utiliser directement normalizedAnswers par index (ordre correspondant)
+            if (normalizedAnswers[idx] && normalizedAnswers[idx].answer && normalizedAnswers[idx].answer.length > 10) {
+              answer = {
+                question: q,
+                answer: normalizedAnswers[idx].answer
+              };
+            }
+            
+            // Priorité 2 : Chercher dans finalAnswers par matching
+            if (!answer) {
+              const matched = finalAnswers.find(a => {
+                const aQuestionNorm = normalizeForMatch(a.question);
+                const qQuestionNorm = normalizeForMatch(q);
+                return aQuestionNorm === qQuestionNorm || 
+                       aQuestionNorm.includes(qQuestionNorm) || 
+                       qQuestionNorm.includes(aQuestionNorm);
+              });
+              if (matched && matched.answer && matched.answer.length > 10) {
+                answer = {
+                  question: q,
+                  answer: matched.answer
+                };
+              }
+            }
+            
+            // Priorité 3 : Utiliser finalAnswers par index si disponible
+            if (!answer && finalAnswers[idx] && finalAnswers[idx].answer && finalAnswers[idx].answer.length > 10) {
+              answer = {
+                question: q,
+                answer: finalAnswers[idx].answer
+              };
+            }
+            
+            // Priorité 4 : Chercher dans combinedAnswers
+            if (!answer) {
+              const matched = combinedAnswers.find(a => {
+                const aQuestionNorm = normalizeForMatch(a.question);
+                const qQuestionNorm = normalizeForMatch(q);
+                return aQuestionNorm === qQuestionNorm || 
+                       aQuestionNorm.includes(qQuestionNorm) || 
+                       qQuestionNorm.includes(aQuestionNorm);
+              });
+              if (matched && matched.answer && matched.answer.length > 10) {
+                answer = {
+                  question: q,
+                  answer: matched.answer
+                };
+              }
+            }
+            
+            // Si on a trouvé une réponse, l'ajouter
+            if (answer && answer.answer && answer.answer.length > 10) {
+              completeAnswers.push(answer);
+            }
+          });
+          
+          // Log pour déboguer
+          console.log('Questions count:', combinedQuestions.length);
+          console.log('Complete answers count:', completeAnswers.length);
+          console.log('Normalized answers count:', normalizedAnswers.length);
           
           // Create updated preparation object with required fields
           const updatedPreparation: JobPostAnalysisResult = {
             keyPoints: interview.preparation?.keyPoints || [],
             requiredSkills: interview.preparation?.requiredSkills || [],
             suggestedQuestions: combinedQuestions,
-            suggestedAnswers: finalAnswers.length > 0 ? finalAnswers : combinedAnswers, // Utiliser finalAnswers si disponible
+            suggestedAnswers: completeAnswers.length > 0 ? completeAnswers : (finalAnswers.length > 0 ? finalAnswers : combinedAnswers),
             companyInfo: interview.preparation?.companyInfo,
             positionDetails: interview.preparation?.positionDetails,
             cultureFit: interview.preparation?.cultureFit
@@ -3075,15 +3085,8 @@ Make sure each answer is unique and specific to its question, not generic advice
                                   exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
                                   transition={{ duration: 0.3 }}
                                 >
-                                  {/* Suggested Answer Approach */}
-                                  <div className="mt-3 sm:mt-5 border-t border-gray-100 dark:border-gray-700 pt-3 sm:pt-4">
-                                    <h4 className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-400 mb-3 sm:mb-4">
-                            Suggested Answer Approach
-                          </h4>
-                                    
-                                    {/* Answer Content - Primary focus on specific answer */}
-                                    <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-4 sm:p-6">
-                                      {(() => {
+                                  {/* Suggested Answer Approach - Only show if we have an answer */}
+                                  {(() => {
                                         // Fonction pour nettoyer les chaînes
                                         const cleanAnswer = (str: string): string => {
                                           if (!str || typeof str !== 'string') return '';
@@ -3130,73 +3133,90 @@ Make sure each answer is unique and specific to its question, not generic advice
                                             .trim();
                                         };
                                         
-                                        const answerObj = interview.preparation?.suggestedAnswers?.[index];
+                                        // Nettoyer la question pour le matching
+                                        const cleanedQuestion = typeof question === 'string' ? normalizeForMatch(question) : '';
                                         let answerText = '';
                                         
-                                        // Essayer d'abord par index (ordre direct)
-                                        if (answerObj && typeof answerObj === 'object' && 'answer' in answerObj) {
-                                          const answer = (answerObj as { answer: string }).answer;
-                                          if (typeof answer === 'string') {
-                                            const cleaned = cleanAnswer(answer);
-                                            if (cleaned && cleaned !== 'answer' && cleaned.length > 10) {
-                                              answerText = cleaned;
+                                        // Chercher d'abord par index direct (ordre correspondant)
+                                        if (interview.preparation?.suggestedAnswers && interview.preparation.suggestedAnswers.length > index) {
+                                          const answerByIndex = interview.preparation.suggestedAnswers[index];
+                                          if (typeof answerByIndex === 'object' && 'answer' in answerByIndex) {
+                                            const cleaned = cleanAnswer(String(answerByIndex.answer));
+                                            if (cleaned && cleaned.length > 10) {
+                                              // Vérifier que la réponse n'est pas trop générique
+                                              const answerLower = cleaned.toLowerCase();
+                                              // Ne filtrer que les réponses vraiment génériques (juste "use STAR method" sans contexte)
+                                              const isTooGeneric = (answerLower.includes('structure your answer using the star method') && answerLower.length < 100) ||
+                                                                 (answerLower === 'use the star method' || answerLower === 'use star method') ||
+                                                                 (answerLower.includes('prepare a specific answer for this question') && answerLower.length < 150);
+                                              
+                                              if (!isTooGeneric) {
+                                                answerText = cleaned;
+                                              }
                                             }
                                           }
                                         }
                                         
-                                        // Si pas trouvé par index, chercher par matching flexible de question
-                                        if (!answerText && typeof question === 'string') {
-                                          const cleanedQuestion = normalizeForMatch(question);
-                                          
-                                          // Chercher une correspondance exacte d'abord
-                                          let matchingAnswer = interview.preparation?.suggestedAnswers?.find((a: any) => {
+                                        // Si pas trouvé par index, chercher par matching exact de la question
+                                        if (!answerText && cleanedQuestion && interview.preparation?.suggestedAnswers) {
+                                          let matchingAnswer = interview.preparation.suggestedAnswers.find((a: any) => {
                                             if (typeof a !== 'object' || !('question' in a) || !('answer' in a)) return false;
                                             const aQuestion = normalizeForMatch(String(a.question));
                                             return aQuestion === cleanedQuestion;
                                           });
                                           
-                                          // Si pas trouvé, chercher une correspondance partielle (au moins 80% de similarité)
+                                          // Si pas trouvé, chercher une correspondance partielle avec similarité élevée (au moins 60%)
                                           if (!matchingAnswer) {
-                                            matchingAnswer = interview.preparation?.suggestedAnswers?.find((a: any) => {
+                                            matchingAnswer = interview.preparation.suggestedAnswers.find((a: any) => {
                                               if (typeof a !== 'object' || !('question' in a) || !('answer' in a)) return false;
                                               const aQuestion = normalizeForMatch(String(a.question));
-                                              // Comparaison partielle : si une question contient l'autre ou vice versa
-                                              return aQuestion.includes(cleanedQuestion) || cleanedQuestion.includes(aQuestion) ||
-                                                     (cleanedQuestion.length > 0 && aQuestion.length > 0 && 
-                                                      (cleanedQuestion.length / Math.max(aQuestion.length, cleanedQuestion.length)) > 0.8);
+                                              const similarity = Math.min(aQuestion.length, cleanedQuestion.length) / Math.max(aQuestion.length, cleanedQuestion.length);
+                                              return (aQuestion.includes(cleanedQuestion) || cleanedQuestion.includes(aQuestion)) &&
+                                                     similarity > 0.6;
                                             });
                                           }
                                           
-                                          // Si toujours pas trouvé, utiliser l'index correspondant dans le tableau des réponses
-                                          if (!matchingAnswer && interview.preparation?.suggestedAnswers && 
-                                              interview.preparation.suggestedAnswers.length > index) {
-                                            const answerByIndex = interview.preparation.suggestedAnswers[index];
-                                            if (typeof answerByIndex === 'object' && 'answer' in answerByIndex) {
-                                              matchingAnswer = answerByIndex;
-                                            }
-                                          }
-                                          
+                                          // Si une réponse correspondante est trouvée, l'utiliser
                                           if (matchingAnswer && typeof matchingAnswer === 'object' && 'answer' in matchingAnswer) {
                                             const cleaned = cleanAnswer(String(matchingAnswer.answer));
                                             if (cleaned && cleaned.length > 10) {
-                                              answerText = cleaned;
+                                              // Vérifier que la réponse n'est pas trop générique
+                                              const answerLower = cleaned.toLowerCase();
+                                              // Ne filtrer que les réponses vraiment génériques
+                                              const isTooGeneric = (answerLower.includes('structure your answer using the star method') && answerLower.length < 100) ||
+                                                                 (answerLower === 'use the star method' || answerLower === 'use star method') ||
+                                                                 (answerLower.includes('prepare a specific answer for this question') && answerLower.length < 150);
+                                              
+                                              if (!isTooGeneric) {
+                                                answerText = cleaned;
+                                              }
                                             }
                                           }
                                         }
                                         
-                                        // Fallback si aucune réponse spécifique trouvée
-                                        if (!answerText || answerText.length < 10) {
-                                          answerText = "Structure your answer using the STAR method: Situation, Task, Action, Result. Focus on highlighting relevant experience and skills from your background that match the job requirements.";
+                                        // Si on a une réponse, afficher la section
+                                        if (answerText && answerText.length > 10) {
+                                          return (
+                                            <>
+                                              <div className="mt-3 sm:mt-5 border-t border-gray-100 dark:border-gray-700 pt-3 sm:pt-4">
+                                                <h4 className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-400 mb-3 sm:mb-4">
+                                                  Suggested Answer Approach
+                                                </h4>
+                                                
+                                                {/* Answer Content - Primary focus on specific answer */}
+                                                <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-4 sm:p-6">
+                                                  <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                                                    {answerText}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </>
+                                          );
                                         }
                                         
-                                        return (
-                                          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                                            {answerText}
-                                          </p>
-                                        );
+                                        // Si pas de réponse, ne rien afficher
+                                        return null;
                                       })()}
-                                    </div>
-                                  </div>
                                   
                                   {/* Interaction buttons - Mobile friendly */}
                                   <div className="flex justify-between items-center mt-3 sm:mt-4">
@@ -3820,47 +3840,21 @@ Make sure each answer is unique and specific to its question, not generic advice
                                 sendMessage();
                               }
                             }}
-                            placeholder="Type your message or use voice..."
+                            placeholder="Type your message..."
                             rows={1}
-                            className="w-full p-5 pr-28 text-base bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:text-white resize-none min-h-[60px] max-h-[160px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-6"
+                            className="w-full p-5 pr-16 text-base bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:text-white resize-none min-h-[60px] max-h-[160px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-6"
                             style={{ 
                               height: 'auto',
                               overflow: 'hidden'
                             }}
-                            disabled={isSending || isListening}
+                            disabled={isSending}
                             whileFocus={{ scale: 1.01 }}
                           />
-                          {/* Microphone button - Press and hold or click */}
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onMouseDown={startVoiceRecording}
-                            onMouseUp={stopVoiceRecording}
-                            onMouseLeave={stopVoiceRecording}
-                            onTouchStart={startVoiceRecording}
-                            onTouchEnd={stopVoiceRecording}
-                            onClick={(e) => {
-                              // Only handle click if not already listening (for auto-stop mode)
-                              if (!isListening) {
-                                toggleVoiceRecording();
-                              }
-                            }}
-                            disabled={isSending}
-                            className={`absolute right-14 bottom-3 p-2.5 rounded-xl transition-all flex items-center justify-center shadow-md hover:shadow-lg ${
-                              isListening
-                                ? 'bg-red-500 text-white animate-pulse ring-2 ring-red-300 dark:ring-red-700'
-                                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                            }`}
-                            title={isListening ? 'Release to stop recording' : 'Click or hold to record'}
-                          >
-                            <Mic className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`} />
-                          </motion.button>
-                          {/* Send button */}
                           <motion.button
                             whileHover={{ scale: 1.08, rotate: 5 }}
                             whileTap={{ scale: 0.92 }}
                             onClick={sendMessage}
-                            disabled={!message.trim() || isSending || isListening}
+                            disabled={!message.trim() || isSending}
                             className="absolute right-3 bottom-3 p-3 rounded-xl bg-gradient-to-br from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center shadow-md hover:shadow-lg"
                           >
                             {isSending ? (
@@ -3875,16 +3869,10 @@ Make sure each answer is unique and specific to its question, not generic advice
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="text-xs text-gray-500 dark:text-gray-400 mt-3 ml-2 flex items-center gap-4 flex-wrap"
+                        className="text-xs text-gray-500 dark:text-gray-400 mt-3 ml-2 flex items-center gap-2"
                       >
-                        <span className="flex items-center gap-2">
-                          <HelpCircle className="w-4 h-4" />
-                          Press Enter to send. Shift+Enter for a new line.
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <Mic className="w-4 h-4" />
-                          Click or hold microphone to record
-                        </span>
+                        <HelpCircle className="w-4 h-4" />
+                        Press Enter to send. Shift+Enter for a new line.
                       </motion.p>
                     </motion.div>
                   </motion.div>

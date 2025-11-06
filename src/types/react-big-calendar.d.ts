@@ -16,9 +16,17 @@ declare module 'react-big-calendar' {
     popup?: boolean;
     tooltipAccessor?: (event: any) => string;
     onSelectEvent?: (event: any) => void;
+    selectable?: boolean;
+    onSelectSlot?: (slotInfo: any) => void;
+    draggableAccessor?: (event: any) => boolean | (() => boolean);
+    onEventDrop?: (args: { event: any; start: Date; end: Date }) => void;
+    onEventResize?: (args: { event: any; start: Date; end: Date }) => void;
+    resizable?: boolean;
+    onDragStart?: () => void;
     dayPropGetter?: (date: Date) => { style?: React.CSSProperties, className?: string };
     components?: {
       toolbar?: ComponentType<any>;
+      event?: ComponentType<any>;
       [key: string]: any;
     };
   }

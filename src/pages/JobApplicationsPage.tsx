@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { collection, query, onSnapshot, doc, updateDoc, where, orderBy, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, orderBy, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -14,13 +14,9 @@ import {
   ExternalLink,
   FileIcon,
   FileText,
-  Filter,
-  FlaskConical,
-  Globe,
   LineChart,
   MapPin,
   MessageSquare,
-  PenSquare,
   PieChart,
   Plus,
   PlusCircle,
@@ -29,13 +25,14 @@ import {
   TrendingUp,
   Users,
   X,
-  CheckCircle,
-  XCircle,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
+import { queryPerplexity } from '../lib/perplexity';
 
 interface Interview {
   id: string;
@@ -91,6 +88,7 @@ export default function JobApplicationsPage() {
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [timelineModal, setTimelineModal] = useState(false);
   const [view, setView] = useState<'kanban' | 'analytics'>('kanban');
+  const [isAnalyzingJob, setIsAnalyzingJob] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -219,6 +217,103 @@ export default function JobApplicationsPage() {
       toast.error('Failed to update application status');
       // Retour à l'état précédent en cas d'erreur
       setApplications(prev => [...prev]);
+    }
+  };
+
+  // Fonction pour extraire les informations depuis l'URL avec AI
+  const handleExtractJobInfo = async () => {
+    if (!formData.url || !formData.url.trim()) {
+      toast.error('Please enter a job URL first');
+      return;
+    }
+
+    setIsAnalyzingJob(true);
+    toast.info('Analyzing job posting...', { duration: 2000 });
+
+    try {
+      // Utiliser Perplexity pour analyser l'URL et extraire les informations
+      const prompt = `
+Visit and analyze this job posting URL: ${formData.url}
+
+Extract the following information and return ONLY a valid JSON object with these exact fields:
+{
+  "companyName": "the company name (e.g., Google, Microsoft, etc.)",
+  "position": "the job title/position (e.g., Software Engineer, Product Manager, etc.)",
+  "location": "the job location (city, state/country format, e.g., San Francisco, CA or Paris, France)",
+  "summary": "a concise 2-3 sentence summary of the key responsibilities and requirements"
+}
+
+Important:
+- Visit the URL and extract real information from the job posting
+- If the URL is from LinkedIn, Indeed, or other job sites, extract the actual job details
+- The summary should be brief and highlight the most important aspects of the role
+- Return ONLY the JSON object, no markdown, no code blocks, no additional text
+- If you cannot access the URL, try to infer from the URL structure (e.g., linkedin.com/jobs/view/...)
+`;
+
+      const response = await queryPerplexity(prompt);
+      
+      if (response.error) {
+        throw new Error(response.errorMessage || 'Failed to analyze job posting');
+      }
+
+      // Parser la réponse JSON
+      let extractedData;
+      try {
+        // Essayer de parser directement
+        const jsonMatch = response.text?.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          extractedData = JSON.parse(jsonMatch[0]);
+        } else {
+          // Si pas de JSON trouvé, essayer de parser toute la réponse
+          extractedData = JSON.parse(response.text);
+        }
+      } catch (parseError) {
+        // Si le parsing échoue, essayer d'extraire les informations manuellement
+        const text = response.text || '';
+        
+        // Extraire company name
+        const companyMatch = text.match(/"companyName"\s*:\s*"([^"]+)"/i) || 
+                           text.match(/company[:\s]+([A-Z][a-zA-Z\s&]+)/i);
+        const companyName = companyMatch ? companyMatch[1] : '';
+        
+        // Extraire position
+        const positionMatch = text.match(/"position"\s*:\s*"([^"]+)"/i) || 
+                            text.match(/position[:\s]+([A-Z][a-zA-Z\s]+)/i);
+        const position = positionMatch ? positionMatch[1] : '';
+        
+        // Extraire location
+        const locationMatch = text.match(/"location"\s*:\s*"([^"]+)"/i) || 
+                            text.match(/location[:\s]+([A-Z][a-zA-Z\s,]+)/i);
+        const location = locationMatch ? locationMatch[1] : '';
+        
+        // Extraire summary
+        const summaryMatch = text.match(/"summary"\s*:\s*"([^"]+)"/i);
+        const summary = summaryMatch ? summaryMatch[1] : text.substring(0, 200);
+        
+        extractedData = {
+          companyName: companyName.trim(),
+          position: position.trim(),
+          location: location.trim(),
+          summary: summary.trim()
+        };
+      }
+
+      // Mettre à jour le formulaire avec les données extraites
+      setFormData(prev => ({
+        ...prev,
+        companyName: extractedData.companyName || prev.companyName,
+        position: extractedData.position || prev.position,
+        location: extractedData.location || prev.location,
+        notes: extractedData.summary || prev.notes || ''
+      }));
+
+      toast.success('Job information extracted successfully!');
+    } catch (error) {
+      console.error('Error extracting job info:', error);
+      toast.error('Failed to extract job information. Please fill in the fields manually.');
+    } finally {
+      setIsAnalyzingJob(false);
     }
   };
 
@@ -1103,125 +1198,180 @@ END:VCALENDAR`;
         </AnimatePresence>
 
         {/* Existing modals */}
-        {newApplicationModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-            <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-gray-800 w-full sm:rounded-xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col"
+        <AnimatePresence>
+          {newApplicationModal && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setNewApplicationModal(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
             >
-              {/* Drag handle for mobile */}
-              <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
-                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-              </div>
-              
-              {/* Header */}
-              <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold">New Application</h2>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: "100%" }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: "100%" }}
+                onClick={(e) => e.stopPropagation()}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-white dark:bg-gray-800 w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700"
+              >
+                {/* Drag handle for mobile */}
+                <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
+                  <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                </div>
+                
+                {/* Header */}
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
+                  <div>
+                    <h2 className="font-semibold text-xl text-gray-900 dark:text-gray-100">New Application</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Add a new job application to track
+                    </p>
+                  </div>
                   <motion.button 
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setNewApplicationModal(false)} 
-                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
                     aria-label="Close modal"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-5 h-5" />
                   </motion.button>
                 </div>
-              </div>
 
-              {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Company Name *</label>
-                    <input
-                      type="text"
-                      value={formData.companyName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
-                      required
-                    />
-                  </div>
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
+                  <form className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Company Name *</label>
+                      <input
+                        type="text"
+                        value={formData.companyName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Enter company name"
+                        required
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Position *</label>
-                    <input
-                      type="text"
-                      value={formData.position}
-                      onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
-                      required
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Position *</label>
+                      <input
+                        type="text"
+                        value={formData.position}
+                        onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Enter position"
+                        required
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Location *</label>
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
-                      required
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Location *</label>
+                      <input
+                        type="text"
+                        value={formData.location}
+                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Enter location"
+                        required
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Applied Date *</label>
-                    <input
-                      type="date"
-                      value={formData.appliedDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
-                      required
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Applied Date *</label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={formData.appliedDate}
+                          onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          required
+                        />
+                        <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Job URL</label>
-                    <input
-                      type="url"
-                      value={formData.url || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Job URL</label>
+                      <div className="relative overflow-hidden rounded-xl">
+                        <input
+                          type="url"
+                          value={formData.url || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="https://..."
+                          style={{ paddingRight: '3.5rem' }}
+                        />
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleExtractJobInfo}
+                          disabled={isAnalyzingJob || !formData.url}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto z-10"
+                          title="Extract job information with AI"
+                        >
+                          {isAnalyzingJob ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-4 h-4" />
+                          )}
+                        </motion.button>
+                      </div>
+                      {formData.url && (
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Click the AI icon to automatically fill in the fields
+                        </p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Notes</label>
-                    <textarea
-                      value={formData.notes || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
-                      rows={3}
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Notes</label>
+                      <textarea
+                        value={formData.notes || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                        placeholder="Add any relevant notes or job description summary..."
+                        rows={3}
+                      />
+                    </div>
+                  </form>
                 </div>
-              </div>
 
-              {/* Footer with action buttons */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 shadow-md">
-                <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                {/* Footer with action buttons */}
+                <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
                   <button
-                    onClick={() => setNewApplicationModal(false)}
-                    className="px-4 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg w-full sm:w-auto"
+                    type="button"
+                    onClick={() => {
+                      setNewApplicationModal(false);
+                      setFormData({
+                        companyName: '',
+                        position: '',
+                        location: '',
+                        status: 'applied',
+                        appliedDate: new Date().toISOString().split('T')[0],
+                        url: '',
+                        notes: ''
+                      });
+                    }}
+                    className="px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium active:scale-95"
                   >
                     Cancel
                   </button>
                   <button
+                    type="button"
                     onClick={handleCreateApplication}
-                    className="px-4 py-3 sm:py-2 text-base sm:text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90 w-full sm:w-auto"
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition-colors font-medium active:scale-95 flex items-center gap-2 shadow-sm"
                   >
+                    <Plus className="w-4 h-4" />
                     Create Application
                   </button>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
 
         {/* Modal d'édition */}
         {editModal.show && (
@@ -1543,6 +1693,7 @@ END:VCALENDAR`;
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
+                        setFormData(selectedApplication);
                         setTimelineModal(false);
                         setEditModal({ show: true, application: selectedApplication });
                       }} 

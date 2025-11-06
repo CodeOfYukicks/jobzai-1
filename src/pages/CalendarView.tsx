@@ -1,20 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Calendar as BigCalendar, momentLocalizer, View, Components } from 'react-big-calendar';
+import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { collection, query, getDocs, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calendar as CalendarIcon, 
   Briefcase, 
   Calendar as CalIcon, 
   Check, 
-  RefreshCw, 
-  Link as LinkIcon, 
-  Settings,
   X,
   MapPin,
   Clock,
@@ -23,9 +20,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
-  FileText
+  FileText,
+  Plus,
+  GripVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Import types from JobApplicationsPage
 interface Interview {
@@ -105,19 +105,36 @@ const EventModal = ({ event, onClose }: EventModalProps) => {
   };
   
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="font-semibold text-lg">{event.title}</h3>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700"
+      >
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
+          <div>
+            <h3 className="font-semibold text-xl text-gray-900 dark:text-gray-100">{event.title}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {moment(event.start).format('dddd, MMMM D, YYYY')}
+            </p>
+          </div>
           <button 
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <div className="p-5 space-y-4">
+        <div className="p-6 space-y-5">
           {/* Date et heure */}
           <div className="flex items-start gap-3">
             <Clock className="w-5 h-5 text-gray-500 mt-0.5" />
@@ -187,10 +204,10 @@ const EventModal = ({ event, onClose }: EventModalProps) => {
           ) : null}
         </div>
         
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-between bg-gray-50 dark:bg-gray-800/50">
           <button 
             onClick={onClose}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium active:scale-95"
           >
             Close
           </button>
@@ -198,15 +215,15 @@ const EventModal = ({ event, onClose }: EventModalProps) => {
           {isInterview && application?.id && interview?.id && (
             <button 
               onClick={handleNavigateToPrep}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              className="px-5 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors flex items-center gap-2 font-medium active:scale-95 shadow-sm"
             >
               <FileText className="w-4 h-4" />
               Prepare for Interview
             </button>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
@@ -226,7 +243,7 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
     notes: '',
     url: '',
     interviewType: 'technical',
-    interviewTime: '09:00',
+    interviewTime: moment(selectedDate).format('HH:mm'),
     contactName: '',
     contactEmail: '',
   });
@@ -255,80 +272,99 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="font-semibold text-lg">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700"
+      >
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
+          <div>
+            <h3 className="font-semibold text-xl text-gray-900 dark:text-gray-100">
             Add {eventType === 'application' ? 'Job Application' : 'Interview'}
           </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {moment(selectedDate).format('dddd, MMMM D, YYYY')}
+            </p>
+          </div>
           <button 
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Sélection du type d'événement */}
-          <div className="flex space-x-4 mb-4">
+          <div className="flex gap-2 bg-gray-50 dark:bg-gray-800/50 p-1 rounded-xl">
             <button
               type="button"
               onClick={() => setEventType('application')}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium ${
+              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
                 eventType === 'application' 
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-400 shadow-sm' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              Job Application
+              <Briefcase className="w-4 h-4 inline mr-2" />
+              Application
             </button>
             <button
               type="button"
               onClick={() => setEventType('interview')}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium ${
+              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
                 eventType === 'interview' 
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-400 shadow-sm' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
+              <CalIcon className="w-4 h-4 inline mr-2" />
               Interview
             </button>
           </div>
           
           {/* Champs communs */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Company Name *</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Company Name *</label>
               <input
                 type="text"
                 required
                 value={formData.companyName}
                 onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Enter company name"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-1">Position *</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Position *</label>
               <input
                 type="text"
                 required
                 value={formData.position}
                 onChange={(e) => setFormData({...formData, position: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Enter position"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-1">Location</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Location</label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({...formData, location: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Enter location"
               />
             </div>
@@ -337,11 +373,11 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
             {eventType === 'interview' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Interview Type</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Interview Type</label>
                   <select
                     value={formData.interviewType}
                     onChange={(e) => setFormData({...formData, interviewType: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   >
                     <option value="technical">Technical</option>
                     <option value="hr">HR</option>
@@ -352,33 +388,33 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Time</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Time</label>
                   <input
                     type="time"
                     value={formData.interviewTime}
                     onChange={(e) => setFormData({...formData, interviewTime: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Contact Name</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Contact Name</label>
                   <input
                     type="text"
                     value={formData.contactName}
                     onChange={(e) => setFormData({...formData, contactName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     placeholder="Enter contact name"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Contact Email</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Contact Email</label>
                   <input
                     type="email"
                     value={formData.contactEmail}
                     onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     placeholder="Enter contact email"
                   />
                 </div>
@@ -388,12 +424,12 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
             {/* URL pour les candidatures */}
             {eventType === 'application' && (
               <div>
-                <label className="block text-sm font-medium mb-1">Job URL</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Job URL</label>
                 <input
                   type="url"
                   value={formData.url}
                   onChange={(e) => setFormData({...formData, url: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   placeholder="https://..."
                 />
               </div>
@@ -401,66 +437,53 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
             
             {/* Notes pour les deux types */}
             <div>
-              <label className="block text-sm font-medium mb-1">Notes</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Notes</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 min-h-[80px]"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
                 placeholder="Add any relevant notes..."
               />
             </div>
           </div>
           
-          <div className="pt-3 flex justify-end gap-3">
+          <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-70"
+              className="px-5 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-70 font-medium active:scale-95 flex items-center gap-2 shadow-sm"
             >
-              {isSubmitting ? 'Adding...' : 'Add Event'}
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Add Event
+                </>
+              )}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
-// Add Calendar props interface
-interface BigCalendarProps {
-  localizer: any;
-  events: CalendarEvent[];
-  startAccessor: string;
-  endAccessor: string;
-  style: { height: string };
-  views: string[];
-  view: "month" | "week" | "day";
-  date: Date;
-  toolbar?: boolean;
-  onNavigate: (date: Date) => void;
-  onView: (view: string) => void;
-  eventPropGetter: (event: CalendarEvent) => any;
-  popup?: boolean;
-  tooltipAccessor?: (event: CalendarEvent) => string;
-  onSelectEvent: (event: CalendarEvent) => void;
-  selectable: boolean;
-  onSelectSlot: (slotInfo: any) => void;
-  dayPropGetter?: (date: Date) => any;
-  components: Components;
-}
 
 export default function CalendarView() {
   const { currentUser } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
   const [selectedView, setSelectedView] = useState<'month' | 'week' | 'day'>('month');
   const [showApplications, setShowApplications] = useState(true);
   const [showInterviews, setShowInterviews] = useState(true);
@@ -468,6 +491,69 @@ export default function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [justSelectedEvent, setJustSelectedEvent] = useState(false);
+
+  // Styles personnalisés pour améliorer la lisibilité des événements multiples
+  useEffect(() => {
+    const styleSheet = document.createElement('style');
+    styleSheet.type = 'text/css';
+    styleSheet.innerText = `
+      .rbc-event {
+        margin-bottom: 2px !important;
+        border-radius: 6px !important;
+        overflow: hidden !important;
+      }
+      
+      .rbc-event:last-child {
+        margin-bottom: 0 !important;
+      }
+      
+      .rbc-month-view .rbc-event {
+        min-height: 22px !important;
+        margin-bottom: 2px !important;
+      }
+      
+      .rbc-month-view .rbc-day-slot .rbc-events-container {
+        margin-right: 0 !important;
+      }
+      
+      .rbc-month-view .rbc-day-slot .rbc-event {
+        margin-bottom: 2px !important;
+      }
+      
+      .rbc-agenda-view .rbc-event {
+        min-height: 28px !important;
+      }
+      
+      .rbc-time-view .rbc-event {
+        min-height: 28px !important;
+      }
+      
+      .rbc-event-content {
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      
+      .rbc-event:active {
+        cursor: grabbing !important;
+      }
+      
+      .rbc-event.rbc-selected {
+        outline: 2px solid rgba(139, 92, 246, 0.5) !important;
+        outline-offset: 2px !important;
+      }
+    `;
+    document.head.appendChild(styleSheet);
+    
+    return () => {
+      if (document.head.contains(styleSheet)) {
+        document.head.removeChild(styleSheet);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -548,32 +634,221 @@ export default function CalendarView() {
     fetchApplicationsAndInterviews();
   }, [currentUser]);
 
-  // Connecter à Google Calendar (cette fonction serait implémentée avec l'API Google)
-  const connectToGoogleCalendar = async () => {
-    // Note: Ceci est un exemple de workflow, l'implémentation réelle nécessite l'API Google
-    toast.info('Connecting to Google Calendar...');
+  // Gestion du drag and drop des événements
+  const handleEventDrop = async ({ event, start, end }: any) => {
+    if (!currentUser) return;
     
-    // Simuler une connexion réussie après 1 seconde
-    setTimeout(() => {
-      setGoogleCalendarConnected(true);
-      toast.success('Connected to Google Calendar');
-    }, 1000);
+    setIsDragging(false);
     
-    // L'implémentation réelle utiliserait l'API Google OAuth
-    // et le flux d'autorisation pour obtenir un jeton d'accès
+    // Utiliser end si fourni, sinon calculer la durée à partir de l'événement original
+    const eventEnd = end || new Date(start.getTime() + (event.end.getTime() - event.start.getTime()));
+    
+    try {
+      const eventId = event.id;
+      const isApplication = event.type === 'application';
+      
+      if (isApplication) {
+        // Mettre à jour la date de candidature
+        const applicationId = eventId.replace('app-', '');
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        
+        const newDate = moment(start).format('YYYY-MM-DD');
+        
+        await updateDoc(applicationRef, {
+          appliedDate: newDate,
+          updatedAt: serverTimestamp(),
+          statusHistory: [
+            ...(event.resource?.statusHistory || []),
+            {
+              status: event.resource?.status || 'applied',
+              date: newDate,
+              notes: 'Date updated via calendar drag and drop'
+            }
+          ]
+        });
+        
+        // Mettre à jour l'événement local
+        setEvents(prev => prev.map(e => 
+          e.id === eventId 
+            ? { ...e, start, end: start, resource: { ...e.resource, appliedDate: newDate } }
+            : e
+        ));
+        
+        toast.success('Application date updated');
+      } else {
+        // Mettre à jour la date/heure de l'entretien
+        const [applicationId, interviewIndex] = eventId.replace('int-', '').split('-');
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        
+        // Récupérer l'application actuelle
+        const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+        const applicationsSnapshot = await getDocs(query(applicationsRef));
+        let currentApplication: any = null;
+        
+        applicationsSnapshot.forEach(doc => {
+          if (doc.id === applicationId) {
+            currentApplication = { id: doc.id, ...doc.data() };
+          }
+        });
+        
+        if (!currentApplication || !currentApplication.interviews) {
+          toast.error('Interview not found');
+          return;
+        }
+        
+        // Trouver l'index de l'entretien
+        const interviewIndexNum = parseInt(interviewIndex);
+        const interview = currentApplication.interviews[interviewIndexNum];
+        
+        if (!interview) {
+          toast.error('Interview not found');
+          return;
+        }
+        
+        // Mettre à jour la date et l'heure
+        const newDate = moment(start).format('YYYY-MM-DD');
+        const newTime = moment(start).format('HH:mm');
+        
+        const updatedInterviews = currentApplication.interviews.map((int: Interview, idx: number) => 
+          idx === interviewIndexNum 
+            ? { ...int, date: newDate, time: newTime }
+            : int
+        );
+        
+        await updateDoc(applicationRef, {
+          interviews: updatedInterviews,
+          updatedAt: serverTimestamp()
+        });
+        
+        // Mettre à jour l'événement local - utiliser eventEnd calculé plus haut
+        setEvents(prev => prev.map(e => 
+          e.id === eventId 
+            ? { ...e, start, end: eventEnd, resource: { ...e.resource, interview: { ...interview, date: newDate, time: newTime } } }
+            : e
+        ));
+        
+        toast.success('Interview date updated');
+      }
+    } catch (error) {
+      console.error('Error updating event:', error);
+      toast.error('Failed to update event');
+      // Recharger les événements en cas d'erreur
+      if (currentUser) {
+        const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+        const applicationsSnapshot = await getDocs(query(applicationsRef));
+        const newEvents: CalendarEvent[] = [];
+        
+        applicationsSnapshot.forEach((doc) => {
+          const application = { id: doc.id, ...doc.data() } as JobApplication;
+          
+          if (application.appliedDate) {
+            const appliedDate = new Date(application.appliedDate);
+            newEvents.push({
+              id: `app-${application.id}`,
+              title: `Applied: ${application.companyName} - ${application.position}`,
+              start: appliedDate,
+              end: appliedDate,
+              allDay: true,
+              type: 'application',
+              color: '#8b5cf6',
+              resource: application
+            });
+          }
+          
+          if (application.interviews && application.interviews.length > 0) {
+            application.interviews.forEach((interview, index) => {
+              if (interview.date) {
+                const interviewDate = new Date(interview.date);
+                const [hours, minutes] = (interview.time || '09:00').split(':').map(Number);
+                interviewDate.setHours(hours, minutes);
+                
+                const endDate = new Date(interviewDate);
+                endDate.setHours(endDate.getHours() + 1);
+                
+                let color = '#6366f1';
+                if (interview.type === 'hr') color = '#ec4899';
+                if (interview.type === 'technical') color = '#14b8a6';
+                if (interview.type === 'manager') color = '#f59e0b';
+                if (interview.type === 'final') color = '#22c55e';
+                if (interview.status === 'cancelled') color = '#ef4444';
+                
+                newEvents.push({
+                  id: `int-${application.id}-${index}`,
+                  title: `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)} Interview: ${application.companyName}`,
+                  start: interviewDate,
+                  end: endDate,
+                  allDay: false,
+                  type: 'interview',
+                  color,
+                  resource: { ...application, interview }
+                });
+              }
+            });
+          }
+        });
+        
+        setEvents(newEvents);
+      }
+    }
   };
-
-  // Synchroniser avec Google Calendar
-  const syncWithGoogleCalendar = () => {
-    toast.info('Syncing with Google Calendar...');
+  
+  const handleEventResize = async ({ event, start, end }: any) => {
+    if (!currentUser || event.type === 'application') return; // Les applications sont allDay, pas de resize
     
-    // Simuler une synchronisation réussie après 1 seconde
-    setTimeout(() => {
-      toast.success('Synced with Google Calendar');
-    }, 1000);
+    setIsDragging(false);
     
-    // L'implémentation réelle enverrait les événements vers Google Calendar
-    // et récupérerait également les événements Google Calendar
+    try {
+      const eventId = event.id;
+      const [applicationId, interviewIndex] = eventId.replace('int-', '').split('-');
+      const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+      
+      const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+      const applicationsSnapshot = await getDocs(query(applicationsRef));
+      let currentApplication: any = null;
+      
+      applicationsSnapshot.forEach(doc => {
+        if (doc.id === applicationId) {
+          currentApplication = { id: doc.id, ...doc.data() };
+        }
+      });
+      
+      if (!currentApplication || !currentApplication.interviews) {
+        return;
+      }
+      
+      const interviewIndexNum = parseInt(interviewIndex);
+      const interview = currentApplication.interviews[interviewIndexNum];
+      
+      if (!interview) {
+        return;
+      }
+      
+      // Calculer la nouvelle heure de fin
+      const newTime = moment(start).format('HH:mm');
+      const newDate = moment(start).format('YYYY-MM-DD');
+      
+      const updatedInterviews = currentApplication.interviews.map((int: Interview, idx: number) => 
+        idx === interviewIndexNum 
+          ? { ...int, date: newDate, time: newTime }
+          : int
+      );
+      
+      await updateDoc(applicationRef, {
+        interviews: updatedInterviews,
+        updatedAt: serverTimestamp()
+      });
+      
+      setEvents(prev => prev.map(e => 
+        e.id === eventId 
+          ? { ...e, start, end, resource: { ...e.resource, interview: { ...interview, date: newDate, time: newTime } } }
+          : e
+      ));
+      
+      toast.success('Interview duration updated');
+    } catch (error) {
+      console.error('Error resizing event:', error);
+      toast.error('Failed to update interview duration');
+    }
   };
 
   // Filtre des événements selon les types sélectionnés
@@ -587,16 +862,22 @@ export default function CalendarView() {
     return {
       style: {
         backgroundColor: event.color,
-        borderRadius: '8px',
-        opacity: 0.9,
+        borderRadius: '6px',
+        opacity: isDragging ? 0.7 : 1,
         color: 'white',
         border: '0',
         display: 'block',
         fontWeight: 500,
-        padding: '4px 8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
-        transition: 'all 0.3s cubic-bezier(.25,.8,.25,1)',
-        cursor: 'pointer'
+        padding: '0',
+        marginBottom: '2px',
+        boxShadow: isDragging 
+          ? '0 8px 16px rgba(0,0,0,0.2)' 
+          : '0 1px 3px rgba(0,0,0,0.12)',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'grab',
+        transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+        minHeight: selectedView === 'month' ? '22px' : '28px',
+        overflow: 'hidden',
       }
     };
   };
@@ -630,78 +911,6 @@ export default function CalendarView() {
     setCurrentDate(newDate);
   };
 
-  // Function to process job applications and interviews into calendar events
-  const processEvents = (applications: JobApplication[]): CalendarEvent[] => {
-    const events: CalendarEvent[] = [];
-    
-    // Add job application events
-    applications.forEach(app => {
-      // Add the application date event
-      const appDate = moment(app.appliedDate).toDate();
-      events.push({
-        id: `app-${app.id}`,
-        title: `Applied to ${app.companyName}`,
-        start: appDate,
-        end: appDate,
-        allDay: true,
-        type: 'application',
-        resource: app,
-        color: '#8B5CF6' // Purple
-      });
-      
-      // Add interview events
-      if (app.interviews && app.interviews.length > 0) {
-        app.interviews.forEach(interview => {
-          // Only include if the interview has a valid date
-          if (interview.date) {
-            const interviewDate = moment(`${interview.date} ${interview.time || '09:00'}`, 'YYYY-MM-DD HH:mm').toDate();
-            const endDate = moment(interviewDate).add(1, 'hour').toDate();
-            
-            let eventColor = '#8B5CF6'; // default purple
-            
-            // Set color based on interview type
-            switch(interview.type) {
-              case 'hr':
-                eventColor = '#EC4899'; // Pink
-                break;
-              case 'technical':
-                eventColor = '#14B8A6'; // Teal
-                break;
-              case 'manager':
-                eventColor = '#F59E0B'; // Amber
-                break;
-              case 'final':
-                eventColor = '#10B981'; // Green
-                break;
-            }
-            
-            // Set color based on status
-            if (interview.status === 'cancelled') {
-              eventColor = '#EF4444'; // Red for cancelled
-            } else if (interview.status === 'completed') {
-              eventColor = '#6B7280'; // Gray for completed
-            }
-            
-            events.push({
-              id: `interview-${app.id}-${interview.id}`,
-              title: `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)} Interview at ${app.companyName}`,
-              start: interviewDate,
-              end: endDate,
-              allDay: false,
-              type: 'interview',
-              resource: {
-                application: app,
-                interview: interview
-              },
-              color: eventColor
-            });
-          }
-        });
-      }
-    });
-    
-    return events;
-  };
 
   // Fonction pour ajouter un événement
   const handleAddEvent = async (eventData: any) => {
@@ -893,6 +1102,32 @@ export default function CalendarView() {
 
   // Gestion du double-clic sur le calendrier
   const handleSlotSelect = (slotInfo: any) => {
+    // Ne pas créer d'événement si on est en train de faire un drag
+    if (isDragging) {
+      return;
+    }
+    
+    // Vérifier si on a cliqué sur un événement existant
+    const clickedEvent = filteredEvents.find(event => {
+      const slotStart = moment(slotInfo.start);
+      const slotEnd = moment(slotInfo.end || slotInfo.start);
+      const eventStart = moment(event.start);
+      const eventEnd = moment(event.end);
+      
+      // Vérifier si le slot sélectionné chevauche avec un événement
+      return (slotStart.isSameOrBefore(eventEnd) && slotEnd.isSameOrAfter(eventStart));
+    });
+    
+    // Si on a cliqué sur un événement, ne pas créer de nouvel événement
+    if (clickedEvent) {
+      return;
+    }
+    
+    // Ne pas créer d'événement si on vient de cliquer sur un événement existant
+    if (justSelectedEvent) {
+      return;
+    }
+    
     setSelectedSlot(slotInfo.start);
     setShowAddEventModal(true);
   };
@@ -900,168 +1135,162 @@ export default function CalendarView() {
   return (
     <AuthLayout>
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+        {/* Header avec animation */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Calendar View
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Visualize your job applications and interviews in calendar format
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Visualize and manage your job applications and interviews. Drag events to reschedule them.
           </p>
-        </div>
+        </motion.div>
 
-        {/* Filtres et contrôles */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div className="flex flex-wrap gap-3">
+        {/* Contrôles avec animation */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="flex flex-wrap items-center justify-between gap-4 mb-6"
+        >
+          {/* View selection */}
+          <div className="flex flex-wrap gap-2 bg-gray-50 dark:bg-gray-800/50 p-1 rounded-xl">
             <button
               onClick={() => setSelectedView('month')}
-              className={`px-3 py-1.5 text-sm rounded-lg flex items-center ${
+              className={`px-4 py-2 text-sm rounded-lg flex items-center font-medium transition-all duration-200 ${
                 selectedView === 'month' 
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium' 
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-400 shadow-sm' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <CalendarIcon className="w-4 h-4 mr-1.5" />
+              <CalendarIcon className="w-4 h-4 mr-2" />
               Month
             </button>
             <button
               onClick={() => setSelectedView('week')}
-              className={`px-3 py-1.5 text-sm rounded-lg flex items-center ${
+              className={`px-4 py-2 text-sm rounded-lg flex items-center font-medium transition-all duration-200 ${
                 selectedView === 'week' 
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium' 
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-400 shadow-sm' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <CalendarIcon className="w-4 h-4 mr-1.5" />
+              <CalendarIcon className="w-4 h-4 mr-2" />
               Week
             </button>
             <button
               onClick={() => setSelectedView('day')}
-              className={`px-3 py-1.5 text-sm rounded-lg flex items-center ${
+              className={`px-4 py-2 text-sm rounded-lg flex items-center font-medium transition-all duration-200 ${
                 selectedView === 'day' 
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium' 
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-400 shadow-sm' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <CalendarIcon className="w-4 h-4 mr-1.5" />
+              <CalendarIcon className="w-4 h-4 mr-2" />
               Day
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <label className={`px-3 py-1.5 text-sm rounded-lg flex items-center cursor-pointer ${
-              showApplications ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-            }`}>
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2">
+            <motion.label 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`px-4 py-2 text-sm rounded-lg flex items-center cursor-pointer transition-all duration-200 ${
+                showApplications 
+                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 shadow-sm' 
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
               <input 
                 type="checkbox" 
                 checked={showApplications} 
                 onChange={() => setShowApplications(!showApplications)} 
                 className="sr-only"
               />
-              <Briefcase className="w-4 h-4 mr-1.5" />
+              <Briefcase className="w-4 h-4 mr-2" />
               Applications
-              {showApplications && <Check className="w-4 h-4 ml-1.5" />}
-            </label>
-            <label className={`px-3 py-1.5 text-sm rounded-lg flex items-center cursor-pointer ${
-              showInterviews ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-            }`}>
+              {showApplications && <Check className="w-4 h-4 ml-2" />}
+            </motion.label>
+            <motion.label 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`px-4 py-2 text-sm rounded-lg flex items-center cursor-pointer transition-all duration-200 ${
+                showInterviews 
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 shadow-sm' 
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
               <input 
                 type="checkbox" 
                 checked={showInterviews} 
                 onChange={() => setShowInterviews(!showInterviews)} 
                 className="sr-only" 
               />
-              <CalIcon className="w-4 h-4 mr-1.5" />
+              <CalIcon className="w-4 h-4 mr-2" />
               Interviews
-              {showInterviews && <Check className="w-4 h-4 ml-1.5" />}
-            </label>
+              {showInterviews && <Check className="w-4 h-4 ml-2" />}
+            </motion.label>
           </div>
-        </div>
-
-        {/* Section Google Calendar */}
-        <div className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                googleCalendarConnected ? 'bg-green-100 dark:bg-green-900/30 text-green-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'
-              }`}>
-                <CalendarIcon className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-medium">Google Calendar</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {googleCalendarConnected 
-                    ? 'Your calendar is connected' 
-                    : 'Connect to see interviews in your Google Calendar'}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {!googleCalendarConnected ? (
-                <button 
-                  onClick={connectToGoogleCalendar}
-                  className="px-4 py-2 bg-white dark:bg-gray-700 text-sm border border-gray-200 dark:border-gray-600 rounded-lg flex items-center hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <LinkIcon className="w-4 h-4 mr-1.5" />
-                  Connect
-                </button>
-              ) : (
-                <>
-                  <button 
-                    onClick={syncWithGoogleCalendar}
-                    className="px-4 py-2 bg-white dark:bg-gray-700 text-sm border border-gray-200 dark:border-gray-600 rounded-lg flex items-center hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1.5" />
-                    Sync Now
-                  </button>
-                  <button className="px-4 py-2 bg-white dark:bg-gray-700 text-sm border border-gray-200 dark:border-gray-600 rounded-lg flex items-center hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                    <Settings className="w-4 h-4 mr-1.5" />
-                    Settings
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        </motion.div>
         
         {/* Calendrier avec navigation améliorée */}
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden"
+        >
           {/* Contrôles de navigation du calendrier */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={navigateToPrevious}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
+                aria-label="Previous"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button 
                 onClick={navigateToToday}
-                className="px-3 py-1.5 text-sm font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                className="px-4 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors active:scale-95 shadow-sm"
               >
                 Today
               </button>
               <button 
                 onClick={navigateToNext}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
+                aria-label="Next"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
-              <h2 className="text-lg font-medium ml-2">
+              <h2 className="text-xl font-semibold ml-2 text-gray-900 dark:text-gray-100">
                 {selectedView === 'month' && moment(currentDate).format('MMMM YYYY')}
                 {selectedView === 'week' && `Week of ${moment(currentDate).startOf('week').format('MMM D')} - ${moment(currentDate).endOf('week').format('MMM D, YYYY')}`}
                 {selectedView === 'day' && moment(currentDate).format('dddd, MMMM D, YYYY')}
               </h2>
             </div>
+            
+            {/* Hint pour drag and drop */}
+            <div className="hidden md:flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <GripVertical className="w-4 h-4" />
+              <span>Drag events to reschedule</span>
+            </div>
           </div>
 
           {/* Calendrier */}
-          <div className="h-[70vh]">
+          <div className="h-[75vh] p-4">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading calendar...</p>
+                </div>
               </div>
             ) : (
-              // @ts-ignore
               <BigCalendar
                 localizer={localizer}
                 events={filteredEvents}
@@ -1077,10 +1306,23 @@ export default function CalendarView() {
                 popup
                 tooltipAccessor={(event) => `${event.title}`}
                 onSelectEvent={(event) => {
+                  setJustSelectedEvent(true);
                   setSelectedEvent(event);
+                  // Réinitialiser le flag après un délai pour éviter les doubles déclenchements
+                  setTimeout(() => {
+                    setJustSelectedEvent(false);
+                  }, 300);
                 }}
                 selectable={true}
                 onSelectSlot={handleSlotSelect}
+                draggableAccessor={() => true}
+                onEventDrop={handleEventDrop}
+                onEventResize={handleEventResize}
+                resizable
+                onDragStart={() => {
+                  setIsDragging(true);
+                  setJustSelectedEvent(false); // Réinitialiser le flag lors du drag
+                }}
                 dayPropGetter={(date) => {
                   const today = new Date();
                   if (
@@ -1091,29 +1333,51 @@ export default function CalendarView() {
                     return {
                       className: 'rbc-today',
                       style: {
-                        backgroundColor: 'rgba(139, 92, 246, 0.05)',
+                        backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                        borderLeft: '3px solid #8b5cf6',
                       },
                     };
                   }
                   return {};
                 }}
                 components={{
-                  toolbar: () => null, // On supprime la toolbar par défaut car on a notre propre navigation
+                  toolbar: () => null,
+                  event: ({ event }: any) => (
+                    <div 
+                      className="rbc-event-content flex items-center gap-1.5 min-h-[24px] px-2 py-1"
+                    >
+                      <GripVertical className="w-3 h-3 opacity-60 flex-shrink-0" />
+                      <span className="flex-1 truncate text-xs font-medium leading-tight">{event.title}</span>
+                    </div>
+                  ),
+                  month: {
+                    event: ({ event }: any) => (
+                      <div 
+                        className="rbc-event-content flex items-center gap-1.5 min-h-[22px] px-1.5 py-0.5 mb-0.5 last:mb-0"
+                      >
+                        <GripVertical className="w-2.5 h-2.5 opacity-60 flex-shrink-0" />
+                        <span className="flex-1 truncate text-xs font-medium leading-tight">{event.title}</span>
+                      </div>
+                    ),
+                  },
                 }}
               />
             )}
           </div>
-        </div>
+        </motion.div>
         
         {/* Modal pour les détails d'événement */}
+        <AnimatePresence>
         {selectedEvent && (
           <EventModal 
             event={selectedEvent} 
             onClose={() => setSelectedEvent(null)} 
           />
         )}
+        </AnimatePresence>
         
         {/* Modal pour ajouter un événement */}
+        <AnimatePresence>
         {showAddEventModal && selectedSlot && (
           <AddEventModal
             selectedDate={selectedSlot}
@@ -1124,6 +1388,7 @@ export default function CalendarView() {
             onAddEvent={handleAddEvent}
           />
         )}
+        </AnimatePresence>
       </div>
     </AuthLayout>
   );
