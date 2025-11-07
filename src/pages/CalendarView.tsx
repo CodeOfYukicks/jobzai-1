@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { collection, query, getDocs, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -69,6 +71,9 @@ interface JobApplication {
 
 // Setup le localisateur pour le calendrier
 const localizer = momentLocalizer(moment);
+
+// Créer le composant Calendar avec drag and drop
+const DragAndDropCalendar = withDragAndDrop(BigCalendar);
 
 // Types pour les événements du calendrier
 interface CalendarEvent {
@@ -503,6 +508,10 @@ export default function CalendarView() {
         margin-bottom: 2px !important;
         border-radius: 6px !important;
         overflow: hidden !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
       }
       
       .rbc-event:last-child {
@@ -544,6 +553,56 @@ export default function CalendarView() {
       .rbc-event.rbc-selected {
         outline: 2px solid rgba(139, 92, 246, 0.5) !important;
         outline-offset: 2px !important;
+      }
+      
+      /* Styles pour améliorer le drag and drop */
+      
+      .rbc-addons-dnd-drag-preview {
+        opacity: 0.8 !important;
+        z-index: 1000 !important;
+      }
+      
+      .rbc-addons-dnd-dragging {
+        opacity: 0.5 !important;
+      }
+      
+      /* Styles pour les jours hors mois en mode sombre */
+      .dark .rbc-off-range-bg {
+        background-color: rgb(31, 41, 55) !important;
+      }
+      
+      .dark .rbc-off-range {
+        background-color: rgb(31, 41, 55) !important;
+        color: rgb(156, 163, 175) !important;
+      }
+      
+      .dark .rbc-day-bg.rbc-off-range-bg {
+        background-color: rgb(31, 41, 55) !important;
+      }
+      
+      .dark .rbc-date-cell.rbc-off-range {
+        background-color: rgb(31, 41, 55) !important;
+        color: rgb(156, 163, 175) !important;
+      }
+      
+      .dark .rbc-date-cell.rbc-off-range a {
+        color: rgb(156, 163, 175) !important;
+      }
+      
+      .dark .rbc-day-slot.rbc-off-range-bg {
+        background-color: rgb(31, 41, 55) !important;
+      }
+      
+      .dark .rbc-month-view .rbc-day-bg.rbc-off-range-bg {
+        background-color: rgb(31, 41, 55) !important;
+      }
+      
+      .dark .rbc-month-view .rbc-date-cell.rbc-off-range {
+        background-color: rgb(31, 41, 55) !important;
+      }
+      
+      .dark .rbc-month-view .rbc-date-cell.rbc-off-range a {
+        color: rgb(156, 163, 175) !important;
       }
     `;
     document.head.appendChild(styleSheet);
@@ -1291,7 +1350,7 @@ export default function CalendarView() {
                 </div>
               </div>
             ) : (
-              <BigCalendar
+              <DragAndDropCalendar
                 localizer={localizer}
                 events={filteredEvents}
                 startAccessor="start"
@@ -1306,6 +1365,10 @@ export default function CalendarView() {
                 popup
                 tooltipAccessor={(event) => `${event.title}`}
                 onSelectEvent={(event) => {
+                  // Ne pas ouvrir le modal si on est en train de faire un drag
+                  if (isDragging) {
+                    return;
+                  }
                   setJustSelectedEvent(true);
                   setSelectedEvent(event);
                   // Réinitialiser le flag après un délai pour éviter les doubles déclenchements

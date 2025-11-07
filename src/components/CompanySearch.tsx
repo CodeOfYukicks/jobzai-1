@@ -93,11 +93,11 @@ export default function CompanySearch({
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-[#6956A8] focus:border-[#6956A8] text-sm"
+          className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-[#6956A8] focus:border-[#6956A8] text-sm"
           placeholder={placeholder}
         />
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
+          <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
         </div>
       </div>
 
@@ -131,10 +131,10 @@ export default function CompanySearch({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-auto"
+            className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto"
           >
             {isLoading ? (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                 <div className="animate-spin h-5 w-5 border-2 border-[#6956A8] border-t-transparent rounded-full mx-auto"></div>
                 <p className="mt-2 text-sm">Searching companies...</p>
               </div>
@@ -148,7 +148,7 @@ export default function CompanySearch({
                         setQuery('');
                         setIsOpen(false);
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                      className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none"
                     >
                       {company.name}
                     </button>
@@ -156,11 +156,11 @@ export default function CompanySearch({
                 ))}
               </ul>
             ) : query.trim() ? (
-              <div className="p-4 text-center text-sm text-gray-500">
+              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
                 No companies found matching "{query}"
               </div>
             ) : (
-              <div className="p-4 text-center text-sm text-gray-500">
+              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
                 Start typing to search companies
               </div>
             )}

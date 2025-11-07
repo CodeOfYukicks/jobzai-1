@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import FloatingCredits from '../components/FloatingCredits';
 import PremiumFeatureOverlay from '../components/PremiumFeatureOverlay';
+import { getCreditHistoryForChart } from '../lib/creditHistory';
 import {
   LineChart, Line, ResponsiveContainer, XAxis, YAxis, 
   Tooltip, AreaChart, Area, BarChart, Bar, ComposedChart,
@@ -474,10 +475,28 @@ export default function DashboardPage() {
         ? ((activitiesThisWeek - activitiesLastWeek) / activitiesLastWeek) * 100
         : activitiesThisWeek > 0 ? 100 : 0;
 
+      // Charger l'historique des crédits depuis Firestore
+      const creditHistoryData = await getCreditHistoryForChart(currentUser.uid, 30);
+      
+      // Convertir l'historique des crédits au format attendu par historicalData
+      let creditHistoryFormatted = creditHistoryData.map(item => ({
+        date: item.date,
+        value: responseRate,
+        applications: totalApplications,
+        responses: totalResponses,
+        balance: item.value
+      }));
+      
+      // Si l'historique est vide, ajouter au moins le solde actuel
+      if (creditHistoryFormatted.length === 0) {
+        // On récupérera le solde actuel depuis le document utilisateur dans le listener
+        creditHistoryFormatted = [];
+      }
+
       // Subscribe to user document for real-time updates
       const unsubscribeUser = onSnapshot(
         doc(db, 'users', currentUser.uid),
-        (doc) => {
+        async (doc) => {
           if (doc.exists()) {
             const data = doc.data() as UserData;
             setUserData(data);
@@ -495,80 +514,77 @@ export default function DashboardPage() {
               setCreditDiff(diff);
             }
             
+            // Toujours recharger l'historique des crédits pour avoir les données les plus récentes
+            // (même si les crédits n'ont pas changé, l'historique peut avoir été mis à jour)
+            const freshCreditHistory = await getCreditHistoryForChart(currentUser.uid, 30);
+            let updatedCreditHistory = freshCreditHistory.map(item => ({
+              date: item.date,
+              value: responseRate,
+              applications: totalApplications,
+              responses: totalResponses,
+              balance: item.value,
+              change: item.change,
+              reason: item.reason
+            }));
+            
+            console.log('📊 Updated credit history:', updatedCreditHistory.length, 'points');
+            
+            // Si l'historique est vide après chargement, ajouter le solde actuel
+            if (updatedCreditHistory.length === 0) {
+              console.log('⚠️ No credit history, adding current balance');
+              updatedCreditHistory = [{
+                date: new Date().toISOString(),
+                value: responseRate,
+                applications: totalApplications,
+                responses: totalResponses,
+                balance: data.credits || 0
+              }];
+            }
+            
+            // Définir la nouvelle valeur de référence pour les crédits
+            previousCredits.current = data.credits || 0;
+            
             // Update all stats
-            setStats(prev => {
-              // Gérer l'historique des données différemment
-              let updatedHistoricalData = [...prev.historicalData];
+            setStats(prev => ({
+              ...prev,
+              credits: data.credits || 0,
+              creditsChange: diff,
+              applicationsSent: totalApplications,
+              applicationsChange: totalApplications - (prev.applicationsSent || 0),
+              responseRate: parseFloat(responseRate.toFixed(1)),
+              responseRateChange: responseRate - (prev.responseRate || 0),
+              activeCampaigns,
+              campaignsChange: activeCampaigns - (prev.activeCampaigns || 0),
+              totalCampaigns: campaignsList.length,
+              averageResponseRate: responseRate,
+              totalCandidates: totalCandidatesCount,
+              candidatesChange: totalCandidatesCount - (prev.totalCandidates || 0),
+              conversionRate: conversionRate,
+              conversionRateChange: conversionRate - (prev.conversionRate || 0),
+              historicalData: updatedCreditHistory,
               
-              // Ajout d'un nouveau point à l'historique dans ces cas:
-              // 1. Si c'est le premier chargement et qu'il n'y a pas de données
-              // 2. Si les crédits ont changé (même pendant un refresh)
-              if (updatedHistoricalData.length === 0 || creditChanged) {
-                // Ajouter un nouveau point de donnée
-                updatedHistoricalData.push({
-                  date: new Date().toISOString(),
-                  value: responseRate,
-                  applications: totalApplications,
-                  responses: totalResponses,
-                  balance: data.credits || 0
-                });
-              } else if (isRefresh) {
-                // Lors d'un refresh sans changement de crédit, mettre à jour uniquement 
-                // les valeurs autres que la balance dans le dernier point
-                const lastIndex = updatedHistoricalData.length - 1;
-                updatedHistoricalData[lastIndex] = {
-                  ...updatedHistoricalData[lastIndex],
-                  value: responseRate,
-                  applications: totalApplications,
-                  responses: totalResponses
-                  // Ne pas modifier la balance puisqu'elle n'a pas changé
-                };
-              }
+              // New metrics
+              totalTemplates: templatesList.length,
+              templatesCreatedThisMonth: templatesThisMonth,
+              mostUsedTemplateId: bestCampaign.id,
+              mostUsedTemplateName: bestCampaign.title,
               
-              // Définir la nouvelle valeur de référence pour les crédits
-              previousCredits.current = data.credits || 0;
+              totalApplications: applicationsList.length,
+              pendingApplications: pendingApps,
+              successfulApplications: successfulApps,
+              rejectedApplications: rejectedApps,
               
-              return {
-                ...prev,
-                credits: data.credits || 0,
-                creditsChange: diff,
-                applicationsSent: totalApplications,
-                applicationsChange: totalApplications - (prev.applicationsSent || 0),
-                responseRate: parseFloat(responseRate.toFixed(1)),
-                responseRateChange: responseRate - (prev.responseRate || 0),
-                activeCampaigns,
-                campaignsChange: activeCampaigns - (prev.activeCampaigns || 0),
-                totalCampaigns: campaignsList.length,
-                averageResponseRate: responseRate,
-                totalCandidates: totalCandidatesCount,
-                candidatesChange: totalCandidatesCount - (prev.totalCandidates || 0),
-                conversionRate: conversionRate,
-                conversionRateChange: conversionRate - (prev.conversionRate || 0),
-                historicalData: updatedHistoricalData,
-                
-                // New metrics
-                totalTemplates: templatesList.length,
-                templatesCreatedThisMonth: templatesThisMonth,
-                mostUsedTemplateId: bestCampaign.id,
-                mostUsedTemplateName: bestCampaign.title,
-                
-                totalApplications: applicationsList.length,
-                pendingApplications: pendingApps,
-                successfulApplications: successfulApps,
-                rejectedApplications: rejectedApps,
-                
-                bestPerformingCampaignId: bestCampaign.id,
-                bestPerformingCampaignTitle: bestCampaign.title,
-                bestPerformingCampaignRate: bestCampaign.rate,
-                
-                averageResponseTime: 24,
-                longestCampaignDuration: 30,
-                
-                activitiesThisWeek,
-                activitiesLastWeek,
-                activityGrowth
-              };
-            });
+              bestPerformingCampaignId: bestCampaign.id,
+              bestPerformingCampaignTitle: bestCampaign.title,
+              bestPerformingCampaignRate: bestCampaign.rate,
+              
+              averageResponseTime: 24,
+              longestCampaignDuration: 30,
+              
+              activitiesThisWeek,
+              activitiesLastWeek,
+              activityGrowth
+            }));
           }
           setIsLoading(false);
         }
@@ -667,7 +683,61 @@ export default function DashboardPage() {
   };
 
   // Formatez les données pour les graphiques
-  const balanceData = formatChartData(stats.historicalData, 'balance');
+  // Pour le graphique des crédits, utiliser directement l'historique des crédits
+  const balanceData = useMemo(() => {
+    // Extraire uniquement les données de balance de l'historique
+    const creditData = stats.historicalData
+      .filter(item => item.balance !== undefined && item.balance !== null)
+      .map(item => ({
+        date: item.date,
+        value: item.balance,
+        change: (item as any).change,
+        reason: (item as any).reason
+      }));
+    
+    // Si on n'a pas de données, retourner un tableau vide (sera géré par le graphique)
+    if (creditData.length === 0) {
+      return [];
+    }
+    
+    // Trier par date (plus ancien en premier)
+    creditData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // Formater les dates pour le graphique avec heure si nécessaire pour les distinguer
+    return creditData.map((item, index) => {
+      const date = new Date(item.date);
+      // Si plusieurs points le même jour, inclure l'heure
+      const hasMultipleSameDay = creditData.filter(c => {
+        const cDate = new Date(c.date);
+        return cDate.toDateString() === date.toDateString();
+      }).length > 1;
+      
+      let dateLabel: string;
+      if (hasMultipleSameDay || creditData.length > 1) {
+        // Toujours inclure l'heure si on a plusieurs points
+        dateLabel = date.toLocaleString('fr-FR', { 
+          day: 'numeric', 
+          month: 'short', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      } else {
+        dateLabel = date.toLocaleDateString('fr-FR', { 
+          day: 'numeric', 
+          month: 'short', 
+          year: 'numeric' 
+        });
+      }
+      
+      return {
+        date: dateLabel,
+        dateISO: item.date, // Garder la date ISO pour le tri et le tooltip
+        value: item.value,
+        change: item.change,
+        reason: item.reason
+      };
+    });
+  }, [stats.historicalData]);
   const applicationsData = formatChartData(stats.historicalData, 'applications');
   const performanceData = formatChartData(stats.historicalData, 'responses');
 
@@ -815,16 +885,67 @@ export default function DashboardPage() {
                       <div className="h-[150px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={balanceData}>
-                            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                            <XAxis 
+                              dataKey="date" 
+                              tick={{ fontSize: 10 }} 
+                              angle={-45}
+                              textAnchor="end"
+                              height={60}
+                            />
                             <YAxis />
-                            <Tooltip />
+                            <Tooltip 
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload;
+                                  const change = data.change || 0;
+                                  const reason = data.reason || 'unknown';
+                                  
+                                  // Traduire la raison en français
+                                  const reasonLabels: Record<string, string> = {
+                                    'campaign': 'Campagne',
+                                    'plan_selection': 'Sélection de plan',
+                                    'subscription': 'Abonnement',
+                                    'purchase': 'Achat',
+                                    'refund': 'Remboursement',
+                                    'initial': 'Solde initial',
+                                    'unknown': 'Inconnu'
+                                  };
+                                  
+                                  return (
+                                    <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                                      <p className="font-medium text-gray-900 dark:text-white mb-1">
+                                        {data.value} crédits
+                                      </p>
+                                      {change !== 0 && (
+                                        <p className={`text-sm ${change > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                          {change > 0 ? '+' : ''}{change} crédits
+                                        </p>
+                                      )}
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {reasonLabels[reason] || reason}
+                                      </p>
+                                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                        {new Date(data.dateISO || data.date).toLocaleString('fr-FR', {
+                                          day: 'numeric',
+                                          month: 'short',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
                             <Line 
                               type="monotone" 
                               dataKey="value" 
                               stroke="#8B5CF6" 
                               strokeWidth={2}
-                              dot={{ fill: '#8B5CF6', r: 4 }}
-                              activeDot={{ fill: '#8B5CF6', r: 6 }}
+                              dot={{ fill: '#8B5CF6', r: 5 }}
+                              activeDot={{ fill: '#8B5CF6', r: 7, strokeWidth: 2 }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
@@ -1252,7 +1373,7 @@ export default function DashboardPage() {
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {campaigns.length > 0 ? (
                       campaigns.slice(0, 5).map(campaign => (
-                        <div key={campaign.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                        <div key={campaign.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                               <div className="flex items-center gap-3 mb-2">
@@ -1478,7 +1599,7 @@ export default function DashboardPage() {
                         .sort((a, b) => new Date(b.updatedAt?.toDate?.() || 0).getTime() - new Date(a.updatedAt?.toDate?.() || 0).getTime())
                         .slice(0, 5)
                         .map(template => (
-                          <div key={template.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                          <div key={template.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
@@ -1863,7 +1984,7 @@ export default function DashboardPage() {
                             .sort((a, b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime())
                             .slice(0, 5)
                             .map(application => (
-                              <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                              <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="text-sm font-medium text-gray-900 dark:text-white">
                                     {application.companyName}

@@ -22,15 +22,167 @@ function buildATSAnalysisPrompt(jobDetails: {
   jobDescription: string;
 }): string {
   return `
-# ELITE ATS & RECRUITMENT ANALYSIS ENGINE
+# ELITE ATS & RECRUITMENT ANALYSIS ENGINE - COMPREHENSIVE VISION ANALYSIS
 
 CRITICAL: Return ONLY valid JSON. No markdown, no code blocks, no explanations outside JSON structure.
 
 ## YOUR EXPERTISE ROLE
-You are a senior ATS specialist with 15+ years of experience, a certified HR recruiter, and a career strategist. You have analyzed 50,000+ resumes and understand exactly what makes candidates pass or fail ATS filters and recruiter screening.
+You are a senior ATS specialist with 25+ years of experience, a certified HR recruiter, a career strategist, and a visual design expert. You have analyzed 100,000+ resumes and understand exactly what makes candidates pass or fail ATS filters, recruiter screening, and hiring manager review. You are an expert at reading between the lines, understanding visual hierarchy, and extracting meaning from both text and visual elements.
 
 ## MISSION
-Perform a surgical, evidence-based analysis comparing the resume images against this specific job posting. Your analysis will determine if this candidate gets an interview. Be brutally honest, precise, and actionable.
+Perform a COMPREHENSIVE, SURGICAL, EVIDENCE-BASED analysis of the resume images. You must analyze EVERYTHING visible: text content, visual elements, structure, formatting, logos, images, color schemes, typography, layout hierarchy, and information architecture. Compare this complete picture against the specific job posting. Your analysis will determine if this candidate gets an interview. Be brutally honest, precise, and actionable.
+
+## COMPREHENSIVE RESUME ANALYSIS METHODOLOGY
+
+### PHASE 1: VISUAL & STRUCTURAL ANALYSIS (CRITICAL - ANALYZE EVERYTHING VISIBLE)
+
+**MANDATORY INSTRUCTION**: You are analyzing IMAGES of a resume. You can see EVERYTHING. Use this capability to its fullest.
+
+#### A. VISUAL ELEMENTS ANALYSIS
+Examine and document ALL visual elements:
+- **Logos & Branding**: Company logos, university logos, certification badges, professional association logos
+  - What do these logos communicate about the candidate's background?
+  - Are they relevant to the job posting?
+  - Do they add credibility or prestige?
+  
+- **Images & Graphics**: Photos, icons, charts, graphs, infographics, visual representations of skills
+  - What information do these visuals convey?
+  - Are they professional and appropriate?
+  - Do they enhance or distract from the content?
+  - Do they demonstrate skills relevant to the job?
+
+- **Color Scheme & Design**: Color palette, background colors, accent colors, visual hierarchy
+  - Is the color scheme professional?
+  - Does it enhance readability?
+  - Does it reflect industry standards?
+  - Does it create appropriate visual hierarchy?
+
+- **Typography & Fonts**: Font choices, sizes, weights, styles, readability
+  - Are fonts professional and readable?
+  - Is there appropriate hierarchy (headings vs body)?
+  - Are fonts ATS-friendly (standard fonts)?
+  - Does typography enhance or hinder scanning?
+
+#### B. STRUCTURAL & LAYOUT ANALYSIS
+Analyze the complete information architecture:
+- **Layout Structure**: Single column, multi-column, creative layouts, traditional formats
+  - Is the layout ATS-friendly?
+  - Does it follow industry conventions?
+  - Is information easy to find and scan?
+  - Does the structure support or hinder ATS parsing?
+
+- **Section Organization**: Order of sections, grouping, visual separation
+  - Are sections logically organized?
+  - Is the most important information prominent?
+  - Does the order make sense for the job?
+  - Are sections clearly delineated?
+
+- **Visual Hierarchy**: What stands out visually, what's emphasized, what's de-emphasized
+  - What information is most prominent?
+  - Does visual hierarchy match importance?
+  - Are key qualifications easy to spot?
+  - Does hierarchy guide the reader effectively?
+
+- **Whitespace & Spacing**: Use of space, breathing room, density
+  - Is the resume well-balanced?
+  - Is it too dense or too sparse?
+  - Does spacing enhance readability?
+  - Is there appropriate visual breathing room?
+
+- **Formatting Elements**: Bullets, numbering, dividers, borders, boxes, tables
+  - Are formatting elements ATS-compatible?
+  - Do they enhance or hinder parsing?
+  - Are they used consistently?
+  - Do they create visual clarity?
+
+#### C. CONTENT EXTRACTION (COMPREHENSIVE TEXT ANALYSIS)
+
+**CRITICAL**: Read EVERY word, EVERY line, EVERY section. Extract ALL information systematically.
+
+- **Contact Information**: Name, email, phone, address, LinkedIn, GitHub, portfolio, website, social media
+  - Is all contact information present and professional?
+  - Are links valid and relevant?
+  - Does online presence align with resume?
+
+- **Professional Summary/Objective**: Opening statement, value proposition, career focus
+  - What does this communicate about the candidate?
+  - Does it align with the job posting?
+  - Is it compelling and specific?
+  - Does it include relevant keywords?
+
+- **Work Experience**: EVERY position, company, dates, responsibilities, achievements
+  - Extract ALL job titles, companies, dates (start/end, duration)
+  - Extract ALL responsibilities and duties
+  - Extract ALL achievements with metrics
+  - Extract ALL technologies, tools, and skills mentioned
+  - Extract ALL industry context and domain knowledge
+  - Note career progression and trajectory
+  - Identify any employment gaps
+
+- **Education**: EVERY degree, institution, dates, honors, GPA, coursework, thesis
+  - Extract ALL degrees (bachelor's, master's, PhD, MBA, etc.)
+  - Extract ALL institutions and their prestige/relevance
+  - Extract ALL dates and duration
+  - Extract ALL honors, awards, distinctions
+  - Extract ALL relevant coursework
+  - Extract ALL thesis/dissertation topics if applicable
+
+- **Skills Section**: Technical skills, soft skills, tools, technologies, languages, certifications
+  - Extract EVERY skill mentioned (hard and soft)
+  - Extract ALL tools and technologies
+  - Extract ALL programming languages and proficiency levels
+  - Extract ALL software and platforms
+  - Extract ALL methodologies and frameworks
+  - Extract ALL languages (spoken/written) and proficiency levels
+  - Note skill organization and presentation
+
+- **Certifications & Training**: Professional certifications, licenses, courses, bootcamps
+  - Extract ALL certifications with issuing organizations
+  - Extract ALL dates and expiration dates
+  - Extract ALL training programs and courses
+  - Extract ALL bootcamps and intensive programs
+  - Assess relevance to job posting
+
+- **Projects & Portfolio**: Personal projects, academic projects, open source contributions
+  - Extract ALL projects with descriptions
+  - Extract ALL technologies used
+  - Extract ALL outcomes and impact
+  - Extract ALL links to portfolios/GitHub
+  - Assess relevance and quality
+
+- **Awards & Honors**: Professional awards, academic honors, recognition
+  - Extract ALL awards and recognition
+  - Extract ALL dates and contexts
+  - Assess prestige and relevance
+
+- **Publications & Research**: Papers, articles, research, presentations
+  - Extract ALL publications
+  - Extract ALL research areas
+  - Extract ALL presentation topics
+  - Assess relevance to job
+
+- **Volunteer Work & Leadership**: Community involvement, leadership roles, extracurriculars
+  - Extract ALL volunteer positions
+  - Extract ALL leadership roles
+  - Extract ALL relevant skills demonstrated
+  - Assess transferability to job
+
+- **Additional Sections**: Languages, interests, references, custom sections
+  - Extract ALL additional information
+  - Assess relevance and value
+  - Note any unique or standout elements
+
+#### D. KEYWORD & PHRASE EXTRACTION
+Extract ALL keywords and phrases systematically:
+- **Technical Keywords**: All technical terms, technologies, tools, methodologies
+- **Industry Keywords**: Domain-specific terms, industry jargon, sector terminology
+- **Role-Specific Keywords**: Job title variations, role-specific terminology
+- **Soft Skills Keywords**: Leadership terms, communication terms, teamwork terms
+- **Achievement Keywords**: Action verbs, metrics, impact terms
+- **Education Keywords**: Degree types, institution names, field-specific terms
+- **Certification Keywords**: Certification names, issuing organizations
+
+**CRITICAL**: Create a COMPLETE inventory of ALL keywords present in the resume. This is essential for accurate matching.
 
 ## JOB POSTING ANALYSIS
 **Position:** ${jobDetails.jobTitle}
@@ -38,9 +190,11 @@ Perform a surgical, evidence-based analysis comparing the resume images against 
 **Full Job Description:**
 ${jobDetails.jobDescription}
 
-## STEP-BY-STEP ANALYSIS METHODOLOGY
+## COMPREHENSIVE COMPARISON METHODOLOGY
 
-### STEP 1: EXTRACT & CATEGORIZE REQUIREMENTS (CRITICAL - BE RUTHLESS)
+### PHASE 2: JOB REQUIREMENTS EXTRACTION & CATEGORIZATION (CRITICAL - BE RUTHLESS)
+
+**MANDATORY INSTRUCTION**: Read the job description CAREFULLY and COMPLETELY. Extract EVERY requirement, EVERY skill, EVERY qualification mentioned. Categorize them by importance and criticality.
 
 **THIS IS THE MOST IMPORTANT STEP. BE EXTREMELY PRECISE AND SEVERE.**
 
@@ -131,9 +285,21 @@ Before declaring ANY requirement as MISSING, you MUST:
 
 **DO NOT declare something as missing if you haven't thoroughly searched the entire resume.**
 
-### STEP 3: PRECISE MATCHING ANALYSIS
+### PHASE 3: COMPREHENSIVE MATCHING ANALYSIS (USE ALL EXTRACTED INFORMATION)
+
+**CRITICAL INSTRUCTION**: Use ALL information extracted in Phase 1 (visual elements, structure, text content, keywords) to perform a COMPREHENSIVE matching analysis against the job requirements extracted in Phase 2.
 
 #### A. SKILLS MATCHING (Be Surgical BUT Flexible - CRITICAL VERIFICATION)
+
+**USE ALL SOURCES**: Match skills from:
+- Skills section (explicitly listed)
+- Work experience descriptions (implicitly demonstrated)
+- Project descriptions (technologies used)
+- Education coursework (relevant courses)
+- Certifications (skills validated)
+- Visual elements (logos, badges, icons that indicate skills)
+- Portfolio links (if mentioned, infer skills)
+- Any other section where skills are mentioned or demonstrated
 
 **CRITICAL INSTRUCTION**: Before marking ANY skill as MISSING, you MUST perform a THOROUGH search with FLEXIBLE matching.
 
@@ -258,26 +424,129 @@ Evaluate resume quality and impact:
 - **Content Density**: Is resume too sparse or too dense?
 - **Recommendations**: Specific suggestions for length optimization
 
-### STEP 5: ATS OPTIMIZATION AUDIT
-Evaluate technical ATS compatibility with precision:
-- **Formatting**: Is resume ATS-friendly? (no tables, graphics, complex layouts, text boxes)
-- **Section Headers**: Are section names standard? (Work Experience, Education, Skills, Summary)
-- **File Structure**: Can ATS parse sections correctly? Are headers properly formatted?
-- **Keyword Strategy**: Natural keyword integration vs. keyword stuffing (assess quality)
-- **Contact Information**: Properly formatted and parseable by ATS?
-- **Date Formats**: Consistent and parseable? (MM/YYYY or MM/DD/YYYY format)
-- **Fonts & Styling**: ATS-readable fonts? No decorative elements that break parsing?
-- **Section Completeness**: Are all standard sections present? (Contact, Summary, Experience, Education, Skills)
-- **Section Quality**: Rate quality of each section (0-100) based on content, formatting, ATS compatibility
+### PHASE 4: ATS OPTIMIZATION AUDIT (VISUAL & TECHNICAL ANALYSIS)
 
-### STEP 6: READABILITY & PRESENTATION
-Evaluate resume readability and professional presentation:
-- **Readability Score**: How easy is the resume to scan and read? (0-100)
+**CRITICAL**: Evaluate BOTH visual appearance AND technical ATS compatibility. A resume can look great visually but fail ATS parsing, or pass ATS but look unprofessional.
+
+#### A. VISUAL ATS COMPATIBILITY
+Based on the IMAGES you're analyzing, evaluate:
+- **Layout Complexity**: Are there tables, text boxes, columns, graphics that might break ATS parsing?
+  - Can you see visual elements that would confuse ATS systems?
+  - Are there complex layouts that might not parse correctly?
+  - Are there graphics or images that contain text (which ATS can't read)?
+  
+- **Visual vs. Textual Content**: Is critical information in images/graphics or in actual text?
+  - Are logos used to convey information (bad idea for ATS)?
+  - Are there charts/graphs with important data (ATS can't read)?
+  - Is text embedded in images (ATS can't extract)?
+  
+- **Formatting Elements**: What formatting elements are visible?
+  - Are there borders, boxes, tables visible?
+  - Are there decorative elements that might break parsing?
+  - Is formatting consistent and ATS-friendly?
+
+#### B. TECHNICAL ATS COMPATIBILITY
+Based on the TEXT content extracted, evaluate:
+- **Section Headers**: Are section names standard? (Work Experience, Education, Skills, Summary)
+  - Are headers clearly formatted and recognizable?
+  - Do they use standard terminology?
+  - Are they properly structured for ATS parsing?
+
+- **File Structure**: Can ATS parse sections correctly? Are headers properly formatted?
+  - Is the structure logical and parseable?
+  - Are sections clearly separated?
+  - Is hierarchy clear (H1, H2, etc.)?
+
+- **Keyword Strategy**: Natural keyword integration vs. keyword stuffing (assess quality)
+  - Are keywords naturally integrated?
+  - Is there keyword stuffing (bad for ATS)?
+  - Are keywords in the right places (summary, experience, skills)?
+
+- **Contact Information**: Properly formatted and parseable by ATS?
+  - Is contact info in standard format?
+  - Is it easy to parse?
+  - Are all fields present?
+
+- **Date Formats**: Consistent and parseable? (MM/YYYY or MM/DD/YYYY format)
+  - Are dates in consistent format?
+  - Are they easy to parse?
+  - Is there date ambiguity?
+
+- **Fonts & Styling**: ATS-readable fonts? No decorative elements that break parsing?
+  - Are fonts standard and readable?
+  - Is styling ATS-friendly?
+  - Are there decorative elements that might break parsing?
+
+- **Section Completeness**: Are all standard sections present? (Contact, Summary, Experience, Education, Skills)
+  - Are all required sections present?
+  - Are sections complete?
+  - Are sections in logical order?
+
+- **Section Quality**: Rate quality of each section (0-100) based on content, formatting, ATS compatibility
+  - Content quality (completeness, relevance)
+  - Formatting quality (ATS-friendly, readable)
+  - ATS compatibility (parseable, standard format)
+
+### PHASE 5: READABILITY & PRESENTATION ANALYSIS (VISUAL & TEXTUAL)
+
+**CRITICAL**: Evaluate BOTH visual appearance AND textual readability. A resume can look good but be hard to read, or be readable but look unprofessional.
+
+#### A. VISUAL READABILITY (Based on IMAGES)
+Evaluate visual readability from the images:
 - **Visual Hierarchy**: Is information hierarchy clear? Are important sections easy to find?
-- **Consistency**: Are formatting, fonts, spacing consistent throughout?
+  - What stands out visually? (size, color, position)
+  - Is the most important information prominent?
+  - Does visual hierarchy guide the reader effectively?
+  - Are key qualifications easy to spot visually?
+  
+- **Visual Consistency**: Are visual elements consistent throughout?
+  - Are fonts consistent?
+  - Are colors consistent?
+  - Are spacing and margins consistent?
+  - Are formatting elements consistent?
+  
 - **Professional Appearance**: Does resume look professional and polished?
-- **Issues**: List specific readability issues (poor spacing, unclear sections, inconsistent formatting)
-- **Recommendations**: Specific suggestions to improve readability
+  - Is the design professional?
+  - Does it reflect industry standards?
+  - Is it appropriate for the job level?
+  - Does it create a positive first impression?
+  
+- **Visual Issues**: List specific visual readability issues
+  - Poor spacing or crowding
+  - Unclear section boundaries
+  - Inconsistent formatting
+  - Poor color contrast
+  - Unprofessional design elements
+  - Cluttered or busy layout
+  - Hard-to-read fonts or sizes
+
+#### B. TEXTUAL READABILITY (Based on EXTRACTED TEXT)
+Evaluate textual readability from extracted content:
+- **Readability Score**: How easy is the resume to scan and read? (0-100)
+  - Is text easy to scan?
+  - Are bullet points effective?
+  - Is information digestible?
+  - Is there appropriate white space?
+  
+- **Content Organization**: Is information logically organized?
+  - Is information easy to find?
+  - Is flow logical?
+  - Are sections clearly defined?
+  - Is progression clear?
+  
+- **Text Issues**: List specific textual readability issues
+  - Dense paragraphs (hard to scan)
+  - Poor bullet point structure
+  - Unclear section headers
+  - Inconsistent date formats
+  - Hard-to-parse information
+  - Missing context or clarity
+
+#### C. COMBINED READABILITY ASSESSMENT
+- **Overall Readability Score**: Combined visual and textual readability (0-100)
+- **Strengths**: What makes the resume easy to read?
+- **Weaknesses**: What makes it hard to read?
+- **Recommendations**: Specific suggestions to improve readability (both visual and textual)
 
 ### STEP 7: COMPETITIVE POSITIONING
 Compare candidate against typical applicants for this role:
@@ -777,16 +1046,18 @@ export async function analyzeCVWithGPT4Vision(
       }
     ];
     
-    // Add each image with optimized settings
+    // Add each image with optimized settings for comprehensive analysis
     images.forEach((image, index) => {
       content.push({
         type: "image_url",
         image_url: {
           url: `data:image/jpeg;base64,${image}`,
-          detail: "low" // Optimized for cost - sufficient for text reading
+          // Using "high" detail for comprehensive visual analysis (logos, images, structure, formatting)
+          // This enables GPT-4o Vision to analyze visual elements, not just text
+          detail: "high" // High detail for comprehensive visual analysis (logos, images, structure, formatting, typography)
         }
       });
-      console.log(`   ✓ Added image ${index + 1} (${(image.length / 1024).toFixed(1)} KB)`);
+      console.log(`   ✓ Added image ${index + 1} (${(image.length / 1024).toFixed(1)} KB) with high detail for comprehensive analysis`);
     });
     
     console.log('📡 Sending request to GPT-4o Vision API...');
@@ -802,7 +1073,7 @@ export async function analyzeCVWithGPT4Vision(
         messages: [
           {
             role: "system",
-            content: "You are a senior ATS specialist with 15+ years of experience analyzing 50,000+ resumes, a certified HR recruiter, and a career strategist. You understand exactly what makes candidates pass or fail ATS filters and recruiter screening. Your analysis must be SURGICAL, EVIDENCE-BASED, BRUTALLY HONEST, RUTHLESSLY SEVERE, and HYPER-PRECISE. You MUST distinguish between CRITICAL requirements (primordial) and SECONDARY requirements (nice-to-have). Missing even ONE critical requirement MUST result in a significant score penalty (20-40 points). Missing multiple critical requirements MUST result in severe penalties (40-60+ points). Use the FULL score range (0-100) and be POLARIZED - don't inflate scores. The candidate needs to TRUST your analysis, so be HONEST and SEVERE. Every score, finding, and recommendation must be justified with specific evidence from the resume images. Think like a recruiter making a hiring decision - would you actually call this candidate? CRITICAL VERIFICATION RULE: Before marking ANY requirement as MISSING, you MUST thoroughly search the ENTIRE resume images for: (1) EXACT terms, (2) SYNONYMS and VARIATIONS (e.g., 'French' = 'français' = 'French native' = 'French speaker' = 'French language'), (3) ABBREVIATIONS (e.g., 'JS' = 'JavaScript'), (4) ALL sections (Skills, Experience, Education, Summary, Certifications, Languages, etc.). For languages specifically, check for: 'French native', 'native French', 'French speaker', 'fluent in French', 'French language', 'français', 'bilingual French/English', etc. If you find the requirement in ANY form, mark it as FOUND with the exact location. DO NOT mark as missing if you haven't thoroughly searched. Return ONLY valid JSON - no markdown, no code blocks, no explanations outside the JSON structure."
+            content: "You are a senior ATS specialist with 25+ years of experience analyzing 100,000+ resumes, a certified HR recruiter, a career strategist, and a visual design expert. You understand exactly what makes candidates pass or fail ATS filters, recruiter screening, and hiring manager review. You are an expert at reading between the lines, understanding visual hierarchy, and extracting meaning from both text and visual elements. Your analysis must be COMPREHENSIVE, SURGICAL, EVIDENCE-BASED, BRUTALLY HONEST, RUTHLESSLY SEVERE, and HYPER-PRECISE. You MUST analyze EVERYTHING visible in the resume images: text content, visual elements (logos, images, graphics, icons), structure, formatting, layout, typography, color schemes, and information architecture. You MUST distinguish between CRITICAL requirements (primordial) and SECONDARY requirements (nice-to-have). Missing even ONE critical requirement MUST result in a significant score penalty (20-40 points). Missing multiple critical requirements MUST result in severe penalties (40-60+ points). Use the FULL score range (0-100) and be POLARIZED - don't inflate scores. The candidate needs to TRUST your analysis, so be HONEST and SEVERE. Every score, finding, and recommendation must be justified with specific evidence from the resume images (both visual and textual). Think like a recruiter making a hiring decision - would you actually call this candidate? CRITICAL VERIFICATION RULE: Before marking ANY requirement as MISSING, you MUST thoroughly search the ENTIRE resume images for: (1) EXACT terms in text, (2) SYNONYMS and VARIATIONS (e.g., 'French' = 'français' = 'French native' = 'French speaker' = 'French language'), (3) ABBREVIATIONS (e.g., 'JS' = 'JavaScript'), (4) VISUAL INDICATORS (logos, badges, icons that indicate skills/qualifications), (5) ALL sections (Skills, Experience, Education, Summary, Certifications, Languages, Projects, etc.). For languages specifically, check for: 'French native', 'native French', 'French speaker', 'fluent in French', 'French language', 'français', 'bilingual French/English', language flags/icons, etc. If you find the requirement in ANY form (text or visual), mark it as FOUND with the exact location. DO NOT mark as missing if you haven't thoroughly searched both text and visual elements. Return ONLY valid JSON - no markdown, no code blocks, no explanations outside the JSON structure."
           },
           {
             role: "user",
@@ -810,8 +1081,8 @@ export async function analyzeCVWithGPT4Vision(
           }
         ],
         response_format: { type: "json_object" }, // Force JSON response
-        max_tokens: 6000, // Increased for more detailed analysis
-        temperature: 0.1 // Lower temperature for more precise, consistent analysis
+        max_tokens: 8000, // Increased for comprehensive analysis (visual + textual elements)
+        temperature: 0.1 // Lower temperature for more precise, consistent, evidence-based analysis
       })
     });
     

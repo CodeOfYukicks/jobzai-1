@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { httpsCallable } from 'firebase/functions';
 import CampaignCard from '../components/CampaignCard';
 import axios from 'axios';
+import { recordCreditHistory } from '../lib/creditHistory';
 
 // Define local Campaign interface to match what we're using in this file
 interface Campaign {
@@ -251,9 +252,19 @@ export default function CampaignsPage() {
       const emailTemplate = templateSnap.data();
 
       // Déduire les crédits du solde de l'utilisateur
+      const newCredits = currentCredits - campaignData.credits;
       await updateDoc(userRef, {
-        credits: currentCredits - campaignData.credits
+        credits: newCredits
       });
+
+      // Enregistrer l'historique des crédits
+      await recordCreditHistory(
+        currentUser.uid,
+        newCredits,
+        -campaignData.credits, // Négatif car c'est une déduction
+        'campaign',
+        campaignId
+      );
 
       // Préparer les données pour le webhook
       const webhookData = {

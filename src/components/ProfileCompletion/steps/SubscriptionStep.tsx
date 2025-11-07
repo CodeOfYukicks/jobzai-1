@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, CreditCard, Loader2, Crown } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'sonner';
+import { recordCreditHistory } from '../../../lib/creditHistory';
 
 interface SubscriptionStepProps {
   onComplete: () => void;
@@ -100,13 +101,29 @@ export default function SubscriptionStep({ onComplete, onBack }: SubscriptionSte
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
-      // Update user's subscription in Firestore
+      // Récupérer les crédits actuels pour calculer le changement
       const userRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      const currentCredits = userSnap.data()?.credits || 0;
+      const creditChange = selectedPlanData.credits - currentCredits;
+
+      // Update user's subscription in Firestore
       await updateDoc(userRef, {
         plan: selectedPlan,
         credits: selectedPlanData.credits,
         planSelectedAt: new Date().toISOString(),
       });
+
+      // Enregistrer l'historique des crédits
+      if (creditChange !== 0) {
+        await recordCreditHistory(
+          currentUser.uid,
+          selectedPlanData.credits,
+          creditChange,
+          'subscription',
+          selectedPlan
+        );
+      }
 
       toast.success('Subscription updated successfully!');
       onComplete();

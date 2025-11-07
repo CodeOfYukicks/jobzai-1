@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { recordCreditHistory } from '../lib/creditHistory';
 
 const plans = [
   {
@@ -75,13 +76,29 @@ export default function PlanSelectionPage() {
       const plan = plans.find(p => p.id === planId);
       if (!plan) throw new Error('Invalid plan selected');
 
-      // Update user's credits and plan in Firestore
+      // Récupérer les crédits actuels pour calculer le changement
       const userRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      const currentCredits = userSnap.data()?.credits || 0;
+      const creditChange = plan.credits - currentCredits;
+
+      // Update user's credits and plan in Firestore
       await updateDoc(userRef, {
         plan: planId,
         credits: plan.credits,
         planSelectedAt: new Date().toISOString()
       });
+
+      // Enregistrer l'historique des crédits
+      if (creditChange !== 0) {
+        await recordCreditHistory(
+          currentUser.uid,
+          plan.credits,
+          creditChange,
+          'plan_selection',
+          planId
+        );
+      }
 
       toast.success(`${plan.name} plan activated successfully!`);
 

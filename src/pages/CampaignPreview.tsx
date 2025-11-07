@@ -367,7 +367,7 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
                   <label className="block text-sm font-medium mb-2 bg-gradient-to-r from-gray-700 to-gray-500 dark:from-gray-200 dark:to-gray-400 bg-clip-text text-transparent">
                     Credit Allocation
                   </label>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     Available: {availableCredits} credits
                   </span>
                 </div>
@@ -377,8 +377,9 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
                     value={formData.credits || ''}
                     onChange={(e) => handleInputChange('credits', parseInt(e.target.value) || 0)}
                     placeholder="Number of credits to use"
-                    className="w-full rounded-xl bg-gray-50/50 dark:bg-gray-800/50 
-                      border border-gray-200/50 dark:border-gray-700/30
+                    className="w-full rounded-xl bg-gray-50/50 dark:bg-gray-700/50 
+                      border border-gray-200/50 dark:border-gray-600/50
+                      text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500
                       focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600/50
                       px-4 py-3"
                   />
@@ -390,8 +391,8 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
                 {formData.credits > 0 && (
                   <div className="mt-4 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Usage</span>
-                      <span className="font-medium">
+                      <span className="text-gray-500 dark:text-gray-400">Usage</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
                         {Math.min(100, (formData.credits / availableCredits) * 100).toFixed(1)}%
                       </span>
                     </div>
@@ -401,7 +402,7 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
                         style={{ width: `${Math.min(100, (formData.credits / availableCredits) * 100)}%` }}
                       />
                     </div>
-                    <ul className="space-y-1 text-sm text-gray-500">
+                    <ul className="space-y-1 text-sm text-gray-500 dark:text-gray-400">
                       <li className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
                         1 credit = 1 job application

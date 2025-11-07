@@ -145,18 +145,18 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       {/* Search and Create New */}
       <div className="flex items-center space-x-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search templates..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8D75E6] focus:border-[#8D75E6]"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-[#8D75E6] focus:border-[#8D75E6]"
           />
         </div>
         <button
           onClick={() => setShowCreateDialog(true)}
-          className="flex items-center px-4 py-2 text-[#8D75E6] hover:bg-[#8D75E6]/5 rounded-lg transition-colors"
+          className="flex items-center px-4 py-2 text-[#8D75E6] dark:text-purple-400 hover:bg-[#8D75E6]/5 dark:hover:bg-purple-500/10 rounded-lg transition-colors"
         >
           <Plus className="h-5 w-5 mr-2" />
           Create New
@@ -173,25 +173,25 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
               animate={{ opacity: 1, y: 0 }}
               className={`p-4 border rounded-lg transition-all cursor-pointer ${
                 selectedTemplateId === template.id
-                  ? 'border-[#8D75E6] bg-[#8D75E6]/5'
-                  : 'border-gray-200 hover:border-[#8D75E6]/50'
+                  ? 'border-[#8D75E6] dark:border-purple-500 bg-[#8D75E6]/5 dark:bg-purple-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-[#8D75E6]/50 dark:hover:border-purple-500/50 bg-white dark:bg-gray-800'
               }`}
               onClick={() => handleTemplateSelect(template)}
             >
               <div className="flex justify-between items-start">
                 <div className="flex-grow pr-8">
-                  <h3 className="text-sm font-medium text-gray-900">{template.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{template.subject}</p>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{template.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{template.subject}</p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {template.aiGenerated && (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
                         AI Generated
                       </span>
                     )}
                     {template.tags.slice(0, 4).map((tag) => (
                       <span
                         key={tag}
-                        className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800"
+                        className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
                       >
                         {tag}
                       </span>
@@ -203,9 +203,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                     e.stopPropagation();
                     handleEditTemplate(template);
                   }}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <Edit2 className="h-5 w-5 text-gray-400" />
+                  <Edit2 className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </button>
               </div>
             </motion.div>
@@ -213,18 +213,18 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         </div>
       ) : (
         <div className="text-center py-8">
-          <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <Search className="h-6 w-6 text-gray-400" />
+          <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <Search className="h-6 w-6 text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="text-sm font-medium text-gray-900">No templates found</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">No templates found</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {searchQuery
               ? 'Try adjusting your search terms'
               : 'Get started by creating your first template'}
           </p>
           <button
             onClick={() => setShowCreateDialog(true)}
-            className="mt-4 inline-flex items-center px-4 py-2 text-[#8D75E6] hover:bg-[#8D75E6]/5 rounded-lg transition-colors"
+            className="mt-4 inline-flex items-center px-4 py-2 text-[#8D75E6] dark:text-purple-400 hover:bg-[#8D75E6]/5 dark:hover:bg-purple-500/10 rounded-lg transition-colors"
           >
             <Plus className="h-5 w-5 mr-2" />
             Create New Template
