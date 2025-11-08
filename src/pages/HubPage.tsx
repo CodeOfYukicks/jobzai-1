@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Rocket, LineChart, Mail, Target, Coins, Search,
+  LineChart, Mail, Target, Coins, Search,
   Bell, Settings, ChevronRight, TrendingUp, Users, LogOut, 
   Calendar, FileText, Briefcase, Sparkles
 } from 'lucide-react';
@@ -32,7 +32,7 @@ export default function HubPage() {
     path: '',
     clickPosition: null as { x: number; y: number } | null
   });
-  const [completedCampaigns, setCompletedCampaigns] = useState(0);
+  const [totalApplications, setTotalApplications] = useState(0);
   const [emailTemplates, setEmailTemplates] = useState(0);
   const [activeInterviews, setActiveInterviews] = useState(0);
   const [logoUrl, setLogoUrl] = useState<string>('');
@@ -106,21 +106,30 @@ export default function HubPage() {
     return () => unsubscribe();
   }, [currentUser]);
 
-  // Récupérer le nombre de campagnes terminées
+  // Récupérer le nombre total d'applications et calculer le success rate
+  const [successRate, setSuccessRate] = useState(0);
+  
   useEffect(() => {
     if (!currentUser?.uid) return;
 
-    const campaignsQuery = query(
-      collection(db, `users/${currentUser.uid}/campaigns`),
-      where('status', '==', 'completed')
+    const applicationsQuery = query(
+      collection(db, `users/${currentUser.uid}/jobApplications`)
     );
 
-    const unsubscribeCampaigns = onSnapshot(campaignsQuery, (snapshot) => {
-      setCompletedCampaigns(snapshot.size);
+    const unsubscribeApplications = onSnapshot(applicationsQuery, (snapshot) => {
+      const applications = snapshot.docs.map(doc => doc.data());
+      const total = applications.length;
+      const successful = applications.filter(app => app.status === 'offer').length;
+      
+      setTotalApplications(total);
+      
+      // Calculate success rate based on job applications
+      const rate = total > 0 ? (successful / total) * 100 : 0;
+      setSuccessRate(rate);
     });
 
     return () => {
-      unsubscribeCampaigns();
+      unsubscribeApplications();
     };
   }, [currentUser]);
 
@@ -185,20 +194,20 @@ export default function HubPage() {
   // Cartes des statistiques clés
   const keyStats = [
     { 
-      label: 'Completed Campaigns', 
-      value: completedCampaigns,
-      icon: Rocket, 
+      label: 'Total Applications', 
+      value: totalApplications,
+      icon: Briefcase, 
       colorName: 'purple',
       color: '#8D75E5',
-      description: 'Finished campaigns'
+      description: 'Applications submitted'
     },
     { 
-      label: 'Response Rate', 
-      value: `${stats?.responseRate || '0'}%`, 
+      label: 'Success Rate', 
+      value: `${successRate.toFixed(1)}%`, 
       icon: LineChart, 
       colorName: 'green',
       color: '#5EBC88',
-      description: 'Average success rate'
+      description: 'Job application success rate'
     },
     { 
       label: 'Templates Created', 
@@ -213,22 +222,13 @@ export default function HubPage() {
   // Cartes principales des fonctionnalités
   const mainFeatures = [
     { 
-      title: 'Campaigns', 
-      desc: 'Create and manage your job applications', 
-      icon: Rocket, 
-      colorName: 'purple',
-      color: '#8D75E5', 
-      path: '/campaigns',
-      stats: { value: stats?.activeCampaigns || '0', label: 'Active Campaigns' }
-    },
-    { 
       title: 'Analytics', 
       desc: 'Track your application progress', 
       icon: LineChart, 
       colorName: 'green',
       color: '#5EBC88', 
       path: '/dashboard',
-      stats: { value: `${stats?.responseRate || '0'}%`, label: 'Success Rate' }
+      stats: { value: `${successRate.toFixed(1)}%`, label: 'Success Rate' }
     },
     { 
       title: 'Application Tracking', 
@@ -237,7 +237,7 @@ export default function HubPage() {
       colorName: 'blue',
       color: '#60A5FA', 
       path: '/applications',
-      stats: { value: activeInterviews.toString(), label: 'Active' }
+      stats: { value: activeInterviews.toString(), label: 'Interviews' }
     },
     { 
       title: 'Recommendations', 
@@ -247,6 +247,15 @@ export default function HubPage() {
       color: '#FBBD74', 
       path: '/recommendations',
       stats: { value: stats?.newMatches?.toString() || '0', label: 'New Matches' }
+    },
+    { 
+      title: 'Professional Profile', 
+      desc: 'Manage your profile and preferences', 
+      icon: Users, 
+      colorName: 'purple',
+      color: '#8D75E5', 
+      path: '/professional-profile',
+      stats: { value: totalApplications.toString(), label: 'Applications' }
     }
   ];
 

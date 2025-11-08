@@ -226,34 +226,6 @@ export default function Navbar() {
           {/* Desktop Right Side Actions */}
           {!currentUser && (
             <div className="hidden md:flex items-center space-x-4">
-              {/* Theme Toggle */}
-              <motion.button
-                onClick={handleThemeToggle}
-                className="relative w-14 h-7 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 p-1 transition-all duration-300 hover:bg-white/20"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Toggle theme"
-              >
-                <motion.div
-                  className="absolute top-0.5 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg"
-                  initial={false}
-                  animate={{
-                    x: isDark ? 28 : 2,
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 30
-                  }}
-                >
-                  {isDark ? (
-                    <Moon className="w-3.5 h-3.5 text-[#8D75E6]" />
-                  ) : (
-                    <Sun className="w-3.5 h-3.5 text-[#8D75E6]" />
-                  )}
-                </motion.div>
-              </motion.button>
-              
               <Link
                 to="/login"
                 className="text-white/90 hover:text-white font-medium transition-colors"
@@ -337,47 +309,49 @@ export default function Navbar() {
                   </a>
                 </div>
 
-                {/* Settings Section */}
-                <div className="space-y-1">
-                  <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
-                    Settings
-                  </h3>
-                  <div className="flex items-center justify-between py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      {isDark ? (
-                        <Moon className="h-5 w-5" />
-                      ) : (
-                        <Sun className="h-5 w-5" />
-                      )}
-                      <span>Theme</span>
-                    </div>
-                    <motion.button
-                      onClick={handleThemeToggle}
-                      className="relative w-12 h-6 rounded-full bg-white/20 border border-white/30 p-0.5 transition-all duration-300"
-                      whileTap={{ scale: 0.95 }}
-                      aria-label="Toggle theme"
-                    >
-                      <motion.div
-                        className="absolute top-0.5 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-md"
-                        initial={false}
-                        animate={{
-                          x: isDark ? 24 : 2,
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 500,
-                          damping: 30
-                        }}
-                      >
+                {/* Settings Section - Only show theme toggle when logged in */}
+                {currentUser && (
+                  <div className="space-y-1">
+                    <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
+                      Settings
+                    </h3>
+                    <div className="flex items-center justify-between py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors">
+                      <div className="flex items-center space-x-3">
                         {isDark ? (
-                          <Moon className="w-3 h-3 text-[#8D75E6]" />
+                          <Moon className="h-5 w-5" />
                         ) : (
-                          <Sun className="w-3 h-3 text-[#8D75E6]" />
+                          <Sun className="h-5 w-5" />
                         )}
-                      </motion.div>
-                    </motion.button>
+                        <span>Theme</span>
+                      </div>
+                      <motion.button
+                        onClick={handleThemeToggle}
+                        className="relative w-12 h-6 rounded-full bg-white/20 border border-white/30 p-0.5 transition-all duration-300"
+                        whileTap={{ scale: 0.95 }}
+                        aria-label="Toggle theme"
+                      >
+                        <motion.div
+                          className="absolute top-0.5 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-md"
+                          initial={false}
+                          animate={{
+                            x: isDark ? 24 : 2,
+                          }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 500,
+                            damping: 30
+                          }}
+                        >
+                          {isDark ? (
+                            <Moon className="w-3 h-3 text-[#8D75E6]" />
+                          ) : (
+                            <Sun className="w-3 h-3 text-[#8D75E6]" />
+                          )}
+                        </motion.div>
+                      </motion.button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Auth Section */}
                 <div className="space-y-1 pt-4 border-t border-white/10">

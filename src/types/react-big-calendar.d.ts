@@ -34,4 +34,11 @@ declare module 'react-big-calendar' {
   export const Calendar: ComponentType<CalendarProps>;
   export const momentLocalizer: (moment: any) => any;
   export type View = string;
+}
+
+declare module 'react-big-calendar/lib/addons/dragAndDrop' {
+  import { ComponentType } from 'react';
+  import { CalendarProps } from 'react-big-calendar';
+  
+  export default function withDragAndDrop(Calendar: ComponentType<CalendarProps>): ComponentType<CalendarProps>;
 } 

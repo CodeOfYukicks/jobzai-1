@@ -43,3 +43,12 @@ export function initializeTheme() {
   applyTheme(theme);
 }
 
+/**
+ * Force light mode (remove dark class)
+ * Used for public pages like landing, login, signup
+ */
+export function forceLightMode() {
+  const root = document.documentElement;
+  root.classList.remove('dark');
+}
+

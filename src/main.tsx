@@ -5,10 +5,10 @@ import { AuthProvider } from './contexts/AuthContext';
 import { RecommendationsProvider } from './contexts/RecommendationsContext';
 import App from './App';
 import './index.css';
-import { initializeTheme } from './lib/theme';
+import { forceLightMode } from './lib/theme';
 
-// Initialize theme IMMEDIATELY before React renders to prevent flash
-initializeTheme();
+// Force light mode on startup (dark mode only works when logged in)
+forceLightMode();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

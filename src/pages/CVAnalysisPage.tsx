@@ -2358,11 +2358,27 @@ URL to visit: ${jobUrl}
     const isGrid = viewMode === 'grid';
     
     return (
-      <div 
-        className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 
-          hover:shadow-lg hover:border-purple-200 dark:hover:border-purple-800 transition-all duration-300 overflow-hidden
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+        className={`group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden
+          transition-all duration-500 ease-out
+          hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
+          hover:-translate-y-0.5
+          border border-gray-100/50 dark:border-gray-800/50
           ${isGrid ? 'h-full flex flex-col' : ''}`}
+        style={{
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+        }}
       >
+        {/* Subtle accent line - Apple style */}
+        <div className={`absolute top-0 left-0 right-0 h-0.5
+          ${analysis.matchScore >= 80 ? 'bg-gradient-to-r from-purple-400/60 to-indigo-500/40' :
+            analysis.matchScore >= 65 ? 'bg-gradient-to-r from-blue-400/60 to-cyan-500/40' :
+            'bg-gradient-to-r from-pink-400/60 to-rose-500/40'}`}
+        />
+        
         {/* Card Header - Always visible and clickable */}
         <div 
           onClick={() => {
@@ -2372,7 +2388,7 @@ URL to visit: ${jobUrl}
               toggleExpand();
             }
           }}
-          className={`${isGrid ? 'p-4' : 'p-3'} cursor-pointer flex ${isGrid ? 'flex-col' : 'items-center justify-between'} group`}
+          className={`${isGrid ? 'p-5' : 'p-4'} cursor-pointer flex ${isGrid ? 'flex-col' : 'items-center justify-between'} group`}
         >
           <div className={`flex ${isGrid ? 'flex-col items-center text-center space-y-2' : 'items-center space-x-3 flex-1'}`}>
             {/* Score Circle */}
@@ -2404,20 +2420,24 @@ URL to visit: ${jobUrl}
                   {analysis.jobTitle}
                 </h3>
                 {analysis.matchScore >= 80 && (
-                  <div className={`${isGrid ? 'mt-1.5' : 'ml-2'} flex items-center bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400 text-xs font-medium px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800`}>
+                  <div className={`${isGrid ? 'mt-1.5' : 'ml-2'} flex items-center 
+                    bg-purple-50/60 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 
+                    text-[10px] font-medium px-2 py-0.5 rounded-full 
+                    border border-purple-200/50 dark:border-purple-800/30
+                    backdrop-blur-sm`}>
                     <CheckCircle className="w-2.5 h-2.5 mr-1" />
                     High match
                   </div>
                 )}
               </div>
-              <div className={`flex items-center ${isGrid ? 'flex-col space-y-0.5 mt-2' : 'mt-1'}`}>
+              <div className={`flex items-center ${isGrid ? 'flex-col space-y-0.5 mt-2' : 'mt-1.5'}`}>
                 <p className={`text-xs text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
-                  <Building2 className="w-3 h-3 mr-1 text-gray-400 dark:text-gray-500" /> 
+                  <Building2 className="w-3 h-3 mr-1.5 text-gray-400 dark:text-gray-500" /> 
                   {analysis.company}
                 </p>
                 {!isGrid && <span className="mx-1.5 text-gray-300 dark:text-gray-600">•</span>}
                 <p className={`text-xs text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
-                  <CalendarIcon className="w-3 h-3 mr-1 text-gray-400 dark:text-gray-500" /> 
+                  <CalendarIcon className="w-3 h-3 mr-1.5 text-gray-400 dark:text-gray-500" /> 
                   {formatDate(analysis.date)}
                 </p>
               </div>
@@ -2431,7 +2451,8 @@ URL to visit: ${jobUrl}
                 e.stopPropagation();
                 setIsDeleteDialogOpen(true);
               }}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50/60 dark:hover:bg-red-900/20 
+                rounded-full transition-all duration-200 backdrop-blur-sm"
               aria-label="Delete analysis"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -2442,7 +2463,8 @@ URL to visit: ${jobUrl}
                   e.stopPropagation();
                   toggleExpand();
                 }}
-                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 
+                  rounded-full transition-all duration-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 backdrop-blur-sm"
                 aria-label={isExpanded ? "Collapse" : "Expand"}
               >
                 {isExpanded ? (
@@ -2457,7 +2479,7 @@ URL to visit: ${jobUrl}
 
         {/* Skill Badges */}
         {!isExpanded && (
-          <div className={`${isGrid ? 'px-4' : 'px-3'} pb-3 pt-0 flex flex-wrap gap-1.5 ${isGrid ? 'justify-center' : ''}`}>
+          <div className={`${isGrid ? 'px-5' : 'px-4'} pb-4 pt-0 flex flex-wrap gap-2 ${isGrid ? 'justify-center' : ''}`}>
             {analysis.skillsMatch.matching
               .sort((a, b) => b.relevance - a.relevance)
               .slice(0, 3)
@@ -2483,7 +2505,9 @@ URL to visit: ${jobUrl}
               
             {/* Compteur pour les skills restantes */}
             {(analysis.skillsMatch.matching.length > 3 || analysis.skillsMatch.missing.length > 2) && (
-              <div className="text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+              <div className="text-[10px] font-medium 
+                bg-gray-100/60 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 
+                px-2 py-1 rounded-full backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50">
                 +{(analysis.skillsMatch.matching.length - 3) + (analysis.skillsMatch.missing.length - 2)} plus
               </div>
             )}
@@ -3516,7 +3540,7 @@ URL to visit: ${jobUrl}
             </details>
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -3733,20 +3757,20 @@ URL to visit: ${jobUrl}
 
   const SkillTag = ({ skill, matched, relevance }: { skill: string; matched: boolean; relevance?: number }) => (
     <div 
-      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 backdrop-blur-sm ${
         matched 
-          ? "bg-gradient-to-r from-green-50 to-teal-50 text-green-700 border border-green-100/80 dark:from-green-900/20 dark:to-teal-900/20 dark:text-green-400 dark:border-green-800/30 hover:shadow-sm hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/30 dark:hover:to-teal-900/30"
-          : "bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border border-red-100/80 dark:from-red-900/20 dark:to-orange-900/20 dark:text-red-400 dark:border-red-800/30 hover:shadow-sm hover:from-red-100 hover:to-orange-100 dark:hover:from-red-900/30 dark:hover:to-orange-900/30"
+          ? "bg-green-50/60 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200/50 dark:border-green-800/30 hover:bg-green-100/80 dark:hover:bg-green-900/30"
+          : "bg-red-50/60 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-800/30 hover:bg-red-100/80 dark:hover:bg-red-900/30"
       }`}
     >
       {matched ? (
-        <Check className="w-3 h-3 mr-1 text-green-600 dark:text-green-500" />
+        <Check className="w-3 h-3 mr-1.5 text-green-600 dark:text-green-500 flex-shrink-0" />
       ) : (
-        <X className="w-3 h-3 mr-1 text-red-600 dark:text-red-500" />
+        <X className="w-3 h-3 mr-1.5 text-red-600 dark:text-red-500 flex-shrink-0" />
       )}
-      <span>{skill}</span>
+      <span className="truncate max-w-[120px]">{skill}</span>
       {matched && relevance && (
-        <span className="ml-1 bg-white dark:bg-gray-800 text-xs px-1 py-0.5 rounded-full text-gray-600 dark:text-gray-400 shadow-inner">
+        <span className="ml-1.5 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm text-[10px] px-1.5 py-0.5 rounded-full text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-700/50">
           {Math.round(relevance)}%
         </span>
       )}
@@ -3921,43 +3945,51 @@ URL to visit: ${jobUrl}
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              className="w-full flex items-center p-5 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-400 dark:hover:border-purple-600 transition-all bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:shadow-md group"
+              className="w-full flex items-center p-4 border-2 border-dashed border-gray-200/60 dark:border-gray-700/50 rounded-xl 
+                hover:border-purple-400/60 dark:hover:border-purple-600/60 
+                transition-all duration-200 ease-out
+                bg-gray-50/50 dark:bg-gray-800/30 backdrop-blur-sm
+                hover:bg-gray-100/60 dark:hover:bg-gray-800/50 
+                group"
             >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 
+                flex items-center justify-center mr-4 group-hover:scale-105 transition-transform duration-200">
                 {cvFile ? 
                   <Check className="w-6 h-6 text-green-600 dark:text-green-400" /> : 
                   <Upload className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 }
               </div>
               <div className="flex-1 text-left">
-                <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-1">
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-1">
                   {cvFile ? "Resume Selected" : "Upload Your Resume"}
                 </h3>
                 {cvFile ? (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                    <p className="text-xs text-gray-600 dark:text-gray-300 font-medium">
                       {cvFile.name}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
                       {(cvFile.size / 1024).toFixed(1)} KB
                     </p>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Click to select a PDF file for ATS analysis
                   </p>
                 )}
               </div>
               {cvFile && (
-                <span className="ml-3 flex-shrink-0 rounded-full bg-green-100 dark:bg-green-900/30 p-2">
+                <span className="ml-3 flex-shrink-0 rounded-full bg-green-100/60 dark:bg-green-900/30 backdrop-blur-sm p-2 border border-green-200/50 dark:border-green-800/30">
                   <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </span>
               )}
             </button>
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-2 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1.5 rounded-lg">
-            <Info className="w-3.5 h-3.5 mr-1.5 text-blue-600 dark:text-blue-400" />
-            Your resume will be analyzed to determine its match with the job description
+          <div className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center mt-2 
+            bg-blue-50/60 dark:bg-blue-900/20 backdrop-blur-sm 
+            px-3 py-2 rounded-lg border border-blue-100/50 dark:border-blue-800/30">
+            <Info className="w-3.5 h-3.5 mr-1.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <span>Your resume will be analyzed to determine its match with the job description</span>
           </div>
         </motion.div>
       ),
@@ -3974,13 +4006,13 @@ URL to visit: ${jobUrl}
           className="space-y-4"
         >
           {/* Mode Toggle */}
-          <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center gap-2 p-1 bg-gray-100/50 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
             <button
               onClick={() => setJobInputMode('ai')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
                 jobInputMode === 'ai'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
               }`}
             >
               <Wand2 className="w-3.5 h-3.5" />
@@ -3988,10 +4020,10 @@ URL to visit: ${jobUrl}
             </button>
             <button
               onClick={() => setJobInputMode('manual')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
                 jobInputMode === 'manual'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
               }`}
             >
               <AlignLeft className="w-3.5 h-3.5" />
@@ -4008,7 +4040,7 @@ URL to visit: ${jobUrl}
               className="space-y-3"
             >
           <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
                   <Link2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   Job Posting URL
                 </label>
@@ -4017,67 +4049,92 @@ URL to visit: ${jobUrl}
                     type="url"
                     value={formData.jobUrl}
                     onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
-                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                    className="flex-1 px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
+                      focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                      dark:bg-gray-800/30 dark:text-white text-xs
+                      bg-gray-50/50 backdrop-blur-sm
+                      transition-all duration-200"
                     placeholder="https://linkedin.com/jobs/view/..."
                   />
                   <button
                     onClick={handleExtractJobInfo}
                     disabled={!formData.jobUrl.trim() || isExtractingJob}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-md shadow-purple-500/20"
+                    className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
+                      hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
+                      text-white rounded-lg text-xs font-semibold 
+                      transition-all duration-200 ease-out
+                      disabled:cursor-not-allowed 
+                      flex items-center gap-1.5 
+                      shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
+                      hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
+                      disabled:shadow-none disabled:hover:shadow-none
+                      active:scale-[0.98]"
                   >
                     {isExtractingJob ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Extracting...
+                        <span>Extracting...</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-3.5 h-3.5" />
-                        Extract
+                        <span>Extract</span>
                       </>
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
-                  <Info className="w-3 h-3" />
-                  Paste the job posting URL and our AI will extract all information automatically
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
+                  <Info className="w-3 h-3 flex-shrink-0" />
+                  <span>Paste the job posting URL and our AI will extract all information automatically</span>
                 </p>
               </div>
 
               {/* Extracted/Manual Fields */}
-              <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="space-y-3 pt-3 border-t border-gray-100/50 dark:border-gray-800/50">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Job Title
             </label>
             <input
               type="text"
               value={formData.jobTitle}
               onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
+                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                dark:bg-gray-800/30 dark:text-white text-xs
+                bg-gray-50/50 backdrop-blur-sm
+                transition-all duration-200"
               placeholder="e.g., Full Stack Developer"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Company
             </label>
             <input
               type="text"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
+                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                dark:bg-gray-800/30 dark:text-white text-xs
+                bg-gray-50/50 backdrop-blur-sm
+                transition-all duration-200"
               placeholder="e.g., Google"
             />
           </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Job Description
           </label>
           <textarea
             value={formData.jobDescription}
             onChange={(e) => setFormData({...formData, jobDescription: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white h-36 text-sm resize-none"
+                    className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                      focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                      dark:bg-gray-800/30 dark:text-white h-36 text-xs resize-none
+                      bg-gray-50/50 backdrop-blur-sm
+                      transition-all duration-200"
                     placeholder="Job description will be extracted automatically, or paste it manually..."
                   />
         </div>
@@ -4094,43 +4151,55 @@ URL to visit: ${jobUrl}
               className="space-y-3"
             >
         <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Job Title
                 </label>
                 <input
                   type="text"
                   value={formData.jobTitle}
                   onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
+                    focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                    dark:bg-gray-800/30 dark:text-white text-xs
+                    bg-gray-50/50 backdrop-blur-sm
+                    transition-all duration-200"
                   placeholder="e.g., Full Stack Developer"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Company
                 </label>
                 <input
                   type="text"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
+                    focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                    dark:bg-gray-800/30 dark:text-white text-xs
+                    bg-gray-50/50 backdrop-blur-sm
+                    transition-all duration-200"
                   placeholder="e.g., Google"
                 />
               </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Job Description
           </label>
           <textarea
             value={formData.jobDescription}
             onChange={(e) => setFormData({...formData, jobDescription: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white h-40 text-sm resize-none"
+                  className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                    focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                    dark:bg-gray-800/30 dark:text-white h-40 text-xs resize-none
+                    bg-gray-50/50 backdrop-blur-sm
+                    transition-all duration-200"
                   placeholder="Paste the complete job description here..."
           />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
-                  <Info className="w-3 h-3" />
-            Include the full job description for the most accurate results
-          </p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
+                  <Info className="w-3 h-3 flex-shrink-0" />
+                  <span>Include the full job description for the most accurate results</span>
+                </p>
         </div>
             </motion.div>
           )}
@@ -4444,7 +4513,7 @@ URL to visit: ${jobUrl}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
                   className="fixed inset-0 bg-black/40 backdrop-blur-sm"
                 />
 
@@ -4452,16 +4521,25 @@ URL to visit: ${jobUrl}
                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  transition={{ duration: 0.25 }}
-                  className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full mx-auto p-5 md:p-6 overflow-hidden border border-gray-100 dark:border-gray-700"
+                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden max-w-2xl w-full mx-auto p-5 md:p-6
+                    transition-all duration-500 ease-out
+                    hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
+                    border border-gray-100/50 dark:border-gray-800/50"
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+                  }}
                 >
+                  {/* Subtle accent line - Apple style */}
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
+                  
                   {/* Step Progress Indicator */}
-                  <div className="mb-6">
+                  <div className="mb-5">
                     <div className="flex justify-between items-center w-full relative">
                       {/* Progress Bar */}
-                      <div className="absolute h-1 bg-gray-200 dark:bg-gray-700 left-0 right-0 top-1/2 -translate-y-1/2 z-0"></div>
+                      <div className="absolute h-0.5 bg-gray-200/50 dark:bg-gray-700/50 left-0 right-0 top-1/2 -translate-y-1/2 z-0 rounded-full"></div>
                       <div 
-                        className="absolute h-1 bg-gradient-to-r from-purple-500 to-indigo-600 left-0 top-1/2 -translate-y-1/2 z-10 transition-all duration-300"
+                        className="absolute h-0.5 bg-gradient-to-r from-purple-500/80 to-indigo-600/80 left-0 top-1/2 -translate-y-1/2 z-10 transition-all duration-500 ease-out rounded-full"
                         style={{ width: `${(currentStep / steps.length) * 100 - (100 / steps.length / 2)}%` }}
                       ></div>
                       
@@ -4478,26 +4556,26 @@ URL to visit: ${jobUrl}
                           >
                             <div 
                               className={`
-                                w-8 h-8 rounded-full flex items-center justify-center mb-1
-                                transition-all duration-300 transform
+                                w-8 h-8 rounded-full flex items-center justify-center mb-1.5
+                                transition-all duration-300 ease-out transform
                                 ${isActive 
-                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-2 ring-purple-100 dark:ring-purple-900/30 scale-105' 
+                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-2 ring-purple-100/50 dark:ring-purple-900/30 scale-105 shadow-lg shadow-purple-500/20' 
                                   : isCompleted 
-                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
-                                    : 'bg-white dark:bg-gray-700 text-gray-400 border-2 border-gray-200 dark:border-gray-600'
+                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md shadow-purple-500/10'
+                                    : 'bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm text-gray-400 border border-gray-200/50 dark:border-gray-700/50'
                                 }
                               `}
                             >
                               {isCompleted ? (
                                 <Check className="w-4 h-4" />
                               ) : (
-                                <span className="text-xs font-medium">
+                                <span className="text-xs font-semibold">
                                   {stepNumber}
                                 </span>
                               )}
                             </div>
                             <span className={`
-                              text-xs font-medium hidden md:block transition-colors duration-300
+                              text-[10px] font-medium hidden md:block transition-colors duration-300
                               ${isActive 
                                 ? 'text-purple-600 dark:text-purple-400'
                                 : isCompleted
@@ -4515,20 +4593,20 @@ URL to visit: ${jobUrl}
                   
                   {/* Modal Header */}
                   <div className="flex justify-between items-center mb-5">
-                    <div>
-                      <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                        <span className="mr-2 inline-flex p-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                    <div className="flex-1">
+                      <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-1.5">
+                        <span className="mr-2.5 inline-flex p-2 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400">
                           {steps[currentStep - 1].icon}
                         </span>
                         {steps[currentStep - 1].title}
                       </Dialog.Title>
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 ml-11">
                         {steps[currentStep - 1].description}
                       </p>
                     </div>
                     <button
                       onClick={() => setIsModalOpen(false)}
-                      className="text-gray-400 hover:text-gray-500 rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full p-1.5 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 backdrop-blur-sm transition-all duration-200"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -4540,19 +4618,19 @@ URL to visit: ${jobUrl}
                   </div>
                   
                   {/* Modal Footer */}
-                  <div className="flex justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between pt-4 border-t border-gray-100/50 dark:border-gray-800/50">
                     <button
                       onClick={() => {
                         if (currentStep > 1) {
                           setCurrentStep(currentStep - 1);
                         }
                       }}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ${
-                        currentStep === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700' 
+                      className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 ${
+                        currentStep === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100/60 dark:hover:bg-gray-800/60 backdrop-blur-sm' 
                       }`}
                       disabled={currentStep === 1}
                     >
-                      <ChevronRight className="h-4 w-4 mr-1 rotate-180" />
+                      <ChevronRight className="h-3.5 w-3.5 mr-1 rotate-180" />
                       Back
                     </button>
                     
@@ -4572,10 +4650,19 @@ URL to visit: ${jobUrl}
                           handleAnalysis();
                         }
                       }}
-                      className={`px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-medium flex items-center shadow hover:shadow-md transition-all ${
+                      className={`px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
+                        hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
+                        text-white rounded-lg text-xs font-semibold flex items-center 
+                        transition-all duration-200 ease-out
+                        disabled:cursor-not-allowed 
+                        shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
+                        hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
+                        disabled:shadow-none disabled:hover:shadow-none
+                        active:scale-[0.98]
+                        ${
                         (currentStep === 1 && !cvFile) || 
                         (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
-                        isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:from-purple-700 hover:to-indigo-700'
+                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                       disabled={
                         (currentStep === 1 && !cvFile) || 
@@ -4585,20 +4672,20 @@ URL to visit: ${jobUrl}
                     >
                       {isLoading ? (
                         <>
-                          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                          Analysis in progress...
+                          <Loader2 className="animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-white" />
+                          <span>Analysis in progress...</span>
                         </>
                       ) :
                         <>
                           {currentStep === steps.length ? (
                             <>
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Analyze Resume
+                              <Sparkles className="h-3.5 w-3.5 mr-2" />
+                              <span>Analyze Resume</span>
                             </>
                           ) : (
                             <>
-                              Continue
-                              <ChevronRight className="h-4 w-4 ml-1" />
+                              <span>Continue</span>
+                              <ChevronRight className="h-3.5 w-3.5 ml-1" />
                             </>
                           )}
                         </>

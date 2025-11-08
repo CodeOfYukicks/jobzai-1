@@ -499,117 +499,611 @@ export default function CalendarView() {
   const [isDragging, setIsDragging] = useState(false);
   const [justSelectedEvent, setJustSelectedEvent] = useState(false);
 
-  // Styles personnalisés pour améliorer la lisibilité des événements multiples
+  // Styles personnalisés pour améliorer la lisibilité et l'élégance en dark mode et light mode
   useEffect(() => {
     const styleSheet = document.createElement('style');
     styleSheet.type = 'text/css';
     styleSheet.innerText = `
+      /* ===== STYLES GÉNÉRAUX DU CALENDRIER ===== */
+      
+      /* Fond principal du calendrier - LIGHT MODE */
+      .rbc-calendar {
+        background-color: #FFFFFF !important;
+        color: #1F2937 !important;
+      }
+      
+      /* Fond principal du calendrier - DARK MODE */
+      .dark .rbc-calendar {
+        background-color: #0F172A !important;
+        color: #F1F5F9 !important;
+      }
+      
+      /* ===== LIGHT MODE STYLES ===== */
+      
+      /* En-têtes de colonnes (jours de la semaine) - LIGHT MODE */
+      .rbc-header {
+        background: linear-gradient(to bottom, #F9FAFB 0%, #F3F4F6 100%) !important;
+        border-bottom: 1px solid rgba(229, 231, 235, 0.8) !important;
+        color: #374151 !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        padding: 12px 8px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+      }
+      
+      /* Cellules du calendrier - LIGHT MODE */
+      .rbc-day-bg {
+        background-color: #FFFFFF !important;
+        border: 1px solid rgba(229, 231, 235, 0.6) !important;
+        transition: background-color 0.2s ease-in-out !important;
+      }
+      
+      .rbc-day-bg:hover {
+        background-color: #F9FAFB !important;
+      }
+      
+      /* Cellules de dates - LIGHT MODE */
+      .rbc-date-cell {
+        color: #1F2937 !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        padding: 8px !important;
+      }
+      
+      .rbc-date-cell a {
+        color: #1F2937 !important;
+        transition: color 0.2s ease-in-out !important;
+      }
+      
+      .rbc-date-cell a:hover {
+        color: #8B5CF6 !important;
+      }
+      
+      /* Jour actuel - LIGHT MODE */
+      .rbc-today {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%) !important;
+        border-left: 3px solid #8B5CF6 !important;
+      }
+      
+      .rbc-today .rbc-date-cell a {
+        color: #8B5CF6 !important;
+        font-weight: 700 !important;
+      }
+      
+      /* Weekends - LIGHT MODE */
+      .rbc-off-range-bg.rbc-day-bg:first-child,
+      .rbc-off-range-bg.rbc-day-bg:last-child {
+        background-color: #F9FAFB !important;
+      }
+      
+      /* Jours hors mois - LIGHT MODE */
+      .rbc-off-range-bg {
+        background-color: #FAFAFA !important;
+      }
+      
+      .rbc-off-range {
+        background-color: #FAFAFA !important;
+        color: rgba(107, 114, 128, 0.5) !important;
+      }
+      
+      .rbc-day-bg.rbc-off-range-bg {
+        background-color: #FAFAFA !important;
+      }
+      
+      .rbc-date-cell.rbc-off-range {
+        background-color: #FAFAFA !important;
+        color: rgba(107, 114, 128, 0.5) !important;
+      }
+      
+      .rbc-date-cell.rbc-off-range a {
+        color: rgba(107, 114, 128, 0.5) !important;
+      }
+      
+      .rbc-day-slot.rbc-off-range-bg {
+        background-color: #FAFAFA !important;
+      }
+      
+      .rbc-month-view .rbc-day-bg.rbc-off-range-bg {
+        background-color: #FAFAFA !important;
+      }
+      
+      .rbc-month-view .rbc-date-cell.rbc-off-range {
+        background-color: #FAFAFA !important;
+      }
+      
+      .rbc-month-view .rbc-date-cell.rbc-off-range a {
+        color: rgba(107, 114, 128, 0.5) !important;
+      }
+      
+      /* Bordures et séparateurs - LIGHT MODE */
+      .rbc-month-view,
+      .rbc-time-view,
+      .rbc-day-view {
+        border: 1px solid rgba(229, 231, 235, 0.8) !important;
+      }
+      
+      .rbc-month-view .rbc-day-bg {
+        border: 1px solid rgba(229, 231, 235, 0.6) !important;
+      }
+      
+      /* Vue temps (WEEK/DAY) - LIGHT MODE */
+      .rbc-time-header {
+        border-bottom: 1px solid rgba(229, 231, 235, 0.8) !important;
+      }
+      
+      .rbc-time-header-content {
+        border-left: 1px solid rgba(229, 231, 235, 0.6) !important;
+      }
+      
+      .rbc-time-content {
+        border-top: 2px solid rgba(229, 231, 235, 0.8) !important;
+      }
+      
+      .rbc-time-slot {
+        border-top: 1px solid rgba(243, 244, 246, 0.8) !important;
+      }
+      
+      .rbc-time-slot:first-child {
+        border-top: none !important;
+      }
+      
+      .rbc-day-slot {
+        background-color: #FFFFFF !important;
+      }
+      
+      .rbc-day-slot .rbc-time-slot {
+        border-top: 1px solid rgba(243, 244, 246, 0.8) !important;
+      }
+      
+      .rbc-time-header-gutter,
+      .rbc-time-gutter {
+        background: linear-gradient(to right, #F9FAFB 0%, #FFFFFF 100%) !important;
+        border-right: 1px solid rgba(229, 231, 235, 0.8) !important;
+      }
+      
+      .rbc-time-gutter .rbc-timeslot-group {
+        border-bottom: 1px solid rgba(243, 244, 246, 0.8) !important;
+      }
+      
+      .rbc-label {
+        color: #6B7280 !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+      }
+      
+      /* Vue agenda - LIGHT MODE */
+      .rbc-agenda-view table {
+        background-color: #FFFFFF !important;
+      }
+      
+      .rbc-agenda-view table thead > tr > th {
+        background: linear-gradient(to bottom, #F9FAFB 0%, #F3F4F6 100%) !important;
+        border-bottom: 1px solid rgba(229, 231, 235, 0.8) !important;
+        color: #374151 !important;
+        font-weight: 600 !important;
+      }
+      
+      .rbc-agenda-view table tbody > tr > td {
+        border-bottom: 1px solid rgba(243, 244, 246, 0.8) !important;
+        color: #1F2937 !important;
+      }
+      
+      .rbc-agenda-view table tbody > tr:hover > td {
+        background-color: #F9FAFB !important;
+      }
+      
+      /* Scrollbar personnalisée - LIGHT MODE */
+      .rbc-calendar::-webkit-scrollbar {
+        width: 8px !important;
+        height: 8px !important;
+      }
+      
+      .rbc-calendar::-webkit-scrollbar-track {
+        background: #F3F4F6 !important;
+      }
+      
+      .rbc-calendar::-webkit-scrollbar-thumb {
+        background: #D1D5DB !important;
+        border-radius: 4px !important;
+      }
+      
+      .rbc-calendar::-webkit-scrollbar-thumb:hover {
+        background: #9CA3AF !important;
+      }
+      
+      /* ===== DARK MODE STYLES ===== */
+      
+      /* En-têtes de colonnes (jours de la semaine) - Spécificité maximale */
+      .dark .rbc-calendar .rbc-header,
+      .dark .rbc-month-view .rbc-header,
+      .dark .rbc-time-header .rbc-header,
+      .dark .rbc-day-view .rbc-header,
+      .dark .rbc-week-view .rbc-header,
+      .dark .rbc-agenda-view .rbc-header {
+        background-color: #334155 !important;
+        background: #334155 !important;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.6) !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        padding: 12px 8px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+      }
+      
+      /* S'assurer que tous les éléments dans les en-têtes héritent de la couleur blanche */
+      .dark .rbc-calendar .rbc-header *,
+      .dark .rbc-month-view .rbc-header *,
+      .dark .rbc-time-header .rbc-header * {
+        color: #FFFFFF !important;
+      }
+      
+      .dark .rbc-calendar .rbc-header a,
+      .dark .rbc-month-view .rbc-header a,
+      .dark .rbc-time-header .rbc-header a {
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+      }
+      
+      .dark .rbc-calendar .rbc-header button,
+      .dark .rbc-month-view .rbc-header button,
+      .dark .rbc-time-header .rbc-header button {
+        color: #FFFFFF !important;
+      }
+      
+      /* Forcer le fond sur les éléments parents si nécessaire */
+      .dark .rbc-time-header {
+        background-color: #1E293B !important;
+        background: #1E293B !important;
+      }
+      
+      /* Cellules du calendrier */
+      .dark .rbc-day-bg {
+        background-color: #1E293B !important;
+        border: 1px solid rgba(51, 65, 85, 0.3) !important;
+        transition: background-color 0.2s ease-in-out !important;
+      }
+      
+      .dark .rbc-day-bg:hover {
+        background-color: #334155 !important;
+      }
+      
+      /* Cellules de dates */
+      .dark .rbc-date-cell {
+        color: #F1F5F9 !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        padding: 8px !important;
+      }
+      
+      .dark .rbc-date-cell a {
+        color: #F1F5F9 !important;
+        transition: color 0.2s ease-in-out !important;
+      }
+      
+      .dark .rbc-date-cell a:hover {
+        color: #8B5CF6 !important;
+      }
+      
+      /* Jour actuel */
+      .dark .rbc-today {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%) !important;
+        border-left: 3px solid #8B5CF6 !important;
+      }
+      
+      .dark .rbc-today .rbc-date-cell a {
+        color: #8B5CF6 !important;
+        font-weight: 700 !important;
+      }
+      
+      /* Weekends - légère teinte différente */
+      .dark .rbc-off-range-bg.rbc-day-bg:first-child,
+      .dark .rbc-off-range-bg.rbc-day-bg:last-child {
+        background-color: rgba(30, 41, 59, 0.6) !important;
+      }
+      
+      /* Jours hors mois */
+      .dark .rbc-off-range-bg {
+        background-color: rgba(15, 23, 42, 0.4) !important;
+      }
+      
+      .dark .rbc-off-range {
+        background-color: rgba(15, 23, 42, 0.4) !important;
+        color: rgba(148, 163, 184, 0.4) !important;
+      }
+      
+      .dark .rbc-day-bg.rbc-off-range-bg {
+        background-color: rgba(15, 23, 42, 0.4) !important;
+      }
+      
+      .dark .rbc-date-cell.rbc-off-range {
+        background-color: rgba(15, 23, 42, 0.4) !important;
+        color: rgba(148, 163, 184, 0.4) !important;
+      }
+      
+      .dark .rbc-date-cell.rbc-off-range a {
+        color: rgba(148, 163, 184, 0.4) !important;
+      }
+      
+      .dark .rbc-day-slot.rbc-off-range-bg {
+        background-color: rgba(15, 23, 42, 0.4) !important;
+      }
+      
+      .dark .rbc-month-view .rbc-day-bg.rbc-off-range-bg {
+        background-color: rgba(15, 23, 42, 0.4) !important;
+      }
+      
+      .dark .rbc-month-view .rbc-date-cell.rbc-off-range {
+        background-color: rgba(15, 23, 42, 0.4) !important;
+      }
+      
+      .dark .rbc-month-view .rbc-date-cell.rbc-off-range a {
+        color: rgba(148, 163, 184, 0.4) !important;
+      }
+      
+      /* Bordures et séparateurs */
+      .dark .rbc-month-view,
+      .dark .rbc-time-view,
+      .dark .rbc-day-view {
+        border: 1px solid rgba(51, 65, 85, 0.5) !important;
+      }
+      
+      .dark .rbc-month-view .rbc-day-bg {
+        border: 1px solid rgba(51, 65, 85, 0.3) !important;
+      }
+      
+      /* ===== STYLES DES ÉVÉNEMENTS ===== */
+      
       .rbc-event {
-        margin-bottom: 2px !important;
-        border-radius: 6px !important;
+        margin-bottom: 3px !important;
+        border-radius: 8px !important;
         overflow: hidden !important;
         user-select: none !important;
         -webkit-user-select: none !important;
         -moz-user-select: none !important;
         -ms-user-select: none !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+      }
+      
+      /* Ombres plus prononcées en dark mode */
+      .dark .rbc-event {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+      }
+      
+      /* Gradient subtil sur les événements - LIGHT MODE */
+      .rbc-event::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%) !important;
+        pointer-events: none !important;
+      }
+      
+      /* Gradient subtil sur les événements - DARK MODE */
+      .dark .rbc-event::before {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%) !important;
+      }
+      
+      /* Hover - LIGHT MODE */
+      .rbc-event:hover {
+        transform: translateY(-1px) scale(1.01) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 2px rgba(139, 92, 246, 0.25) !important;
+        z-index: 10 !important;
+      }
+      
+      /* Hover - DARK MODE */
+      .dark .rbc-event:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(139, 92, 246, 0.3) !important;
+      }
+      
+      .rbc-event:active {
+        cursor: grabbing !important;
+        transform: scale(0.98) !important;
       }
       
       .rbc-event:last-child {
         margin-bottom: 0 !important;
       }
       
+      /* Événements en vue mois - LIGHT MODE */
       .rbc-month-view .rbc-event {
-        min-height: 22px !important;
-        margin-bottom: 2px !important;
+        min-height: 24px !important;
+        margin-bottom: 3px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+      }
+      
+      /* Événements en vue mois - DARK MODE */
+      .dark .rbc-month-view .rbc-event {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
       }
       
       .rbc-month-view .rbc-day-slot .rbc-events-container {
         margin-right: 0 !important;
+        padding: 2px !important;
       }
       
       .rbc-month-view .rbc-day-slot .rbc-event {
-        margin-bottom: 2px !important;
+        margin-bottom: 3px !important;
       }
       
+      /* Événements en vue agenda */
       .rbc-agenda-view .rbc-event {
-        min-height: 28px !important;
+        min-height: 32px !important;
+        margin-bottom: 4px !important;
       }
       
+      /* Événements en vue temps */
       .rbc-time-view .rbc-event {
-        min-height: 28px !important;
+        min-height: 32px !important;
+        margin-bottom: 4px !important;
       }
       
+      /* Contenu des événements */
       .rbc-event-content {
         display: flex !important;
         align-items: center !important;
         width: 100% !important;
         height: 100% !important;
+        padding: 4px 8px !important;
+        position: relative !important;
+        z-index: 1 !important;
       }
       
-      .rbc-event:active {
-        cursor: grabbing !important;
-      }
-      
+      /* Événement sélectionné - LIGHT MODE */
       .rbc-event.rbc-selected {
         outline: 2px solid rgba(139, 92, 246, 0.5) !important;
         outline-offset: 2px !important;
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3) !important;
       }
       
-      /* Styles pour améliorer le drag and drop */
+      /* Événement sélectionné - DARK MODE */
+      .dark .rbc-event.rbc-selected {
+        outline: 2px solid rgba(139, 92, 246, 0.6) !important;
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4) !important;
+      }
+      
+      /* ===== DRAG AND DROP ===== */
       
       .rbc-addons-dnd-drag-preview {
-        opacity: 0.8 !important;
+        opacity: 0.85 !important;
         z-index: 1000 !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+        transform: rotate(2deg) !important;
+        filter: blur(0.5px) !important;
       }
       
       .rbc-addons-dnd-dragging {
-        opacity: 0.5 !important;
+        opacity: 0.4 !important;
       }
       
-      /* Styles pour les jours hors mois en mode sombre */
-      .dark .rbc-off-range-bg {
-        background-color: rgb(31, 41, 55) !important;
+      .rbc-addons-dnd-drag-preview .rbc-event {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
       }
       
-      .dark .rbc-off-range {
-        background-color: rgb(31, 41, 55) !important;
-        color: rgb(156, 163, 175) !important;
+      /* ===== VUE TEMPS (WEEK/DAY) ===== */
+      
+      .dark .rbc-time-header {
+        border-bottom: 1px solid rgba(51, 65, 85, 0.5) !important;
       }
       
-      .dark .rbc-day-bg.rbc-off-range-bg {
-        background-color: rgb(31, 41, 55) !important;
+      .dark .rbc-time-header-content {
+        border-left: 1px solid rgba(51, 65, 85, 0.3) !important;
       }
       
-      .dark .rbc-date-cell.rbc-off-range {
-        background-color: rgb(31, 41, 55) !important;
-        color: rgb(156, 163, 175) !important;
+      .dark .rbc-time-content {
+        border-top: 2px solid rgba(51, 65, 85, 0.5) !important;
       }
       
-      .dark .rbc-date-cell.rbc-off-range a {
-        color: rgb(156, 163, 175) !important;
+      .dark .rbc-time-slot {
+        border-top: 1px solid rgba(51, 65, 85, 0.2) !important;
       }
       
-      .dark .rbc-day-slot.rbc-off-range-bg {
-        background-color: rgb(31, 41, 55) !important;
+      .dark .rbc-time-slot:first-child {
+        border-top: none !important;
       }
       
-      .dark .rbc-month-view .rbc-day-bg.rbc-off-range-bg {
-        background-color: rgb(31, 41, 55) !important;
+      .dark .rbc-day-slot {
+        background-color: #1E293B !important;
       }
       
-      .dark .rbc-month-view .rbc-date-cell.rbc-off-range {
-        background-color: rgb(31, 41, 55) !important;
+      .dark .rbc-day-slot .rbc-time-slot {
+        border-top: 1px solid rgba(51, 65, 85, 0.2) !important;
       }
       
-      .dark .rbc-month-view .rbc-date-cell.rbc-off-range a {
-        color: rgb(156, 163, 175) !important;
+      .dark .rbc-time-header-gutter,
+      .dark .rbc-time-gutter {
+        background-color: #1E293B !important;
+        border-right: 1px solid rgba(51, 65, 85, 0.5) !important;
+      }
+      
+      .dark .rbc-time-gutter .rbc-timeslot-group {
+        border-bottom: 1px solid rgba(51, 65, 85, 0.2) !important;
+      }
+      
+      .dark .rbc-label {
+        color: #94A3B8 !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+      }
+      
+      /* ===== VUE AGENDA ===== */
+      
+      .dark .rbc-agenda-view table {
+        background-color: #1E293B !important;
+      }
+      
+      .dark .rbc-agenda-view table thead > tr > th {
+        background-color: #1E293B !important;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.5) !important;
+        color: #F1F5F9 !important;
+        font-weight: 600 !important;
+      }
+      
+      .dark .rbc-agenda-view table tbody > tr > td {
+        border-bottom: 1px solid rgba(51, 65, 85, 0.3) !important;
+        color: #F1F5F9 !important;
+      }
+      
+      .dark .rbc-agenda-view table tbody > tr:hover > td {
+        background-color: #334155 !important;
+      }
+      
+      /* ===== SCROLLBAR PERSONNALISÉE ===== */
+      
+      .dark .rbc-calendar::-webkit-scrollbar {
+        width: 8px !important;
+        height: 8px !important;
+      }
+      
+      .dark .rbc-calendar::-webkit-scrollbar-track {
+        background: #1E293B !important;
+      }
+      
+      .dark .rbc-calendar::-webkit-scrollbar-thumb {
+        background: #475569 !important;
+        border-radius: 4px !important;
+      }
+      
+      .dark .rbc-calendar::-webkit-scrollbar-thumb:hover {
+        background: #64748B !important;
+      }
+      
+      /* ===== AMÉLIORATIONS MOBILE ===== */
+      
+      @media (max-width: 768px) {
+        .dark .rbc-calendar .rbc-header,
+        .dark .rbc-month-view .rbc-header,
+        .dark .rbc-time-header .rbc-header {
+          font-size: 11px !important;
+          padding: 8px 4px !important;
+        }
+        
+        .dark .rbc-date-cell {
+          font-size: 13px !important;
+          padding: 6px !important;
+        }
+        
+        .rbc-month-view .rbc-event {
+          min-height: 20px !important;
+        }
       }
     `;
+    // Injecter les styles à la fin du head pour qu'ils soient chargés après ceux de la bibliothèque
+    styleSheet.id = 'calendar-custom-styles';
     document.head.appendChild(styleSheet);
     
     return () => {
-      if (document.head.contains(styleSheet)) {
-        document.head.removeChild(styleSheet);
+      const existingStyle = document.getElementById('calendar-custom-styles');
+      if (existingStyle && document.head.contains(existingStyle)) {
+        document.head.removeChild(existingStyle);
       }
     };
   }, []);
@@ -918,25 +1412,29 @@ export default function CalendarView() {
 
   // Personnalisation de l'apparence des événements dans le calendrier
   const eventStyleGetter = (event: CalendarEvent) => {
+    // Améliorer les couleurs pour dark mode avec plus de saturation
+    const baseColor = event.color || '#8b5cf6';
+    
     return {
       style: {
-        backgroundColor: event.color,
-        borderRadius: '6px',
-        opacity: isDragging ? 0.7 : 1,
+        backgroundColor: baseColor,
+        borderRadius: '8px',
+        opacity: isDragging ? 0.5 : 1,
         color: 'white',
-        border: '0',
+        border: 'none',
         display: 'block',
         fontWeight: 500,
         padding: '0',
-        marginBottom: '2px',
+        marginBottom: '3px',
         boxShadow: isDragging 
-          ? '0 8px 16px rgba(0,0,0,0.2)' 
-          : '0 1px 3px rgba(0,0,0,0.12)',
+          ? '0 8px 24px rgba(0, 0, 0, 0.4)' 
+          : '0 2px 8px rgba(0, 0, 0, 0.25)',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         cursor: 'grab',
-        transform: isDragging ? 'scale(1.02)' : 'scale(1)',
-        minHeight: selectedView === 'month' ? '22px' : '28px',
+        transform: isDragging ? 'scale(0.98)' : 'scale(1)',
+        minHeight: selectedView === 'month' ? '24px' : '32px',
         overflow: 'hidden',
+        position: 'relative' as const,
       }
     };
   };
@@ -1301,10 +1799,10 @@ export default function CalendarView() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden"
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-lg overflow-hidden"
         >
           {/* Contrôles de navigation du calendrier */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-800">
             <div className="flex items-center gap-3">
               <button 
                 onClick={navigateToPrevious}
@@ -1341,7 +1839,7 @@ export default function CalendarView() {
           </div>
 
           {/* Calendrier */}
-          <div className="h-[75vh] p-4">
+          <div className="h-[75vh] p-4 bg-white dark:bg-slate-900 rounded-b-2xl">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
@@ -1359,12 +1857,12 @@ export default function CalendarView() {
                 views={['month', 'week', 'day']}
                 view={selectedView}
                 date={currentDate}
-                onNavigate={date => setCurrentDate(date)}
-                onView={(view) => setSelectedView(view as any)}
+                onNavigate={(date: Date) => setCurrentDate(date)}
+                onView={(view: string) => setSelectedView(view as 'month' | 'week' | 'day')}
                 eventPropGetter={eventStyleGetter}
                 popup
-                tooltipAccessor={(event) => `${event.title}`}
-                onSelectEvent={(event) => {
+                tooltipAccessor={(event: CalendarEvent) => `${event.title}`}
+                onSelectEvent={(event: CalendarEvent) => {
                   // Ne pas ouvrir le modal si on est en train de faire un drag
                   if (isDragging) {
                     return;
@@ -1386,40 +1884,65 @@ export default function CalendarView() {
                   setIsDragging(true);
                   setJustSelectedEvent(false); // Réinitialiser le flag lors du drag
                 }}
-                dayPropGetter={(date) => {
+                dayPropGetter={(date: Date) => {
                   const today = new Date();
-                  if (
+                  const isToday = 
                     date.getDate() === today.getDate() &&
                     date.getMonth() === today.getMonth() &&
-                    date.getFullYear() === today.getFullYear()
-                  ) {
+                    date.getFullYear() === today.getFullYear();
+                  
+                  // Détecter les weekends (samedi = 6, dimanche = 0)
+                  const dayOfWeek = date.getDay();
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                  
+                  if (isToday) {
                     return {
                       className: 'rbc-today',
                       style: {
-                        backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%)',
                         borderLeft: '3px solid #8b5cf6',
                       },
                     };
                   }
+                  
+                  // Légère teinte différente pour les weekends en dark mode
+                  if (isWeekend) {
+                    return {
+                      style: {
+                        backgroundColor: 'rgba(30, 41, 59, 0.6)',
+                      },
+                    };
+                  }
+                  
                   return {};
                 }}
                 components={{
                   toolbar: () => null,
                   event: ({ event }: any) => (
                     <div 
-                      className="rbc-event-content flex items-center gap-1.5 min-h-[24px] px-2 py-1"
+                      className="rbc-event-content flex items-center gap-1.5 min-h-[24px] px-2 py-1.5"
+                      style={{
+                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+                      }}
                     >
-                      <GripVertical className="w-3 h-3 opacity-60 flex-shrink-0" />
-                      <span className="flex-1 truncate text-xs font-medium leading-tight">{event.title}</span>
+                      <GripVertical className="w-3 h-3 opacity-70 flex-shrink-0" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))' }} />
+                      <span className="flex-1 truncate text-xs font-semibold leading-tight" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)' }}>
+                        {event.title}
+                      </span>
                     </div>
                   ),
                   month: {
                     event: ({ event }: any) => (
                       <div 
-                        className="rbc-event-content flex items-center gap-1.5 min-h-[22px] px-1.5 py-0.5 mb-0.5 last:mb-0"
+                        className="rbc-event-content flex items-center gap-1.5 min-h-[24px] px-1.5 py-1 mb-0.5 last:mb-0"
+                        style={{
+                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+                        }}
                       >
-                        <GripVertical className="w-2.5 h-2.5 opacity-60 flex-shrink-0" />
-                        <span className="flex-1 truncate text-xs font-medium leading-tight">{event.title}</span>
+                        <GripVertical className="w-2.5 h-2.5 opacity-70 flex-shrink-0" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))' }} />
+                        <span className="flex-1 truncate text-xs font-semibold leading-tight" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)' }}>
+                          {event.title}
+                        </span>
                       </div>
                     ),
                   },

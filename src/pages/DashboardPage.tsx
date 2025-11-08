@@ -5,7 +5,8 @@ import {
   Download, LayoutGrid, Users, Target, Inbox, Mail, MessageSquare,
   FileText, Calendar, Award, ArrowUpRight, Clock, CheckCircle, 
   AlertCircle, Bell, Zap, Activity, PieChart,
-  BriefcaseIcon as Briefcase, Flame, Lightbulb, Edit, PlusCircle
+  BriefcaseIcon as Briefcase, Flame, Lightbulb, Edit, PlusCircle,
+  TrendingDown, ArrowRight, Building2
 } from 'lucide-react';
 import { doc, collection, onSnapshot, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -19,36 +20,23 @@ import {
   Tooltip, AreaChart, Area, BarChart, Bar, ComposedChart,
   PieChart as RechartsPieChart, Pie, Cell, RadarChart, Radar,
   PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend, RadialBarChart,
-  RadialBar, CartesianGrid
+  RadialBar, CartesianGrid, FunnelChart, Funnel, LabelList
 } from 'recharts';
 import { Link } from 'react-router-dom';
 
-interface CampaignData {
-  id?: string;
-  title: string;
-  launchDate: string;
-  candidatesReached: number;
-  responses: number;
-  status: 'active' | 'completed' | 'paused' | 'pending' | 'failed';
-  emailsSent?: number;
-  jobTitle?: string;
+// Interview interface
+interface Interview {
+  id: string;
+  date: string;
+  time: string;
+  type: 'technical' | 'hr' | 'manager' | 'final' | 'other';
+  status: 'scheduled' | 'completed' | 'cancelled';
+  location?: string;
 }
 
 interface DashboardStats {
   credits: number;
   creditsChange: number;
-  applicationsSent: number;
-  applicationsChange: number;
-  responseRate: number;
-  responseRateChange: number;
-  activeCampaigns: number;
-  campaignsChange: number;
-  totalCampaigns: number;
-  averageResponseRate: number;
-  totalCandidates: number;
-  candidatesChange: number;
-  conversionRate: number;
-  conversionRateChange: number;
   historicalData: {
     date: string;
     value: number;
@@ -97,6 +85,7 @@ interface JobApplication {
   position: string;
   status: string;
   appliedDate: string;
+  interviews?: Interview[];
 }
 
 // Enhance dashboard stats with more metrics
@@ -110,17 +99,18 @@ interface EnhancedDashboardStats extends DashboardStats {
   // Job application metrics
   totalApplications: number;
   pendingApplications: number;
+  interviewScheduled: number;
   successfulApplications: number;
   rejectedApplications: number;
+  appliedCount: number;
+  interviewCount: number;
+  offerCount: number;
   
-  // Performance metrics
-  bestPerformingCampaignId: string;
-  bestPerformingCampaignTitle: string;
-  bestPerformingCampaignRate: number;
+  // Success metrics
+  successRate: number;
   
   // Time metrics
   averageResponseTime: number; // in hours
-  longestCampaignDuration: number; // in days
   
   // Activity metrics
   activitiesThisWeek: number;
@@ -261,38 +251,31 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<EnhancedDashboardStats>({
     credits: 0,
     creditsChange: 0,
-    applicationsSent: 0,
-    applicationsChange: 0,
-    responseRate: 0,
-    responseRateChange: 0,
-    activeCampaigns: 0,
-    campaignsChange: 0,
-    totalCampaigns: 0,
-    averageResponseRate: 0,
-    totalCandidates: 0,
-    candidatesChange: 0,
-    conversionRate: 0,
-    conversionRateChange: 0,
     historicalData: [],
     
-    // New metrics
+    // Email template metrics
     totalTemplates: 0,
     templatesCreatedThisMonth: 0,
     mostUsedTemplateId: '',
     mostUsedTemplateName: 'None',
     
+    // Job application metrics
     totalApplications: 0,
     pendingApplications: 0,
+    interviewScheduled: 0,
     successfulApplications: 0,
     rejectedApplications: 0,
+    appliedCount: 0,
+    interviewCount: 0,
+    offerCount: 0,
     
-    bestPerformingCampaignId: '',
-    bestPerformingCampaignTitle: 'None',
-    bestPerformingCampaignRate: 0,
+    // Success metrics
+    successRate: 0,
     
+    // Time metrics
     averageResponseTime: 0,
-    longestCampaignDuration: 0,
     
+    // Activity metrics
     activitiesThisWeek: 0,
     activitiesLastWeek: 0,
     activityGrowth: 0
@@ -303,17 +286,11 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const creditElementRef = useRef<HTMLDivElement>(null);
   const previousCredits = useRef(stats.credits);
-  const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [upcomingInterviews, setUpcomingInterviews] = useState<Array<{interview: Interview; application: JobApplication}>>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'campaigns' | 'templates' | 'applications'>('overview');
-
-  const recentCampaigns = useMemo(() => {
-    return campaigns
-      .sort((a, b) => new Date(b.launchDate).getTime() - new Date(a.launchDate).getTime())
-      .slice(0, 3);
-  }, [campaigns]);
+  const [activeTab, setActiveTab] = useState<'overview' | 'templates' | 'applications'>('overview');
 
   const fetchStats = async (isRefresh = false) => {
     try {
@@ -321,33 +298,6 @@ export default function DashboardPage() {
         setIsLoading(false);
         return;
       }
-      
-      // Get user's campaigns
-      const campaignsRef = collection(db, 'users', currentUser.uid, 'campaigns');
-      const campaignsQuery = query(campaignsRef);
-      const campaignsSnapshot = await getDocs(campaignsQuery);
-      
-      // Calculate campaign stats
-      let totalApplications = 0;
-      let totalResponses = 0;
-      let activeCampaigns = 0;
-      let totalCandidatesCount = 0;
-      
-      const campaignsList: CampaignData[] = [];
-      
-      campaignsSnapshot.forEach(doc => {
-        const campaign = doc.data() as CampaignData;
-        campaign.id = doc.id;
-        campaignsList.push(campaign);
-        totalApplications += campaign.candidatesReached || 0;
-        totalResponses += campaign.responses || 0;
-        totalCandidatesCount += campaign.candidatesReached || 0;
-        if (campaign.status === 'active') {
-          activeCampaigns++;
-        }
-      });
-
-      setCampaigns(campaignsList);
 
       // Get user's email templates
       const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
@@ -381,6 +331,14 @@ export default function DashboardPage() {
       let pendingApps = 0;
       let successfulApps = 0;
       let rejectedApps = 0;
+      let appliedCount = 0;
+      let interviewCount = 0;
+      let offerCount = 0;
+      let interviewScheduled = 0;
+      
+      // Collect upcoming interviews
+      const upcomingInterviewsList: Array<{interview: Interview; application: JobApplication}> = [];
+      const currentDate = new Date();
       
       applicationsSnapshot.forEach(doc => {
         const application = doc.data() as JobApplication;
@@ -388,65 +346,54 @@ export default function DashboardPage() {
         applicationsList.push(application);
         
         // Count applications by status
-        if (application.status === 'applied' || application.status === 'interview') {
+        if (application.status === 'applied') {
           pendingApps++;
+          appliedCount++;
+        } else if (application.status === 'interview') {
+          pendingApps++;
+          interviewCount++;
         } else if (application.status === 'offer') {
           successfulApps++;
+          offerCount++;
         } else if (application.status === 'rejected') {
           rejectedApps++;
         }
+        
+        // Collect upcoming interviews
+        if (application.interviews && application.interviews.length > 0) {
+          application.interviews.forEach(interview => {
+            if (interview.status === 'scheduled') {
+              const interviewDate = new Date(`${interview.date}T${interview.time || '00:00'}`);
+              if (interviewDate >= currentDate) {
+                upcomingInterviewsList.push({ interview, application });
+                interviewScheduled++;
+              }
+            }
+          });
+        }
       });
       
+      // Sort upcoming interviews by date
+      upcomingInterviewsList.sort((a, b) => {
+        const dateA = new Date(`${a.interview.date}T${a.interview.time || '00:00'}`);
+        const dateB = new Date(`${b.interview.date}T${b.interview.time || '00:00'}`);
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      setUpcomingInterviews(upcomingInterviewsList.slice(0, 5));
       setApplications(applicationsList);
 
-      // Calculate previous values to track changes
-      const prevTotalCandidates = stats.totalCandidates || 0;
-      const prevConversionRate = stats.conversionRate || 0;
-      
-      // Calculate response rate
-      const responseRate = totalApplications > 0 
-        ? (totalResponses / totalApplications) * 100 
+      // Calculate success rate
+      const successRate = applicationsList.length > 0 
+        ? (successfulApps / applicationsList.length) * 100 
         : 0;
-        
-      // Calculate conversion rate safely to avoid infinity values
-      const conversionRate = totalCandidatesCount > 0 
-        ? (totalResponses / totalCandidatesCount) * 100 
-        : 0;
-        
-      // Find best performing campaign
-      let bestCampaign = { id: '', title: 'None', rate: 0 };
-      campaignsList.forEach(campaign => {
-        const campaignRate = campaign.candidatesReached > 0 
-          ? (campaign.responses / campaign.candidatesReached) * 100
-          : 0;
-          
-        if (campaignRate > bestCampaign.rate) {
-          bestCampaign = {
-            id: campaign.id || '',
-            title: campaign.title,
-            rate: campaignRate
-          };
-        }
-      });
 
       // Calculate activity metrics
-      const now2 = new Date();
-      const oneWeekAgo = new Date(now2.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const twoWeeksAgo = new Date(now2.getTime() - 14 * 24 * 60 * 60 * 1000);
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
       
-      // Count activities in different time periods
       let activitiesThisWeek = 0;
       let activitiesLastWeek = 0;
-      
-      // Count campaign activities
-      campaignsList.forEach(campaign => {
-        const campaignDate = new Date(campaign.launchDate);
-        if (campaignDate >= oneWeekAgo) {
-          activitiesThisWeek++;
-        } else if (campaignDate >= twoWeeksAgo && campaignDate < oneWeekAgo) {
-          activitiesLastWeek++;
-        }
-      });
       
       // Count template activities
       templatesList.forEach(template => {
@@ -481,15 +428,14 @@ export default function DashboardPage() {
       // Convertir l'historique des crédits au format attendu par historicalData
       let creditHistoryFormatted = creditHistoryData.map(item => ({
         date: item.date,
-        value: responseRate,
-        applications: totalApplications,
-        responses: totalResponses,
+        value: 0,
+        applications: applicationsList.length,
+        responses: 0,
         balance: item.value
       }));
       
       // Si l'historique est vide, ajouter au moins le solde actuel
       if (creditHistoryFormatted.length === 0) {
-        // On récupérera le solde actuel depuis le document utilisateur dans le listener
         creditHistoryFormatted = [];
       }
 
@@ -503,7 +449,6 @@ export default function DashboardPage() {
             
             // Calculate credit difference for animation
             const diff = (data.credits || 0) - previousCredits.current;
-            const creditChanged = diff !== 0;
             
             if (diff !== 0 && creditElementRef.current) {
               const rect = creditElementRef.current.getBoundingClientRect();
@@ -515,28 +460,24 @@ export default function DashboardPage() {
             }
             
             // Toujours recharger l'historique des crédits pour avoir les données les plus récentes
-            // (même si les crédits n'ont pas changé, l'historique peut avoir été mis à jour)
             const freshCreditHistory = await getCreditHistoryForChart(currentUser.uid, 30);
             let updatedCreditHistory = freshCreditHistory.map(item => ({
               date: item.date,
-              value: responseRate,
-              applications: totalApplications,
-              responses: totalResponses,
+              value: 0,
+              applications: applicationsList.length,
+              responses: 0,
               balance: item.value,
               change: item.change,
               reason: item.reason
             }));
             
-            console.log('📊 Updated credit history:', updatedCreditHistory.length, 'points');
-            
             // Si l'historique est vide après chargement, ajouter le solde actuel
             if (updatedCreditHistory.length === 0) {
-              console.log('⚠️ No credit history, adding current balance');
               updatedCreditHistory = [{
                 date: new Date().toISOString(),
-                value: responseRate,
-                applications: totalApplications,
-                responses: totalResponses,
+                value: 0,
+                applications: applicationsList.length,
+                responses: 0,
                 balance: data.credits || 0
               }];
             }
@@ -549,38 +490,31 @@ export default function DashboardPage() {
               ...prev,
               credits: data.credits || 0,
               creditsChange: diff,
-              applicationsSent: totalApplications,
-              applicationsChange: totalApplications - (prev.applicationsSent || 0),
-              responseRate: parseFloat(responseRate.toFixed(1)),
-              responseRateChange: responseRate - (prev.responseRate || 0),
-              activeCampaigns,
-              campaignsChange: activeCampaigns - (prev.activeCampaigns || 0),
-              totalCampaigns: campaignsList.length,
-              averageResponseRate: responseRate,
-              totalCandidates: totalCandidatesCount,
-              candidatesChange: totalCandidatesCount - (prev.totalCandidates || 0),
-              conversionRate: conversionRate,
-              conversionRateChange: conversionRate - (prev.conversionRate || 0),
               historicalData: updatedCreditHistory,
               
-              // New metrics
+              // Email template metrics
               totalTemplates: templatesList.length,
               templatesCreatedThisMonth: templatesThisMonth,
-              mostUsedTemplateId: bestCampaign.id,
-              mostUsedTemplateName: bestCampaign.title,
+              mostUsedTemplateId: '',
+              mostUsedTemplateName: templatesList.length > 0 ? templatesList[0].name : 'None',
               
+              // Job application metrics
               totalApplications: applicationsList.length,
               pendingApplications: pendingApps,
+              interviewScheduled,
               successfulApplications: successfulApps,
               rejectedApplications: rejectedApps,
+              appliedCount,
+              interviewCount,
+              offerCount,
               
-              bestPerformingCampaignId: bestCampaign.id,
-              bestPerformingCampaignTitle: bestCampaign.title,
-              bestPerformingCampaignRate: bestCampaign.rate,
+              // Success metrics
+              successRate,
               
+              // Time metrics
               averageResponseTime: 24,
-              longestCampaignDuration: 30,
               
+              // Activity metrics
               activitiesThisWeek,
               activitiesLastWeek,
               activityGrowth
@@ -606,64 +540,22 @@ export default function DashboardPage() {
 
   const hasPremiumAccess = userData.plan === 'standard' || userData.plan === 'premium';
 
-  const overviewMetrics = [
-    {
-      name: 'Total Campaigns',
-      value: stats.totalCampaigns,
-      change: stats.campaignsChange,
-      historicalData: stats.historicalData
-    },
-    {
-      name: 'Average Response Rate',
-      value: `${stats.averageResponseRate.toFixed(1)}%`,
-      change: stats.responseRateChange,
-      historicalData: stats.historicalData
-    },
-    {
-      name: 'Total Candidates',
-      value: stats.totalCandidates,
-      change: stats.candidatesChange,
-      historicalData: stats.historicalData
-    },
-    {
-      name: 'Conversion Rate',
-      value: `${stats.conversionRate.toFixed(1)}%`,
-      change: stats.conversionRateChange,
-      historicalData: stats.historicalData
-    }
-  ];
-
-  const statsConfig = [
-    {
-      name: 'Credits Remaining',
-      value: stats.credits.toString(),
-      change: stats.creditsChange > 0 ? `+${stats.creditsChange}` : stats.creditsChange.toString(),
-      changeType: stats.creditsChange >= 0 ? 'increase' as const : 'decrease' as const,
-      icon: CreditCard,
-      ref: creditElementRef
-    },
-    {
-      name: 'Applications Sent',
-      value: stats.applicationsSent.toString(),
-      change: stats.applicationsChange > 0 ? `+${stats.applicationsChange}` : stats.applicationsChange.toString(),
-      changeType: stats.applicationsChange >= 0 ? 'increase' as const : 'decrease' as const,
-      icon: Send,
-    },
-    {
-      name: 'Response Rate',
-      value: `${stats.responseRate}%`,
-      change: `${stats.responseRateChange > 0 ? '+' : ''}${stats.responseRateChange.toFixed(1)}%`,
-      changeType: stats.responseRateChange >= 0 ? 'increase' as const : 'decrease' as const,
-      icon: BarChart,
-    },
-    {
-      name: 'Active Campaigns',
-      value: stats.activeCampaigns.toString(),
-      change: stats.campaignsChange > 0 ? `+${stats.campaignsChange}` : stats.campaignsChange.toString(),
-      changeType: stats.campaignsChange >= 0 ? 'increase' as const : 'decrease' as const,
-      icon: TrendingUp,
-    },
-  ];
+  // Prepare application funnel data
+  const funnelData = useMemo(() => {
+    const maxValue = Math.max(
+      stats.appliedCount,
+      stats.interviewCount,
+      stats.offerCount,
+      stats.rejectedApplications
+    );
+    
+    return [
+      { name: 'Applied', value: stats.appliedCount, fill: '#8B5CF6' },
+      { name: 'Interview', value: stats.interviewCount, fill: '#6366F1' },
+      { name: 'Offer', value: stats.offerCount, fill: '#10B981' },
+      { name: 'Rejected', value: stats.rejectedApplications, fill: '#EF4444' }
+    ].filter(item => item.value > 0);
+  }, [stats.appliedCount, stats.interviewCount, stats.offerCount, stats.rejectedApplications]);
 
   const refreshDashboard = async () => {
     setIsRefreshing(true);
@@ -771,7 +663,7 @@ export default function DashboardPage() {
                 Dashboard
               </h1>
               <p className="mt-2 text-gray-500 dark:text-gray-400">
-                Campaign performance overview
+                Track your job applications and progress
               </p>
             </div>
             <button
@@ -799,12 +691,6 @@ export default function DashboardPage() {
               label="Overview" 
             />
             <TabButton 
-              active={activeTab === 'campaigns'} 
-              onClick={() => setActiveTab('campaigns')} 
-              icon={Target} 
-              label="Campaigns" 
-            />
-            <TabButton 
               active={activeTab === 'templates'} 
               onClick={() => setActiveTab('templates')} 
               icon={FileText} 
@@ -829,40 +715,60 @@ export default function DashboardPage() {
           >
             {activeTab === 'overview' && (
               <>
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  <StatCard 
-                    title="Total Campaigns" 
-                    value={stats.totalCampaigns} 
-                    change={stats.campaignsChange} 
-                    icon={LayoutGrid} 
-                    iconColor="text-purple-600 dark:text-purple-400" 
-                    iconBg="bg-purple-100 dark:bg-purple-900/30" 
-                  />
-                  <StatCard 
-                    title="Average Response Rate" 
-                    value={`${stats.averageResponseRate.toFixed(1)}%`} 
-                    change={stats.responseRateChange} 
-                    icon={Activity} 
-                    iconColor="text-blue-600 dark:text-blue-400" 
-                    iconBg="bg-blue-100 dark:bg-blue-900/30" 
-                  />
-                  <StatCard 
-                    title="Total Candidates" 
-                    value={stats.totalCandidates} 
-                    change={stats.candidatesChange} 
-                    icon={Users} 
-                    iconColor="text-green-600 dark:text-green-400" 
-                    iconBg="bg-green-100 dark:bg-green-900/30" 
-                  />
-                  <StatCard 
-                    title="Conversion Rate" 
-                    value={`${stats.conversionRate.toFixed(1)}%`} 
-                    change={stats.conversionRateChange} 
-                    icon={Target} 
-                    iconColor="text-indigo-600 dark:text-indigo-400" 
-                    iconBg="bg-indigo-100 dark:bg-indigo-900/30" 
-                  />
+                {/* Quick Stats - Apple Style */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0 }}
+                  >
+                    <StatCard 
+                      title="Total Applications" 
+                      value={stats.totalApplications} 
+                      icon={Briefcase} 
+                      iconColor="text-purple-600 dark:text-purple-400" 
+                      iconBg="bg-purple-100 dark:bg-purple-900/30" 
+                    />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                  >
+                    <StatCard 
+                      title="Pending" 
+                      value={stats.pendingApplications} 
+                      icon={Clock} 
+                      iconColor="text-blue-600 dark:text-blue-400" 
+                      iconBg="bg-blue-100 dark:bg-blue-900/30" 
+                    />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                  >
+                    <StatCard 
+                      title="Interviews Scheduled" 
+                      value={stats.interviewScheduled} 
+                      icon={Calendar} 
+                      iconColor="text-indigo-600 dark:text-indigo-400" 
+                      iconBg="bg-indigo-100 dark:bg-indigo-900/30" 
+                    />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
+                  >
+                    <StatCard 
+                      title="Success Rate" 
+                      value={`${stats.successRate.toFixed(1)}%`} 
+                      icon={TrendingUp} 
+                      iconColor="text-green-600 dark:text-green-400" 
+                      iconBg="bg-green-100 dark:bg-green-900/30" 
+                    />
+                  </motion.div>
                 </div>
 
                 {/* Main Dashboard Content */}
@@ -952,35 +858,127 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Activity Feed */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                    {/* Upcoming Interviews */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
                       <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
-                        <div className="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-xs font-medium">
-                          {stats.activityGrowth > 0 
-                            ? `+${stats.activityGrowth.toFixed(0)}%` 
-                            : `${stats.activityGrowth.toFixed(0)}%`} this week
-                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Upcoming Interviews</h3>
+                        {upcomingInterviews.length > 0 && (
+                          <Link
+                            to="/upcoming-interviews"
+                            className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 font-medium flex items-center gap-1"
+                          >
+                            View all <ChevronRight className="h-4 w-4" />
+                          </Link>
+                        )}
                       </div>
-                      <div className="space-y-4">
-                        {campaigns.length > 0 ? (
-                          campaigns.slice(0, 3).map((campaign, index) => (
-                            <ActivityItem 
-                              key={campaign.id || index}
-                              icon={Send} 
-                              title={`Campaign "${campaign.title}" ${campaign.status}`}
-                              description={`${campaign.responses || 0} responses out of ${campaign.candidatesReached || 0} candidates`}
-                              time={new Date(campaign.launchDate).toLocaleDateString()}
-                              iconColor="text-purple-600 dark:text-purple-400"
-                              iconBg="bg-purple-100 dark:bg-purple-900/30"
-                            />
-                          ))
+                      <div className="space-y-3">
+                        {upcomingInterviews.length > 0 ? (
+                          upcomingInterviews.slice(0, 3).map((item, index) => {
+                            const interviewDate = new Date(`${item.interview.date}T${item.interview.time || '00:00'}`);
+                            const isToday = interviewDate.toDateString() === new Date().toDateString();
+                            const isTomorrow = interviewDate.toDateString() === new Date(Date.now() + 86400000).toDateString();
+                            
+                            return (
+                              <motion.div
+                                key={item.interview.id || index}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.2, delay: index * 0.1 }}
+                                className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700/50 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-200"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                                      {item.application.position}
+                                    </h4>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                                      <Building2 className="h-3 w-3" />
+                                      {item.application.companyName}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-xs font-medium text-gray-900 dark:text-white">
+                                      {interviewDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : interviewDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </p>
+                                  </div>
+                                </div>
+                                {item.interview.type && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                                    {item.interview.type}
+                                  </span>
+                                )}
+                              </motion.div>
+                            );
+                          })
                         ) : (
-                          <div className="text-center py-6">
-                            <Inbox className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">No recent activity</p>
+                          <div className="text-center py-8">
+                            <Calendar className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming interviews</p>
+                            <Link
+                              to="/applications"
+                              className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 font-medium mt-2 inline-block"
+                            >
+                              Schedule one
+                            </Link>
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Recent Activity */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm mt-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+                        {stats.activityGrowth > 0 && (
+                          <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-xs font-medium">
+                            +{stats.activityGrowth.toFixed(0)}% this week
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-3">
+                        {(() => {
+                          const activities: Array<{icon: any; title: string; description: string; time: string; iconColor: string; iconBg: string}> = [];
+                          
+                          // Add recent applications
+                          applications.slice(0, 2).forEach(app => {
+                            activities.push({
+                              icon: Briefcase,
+                              title: `Applied to ${app.companyName}`,
+                              description: app.position,
+                              time: new Date(app.appliedDate).toLocaleDateString(),
+                              iconColor: "text-purple-600 dark:text-purple-400",
+                              iconBg: "bg-purple-100 dark:bg-purple-900/30"
+                            });
+                          });
+                          
+                          // Add recent templates
+                          templates.slice(0, 1).forEach(template => {
+                            if (template.createdAt) {
+                              activities.push({
+                                icon: FileText,
+                                title: `Created template "${template.name}"`,
+                                description: template.subject,
+                                time: new Date(template.createdAt.toDate()).toLocaleDateString(),
+                                iconColor: "text-blue-600 dark:text-blue-400",
+                                iconBg: "bg-blue-100 dark:bg-blue-900/30"
+                              });
+                            }
+                          });
+                          
+                          return activities.length > 0 ? (
+                            activities.map((activity, index) => (
+                              <ActivityItem key={index} {...activity} />
+                            ))
+                          ) : (
+                            <div className="text-center py-6">
+                              <Inbox className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                              <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity</p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -1078,381 +1076,86 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Campaign Performance Chart */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                    {/* Application Funnel */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
                       <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">Campaign Performance</h3>
-                        {stats.bestPerformingCampaignTitle !== 'None' && (
-                          <div className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full text-xs font-medium">
-                            Best: {stats.bestPerformingCampaignTitle} ({stats.bestPerformingCampaignRate.toFixed(1)}%)
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Application Funnel</h3>
+                        <Link
+                          to="/applications"
+                          className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 font-medium flex items-center gap-1"
+                        >
+                          View details <ChevronRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                      <div className="h-[280px]">
+                        {funnelData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart 
+                              data={funnelData}
+                              layout="vertical"
+                              margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                              <XAxis type="number" axisLine={false} tickLine={false} />
+                              <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                axisLine={false} 
+                                tickLine={false}
+                                tick={{ fontSize: 12, fill: '#6B7280' }}
+                              />
+                              <Tooltip 
+                                content={({ active, payload }) => {
+                                  if (active && payload && payload.length) {
+                                    const data = payload[0].payload;
+                                    return (
+                                      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                                        <p className="font-semibold text-gray-900 dark:text-white mb-1">{data.name}</p>
+                                        <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{data.value}</p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                              <Bar 
+                                dataKey="value" 
+                                radius={[0, 8, 8, 0]}
+                                fill={(entry: any) => entry.fill}
+                              >
+                                {funnelData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                                ))}
+                                <LabelList 
+                                  dataKey="value" 
+                                  position="right" 
+                                  style={{ fill: '#6B7280', fontSize: 12, fontWeight: 600 }}
+                                />
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                              <Target className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                              <p className="text-sm text-gray-500 dark:text-gray-400">No application data yet</p>
+                              <Link
+                                to="/applications"
+                                className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 font-medium mt-2 inline-block"
+                              >
+                                Start tracking
+                              </Link>
+                            </div>
                           </div>
                         )}
                       </div>
-                      <div className="h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={campaigns
-                            .slice(0, 5)
-                            .sort((a, b) => (b.responses / (b.candidatesReached || 1)) - (a.responses / (a.candidatesReached || 1)))
-                            .map(campaign => ({
-                              name: campaign.title.length > 15 ? campaign.title.substring(0, 15) + '...' : campaign.title,
-                              responses: campaign.responses || 0,
-                              candidates: campaign.candidatesReached || 0,
-                              rate: campaign.candidatesReached ? (campaign.responses / campaign.candidatesReached) * 100 : 0
-                            }))}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                            <YAxis yAxisId="left" axisLine={false} tickLine={false} width={30} />
-                            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} width={40} 
-                                   tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
-                            <Tooltip 
-                              content={({ active, payload }) => {
-                                if (active && payload && payload.length) {
-                                  return (
-                                    <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                                      <p className="font-medium text-gray-900 dark:text-white">{payload[0].payload.name}</p>
-                                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                                        <span className="inline-block w-3 h-3 bg-[#8B5CF6] rounded-full mr-2"></span>
-                                        Responses: {payload[0].payload.responses}
-                                      </p>
-                                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                                        <span className="inline-block w-3 h-3 bg-[#10B981] rounded-full mr-2"></span>
-                                        Candidates: {payload[0].payload.candidates}
-                                      </p>
-                                      <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                                        Response rate: {payload[0].payload.rate.toFixed(1)}%
-                                      </p>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              }}
-                            />
-                            <Legend />
-                            <Bar yAxisId="left" dataKey="candidates" name="Candidates Reached" fill="#E9D5FF" radius={[4, 4, 0, 0]} />
-                            <Bar yAxisId="left" dataKey="responses" name="Responses" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                            <Line yAxisId="right" type="monotone" dataKey="rate" name="Response Rate %" stroke="#10B981" 
-                                 strokeWidth={2} dot={{ fill: '#10B981', r: 4 }} activeDot={{ r: 6 }} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="mt-3 text-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Showing top {Math.min(5, campaigns.length)} campaigns by response rate
-                        </p>
-                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Recent Campaigns Section */}
-                <div className="mb-8">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Recent Campaigns
-                    </h2>
-                    <Link
-                      to="/campaigns"
-                      className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 
-                        dark:text-purple-400 dark:hover:text-purple-300 font-medium"
-                    >
-                      View all
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-
-                  {recentCampaigns.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {recentCampaigns.map(campaign => (
-                        <div key={campaign.id || campaign.title} 
-                          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 
-                            dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 
-                            transition-all duration-200 shadow-sm hover:shadow-md"
-                        >
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h3 className="font-medium text-gray-900 dark:text-white">
-                                {campaign.title}
-                              </h3>
-                              {campaign.jobTitle && (
-                                <p className="text-sm text-gray-500">{campaign.jobTitle}</p>
-                              )}
-                            </div>
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
-                              {campaign.status}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4 mt-4">
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm text-gray-600 dark:text-gray-300">
-                                {campaign.emailsSent || campaign.candidatesReached || 0} sent
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MessageSquare className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm text-gray-600 dark:text-gray-300">
-                                {campaign.responses || 0} responses
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
-                        <Inbox className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                        No campaigns yet
-                      </h3>
-                      <p className="text-gray-500 dark:text-gray-400 mb-4">
-                        Create your first campaign to get started
-                      </p>
-                      <Link 
-                        to="/campaigns" 
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          window.location.href = '/campaigns?action=new';
-                        }}
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                        <span>Create Campaign</span>
-                      </Link>
-                    </div>
-                  )}
-                </div>
               </>
             )}
 
-            {activeTab === 'campaigns' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  <StatCard 
-                    title="Active Campaigns" 
-                    value={stats.activeCampaigns} 
-                    change={stats.campaignsChange} 
-                    icon={Flame} 
-                    iconColor="text-orange-600 dark:text-orange-400" 
-                    iconBg="bg-orange-100 dark:bg-orange-900/30" 
-                  />
-                  <StatCard 
-                    title="Total Emails Sent" 
-                    value={stats.applicationsSent} 
-                    change={stats.applicationsChange} 
-                    icon={Send} 
-                    iconColor="text-blue-600 dark:text-blue-400" 
-                    iconBg="bg-blue-100 dark:bg-blue-900/30" 
-                  />
-                  <StatCard 
-                    title="Response Rate" 
-                    value={`${(stats.responseRate || 0).toFixed(1)}%`} 
-                    change={stats.responseRateChange} 
-                    icon={Activity} 
-                    iconColor="text-green-600 dark:text-green-400" 
-                    iconBg="bg-green-100 dark:bg-green-900/30" 
-                  />
-                  <StatCard 
-                    title="Avg. Response Time" 
-                    value={`${stats.averageResponseTime}h`} 
-                    icon={Clock} 
-                    iconColor="text-purple-600 dark:text-purple-400" 
-                    iconBg="bg-purple-100 dark:bg-purple-900/30" 
-                  />
-                </div>
-
-                {/* Campaign Status Distribution */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-8">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">Campaign Status</h3>
-                    <Link
-                      to="/campaigns"
-                      className="flex items-center gap-2 px-3 py-1.5 
-                        bg-purple-100 text-purple-700 hover:bg-purple-200
-                        dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50
-                        rounded-full text-xs font-medium transition-colors duration-200"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // Open a modal or redirect to a specific section of campaigns page
-                        window.location.href = '/campaigns?action=new';
-                      }}
-                    >
-                      <PlusCircle className="h-3.5 w-3.5" />
-                      <span>New Campaign</span>
-                    </Link>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Status Donut Chart */}
-                    <div>
-                      <div className="h-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RechartsPieChart>
-                            <Pie
-                              data={[
-                                { name: 'Active', value: stats.activeCampaigns || 0 },
-                                { name: 'Completed', value: (stats.totalCampaigns - stats.activeCampaigns) || 0 }
-                              ]}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              paddingAngle={5}
-                              dataKey="value"
-                            >
-                              <Cell fill="#10B981" />
-                              <Cell fill="#6366F1" />
-                            </Pie>
-                            <Tooltip />
-                          </RechartsPieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="flex justify-center gap-6 mt-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-300">Active</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-[#6366F1]"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-300">Completed</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Campaign Status Breakdown */}
-                    <div className="flex flex-col justify-center">
-                      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4 mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Best Performing Campaign</p>
-                        </div>
-                        <div className="flex items-center gap-3 mt-2">
-                          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                            <Award className="h-4 w-4 text-green-600 dark:text-green-400" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{stats.bestPerformingCampaignTitle}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {stats.bestPerformingCampaignRate.toFixed(1)}% response rate
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Campaign Statistics</p>
-                        </div>
-                        <div className="space-y-3 mt-2">
-                          <div className="flex justify-between items-center">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Total campaigns created</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{stats.totalCampaigns}</p>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Average response rate</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{stats.averageResponseRate.toFixed(1)}%</p>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Longest campaign duration</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{stats.longestCampaignDuration} days</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Campaigns List */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">Recent Campaigns</h3>
-                  </div>
-                  
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {campaigns.length > 0 ? (
-                      campaigns.slice(0, 5).map(campaign => (
-                        <div key={campaign.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
-                                  {campaign.status}
-                                </span>
-                                <h4 className="text-base font-medium text-gray-900 dark:text-white">{campaign.title}</h4>
-                              </div>
-                              {campaign.jobTitle && (
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{campaign.jobTitle}</p>
-                              )}
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-4 justify-start sm:justify-end">
-                              <div className="flex flex-col items-center px-3 py-2 bg-gray-50 dark:bg-gray-700/30 rounded-lg min-w-[80px]">
-                                <Mail className="h-4 w-4 text-gray-400 mb-1" />
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{campaign.candidatesReached || 0}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Sent</p>
-                              </div>
-                              
-                              <div className="flex flex-col items-center px-3 py-2 bg-gray-50 dark:bg-gray-700/30 rounded-lg min-w-[80px]">
-                                <MessageSquare className="h-4 w-4 text-gray-400 mb-1" />
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{campaign.responses || 0}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Responses</p>
-                              </div>
-                              
-                              <div className="flex flex-col items-center px-3 py-2 bg-gray-50 dark:bg-gray-700/30 rounded-lg min-w-[80px]">
-                                <Activity className="h-4 w-4 text-gray-400 mb-1" />
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                  {campaign.candidatesReached 
-                                    ? ((campaign.responses / campaign.candidatesReached) * 100).toFixed(1) 
-                                    : '0.0'}%
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Rate</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-12">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
-                          <Inbox className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <h3 className="text-base font-medium text-gray-900 dark:text-white mb-2">
-                          No campaigns yet
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                          Start by creating your first campaign
-                        </p>
-                        <Link 
-                          to="/campaigns" 
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.location.href = '/campaigns?action=new';
-                          }}
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                          <span>Create Campaign</span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {campaigns.length > 5 && (
-                    <div className="p-4 border-t border-gray-200 dark:border-gray-700 text-center">
-                      <Link
-                        to="/campaigns"
-                        className="text-sm text-purple-600 hover:text-purple-700 
-                          dark:text-purple-400 dark:hover:text-purple-300 font-medium"
-                      >
-                        View all {campaigns.length} campaigns
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
             
             {activeTab === 'templates' && (
               <div className="space-y-6">
@@ -1539,7 +1242,7 @@ export default function DashboardPage() {
                           <div>
                             <p className="text-sm font-medium text-gray-900 dark:text-white">{stats.mostUsedTemplateName}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Used in multiple campaigns
+                              Most recently used
                             </p>
                           </div>
                         </div>

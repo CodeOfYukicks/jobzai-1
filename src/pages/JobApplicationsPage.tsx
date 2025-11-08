@@ -1252,13 +1252,37 @@ END:VCALENDAR`;
                                           zIndex: snapshot.isDragging ? 9999 : 'auto',
                                         }}
                                       >
-                                        <div
-                                          className={`card-container bg-white dark:bg-gray-800 rounded-lg p-2.5 sm:p-3 lg:p-4 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-200 relative overflow-hidden ${snapshot.isDragging ? 'ring-2 ring-purple-500 ring-opacity-50 dragging' : 'hover:shadow-md'}`}
+                                        <motion.div
+                                          initial={{ opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ delay: index * 0.03, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                                          className={`group relative bg-white dark:bg-gray-900/80 backdrop-blur-xl rounded-xl overflow-hidden
+                                            transition-all duration-500 ease-out
+                                            ${snapshot.isDragging 
+                                              ? 'ring-2 ring-purple-500/50 shadow-2xl scale-105' 
+                                              : 'hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/20 hover:-translate-y-1'
+                                            }
+                                            border border-gray-200/60 dark:border-gray-800/50`}
+                                          style={{
+                                            boxShadow: snapshot.isDragging 
+                                              ? '0 20px 25px -5px rgba(139, 92, 246, 0.2), 0 10px 10px -5px rgba(139, 92, 246, 0.1)'
+                                              : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+                                          }}
                                         >
+                                          {/* Subtle accent line - Apple style */}
+                                          <div className={`absolute top-0 left-0 right-0 h-0.5
+                                            ${app.status === 'applied' ? 'bg-gradient-to-r from-blue-400/60 to-blue-500/40' :
+                                              app.status === 'interview' ? 'bg-gradient-to-r from-purple-400/60 to-purple-500/40' :
+                                              app.status === 'offer' ? 'bg-gradient-to-r from-green-400/60 to-green-500/40' :
+                                              app.status === 'pending_decision' ? 'bg-gradient-to-r from-amber-400/60 to-amber-500/40' :
+                                              app.status === 'rejected' ? 'bg-gradient-to-r from-red-400/60 to-red-500/40' :
+                                              'bg-gradient-to-r from-gray-400/60 to-gray-500/40'}`}
+                                          />
+                                          
                                           {/* Position absolute pour les boutons avec un effet de fond subtil */}
-                                          <div className="absolute top-0 right-0 h-full flex items-start pt-2.5 px-2.5 card-actions">
-                                            <div className="absolute inset-0 bg-gradient-to-l from-white/80 dark:from-gray-800/80 to-transparent w-16 h-full pointer-events-none"></div>
-                                            <div className="relative flex z-10">
+                                          <div className="absolute top-0 right-0 h-full flex items-start pt-3 px-3 card-actions z-10">
+                                            <div className="absolute inset-0 bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent w-20 h-full pointer-events-none backdrop-blur-sm"></div>
+                                            <div className="relative flex gap-1.5 z-10">
                                               <motion.button
                                                 whileHover={{ scale: 1.1 }}
                                                 whileTap={{ scale: 0.9 }}
@@ -1267,10 +1291,11 @@ END:VCALENDAR`;
                                                   setFormData(app);
                                                   setEditModal({ show: true, application: app });
                                                 }}
-                                                className="w-6 h-6 mr-1 flex items-center justify-center bg-gray-50/90 dark:bg-gray-700/90 text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/40 rounded-full focus:outline-none shadow-sm backdrop-blur-sm"
+                                                className="w-7 h-7 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 
+                                                  hover:bg-purple-50/80 dark:hover:bg-purple-900/30 rounded-lg focus:outline-none backdrop-blur-sm transition-all duration-200"
                                                 aria-label="Edit application"
                                               >
-                                                <Edit3 className="w-3 h-3" />
+                                                <Edit3 className="w-3.5 h-3.5" />
                                               </motion.button>
                                               <motion.button
                                                 whileHover={{ scale: 1.1 }}
@@ -1279,10 +1304,11 @@ END:VCALENDAR`;
                                                   e.stopPropagation();
                                                   setDeleteModal({ show: true, application: app });
                                                 }}
-                                                className="w-6 h-6 flex items-center justify-center bg-gray-50/90 dark:bg-gray-700/90 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-full focus:outline-none shadow-sm backdrop-blur-sm"
+                                                className="w-7 h-7 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 
+                                                  hover:bg-red-50/80 dark:hover:bg-red-900/30 rounded-lg focus:outline-none backdrop-blur-sm transition-all duration-200"
                                                 aria-label="Delete application"
                                               >
-                                                <Trash2 className="w-3 h-3" />
+                                                <Trash2 className="w-3.5 h-3.5" />
                                               </motion.button>
                                             </div>
                                           </div>
@@ -1295,42 +1321,42 @@ END:VCALENDAR`;
                                                 setTimelineModal(true);
                                               }
                                             }}
-                                            className="cursor-pointer pr-14"
+                                            className="cursor-pointer p-4 pr-20"
                                           >
                                             {/* Contenu de la carte */}
-                                            <div className="mb-2">
-                                              <h4 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm truncate">
+                                            <div className="mb-3">
+                                              <h4 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate mb-1 tracking-tight">
                                                 {app.companyName}
                                               </h4>
-                                              <p className="text-purple-600 dark:text-purple-400 text-xs truncate">
+                                              <p className="text-purple-600 dark:text-purple-400 text-xs sm:text-sm truncate font-medium">
                                                 {app.position}
                                               </p>
                                             </div>
 
                                             {/* Indicateurs d'entretien avec petite animation sur hover */}
                                             {app.interviews && app.interviews.length > 0 && (
-                                              <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                                                <div className="flex flex-wrap items-center gap-1.5">
+                                              <div className="mt-3 pt-3 border-t border-gray-200/60 dark:border-gray-700/50">
+                                                <div className="flex flex-wrap items-center gap-2">
                                                   {app.interviews.slice(0, 3).map((interview, i) => (
                                                     <motion.div
                                                       key={interview.id}
                                                       className="relative group"
-                                                      whileHover={{ y: -2 }}
+                                                      whileHover={{ y: -2, scale: 1.05 }}
                                                       transition={{ type: "spring", stiffness: 500, damping: 15 }}
                                                     >
                                                       <div
-                                                        className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-medium border ${
+                                                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 backdrop-blur-sm shadow-sm transition-all duration-200 ${
                                                           interview.status === 'completed'
-                                                            ? 'bg-green-100 border-green-500 text-green-700'
+                                                            ? 'bg-green-50/90 border-green-300/60 text-green-700 dark:bg-green-950/30 dark:border-green-800/30 dark:text-green-400'
                                                             : interview.status === 'cancelled'
-                                                            ? 'bg-red-100 border-red-500 text-red-700'
-                                                            : 'bg-purple-100 border-purple-500 text-purple-700'
+                                                            ? 'bg-red-50/90 border-red-300/60 text-red-700 dark:bg-red-950/30 dark:border-red-800/30 dark:text-red-400'
+                                                            : 'bg-purple-50/90 border-purple-300/60 text-purple-700 dark:bg-purple-950/30 dark:border-purple-800/30 dark:text-purple-400'
                                                         }`}
                                                       >
                                                         {interview.type.charAt(0).toUpperCase()}
                                                       </div>
                                                       {/* Tooltip avec animation */}
-                                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 shadow-lg">
+                                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900/90 dark:bg-gray-800/90 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 shadow-xl backdrop-blur-sm">
                                                         {interview.type} - {interview.date}
                                                       </div>
                                                     </motion.div>
@@ -1338,7 +1364,7 @@ END:VCALENDAR`;
                                                   {app.interviews.length > 3 && (
                                                     <motion.div 
                                                       whileHover={{ scale: 1.1 }}
-                                                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 flex items-center justify-center text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300"
+                                                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100/90 dark:bg-gray-800/50 border-2 border-gray-300/60 dark:border-gray-700/50 flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-300 backdrop-blur-sm shadow-sm transition-all duration-200"
                                                     >
                                                       +{app.interviews.length - 3}
                                                     </motion.div>
@@ -1348,18 +1374,22 @@ END:VCALENDAR`;
                                             )}
 
                                             {/* Informations supplémentaires */}
-                                            <div className="mt-2 space-y-1">
-                                              <div className="flex items-center text-[10px] sm:text-xs text-gray-500">
-                                                <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
-                                                {app.location}
+                                            <div className="mt-3 space-y-2">
+                                              <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                                                <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm mr-2">
+                                                  <MapPin className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                                                </div>
+                                                <span className="font-medium">{app.location}</span>
                                               </div>
-                                              <div className="flex items-center text-[10px] sm:text-xs text-gray-500">
-                                                <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
-                                                Applied: {app.appliedDate}
+                                              <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                                                <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm mr-2">
+                                                  <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                                                </div>
+                                                <span className="font-medium">Applied: {app.appliedDate}</span>
                                               </div>
                                             </div>
                                           </div>
-                                        </div>
+                                        </motion.div>
                                       </div>
                                     )}
                                   </Draggable>
@@ -2328,26 +2358,53 @@ END:VCALENDAR`;
           </div>
         )}
 
-        {/* Timeline Modal - Optimisé pour mobile */}
+        {/* Timeline Modal - Apple-style elegant design */}
         {timelineModal && selectedApplication && (
-          <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setTimelineModal(false);
+              setShowAddInterviewForm(false);
+              setNewInterview({
+                date: new Date().toISOString().split('T')[0],
+                time: '09:00',
+                type: 'technical',
+                status: 'scheduled',
+                location: '',
+                notes: ''
+              });
+            }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+          >
             <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-gray-800 w-full sm:rounded-xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col"
+              initial={{ opacity: 0, scale: 0.95, y: "100%" }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: "100%" }}
+              transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="group relative bg-white dark:bg-gray-900/80 backdrop-blur-xl w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col overflow-hidden
+                transition-all duration-500 ease-out
+                hover:shadow-2xl hover:shadow-black/10 dark:hover:shadow-black/30
+                border border-gray-200/60 dark:border-gray-800/50"
+              style={{
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+              }}
             >
+              {/* Subtle accent line - Apple style */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
+              
               {/* Drag handle for mobile */}
               <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
-                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                <div className="w-12 h-1 bg-gray-300/60 dark:bg-gray-600/60 rounded-full"></div>
               </div>
               
-              {/* Header with title and close/edit buttons */}
-              <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+              {/* Header with title and close/edit buttons - Apple style */}
+              <div className="px-5 sm:px-6 py-4 border-b border-gray-200/60 dark:border-gray-800/50 sticky top-0 bg-white dark:bg-gray-900/80 backdrop-blur-xl z-10">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold">Application Timeline</h2>
-                  <div className="flex items-center">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">Application Timeline</h2>
+                  <div className="flex items-center gap-1">
                     <motion.button 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -2356,10 +2413,11 @@ END:VCALENDAR`;
                         setTimelineModal(false);
                         setEditModal({ show: true, application: selectedApplication });
                       }} 
-                      className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full transition-colors"
+                      className="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 
+                        hover:bg-purple-50/60 dark:hover:bg-purple-900/30 rounded-lg transition-all duration-200 backdrop-blur-sm"
                       aria-label="Edit application"
                     >
-                      <Edit2 className="w-4.5 h-4.5" />
+                      <Edit2 className="w-4 h-4" />
                     </motion.button>
                     <motion.button 
                       whileHover={{ scale: 1.05 }}
@@ -2368,10 +2426,11 @@ END:VCALENDAR`;
                         setTimelineModal(false);
                         setDeleteModal({ show: true, application: selectedApplication });
                       }} 
-                      className="w-9 h-9 ml-1 flex items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                      className="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 
+                        hover:bg-red-50/60 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200 backdrop-blur-sm"
                       aria-label="Delete application"
                     >
-                      <Trash2 className="w-4.5 h-4.5" />
+                      <Trash2 className="w-4 h-4" />
                     </motion.button>
                     <motion.button 
                       whileHover={{ scale: 1.05 }}
@@ -2388,40 +2447,52 @@ END:VCALENDAR`;
                           notes: ''
                         });
                       }} 
-                      className="w-9 h-9 ml-1 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                      className="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 
+                        hover:bg-gray-100/60 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200 backdrop-blur-sm"
                       aria-label="Close modal"
                     >
-                      <X className="w-4.5 h-4.5" />
+                      <X className="w-4 h-4" />
                     </motion.button>
                   </div>
                 </div>
               </div>
 
               {/* Content with overflow */}
-              <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4">
-                {/* Application details */}
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{selectedApplication.companyName}</h3>
-                  <p className="text-purple-600 dark:text-purple-400 font-medium">{selectedApplication.position}</p>
+              <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5">
+                {/* Application details - Apple style */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="mb-6"
+                >
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1.5 tracking-tight">{selectedApplication.companyName}</h3>
+                  <p className="text-purple-600 dark:text-purple-400 font-medium text-base mb-4">{selectedApplication.position}</p>
                   
-                  <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <MapPin className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm">
+                        <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                      </div>
                       <span>{selectedApplication.location}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <Calendar className="w-4 h-4 flex-shrink-0" />
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm">
+                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                      </div>
                       <span>Applied on {new Date(selectedApplication.appliedDate).toLocaleDateString()}</span>
                     </div>
                   </div>
                   
                   {selectedApplication.url && (
-                    <div className="mt-2">
+                    <div className="mb-4">
                       <a 
                         href={selectedApplication.url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 
+                          hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 
+                          rounded-lg transition-all duration-200 backdrop-blur-sm"
                       >
                         <ExternalLink className="w-4 h-4" />
                         <span>View Job Posting</span>
@@ -2430,38 +2501,52 @@ END:VCALENDAR`;
                   )}
                   
                   {selectedApplication.notes && (
-                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 mb-2">
-                        <FileIcon className="w-4 h-4" />
-                        <span className="font-medium">Notes</span>
+                    <div className="mt-4 p-4 bg-gray-50/80 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-800/50">
+                      <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 mb-2.5 uppercase tracking-wide">
+                        <FileIcon className="w-3.5 h-3.5" />
+                        <span>Notes</span>
                       </div>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{selectedApplication.notes}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{selectedApplication.notes}</p>
                     </div>
                   )}
-                </div>
+                </motion.div>
                 
-                {/* Status History */}
-                <div className="mb-6">
-                  <h4 className="text-base font-semibold mb-4">Status History</h4>
-                  <div className="relative pl-6 border-l-2 border-gray-200 dark:border-gray-700 space-y-4">
+                {/* Status History - Apple style */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="mb-6"
+                >
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                    <span>Status History</span>
+                  </h4>
+                  <div className="relative pl-6 border-l-2 border-gray-200/50 dark:border-gray-700/50 space-y-4">
                     {selectedApplication.statusHistory?.slice().reverse().map((status, index) => (
-                      <div key={index} className="relative">
-                        {/* Status dot */}
-                        <div className={`absolute -left-[17px] w-8 h-8 rounded-full flex items-center justify-center ${
-                          status.status === 'applied' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
-                          status.status === 'interview' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' :
-                          status.status === 'offer' ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
-                          status.status === 'pending_decision' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' :
-                          status.status === 'archived' ? 'bg-gray-100 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400' :
-                          'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                      <motion.div 
+                        key={index} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 + index * 0.05, duration: 0.3 }}
+                        className="relative"
+                      >
+                        {/* Status dot - Apple style - positioned on top of the card */}
+                        <div className={`absolute -left-[17px] top-0 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-sm border-2 z-10 shadow-sm ${
+                          status.status === 'applied' ? 'bg-blue-50/60 text-blue-600 border-blue-200/50 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/30' :
+                          status.status === 'interview' ? 'bg-purple-50/60 text-purple-600 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30' :
+                          status.status === 'offer' ? 'bg-green-50/60 text-green-600 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30' :
+                          status.status === 'pending_decision' ? 'bg-amber-50/60 text-amber-600 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30' :
+                          status.status === 'archived' ? 'bg-gray-50/60 text-gray-600 border-gray-200/50 dark:bg-gray-950/30 dark:text-gray-400 dark:border-gray-800/30' :
+                          'bg-red-50/60 text-red-600 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
                         }`}>
-                          <span className="text-xs capitalize">{status.status.slice(0, 1)}</span>
+                          <span className="text-xs font-semibold capitalize">{status.status.slice(0, 1)}</span>
                         </div>
                         
-                        {/* Status details */}
-                        <div className="bg-white dark:bg-gray-800 pl-4 py-1">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                            <p className={`font-medium capitalize ${
+                        {/* Status details - Apple style */}
+                        <div className="bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-800/50 pl-4 py-3 px-4 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800/50 relative z-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <p className={`font-medium text-sm capitalize ${
                               status.status === 'applied' ? 'text-blue-600 dark:text-blue-400' :
                               status.status === 'interview' ? 'text-purple-600 dark:text-purple-400' :
                               status.status === 'offer' ? 'text-green-600 dark:text-green-400' :
@@ -2471,52 +2556,65 @@ END:VCALENDAR`;
                             }`}>
                               {status.status === 'pending_decision' ? 'Pending Decision' : status.status}
                             </p>
-                            <time className="text-sm text-gray-500">
+                            <time className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                               {new Date(status.date).toLocaleDateString()}
                             </time>
                           </div>
                           {status.notes && (
-                            <p className="mt-1 text-gray-600 dark:text-gray-400 text-sm">
+                            <p className="mt-2 text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                               {status.notes}
                             </p>
                           )}
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
-                </div>
+                </motion.div>
                 
-                {/* Interviews Section */}
-                  <div className="mb-6">
+                {/* Interviews Section - Apple style */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="mb-6"
+                >
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-base font-semibold">Interviews</h4>
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                      <span>Interviews</span>
+                    </h4>
                     {!showAddInterviewForm && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setShowAddInterviewForm(true)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-800 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 
+                          bg-purple-50/60 dark:bg-purple-900/30 hover:bg-purple-100/80 dark:hover:bg-purple-900/40 
+                          rounded-lg border border-purple-200/50 dark:border-purple-800/30 transition-all duration-200 backdrop-blur-sm"
                       >
-                        <PlusCircle className="w-4 h-4" />
-                        Add Interview
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        <span>Add Interview</span>
                       </motion.button>
                     )}
                   </div>
 
-                  {/* Formulaire d'ajout d'interview */}
+                  {/* Formulaire d'ajout d'interview - Apple style */}
                   <AnimatePresence>
                     {showAddInterviewForm && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
+                        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                         className="mb-4 overflow-hidden"
                       >
-                        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 shadow-sm">
+                    <div className="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 dark:from-purple-900/20 dark:to-indigo-900/20 
+                      border border-purple-200/60 dark:border-purple-800/30 rounded-xl p-4 shadow-sm backdrop-blur-sm">
                           <div className="flex items-center justify-between mb-4">
-                            <h5 className="text-sm font-semibold text-purple-900 dark:text-purple-300">New Interview</h5>
-                            <button
+                            <h5 className="text-sm font-semibold text-purple-900 dark:text-purple-300 tracking-tight">New Interview</h5>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => {
                                 setShowAddInterviewForm(false);
                                 setNewInterview({
@@ -2528,32 +2626,39 @@ END:VCALENDAR`;
                                   notes: ''
                                 });
                               }}
-                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                              className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 
+                                hover:bg-gray-100/60 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200 backdrop-blur-sm"
                               aria-label="Cancel"
                             >
-                              <X className="w-4 h-4" />
-                            </button>
+                              <X className="w-3.5 h-3.5" />
+                            </motion.button>
                           </div>
 
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Date *</label>
                                 <input
                                   type="date"
                                   value={newInterview.date}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, date: e.target.value }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                                transition-all duration-200"
                                   required
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Time *</label>
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Time *</label>
                                 <input
                                   type="time"
                                   value={newInterview.time}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, time: e.target.value }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                                transition-all duration-200"
                                   required
                                 />
                               </div>
@@ -2561,11 +2666,14 @@ END:VCALENDAR`;
 
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Type</label>
                                 <select
                                   value={newInterview.type}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, type: e.target.value as Interview['type'] }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                                transition-all duration-200"
                                 >
                                   <option value="technical">Technical</option>
                                   <option value="hr">HR</option>
@@ -2575,11 +2683,14 @@ END:VCALENDAR`;
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Status</label>
                                 <select
                                   value={newInterview.status}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, status: e.target.value as Interview['status'] }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                                transition-all duration-200"
                                 >
                                   <option value="scheduled">Scheduled</option>
                                   <option value="completed">Completed</option>
@@ -2589,29 +2700,37 @@ END:VCALENDAR`;
                             </div>
 
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Location</label>
                               <input
                                 type="text"
                                 value={newInterview.location || ''}
                                 onChange={(e) => setNewInterview(prev => ({ ...prev, location: e.target.value }))}
                                 placeholder="e.g., Zoom, Office, Remote"
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                                transition-all duration-200"
                               />
                             </div>
 
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Notes</label>
                               <textarea
                                 value={newInterview.notes || ''}
                                 onChange={(e) => setNewInterview(prev => ({ ...prev, notes: e.target.value }))}
                                 placeholder="Add any notes or preparation tips..."
                                 rows={2}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                            className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                              bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                              focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                              transition-all duration-200 resize-none"
                               />
                             </div>
 
                             <div className="flex gap-2 pt-2">
-                              <button
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => {
                                   setShowAddInterviewForm(false);
                                   setNewInterview({
@@ -2623,16 +2742,22 @@ END:VCALENDAR`;
                                     notes: ''
                                   });
                                 }}
-                                className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                            className="flex-1 px-3 py-2.5 text-xs font-medium text-gray-700 dark:text-gray-300 
+                              bg-gray-100/90 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-600/60 
+                              rounded-lg transition-all duration-200 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/50"
                               >
                                 Cancel
-                              </button>
-                              <button
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={handleAddInterview}
-                                className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-lg transition-all shadow-sm hover:shadow-md"
+                                className="flex-1 px-3 py-2.5 text-xs font-medium text-white 
+                                  bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 
+                                  rounded-lg transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm"
                               >
                                 Add Interview
-                              </button>
+                              </motion.button>
                             </div>
                           </div>
                         </div>
@@ -2640,84 +2765,100 @@ END:VCALENDAR`;
                     )}
                   </AnimatePresence>
 
-                  {/* Liste des interviews existants */}
+                  {/* Liste des interviews existants - Apple style */}
                   {selectedApplication.interviews && selectedApplication.interviews.length > 0 ? (
-                    <div className="space-y-4">
-                      {selectedApplication.interviews.map((interview) => (
-                        <div 
-                          key={interview.id} 
-                          className={`p-4 rounded-lg border ${
+                    <div className="space-y-3">
+                      {selectedApplication.interviews.map((interview, index) => (
+                        <motion.div 
+                          key={interview.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.25 + index * 0.05, duration: 0.3 }}
+                          className={`group relative p-4 rounded-xl border backdrop-blur-sm transition-all duration-200 hover:shadow-md ${
                             interview.status === 'completed' 
-                              ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/50' 
+                              ? 'bg-green-50/90 dark:bg-green-900/20 border-green-200/60 dark:border-green-900/50 hover:bg-green-50 dark:hover:bg-green-900/30' 
                               : interview.status === 'cancelled'
-                              ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50'
-                              : 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50'
+                              ? 'bg-red-50/90 dark:bg-red-900/20 border-red-200/60 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30'
+                              : 'bg-purple-50/90 dark:bg-purple-900/20 border-purple-200/60 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-900/30'
                           }`}
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-                            <div className="flex items-center gap-1.5">
-                              <span className="capitalize font-medium">{interview.type} Interview</span>
-                              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="capitalize font-medium text-sm text-gray-900 dark:text-white">{interview.type} Interview</span>
+                              <span className={`px-2.5 py-1 text-[10px] font-medium rounded-full backdrop-blur-sm border ${
                                 interview.status === 'completed' 
-                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+                                  ? 'bg-green-100/60 text-green-700 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30' 
                                   : interview.status === 'cancelled'
-                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                                  : 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
+                                  ? 'bg-red-100/60 text-red-700 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
+                                  : 'bg-purple-100/60 text-purple-700 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30'
                               }`}>
                                 {interview.status}
                               </span>
                             </div>
-                            <span className="text-sm text-gray-500">{interview.date} {interview.time}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{interview.date} {interview.time}</span>
                           </div>
                           
-                          {interview.location && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-2">
-                              <MapPin className="w-4 h-4" />
-                              <span>{interview.location}</span>
-                            </div>
-                          )}
-                          
-                          {interview.notes && (
-                            <p className="text-gray-600 dark:text-gray-400 mb-3">{interview.notes}</p>
-                          )}
+                      {interview.location && (
+                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-3">
+                          <div className="p-1 rounded-lg bg-white/80 dark:bg-gray-800/50 backdrop-blur-sm">
+                            <MapPin className="w-3 h-3" />
+                          </div>
+                          <span>{interview.location}</span>
+                        </div>
+                      )}
+                      
+                      {interview.notes && (
+                        <div className="mb-3 p-3 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-gray-200/60 dark:border-gray-800/50">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{interview.notes}</p>
+                        </div>
+                      )}
                           
                           {interview.status === 'scheduled' && (
-                            <div className="flex flex-col sm:flex-row gap-2 mt-3">
-                              <button
+                            <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => downloadICS(interview, selectedApplication.companyName, selectedApplication.position)}
-                                className="flex-1 flex items-center justify-center gap-1 text-sm text-purple-600 dark:text-purple-400 py-2 px-4 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800"
+                                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 
+                                  py-2.5 px-3 hover:bg-purple-50/60 dark:hover:bg-purple-900/30 rounded-lg 
+                                  border border-purple-200/50 dark:border-purple-800/30 backdrop-blur-sm transition-all duration-200"
                               >
-                                <Download className="w-4 h-4" />
+                                <Download className="w-3.5 h-3.5" />
                                 Add to Calendar
-                              </button>
+                              </motion.button>
                               
                               <a
                                 href={`/interview-prep/${selectedApplication.id}/${interview.id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex-1 flex items-center justify-center gap-1 text-sm text-blue-600 dark:text-blue-400 py-2 px-4 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-white 
+                                  py-2.5 px-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 
+                                  rounded-lg transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm"
                               >
-                                <FileText className="w-4 h-4" />
+                                <FileText className="w-3.5 h-3.5" />
                                 Prepare for Interview
                               </a>
                             </div>
                           )}
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 px-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                    <div className="text-center py-8 px-4 bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm rounded-xl border border-dashed border-gray-200/60 dark:border-gray-700/50">
                       <Calendar className="w-8 h-8 mx-auto text-gray-400 dark:text-gray-600 mb-2" />
-                      <p className="text-sm text-gray-500 dark:text-gray-400">No interviews scheduled yet</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No interviews scheduled yet</p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click "Add Interview" to schedule one</p>
                   </div>
                 )}
-                </div>
+                </motion.div>
               </div>
 
-              {/* Footer with Close button */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end sticky bottom-0 bg-white dark:bg-gray-800 shadow-md">
-                <button
+          {/* Footer with Close button - Apple style */}
+          <div className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-gray-800/50 flex justify-end sticky bottom-0 
+            bg-white dark:bg-gray-900/80 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     setTimelineModal(false);
                     setShowAddInterviewForm(false);
@@ -2730,13 +2871,16 @@ END:VCALENDAR`;
                       notes: ''
                     });
                   }}
-                  className="w-full sm:w-auto px-4 py-3 sm:py-2 text-base sm:text-sm font-medium bg-purple-600 text-white rounded-full sm:rounded-lg hover:bg-purple-700 transition-colors"
+                  className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white 
+                    bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 
+                    rounded-lg transition-all duration-200 shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30 
+                    hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-900/40 backdrop-blur-sm"
                 >
                   Close
-                </button>
+                </motion.button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
 
         {/* Delete Confirmation Modal */}

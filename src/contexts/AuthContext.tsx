@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { applyTheme, type Theme } from '../lib/theme';
+import { applyTheme, loadThemeFromStorage, forceLightMode, type Theme } from '../lib/theme';
 
 interface UserData {
   email: string;
@@ -65,12 +65,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserData(userData);
         setIsProfileCompleted(userData?.profileCompleted ?? false);
         
-        // Load and apply theme from Firestore if available
+        // Load and apply theme from Firestore if available (only when logged in)
         if (userData?.theme) {
           applyTheme(userData.theme as Theme);
+        } else {
+          // If no theme in Firestore, load from localStorage
+          const theme = loadThemeFromStorage();
+          applyTheme(theme);
         }
       } else {
         setUserData(null);
+        // Force light mode when logged out
+        forceLightMode();
       }
       setLoading(false);
     });

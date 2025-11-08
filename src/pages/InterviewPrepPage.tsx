@@ -24,6 +24,7 @@ import {
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import LoadingModal from '../components/LoadingModal';
+import InterviewCountdownCat from '../components/InterviewCountdownCat';
 
 // Interface for the job application data
 interface Note {
@@ -155,7 +156,7 @@ export default function InterviewPrepPage() {
   const [isSending, setIsSending] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const [expandedMessages, setExpandedMessages] = useState<Record<number, boolean>>({});
+  const [typingMessages, setTypingMessages] = useState<Record<number, string>>({});
   const [notes, setNotes] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [stickyNotes, setStickyNotes] = useState<Note[]>([]);
@@ -205,6 +206,8 @@ export default function InterviewPrepPage() {
   const [newResourceTitle, setNewResourceTitle] = useState('');
   const [newResourceUrl, setNewResourceUrl] = useState('');
   const [activeQuestionFilter, setActiveQuestionFilter] = useState<'all' | 'technical' | 'behavioral' | 'company-specific' | 'role-specific'>('all');
+  const [showAllChecklistItems, setShowAllChecklistItems] = useState(false);
+  const [showAllNewsItems, setShowAllNewsItems] = useState(false);
   
 
   // Function to determine question tags based on content
@@ -457,12 +460,25 @@ Key points to mention:
     }
   }, [interview]);
   
-  // Scroll to bottom of chat when new messages are added
+  // Track scroll position - no automatic scrolling
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [isUserNearBottom, setIsUserNearBottom] = useState(true);
+  
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatMessages]);
+    const container = chatContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      setIsUserNearBottom(distanceFromBottom < 100); // Within 100px of bottom
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  // No automatic scrolling - user controls scroll position
 
   useEffect(() => {
     if (interview) {
@@ -911,13 +927,97 @@ Key points to mention:
     }
   };
 
-  // Function to toggle message expansion
-  const toggleMessageExpansion = (index: number) => {
-    setExpandedMessages(prev => ({
+  // Typing animation effect - ChatGPT style
+  const prevMessagesLengthRef = useRef(chatMessages.length);
+  const animatedMessagesRef = useRef<Set<number>>(new Set());
+  const isInitialLoadRef = useRef(true);
+  const typingIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const prevMessagesRef = useRef<ChatMessage[]>([]);
+  
+  useEffect(() => {
+    const isNewMessage = chatMessages.length > prevMessagesLengthRef.current;
+    const wasInitialLoad = isInitialLoadRef.current;
+    const previousLength = prevMessagesLengthRef.current;
+    isInitialLoadRef.current = false;
+    prevMessagesLengthRef.current = chatMessages.length;
+    
+    // Only process new messages (those added since last render)
+    const newMessagesStartIndex = previousLength;
+    
+    // Check if messages actually changed (not just a re-render)
+    const messagesChanged = chatMessages.length !== prevMessagesRef.current.length || 
+      chatMessages.some((msg, idx) => {
+        const prevMsg = prevMessagesRef.current[idx];
+        return !prevMsg || msg.content !== prevMsg.content || msg.role !== prevMsg.role;
+      });
+    
+    if (!messagesChanged && !wasInitialLoad) {
+      prevMessagesRef.current = [...chatMessages];
+      return; // No actual changes, skip processing
+    }
+    
+    chatMessages.forEach((msg, index) => {
+      // Only animate assistant messages that are new
+      if (msg.role === 'assistant' && msg.content !== '__thinking__') {
+        const fullText = msg.content.replace(/<think>[\s\S]*<\/think>/g, '').trim();
+        
+        // Check if this message is already fully typed
+        if (typingMessages[index] === fullText) {
+          return; // Already fully typed
+        }
+        
+        // Only process if this is a new message (added since last render) or if it hasn't been processed yet
+        const isNewlyAdded = index >= newMessagesStartIndex;
+        
+        // If not in typingMessages, handle it
+        if (!typingMessages[index] && fullText.length > 0) {
+          // Check if this is a new message (last message and we just added a message, not initial load)
+          const isLastMessage = index === chatMessages.length - 1;
+          
+          if (isNewMessage && isLastMessage && !wasInitialLoad && isNewlyAdded && !animatedMessagesRef.current.has(index)) {
+            // New message - animate typing
+            animatedMessagesRef.current.add(index);
+            setTypingMessages(prev => ({ ...prev, [index]: '' }));
+            
+            // Clear any existing interval for this index
+            const existingInterval = typingIntervalsRef.current.get(index);
+            if (existingInterval) {
+              clearInterval(existingInterval);
+            }
+            
+            // Animate typing character by character
+            let currentIndex = 0;
+            const typingInterval = setInterval(() => {
+              if (currentIndex < fullText.length) {
+                setTypingMessages(prev => ({
       ...prev,
-      [index]: !prev[index]
-    }));
-  };
+                  [index]: fullText.slice(0, currentIndex + 1)
+                }));
+                currentIndex++;
+              } else {
+                clearInterval(typingInterval);
+                typingIntervalsRef.current.delete(index);
+              }
+            }, 10); // Adjust speed here (lower = faster)
+            
+            typingIntervalsRef.current.set(index, typingInterval);
+          } else if (!animatedMessagesRef.current.has(index) && (wasInitialLoad || isNewlyAdded)) {
+            // Loaded message - show full text immediately
+            animatedMessagesRef.current.add(index);
+            setTypingMessages(prev => ({ ...prev, [index]: fullText }));
+          }
+        }
+      }
+    });
+    
+    prevMessagesRef.current = [...chatMessages];
+    
+    // Cleanup intervals on unmount
+    return () => {
+      typingIntervalsRef.current.forEach(interval => clearInterval(interval));
+      typingIntervalsRef.current.clear();
+    };
+  }, [chatMessages]);
 
   const updateInterviewNotes = (updatedNotes: Note[]) => {
     if (!currentUser || !application || !interview || !applicationId) return;
@@ -2438,66 +2538,82 @@ Make sure each answer is completely unique and specific to its question - no gen
             </div>
           </motion.div>
 
-          {/* Job URL Input Section - Modern Apple-style Design */}
+          {/* Job URL Input Section - Elegant Apple-style Design */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="relative overflow-hidden bg-gradient-to-br from-white via-purple-50/30 to-indigo-50/20 dark:from-gray-800 dark:via-purple-900/10 dark:to-indigo-900/10 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 mb-8 backdrop-blur-sm"
+            transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden mb-8
+              transition-all duration-500 ease-out
+              hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
+              border border-gray-100/50 dark:border-gray-800/50"
+            style={{
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+            }}
           >
+            {/* Subtle accent line - Apple style */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
+            
             {/* Subtle background pattern */}
-            <div className="absolute inset-0 opacity-5 dark:opacity-10">
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
               <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-3xl"></div>
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500 rounded-full blur-3xl"></div>
             </div>
             
-            <div className="relative">
+            <div className="relative p-6">
               {/* Header Section with AI Value Proposition */}
-              <div className="px-8 pt-8 pb-6">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/30">
-                        <Sparkles className="w-5 h-5 text-white" />
+              <div className="mb-5">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0
+                    transition-all duration-300 ease-out
+                    group-hover:scale-105
+                    bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20">
+                    <Sparkles className="w-7 h-7 text-purple-500/80 dark:text-purple-400/60" />
                       </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1.5 
+                      tracking-tight leading-tight">
                           AI-Powered Job Analysis
                         </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 font-normal">
                           Transform any job posting into personalized interview prep
                         </p>
                       </div>
                     </div>
                     
                     {/* AI Capabilities Badges */}
-                    <div className="flex flex-wrap items-center gap-2 mt-4">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        <Brain className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium 
+                    bg-purple-50/60 text-purple-700 border border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30
+                    backdrop-blur-sm">
+                    <Brain className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                         <span>Smart Analysis</span>
                       </div>
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        <Target className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium 
+                    bg-indigo-50/60 text-indigo-700 border border-indigo-200/50 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800/30
+                    backdrop-blur-sm">
+                    <Target className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                         <span>Personalized Questions</span>
                       </div>
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium 
+                    bg-amber-50/60 text-amber-700 border border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30
+                    backdrop-blur-sm">
+                    <Zap className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                         <span>Instant Insights</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
               
               {/* Input Section */}
-              <div className="px-8 pb-8">
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-indigo-500/20 to-purple-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl p-1.5">
+              <div className="relative group/input">
+                <div className="relative bg-gray-50/50 dark:bg-gray-800/30 backdrop-blur-sm 
+                  rounded-xl border border-gray-100/50 dark:border-gray-800/50
+                  transition-all duration-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50
+                  p-1.5">
                     <div className="flex items-center gap-2">
-                      <div className="flex-shrink-0 pl-4 pr-2">
-                        <div className="p-2 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30">
-                          <Link2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <div className="flex-shrink-0 pl-3 pr-2">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20">
+                        <Link2 className="w-4 h-4 text-purple-500/80 dark:text-purple-400/60" />
                         </div>
                       </div>
                       <input
@@ -2505,22 +2621,30 @@ Make sure each answer is completely unique and specific to its question - no gen
                         value={jobUrl}
                         onChange={(e) => setJobUrl(e.target.value)}
                         placeholder="Paste job posting URL here..."
-                        className="flex-1 px-4 py-4 bg-transparent border-0 focus:ring-0 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium outline-none"
+                      className="flex-1 px-3 py-3 bg-transparent border-0 focus:ring-0 text-gray-900 dark:text-white 
+                        placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium outline-none"
                       />
                       <button
                         onClick={handleAnalyzeJobPost}
                         disabled={isAnalyzing || !jobUrl}
-                        className="flex-shrink-0 px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 
-                          text-white rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold disabled:cursor-not-allowed shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 disabled:shadow-none disabled:hover:shadow-none transform hover:scale-[1.02] active:scale-[0.98]"
+                      className="flex-shrink-0 px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 
+                        hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
+                        text-white rounded-lg transition-all duration-200 ease-out
+                        flex items-center justify-center gap-2 text-xs font-semibold 
+                        disabled:cursor-not-allowed 
+                        shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
+                        hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
+                        disabled:shadow-none disabled:hover:shadow-none
+                        active:scale-[0.98]"
                       >
                         {isAnalyzing ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             <span>Analyzing...</span>
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-4 h-4" />
+                          <Sparkles className="w-3.5 h-3.5" />
                             <span>Analyze with AI</span>
                           </>
                         )}
@@ -2530,12 +2654,11 @@ Make sure each answer is completely unique and specific to its question - no gen
                 </div>
                 
                 {/* Value Proposition Text */}
-                <div className="mt-4 flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <CheckCircle className="w-3.5 h-3.5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
+              <div className="mt-4 flex items-start gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                <CheckCircle className="w-3 h-3 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
                   <p className="leading-relaxed">
                     Our AI extracts key requirements, generates personalized interview questions, and provides strategic insights to help you prepare effectively.
                   </p>
-                </div>
               </div>
             </div>
           </motion.div>
@@ -2643,11 +2766,43 @@ Make sure each answer is completely unique and specific to its question - no gen
                     exit={{ opacity: 0 }}
                     className="space-y-6"
                   >
-                    {/* Interview Countdown & Progress Tracker */}
-                    <div className="flex flex-col md:flex-row gap-6">
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 flex items-center">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3">
-                          <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    {/* SECTION 1: HERO - Status & Urgency */}
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                        className="group relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl overflow-hidden
+                          transition-all duration-500 ease-out
+                          hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
+                          border border-gray-100/50 dark:border-gray-700/50 shadow-sm
+                        p-6"
+                        style={{
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+                        }}
+                      >
+                        {/* Subtle accent line - Apple style */}
+                        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
+                        
+                      <div className="flex flex-col md:flex-row gap-6">
+                        {/* Countdown Section (40%) */}
+                        <div className="flex items-center md:w-2/5">
+                        <div className="flex-shrink-0 mr-4 sm:mr-5">
+                          {(() => {
+                            const interviewDate = new Date(`${interview?.date}T${interview?.time || '09:00'}`);
+                            const now = new Date();
+                            const diffMs = interviewDate.getTime() - now.getTime();
+                            const isPast = diffMs < 0;
+                            const diffDays = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
+                            const diffHours = Math.floor((Math.abs(diffMs) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            
+                            return (
+                              <InterviewCountdownCat 
+                                daysUntil={diffDays}
+                                hoursUntil={diffHours}
+                                isPast={isPast}
+                              />
+                            );
+                          })()}
                         </div>
                         <div className="flex-1 min-w-0">
                           {(() => {
@@ -2659,9 +2814,9 @@ Make sure each answer is completely unique and specific to its question - no gen
                             if (isPast) {
                               return (
                                 <>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Interview passé</div>
-                                  <div className="text-lg font-bold text-gray-900 dark:text-white">Terminé</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 font-medium uppercase tracking-wide">Interview passé</div>
+                                  <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">Terminé</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
                                     {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)}` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}
                                   </div>
                                 </>
@@ -2669,13 +2824,22 @@ Make sure each answer is completely unique and specific to its question - no gen
                             } else {
                               const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                               const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                const isUrgent = diffDays < 3;
+                                
                               return (
                                 <>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Interview dans</div>
-                                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Interview dans</div>
+                                      {isUrgent && (
+                                        <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full border border-red-200 dark:border-red-800">
+                                          Urgent
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
                                     {diffDays} jours {diffHours} heures
                           </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
                                     {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)}` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}
                                   </div>
                                 </>
@@ -2683,12 +2847,13 @@ Make sure each answer is completely unique and specific to its question - no gen
                             }
                           })()}
                         </div>
-                      </div>
-                      
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex-1">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-medium text-gray-900 dark:text-white flex items-center">
-                            <BarChart2 className="w-4 h-4 mr-2 text-purple-600" />
+                        </div>
+                        
+                        {/* Progress & Next Actions Section (60%) */}
+                        <div className="flex-1 md:w-3/5">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center text-base">
+                              <BarChart2 className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
                             Preparation Progress
                           </h3>
                           <div className="text-right">
@@ -2698,205 +2863,366 @@ Make sure each answer is completely unique and specific to its question - no gen
                         </div>
                           </div>
                         </div>
-                        <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-4">
-                          <div 
-                            className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-500" 
-                            style={{width: `${preparationProgress}%`}}
-                          ></div>
+                          <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-5">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${preparationProgress}%` }}
+                              transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+                              className="h-full bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 rounded-full shadow-sm"
+                            />
                         </div>
-                        <div className="space-y-2">
-                          {getProgressMilestones().map((milestone) => (
-                            <button
+                          
+                          {/* Next Actions (All 5 milestones) */}
+                          <div className="space-y-1.5">
+                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Next Actions</div>
+                            {getProgressMilestones()
+                              .map((milestone) => (
+                                <motion.button
                               key={milestone.id}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
                               onClick={milestone.action}
-                              className={`w-full flex items-center justify-between p-2.5 rounded-lg border transition-all ${
+                                  className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all duration-200 group ${
                                 milestone.completed
                                   ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                                  : 'bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
+                                      : 'bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/40 dark:to-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-sm'
                               }`}
                             >
                               <div className="flex items-center gap-2.5">
-                                <div className={`p-1.5 rounded-lg ${
+                                    <div className={`p-1.5 rounded-md text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform ${
                                   milestone.completed
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                                        ? 'bg-green-100 dark:bg-green-900/30'
+                                        : 'bg-purple-100 dark:bg-purple-900/30'
                                 }`}>
+                                      <div className="w-3.5 h-3.5">
                                   {milestone.icon}
                             </div>
-                                <div className="text-left">
-                                  <div className={`font-medium text-sm ${
-                                    milestone.completed
-                                      ? 'text-green-700 dark:text-green-300'
-                                      : 'text-gray-800 dark:text-gray-200'
+                                    </div>
+                                    <div className="text-left flex-1 min-w-0">
+                                      <div className={`font-medium text-xs text-gray-800 dark:text-gray-200 truncate ${
+                                        milestone.completed ? 'text-green-700 dark:text-green-300' : ''
                                   }`}>
                                     {milestone.label}
                             </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                                     {milestone.description}
                           </div>
                             </div>
                           </div>
                               {milestone.completed ? (
-                                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                    <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
                               ) : (
-                                <ArrowRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                    <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                               )}
-                            </button>
+                                </motion.button>
                           ))}
                         </div>
                       </div>
                     </div>
+                    </motion.div>
 
-                    {/* Preparation Checklist and Interview Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Interactive Preparation Checklist */}
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-                          <CheckSquare className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                          Preparation Checklist
-                        </h3>
-                        <div className="flex items-center gap-2 mb-4">
+                    {/* SECTION 2: QUICK ACTIONS - Checklist */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                    >
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/30">
+                            <CheckSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Preparation Checklist</h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {checklist.filter(c => c.completed).length}/{checklist.length} tasks completed
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Add Task Input */}
+                      <div className="flex items-center gap-2 mb-5">
+                        <div className="flex-1 relative">
                           <input
                             type="text"
                             value={newTaskText}
                             onChange={(e) => setNewTaskText(e.target.value)}
-                            placeholder="Add a new task"
-                            className="flex-1 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            placeholder="Add a new task..."
+                            className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 
+                              dark:bg-gray-700/50 dark:text-white 
+                              focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 
+                              transition-all duration-200 placeholder:text-gray-400"
                             onKeyDown={(e) => { if (e.key === 'Enter') addChecklistItem(); }}
                           />
-                          <button
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                             onClick={addChecklistItem}
-                            className="px-3 py-2 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                          className="px-4 py-2.5 text-sm font-medium bg-purple-600 text-white rounded-xl 
+                            hover:bg-purple-700 transition-colors shadow-sm hover:shadow-md"
                           >
                             Add
-                          </button>
+                        </motion.button>
                         </div>
-                        <div className="space-y-3">
-                          {checklist.map((item) => (
-                            <div key={item.id} className={`flex items-center p-3 rounded-lg ${
-                              item.priority ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800' : ''
-                            }`}>
-                              <div className="mr-3">
+                      
+                      {/* Checklist Items (Show max 5, with "View All" option) */}
+                      <div className="space-y-2">
+                        <AnimatePresence>
+                          {(showAllChecklistItems ? checklist : checklist.slice(0, 5)).map((item, index) => (
+                            <motion.div
+                              key={item.id}
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ delay: index * 0.03 }}
+                              className={`flex items-center p-3 rounded-xl border transition-all ${
+                                item.priority 
+                                  ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800' 
+                                  : item.completed
+                                  ? 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700'
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
+                              }`}
+                            >
                                 <button 
                                   onClick={() => toggleChecklistItem(item.id)}
-                                  className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                                className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all mr-3 ${
                                     item.completed 
                                       ? 'bg-green-500 border-green-500 text-white' 
-                                      : 'border-gray-300 dark:border-gray-600'
+                                    : 'border-gray-300 dark:border-gray-600 hover:border-purple-500'
                                   }`}
                                 >
                                   {item.completed && <Check className="w-3 h-3" />}
                                 </button>
-                              </div>
-                              <div className="flex-1">
                                 <input
                                   value={item.task}
                                   onChange={(e) => updateChecklistItemText(item.id, e.target.value)}
-                                  className={`w-full bg-transparent outline-none text-sm ${item.completed ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}
-                                />
-                                </div>
-                              <div className="flex items-center gap-2">
+                                className={`flex-1 bg-transparent outline-none text-sm ${
+                                  item.completed 
+                                    ? 'text-gray-500 dark:text-gray-400 line-through' 
+                                    : 'text-gray-800 dark:text-gray-200'
+                                }`}
+                              />
+                              <div className="flex items-center gap-2 ml-2">
                               <button 
                                 onClick={() => setTab(item.section)} 
-                                className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                  className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 
+                                    rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                               >
                                 Go
                               </button>
                                 <button
                                   onClick={() => deleteChecklistItem(item.id)}
-                                  className="text-xs px-2.5 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                                  className="text-xs px-2.5 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 
+                                    rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                                 >
                                   Delete
                                 </button>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
+                        </AnimatePresence>
+                        {checklist.length > 5 && (
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-center pt-2"
+                          >
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setShowAllChecklistItems(!showAllChecklistItems)}
+                              className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium 
+                                flex items-center justify-center gap-1 mx-auto transition-colors"
+                            >
+                              {showAllChecklistItems ? (
+                                <>
+                                  <ChevronDown className="w-3 h-3 rotate-180" />
+                                  Show less
+                                </>
+                              ) : (
+                                <>
+                                  View all {checklist.length} tasks
+                                  <ArrowRight className="w-3 h-3" />
+                                </>
+                              )}
+                            </motion.button>
+                          </motion.div>
+                        )}
                         </div>
+                    </motion.div>
+
+                    {/* SECTION 3: CONTEXT & INSIGHTS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Interview Details (Left) */}
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                      >
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30">
+                            <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Interview Details</h3>
                       </div>
                       
-                      {/* Interview Details */}
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-                          <Calendar className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                          Interview Details
-                        </h3>
-                        
-                        <div className="space-y-5">
-                          <div className="flex items-start">
-                            <div className="mr-3 flex-shrink-0 bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40">
+                            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
                               <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Company</h4>
-                              <p className="text-gray-900 dark:text-white font-medium">{application.companyName}</p>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Company</h4>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{application.companyName}</p>
                             </div>
                           </div>
                           
-                          <div className="flex items-start">
-                            <div className="mr-3 flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40">
+                            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
                               <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                             </div>
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Position</h4>
-                              <p className="text-gray-900 dark:text-white font-medium">{application.position}</p>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Position</h4>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{application.position}</p>
                             </div>
                           </div>
                           
-                          <div className="flex items-start">
-                            <div className="mr-3 flex-shrink-0 bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg">
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40">
+                            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex-shrink-0">
                               <Users className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                             </div>
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Interview Type</h4>
-                              <p className="text-gray-900 dark:text-white font-medium capitalize">{interview?.type || 'Unknown'} Interview</p>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Interview Type</h4>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{interview?.type || 'Unknown'} Interview</p>
                             </div>
                           </div>
                           
-                          <div className="flex items-start">
-                            <div className="mr-3 flex-shrink-0 bg-green-100 dark:bg-green-900/30 p-2 rounded-lg">
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40">
+                            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30 flex-shrink-0">
                               <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
                             </div>
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Location</h4>
-                              <p className="text-gray-900 dark:text-white font-medium">{interview?.location || application.location || 'Remote/Virtual'}</p>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Location</h4>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{interview?.location || application.location || 'Remote/Virtual'}</p>
                             </div>
                           </div>
                         </div>
+                      </motion.div>
+                      
+                      {/* Key Points to Emphasize (Right) */}
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                      >
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/30">
+                            <Flag className="w-5 h-5 text-green-600 dark:text-green-400" />
                       </div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Key Points to Emphasize</h3>
                     </div>
 
-                    {/* Company & Position Insights */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Company Profile */}
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        {interview?.preparation?.keyPoints && interview.preparation.keyPoints.length > 0 ? (
+                          <div className="space-y-2.5">
+                            {interview.preparation.keyPoints.slice(0, 5).map((point, index) => (
+                              <motion.div 
+                                key={index}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.25 + index * 0.05 }}
+                                className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 
+                                  dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-800"
+                              >
+                                <Check className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{point}</span>
+                              </motion.div>
+                            ))}
+                            {interview.preparation.keyPoints.length > 5 && (
+                              <div className="text-center pt-2">
+                                <button className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">
+                                  View all {interview.preparation.keyPoints.length} points →
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-5 text-center border border-dashed border-gray-200 dark:border-gray-700">
+                            <Flag className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                              No key points available yet. Run the job post analysis to generate key points.
+                            </p>
+                            <button
+                              onClick={() => (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()}
+                              className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium flex items-center justify-center mx-auto"
+                            >
+                              <ArrowUp className="w-3 h-3 mr-1.5" />
+                              Analyze a Job Posting
+                            </button>
+                          </div>
+                        )}
+                      </motion.div>
+                    </div>
+
+                    {/* SECTION 4: DEEP DIVE - Accordéons */}
+                    <div className="space-y-4">
+                      {/* Company Profile Accordion */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+                      >
                         <div 
-                          className="px-5 py-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30 flex justify-between items-center cursor-pointer"
+                          className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 
+                            border-b border-blue-100 dark:border-blue-800/30 flex justify-between items-center cursor-pointer
+                            hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30
+                            transition-all duration-200"
                           onClick={() => toggleSection('company-profile')}
                         >
-                          <div className="flex items-center">
-                            <Building className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />
-                            <h3 className="font-medium text-gray-900 dark:text-white">Company Profile</h3>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                              <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           </div>
-                          <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections['company-profile'] ? 'transform rotate-180' : ''}`} />
+                            <h3 className="font-semibold text-gray-900 dark:text-white">Company Profile</h3>
+                            {interview?.preparation?.companyInfo && (
+                              <span className="px-2 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                                Available
+                              </span>
+                            )}
+                          </div>
+                          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedSections['company-profile'] ? 'transform rotate-180' : ''}`} />
                         </div>
                         
+                        <AnimatePresence>
                         {expandedSections['company-profile'] && (
-                          <div className="p-5">
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-6">
                             <div className="text-sm text-gray-600 dark:text-gray-300 space-y-4">
                               <p>
-                                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-0.5 rounded mr-1">KEY</span>
+                                    <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-0.5 rounded mr-2 font-medium">KEY</span>
                                 {interview?.preparation?.companyInfo?.split('.')[0] || `${application.companyName} is a leading company in its industry.`}
                               </p>
                               
                               {interview?.preparation?.companyInfo ? (
-                                <p>{interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}</p>
-                              ) : (
-                                <p>No additional company information available. Run the job post analysis to generate company information.</p>
-                              )}
-                              
-                              <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-3 border-l-4 border-blue-500 dark:border-blue-700">
-                                <div className="font-medium text-sm text-gray-900 dark:text-white mb-1">Focus points:</div>
-                                <ul className="list-disc pl-4 text-xs space-y-1 text-gray-700 dark:text-gray-300">
+                                    <p className="leading-relaxed">{interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}</p>
+                                  ) : (
+                                    <p className="text-gray-500 dark:text-gray-400 italic">No additional company information available. Run the job post analysis to generate company information.</p>
+                                  )}
+                                  
+                                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border-l-4 border-blue-500 dark:border-blue-700">
+                                    <div className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Focus points:</div>
+                                    <ul className="list-disc pl-5 text-xs space-y-1.5 text-gray-700 dark:text-gray-300">
                                   <li>Research their mission and values</li>
                                   <li>Review recent company achievements</li>
                                   <li>Understand their market position</li>
@@ -2904,47 +3230,72 @@ Make sure each answer is completely unique and specific to its question - no gen
                               </div>
                             </div>
                           </div>
-                        )}
-                      </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
                       
-                      {/* Position Details */}
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                      {/* Position Details Accordion */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.35 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+                      >
                         <div 
-                          className="px-5 py-4 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30 flex justify-between items-center cursor-pointer"
+                          className="px-6 py-4 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 
+                            border-b border-purple-100 dark:border-purple-800/30 flex justify-between items-center cursor-pointer
+                            hover:bg-gradient-to-r hover:from-purple-100 hover:to-violet-100 dark:hover:from-purple-900/30 dark:hover:to-violet-900/30
+                            transition-all duration-200"
                           onClick={() => toggleSection('position-details')}
                         >
-                          <div className="flex items-center">
-                            <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-2" />
-                            <h3 className="font-medium text-gray-900 dark:text-white">Position Details</h3>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                              <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                           </div>
-                          <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections['position-details'] ? 'transform rotate-180' : ''}`} />
+                            <h3 className="font-semibold text-gray-900 dark:text-white">Position Details</h3>
+                            {interview?.preparation?.positionDetails && (
+                              <span className="px-2 py-0.5 text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
+                                Available
+                              </span>
+                            )}
+                          </div>
+                          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedSections['position-details'] ? 'transform rotate-180' : ''}`} />
                         </div>
                         
+                        <AnimatePresence>
                         {expandedSections['position-details'] && (
-                          <div className="p-5">
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-6">
                             <div className="text-sm text-gray-600 dark:text-gray-300 space-y-4">
                               <p>
-                                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs px-2 py-0.5 rounded mr-1">KEY</span>
+                                    <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs px-2 py-0.5 rounded mr-2 font-medium">KEY</span>
                                 {interview?.preparation?.positionDetails?.split('.')[0] || `The ${application.position} role involves key responsibilities in the organization.`}
                               </p>
                               
                               {interview?.preparation?.positionDetails ? (
-                                <p>{interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}</p>
+                                    <p className="leading-relaxed">{interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}</p>
                               ) : (
-                                <p>No detailed position information available. Run the job post analysis to generate position details.</p>
+                                    <p className="text-gray-500 dark:text-gray-400 italic">No detailed position information available. Run the job post analysis to generate position details.</p>
                               )}
                               
-                              <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-3 border-l-4 border-purple-500 dark:border-purple-700">
-                                <div className="font-medium text-sm text-gray-900 dark:text-white mb-1">Required skills:</div>
+                                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border-l-4 border-purple-500 dark:border-purple-700">
+                                    <div className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Required skills:</div>
                                 <div className="flex flex-wrap gap-2 pt-1">
                                   {interview?.preparation?.requiredSkills ? (
                                     interview.preparation.requiredSkills.map((skill, index) => (
-                                      <div 
+                                          <span 
                                         key={index} 
-                                        className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs px-2 py-1 rounded-full"
+                                            className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs px-3 py-1 rounded-full font-medium"
                                       >
                                         {skill}
-                                      </div>
+                                          </span>
                                     ))
                                   ) : (
                                     <p className="text-xs text-gray-500 dark:text-gray-400">No skills information available</p>
@@ -2953,85 +3304,78 @@ Make sure each answer is completely unique and specific to its question - no gen
                               </div>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Key Points to Emphasize */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                      <div className="flex items-center mb-5">
-                        <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded-lg mr-3">
-                          <Flag className="w-5 h-5 text-green-600 dark:text-green-400" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                          Key Points to Emphasize
-                        </h3>
-                      </div>
-                      
-                      {interview?.preparation?.keyPoints && interview.preparation.keyPoints.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {interview.preparation.keyPoints.map((point, index) => (
-                            <motion.div 
-                              key={index}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.1 + index * 0.05 }}
-                              className="flex items-start py-3 px-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg"
-                            >
-                              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700 dark:text-gray-300">{point}</span>
                             </motion.div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 text-center">
-                          <p className="text-gray-500 dark:text-gray-400 mb-3">
-                            No key points available yet. Run the job post analysis to generate key points to emphasize in your interview.
-                          </p>
-                          <button
-                            onClick={() => (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()}
-                            className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center justify-center mx-auto"
-                          >
-                            <ArrowUp className="w-4 h-4 mr-1.5" />
-                            Analyze a Job Posting
-                          </button>
-                        </div>
-                      )}
+                        )}
+                        </AnimatePresence>
+                      </motion.div>
                     </div>
 
-                    {/* Company News & Updates */}
+                    {/* SECTION 5: NEWS & UPDATES */}
                     {interview?.preparation && (
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+                            <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                      >
                         <div className="flex justify-between items-center mb-5">
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
-                            <Newspaper className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                            Company Updates
-                          </h3>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+                              <Newspaper className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Company Updates</h3>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Latest news and announcements</p>
+                        </div>
+                    </div>
                           <div className="flex items-center gap-2">
-                            {isNewsLoading && <div className="text-xs text-gray-500 dark:text-gray-400">Loading…</div>}
-                            {newsError && <div className="text-xs text-red-600 dark:text-red-400">{newsError}</div>}
-                            <button
+                            {isNewsLoading && (
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Loading…
+                              </div>
+                            )}
+                            {newsError && (
+                              <div className="text-xs text-red-600 dark:text-red-400">{newsError}</div>
+                            )}
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => { fetchCompanyNews(); }}
-                              className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-700 
+                                text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                             >
+                              <RefreshCw className="w-3 h-3 inline mr-1" />
                               Refresh
-                            </button>
+                            </motion.button>
                           </div>
                         </div>
                         
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           {newsItems.length === 0 && !isNewsLoading && !newsError && (
-                            <div className="text-sm text-gray-500 dark:text-gray-400">No company updates yet.</div>
+                            <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
+                              <Newspaper className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                              No company updates yet.
+                            </div>
                           )}
-                          {newsItems.map((news, i) => (
-                            <div key={i} className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0 last:pb-0">
-                              <div className="flex items-start mb-1.5">
-                                <span className={`w-2 h-2 rounded-full mr-2 mt-1.5 flex-shrink-0 ${
+                          <AnimatePresence>
+                            {(showAllNewsItems ? newsItems : newsItems.slice(0, 3)).map((news, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 
+                                  hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md transition-all duration-200"
+                              >
+                                <div className="flex items-start gap-3 mb-2">
+                                  <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
                                   news.sentiment === 'positive' ? 'bg-green-500' : 
                                   news.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-500'
                                 }`}></span>
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1">{news.title}</h4>
+                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1.5 leading-snug">{news.title}</h4>
                                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2">
                                     <span>{news.date}</span>
                                     {news.source && (
@@ -3046,31 +3390,63 @@ Make sure each answer is completely unique and specific to its question - no gen
                               </div>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-300 pl-4 mb-3">{news.summary}</p>
-                              <div className="flex items-center justify-between pl-4">
-                                <button
+                                <p className="text-sm text-gray-600 dark:text-gray-300 pl-5 mb-3 leading-relaxed line-clamp-2">{news.summary}</p>
+                                <div className="flex items-center justify-between pl-5">
+                                  <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
                                   onClick={() => createNoteFromNews(news)}
-                                  className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 px-2 py-1 rounded transition-colors"
-                                >
-                                  <MessageSquare className="w-3 h-3 mr-1" />
-                                  Talking point ideas
-                                </button>
+                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 
+                                      font-medium flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 px-3 py-1.5 rounded-lg transition-colors"
+                                  >
+                                    <MessageSquare className="w-3 h-3 mr-1.5" />
+                                    Talking points
+                                  </motion.button>
                                 {news.url && (
                                   <a
                                     href={news.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center"
+                                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 
+                                        flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors"
                                   >
-                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                      <ExternalLink className="w-3 h-3 mr-1.5" />
                                     Read more
                                   </a>
                                 )}
                               </div>
-                            </div>
-                          ))}
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                          {newsItems.length > 3 && (
+                            <motion.div 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="text-center pt-2"
+                            >
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setShowAllNewsItems(!showAllNewsItems)}
+                                className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium 
+                                  flex items-center justify-center gap-1 mx-auto transition-colors"
+                              >
+                                {showAllNewsItems ? (
+                                  <>
+                                    <ChevronDown className="w-3 h-3 rotate-180" />
+                                    Show less
+                                  </>
+                                ) : (
+                                  <>
+                                    View all {newsItems.length} updates
+                                    <ArrowRight className="w-3 h-3" />
+                                  </>
+                                )}
+                              </motion.button>
+                            </motion.div>
+                          )}
                         </div>
-                      </div>
+                      </motion.div>
                     )}
                   </motion.div>
                 )}
@@ -4052,28 +4428,54 @@ Make sure each answer is completely unique and specific to its question - no gen
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm"
                   >
-                    {/* Header avec gradient moderne */}
+                    {/* Compact Header - Apple style */}
                     <motion.div 
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 via-purple-50/50 to-white dark:from-gray-800 dark:via-purple-900/10 dark:to-gray-800"
+                      className="px-5 py-3.5 border-b border-gray-200/60 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-10"
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md">
-                          <MessageSquare className="w-5 h-5 text-white" />
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
+                          <MessageSquare className="w-4 h-4 text-white" />
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                          Interview Trainer Chat
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+                          Interview Trainer
                         </h3>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 ml-[52px]">
-                        Practice for your interview by chatting with our AI assistant. Ask questions about the job, request interview tips, or practice answering questions.
-                      </p>
+                      {chatMessages.length > 0 && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                          <span>Online</span>
+                        </div>
+                      )}
                     </motion.div>
                     
                     {/* Chat messages area avec scroll personnalisé */}
-                    <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-gray-900/30 dark:via-gray-900/20 dark:to-gray-900/30 scrollbar-thin scrollbar-thumb-purple-200 scrollbar-track-transparent">
+                    <div 
+                      ref={chatContainerRef}
+                      className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-4 bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-gray-900/20 dark:via-gray-900/10 dark:to-gray-900/20 scrollbar-thin scrollbar-thumb-purple-200 scrollbar-track-transparent relative"
+                    >
+                      {/* Scroll to bottom button - appears when user scrolls up */}
+                      <AnimatePresence>
+                        {!isUserNearBottom && chatMessages.length > 2 && (
+                          <motion.button
+                            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                            onClick={() => {
+                              if (chatEndRef.current) {
+                                chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                                setIsUserNearBottom(true);
+                              }
+                            }}
+                            className="sticky bottom-4 left-1/2 -translate-x-1/2 z-20 mx-auto px-4 py-2 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                            <span>New messages</span>
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
                       <style>{`
                         .scrollbar-thin::-webkit-scrollbar {
                           width: 6px;
@@ -4095,39 +4497,49 @@ Make sure each answer is completely unique and specific to its question - no gen
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.4 }}
-                          className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400"
+                          className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4"
                         >
                           <motion.div 
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            className="w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 flex items-center justify-center mb-6 shadow-lg"
+                            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 flex items-center justify-center mb-5 shadow-lg"
                           >
-                            <MessageSquare className="w-12 h-12 text-purple-500 dark:text-purple-400" />
+                            <MessageSquare className="w-10 h-10 text-purple-500 dark:text-purple-400" />
                           </motion.div>
                           <motion.p 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="text-center max-w-md font-semibold mb-2 text-lg text-gray-700 dark:text-gray-200"
+                            className="text-center max-w-md font-semibold mb-1.5 text-base text-gray-900 dark:text-white"
                           >
-                            Start a conversation with your AI interview trainer
+                            Start practicing with your AI trainer
                           </motion.p>
                           <motion.p 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
-                            className="text-center text-sm max-w-md mb-8 text-gray-500 dark:text-gray-400"
+                            className="text-center text-xs max-w-md mb-6 text-gray-500 dark:text-gray-400"
                           >
-                            Ask about the position, company culture, or try practicing some interview questions
+                            Get personalized feedback and practice answers
                           </motion.p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
-                            {[
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-2xl">
+                            {(() => {
+                              const suggestions = interview?.preparation?.suggestedQuestions && interview.preparation.suggestedQuestions.length > 0
+                                ? [
+                                    "How should I introduce myself for this role?",
+                                    `What are the most common questions for a ${application?.position || 'this role'}?`,
+                                    "How can I highlight my relevant experience?",
+                                    "Can you help me practice answering behavioral questions?"
+                                  ]
+                                : [
                               "How should I introduce myself?",
                               "What are the most common questions for this role?",
                               "How can I highlight my relevant experience?",
-                              "Ask me about my strengths and weaknesses"
-                            ].map((suggestion, i) => (
+                                    "Can you help me practice answering questions?"
+                                  ];
+                              
+                              return suggestions.map((suggestion, i) => (
                               <motion.button
                                 key={i}
                                 initial={{ opacity: 0, y: 10 }}
@@ -4141,22 +4553,28 @@ Make sure each answer is completely unique and specific to its question - no gen
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => {
                                   setMessage(suggestion);
-                                }}
-                                className="text-sm text-left p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50/50 dark:hover:bg-purple-900/10 transition-all shadow-sm hover:shadow-md backdrop-blur-sm"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-                                    <MessageSquare className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                                    // Auto-scroll to input after selecting
+                                    setTimeout(() => {
+                                      const input = document.querySelector('textarea[placeholder*="Ask a question"]') as HTMLTextAreaElement;
+                                      input?.focus();
+                                    }, 100);
+                                  }}
+                                  className="text-xs text-left p-3 border border-gray-200/60 dark:border-gray-700/50 rounded-lg hover:border-purple-300/60 dark:hover:border-purple-700/50 hover:bg-purple-50/60 dark:hover:bg-purple-900/20 transition-all shadow-sm hover:shadow-md backdrop-blur-sm bg-white/50 dark:bg-gray-800/50"
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-purple-100/80 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                      <MessageSquare className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                                   </div>
-                                  <span className="text-gray-700 dark:text-gray-300 font-medium">{suggestion}</span>
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium leading-snug">{suggestion}</span>
                                 </div>
                               </motion.button>
-                            ))}
+                              ));
+                            })()}
                           </div>
                         </motion.div>
                       ) : (
                         chatMessages.map((msg, index) => {
-                          // Handle the special thinking message
+                          // Handle the special thinking message - Elegant Apple-style indicator
                           if (msg.role === 'assistant' && msg.content === '__thinking__') {
                             return (
                               <motion.div
@@ -4171,69 +4589,93 @@ Make sure each answer is completely unique and specific to its question - no gen
                                 }}
                                 className="flex justify-start"
                               >
-                                <div className="flex items-start gap-4 max-w-[70%] sm:max-w-[65%] flex-row">
+                                <div className="flex items-start gap-3 max-w-[70%] sm:max-w-[65%] flex-row">
                                   <motion.div 
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-400 via-indigo-500 to-indigo-600 shadow-lg ring-2 ring-blue-200 dark:ring-blue-900/50"
+                                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-purple-600 shadow-md ring-1 ring-indigo-200/50 dark:ring-indigo-900/50"
                                   >
-                                    <Bot className="w-6 h-6 text-white" />
+                                    <Bot className="w-4 h-4 text-white" />
                                   </motion.div>
                                   <motion.div 
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: 0.1 }}
-                                    className="px-6 py-4 rounded-2xl rounded-tl-sm shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                                    className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/50 shadow-sm"
                                   >
-                                    <span className="flex items-center gap-2.5 text-base text-gray-600 dark:text-gray-300">
-                                      <span className="font-medium">AI is thinking</span>
-                                      <span className="inline-flex gap-1">
-                                        <motion.span
-                                          animate={{ y: [0, -4, 0] }}
-                                          transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                                          className="w-1.5 h-1.5 bg-indigo-500 rounded-full"
+                                    <div className="flex items-center gap-3">
+                                      {/* Elegant thinking indicator - Apple style */}
+                                      <div className="flex items-center gap-1">
+                                        <motion.div
+                                          className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500"
+                                          animate={{
+                                            scale: [1, 1.2, 1],
+                                            opacity: [0.5, 1, 0.5],
+                                          }}
+                                          transition={{
+                                            duration: 1.2,
+                                            repeat: Infinity,
+                                            ease: "easeInOut",
+                                            delay: 0,
+                                          }}
                                         />
-                                        <motion.span
-                                          animate={{ y: [0, -4, 0] }}
-                                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                                          className="w-1.5 h-1.5 bg-indigo-500 rounded-full"
+                                        <motion.div
+                                          className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500"
+                                          animate={{
+                                            scale: [1, 1.2, 1],
+                                            opacity: [0.5, 1, 0.5],
+                                          }}
+                                          transition={{
+                                            duration: 1.2,
+                                            repeat: Infinity,
+                                            ease: "easeInOut",
+                                            delay: 0.3,
+                                          }}
                                         />
-                                        <motion.span
-                                          animate={{ y: [0, -4, 0] }}
-                                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                                          className="w-1.5 h-1.5 bg-indigo-500 rounded-full"
+                                        <motion.div
+                                          className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500"
+                                          animate={{
+                                            scale: [1, 1.2, 1],
+                                            opacity: [0.5, 1, 0.5],
+                                          }}
+                                          transition={{
+                                            duration: 1.2,
+                                            repeat: Infinity,
+                                            ease: "easeInOut",
+                                            delay: 0.6,
+                                          }}
                                         />
+                                      </div>
+                                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400 tracking-tight">
+                                        Processing...
                                       </span>
-                                    </span>
+                                    </div>
                                   </motion.div>
                                 </div>
                               </motion.div>
                             );
                           }
                           
-                          // Process assistant messages to make them more concise
+                          // Get display content - use typing animation for assistant messages only
                           let displayContent = msg.content;
-                          let isLongMessage = false;
-                          let isTruncated = false;
-                          if (msg.role === 'assistant' && msg.content.length > 250) {
-                            isLongMessage = true;
-                            if (!expandedMessages[index]) {
-                              const firstParagraphMatch = msg.content.match(/^.+?(?:\n\n|\n|$)/);
-                              displayContent = firstParagraphMatch ? 
-                                firstParagraphMatch[0].slice(0, 250) : 
-                                msg.content.slice(0, 250);
-                              if (displayContent.length < msg.content.length) {
-                                displayContent += '...';
-                                isTruncated = true;
-                              }
-                            }
-                          }
                           
                           // Format displayContent to handle thinking indicators
                           if (msg.role === 'assistant' && displayContent.includes('<think>')) {
                             displayContent = displayContent.replace(/<think>[\s\S]*<\/think>/g, '');
                           }
+                          
+                          // Use typing animation ONLY for assistant messages
+                          if (msg.role === 'assistant' && msg.content !== '__thinking__') {
+                            const fullText = displayContent.replace(/<think>[\s\S]*<\/think>/g, '').trim();
+                            // Use typed text if available and animation is in progress, otherwise show full text
+                            if (typingMessages[index] !== undefined && typingMessages[index].length < fullText.length) {
+                              displayContent = typingMessages[index];
+                            } else {
+                              displayContent = fullText;
+                            }
+                          }
+                          // For user messages, always show full content immediately
                           
                           return (
                             <motion.div
@@ -4253,7 +4695,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                               <div className={`
-                                flex items-start gap-4 max-w-[70%] sm:max-w-[65%] 
+                                flex items-start gap-3 max-w-[75%] sm:max-w-[70%] 
                                 ${msg.role === 'user' 
                                   ? 'flex-row-reverse' 
                                   : 'flex-row'}
@@ -4263,60 +4705,47 @@ Make sure each answer is completely unique and specific to its question - no gen
                                   animate={{ scale: 1 }}
                                   transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
                                   className={`
-                                    w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ring-2
+                                    w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-1
                                     ${msg.role === 'user'
-                                      ? 'bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 ring-purple-200 dark:ring-purple-900/50'
-                                      : 'bg-gradient-to-br from-blue-400 via-indigo-500 to-indigo-600 ring-blue-200 dark:ring-blue-900/50'}
+                                      ? 'bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 ring-purple-200/50 dark:ring-purple-900/30'
+                                      : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-purple-600 ring-indigo-200/50 dark:ring-indigo-900/30'}
                                   `}
                                 >
                                   {msg.role === 'user' 
-                                    ? <User className="w-6 h-6 text-white" /> 
-                                    : <Bot className="w-6 h-6 text-white" />}
+                                    ? <User className="w-4 h-4 text-white" /> 
+                                    : <Bot className="w-4 h-4 text-white" />}
                                 </motion.div>
                                 <motion.div 
                                   initial={{ opacity: 0, scale: 0.95 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                   transition={{ delay: 0.05 }}
                                   className={`
-                                    px-6 py-4 rounded-2xl shadow-md backdrop-blur-sm
+                                    px-4 py-3 rounded-xl shadow-sm backdrop-blur-sm
                                     ${msg.role === 'user'
                                       ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-tr-sm'
-                                      : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-100 dark:border-gray-700'}
+                                      : 'bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-200/60 dark:border-gray-700/50'}
                                   `}
                                 >
-                                  <p className="text-base leading-7 whitespace-pre-wrap break-words">{displayContent}</p>
+                                  <p className="text-sm leading-6 whitespace-pre-wrap break-words">{displayContent}</p>
                                   
-                                  {isLongMessage && isTruncated && (
-                                    <motion.button
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      onClick={() => toggleMessageExpansion(index)}
-                                      className={`text-sm mt-4 font-semibold hover:underline inline-flex items-center gap-1.5 transition-all
-                                        ${msg.role === 'user'
-                                          ? 'text-purple-100 hover:text-white'
-                                          : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'}
-                                      `}
-                                    >
-                                      {expandedMessages[index] ? (
-                                        <>
-                                          <ChevronDown className="w-4 h-4" />
-                                          Show less
-                                        </>
-                                      ) : (
-                                        <>
-                                          <ChevronDown className="w-4 h-4 transform rotate-180" />
-                                          Show more
-                                        </>
-                                      )}
-                                    </motion.button>
+                                  {/* Typing cursor for assistant messages that are still typing */}
+                                  {msg.role === 'assistant' && 
+                                   msg.content !== '__thinking__' && 
+                                   typingMessages[index] !== undefined && 
+                                   (() => {
+                                     const fullText = msg.content.replace(/<think>[\s\S]*<\/think>/g, '').trim();
+                                     const typedText = typingMessages[index] || '';
+                                     return typedText.length > 0 && typedText.length < fullText.length;
+                                   })() && (
+                                    <span className="inline-block w-0.5 h-4 bg-purple-500 dark:bg-purple-400 ml-1 animate-pulse" />
                                   )}
                                   
-                                  <div className={`text-xs mt-3 flex items-center justify-end gap-1.5
+                                  <div className={`text-[10px] mt-2 flex items-center justify-end gap-1
                                     ${msg.role === 'user'
-                                      ? 'text-purple-200/90'
+                                      ? 'text-purple-200/70'
                                       : 'text-gray-400 dark:text-gray-500'}
                                   `}>
-                                    <ClockIcon className="w-3.5 h-3.5" />
+                                    <ClockIcon className="w-3 h-3" />
                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                   </div>
                                 </motion.div>
@@ -4328,14 +4757,14 @@ Make sure each answer is completely unique and specific to its question - no gen
                       <div ref={chatEndRef} />
                     </div>
                     
-                    {/* Input area améliorée */}
+                    {/* Input area améliorée - Apple style */}
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
-                      className="px-8 py-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 backdrop-blur-sm"
+                      className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl relative"
                     >
-                      <div className="flex gap-4 items-end">
+                      <div className="flex gap-3 items-end">
                         <div className="relative flex-1">
                           <motion.textarea
                             value={message}
@@ -4346,40 +4775,65 @@ Make sure each answer is completely unique and specific to its question - no gen
                                 sendMessage();
                               }
                             }}
-                            placeholder="Type your message..."
+                            placeholder="Ask a question or practice an answer..."
                             rows={1}
-                            className="w-full p-5 pr-16 text-base bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:text-white resize-none min-h-[60px] max-h-[160px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-6"
+                            className="w-full p-4 pr-14 text-sm bg-gray-50/80 dark:bg-gray-900/50 border border-gray-200/60 dark:border-gray-700/50 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 dark:text-white resize-none min-h-[52px] max-h-[140px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-5"
                             style={{ 
                               height: 'auto',
                               overflow: 'hidden'
                             }}
                             disabled={isSending}
-                            whileFocus={{ scale: 1.01 }}
+                            whileFocus={{ scale: 1.005 }}
                           />
                           <motion.button
-                            whileHover={{ scale: 1.08, rotate: 5 }}
-                            whileTap={{ scale: 0.92 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={sendMessage}
                             disabled={!message.trim() || isSending}
-                            className="absolute right-3 bottom-3 p-3 rounded-xl bg-gradient-to-br from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center shadow-md hover:shadow-lg"
+                            className="absolute right-2.5 bottom-2.5 p-2.5 rounded-lg bg-gradient-to-br from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center shadow-md hover:shadow-lg"
                           >
                             {isSending ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
+                              <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
-                              <Send className="w-5 h-5" />
+                              <Send className="w-4 h-4" />
                             )}
                           </motion.button>
                         </div>
                       </div>
+                      <div className="flex items-center justify-between mt-2.5">
                       <motion.p 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="text-xs text-gray-500 dark:text-gray-400 mt-3 ml-2 flex items-center gap-2"
+                          className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1.5"
                       >
-                        <HelpCircle className="w-4 h-4" />
-                        Press Enter to send. Shift+Enter for a new line.
+                          <HelpCircle className="w-3 h-3" />
+                          <span>Enter to send • Shift+Enter for new line</span>
                       </motion.p>
+                        {chatMessages.length > 0 && (
+                          <button
+                            onClick={async () => {
+                              if (currentUser && application && interview && applicationId) {
+                                try {
+                                  await saveChatHistory([]);
+                                  setChatMessages([]);
+                                  setMessage('');
+                                  toast.success('Chat cleared');
+                                } catch (error) {
+                                  toast.error('Failed to clear chat');
+                                }
+                              } else {
+                                setChatMessages([]);
+                                setMessage('');
+                              }
+                            }}
+                            className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex items-center gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>Clear chat</span>
+                          </button>
+                        )}
+                      </div>
                     </motion.div>
                   </motion.div>
                 )}

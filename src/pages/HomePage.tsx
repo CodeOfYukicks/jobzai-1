@@ -1,6 +1,7 @@
 ﻿import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Check, BrainCog, Mail, Lock, LineChart, Target, Users, Rocket, Search, Calendar, Globe, Save, Bell, Share2, Clock } from 'lucide-react';
+import { useEffect } from 'react';
 import Hero from '../components/Hero';
 import WordRotator from '../components/WordRotator';
 import Footer from '../components/Footer';
@@ -19,6 +20,7 @@ import Meteors from '../components/ui/meteors';
 import GridPattern from '../components/ui/grid-pattern';
 import RetroGrid from '../components/ui/retro-grid';
 import HeroVideoDialog from '../components/ui/hero-video-dialog';
+import { forceLightMode } from '../lib/theme';
 
 const tiers = [
   {
@@ -123,6 +125,11 @@ export default function HomePage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const div1Ref = useRef<HTMLDivElement>(null);
   const div2Ref = useRef<HTMLDivElement>(null);
+
+  // Force light mode on landing page
+  useEffect(() => {
+    forceLightMode();
+  }, []);
 
   return (
     <div className="bg-white dark:bg-[#2A2831] transition-colors duration-200">

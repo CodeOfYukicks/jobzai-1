@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import FirebaseImage from '../components/FirebaseImage';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import AnimatedGridPattern from '../components/ui/animated-grid-pattern';
+import { forceLightMode } from '../lib/theme';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,6 +16,11 @@ export default function LoginPage() {
   
   const navigate = useNavigate();
   const { login, resetPassword, resendVerificationEmail, signInWithGoogle } = useAuth();
+
+  // Force light mode on login page
+  useEffect(() => {
+    forceLightMode();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
