@@ -565,7 +565,7 @@ export default function CampaignsPage() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
                 Campaigns
               </h1>
               <p className="mt-2 text-gray-500 dark:text-gray-400">

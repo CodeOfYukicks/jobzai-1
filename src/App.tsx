@@ -33,6 +33,7 @@ import CalendarView from './pages/CalendarView';
 import InterviewPrepPage from './pages/InterviewPrepPage';
 import UpcomingInterviewsPage from './pages/UpcomingInterviewsPage';
 import InterviewHelpPage from './pages/InterviewHelpPage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 
 import { initNotificationService } from './services/notificationService';
 
@@ -86,6 +87,11 @@ export default function App() {
         <Route path="/signup" element={
           <PublicRoute>
             <SignupPage />
+          </PublicRoute>
+        } />
+        <Route path="/verify-email" element={
+          <PublicRoute>
+            <EmailVerificationPage />
           </PublicRoute>
         } />
         

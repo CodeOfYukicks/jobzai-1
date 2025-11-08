@@ -37,11 +37,12 @@ export default function OnboardingLayout({
   }, []);
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex">
       {/* Main Content */}
       <main className="flex-1 min-h-screen w-full lg:max-w-[65%] relative">
         {/* Header */}
-        <header className="fixed top-0 left-0 right-0 lg:right-[35%] bg-white z-50 border-b border-gray-100">
+        <header className="fixed top-0 left-0 right-0 lg:right-[35%] bg-white dark:bg-gray-900 z-50 border-b border-gray-100 dark:border-gray-800
+          shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
           <div className="max-w-md mx-auto px-4 py-4 lg:max-w-none lg:px-6 flex justify-between items-center">
             {logoUrl ? (
               <img 
@@ -50,38 +51,51 @@ export default function OnboardingLayout({
                 className="h-8 w-auto object-contain"
               />
             ) : (
-              <div className="h-8 w-32 bg-gray-100 animate-pulse rounded" />
+              <div className="h-8 w-32 bg-gray-100 dark:bg-gray-800 animate-pulse rounded" />
             )}
             {currentUser?.email && (
-              <span className="text-sm text-gray-600">{currentUser.email}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{currentUser.email}</span>
             )}
           </div>
         </header>
 
         {/* Content */}
-        <div className="pt-20 px-4 pb-12 max-w-md mx-auto lg:px-8 lg:max-w-2xl">
+        <div className={`pt-20 px-4 pb-12 mx-auto lg:px-8 ${
+          title.toLowerCase().includes('subscription') || title.toLowerCase().includes('plan')
+            ? 'max-w-7xl' // Full width for subscription page
+            : 'max-w-md lg:max-w-2xl' // Standard width for other pages
+        }`}>
           {/* Step Indicator */}
           <div className="mb-8 text-center lg:text-left">
             <div className="flex items-baseline justify-center lg:justify-start gap-2">
-              <h2 className="text-3xl font-bold">Step {currentStep}</h2>
-              <span className="text-xl text-gray-400">/{totalSteps}</span>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Step {currentStep}</h2>
+              <span className="text-xl text-gray-400 dark:text-gray-500">/{totalSteps}</span>
             </div>
           </div>
 
           {/* Title and Subtitle */}
-          <div className="mb-12 text-center lg:text-left">
-            <h1 className="text-3xl font-bold mb-2">{title}</h1>
-            {subtitle && (
-              <p className="text-gray-600">{subtitle}</p>
-            )}
-          </div>
+          {(title.toLowerCase().includes('subscription') || title.toLowerCase().includes('plan')) ? (
+            // Hide title for subscription page as it's handled in the component
+            null
+          ) : (
+            <div className="mb-12 text-center lg:text-left">
+              <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h1>
+              {subtitle && (
+                <p className="text-gray-600 dark:text-gray-400">{subtitle}</p>
+              )}
+            </div>
+          )}
 
           {/* Form Content */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-lg"
+            className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.3),0_2px_4px_-1px_rgba(0,0,0,0.2)] dark:shadow-purple-500/10 ${
+              title.toLowerCase().includes('subscription') || title.toLowerCase().includes('plan')
+                ? 'p-0 shadow-none dark:shadow-none bg-transparent dark:bg-transparent' // No padding/background for subscription
+                : 'p-4 sm:p-6 overflow-hidden'
+            }`}
           >
             {children}
           </motion.div>

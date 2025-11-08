@@ -86,125 +86,247 @@ export const getClaudeRecommendation = async (prompt: string, type: Recommendati
   }
 };
 
-// Helper function to format complete user profile data as readable text
+// Helper function to calculate profile completeness
+const calculateProfileCompleteness = (userData: CompleteUserData): { percentage: number; availableFields: string[]; missingFields: string[] } => {
+  const availableFields: string[] = [];
+  const missingFields: string[] = [];
+  
+  // Check each field
+  if (userData.firstName) availableFields.push('firstName'); else missingFields.push('firstName');
+  if (userData.lastName) availableFields.push('lastName'); else missingFields.push('lastName');
+  if (userData.email) availableFields.push('email'); else missingFields.push('email');
+  if (userData.location) availableFields.push('location'); else missingFields.push('location');
+  if (userData.currentPosition || userData.jobTitle) availableFields.push('currentPosition'); else missingFields.push('currentPosition');
+  if (userData.industry) availableFields.push('industry'); else missingFields.push('industry');
+  if (userData.yearsOfExperience) availableFields.push('yearsOfExperience'); else missingFields.push('yearsOfExperience');
+  if (userData.skills && userData.skills.length > 0) availableFields.push('skills'); else missingFields.push('skills');
+  if (userData.tools && userData.tools.length > 0) availableFields.push('tools'); else missingFields.push('tools');
+  if (userData.targetPosition) availableFields.push('targetPosition'); else missingFields.push('targetPosition');
+  if (userData.targetSectors && userData.targetSectors.length > 0) availableFields.push('targetSectors'); else missingFields.push('targetSectors');
+  if (userData.salaryExpectations?.min || userData.salaryExpectations?.max) availableFields.push('salaryExpectations'); else missingFields.push('salaryExpectations');
+  if (userData.cvContent) availableFields.push('cvContent'); else missingFields.push('cvContent');
+  if (userData.workPreference) availableFields.push('workPreference'); else missingFields.push('workPreference');
+  if (userData.willingToRelocate !== undefined) availableFields.push('willingToRelocate'); else missingFields.push('willingToRelocate');
+  
+  const totalFields = availableFields.length + missingFields.length;
+  const percentage = totalFields > 0 ? Math.round((availableFields.length / totalFields) * 100) : 0;
+  
+  return { percentage, availableFields, missingFields };
+};
+
+// Enhanced helper function to format complete user profile data with data quality indicators
 const formatCompleteProfile = (userData: CompleteUserData): string => {
   if (!userData) return "No profile data available.";
   
+  const completeness = calculateProfileCompleteness(userData);
+  const hasCV = !!userData.cvContent;
+  const hasApplications = userData.applications && userData.applications.length > 0;
+  const hasCampaigns = userData.campaigns && userData.campaigns.length > 0;
+  
   let profile = `
-=== USER PROFILE SUMMARY ===
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    USER PROFILE ANALYSIS - COMPLETE DATA                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
-Personal Information:
-- Name: ${userData.firstName || ''} ${userData.lastName || ''}
-- Email: ${userData.email || 'Not specified'}
-- Phone: ${userData.phone || 'Not specified'}
-- Location: ${userData.location || 'Not specified'}
+📊 PROFILE COMPLETENESS: ${completeness.percentage}%
+   ✅ Available Data: ${completeness.availableFields.length} fields
+   ⚠️  Missing Data: ${completeness.missingFields.length} fields
+   ${completeness.percentage < 50 ? '⚠️  WARNING: Profile is incomplete. Recommendations will be more generic.' : ''}
+   ${completeness.percentage >= 80 ? '✅ Profile is well-completed. Recommendations can be highly personalized.' : ''}
 
-Current Professional Status:
-- Current Position: ${userData.currentPosition || userData.jobTitle || 'Not specified'}
-- Job Title: ${userData.jobTitle || 'Not specified'}
-- Industry: ${userData.industry || 'Not specified'}
-- Years of Experience: ${userData.yearsOfExperience || 'Not specified'}
-- Contract Type: ${userData.contractType || 'Not specified'}
+${hasCV ? '✅ CV/RESUME: Available and analyzed' : '❌ CV/RESUME: Not provided - recommendations will be less accurate'}
+${hasApplications ? `✅ JOB SEARCH HISTORY: ${userData.applications?.length || 0} applications tracked` : '❌ JOB SEARCH HISTORY: No historical data available'}
+${hasCampaigns ? `✅ CAMPAIGNS: ${userData.campaigns?.length || 0} campaigns tracked` : '❌ CAMPAIGNS: No campaign data available'}
 
-Skills & Expertise:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 PERSONAL INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.firstName && userData.lastName ? `✅ Full Name: ${userData.firstName} ${userData.lastName}` : `❌ Name: ${userData.firstName || ''} ${userData.lastName || ''} (incomplete)`}
+${userData.email ? `✅ Email: ${userData.email}` : '❌ Email: Not provided'}
+${userData.phone ? `✅ Phone: ${userData.phone}` : '❌ Phone: Not provided'}
+${userData.location ? `✅ Location: ${userData.location}` : '❌ Location: Not specified - this limits location-based recommendations'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💼 CURRENT PROFESSIONAL STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.currentPosition || userData.jobTitle ? 
+  `✅ Current Position: ${userData.currentPosition || userData.jobTitle}` : 
+  '❌ Current Position: Not specified - user may be unemployed or career transitioning'}
+${userData.industry ? `✅ Industry: ${userData.industry}` : '❌ Industry: Not specified - limits industry-specific recommendations'}
+${userData.yearsOfExperience ? 
+  `✅ Years of Experience: ${userData.yearsOfExperience} years` : 
+  '❌ Years of Experience: Not specified - affects seniority level assessment'}
+${userData.contractType ? `✅ Contract Type: ${userData.contractType}` : '❌ Contract Type: Not specified'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛠️  SKILLS & EXPERTISE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${userData.skills && userData.skills.length > 0 ? 
-  '- Skills: ' + userData.skills.join(', ') : 
-  '- Skills: Not specified'}
+  `✅ Skills (${userData.skills.length}): ${userData.skills.join(', ')}` : 
+  '❌ Skills: Not specified - CRITICAL for accurate recommendations'}
 ${userData.tools && userData.tools.length > 0 ? 
-  '- Tools & Technologies: ' + userData.tools.join(', ') : 
-  '- Tools & Technologies: Not specified'}
+  `✅ Tools & Technologies (${userData.tools.length}): ${userData.tools.join(', ')}` : 
+  '❌ Tools & Technologies: Not specified'}
 ${userData.certifications && userData.certifications.length > 0 ? 
-  '- Certifications: ' + userData.certifications.map(c => `${c.name} (${c.issuer}, ${c.year})`).join(', ') : 
-  '- Certifications: Not specified'}
+  `✅ Certifications (${userData.certifications.length}):\n${userData.certifications.map(c => `   - ${c.name} (${c.issuer}, ${c.year})`).join('\n')}` : 
+  '❌ Certifications: Not specified'}
 ${userData.education && userData.education.length > 0 ? 
-  '- Education: ' + userData.education.join(', ') : 
-  '- Education: Not specified'}
+  `✅ Education: ${userData.education.join(', ')}` : 
+  '❌ Education: Not specified'}
 
-Career Objectives:
-- Target Position: ${userData.targetPosition || 'Not specified'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 CAREER OBJECTIVES & TARGETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.targetPosition ? 
+  `✅ Target Position: ${userData.targetPosition}` : 
+  '❌ Target Position: Not specified - CRITICAL for personalized recommendations'}
 ${userData.targetSectors && userData.targetSectors.length > 0 ? 
-  '- Target Sectors: ' + userData.targetSectors.join(', ') : 
-  '- Target Sectors: Not specified'}
-- Salary Expectations: ${userData.salaryExpectations?.min || ''} - ${userData.salaryExpectations?.max || ''} ${userData.salaryExpectations?.currency || 'EUR'}
-- Availability Date: ${userData.availabilityDate || 'Not specified'}
+  `✅ Target Sectors (${userData.targetSectors.length}): ${userData.targetSectors.join(', ')}` : 
+  '❌ Target Sectors: Not specified - limits sector-specific recommendations'}
+${userData.salaryExpectations?.min || userData.salaryExpectations?.max ? 
+  `✅ Salary Expectations: ${userData.salaryExpectations.min || 'N/A'} - ${userData.salaryExpectations.max || 'N/A'} ${userData.salaryExpectations.currency || 'EUR'}` : 
+  '❌ Salary Expectations: Not specified - affects salary match calculations'}
+${userData.availabilityDate ? 
+  `✅ Availability Date: ${userData.availabilityDate}` : 
+  '❌ Availability Date: Not specified'}
 
-Mobility & Work Preferences:
-- Willing to Relocate: ${userData.willingToRelocate ? 'Yes' : 'No'}
-- Work Preference: ${userData.workPreference || 'Not specified'}
-- Travel Preference: ${userData.travelPreference || 'Not specified'}
-- Work-Life Balance Importance: ${userData.workLifeBalance || 'Not specified'}/10
-- Preferred Company Culture: ${userData.companyCulture || 'Not specified'}
-- Preferred Company Size: ${userData.preferredCompanySize || 'Not specified'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌍 MOBILITY & WORK PREFERENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.willingToRelocate !== undefined ? 
+  `✅ Willing to Relocate: ${userData.willingToRelocate ? 'Yes' : 'No'}` : 
+  '❌ Willing to Relocate: Not specified'}
+${userData.workPreference ? 
+  `✅ Work Preference: ${userData.workPreference}` : 
+  '❌ Work Preference: Not specified (remote/hybrid/onsite)'}
+${userData.travelPreference ? 
+  `✅ Travel Preference: ${userData.travelPreference}` : 
+  '❌ Travel Preference: Not specified'}
+${userData.workLifeBalance !== undefined ? 
+  `✅ Work-Life Balance Importance: ${userData.workLifeBalance}/10` : 
+  '❌ Work-Life Balance: Not specified'}
+${userData.companyCulture ? 
+  `✅ Preferred Company Culture: ${userData.companyCulture}` : 
+  '❌ Company Culture Preference: Not specified'}
+${userData.preferredCompanySize ? 
+  `✅ Preferred Company Size: ${userData.preferredCompanySize}` : 
+  '❌ Company Size Preference: Not specified'}
 ${userData.sectorsToAvoid && userData.sectorsToAvoid.length > 0 ? 
-  '- Sectors to Avoid: ' + userData.sectorsToAvoid.join(', ') : 
-  '- Sectors to Avoid: Not specified'}
+  `✅ Sectors to Avoid: ${userData.sectorsToAvoid.join(', ')}` : 
+  ''}
 ${userData.desiredCulture && userData.desiredCulture.length > 0 ? 
-  '- Desired Culture: ' + userData.desiredCulture.join(', ') : 
-  '- Desired Culture: Not specified'}
+  `✅ Desired Culture Traits: ${userData.desiredCulture.join(', ')}` : 
+  ''}
 
-Professional Links:
-${userData.linkedinUrl ? '- LinkedIn: ' + userData.linkedinUrl : ''}
-${userData.portfolioUrl ? '- Portfolio: ' + userData.portfolioUrl : ''}
-${userData.githubUrl ? '- GitHub: ' + userData.githubUrl : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Job Search Statistics:
-${userData.totalApplications ? '- Total Applications: ' + userData.totalApplications : ''}
-${userData.responseRate ? '- Response Rate: ' + userData.responseRate + '%' : ''}
-${userData.averageMatchScore ? '- Average Match Score: ' + userData.averageMatchScore + '%' : ''}
-${userData.totalCampaigns ? '- Total Campaigns: ' + userData.totalCampaigns : ''}
+🔗 PROFESSIONAL LINKS & PRESENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.linkedinUrl ? `✅ LinkedIn: ${userData.linkedinUrl}` : '❌ LinkedIn: Not provided'}
+${userData.portfolioUrl ? `✅ Portfolio: ${userData.portfolioUrl}` : '❌ Portfolio: Not provided'}
+${userData.githubUrl ? `✅ GitHub: ${userData.githubUrl}` : '❌ GitHub: Not provided'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📈 JOB SEARCH STATISTICS & HISTORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.totalApplications ? 
+  `✅ Total Applications: ${userData.totalApplications}` : 
+  '❌ No application history - user is new to the platform'}
+${userData.responseRate !== undefined ? 
+  `✅ Response Rate: ${userData.responseRate}% ${userData.responseRate < 20 ? '(⚠️ Low - needs improvement)' : userData.responseRate > 50 ? '(✅ Excellent)' : '(✓ Good)'}` : 
+  ''}
+${userData.averageMatchScore !== undefined ? 
+  `✅ Average Match Score: ${userData.averageMatchScore}% ${userData.averageMatchScore < 60 ? '(⚠️ Low - targeting may need adjustment)' : userData.averageMatchScore > 80 ? '(✅ Excellent targeting)' : '(✓ Good)'}` : 
+  ''}
+${userData.totalCampaigns ? 
+  `✅ Total Campaigns: ${userData.totalCampaigns}` : 
+  ''}
 `;
 
   // Add recent job applications details if available
-  if (userData.applications && userData.applications.length > 0) {
-    const recentApplications = userData.applications.slice(0, 10); // Last 10 applications
+  if (hasApplications && userData.applications) {
+    const recentApplications = userData.applications.slice(0, 10);
     profile += `
-=== RECENT JOB APPLICATIONS ===
-Total Applications: ${userData.applications.length}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 RECENT JOB APPLICATIONS (Last 10 of ${userData.applications.length} total)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Response Rate: ${userData.responseRate || 0}%
+Average Match Score: ${userData.averageMatchScore || 0}%
 
 Recent Applications:
 ${recentApplications.map((app: any, index: number) => {
-  return `${index + 1}. ${app.companyName || 'Unknown Company'} - ${app.position || 'Unknown Position'}
+  const statusEmoji = app.status === 'accepted' ? '✅' : app.status === 'interview' ? '📞' : app.status === 'responded' ? '✉️' : '📤';
+  return `${index + 1}. ${statusEmoji} ${app.companyName || 'Unknown Company'} - ${app.position || 'Unknown Position'}
    - Status: ${app.status || 'applied'}
-   - Applied Date: ${app.appliedDate || app.createdAt || 'Unknown'}
+   - Applied: ${app.appliedDate || app.createdAt || 'Unknown'}
    - Location: ${app.location || 'Not specified'}
+   ${app.matchScore ? `- Match Score: ${app.matchScore}%` : ''}
    ${app.salary ? `- Salary: ${app.salary}` : ''}
-   ${app.notes ? `- Notes: ${app.notes.substring(0, 100)}` : ''}`;
-}).join('\n')}
+   ${app.notes ? `- Notes: ${app.notes.substring(0, 150)}...` : ''}`;
+}).join('\n\n')}
 
-Application Patterns:
-- Companies applied to: ${[...new Set(userData.applications.map((app: any) => app.companyName).filter(Boolean))].join(', ')}
-- Positions applied to: ${[...new Set(userData.applications.map((app: any) => app.position).filter(Boolean))].join(', ')}
-- Status distribution: ${userData.applications.reduce((acc: any, app: any) => {
+Application Patterns Analysis:
+- Companies Applied To: ${[...new Set(userData.applications.map((app: any) => app.companyName).filter(Boolean))].slice(0, 10).join(', ')}${[...new Set(userData.applications.map((app: any) => app.companyName).filter(Boolean))].length > 10 ? '...' : ''}
+- Positions Applied To: ${[...new Set(userData.applications.map((app: any) => app.position).filter(Boolean))].slice(0, 10).join(', ')}${[...new Set(userData.applications.map((app: any) => app.position).filter(Boolean))].length > 10 ? '...' : ''}
+- Status Distribution: ${JSON.stringify(userData.applications.reduce((acc: any, app: any) => {
   acc[app.status || 'applied'] = (acc[app.status || 'applied'] || 0) + 1;
   return acc;
-}, {})}
+}, {}), null, 2)}
 `;
   }
 
   // Add campaign information if available
-  if (userData.campaigns && userData.campaigns.length > 0) {
+  if (hasCampaigns && userData.campaigns) {
     profile += `
-=== EMAIL CAMPAIGNS ===
-Total Campaigns: ${userData.campaigns.length}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📧 EMAIL CAMPAIGNS (Last 5 of ${userData.campaigns.length} total)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${userData.campaigns.slice(0, 5).map((campaign: any, index: number) => {
+  const responseRate = campaign.emailsSent > 0 ? Math.round((campaign.responses || 0) / campaign.emailsSent * 100) : 0;
   return `${index + 1}. ${campaign.title || 'Untitled Campaign'}
    - Job Title: ${campaign.jobTitle || 'Not specified'}
    - Industry: ${campaign.industry || 'Not specified'}
    - Status: ${campaign.status || 'active'}
    - Emails Sent: ${campaign.emailsSent || 0}
-   - Responses: ${campaign.responses || 0}`;
-}).join('\n')}
+   - Responses: ${campaign.responses || 0} (${responseRate}% response rate)`;
+}).join('\n\n')}
 `;
   }
 
   // Add CV content if available
-  if (userData.cvContent) {
+  if (hasCV && userData.cvContent) {
     profile += `
-=== CV/RESUME CONTENT ===
-${userData.cvContent.substring(0, 5000)}${userData.cvContent.length > 5000 ? '... (truncated)' : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 CV/RESUME CONTENT (Full Text Analysis)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.cvContent.substring(0, 8000)}${userData.cvContent.length > 8000 ? '\n\n... (content truncated for length, but full CV has been analyzed)' : ''}
 `;
   }
+
+  profile += `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  IMPORTANT INSTRUCTIONS FOR AI ANALYSIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Profile Completeness: ${completeness.percentage}% - ${completeness.percentage < 50 ? 'ADAPT your recommendations to be more general and include guidance on completing the profile.' : completeness.percentage >= 80 ? 'You have rich data - provide HIGHLY SPECIFIC and PERSONALIZED recommendations.' : 'Provide personalized recommendations but acknowledge data limitations.'}
+
+2. Missing Critical Data: ${completeness.missingFields.length > 0 ? completeness.missingFields.slice(0, 5).join(', ') + (completeness.missingFields.length > 5 ? '...' : '') : 'None'}
+   ${completeness.missingFields.length > 0 ? '→ When making recommendations, explicitly mention how completing these fields would improve accuracy.' : ''}
+
+3. ${hasCV ? 'CV is available - use it as the PRIMARY source for skills, experience, and achievements. Cross-reference with profile data.' : '⚠️ NO CV available - rely solely on profile data. Be more conservative in recommendations and emphasize the need for a CV.'}
+
+4. ${hasApplications ? `User has ${userData.applications?.length} applications with ${userData.responseRate || 0}% response rate. Analyze patterns and provide specific feedback.` : 'User has no application history - provide foundational guidance for starting a job search.'}
+
+5. ${completeness.percentage < 30 ? '⚠️ PROFILE IS VERY INCOMPLETE - Provide general industry advice and STRONGLY recommend completing the profile for better recommendations.' : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
 
   return profile;
 };
@@ -217,487 +339,1164 @@ export const generatePrompt = (type: RecommendationType, userData: any): string 
 // Enhanced function to generate prompt with complete user data
 export const generateEnhancedPrompt = (type: RecommendationType, userData: CompleteUserData): string => {
 
-  // Format basic job market data
+  // Enhanced job market context with current trends
+  const completeness = calculateProfileCompleteness(userData);
+  const hasCV = !!userData.cvContent;
+  const hasApplications = userData.applications && userData.applications.length > 0;
+  
   const jobMarket = `
-=== CURRENT JOB MARKET CONTEXT ===
-- Economic conditions are fluctuating, with varying levels of uncertainty across sectors.
-- Digital skills are in high demand, especially in technology, healthcare, and financial services.
-- Remote and hybrid work models have become increasingly prevalent and accepted.
-- Companies are emphasizing diversity, equity, and inclusion in their hiring practices.
-- AI integration and automation are transforming traditional roles and creating new opportunities.
-- Soft skills such as adaptability, communication, and emotional intelligence are highly valued.
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    CURRENT JOB MARKET CONTEXT (2024-2025)                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+🌍 ECONOMIC LANDSCAPE:
+- Global job market shows resilience with selective hiring in high-growth sectors
+- Technology, healthcare, renewable energy, and AI/ML sectors experiencing strong growth
+- Traditional industries adapting to digital transformation, creating hybrid roles
+- Remote and hybrid work models are now standard, not exception
+- Companies prioritize candidates with both technical skills AND soft skills
+
+💼 HIRING TRENDS:
+- Skills-based hiring gaining traction over degree-only requirements
+- Emphasis on diversity, equity, and inclusion in recruitment
+- AI and automation creating new roles while transforming existing ones
+- Contract and freelance opportunities increasing alongside full-time positions
+- Companies investing in employee development and upskilling programs
+
+🎯 CANDIDATE EXPECTATIONS:
+- Work-life balance is a top priority for 70%+ of job seekers
+- Remote/hybrid flexibility is now a deal-breaker for many candidates
+- Salary transparency and fair compensation are increasingly demanded
+- Career growth opportunities and learning culture are highly valued
+- Purpose-driven work and company values alignment matter more than ever
+
+📊 SECTOR-SPECIFIC INSIGHTS:
+- Tech: High demand for AI/ML engineers, cybersecurity, cloud architects, DevOps
+- Healthcare: Growing need for digital health, telemedicine, health tech roles
+- Finance: Fintech, blockchain, sustainable finance, risk analytics in demand
+- Consulting: Digital transformation, sustainability consulting, data analytics
+- Manufacturing: Industry 4.0, automation, supply chain optimization roles
 `;
 
   // Base prompts for each recommendation type
   switch (type) {
     case 'target-companies':
-      return `You are an expert career coach specializing in company recommendations. You have access to the user's complete profile including their CV/Resume.
+      return `You are a world-class career strategist and company matchmaking expert with 20+ years of experience in executive recruitment, talent acquisition, and career coaching. You specialize in identifying the PERFECT company-candidate matches by analyzing deep profile data, CV content, career trajectories, and market intelligence.
+
+Your expertise includes:
+- Understanding company cultures, values, and hiring patterns
+- Analyzing candidate profiles to identify ideal company matches
+- Providing actionable, specific recommendations (not generic advice)
+- Understanding job market dynamics and company growth trajectories
+- Matching candidates to companies based on skills, culture, location, and career goals
 
 ${formatCompleteProfile(userData)}
 ${jobMarket}
 
-Based on the user's complete profile, CV content, skills, experience, preferences, and job search statistics provided above, please recommend 8-10 companies that would be an excellent match for them.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-For each company, include:
-- Company name
-- Match percentage (0-100%) with detailed breakdown:
-  * Skills match (30%)
-  * Culture match (20%)
-  * Location match (15%)
-  * Salary match (15%)
-  * Growth potential (10%)
-  * Company size match (10%)
-- Growth potential (Low/Medium/High) with brief explanation
-- Size (number of employees or range like "50-200", "500-1000", etc.)
-- Industry
-- Location (city, country)
-- 3-5 suitable roles at this company for the user, each with:
-  * Role title
-  * Level (Junior/Mid/Senior)
-  * Match score for this specific role
-  * Why this role fits
-- A detailed explanation of why this company is a good match based on the user's profile, CV, and preferences
-- Key strengths of the user's profile for this company
-- Potential areas to improve to increase match score
+🎯 YOUR MISSION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Also include a comprehensive summary paragraph addressing the user directly, explaining your recommendations and providing actionable insights.
+Analyze the user's complete profile with EXTREME attention to detail. Based on their:
+- Skills, experience level, and expertise (from CV and profile)
+- Career objectives and target position
+- Location preferences and mobility constraints
+- Salary expectations and compensation needs
+- Work preferences (remote/hybrid/onsite)
+- Company culture preferences and values alignment
+- Industry interests and sector targets
+- Job search history and application patterns (if available)
 
-Format your response as a JSON object with a "companies" array containing the company recommendations and a "summary" string. Follow this exact format:
+Provide 8-12 HIGHLY PERSONALIZED company recommendations that are REAL, SPECIFIC companies (not generic examples). Each recommendation must be:
+
+1. **ACCURATE**: Real companies that actually exist and hire in the user's field
+2. **RELEVANT**: Companies that match their skills, experience level, and career goals
+3. **ACHIEVABLE**: Companies where they have a realistic chance of getting hired
+4. **DIVERSE**: Mix of company sizes (startups, scale-ups, mid-size, large enterprises)
+5. **STRATEGIC**: Include both obvious matches AND hidden gems they might not have considered
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 REQUIRED OUTPUT FOR EACH COMPANY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For each company, provide:
+
+1. **Company Name**: Real, specific company name (not generic descriptions)
+
+2. **Overall Match Score** (0-100%): Be HONEST and PRECISE. Don't inflate scores.
+   - 90-100%: Exceptional match, highly recommended
+   - 75-89%: Strong match, very good fit
+   - 60-74%: Good match, solid opportunity
+   - 45-59%: Moderate match, some gaps to address
+   - Below 45%: Weak match, not recommended
+
+3. **Match Breakdown** (detailed percentages that sum to overall match):
+   - Skills Match (30% weight): How well their skills align with company needs
+   - Culture Match (20% weight): Alignment with company culture and values
+   - Location Match (15% weight): Geographic fit considering their preferences
+   - Salary Match (15% weight): Compensation alignment with their expectations
+   - Growth Potential (10% weight): Career advancement opportunities
+   - Company Size Match (10% weight): Fit with their preferred company size
+
+4. **Company Details**:
+   - Industry: Specific industry/sector
+   - Location: City, country (be specific)
+   - Size: Number of employees or range (e.g., "150-300", "5,000-10,000")
+   - Growth Potential: Low/Medium/High with 2-3 sentence explanation
+   - Growth Explanation: Why this company is growing/stable/declining
+
+5. **Suitable Roles** (3-5 specific roles):
+   For each role, provide:
+   - Title: Exact job title (e.g., "Senior Software Engineer", not just "Engineer")
+   - Level: Junior/Mid-level/Senior/Lead/Principal
+   - Match Score: Specific match score for THIS role (0-100%)
+   - Why Fits: 2-3 sentences explaining why this role is perfect for them based on their specific skills and experience
+
+6. **Why This Company Matches**: 
+   Write 4-6 sentences that are HIGHLY SPECIFIC to this user. Reference:
+   - Their specific skills and how they align with company needs
+   - Their career goals and how this company supports them
+   - Their preferences (culture, size, location) and how this company fits
+   - Their experience level and how it matches company hiring patterns
+   - Their CV content and how it aligns with company values
+
+7. **User's Key Strengths for This Company**:
+   Identify 3-5 SPECIFIC strengths from their profile/CV that make them attractive to this company. Be specific, not generic.
+
+8. **Areas to Improve**:
+   Identify 2-3 SPECIFIC areas where they could improve to increase their match score with this company. Provide actionable advice.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  CRITICAL INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${completeness.percentage < 50 ? 
+  '⚠️ PROFILE IS INCOMPLETE: Provide more general recommendations but still be specific. Mention which missing information would improve accuracy.' : 
+  completeness.percentage >= 80 ? 
+  '✅ PROFILE IS COMPLETE: Use ALL available data to provide HIGHLY SPECIFIC and PERSONALIZED recommendations.' : 
+  '⚠️ PROFILE IS PARTIALLY COMPLETE: Use available data but acknowledge limitations.'}
+
+${hasCV ? 
+  '✅ CV AVAILABLE: Use CV as PRIMARY source. Extract specific skills, achievements, and experience mentioned in CV.' : 
+  '❌ NO CV: Rely on profile data only. Be more conservative in recommendations and emphasize the need for a CV.'}
+
+${hasApplications ? 
+  `✅ APPLICATION HISTORY: User has ${userData.applications?.length} applications. Analyze patterns:
+   - What types of companies have they applied to?
+   - What's their response rate? (${userData.responseRate || 0}%)
+   - What's their average match score? (${userData.averageMatchScore || 0}%)
+   - Use this data to recommend companies similar to successful applications or identify gaps.` : 
+  '❌ NO APPLICATION HISTORY: User is new. Provide foundational recommendations.'}
+
+**DO NOT:**
+- Use generic company names or descriptions
+- Provide inflated match scores
+- Give vague recommendations
+- Ignore their specific preferences and constraints
+- Recommend companies that don't match their experience level
+
+**DO:**
+- Be SPECIFIC and ACTIONABLE
+- Reference their actual skills, experience, and preferences
+- Provide real company names
+- Give honest, accurate match scores
+- Explain WHY each company matches (be detailed)
+- Consider their location constraints and work preferences
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide a comprehensive summary paragraph (4-6 sentences) addressing the user directly, explaining:
+- Overall assessment of their profile
+- Key themes in your recommendations
+- Strategic advice for their job search
+- Next steps they should take
+
+Then format your response as a JSON object following this EXACT structure:
 
 {
   "companies": [
     {
-      "name": "",
-      "match": "",
+      "name": "Real Company Name",
+      "match": 85,
       "match_breakdown": {
-        "skills": "",
-        "culture": "",
-        "location": "",
-        "salary": "",
-        "growth": "",
-        "size": ""
+        "skills": 90,
+        "culture": 85,
+        "location": 80,
+        "salary": 75,
+        "growth": 90,
+        "size": 85
       },
-      "growth_potential": "",
-      "growth_explanation": "",
-      "size": "",
-      "industry": "",
-      "location": "",
+      "growth_potential": "High",
+      "growth_explanation": "2-3 sentences explaining growth trajectory",
+      "size": "500-1000",
+      "industry": "Technology/SaaS",
+      "location": "Paris, France",
       "suitable_roles": [
         {
-          "title": "",
-          "level": "",
-          "match_score": "",
-          "why_fits": ""
+          "title": "Senior Software Engineer",
+          "level": "Senior",
+          "match_score": 88,
+          "why_fits": "2-3 sentences specific to user's profile"
         }
       ],
-      "why_match": "",
-      "user_strengths": "",
-      "improvement_areas": ""
+      "why_match": "4-6 sentences highly specific to this user",
+      "user_strengths": "3-5 specific strengths from their profile",
+      "improvement_areas": "2-3 specific areas to improve"
     }
   ],
-  "summary": ""
-}`;
+  "summary": "4-6 sentence comprehensive summary addressing user directly"
+}
+
+Remember: Quality over quantity. Better to have 8 excellent, highly personalized recommendations than 12 generic ones.`;
 
     case 'application-timing':
-      return `You are an expert career coach specializing in job application strategies.
+      return `You are a world-class job search strategist and timing optimization expert with 20+ years of experience in recruitment, talent acquisition, and career coaching. You specialize in maximizing application success rates through strategic timing based on industry patterns, hiring cycles, and market dynamics.
+
+Your expertise includes:
+- Understanding hiring cycles and seasonal patterns across industries
+- Analyzing optimal application timing based on company size, industry, and role level
+- Maximizing visibility and response rates through strategic timing
+- Understanding recruiter behavior and application review patterns
+- Providing data-driven timing recommendations
+
 ${formatCompleteProfile(userData)}
 ${jobMarket}
 
-Based on the user's profile and the current job market context, please provide tailored recommendations on the optimal timing for their job applications.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Include the following in your analysis:
-- Best days of the week to apply for jobs in their field
-- Best times of day to submit applications
-- Best months or seasons for job hunting in their industry
-- Best quarter of the year for opportunities
-- How quickly to apply after a job is posted
-- Appropriate timing for follow-ups after submitting applications
-- 3-5 specific insights about application timing relevant to the user's field and experience level
-- A brief explanation of why these timing recommendations are appropriate for this user
+🎯 YOUR MISSION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Format your response as a JSON object with a "timing" object containing your recommendations. Follow this exact format:
+Analyze the user's profile and provide HIGHLY PERSONALIZED timing recommendations based on:
+- Their industry and sector
+- Their experience level (${userData.yearsOfExperience || 'unknown'} years)
+- Their target position: ${userData.targetPosition || 'Not specified'}
+- Their location: ${userData.location || 'Not specified'}
+- Their work preferences: ${userData.workPreference || 'Not specified'}
+- Their application history: ${hasApplications ? `${userData.applications?.length} applications, ${userData.responseRate || 0}% response rate` : 'No history available'}
+
+${hasApplications && userData.applications ? `Analyze their application patterns:
+- When did they apply? (days, times, months)
+- What was their response rate by timing?
+- Identify patterns in successful vs unsuccessful applications` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 REQUIRED ANALYSIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide SPECIFIC, ACTIONABLE timing recommendations:
+
+1. **Best Days of Week**: 
+   - Which days (Monday-Friday) are optimal for their industry/role?
+   - Why these days? (recruiter activity, application volume, etc.)
+   - Provide 2-3 specific days with explanations
+
+2. **Best Times of Day**:
+   - Specific time windows (e.g., "9-11 AM", "2-4 PM")
+   - Why these times? (recruiter availability, system processing, etc.)
+   - Timezone considerations if applicable
+
+3. **Best Months/Seasons**:
+   - Which months are optimal for their industry?
+   - Consider: hiring budgets, fiscal year cycles, industry-specific patterns
+   - Which months to AVOID and why
+
+4. **Best Quarter**:
+   - Q1/Q2/Q3/Q4 - which is best for their field?
+   - Why? (budget cycles, hiring patterns, market conditions)
+
+5. **Application Window**:
+   - How quickly should they apply after a job is posted?
+   - Optimal window (e.g., "Within 24-48 hours", "First 3 days")
+   - Why? (early bird advantage vs. quality over speed)
+
+6. **Follow-up Timing**:
+   - When to follow up after submitting? (specific days/weeks)
+   - Multiple follow-up strategy if needed
+   - How to follow up (email, LinkedIn, etc.)
+
+7. **Industry-Specific Insights** (3-5 insights):
+   - Specific to their industry: ${userData.industry || 'Not specified'}
+   - Specific to their experience level
+   - Specific to their target position
+   - Based on current market conditions
+
+8. **Personalized Explanation**:
+   - Why these recommendations are perfect for THIS user
+   - Reference their specific profile, industry, and experience
+   - Address any unique circumstances (career transition, location, etc.)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  CRITICAL INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${hasApplications ? 
+  `✅ APPLICATION HISTORY AVAILABLE: Analyze their ${userData.applications?.length} applications:
+   - Identify timing patterns in successful applications
+   - Compare response rates by day/time/month
+   - Use this data to refine recommendations` : 
+  '❌ NO APPLICATION HISTORY: Provide general industry best practices but emphasize the need to track timing for optimization.'}
+
+**DO NOT:**
+- Give generic advice that applies to everyone
+- Ignore their specific industry and experience level
+- Provide vague timing recommendations
+- Ignore their application history patterns (if available)
+
+**DO:**
+- Be SPECIFIC (e.g., "Tuesday-Thursday, 9-11 AM" not "weekdays")
+- Reference their actual industry, role, and experience level
+- Explain WHY each recommendation is optimal for them
+- Consider their location and timezone
+- Use their application history to inform recommendations (if available)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
   "timing": {
-    "best_days": [""],
-    "best_times": "",
-    "best_months": [""],
-    "best_quarter": "",
-    "application_window": "",
-    "follow_up_timing": "",
-    "insights": ["", "", ""],
-    "explanation": ""
+    "best_days": ["Tuesday", "Wednesday", "Thursday"],
+    "best_times": "9:00 AM - 11:00 AM and 2:00 PM - 4:00 PM (local time)",
+    "best_months": ["January", "February", "September", "October"],
+    "best_quarter": "Q1 and Q4",
+    "application_window": "Within 24-48 hours of posting",
+    "follow_up_timing": "7-10 days after application, then 14 days if no response",
+    "insights": [
+      "Specific insight 1 related to their industry/role",
+      "Specific insight 2 related to their experience level",
+      "Specific insight 3 related to current market conditions",
+      "Specific insight 4 based on their profile",
+      "Specific insight 5 actionable recommendation"
+    ],
+    "explanation": "4-6 sentences explaining why these recommendations are specifically tailored to this user, referencing their industry, experience level, location, and any application history patterns."
   }
 }`;
 
     case 'salary-insights':
-      return `You are an expert career coach specializing in salary negotiation and compensation.
+      return `You are a world-class compensation strategist and salary negotiation expert with 20+ years of experience in executive compensation, talent acquisition, and career coaching. You specialize in helping professionals understand their true market value and negotiate optimal compensation packages.
+
+Your expertise includes:
+- Understanding salary benchmarks across industries, roles, and locations
+- Analyzing compensation trends and market dynamics
+- Negotiation strategies tailored to different industries and experience levels
+- Total compensation analysis (salary + benefits + equity)
+- Market value assessment based on skills, experience, and location
+
 ${formatCompleteProfile(userData)}
 ${jobMarket}
 
-Based on the user's profile and the current job market context, please provide tailored salary insights to help them understand their market value and negotiate effectively.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Include the following in your analysis:
-- Appropriate salary range for someone with their skills and experience level
-- Average salary for their target position in their location/region
-- Salary breakdown by experience level (entry, mid, senior) in their field
-- Expected salary growth rate in their industry
-- 4 specific negotiation tips tailored to their profile and industry
-- 5 valuable benefits or perks they should consider beyond base salary
-- Brief context about the current salary trends in their industry and how it affects their position
+🎯 YOUR MISSION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Format your response as a JSON object with a "salary" object containing your recommendations. Follow this exact format:
+Analyze the user's profile and provide HIGHLY PERSONALIZED salary insights based on:
+- Their skills: ${userData.skills && userData.skills.length > 0 ? userData.skills.slice(0, 5).join(', ') + '...' : 'Not specified'}
+- Their experience level: ${userData.yearsOfExperience || 'unknown'} years
+- Their target position: ${userData.targetPosition || 'Not specified'}
+- Their location: ${userData.location || 'Not specified'}
+- Their industry: ${userData.industry || 'Not specified'}
+- Their current salary expectations: ${userData.salaryExpectations?.min || 'N/A'} - ${userData.salaryExpectations?.max || 'N/A'} ${userData.salaryExpectations?.currency || 'EUR'}
+
+${hasCV ? '✅ CV AVAILABLE: Extract specific skills, achievements, and experience from CV to assess market value.' : '❌ NO CV: Rely on profile data only. Be more conservative in estimates.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 REQUIRED ANALYSIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide SPECIFIC, ACTIONABLE salary insights:
+
+1. **Appropriate Salary Range**:
+   - Provide a SPECIFIC range (e.g., "€45,000 - €65,000" or "$80,000 - $110,000")
+   - Based on their skills, experience, location, and industry
+   - Explain why this range is appropriate for them
+   - Consider their experience level: ${userData.yearsOfExperience || 'unknown'} years
+
+2. **Average Salary for Target Position**:
+   - Average salary for "${userData.targetPosition || 'their target position'}" in ${userData.location || 'their location'}
+   - Compare to their expectations: ${userData.salaryExpectations?.min || 'N/A'} - ${userData.salaryExpectations?.max || 'N/A'}
+   - Are their expectations realistic? Too high? Too low?
+
+3. **Salary Breakdown by Experience Level**:
+   - Entry-level (0-2 years): Specific range
+   - Mid-level (3-7 years): Specific range
+   - Senior-level (8+ years): Specific range
+   - Where does the user fit? (${userData.yearsOfExperience || 'unknown'} years)
+
+4. **Expected Salary Growth Rate**:
+   - Annual growth rate in their industry
+   - Projected salary growth over 3-5 years
+   - Factors affecting growth (skills, location, industry trends)
+
+5. **Negotiation Tips** (4-5 SPECIFIC tips):
+   - Tailored to their industry: ${userData.industry || 'Not specified'}
+   - Tailored to their experience level
+   - Specific strategies for their situation
+   - When to negotiate (timing)
+   - How to negotiate (approach)
+   - What to negotiate (salary, benefits, equity, etc.)
+
+6. **Benefits & Perks** (5-7 valuable benefits):
+   - Beyond base salary, what should they consider?
+   - Industry-specific benefits
+   - Location-specific benefits
+   - Benefits that matter for their profile
+   - Total compensation value
+
+7. **Market Context**:
+   - Current salary trends in their industry
+   - How market conditions affect their position
+   - Supply/demand dynamics for their skills
+   - Remote work impact on salaries
+   - Location-based salary variations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  CRITICAL INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**DO NOT:**
+- Give generic salary ranges that apply to everyone
+- Ignore their specific location (salaries vary significantly by location)
+- Ignore their specific skills and experience level
+- Provide vague negotiation advice
+- Ignore their current salary expectations
+
+**DO:**
+- Be SPECIFIC with salary ranges (not "€40k-€70k" but "€45k-€65k" based on their profile)
+- Reference their actual skills, experience, and location
+- Compare their expectations to market rates
+- Provide actionable negotiation strategies
+- Consider total compensation, not just base salary
+- Account for their work preferences (remote/hybrid may affect salary)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
   "salary": {
-    "range": "",
-    "average": "",
-    "entry_level": "",
-    "mid_level": "",
-    "senior_level": "",
-    "growth": "",
-    "negotiation_tips": ["", "", "", ""],
-    "benefits": ["", "", "", "", ""],
-    "market_context": ""
+    "range": "€45,000 - €65,000 per year (based on their profile)",
+    "average": "€55,000 per year for their target position in their location",
+    "entry_level": "€35,000 - €45,000",
+    "mid_level": "€45,000 - €70,000",
+    "senior_level": "€70,000 - €100,000+",
+    "growth": "3-5% annually, with potential for 10-15% growth with skill development",
+    "negotiation_tips": [
+      "Specific tip 1 tailored to their industry/role",
+      "Specific tip 2 tailored to their experience level",
+      "Specific tip 3 tailored to their location",
+      "Specific tip 4 actionable strategy",
+      "Specific tip 5 timing/approach"
+    ],
+    "benefits": [
+      "Benefit 1 relevant to their profile",
+      "Benefit 2 industry-specific",
+      "Benefit 3 location-specific",
+      "Benefit 4 valuable for their situation",
+      "Benefit 5 total compensation consideration",
+      "Benefit 6 career growth related",
+      "Benefit 7 work-life balance related"
+    ],
+    "market_context": "4-6 sentences explaining current salary trends in their industry, how market conditions affect their position, and location-based variations."
   }
 }`;
 
     case 'job-strategy':
-      return `You are an expert career coach specializing in job search strategy.
+      return `You are a world-class job search strategist and career coach with 20+ years of experience in executive recruitment, talent development, and career coaching. You specialize in creating winning job search strategies that maximize interview rates and job offers.
+
+Your expertise includes:
+- Identifying and highlighting key skills that employers value
+- Developing skills that increase marketability
+- Optimizing resumes for ATS systems and human recruiters
+- Building effective networking strategies
+- Creating application strategies that maximize success rates
+
 ${formatCompleteProfile(userData)}
 ${jobMarket}
 
-Based on the user's profile, skills, and the current job market context, please provide a comprehensive job search strategy to help them secure their target position.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Include the following in your analysis:
-- 5 key skills from their profile they should highlight, with reasons why each is valuable in the current market
-- 3 skills they could develop to increase their marketability, with reasons and suggested resources
-- Assessment of their resume's likely performance with Applicant Tracking Systems (ATS) and tips for optimization
-- Networking strategy tailored to their field, including 3 specific professional groups or communities they should consider joining
-- Application strategy to maximize their chances of getting interviews
+🎯 YOUR MISSION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Format your response as a JSON object with a "strategy" object containing your recommendations. Follow this exact format:
+Analyze the user's profile and create a COMPREHENSIVE, ACTIONABLE job search strategy based on:
+- Their skills: ${userData.skills && userData.skills.length > 0 ? userData.skills.slice(0, 5).join(', ') + '...' : 'Not specified'}
+- Their experience level: ${userData.yearsOfExperience || 'unknown'} years
+- Their target position: ${userData.targetPosition || 'Not specified'}
+- Their industry: ${userData.industry || 'Not specified'}
+- Their location: ${userData.location || 'Not specified'}
+- Their application history: ${hasApplications ? `${userData.applications?.length} applications, ${userData.responseRate || 0}% response rate` : 'No history'}
+
+${hasCV ? '✅ CV AVAILABLE: Analyze CV content to identify strengths and gaps.' : '❌ NO CV: Emphasize the need for a CV and provide guidance.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 REQUIRED ANALYSIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. **Key Skills to Highlight** (5-7 skills):
+   For each skill, provide:
+   - Skill name (from their profile/CV)
+   - Why it's valuable in the current market (be specific)
+   - How to highlight it in applications
+   - Industry demand for this skill
+   - How it differentiates them
+
+2. **Skills to Develop** (3-5 skills):
+   For each skill, provide:
+   - Skill name (missing or needs improvement)
+   - Why it's important for their career goals
+   - Impact on marketability (specific benefits)
+   - Resources to learn (specific courses, books, certifications)
+   - Estimated time to develop
+   - Priority level (High/Medium/Low)
+
+3. **ATS Optimization**:
+   - ATS Score: 0-100% (be honest, don't inflate)
+   - Resume Tips: 5-7 SPECIFIC tips for their CV/resume
+   - Keywords to include (specific to their industry/role)
+   - Formatting recommendations
+   - Common mistakes to avoid
+
+4. **Networking Strategy**:
+   - Overall strategy tailored to their field
+   - Target Groups (3-5 specific groups/communities):
+     * Group name (be specific)
+     * Why it's valuable for them
+     * How to join/engage
+   - Events (2-3 specific events/conferences):
+     * Event name or type
+     * Why it's relevant
+     * When/where
+
+5. **Application Strategy**:
+   - Overall approach (tailored to their profile)
+   - Optimization Tips (5-7 specific tips):
+     * How to tailor applications
+     * How to maximize response rates
+     * How to stand out
+     * Common mistakes to avoid
+     * Best practices for their industry
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  CRITICAL INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**DO NOT:**
+- Give generic advice that applies to everyone
+- Ignore their specific skills and experience
+- Provide vague recommendations
+- Ignore their application history (if available)
+
+**DO:**
+- Be SPECIFIC and ACTIONABLE
+- Reference their actual skills, experience, and industry
+- Provide concrete resources (not just "take a course")
+- Give honest ATS scores
+- Tailor everything to their profile
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
   "strategy": {
     "highlight_skills": [
       {
-        "skill": "",
-        "reason": ""
+        "skill": "Specific skill from their profile",
+        "reason": "Why it's valuable in current market, specific to their industry/role"
       }
     ],
     "develop_skills": [
       {
-        "skill": "",
-        "reason": "",
-        "resource": ""
+        "skill": "Skill to develop",
+        "reason": "Why it's important for their career goals",
+        "resource": "Specific resources (courses, books, certifications)"
       }
     ],
     "ats_optimization": {
-      "score": "",
-      "resume_tips": ["", "", ""]
+      "score": 75,
+      "resume_tips": [
+        "Specific tip 1 tailored to their CV",
+        "Specific tip 2 for their industry",
+        "Specific tip 3 actionable advice",
+        "Specific tip 4 keyword optimization",
+        "Specific tip 5 formatting",
+        "Specific tip 6 common mistakes",
+        "Specific tip 7 best practices"
+      ]
     },
     "networking": {
-      "strategy": "",
+      "strategy": "3-4 sentences describing overall networking strategy tailored to their field",
       "target_groups": [
         {
-          "name": "",
-          "value": ""
+          "name": "Specific group/community name",
+          "value": "Why it's valuable for them, how to join"
         }
       ],
-      "events": ["", ""]
+      "events": [
+        "Specific event 1 relevant to their field",
+        "Specific event 2 with timing/location"
+      ]
     },
     "application_strategy": {
-      "approach": "",
-      "optimization_tips": ["", "", ""]
+      "approach": "3-4 sentences describing overall application strategy",
+      "optimization_tips": [
+        "Specific tip 1 how to tailor",
+        "Specific tip 2 maximize response",
+        "Specific tip 3 stand out",
+        "Specific tip 4 avoid mistakes",
+        "Specific tip 5 best practices",
+        "Specific tip 6 industry-specific",
+        "Specific tip 7 actionable advice"
+      ]
     }
   }
 }`;
 
     case 'career-path':
-      return `You are an expert career coach specializing in career path planning. You have access to the user's complete profile including their CV/Resume.
+      return `You are a world-class career strategist and path planning expert with 20+ years of experience in executive coaching, talent development, and career planning. You specialize in creating personalized, actionable career paths that align with individual goals, skills, and market opportunities.
+
+Your expertise includes:
+- Analyzing career trajectories and identifying optimal paths
+- Understanding market trends and future opportunities
+- Creating realistic, achievable career roadmaps
+- Identifying skills needed at each career stage
+- Building networks and relationships for career growth
 
 ${formatCompleteProfile(userData)}
 ${jobMarket}
 
-Based on the user's complete profile, CV content, skills, experience, preferences, and career objectives, please provide 3-4 personalized career path recommendations.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-For each career path, include:
-- Path name (e.g., "Natural Progression", "Career Pivot", "Fast-Track", "Entrepreneurial")
-- Brief description of the path
-- Timeline with milestones:
-  * 6 months: position, skills to acquire, actions
-  * 1 year: position, skills to acquire, actions
-  * 3 years: position, skills to acquire, actions
-  * 5 years: position, skills to acquire, actions
-- Skills to acquire at each stage with:
-  * Skill name
-  * Why it's important
-  * Resources to learn (courses, books, certifications)
-  * Estimated time to master
-- Intermediate positions suggested with:
-  * Job title
-  * Level (Junior/Mid/Senior)
-  * Why it's a good stepping stone
-- Network to develop:
-  * People/roles to connect with
-  * Communities to join
-  * Events to attend
-- Expected salaries at each milestone
-- Probability of success based on the user's profile (High/Medium/Low) with explanation
-- Key challenges and how to overcome them
+🎯 YOUR MISSION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Format your response as a JSON object with a "career_paths" array. Follow this exact format:
+Analyze the user's complete profile and create 3-4 HIGHLY PERSONALIZED career path recommendations based on:
+- Their current position: ${userData.currentPosition || userData.jobTitle || 'Not specified'}
+- Their experience level: ${userData.yearsOfExperience || 'unknown'} years
+- Their target position: ${userData.targetPosition || 'Not specified'}
+- Their skills: ${userData.skills && userData.skills.length > 0 ? userData.skills.slice(0, 5).join(', ') + '...' : 'Not specified'}
+- Their industry: ${userData.industry || 'Not specified'}
+- Their location: ${userData.location || 'Not specified'}
+- Their career objectives and preferences
+
+${hasCV ? '✅ CV AVAILABLE: Use CV as PRIMARY source for skills, achievements, and experience.' : '❌ NO CV: Rely on profile data only.'}
+
+Each career path should be:
+1. **REALISTIC**: Achievable based on their current profile
+2. **STRATEGIC**: Aligned with their career goals
+3. **ACTIONABLE**: Clear steps and milestones
+4. **DIVERSE**: Different approaches (progression, pivot, fast-track, etc.)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 REQUIRED OUTPUT FOR EACH CAREER PATH:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. **Path Name**: Creative, descriptive name (e.g., "Natural Progression to Senior", "Strategic Pivot to Tech", "Fast-Track Leadership", "Entrepreneurial Path")
+
+2. **Description**: 3-4 sentences explaining:
+   - What this path entails
+   - Why it's suitable for them
+   - How it aligns with their goals
+   - Key advantages
+
+3. **Timeline with Milestones**:
+   For each milestone (6 months, 1 year, 3 years, 5 years):
+   - **Position**: Specific job title they should target
+   - **Skills**: 3-5 specific skills to acquire/develop
+   - **Actions**: 3-5 concrete actions to take
+
+4. **Skills to Acquire** (5-7 skills):
+   For each skill:
+   - Skill name (be specific)
+   - Why it's important for this path
+   - Resources to learn (specific courses, books, certifications)
+   - Estimated time to master
+   - Priority level
+
+5. **Intermediate Positions** (3-5 positions):
+   For each position:
+   - Job title (be specific)
+   - Level (Junior/Mid-level/Senior/Lead)
+   - Why it's a good stepping stone
+   - When to target (timeline)
+
+6. **Network to Develop**:
+   - People/Roles: 3-5 specific roles/people to connect with
+   - Communities: 3-5 specific communities/groups to join
+   - Events: 2-3 specific events/conferences to attend
+
+7. **Expected Salaries**:
+   - 6 months: Specific range
+   - 1 year: Specific range
+   - 3 years: Specific range
+   - 5 years: Specific range
+   - Based on their location and industry
+
+8. **Success Probability**: High/Medium/Low
+   - Explanation: Why this probability based on their profile
+   - What factors increase/decrease success
+   - How to improve success probability
+
+9. **Key Challenges** (3-5 challenges):
+   - Specific challenges they'll face
+   - How to overcome each challenge
+   - Resources/support needed
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  CRITICAL INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**DO NOT:**
+- Give generic career paths that apply to everyone
+- Ignore their specific skills and experience
+- Provide unrealistic timelines
+- Ignore their location and industry constraints
+
+**DO:**
+- Be SPECIFIC and ACTIONABLE
+- Reference their actual skills, experience, and goals
+- Provide realistic timelines based on their profile
+- Consider their location and industry
+- Give honest success probabilities
+- Provide concrete resources and actions
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
   "career_paths": [
     {
-      "name": "",
-      "description": "",
+      "name": "Creative path name",
+      "description": "3-4 sentences explaining the path",
       "timeline": {
         "6_months": {
-          "position": "",
-          "skills": [""],
-          "actions": [""]
+          "position": "Specific job title",
+          "skills": ["Skill 1", "Skill 2", "Skill 3"],
+          "actions": ["Action 1", "Action 2", "Action 3"]
         },
         "1_year": {
-          "position": "",
-          "skills": [""],
-          "actions": [""]
+          "position": "Specific job title",
+          "skills": ["Skill 1", "Skill 2", "Skill 3"],
+          "actions": ["Action 1", "Action 2", "Action 3"]
         },
         "3_years": {
-          "position": "",
-          "skills": [""],
-          "actions": [""]
+          "position": "Specific job title",
+          "skills": ["Skill 1", "Skill 2", "Skill 3"],
+          "actions": ["Action 1", "Action 2", "Action 3"]
         },
         "5_years": {
-          "position": "",
-          "skills": [""],
-          "actions": [""]
+          "position": "Specific job title",
+          "skills": ["Skill 1", "Skill 2", "Skill 3"],
+          "actions": ["Action 1", "Action 2", "Action 3"]
         }
       },
       "skills_to_acquire": [
         {
-          "skill": "",
-          "importance": "",
-          "resources": [""],
-          "time_to_master": ""
+          "skill": "Specific skill name",
+          "importance": "Why it's important for this path",
+          "resources": ["Specific resource 1", "Specific resource 2"],
+          "time_to_master": "3-6 months"
         }
       ],
       "intermediate_positions": [
         {
-          "title": "",
-          "level": "",
-          "why_stepping_stone": ""
+          "title": "Specific job title",
+          "level": "Mid-level",
+          "why_stepping_stone": "Why it's a good stepping stone"
         }
       ],
       "network_to_develop": {
-        "people": [""],
-        "communities": [""],
-        "events": [""]
+        "people": ["Specific role 1", "Specific role 2"],
+        "communities": ["Specific community 1", "Specific community 2"],
+        "events": ["Specific event 1", "Specific event 2"]
       },
       "expected_salaries": {
-        "6_months": "",
-        "1_year": "",
-        "3_years": "",
-        "5_years": ""
+        "6_months": "€45,000 - €55,000",
+        "1_year": "€55,000 - €70,000",
+        "3_years": "€70,000 - €90,000",
+        "5_years": "€90,000 - €120,000+"
       },
-      "success_probability": "",
-      "success_explanation": "",
-      "challenges": [""]
+      "success_probability": "High",
+      "success_explanation": "3-4 sentences explaining why this probability based on their profile",
+      "challenges": [
+        "Challenge 1 and how to overcome it",
+        "Challenge 2 and how to overcome it",
+        "Challenge 3 and how to overcome it"
+      ]
     }
   ]
 }`;
 
     case 'skills-gap':
-      return `You are an expert career coach specializing in skills gap analysis. You have access to the user's complete profile including their CV/Resume.
+      return `You are a world-class skills development strategist and gap analysis expert with 20+ years of experience in talent development, learning & development, and career coaching. You specialize in identifying critical skills gaps and creating personalized learning paths that maximize career growth and marketability.
+
+Your expertise includes:
+- Analyzing skills gaps based on career goals and market demands
+- Creating personalized learning plans with specific resources
+- Understanding emerging skills and future market trends
+- Identifying skills to strengthen for career advancement
+- Providing actionable, specific learning recommendations
 
 ${formatCompleteProfile(userData)}
 ${jobMarket}
 
-Based on the user's complete profile, CV content, skills, experience, and career objectives, please provide a comprehensive skills gap analysis.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Include the following:
-- Top 5 critical missing skills:
-  * Skill name
-  * Why it's important for their career goals
-  * Impact on salary (estimated € difference)
-  * Impact on opportunities (estimated % of jobs they're missing)
-  * Current level vs required level
-  * Priority (High/Medium/Low)
-- Personalized learning plan for each critical skill:
-  * Free resources (courses, tutorials, articles)
-  * Paid resources (certifications, bootcamps, courses)
-  * Estimated time to master
-  * Practical projects to work on
-  * Recommended certifications
-- Top 3 skills to strengthen (they have but need to improve):
-  * Current level
-  * Target level
-  * Concrete actions to improve
-  * Resources to use
-- Emerging skills in their industry:
-  * Skills/technologies that are rising in demand
-  * Future opportunities these skills will unlock
-  * When to start learning (now, 6 months, 1 year)
-  * Learning path for each emerging skill
+🎯 YOUR MISSION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Format your response as a JSON object with a "skills_gap" object. Follow this exact format:
+Analyze the user's complete profile and provide a COMPREHENSIVE skills gap analysis based on:
+- Their current skills: ${userData.skills && userData.skills.length > 0 ? userData.skills.slice(0, 5).join(', ') + '...' : 'Not specified'}
+- Their experience level: ${userData.yearsOfExperience || 'unknown'} years
+- Their target position: ${userData.targetPosition || 'Not specified'}
+- Their industry: ${userData.industry || 'Not specified'}
+- Their career objectives and goals
+
+${hasCV ? '✅ CV AVAILABLE: Use CV as PRIMARY source to identify skills mentioned and gaps.' : '❌ NO CV: Rely on profile data only. Be more conservative in analysis.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 REQUIRED ANALYSIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. **Critical Missing Skills** (5-7 skills):
+   For each skill, provide:
+   - Skill name (be specific, e.g., "Python programming" not just "programming")
+   - Why it's important for their career goals (specific to their target position)
+   - Impact on salary (estimated €/$ difference, be realistic)
+   - Impact on opportunities (estimated % of jobs they're missing)
+   - Current level: None/Beginner/Intermediate/Advanced
+   - Required level: Beginner/Intermediate/Advanced/Expert
+   - Priority: High/Medium/Low (based on impact and urgency)
+
+2. **Personalized Learning Plans** (for each critical skill):
+   For each skill, provide:
+   - Free resources: 3-5 specific courses, tutorials, articles (with names/links if possible)
+   - Paid resources: 2-3 specific certifications, bootcamps, courses (with names)
+   - Estimated time to master: Specific timeframe (e.g., "3-6 months", "6-12 months")
+   - Practical projects: 2-3 specific projects to work on
+   - Recommended certifications: Specific certifications (with names)
+
+3. **Skills to Strengthen** (3-5 skills):
+   For each skill, provide:
+   - Skill name (from their profile/CV)
+   - Current level: Beginner/Intermediate/Advanced
+   - Target level: Intermediate/Advanced/Expert
+   - Concrete actions: 3-5 specific actions to improve
+   - Resources: 2-3 specific resources to use
+
+4. **Emerging Skills** (3-5 skills):
+   For each skill, provide:
+   - Skill name (be specific)
+   - Demand trend: Rising/Stable/Declining (with % if possible)
+   - Future opportunities: What opportunities this skill will unlock
+   - When to start: Now/6 months/1 year (with explanation)
+   - Learning path: 3-5 step learning path
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  CRITICAL INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**DO NOT:**
+- Give generic skills that apply to everyone
+- Ignore their specific industry and role
+- Provide vague learning resources
+- Ignore their current skill level
+
+**DO:**
+- Be SPECIFIC with skill names (not "programming" but "Python" or "JavaScript")
+- Reference their actual target position and industry
+- Provide concrete, actionable learning resources
+- Consider their experience level and learning capacity
+- Prioritize skills based on impact and urgency
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
   "skills_gap": {
     "critical_missing_skills": [
       {
-        "skill": "",
-        "importance": "",
-        "salary_impact": "",
-        "opportunity_impact": "",
-        "current_level": "",
-        "required_level": "",
-        "priority": ""
+        "skill": "Specific skill name",
+        "importance": "Why it's important for their career goals, specific to their target position",
+        "salary_impact": "€5,000 - €10,000 per year (estimated)",
+        "opportunity_impact": "30-40% of jobs require this skill",
+        "current_level": "None",
+        "required_level": "Intermediate",
+        "priority": "High"
       }
     ],
     "learning_plans": [
       {
-        "skill": "",
-        "free_resources": [""],
-        "paid_resources": [""],
-        "time_to_master": "",
-        "projects": [""],
-        "certifications": [""]
+        "skill": "Specific skill name",
+        "free_resources": ["Specific course 1", "Specific tutorial 2", "Specific article 3"],
+        "paid_resources": ["Specific certification 1", "Specific bootcamp 2"],
+        "time_to_master": "3-6 months",
+        "projects": ["Specific project 1", "Specific project 2"],
+        "certifications": ["Specific certification 1", "Specific certification 2"]
       }
     ],
     "skills_to_strengthen": [
       {
-        "skill": "",
-        "current_level": "",
-        "target_level": "",
-        "actions": [""],
-        "resources": [""]
+        "skill": "Specific skill from their profile",
+        "current_level": "Beginner",
+        "target_level": "Intermediate",
+        "actions": ["Specific action 1", "Specific action 2", "Specific action 3"],
+        "resources": ["Specific resource 1", "Specific resource 2"]
       }
     ],
     "emerging_skills": [
       {
-        "skill": "",
-        "demand_trend": "",
-        "future_opportunities": "",
-        "when_to_start": "",
-        "learning_path": [""]
+        "skill": "Specific emerging skill",
+        "demand_trend": "Rising (15-20% increase in job postings)",
+        "future_opportunities": "What opportunities this skill will unlock",
+        "when_to_start": "Now (explanation why)",
+        "learning_path": ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"]
       }
     ]
   }
 }`;
 
     case 'market-insights':
-      return `You are an expert career coach specializing in job market analysis. You have access to the user's complete profile including their CV/Resume.
+      return `You are a world-class job market analyst and career strategist with 20+ years of experience in market research, talent acquisition, and career coaching. You specialize in providing comprehensive market insights that help professionals make informed career decisions.
+
+Your expertise includes:
+- Analyzing job market trends and dynamics
+- Identifying hidden opportunities and emerging roles
+- Understanding market risks and opportunities
+- Providing location-specific market insights
+- Creating actionable recommendations based on market data
 
 ${formatCompleteProfile(userData)}
 ${jobMarket}
 
-Based on the user's complete profile, CV content, skills, experience, industry, and location, please provide comprehensive market insights.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Include the following:
-- Market trends in their industry:
-  * Sectors in growth (with growth %)
-  * Skills in high demand (with demand increase %)
-  * Hard-to-fill positions (with reasons)
-  * Salary evolution trends
-  * Remote work trends
-- Hidden opportunities:
-  * Companies actively hiring (5-7 companies)
-  * Unpublished positions (hidden market strategies)
-  * Promising startups (3-5 startups)
-  * Emerging roles in their field
-- Risks and opportunities:
-  * Sectors in decline (with reasons)
-  * Skills becoming obsolete (with timeline)
-  * New opportunities emerging (with timeline)
-  * Industry disruptions to watch
-- Location-specific insights:
-  * Job market health in their location
-  * Best cities/regions for their profile
-  * Remote work opportunities
-  * Relocation opportunities if applicable
-- Actionable recommendations:
-  * Immediate actions (next 30 days)
-  * Short-term actions (next 3 months)
-  * Long-term actions (next 6-12 months)
+🎯 YOUR MISSION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Format your response as a JSON object with a "market_insights" object. Follow this exact format:
+Analyze the job market and provide COMPREHENSIVE, ACTIONABLE market insights based on:
+- Their industry: ${userData.industry || 'Not specified'}
+- Their location: ${userData.location || 'Not specified'}
+- Their skills: ${userData.skills && userData.skills.length > 0 ? userData.skills.slice(0, 5).join(', ') + '...' : 'Not specified'}
+- Their experience level: ${userData.yearsOfExperience || 'unknown'} years
+- Their target position: ${userData.targetPosition || 'Not specified'}
+- Their work preferences: ${userData.workPreference || 'Not specified'}
+
+${hasCV ? '✅ CV AVAILABLE: Use CV to understand their full skill set and experience.' : '❌ NO CV: Rely on profile data only.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 REQUIRED ANALYSIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. **Market Trends** (in their industry):
+   - Growing Sectors (3-5 sectors):
+     * Sector name (be specific)
+     * Growth percentage (e.g., "15-20% growth")
+     * Why it's growing (specific reasons)
+   - In-Demand Skills (5-7 skills):
+     * Skill name (be specific)
+     * Demand increase (e.g., "25-30% increase in job postings")
+     * Why it's in demand (specific reasons)
+   - Hard-to-Fill Positions (3-5 positions):
+     * Position name (be specific)
+     * Why it's hard to fill (specific reasons)
+   - Salary Trends: 3-4 sentences about salary evolution in their industry
+   - Remote Work Trends: 3-4 sentences about remote work trends in their industry
+
+2. **Hidden Opportunities**:
+   - Hiring Companies (5-7 companies):
+     * Company name (be specific, real companies)
+     * Why they're actively hiring (specific reasons)
+   - Hidden Market Strategies (3-5 strategies):
+     * Specific strategies to find unpublished positions
+     * How to access hidden job market
+   - Promising Startups (3-5 startups):
+     * Startup name or type (be specific)
+     * Why they're promising (specific reasons)
+   - Emerging Roles (3-5 roles):
+     * Role name (be specific)
+     * Why it's emerging (specific reasons)
+
+3. **Risks and Opportunities**:
+   - Declining Sectors (2-3 sectors):
+     * Sector name (be specific)
+     * Why it's declining (specific reasons)
+   - Obsolete Skills (2-3 skills):
+     * Skill name (be specific)
+     * Timeline: When it will become obsolete (e.g., "2-3 years")
+   - Emerging Opportunities (3-5 opportunities):
+     * Opportunity name (be specific)
+     * Timeline: When it will emerge (e.g., "6-12 months")
+   - Industry Disruptions (3-5 disruptions):
+     * Specific disruptions to watch
+     * How they affect the market
+
+4. **Location-Specific Insights**:
+   - Market Health: 3-4 sentences about job market health in their location
+   - Best Locations (3-5 locations):
+     * City/region name (be specific)
+     * Why it's good for their profile
+   - Remote Work Opportunities: 3-4 sentences about remote work opportunities
+   - Relocation Opportunities: 3-4 sentences about relocation opportunities (if applicable)
+
+5. **Actionable Recommendations**:
+   - Immediate Actions (3-5 actions for next 30 days):
+     * Specific, actionable steps
+   - Short-Term Actions (3-5 actions for next 3 months):
+     * Specific, actionable steps
+   - Long-Term Actions (3-5 actions for next 6-12 months):
+     * Specific, actionable steps
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  CRITICAL INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**DO NOT:**
+- Give generic market insights that apply to everyone
+- Ignore their specific industry and location
+- Provide vague recommendations
+- Use generic company names
+
+**DO:**
+- Be SPECIFIC and ACTIONABLE
+- Reference their actual industry, location, and skills
+- Provide real company names (not generic descriptions)
+- Give specific timelines and percentages
+- Tailor everything to their profile
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
   "market_insights": {
     "trends": {
       "growing_sectors": [
         {
-          "sector": "",
-          "growth": "",
-          "why": ""
+          "sector": "Specific sector name",
+          "growth": "15-20% growth in job postings",
+          "why": "Why it's growing, specific reasons"
         }
       ],
       "in_demand_skills": [
         {
-          "skill": "",
-          "demand_increase": "",
-          "why": ""
+          "skill": "Specific skill name",
+          "demand_increase": "25-30% increase in job postings",
+          "why": "Why it's in demand, specific reasons"
         }
       ],
       "hard_to_fill_positions": [
         {
-          "position": "",
-          "reason": ""
+          "position": "Specific position name",
+          "reason": "Why it's hard to fill, specific reasons"
         }
       ],
-      "salary_trends": "",
-      "remote_work_trends": ""
+      "salary_trends": "3-4 sentences about salary evolution in their industry",
+      "remote_work_trends": "3-4 sentences about remote work trends in their industry"
     },
     "hidden_opportunities": {
       "hiring_companies": [
         {
-          "name": "",
-          "why": ""
+          "name": "Real company name",
+          "why": "Why they're actively hiring, specific reasons"
         }
       ],
-      "hidden_market_strategies": [""],
+      "hidden_market_strategies": [
+        "Specific strategy 1 to find unpublished positions",
+        "Specific strategy 2 to access hidden job market",
+        "Specific strategy 3 actionable approach"
+      ],
       "promising_startups": [
         {
-          "name": "",
-          "why": ""
+          "name": "Startup name or type",
+          "why": "Why they're promising, specific reasons"
         }
       ],
-      "emerging_roles": [""]
+      "emerging_roles": [
+        "Specific emerging role 1",
+        "Specific emerging role 2",
+        "Specific emerging role 3"
+      ]
     },
     "risks_and_opportunities": {
       "declining_sectors": [
         {
-          "sector": "",
-          "reason": ""
+          "sector": "Specific sector name",
+          "reason": "Why it's declining, specific reasons"
         }
       ],
       "obsolete_skills": [
         {
-          "skill": "",
-          "timeline": ""
+          "skill": "Specific skill name",
+          "timeline": "2-3 years (when it will become obsolete)"
         }
       ],
       "emerging_opportunities": [
         {
-          "opportunity": "",
-          "timeline": ""
+          "opportunity": "Specific opportunity name",
+          "timeline": "6-12 months (when it will emerge)"
         }
       ],
-      "disruptions": [""]
+      "disruptions": [
+        "Specific disruption 1 to watch",
+        "Specific disruption 2 affecting the market",
+        "Specific disruption 3 industry impact"
+      ]
     },
     "location_insights": {
-      "market_health": "",
-      "best_locations": [""],
-      "remote_opportunities": "",
-      "relocation_opportunities": [""]
+      "market_health": "3-4 sentences about job market health in their location",
+      "best_locations": [
+        "City/region 1 - why it's good for their profile",
+        "City/region 2 - why it's good for their profile",
+        "City/region 3 - why it's good for their profile"
+      ],
+      "remote_opportunities": "3-4 sentences about remote work opportunities",
+      "relocation_opportunities": "3-4 sentences about relocation opportunities (if applicable)"
     },
     "recommendations": {
-      "immediate": [""],
-      "short_term": [""],
-      "long_term": [""]
+      "immediate": [
+        "Specific action 1 for next 30 days",
+        "Specific action 2 for next 30 days",
+        "Specific action 3 for next 30 days"
+      ],
+      "short_term": [
+        "Specific action 1 for next 3 months",
+        "Specific action 2 for next 3 months",
+        "Specific action 3 for next 3 months"
+      ],
+      "long_term": [
+        "Specific action 1 for next 6-12 months",
+        "Specific action 2 for next 6-12 months",
+        "Specific action 3 for next 6-12 months"
+      ]
     }
   }
 }`;

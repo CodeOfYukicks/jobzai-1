@@ -253,7 +253,7 @@ const ProfessionalProfilePage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                <h1 className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-white">
                   Professional Profile
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">

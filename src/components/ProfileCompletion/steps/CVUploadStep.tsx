@@ -59,25 +59,30 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-medium text-gray-900">Upload Your CV</h2>
-        <p className="mt-1 text-sm text-gray-500">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">Upload Your CV</h2>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Upload your CV to help us match you with the right opportunities
         </p>
       </div>
 
       {cvUrl && cvName ? (
-        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700
+          shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <FileText className="h-5 w-5 text-[#8D75E6]" />
               <div>
-                <p className="font-medium text-gray-900">{cvName}</p>
-                <p className="text-sm text-gray-500">CV uploaded successfully</p>
+                <p className="font-medium text-gray-900 dark:text-white">{cvName}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">CV uploaded successfully</p>
               </div>
             </div>
             
             <label className="flex items-center px-4 py-2 text-sm font-medium text-[#8D75E6] 
-              bg-[#8D75E6]/10 rounded-lg cursor-pointer hover:bg-[#8D75E6]/20 transition-colors">
+              bg-[#8D75E6]/10 dark:bg-[#8D75E6]/20 rounded-lg cursor-pointer 
+              hover:bg-[#8D75E6]/20 dark:hover:bg-[#8D75E6]/30 
+              transition-all duration-200
+              shadow-sm dark:shadow-[0_2px_4px_rgba(141,117,230,0.2)]
+              hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(141,117,230,0.3)]">
               {isUploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
@@ -110,21 +115,24 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
         </div>
       ) : (
         <div className="flex items-center justify-center w-full">
-          <label className="flex flex-col w-full h-32 border-2 border-gray-300 border-dashed 
-            rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+          <label className="flex flex-col w-full h-32 border-2 border-gray-300 dark:border-gray-700 border-dashed 
+            rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 
+            transition-all duration-200 bg-white dark:bg-gray-800
+            shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
+            hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               {isUploading ? (
                 <>
-                  <Loader2 className="w-8 h-8 mb-3 text-gray-400 animate-spin" />
-                  <p className="text-sm text-gray-500">Uploading...</p>
+                  <Loader2 className="w-8 h-8 mb-3 text-gray-400 dark:text-gray-500 animate-spin" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Uploading...</p>
                 </>
               ) : (
                 <>
-                  <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                  <p className="mb-2 text-sm text-gray-500">
+                  <Upload className="w-8 h-8 mb-3 text-gray-400 dark:text-gray-500" />
+                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">PDF or Word (MAX. 5MB)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">PDF or Word (MAX. 5MB)</p>
                 </>
               )}
             </div>
@@ -142,7 +150,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
       <div className="flex justify-between pt-6">
         <button
           onClick={onBack}
-          className="px-6 py-2 text-gray-600 hover:text-gray-900 font-medium"
+          className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium"
         >
           Back
         </button>
@@ -151,7 +159,9 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
           disabled={!cvUrl || !cvName}
           className="px-8 py-2 bg-[#8D75E6] text-white rounded-lg font-medium
             disabled:opacity-50 disabled:cursor-not-allowed
-            hover:bg-[#7B64D3] transition-colors"
+            hover:bg-[#7B64D3] transition-all duration-200
+            shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
+            hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]"
         >
           Continue
         </button>

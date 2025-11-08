@@ -102,7 +102,7 @@ export default function LoginPage() {
                   className="h-12 mx-auto transform transition-transform group-hover:scale-105"
                 />
               </Link>
-              <h2 className="mt-8 text-center text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h2 className="mt-8 text-center text-3xl font-bold text-purple-600 dark:text-white">
                 Sign in to your account
               </h2>
               <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">

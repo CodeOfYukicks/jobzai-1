@@ -46,6 +46,8 @@ import { analyzeCVWithGPT4Vision } from '../lib/gpt4VisionAnalysis';
 import CVSelectionModal from '../components/CVSelectionModal';
 // Import Perplexity for job extraction
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
+// Import LoadingModal for consistent loading experience
+import LoadingModal from '../components/LoadingModal';
 
 // Configurer le worker correctement pour utiliser le fichier local depuis public
 // Cela évite les problèmes CORS et 404 depuis les CDN externes
@@ -1752,81 +1754,35 @@ Return ONLY a structured JSON object with the following schema:
 
   const loadingMessages = {
     preparing: [
-      "Warming up the AI engines... 🧠",
-      "Preparing the analysis machine... ⚙️",
-      "Loading super analysis powers... 💪",
-      "Starting the talent detector... 🎯",
-      "Initializing genius mode... ✨"
+      "Preparing your resume analysis...",
+      "Initializing AI analysis engine...",
+      "Loading analysis tools...",
+      "Setting up the analysis framework...",
+      "Preparing to analyze your resume..."
     ],
     analyzing: [
-      "Reading your resume carefully... 👀",
-      "Decoding your super skills... 🔍",
-      "Analyzing your professional journey... 📊",
-      "Detecting career patterns... 🎨",
-      "Identifying your hidden strengths... 💎"
+      "Analyzing your resume content...",
+      "Reading and processing your CV...",
+      "Extracting key information...",
+      "Analyzing your professional profile...",
+      "Processing your qualifications..."
     ],
     matching: [
-      "Calculating compatibility score... 🎲",
-      "Finding perfect skills match... 🎯",
-      "Discovering hidden talents... 💫",
-      "Measuring educational alignment... 📐",
-      "Quantifying your expertise... 📈"
+      "Matching your profile with job requirements...",
+      "Calculating compatibility score...",
+      "Analyzing skills alignment...",
+      "Evaluating experience match...",
+      "Assessing your qualifications..."
     ],
     finalizing: [
-      "Crafting personalized recommendations... ✍️",
-      "Polishing the final report... ✨",
-      "Preparing actionable insights... 🚀",
-      "Formatting for maximum clarity... 📋",
-      "Adding the final touch... 🎁"
+      "Generating personalized recommendations...",
+      "Preparing your analysis report...",
+      "Finalizing insights and suggestions...",
+      "Compiling your results...",
+      "Almost done..."
     ]
   };
 
-  // LoadingScreen component - Modern, clean, simple and elegant
-  const LoadingScreen = () => {
-    return (
-      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
-        <div className="w-full max-w-lg px-6 py-12">
-          {/* Minimalist Icon with subtle animation */}
-          <div className="flex justify-center mb-8">
-            <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                <div className="text-2xl">✨</div>
-              </div>
-              {/* Subtle pulse effect */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 opacity-20 animate-pulse"></div>
-            </div>
-          </div>
-          
-          {/* Title */}
-          <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
-            Analyzing Your Resume
-          </h2>
-
-          {/* Message */}
-          <div className="text-center mb-8 min-h-[3rem] flex items-center justify-center">
-            <p className="text-base text-gray-600 dark:text-gray-300 font-medium">
-              {loadingMessage}
-            </p>
-          </div>
-
-          {/* Modern Progress Bar */}
-          <div className="mb-6">
-            <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
-              style={{ width: `${loadingProgress}%` }}
-              />
-          </div>
-            <div className="flex justify-center mt-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                {Math.round(loadingProgress)}%
-                      </span>
-                  </div>
-                </div>
-        </div>
-      </div>
-    );
-  };
 
   // Modifier l'effet pour les messages sans clignotement
   useEffect(() => {
@@ -4235,7 +4191,7 @@ URL to visit: ${jobUrl}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
                   ATS Resume Analysis
               </h1>
               <p className="mt-2 text-gray-500 dark:text-gray-400">
@@ -4655,10 +4611,12 @@ URL to visit: ${jobUrl}
           )}
         </AnimatePresence>
 
-        {/* LoadingScreen */}
-        <AnimatePresence>
-          {isLoading && <LoadingScreen />}
-        </AnimatePresence>
+        {/* LoadingModal - Apple-style loading modal */}
+        <LoadingModal
+          isOpen={isLoading}
+          progress={loadingProgress}
+          message={loadingMessage}
+        />
 
       {/* Analysis Detail Modal */}
       <AnimatePresence>

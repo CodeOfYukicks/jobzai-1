@@ -926,7 +926,7 @@ END:VCALENDAR`;
           className="mb-4 sm:mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 dark:text-white">
                 Job Applications
               </h1>
               <p className="mt-1 text-xs sm:text-sm lg:text-base text-gray-500 dark:text-gray-400">

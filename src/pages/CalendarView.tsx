@@ -1201,7 +1201,7 @@ export default function CalendarView() {
           transition={{ duration: 0.3 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold text-purple-600 dark:text-white mb-2">
             Calendar View
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-sm">

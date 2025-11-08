@@ -26,7 +26,7 @@ interface AuthContextType {
   isProfileCompleted: boolean;
   signInWithGoogle: () => Promise<any>;
   logout: () => Promise<void>;
-  signup: (email: string, password: string) => Promise<any>;
+  signup: (email: string, password: string, firstName?: string, lastName?: string) => Promise<any>;
   updateUserProfile: (firstName: string, lastName: string, photoURL?: string) => Promise<void>;
   completeProfile: (profileData: any) => Promise<void>;
 }
@@ -38,7 +38,7 @@ export const AuthContext = createContext<AuthContextType>({
   isProfileCompleted: false,
   signInWithGoogle: async () => {},
   logout: async () => {},
-  signup: async (email: string, password: string) => {},
+  signup: async (email: string, password: string, firstName?: string, lastName?: string) => {},
   updateUserProfile: async () => {},
   completeProfile: async () => {},
 });
@@ -140,21 +140,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string) => {
+  const signup = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       
+      // Mettre à jour le displayName dans Firebase Auth si firstName et lastName sont fournis
+      if (firstName && lastName) {
+        try {
+          await updateProfile(result.user, {
+            displayName: `${firstName} ${lastName}`,
+          });
+        } catch (profileError) {
+          console.error('Error updating profile:', profileError);
+          // Ne pas bloquer l'inscription si la mise à jour du profil échoue
+        }
+      }
+      
+      // Envoyer l'email de vérification immédiatement après la création du compte
+      try {
+        await sendEmailVerification(result.user, {
+          url: window.location.origin + '/complete-profile',
+          handleCodeInApp: false
+        });
+        console.log('Verification email sent successfully');
+      } catch (emailError) {
+        console.error('Error sending verification email:', emailError);
+        // Ne pas bloquer l'inscription si l'envoi d'email échoue
+        // L'utilisateur pourra demander un renvoi plus tard
+      }
+      
+      // Sauvegarder les données utilisateur dans Firestore
       const userRef = doc(db, 'users', result.user.uid);
-      await setDoc(userRef, {
+      const userData: any = {
         email: result.user.email,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         profileCompleted: false,
         emailVerified: false
-      });
+      };
 
-      console.log("Redirecting to complete-profile after signup");
-      navigate('/complete-profile');
+      // Ajouter firstName et lastName si fournis
+      if (firstName) {
+        userData.firstName = firstName;
+      }
+      if (lastName) {
+        userData.lastName = lastName;
+      }
+      if (firstName && lastName) {
+        userData.name = `${firstName} ${lastName}`;
+      }
+
+      await setDoc(userRef, userData);
+
+      console.log("Redirecting to verify-email after signup");
+      navigate('/verify-email');
       
       return result;
     } catch (error) {

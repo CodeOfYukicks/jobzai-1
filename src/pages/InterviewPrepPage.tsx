@@ -199,7 +199,88 @@ export default function InterviewPrepPage() {
   const [resourcesData, setResourcesData] = useState<Interview['resourcesData']>({ reviewedTips: [], savedLinks: [] });
   const [newResourceTitle, setNewResourceTitle] = useState('');
   const [newResourceUrl, setNewResourceUrl] = useState('');
+  const [activeQuestionFilter, setActiveQuestionFilter] = useState<'all' | 'technical' | 'behavioral' | 'company-specific' | 'role-specific'>('all');
   
+
+  // Function to determine question tags based on content
+  const getQuestionTags = (question: string): ('technical' | 'behavioral' | 'company-specific' | 'role-specific')[] => {
+    if (!question || typeof question !== 'string') return [];
+    
+    const lowerQuestion = question.toLowerCase();
+    const tags: ('technical' | 'behavioral' | 'company-specific' | 'role-specific')[] = [];
+    
+    // Technical keywords
+    const technicalKeywords = [
+      'code', 'programming', 'algorithm', 'technical', 'technology', 'software', 'hardware',
+      'system', 'database', 'api', 'framework', 'language', 'tool', 'platform', 'architecture',
+      'debug', 'optimize', 'implement', 'develop', 'design pattern', 'data structure',
+      'testing', 'deployment', 'infrastructure', 'security', 'performance', 'scalability'
+    ];
+    
+    // Behavioral keywords
+    const behavioralKeywords = [
+      'tell me about', 'describe a time', 'situation', 'challenge', 'conflict', 'team',
+      'leadership', 'mistake', 'failure', 'success', 'difficult', 'pressure', 'stress',
+      'collaborate', 'communicate', 'manage', 'handle', 'deal with', 'experience',
+      'example', 'story', 'scenario', 'how did you', 'what did you', 'when did you'
+    ];
+    
+    // Company-specific keywords
+    const companyKeywords = [
+      'company', 'organization', 'firm', 'business', 'our company', 'this company',
+      'why do you want to work', 'why are you interested', 'what do you know about',
+      'culture', 'values', 'mission', 'vision', 'why us', 'why here'
+    ];
+    
+    // Role-specific keywords
+    const roleKeywords = [
+      'this role', 'this position', 'job', 'responsibilities', 'duties', 'expectations',
+      'qualifications', 'requirements', 'skills needed', 'what makes you qualified',
+      'why are you a good fit', 'how do you fit', 'relevant experience'
+    ];
+    
+    // Check for technical
+    if (technicalKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+      tags.push('technical');
+    }
+    
+    // Check for behavioral
+    if (behavioralKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+      tags.push('behavioral');
+    }
+    
+    // Check for company-specific
+    if (companyKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+      tags.push('company-specific');
+    }
+    
+    // Check for role-specific
+    if (roleKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+      tags.push('role-specific');
+    }
+    
+    // Default: if no tags found, assign based on question structure
+    if (tags.length === 0) {
+      // Questions starting with "How", "What", "Why" about processes are often technical
+      if (lowerQuestion.startsWith('how') && (lowerQuestion.includes('would you') || lowerQuestion.includes('do you'))) {
+        tags.push('technical');
+      }
+      // Questions about past experiences are behavioral
+      else if (lowerQuestion.includes('have you') || lowerQuestion.includes('did you')) {
+        tags.push('behavioral');
+      }
+      // Questions about the company
+      else if (lowerQuestion.includes('why') && (lowerQuestion.includes('want') || lowerQuestion.includes('interested'))) {
+        tags.push('company-specific');
+      }
+      // Default to role-specific
+      else {
+        tags.push('role-specific');
+      }
+    }
+    
+    return tags;
+  };
 
   // Reusable company news fetcher
   const fetchCompanyNews = async () => {
@@ -2204,7 +2285,7 @@ Make sure each answer is completely unique and specific to its question - no gen
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-violet-500 to-indigo-600 bg-clip-text text-transparent mb-1">
+                <h1 className="text-3xl font-bold text-purple-600 dark:text-white mb-1">
                   Interview Preparation
                 </h1>
                 {application && (
@@ -2916,11 +2997,43 @@ Make sure each answer is completely unique and specific to its question - no gen
                         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex flex-wrap items-center gap-2">
                           <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
                           <span>Interview Questions</span>
-                          {interview.preparation?.suggestedQuestions && !isRegeneratingQuestions && (
-                            <span className="text-xs sm:text-sm font-normal bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
-                              {interview.preparation.suggestedQuestions.length} questions
-                            </span>
-                          )}
+                          {interview.preparation?.suggestedQuestions && !isRegeneratingQuestions && (() => {
+                            const allQuestions = interview.preparation.suggestedQuestions || [];
+                            const validQuestions = allQuestions.filter(q => {
+                              if (typeof q !== 'string') return false;
+                              return !q.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/);
+                            });
+                            
+                            const filteredCount = activeQuestionFilter === 'all' 
+                              ? validQuestions.length
+                              : validQuestions.filter(question => {
+                                  const cleaned = typeof question === 'string' 
+                                    ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
+                                               .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
+                                               .replace(/["']\s*,\s*$/g, '')
+                                               .replace(/,\s*$/g, '')
+                                               .replace(/["']?\s*\]\s*,?\s*$/g, '')
+                                               .replace(/["']?\s*\}\s*,?\s*$/g, '')
+                                               .replace(/^["']?/g, '')
+                                               .replace(/["']?$/g, '')
+                                               .trim()
+                                    : '';
+                                  
+                                  if (!cleaned || cleaned.length < 10) return false;
+                                  
+                                  const tags = getQuestionTags(cleaned);
+                                  return tags.includes(activeQuestionFilter);
+                                }).length;
+                            
+                            return (
+                              <span className="text-xs sm:text-sm font-normal bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
+                                {filteredCount} {filteredCount === 1 ? 'question' : 'questions'}
+                                {activeQuestionFilter !== 'all' && filteredCount < validQuestions.length && (
+                                  <span className="text-purple-500 dark:text-purple-300"> / {validQuestions.length}</span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </h2>
                         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                           Personalized questions for your {application.position} interview
@@ -2947,21 +3060,28 @@ Make sure each answer is completely unique and specific to its question - no gen
                     
                     {/* Question filters - responsive scrolling */}
                     <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] sm:text-xs whitespace-nowrap shadow-sm flex-shrink-0">
-                        All Questions
-                      </button>
-                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 text-[10px] sm:text-xs whitespace-nowrap transition-colors flex-shrink-0">
-                        Technical
-                      </button>
-                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 text-[10px] sm:text-xs whitespace-nowrap transition-colors flex-shrink-0">
-                        Behavioral
-                      </button>
-                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 text-[10px] sm:text-xs whitespace-nowrap transition-colors flex-shrink-0">
-                        Company Specific
-                      </button>
-                      <button className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 text-[10px] sm:text-xs whitespace-nowrap transition-colors flex-shrink-0">
-                        Role Specific
-                      </button>
+                      {([
+                        { id: 'all', label: 'All Questions' },
+                        { id: 'technical', label: 'Technical' },
+                        { id: 'behavioral', label: 'Behavioral' },
+                        { id: 'company-specific', label: 'Company Specific' },
+                        { id: 'role-specific', label: 'Role Specific' }
+                      ] as const).map((filter) => {
+                        const isActive = activeQuestionFilter === filter.id;
+                        return (
+                          <button
+                            key={filter.id}
+                            onClick={() => setActiveQuestionFilter(filter.id as typeof activeQuestionFilter)}
+                            className={`px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-xs whitespace-nowrap transition-all flex-shrink-0 ${
+                              isActive
+                                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shadow-sm font-medium'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            {filter.label}
+                          </button>
+                        );
+                      })}
                     </div>
                     
                     {/* Add custom CSS for scrollbar styling */}
@@ -2981,6 +3101,31 @@ Make sure each answer is completely unique and specific to its question - no gen
                         // Filtrer les éléments invalides comme "questions": [
                         if (typeof q !== 'string') return false;
                         return !q.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/);
+                      })
+                      ?.filter(question => {
+                        // Filter by active filter
+                        if (activeQuestionFilter === 'all') return true;
+                        
+                        // Clean the question for tag detection
+                        const cleaned = typeof question === 'string' 
+                          ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
+                                     .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
+                                     .replace(/["']\s*,\s*$/g, '')
+                                     .replace(/,\s*$/g, '')
+                                     .replace(/["']?\s*\]\s*,?\s*$/g, '')
+                                     .replace(/["']?\s*\}\s*,?\s*$/g, '')
+                                     .replace(/^["']?/g, '')
+                                     .replace(/["']?$/g, '')
+                                     .trim()
+                          : '';
+                        
+                        if (!cleaned || cleaned.length < 10) return false;
+                        
+                        // Get tags for this question
+                        const tags = getQuestionTags(cleaned);
+                        
+                        // Check if question matches the active filter
+                        return tags.includes(activeQuestionFilter);
                       })
                       ?.map((question, index) => {
                         // Nettoyer la question pour vérifier qu'elle est valide
@@ -3075,6 +3220,46 @@ Make sure each answer is completely unique and specific to its question - no gen
                                 />
                               </button>
                             </div>
+                            
+                            {/* Question Tags */}
+                            {(() => {
+                              const questionText = typeof question === 'string' 
+                                ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
+                                           .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
+                                           .replace(/["']\s*,\s*$/g, '')
+                                           .replace(/,\s*$/g, '')
+                                           .replace(/["']?\s*\]\s*,?\s*$/g, '')
+                                           .replace(/["']?\s*\}\s*,?\s*$/g, '')
+                                           .replace(/^["']?/g, '')
+                                           .replace(/["']?$/g, '')
+                                           .trim()
+                                : '';
+                              
+                              if (!questionText || questionText.length < 10) return null;
+                              
+                              const tags = getQuestionTags(questionText);
+                              if (tags.length === 0) return null;
+                              
+                              const tagLabels: Record<string, string> = {
+                                'technical': 'Technical',
+                                'behavioral': 'Behavioral',
+                                'company-specific': 'Company Specific',
+                                'role-specific': 'Role Specific'
+                              };
+                              
+                              return (
+                                <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
+                                  {tags.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800"
+                                    >
+                                      {tagLabels[tag]}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                             
                             {/* Contenu déroulant - caché lorsque la question est réduite */}
                             <AnimatePresence>
@@ -3301,17 +3486,77 @@ Make sure each answer is completely unique and specific to its question - no gen
                       })
                       .filter(Boolean)}
                     
-                    {(!isRegeneratingQuestions && (!interview.preparation?.suggestedQuestions || interview.preparation.suggestedQuestions.length === 0)) && (
-                      <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium">
-                          No suggested questions available
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 px-4">
-                          Analyze a job posting to get AI-generated interview questions
-                        </p>
-                      </div>
-                    )}
+                    {!isRegeneratingQuestions && (() => {
+                      const allQuestions = interview.preparation?.suggestedQuestions || [];
+                      const validQuestions = allQuestions.filter(q => {
+                        if (typeof q !== 'string') return false;
+                        return !q.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/);
+                      });
+                      
+                      const filteredQuestions = validQuestions.filter(question => {
+                        if (activeQuestionFilter === 'all') return true;
+                        
+                        const cleaned = typeof question === 'string' 
+                          ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
+                                     .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
+                                     .replace(/["']\s*,\s*$/g, '')
+                                     .replace(/,\s*$/g, '')
+                                     .replace(/["']?\s*\]\s*,?\s*$/g, '')
+                                     .replace(/["']?\s*\}\s*,?\s*$/g, '')
+                                     .replace(/^["']?/g, '')
+                                     .replace(/["']?$/g, '')
+                                     .trim()
+                          : '';
+                        
+                        if (!cleaned || cleaned.length < 10) return false;
+                        
+                        const tags = getQuestionTags(cleaned);
+                        return tags.includes(activeQuestionFilter);
+                      });
+                      
+                      if (validQuestions.length === 0) {
+                        return (
+                          <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" />
+                            <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium">
+                              No suggested questions available
+                            </p>
+                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 px-4">
+                              Analyze a job posting to get AI-generated interview questions
+                            </p>
+                          </div>
+                        );
+                      }
+                      
+                      if (filteredQuestions.length === 0 && activeQuestionFilter !== 'all') {
+                        const filterLabels: Record<string, string> = {
+                          'technical': 'Technical',
+                          'behavioral': 'Behavioral',
+                          'company-specific': 'Company Specific',
+                          'role-specific': 'Role Specific'
+                        };
+                        
+                        return (
+                          <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" />
+                            <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium">
+                              No {filterLabels[activeQuestionFilter]} questions found
+                            </p>
+                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 px-4">
+                              Try selecting a different filter or click "All Questions" to see all available questions
+                            </p>
+                            <button
+                              onClick={() => setActiveQuestionFilter('all')}
+                              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                            >
+                              Show All Questions
+                            </button>
+                          </div>
+                        );
+                      }
+                      
+                      return null;
+                    })()}
                   </motion.div>
                 )}
                 

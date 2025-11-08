@@ -5,9 +5,17 @@ import { toast } from 'sonner';
  * @returns Base URL for API calls
  */
 function getApiBaseUrl(): string {
-  // In production, use relative URLs for same domain
-  // In development, with proxy config in vite.config.ts,
-  // we can also use relative URLs
+  // In production, use direct Cloud Run URL for Firebase Functions v2
+  // Firebase Functions v2 are deployed on Cloud Run and need direct URL
+  // The rewrite in firebase.json doesn't work reliably with v2 functions
+  if (import.meta.env.PROD || window.location.hostname !== 'localhost') {
+    // Production: Use direct Cloud Run URL
+    // Format: https://FUNCTION_NAME-HASH-REGION.a.run.app
+    // For analyzeCVVision: https://analyzecvvision-pyozgz4rbq-uc.a.run.app
+    return 'https://analyzecvvision-pyozgz4rbq-uc.a.run.app';
+  }
+  
+  // Development: Use relative URL with proxy
   return '/api';
 }
 
@@ -1033,7 +1041,11 @@ export async function analyzeCVWithGPT4Vision(
     console.log(`   Job: ${jobDetails.jobTitle} at ${jobDetails.company}`);
     
     const baseApiUrl = getApiBaseUrl();
-    const apiUrl = `${baseApiUrl}/analyze-cv-vision`;
+    // For direct Cloud Run URL, use it directly (no /api/analyze-cv-vision path)
+    // For relative URL (/api), append the endpoint path
+    const apiUrl = baseApiUrl.startsWith('http') 
+      ? baseApiUrl  // Direct Cloud Run URL - use as is
+      : `${baseApiUrl}/analyze-cv-vision`;  // Relative URL - append path
     
     // Build the prompt
     const prompt = buildATSAnalysisPrompt(jobDetails);

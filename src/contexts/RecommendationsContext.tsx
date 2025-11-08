@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 // Type definition for recommendation types
 export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy' | 'career-path' | 'skills-gap' | 'market-insights';
@@ -126,15 +127,28 @@ export const getStateKey = (type: RecommendationType): keyof RecommendationState
 const RecommendationsContext = createContext<RecommendationsContextType | undefined>(undefined);
 
 export const RecommendationsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { currentUser } = useAuth();
+  
+  // Get storage key based on current user ID
+  const getStorageKey = (userId: string | null) => {
+    return userId ? `jobzai_recommendations_${userId}` : 'jobzai_recommendations';
+  };
+
   const [recommendations, setRecommendations] = useState<RecommendationState>(() => {
-    // Try to load from localStorage on initial render
-    const savedRecommendations = localStorage.getItem('jobzai_recommendations');
+    // Only load from localStorage if we have a user
+    if (!currentUser) {
+      return initialState;
+    }
+    
+    const storageKey = getStorageKey(currentUser.uid);
+    const savedRecommendations = localStorage.getItem(storageKey);
+    
     if (savedRecommendations) {
       try {
         const parsed = JSON.parse(savedRecommendations);
         // Convert string dates back to Date objects
         Object.keys(parsed).forEach(key => {
-          if (parsed[key].lastUpdated) {
+          if (parsed[key]?.lastUpdated) {
             parsed[key].lastUpdated = new Date(parsed[key].lastUpdated);
           }
         });
@@ -147,10 +161,42 @@ export const RecommendationsProvider: React.FC<{ children: ReactNode }> = ({ chi
     return initialState;
   });
 
-  // Save to localStorage whenever recommendations change
+  // Clear recommendations when user changes
   useEffect(() => {
-    localStorage.setItem('jobzai_recommendations', JSON.stringify(recommendations));
-  }, [recommendations]);
+    if (currentUser) {
+      // Load recommendations for current user
+      const storageKey = getStorageKey(currentUser.uid);
+      const savedRecommendations = localStorage.getItem(storageKey);
+      
+      if (savedRecommendations) {
+        try {
+          const parsed = JSON.parse(savedRecommendations);
+          Object.keys(parsed).forEach(key => {
+            if (parsed[key]?.lastUpdated) {
+              parsed[key].lastUpdated = new Date(parsed[key].lastUpdated);
+            }
+          });
+          setRecommendations(parsed);
+        } catch (e) {
+          console.error('Failed to parse saved recommendations:', e);
+          setRecommendations(initialState);
+        }
+      } else {
+        setRecommendations(initialState);
+      }
+    } else {
+      // Clear recommendations when user logs out
+      setRecommendations(initialState);
+    }
+  }, [currentUser?.uid]);
+
+  // Save to localStorage whenever recommendations change (only if user is logged in)
+  useEffect(() => {
+    if (currentUser) {
+      const storageKey = getStorageKey(currentUser.uid);
+      localStorage.setItem(storageKey, JSON.stringify(recommendations));
+    }
+  }, [recommendations, currentUser?.uid]);
 
   const setRecommendationLoading = (type: RecommendationType, isLoading: boolean) => {
     const key = getStateKey(type);
@@ -191,6 +237,11 @@ export const RecommendationsProvider: React.FC<{ children: ReactNode }> = ({ chi
 
   const clearRecommendations = () => {
     setRecommendations(initialState);
+    if (currentUser) {
+      const storageKey = getStorageKey(currentUser.uid);
+      localStorage.removeItem(storageKey);
+    }
+    // Also clear old format for backward compatibility
     localStorage.removeItem('jobzai_recommendations');
   };
 
