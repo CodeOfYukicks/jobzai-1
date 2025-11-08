@@ -19,10 +19,11 @@ import {
   Search, RefreshCw, Maximize2, Minimize2, ArrowRight,
   MousePointer, Square, Circle, Minus, Link2, ArrowUp,
   CheckSquare, ExternalLink, BarChart2, Bookmark, ThumbsUp,
-  Newspaper, Users, PieChart, Award, Flag, Edit
+  Newspaper, Users, PieChart, Award, Flag, Edit, Sparkles, Zap, Brain, Target
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
+import LoadingModal from '../components/LoadingModal';
 
 // Interface for the job application data
 interface Note {
@@ -137,6 +138,10 @@ export default function InterviewPrepPage() {
   const [interview, setInterview] = useState<Interview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzingProgress, setAnalyzingProgress] = useState<number>(0);
+  const [analyzingMessage, setAnalyzingMessage] = useState<string>("Analyzing Job Posting");
+  const [regeneratingProgress, setRegeneratingProgress] = useState<number>(0);
+  const [regeneratingMessage, setRegeneratingMessage] = useState<string>("Generating New Questions");
   const [jobUrl, setJobUrl] = useState('');
   const [tab, setTab] = useState<'overview' | 'questions' | 'skills' | 'resources' | 'chat'>('overview');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
@@ -546,8 +551,43 @@ Key points to mention:
     }
     
     setIsAnalyzing(true);
+    setAnalyzingProgress(0);
+    setAnalyzingMessage("Initializing AI analysis...");
     
     try {
+      // Gradual progress updates for smooth animation
+      setAnalyzingProgress(5);
+      setAnalyzingMessage("Connecting to AI services...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(10);
+      setAnalyzingMessage("Loading job posting...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(15);
+      setAnalyzingMessage("Extracting job requirements...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(25);
+      setAnalyzingMessage("Parsing job description...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(35);
+      setAnalyzingMessage("Analyzing company information...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(45);
+      setAnalyzingMessage("Cross-referencing with market data...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(55);
+      setAnalyzingMessage("Generating initial insights...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(65);
+      setAnalyzingMessage("Preparing interview questions...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
       const analysisRaw = await analyzeJobPost(
         jobUrl,
         application.position,
@@ -567,10 +607,19 @@ Key points to mention:
         error: analysisRaw.error
       };
       
+      setAnalyzingProgress(75);
+      setAnalyzingMessage("Refining interview questions...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(85);
+      setAnalyzingMessage("Finalizing analysis...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
       // Check if there's an error
       if (analysisResult.error) {
         toast.error(analysisResult.error);
         setIsAnalyzing(false);
+        setAnalyzingProgress(0);
         return;
       }
       
@@ -585,6 +634,7 @@ Key points to mention:
       if (!hasData) {
         toast.error('No data was extracted from the job posting. Please try again or check the URL.');
         setIsAnalyzing(false);
+        setAnalyzingProgress(0);
         return;
       }
       
@@ -640,12 +690,23 @@ Key points to mention:
         interviews: updatedInterviews
       });
       
+      setAnalyzingProgress(95);
+      setAnalyzingMessage("Saving results...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setAnalyzingProgress(100);
+      setAnalyzingMessage("Analysis complete!");
+      
+      // Small delay to show 100% before closing
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       toast.success('Job post analyzed successfully! All sections have been updated.');
     } catch (error) {
       console.error('Error analyzing job post:', error);
       toast.error('Failed to analyze job post: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsAnalyzing(false);
+      setAnalyzingProgress(0);
     }
   };
 
@@ -1052,11 +1113,37 @@ Key points to mention:
     
     // Ne pas afficher d'info toast car nous avons un loader visuel
     setIsRegeneratingQuestions(true);
+    setRegeneratingProgress(0);
+    setRegeneratingMessage("Initializing question generation...");
     
     // Remonter en haut de la page pour voir le chargement
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
     try {
+      // Gradual progress updates for smooth animation
+      setRegeneratingProgress(5);
+      setRegeneratingMessage("Loading job requirements...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setRegeneratingProgress(10);
+      setRegeneratingMessage("Analyzing job requirements...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setRegeneratingProgress(20);
+      setRegeneratingMessage("Reviewing user profile...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setRegeneratingProgress(30);
+      setRegeneratingMessage("Crafting question prompts...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setRegeneratingProgress(40);
+      setRegeneratingMessage("Creating personalized questions...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      setRegeneratingProgress(50);
+      setRegeneratingMessage("Querying AI for questions...");
+      await new Promise(resolve => setTimeout(resolve, 150));
       // Récupérer les questions sauvegardées du localStorage
       const savedQuestions: string[] = JSON.parse(localStorage.getItem('savedQuestions') || '[]');
       
@@ -1103,9 +1190,24 @@ CRITICAL: The "question" field in each answer object must EXACTLY match the corr
 Make sure each answer is completely unique and specific to its question - no generic advice.
 `;
 
+      setRegeneratingProgress(60);
+      setRegeneratingMessage("Waiting for AI response...");
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
       const response = await queryPerplexity(prompt);
       
       if (response) {
+        setRegeneratingProgress(70);
+        setRegeneratingMessage("Processing AI response...");
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        setRegeneratingProgress(80);
+        setRegeneratingMessage("Parsing question data...");
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        setRegeneratingProgress(85);
+        setRegeneratingMessage("Formatting questions...");
+        await new Promise(resolve => setTimeout(resolve, 150));
         // Extract and clean the JSON from the response
         const contentFromAPI = response?.choices?.[0]?.message?.content || response?.text || '';
         if (!contentFromAPI) {
@@ -1637,8 +1739,19 @@ Make sure each answer is completely unique and specific to its question - no gen
             preparation: updatedPreparation
           });
           
-          // Attendre un court instant pour que l'animation soit plus fluide
-          await new Promise(resolve => setTimeout(resolve, 500));
+          setRegeneratingProgress(90);
+          setRegeneratingMessage("Categorizing questions...");
+          await new Promise(resolve => setTimeout(resolve, 150));
+          
+          setRegeneratingProgress(95);
+          setRegeneratingMessage("Saving questions...");
+          await new Promise(resolve => setTimeout(resolve, 150));
+          
+          setRegeneratingProgress(100);
+          setRegeneratingMessage("Questions generated!");
+          
+          // Small delay to show 100% before closing
+          await new Promise(resolve => setTimeout(resolve, 300));
           
           toast.success('New interview questions generated successfully!');
         } catch (parseError) {
@@ -1653,6 +1766,7 @@ Make sure each answer is completely unique and specific to its question - no gen
       toast.error('Failed to generate new questions: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsRegeneratingQuestions(false);
+      setRegeneratingProgress(0);
     }
   };
 
@@ -2324,101 +2438,114 @@ Make sure each answer is completely unique and specific to its question - no gen
             </div>
           </motion.div>
 
-          {/* Job URL Input Section */}
+          {/* Job URL Input Section - Modern Apple-style Design */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8"
+            className="relative overflow-hidden bg-gradient-to-br from-white via-purple-50/30 to-indigo-50/20 dark:from-gray-800 dark:via-purple-900/10 dark:to-indigo-900/10 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 mb-8 backdrop-blur-sm"
           >
-            <div className="border-b border-gray-100 dark:border-gray-700 px-6 py-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Job Posting Analysis</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Enter a job posting URL to generate personalized interview preparation
-              </p>
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 opacity-5 dark:opacity-10">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500 rounded-full blur-3xl"></div>
             </div>
             
-            <div className="p-6">
-              <div className="relative">
-                <input
-                  type="url"
-                  value={jobUrl}
-                  onChange={(e) => setJobUrl(e.target.value)}
-                  placeholder="https://example.com/job-posting"
-                  className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white pr-32"
-                />
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
-                  <Link2 className="w-4 h-4" />
+            <div className="relative">
+              {/* Header Section with AI Value Proposition */}
+              <div className="px-8 pt-8 pb-6">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/30">
+                        <Sparkles className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                          AI-Powered Job Analysis
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          Transform any job posting into personalized interview prep
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* AI Capabilities Badges */}
+                    <div className="flex flex-wrap items-center gap-2 mt-4">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-xs font-medium text-gray-700 dark:text-gray-300">
+                        <Brain className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>Smart Analysis</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-xs font-medium text-gray-700 dark:text-gray-300">
+                        <Target className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>Personalized Questions</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-xs font-medium text-gray-700 dark:text-gray-300">
+                        <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                        <span>Instant Insights</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={handleAnalyzeJobPost}
-                  disabled={isAnalyzing || !jobUrl}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 
-                    text-white rounded-md transition-colors flex items-center justify-center gap-1.5 text-sm font-medium disabled:cursor-not-allowed"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Analyzing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-3.5 h-3.5" />
-                      <span>Analyze</span>
-                    </>
-                  )}
-                </button>
+              </div>
+              
+              {/* Input Section */}
+              <div className="px-8 pb-8">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-indigo-500/20 to-purple-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl p-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-shrink-0 pl-4 pr-2">
+                        <div className="p-2 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30">
+                          <Link2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+                      </div>
+                      <input
+                        type="url"
+                        value={jobUrl}
+                        onChange={(e) => setJobUrl(e.target.value)}
+                        placeholder="Paste job posting URL here..."
+                        className="flex-1 px-4 py-4 bg-transparent border-0 focus:ring-0 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium outline-none"
+                      />
+                      <button
+                        onClick={handleAnalyzeJobPost}
+                        disabled={isAnalyzing || !jobUrl}
+                        className="flex-shrink-0 px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 
+                          text-white rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold disabled:cursor-not-allowed shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 disabled:shadow-none disabled:hover:shadow-none transform hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {isAnalyzing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Analyzing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>Analyze with AI</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Value Proposition Text */}
+                <div className="mt-4 flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <CheckCircle className="w-3.5 h-3.5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                  <p className="leading-relaxed">
+                    Our AI extracts key requirements, generates personalized interview questions, and provides strategic insights to help you prepare effectively.
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Loading overlay */}
-          <AnimatePresence>
-            {isAnalyzing && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-              >
-                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl"
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div className="relative mb-6">
-                      <div className="w-20 h-20 rounded-full border-4 border-purple-100 dark:border-gray-700 border-t-purple-500 dark:border-t-purple-400 animate-spin"></div>
-                      <motion.div
-                        initial={{ rotate: 0 }}
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                        className="absolute inset-0 flex items-center justify-center"
-                      >
-                        <Search className="w-8 h-8 text-purple-500 dark:text-purple-400" />
-                      </motion.div>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                      Analyzing Job Posting
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">
-                      Our AI is analyzing the job requirements, company information, and preparing interview questions for you.
-                    </p>
-                    <motion.div 
-                      initial={{ width: "0%" }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 8 }}
-                      className="h-1.5 bg-purple-500 rounded-full w-full max-w-xs"
-                    ></motion.div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                      This may take a moment...
-                    </p>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* LoadingModal - Apple-style loading modal for job post analysis */}
+          <LoadingModal
+            isOpen={isAnalyzing}
+            progress={analyzingProgress}
+            message={analyzingMessage}
+          />
 
           {/* Tab navigation */}
           <div className="mb-8">
@@ -2956,40 +3083,12 @@ Make sure each answer is completely unique and specific to its question - no gen
                     exit={{ opacity: 0 }}
                     className="space-y-6 relative"
                   >
-                    {/* Loading overlay pour la section questions uniquement */}
-                    {isRegeneratingQuestions && (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="fixed inset-0 bg-white/80 dark:bg-gray-900/80 z-50 flex items-center justify-center backdrop-blur-md"
-                      >
-                        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl flex flex-col items-center max-w-md">
-                          <div className="relative mb-4">
-                            <div className="w-16 h-16 border-4 border-purple-100 dark:border-gray-700 border-t-purple-500 dark:border-t-purple-400 rounded-full animate-spin"></div>
-                            <motion.div
-                              initial={{ rotate: 0 }}
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                              className="absolute inset-0 flex items-center justify-center"
-                            >
-                              <RefreshCw className="w-7 h-7 text-purple-500 dark:text-purple-400" />
-                            </motion.div>
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                            Generating New Questions
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-4">
-                            Our AI is creating personalized interview questions based on the job description and your profile.
-                          </p>
-                          <motion.div 
-                            initial={{ width: "0%" }}
-                            animate={{ width: "100%" }}
-                            transition={{ duration: 8 }}
-                            className="h-1.5 bg-purple-500 rounded-full w-full max-w-xs"
-                          ></motion.div>
-                        </div>
-                      </motion.div>
-                    )}
+                    {/* LoadingModal - Apple-style loading modal for question regeneration */}
+                    <LoadingModal
+                      isOpen={isRegeneratingQuestions}
+                      progress={regeneratingProgress}
+                      message={regeneratingMessage}
+                    />
                     
                     {/* Responsive header section */}
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">

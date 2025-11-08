@@ -7,6 +7,7 @@ import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import CampaignsPage from './pages/CampaignsPage';
+import CampaignsEarlyAccessPage from './pages/CampaignsEarlyAccessPage';
 import EmailTemplatesPage from './pages/EmailTemplatesPage';
 import CreateTemplatePage from './pages/CreateTemplatePage';
 import CampaignEmailsPage from './pages/CampaignEmailsPage';
@@ -108,7 +109,14 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/email-templates" element={<EmailTemplatesPage />} />
           <Route path="/email-templates/new" element={<CreateTemplatePage />} />
-          <Route path="/campaigns" element={<CampaignsPage />} />
+          <Route 
+            path="/campaigns" 
+            element={
+              import.meta.env.VITE_CAMPAIGNS_ENABLED === 'true' 
+                ? <CampaignsPage /> 
+                : <CampaignsEarlyAccessPage />
+            } 
+          />
           <Route path="/campaign-emails" element={<CampaignEmailsPage />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/billing" element={<BillingPage />} />

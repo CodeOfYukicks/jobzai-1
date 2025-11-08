@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup, User, createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, User, createUserWithEmailAndPassword, sendEmailVerification, updateProfile, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
@@ -26,7 +26,10 @@ interface AuthContextType {
   isProfileCompleted: boolean;
   signInWithGoogle: () => Promise<any>;
   logout: () => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
   signup: (email: string, password: string, firstName?: string, lastName?: string) => Promise<any>;
+  resetPassword: (email: string) => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
   updateUserProfile: (firstName: string, lastName: string, photoURL?: string) => Promise<void>;
   completeProfile: (profileData: any) => Promise<void>;
 }
@@ -38,7 +41,10 @@ export const AuthContext = createContext<AuthContextType>({
   isProfileCompleted: false,
   signInWithGoogle: async () => {},
   logout: async () => {},
+  login: async (email: string, password: string) => {},
   signup: async (email: string, password: string, firstName?: string, lastName?: string) => {},
+  resetPassword: async (email: string) => {},
+  resendVerificationEmail: async () => {},
   updateUserProfile: async () => {},
   completeProfile: async () => {},
 });
@@ -125,6 +131,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return result;
     } catch (error) {
       console.error('Google Sign In Error:', error);
+      throw error;
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Vérifier si l'email est vérifié
+      if (!result.user.emailVerified) {
+        await firebaseSignOut(auth);
+        throw new Error('Please verify your email before logging in');
+      }
+      
+      // Mettre à jour lastLogin dans Firestore
+      const userRef = doc(db, 'users', result.user.uid);
+      await updateDoc(userRef, {
+        lastLogin: new Date().toISOString()
+      });
+      
+      return result;
+    } catch (error: any) {
+      console.error('Login Error:', error);
+      throw error;
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email, {
+        url: window.location.origin + '/login',
+        handleCodeInApp: false
+      });
+    } catch (error: any) {
+      console.error('Reset Password Error:', error);
+      throw error;
+    }
+  };
+
+  const resendVerificationEmail = async () => {
+    if (!auth.currentUser) {
+      throw new Error('No user is currently signed in');
+    }
+    
+    try {
+      await sendEmailVerification(auth.currentUser, {
+        url: window.location.origin + '/complete-profile',
+        handleCodeInApp: false
+      });
+    } catch (error: any) {
+      console.error('Resend Verification Email Error:', error);
       throw error;
     }
   };
@@ -223,7 +280,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isProfileCompleted,
     signInWithGoogle,
     logout,
+    login,
     signup,
+    resetPassword,
+    resendVerificationEmail,
     updateUserProfile,
     completeProfile,
   };

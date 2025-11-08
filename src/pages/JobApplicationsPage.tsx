@@ -244,33 +244,140 @@ export default function JobApplicationsPage() {
       // Construire un prompt très explicite qui force la visite de l'URL
       const jobUrl = formData.url.trim();
       const prompt = `
-You are a web scraper. Your task is to visit this URL and extract job posting information: ${jobUrl}
+You are a precise job posting information extractor. Your task is to visit this URL and extract EXACT information from the job posting page.
 
-MANDATORY STEPS - DO NOT SKIP:
-1. You MUST use web search/browsing to visit: ${jobUrl}
-2. Read the ACTUAL HTML content of the page
-3. Find the job title in the page HTML (look for <h1>, <h2>, or title tags)
-4. Find the company name (usually in the header or near the job title)
-5. Find the location (usually with a map pin icon or in job details section)
-6. Extract these EXACT strings as they appear in the page content
+URL TO VISIT: ${jobUrl}
 
-CRITICAL: Do NOT use your training data or make assumptions. You MUST visit the URL and read the actual page.
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACTLY:
+1. You MUST visit the URL using web browsing/search capabilities
+2. Read the ENTIRE page content carefully - do NOT skim or rush
+3. Understand the STRUCTURE and CONTEXT of the page - analyze how information is organized
+4. Read the ACTUAL HTML content of the page - do NOT use training data or assumptions
+5. Extract ONLY information that is VISIBLY DISPLAYED on the page
+6. Do NOT guess, infer, or use information from similar job postings
+7. Do NOT use information from the URL or domain name to infer details
+8. For location specifically: 
+   - Read the ENTIRE page to understand the context
+   - Identify ALL location mentions on the page
+   - Analyze the CONTEXT around each location to determine which applies to THIS specific job posting
+   - The page may mention multiple locations (headquarters, other offices, general info) - you MUST identify which one is for THIS job
 
-Return ONLY a valid JSON object (no markdown, no code blocks, no explanations):
+EXTRACTION REQUIREMENTS FOR EACH FIELD:
+
+1. "companyName":
+   - Find the EXACT company name as displayed on the page
+   - Look in: page header, job title area, company information section, "About" section, footer
+   - Copy it EXACTLY as shown (case-sensitive, with exact spelling and punctuation)
+   - Examples: "Boston Consulting Group", "Google LLC", "Microsoft Corporation"
+   - Do NOT abbreviate or modify the company name
+
+2. "position":
+   - Find the EXACT job title/position as displayed on the page
+   - Look for: <h1>, <h2>, title tags, main job title element, job header section
+   - Copy it EXACTLY as shown (case-sensitive, with exact spelling, punctuation, and formatting)
+   - Examples: "Manager, Platinion", "Senior Software Engineer", "Product Manager - EMEA"
+   - Do NOT modify, abbreviate, or generalize the job title
+   - This is CRITICAL - the exact title is essential
+
+3. "location" - THIS IS THE MOST CRITICAL FIELD - CONTEXTUAL ANALYSIS REQUIRED:
+   - STOP: Before extracting location, you MUST read the ENTIRE page content carefully and understand the CONTEXT
+   - CRITICAL: The page may mention MULTIPLE locations (headquarters, other offices, general company info)
+   - You MUST identify which location applies to THIS SPECIFIC job posting by analyzing the CONTEXT
+   
+   CONTEXTUAL ANALYSIS PROCESS:
+   1. Read the ENTIRE page to understand the structure and context
+   2. Identify ALL location mentions on the page
+   3. For EACH location mention, analyze the CONTEXT around it:
+      - Is it in the job details section near the job title? → Likely the job location
+      - Is it in a "Location:" field in the job posting section? → Likely the job location
+      - Is it in the header/footer mentioning company headquarters? → NOT the job location
+      - Is it in a general "About Us" or "Our Offices" section? → NOT the job location
+      - Is it mentioned with phrases like "This role is based in...", "Location for this position:", "Work location:", "This position is located in..."? → Likely the job location
+      - Is it near the job title, job description, or application section? → Likely the job location
+   
+   SEARCH STRATEGY - Look for location in THIS ORDER OF PRIORITY:
+   1. Job-specific location indicators (HIGHEST PRIORITY):
+      * Location field/icon in the job details section (near job title)
+      * "Location:" or "Work Location:" in the job posting section
+      * "This role is based in..." or "This position is located in..."
+      * "Where you'll work:" section within the job posting
+      * Location mentioned in the job description or requirements section
+      * Location in the application information section
+   
+   2. Contextual phrases that indicate job location:
+      * "Based in [location]" near the job title or description
+      * "Location: [location]" in the job details
+      * "Work Location: [location]" in the job posting
+      * "Office Location: [location]" for this specific position
+      * "This position is in [location]"
+      * "The role is located in [location]"
+      * Any location mention that is clearly associated with THIS job posting
+   
+   3. AVOID these locations (they are NOT the job location):
+      * Company headquarters mentioned in header/footer
+      * General "Our Offices" section listing all offices
+      * Location in "About Us" or company information sections
+      * Location mentioned in unrelated job postings on the same page
+      * Location in general company information
+   
+   CRITICAL CONTEXTUAL VERIFICATION:
+   - If you see "New York" in the header/footer but "Paris" near the job title → Use "Paris"
+   - If you see multiple locations, identify which one is associated with THIS job posting
+   - Analyze the proximity: location near job title/description = job location
+   - Analyze the phrasing: "This role is based in Paris" = job location is Paris
+   - If location is mentioned with the job title or in job details section → That's the job location
+   - If location is in general company info → NOT the job location
+   
+   EXTRACTION RULES:
+   - Find the location that is CONTEXTUALLY associated with THIS specific job posting
+   - Read it word-for-word EXACTLY as displayed
+   - Copy it character-by-character - do NOT modify, translate, or interpret
+   - If the context clearly indicates "Paris, France" for this job → return "Paris, France"
+   - If the context clearly indicates "New York, NY, US" for this job → return "New York, NY, US"
+   - DO NOT use a location just because it appears on the page - it must be CONTEXTUALLY linked to THIS job
+   - If multiple locations are listed for this job, use the PRIMARY or FIRST one mentioned
+   - CRITICAL: The location MUST be the one that applies to THIS specific job posting based on context
+   - CRITICAL: If you cannot determine the job location from context, return an empty string "" - do NOT guess
+
+4. "summary":
+   - Extract a comprehensive, useful summary of the job posting
+   - Include: key responsibilities, required qualifications, main requirements, and what makes this role unique
+   - Format: 3-5 sentences that provide valuable context about the role
+   - Focus on: what the role entails, key responsibilities, required experience/skills, and any notable aspects
+   - Make it informative and useful for someone tracking this application
+   - Do NOT just copy the first paragraph - synthesize the most important information
+   - Length: approximately 150-300 words
+
+VALIDATION CHECKLIST - Before returning, verify EACH point:
+✓ The company name matches EXACTLY what's displayed on the page
+✓ The position/job title matches EXACTLY what's displayed on the page
+✓ LOCATION VERIFICATION (MOST CRITICAL - CONTEXTUAL ANALYSIS REQUIRED):
+  - You read the ENTIRE page to understand the structure and context
+  - You identified ALL location mentions on the page
+  - You analyzed the CONTEXT around each location mention
+  - You determined which location is CONTEXTUALLY associated with THIS specific job posting
+  - The location you selected is in the job details section, near the job title, or in job-specific sections
+  - The location you selected is NOT in header/footer, "About Us", or general company information
+  - You verified the location is mentioned with phrases like "This role is based in...", "Location for this position:", etc.
+  - You analyzed proximity: location near job title/description = job location
+  - You did NOT use a location just because it appears on the page - it must be CONTEXTUALLY linked to THIS job
+  - You did NOT use training data, company knowledge, or assumptions
+  - You did NOT infer location from URL, domain, or any other source
+  - You did NOT use the company's headquarters unless explicitly stated for THIS job
+  - The location text was actually visible on the page and CONTEXTUALLY associated with THIS posting
+  - If you cannot determine the job location from context, you returned empty string ""
+✓ You have NOT used training data or assumptions for ANY field
+✓ You have NOT inferred information from the URL or domain
+✓ All information was actually visible on the page
+✓ You have read the ENTIRE page content carefully and understood the CONTEXT before extracting
+
+Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, no additional text):
 {
-  "companyName": "the exact company name from the page",
-  "position": "the EXACT job title from the page - copy it exactly as shown",
-  "location": "the exact location from the page",
-  "summary": "brief 2-3 sentence summary"
+  "companyName": "exact company name from page",
+  "position": "exact job title from page",
+  "location": "exact location for this specific job posting from page",
+  "summary": "comprehensive 3-5 sentence summary of the role, responsibilities, and key requirements"
 }
-
-VERY IMPORTANT:
-- The "position" field is CRITICAL - it must be the exact job title shown on the page
-- If the page shows "Solution Consultant - Benelux market", return exactly that
-- If the page shows "Dublin, Ireland", return exactly that
-- Do NOT return generic titles like "Senior Software Engineer" unless that's what's actually on the page
-- Do NOT infer information from the URL or domain name
-- Visit the URL and read the actual content
 
 URL to visit: ${jobUrl}
 `;
@@ -310,12 +417,19 @@ URL to visit: ${jobUrl}
               .replace(/,\s*\}/g, '}')   // Remove trailing commas before }
               .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3') // Quote unquoted keys
               .replace(/:\s*'([^']*)'/g, ': "$1"') // Replace single quotes with double quotes
-              .replace(/:\s*([^",{\[\]}\s]+)(\s*[,}\]])/g, ': "$1"$2'); // Quote unquoted string values
+              .replace(/:\s*([^",{\[\]}\s]+)(\s*[,}\]])/g, ': "$1"$2') // Quote unquoted string values
+              // Gérer les retours à la ligne non échappés dans les strings
+              .replace(/"([^"]*)"\s*:\s*"([^"]*)\n([^"]*)"/g, '"$1": "$2\\n$3"')
+              // Gérer les guillemets non échappés dans les strings
+              .replace(/"([^"]*)"\s*:\s*"([^"]*)"([^"]*)"/g, (match, key, val1, val2) => {
+                return `"${key}": "${val1}\\"${val2}"`;
+              });
             
             try {
               return JSON.parse(repaired);
             } catch (e2) {
               console.error('JSON repair failed:', e2);
+              // Dernier essai : extraire manuellement les champs
               return null;
             }
           }
@@ -402,16 +516,46 @@ URL to visit: ${jobUrl}
           }
         }
         
-        // Extraire summary
+        // Extraire summary - chercher dans différents formats et gérer les retours à la ligne
         let summary = '';
-        const summaryMatch = text.match(/"summary"\s*:\s*"([^"]+)"/i) || 
-                           text.match(/summary["\s]*:["\s]*"([^"]+)"/i);
-        if (summaryMatch) {
-          summary = summaryMatch[1].trim();
+        // Essayer d'extraire le summary avec gestion des retours à la ligne et caractères spéciaux
+        const summaryPatterns = [
+          /"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/i,
+          /summary["\s]*:["\s]*"((?:[^"\\]|\\.)*)"/i,
+          /"summary"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/i,
+          /summary["\s]*:["\s]*([^,\n}]+)/i
+        ];
+        
+        for (const pattern of summaryPatterns) {
+          const match = text.match(pattern);
+          if (match && match[1]) {
+            summary = match[1]
+              .trim()
+              .replace(/\\n/g, '\n')
+              .replace(/\\"/g, '"')
+              .replace(/\\'/g, "'")
+              .replace(/\\t/g, '\t');
+            if (summary.length > 20) {
+              break;
+            }
+          }
+        }
+        
+        // Si pas de summary trouvé, essayer d'extraire des informations utiles du texte
+        if (!summary || summary.length < 20) {
+          // Chercher des phrases complètes qui pourraient être un résumé
+          const sentences = text
+            .split(/[.!?]\s+/)
+            .filter((s: string) => s.trim().length > 30 && s.trim().length < 300)
+            .slice(0, 5);
+          
+          if (sentences.length > 0) {
+            summary = sentences.join('. ').substring(0, 300);
         } else {
-          // Prendre les premières lignes utiles si pas de summary trouvé
+            // Dernier recours : prendre les premières lignes utiles
           const lines = text.split('\n').filter((l: string) => l.trim().length > 20);
           summary = lines.slice(0, 3).join(' ').substring(0, 200);
+          }
         }
         
         extractedData = {
@@ -444,13 +588,41 @@ URL to visit: ${jobUrl}
         // Ne pas bloquer, mais logger un avertissement
       }
 
+      // Validation de la localisation - s'assurer qu'elle n'est pas vide
+      if (!extractedData.location || extractedData.location.trim().length < 2) {
+        console.warn('Location extraction may be incomplete:', extractedData.location);
+        // Ne pas bloquer, mais logger un avertissement
+      }
+
       // Nettoyer les données extraites
       const cleanedData = {
         companyName: extractedData.companyName.trim(),
         position: extractedData.position.trim(),
-        location: extractedData.location.trim(),
+        location: extractedData.location?.trim() || '',
         summary: extractedData.summary?.trim() || ''
       };
+
+      // Formater le summary pour les notes - améliorer la présentation
+      let formattedNotes = cleanedData.summary;
+      if (formattedNotes) {
+        // S'assurer que le summary est bien formaté
+        // Enlever les échappements JSON si présents
+        formattedNotes = formattedNotes
+          .replace(/\\n/g, '\n')
+          .replace(/\\"/g, '"')
+          .replace(/\\'/g, "'")
+          .trim();
+        
+        // Si le summary est trop court, ajouter un préfixe informatif
+        if (formattedNotes.length < 50) {
+          formattedNotes = `Job Summary:\n${formattedNotes}`;
+        }
+        
+        // Ajouter une séparation visuelle si des notes existent déjà
+        if (formData.notes && formData.notes.trim()) {
+          formattedNotes = `${formData.notes}\n\n---\n\n${formattedNotes}`;
+        }
+      }
 
       // Mettre à jour le formulaire avec les données extraites
       setFormData(prev => ({
@@ -458,7 +630,7 @@ URL to visit: ${jobUrl}
         companyName: cleanedData.companyName || prev.companyName,
         position: cleanedData.position || prev.position,
         location: cleanedData.location || prev.location,
-        notes: cleanedData.summary || prev.notes || ''
+        notes: formattedNotes || prev.notes || ''
       }));
 
       toast.success('Job information extracted successfully!');
@@ -1483,8 +1655,83 @@ END:VCALENDAR`;
                 {/* Scrollable content */}
                 <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
                   <form className="space-y-5">
+                    {/* Job URL - Featured First with AI Emphasis */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          Job URL
+                        </label>
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">AI Powered</span>
+                        </motion.div>
+                      </div>
+                      <div className="relative group">
+                        <input
+                          type="url"
+                          value={formData.url || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                          className="w-full px-4 py-3.5 pr-[140px] sm:pr-[150px] border-2 border-gray-200 dark:border-gray-700 rounded-xl dark:bg-gray-800/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                          placeholder="Paste job posting URL here..."
+                          autoFocus
+                        />
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleExtractJobInfo}
+                          disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center gap-1.5 px-3.5 py-2 min-w-[100px] sm:min-w-[120px] rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-sm hover:shadow-md z-10"
+                          title="Extract job information with AI"
+                        >
+                          {isAnalyzingJob ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                              <span className="text-xs font-medium whitespace-nowrap">Analyzing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4 flex-shrink-0" />
+                              <span className="text-xs font-medium whitespace-nowrap">Auto-fill</span>
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                        {formData.url ? (
+                          <span className="flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                            <span>Click "Auto-fill" to automatically extract company, position, and location</span>
+                          </span>
+                        ) : (
+                          <span>Paste a job posting URL and let AI fill in all the details for you</span>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Divider with subtle animation */}
+                    {(formData.companyName || formData.position || formData.location) && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="pt-2 border-t border-gray-200 dark:border-gray-700"
+                      >
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5 text-green-500" />
+                          <span>AI extracted information below</span>
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {/* Company Name */}
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Company Name *</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                        Company Name *
+                      </label>
                       <input
                         type="text"
                         value={formData.companyName}
@@ -1495,8 +1742,11 @@ END:VCALENDAR`;
                       />
                     </div>
 
+                    {/* Position */}
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Position *</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                        Position *
+                      </label>
                       <input
                         type="text"
                         value={formData.position}
@@ -1507,8 +1757,11 @@ END:VCALENDAR`;
                       />
                     </div>
 
+                    {/* Location */}
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Location *</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                        Location *
+                      </label>
                       <input
                         type="text"
                         value={formData.location}
@@ -1519,8 +1772,11 @@ END:VCALENDAR`;
                       />
                     </div>
 
+                    {/* Applied Date */}
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Applied Date *</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                        Applied Date *
+                      </label>
                       <div className="relative">
                         <input
                           type="date"
@@ -1533,42 +1789,11 @@ END:VCALENDAR`;
                       </div>
                     </div>
 
+                    {/* Notes */}
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Job URL</label>
-                      <div className="relative overflow-hidden rounded-xl">
-                        <input
-                          type="url"
-                          value={formData.url || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          placeholder="https://..."
-                          style={{ paddingRight: '3.5rem' }}
-                        />
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={handleExtractJobInfo}
-                          disabled={isAnalyzingJob || !formData.url}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto z-10"
-                          title="Extract job information with AI"
-                        >
-                          {isAnalyzingJob ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="w-4 h-4" />
-                          )}
-                        </motion.button>
-                      </div>
-                      {formData.url && (
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          Click the AI icon to automatically fill in the fields
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Notes</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                        Notes
+                      </label>
                       <textarea
                         value={formData.notes || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}

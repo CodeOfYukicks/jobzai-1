@@ -1,0 +1,259 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Sparkles } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import AuthLayout from '../components/AuthLayout';
+import { toast } from 'sonner';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
+// Sample job cards data
+const jobCards = [
+  { title: 'Software Engineer', company: 'Tech Company', icon: 'J' },
+  { title: 'Product Manager', company: 'Startup Inc', icon: 'P' },
+  { title: 'Data Scientist', company: 'AI Labs', icon: 'D' },
+  { title: 'UX Designer', company: 'Design Studio', icon: 'U' },
+  { title: 'Marketing Lead', company: 'Growth Co', icon: 'M' },
+];
+
+export default function CampaignsEarlyAccessPage() {
+  const { currentUser } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+
+  // Auto-rotate cards every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentCardIndex((prev) => (prev + 1) % jobCards.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!currentUser?.email) {
+      toast.error('You must be logged in to request early access');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Vérifier si l'email existe déjà
+      const earlyAccessRef = collection(db, 'campaignEarlyAccess');
+      const q = query(earlyAccessRef, where('email', '==', currentUser.email.toLowerCase().trim()));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        toast.info('You\'re already on the early access list!');
+        setIsSubmitted(true);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Ajouter à la collection
+      await addDoc(earlyAccessRef, {
+        email: currentUser.email.toLowerCase().trim(),
+        userId: currentUser.uid,
+        timestamp: serverTimestamp(),
+        status: 'pending',
+        notified: false
+      });
+
+      toast.success('You\'ve been added to the early access list!');
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting early access request:', error);
+      toast.error('Failed to submit request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AuthLayout>
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 sm:py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-2xl w-full text-center"
+        >
+          {/* Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-900 dark:text-white mb-6"
+          >
+            Campaigns
+          </motion.h1>
+
+          {/* Description */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mb-12 max-w-2xl mx-auto space-y-4"
+          >
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+              Create and manage mass job application campaigns. Target companies that interest you and automate your outreach.
+            </p>
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+              Use AI to discover and apply to job opportunities that are never posted publicly. Generate personalized applications with just a few clicks—let AI handle the heavy lifting.
+            </p>
+            <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
+              <span className="font-semibold text-gray-700 dark:text-gray-200">85% of opportunities</span> never reach job boards. Be the first to apply.
+            </p>
+          </motion.div>
+
+          {/* Form or Success Message */}
+          {!isSubmitted ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="flex justify-center items-center mb-16"
+            >
+              <motion.button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium text-base shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5" />
+                    <span>Request Early Access</span>
+                  </>
+                )}
+              </motion.button>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+              className="max-w-md mx-auto mb-16"
+            >
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 flex items-center gap-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
+                  <Check className="h-6 w-6 text-white" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-1">
+                    You're on the list!
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    We'll notify you as soon as Campaigns becomes available.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Visual Element - Job Application Card Preview with Animation */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="relative max-w-md mx-auto h-[160px]"
+          >
+            <div className="relative w-full h-full">
+              {/* Background stacked cards (static) */}
+              <div className="absolute top-3 left-3 w-full h-full bg-gray-100 dark:bg-gray-800 rounded-2xl transform rotate-1 opacity-40 transition-all duration-500" />
+              <div className="absolute top-1.5 left-1.5 w-full h-full bg-gray-200 dark:bg-gray-700 rounded-2xl transform -rotate-0.5 opacity-60 transition-all duration-500" />
+              
+              {/* Animated card stack */}
+              <AnimatePresence mode="wait">
+                {jobCards.map((card, index) => {
+                  if (index !== currentCardIndex) return null;
+                  
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ 
+                        opacity: 0, 
+                        scale: 0.95,
+                        y: 20,
+                        rotate: -2
+                      }}
+                      animate={{ 
+                        opacity: 1, 
+                        scale: 1,
+                        y: 0,
+                        rotate: 0
+                      }}
+                      exit={{ 
+                        opacity: 0, 
+                        scale: 0.95,
+                        y: -20,
+                        rotate: 2,
+                        transition: { duration: 0.4 }
+                      }}
+                      transition={{ 
+                        duration: 0.6,
+                        ease: [0.16, 1, 0.3, 1] // Custom easing for smooth Apple-like animation
+                      }}
+                      className="absolute inset-0 bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-xl border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <motion.div 
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.2, duration: 0.4 }}
+                          className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0"
+                        >
+                          <span className="text-white font-bold text-base">{card.icon}</span>
+                        </motion.div>
+                        <motion.div 
+                          initial={{ x: -10, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.3, duration: 0.4 }}
+                          className="flex-1 min-w-0"
+                        >
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-base truncate">
+                            {card.title}
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 text-xs truncate">
+                            {card.company}
+                          </p>
+                        </motion.div>
+                        <motion.div 
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.4, duration: 0.4 }}
+                          className="flex items-center gap-1.5 text-green-600 dark:text-green-400 flex-shrink-0"
+                        >
+                          <Check className="h-4 w-4" />
+                          <span className="text-xs font-medium">Applied</span>
+                        </motion.div>
+                      </div>
+                      <motion.div 
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.5, duration: 0.4 }}
+                        className="pt-3 border-t border-gray-200 dark:border-gray-700"
+                      >
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          AI-powered application sent automatically
+                        </p>
+                      </motion.div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </motion.div>
+      </div>
+    </AuthLayout>
+  );
+}
+
