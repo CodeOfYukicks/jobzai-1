@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import ProfileBreadcrumbs from '../components/ProfileCompletion/ProfileBreadcrumbs';
+import NameStep from '../components/ProfileCompletion/steps/NameStep';
 import GenderStep from '../components/ProfileCompletion/steps/GenderStep';
 import ContractTypeStep from '../components/ProfileCompletion/steps/ContractTypeStep';
 import LocationStep from '../components/ProfileCompletion/steps/LocationStep';
@@ -11,7 +12,7 @@ import MotivationStep from '../components/ProfileCompletion/steps/MotivationStep
 import SubscriptionStep from '../components/ProfileCompletion/steps/SubscriptionStep';
 import OnboardingLayout from '../components/layouts/OnboardingLayout';
 
-const STEPS = ['gender', 'contract', 'location', 'cv', 'motivation', 'subscription'] as const;
+const STEPS = ['name', 'gender', 'contract', 'location', 'cv', 'motivation', 'subscription'] as const;
 type Step = typeof STEPS[number];
 
 type StepInfo = {
@@ -24,8 +25,10 @@ type StepInfo = {
 export default function CompleteProfilePage() {
   const navigate = useNavigate();
   const { currentUser, completeProfile } = useAuth();
-  const [currentStep, setCurrentStep] = useState<Step>('gender');
+  const [currentStep, setCurrentStep] = useState<Step>('name');
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     gender: '',
     contractType: '',
     location: '',
@@ -64,6 +67,13 @@ export default function CompleteProfilePage() {
     const totalSteps = STEPS.length;
 
     switch(currentStep) {
+      case 'name':
+        return {
+          title: "Let's start with your name",
+          subtitle: "We'll use this to personalize your experience",
+          currentStep: currentIndex,
+          totalSteps
+        };
       case 'gender':
         return {
           title: "Tell us about yourself",
@@ -125,6 +135,14 @@ export default function CompleteProfilePage() {
       title={stepInfo.title}
       subtitle={stepInfo.subtitle}
     >
+      {currentStep === 'name' && (
+        <NameStep
+          firstName={formData.firstName}
+          lastName={formData.lastName}
+          onNext={handleNext}
+        />
+      )}
+
       {currentStep === 'gender' && (
         <GenderStep
           value={formData.gender}

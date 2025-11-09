@@ -34,7 +34,7 @@ const sections = [
 ];
 
 const ProfessionalProfilePage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userData, loading: authLoading } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [activeSection, setActiveSection] = useState('personal');
@@ -147,17 +147,48 @@ const ProfessionalProfilePage = () => {
   // Charger les données initiales
   useEffect(() => {
     const loadInitialData = async () => {
-      if (!currentUser?.uid) return;
+      // Attendre que l'authentification soit chargée
+      if (authLoading || !currentUser?.uid) return;
       
       try {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setFormData(prevData => ({
-            ...prevData,
-            ...userData
-          }));
+        const firestoreData = userDoc.exists() ? userDoc.data() : {};
+        
+        // Extraire firstName et lastName depuis displayName ou name si nécessaire
+        let extractedFirstName = '';
+        let extractedLastName = '';
+        const fullName = currentUser.displayName || firestoreData.name || userData?.name || '';
+        if (fullName && (!userData?.firstName || !userData?.lastName) && (!firestoreData.firstName || !firestoreData.lastName)) {
+          const nameParts = fullName.split(' ').filter(part => part.trim() !== '');
+          extractedFirstName = nameParts[0] || '';
+          extractedLastName = nameParts.slice(1).join(' ') || '';
         }
+        
+        // Merger les données : userData (AuthContext) en priorité, puis Firestore, puis displayName/name
+        setFormData(prevData => {
+          // Ne mettre à jour que si les valeurs sont différentes pour éviter les re-renders inutiles
+          const newFirstName = userData?.firstName || firestoreData.firstName || extractedFirstName || prevData.firstName || '';
+          const newLastName = userData?.lastName || firestoreData.lastName || extractedLastName || prevData.lastName || '';
+          const newEmail = currentUser.email || userData?.email || firestoreData.email || prevData.email || '';
+          
+          // Vérifier si les valeurs ont changé
+          if (prevData.firstName === newFirstName && 
+              prevData.lastName === newLastName && 
+              prevData.email === newEmail &&
+              Object.keys(firestoreData).length === 0) {
+            return prevData; // Pas de changement, retourner l'état précédent
+          }
+          
+          return {
+            ...prevData,
+            // Autres données depuis Firestore
+            ...firestoreData,
+            // Utiliser userData du contexte AuthContext pour firstName, lastName, email (priorité)
+            firstName: newFirstName,
+            lastName: newLastName,
+            email: newEmail,
+          };
+        });
       } catch (error) {
         console.error('Error loading user data:', error);
         toast.error('Failed to load profile data');
@@ -165,7 +196,7 @@ const ProfessionalProfilePage = () => {
     };
 
     loadInitialData();
-  }, [currentUser]);
+  }, [currentUser, userData, authLoading]);
 
   // Créer une version debounced de la sauvegarde Firebase
   const saveToFirebase = useCallback(

@@ -7,6 +7,7 @@ import { signOut as firebaseSignOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { applyTheme, loadThemeFromStorage, forceLightMode, type Theme } from '../lib/theme';
+import { syncUserToBrevo } from '../services/brevo';
 
 interface UserData {
   email: string;
@@ -95,6 +96,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updatedAt: new Date().toISOString()
       });
 
+      // Sync to Brevo (non-blocking)
+      try {
+        const userDoc = await getDoc(userRef);
+        const userData = userDoc.data();
+        
+        await syncUserToBrevo(
+          {
+            email: currentUser.email || '',
+            firstName: profileData.firstName || userData?.firstName || '',
+            lastName: profileData.lastName || userData?.lastName || '',
+            phone: profileData.phone || '',
+            company: profileData.company || '',
+            jobtitle: profileData.jobTitle || profileData.title || '',
+            city: profileData.city || '',
+            state: profileData.state || '',
+            country: profileData.country || '',
+            jobzai_user_id: currentUser.uid,
+            jobzai_profile_completed: true,
+            ...profileData,
+          },
+          'profile_completed',
+          {
+            userId: currentUser.uid,
+            completedAt: new Date().toISOString(),
+          }
+        );
+      } catch (brevoError) {
+        console.warn('Brevo sync failed (non-critical):', brevoError);
+      }
+
       setIsProfileCompleted(true);
       navigate('/hub');
       toast.success('Profile completed successfully!');
@@ -127,6 +158,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lastLogin: new Date().toISOString(),
         profileCompleted: isNewUser ? false : isProfileComplete
       }, { merge: true });
+
+      // Sync to Brevo (non-blocking)
+      if (isNewUser) {
+        try {
+          const displayName = result.user.displayName || '';
+          const nameParts = displayName.split(' ');
+        await syncUserToBrevo(
+          {
+            email: result.user.email || '',
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            jobzai_user_id: result.user.uid,
+            jobzai_signup_date: new Date().toISOString(),
+            jobzai_profile_completed: false,
+            jobzai_source: 'google',
+          },
+          'user_signed_up',
+          {
+            userId: result.user.uid,
+            source: 'google',
+          }
+        );
+      } catch (brevoError) {
+        console.warn('Brevo sync failed (non-critical):', brevoError);
+        }
+      }
 
       if (isNewUser || !isProfileComplete) {
         navigate('/complete-profile');
@@ -254,6 +311,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await setDoc(userRef, userData);
+
+      // Sync to Brevo (non-blocking)
+      try {
+        await syncUserToBrevo(
+          {
+            email: result.user.email || '',
+            firstName: firstName,
+            lastName: lastName,
+            jobzai_user_id: result.user.uid,
+            jobzai_signup_date: new Date().toISOString(),
+            jobzai_profile_completed: false,
+            jobzai_source: 'email',
+          },
+          'user_signed_up',
+          {
+            userId: result.user.uid,
+            source: 'email',
+          }
+        );
+      } catch (brevoError) {
+        console.warn('Brevo sync failed (non-critical):', brevoError);
+      }
 
       console.log("Redirecting to verify-email after signup");
       navigate('/verify-email');

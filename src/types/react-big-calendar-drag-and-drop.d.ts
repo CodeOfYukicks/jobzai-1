@@ -5,3 +5,5 @@ declare module 'react-big-calendar/lib/addons/dragAndDrop' {
   export default function withDragAndDrop(Calendar: ComponentType<CalendarProps>): ComponentType<CalendarProps>;
 }
 
+
+

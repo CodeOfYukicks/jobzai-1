@@ -9,3 +9,5 @@ export { default as MarketInsightsSection } from './MarketInsightsSection';
 export { default as ApplicationTimingSection } from './ApplicationTimingSection';
 export { default as SalaryInsightsSection } from './SalaryInsightsSection';
 
+
+

@@ -168,3 +168,6 @@ exports.api = functions.https.onRequest(app);
 exports.startCampaign = serverlessFunctions.startCampaign;
 exports.updateCampaignEmails = serverlessFunctions.updateCampaignEmails;
 exports.analyzeCVVision = serverlessFunctions.analyzeCVVision;
+exports.syncUserToHubSpot = serverlessFunctions.syncUserToHubSpot;
+exports.sendHubSpotEventFunction = serverlessFunctions.sendHubSpotEventFunction;
+exports.syncUserToBrevo = serverlessFunctions.syncUserToBrevo;

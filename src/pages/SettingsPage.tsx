@@ -29,6 +29,7 @@ import { db, auth } from '../lib/firebase';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { applyTheme, loadThemeFromStorage, type Theme } from '../lib/theme';
+import { syncUserToBrevo } from '../services/brevo';
 
 interface UserSettings {
   email: string;
@@ -63,7 +64,7 @@ const dateFormats = [
 ];
 
 export default function SettingsPage() {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, userData } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -419,7 +420,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleNotificationChange = (key: keyof typeof notifications, value: boolean) => {
+  const handleNotificationChange = async (key: keyof typeof notifications, value: boolean) => {
     const updated = { ...notifications, [key]: value };
     setNotifications(updated);
     saveSettings({
@@ -427,6 +428,31 @@ export default function SettingsPage() {
       pushNotifications: updated.pushNotifications,
       marketingEmails: updated.marketingEmails,
     });
+
+    // Sync to Brevo if marketingEmails changed
+    if (key === 'marketingEmails' && currentUser?.email) {
+      try {
+        console.log('🔄 Syncing MARKETING to Brevo for:', currentUser.email, 'value:', value);
+        await syncUserToBrevo(
+          {
+            email: currentUser.email || '',
+            firstName: userData?.firstName || '',
+            lastName: userData?.lastName || '',
+            MARKETING: value, // Boolean attribute for Marketing Emails
+          },
+          'marketing_preference_changed',
+          {
+            userId: currentUser.uid,
+            marketingEmails: value,
+            changedAt: new Date().toISOString(),
+          }
+        );
+        console.log('✅ MARKETING synced to Brevo successfully');
+      } catch (brevoError) {
+        console.error('❌ Brevo sync failed (non-critical):', brevoError);
+        // Don't block the user if Brevo sync fails
+      }
+    }
   };
 
   const handleExportData = async () => {

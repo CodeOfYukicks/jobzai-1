@@ -6,6 +6,7 @@ import AuthLayout from '../components/AuthLayout';
 import { toast } from 'sonner';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { syncUserToBrevo } from '../services/brevo';
 
 // Sample job cards data
 const jobCards = [
@@ -17,7 +18,7 @@ const jobCards = [
 ];
 
 export default function CampaignsEarlyAccessPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -29,6 +30,27 @@ export default function CampaignsEarlyAccessPage() {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Check if user is already in the list on page load
+  useEffect(() => {
+    const checkIfAlreadySubmitted = async () => {
+      if (!currentUser?.email) return;
+
+      try {
+        const earlyAccessRef = collection(db, 'campaignEarlyAccess');
+        const q = query(earlyAccessRef, where('email', '==', currentUser.email.toLowerCase().trim()));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          setIsSubmitted(true);
+        }
+      } catch (error) {
+        console.error('Error checking early access status:', error);
+      }
+    };
+
+    checkIfAlreadySubmitted();
+  }, [currentUser]);
 
   const handleSubmit = async () => {
     if (!currentUser?.email) {
@@ -44,23 +66,48 @@ export default function CampaignsEarlyAccessPage() {
       const q = query(earlyAccessRef, where('email', '==', currentUser.email.toLowerCase().trim()));
       const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
-        toast.info('You\'re already on the early access list!');
-        setIsSubmitted(true);
-        setIsSubmitting(false);
-        return;
+      const isAlreadyInList = !querySnapshot.empty;
+
+      if (!isAlreadyInList) {
+        // Ajouter à la collection seulement si pas déjà présent
+        await addDoc(earlyAccessRef, {
+          email: currentUser.email.toLowerCase().trim(),
+          userId: currentUser.uid,
+          timestamp: serverTimestamp(),
+          status: 'pending',
+          notified: false
+        });
       }
 
-      // Ajouter à la collection
-      await addDoc(earlyAccessRef, {
-        email: currentUser.email.toLowerCase().trim(),
-        userId: currentUser.uid,
-        timestamp: serverTimestamp(),
-        status: 'pending',
-        notified: false
-      });
+      // Sync to Brevo with CAMPAIGNS_EA = true (non-blocking)
+      // Always sync to Brevo, even if already in list, to ensure the attribute is updated
+      try {
+        console.log('🔄 Syncing CAMPAIGNS_EA to Brevo for:', currentUser.email);
+        await syncUserToBrevo(
+          {
+            email: currentUser.email || '',
+            firstName: userData?.firstName || '',
+            lastName: userData?.lastName || '',
+            CAMPAIGNS_EA: true, // Boolean attribute for Campaigns Early Access
+          },
+          'campaigns_early_access_requested',
+          {
+            userId: currentUser.uid,
+            requestedAt: new Date().toISOString(),
+            alreadyInList: isAlreadyInList,
+          }
+        );
+        console.log('✅ CAMPAIGNS_EA synced to Brevo successfully');
+      } catch (brevoError) {
+        console.error('❌ Brevo sync failed (non-critical):', brevoError);
+        // Don't block the user if Brevo sync fails
+      }
 
-      toast.success('You\'ve been added to the early access list!');
+      if (isAlreadyInList) {
+        toast.info('You\'re already on the early access list!');
+      } else {
+        toast.success('You\'ve been added to the early access list!');
+      }
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error submitting early access request:', error);
