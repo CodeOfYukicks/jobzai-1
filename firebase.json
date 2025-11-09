@@ -23,6 +23,18 @@
         "function": "syncUserToBrevo"
       },
       {
+        "source": "/api/chatgpt",
+        "function": "api"
+      },
+      {
+        "source": "/api/claude",
+        "function": "api"
+      },
+      {
+        "source": "/api/test",
+        "function": "api"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

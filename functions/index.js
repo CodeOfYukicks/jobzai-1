@@ -4,10 +4,54 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const dotenv = require('dotenv');
+const admin = require('firebase-admin');
 const serverlessFunctions = require('./lib/index.js');
 
 // Load environment variables
 dotenv.config();
+
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+// Function to get OpenAI API key from Firestore or environment
+async function getOpenAIApiKey() {
+  try {
+    console.log('🔑 Attempting to retrieve OpenAI API key from Firestore...');
+    const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
+    
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      const apiKey = data?.apiKey || data?.api_key;
+      if (apiKey) {
+        console.log('✅ OpenAI API key retrieved from Firestore');
+        return apiKey;
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to retrieve API key from Firestore:', error.message);
+  }
+  
+  // Fallback to environment variable
+  if (process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY) {
+    console.log('Using OpenAI API key from environment variable');
+    return process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+  }
+  
+  // Fallback to Firebase config
+  try {
+    const config = functions.config();
+    if (config.openai?.api_key) {
+      console.log('Using OpenAI API key from Firebase config');
+      return config.openai.api_key;
+    }
+  } catch (e) {
+    console.warn('Could not access Firebase config:', e);
+  }
+  
+  return null;
+}
 
 // Créer l'application Express
 const app = express();
@@ -159,6 +203,136 @@ app.post('/api/claude', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: error.message || "An error occurred processing your request"
+    });
+  }
+});
+
+// ChatGPT API endpoint for recommendations
+app.post('/api/chatgpt', async (req, res) => {
+  try {
+    console.log("ChatGPT API endpoint called for recommendations");
+    
+    // Get API key from Firestore or environment variables
+    let apiKey = await getOpenAIApiKey();
+    
+    if (!apiKey) {
+      console.error('❌ ERREUR: Clé API OpenAI manquante');
+      return res.status(500).json({ 
+        status: 'error', 
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).' 
+      });
+    }
+    
+    const { prompt, type, cvContent } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Prompt is required'
+      });
+    }
+    
+    // Build messages for ChatGPT
+    const messages = [
+      {
+        role: "system",
+        content: "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ];
+    
+    console.log('📡 Sending request to ChatGPT API...');
+    console.log(`   Type: ${type}`);
+    console.log(`   Prompt length: ${prompt.length}`);
+    
+    // Call OpenAI API
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o", // Using GPT-4o for better quality
+        messages: messages,
+        response_format: { type: 'json_object' },
+        max_tokens: 4000,
+        temperature: 0.3 // Lower temperature for more consistent, structured responses
+      })
+    });
+    
+    console.log(`OpenAI API response status: ${openaiResponse.status}`);
+    
+    // Handle response
+    const responseText = await openaiResponse.text();
+    console.log("Response received, length:", responseText.length);
+    
+    if (!openaiResponse.ok) {
+      console.error("Non-200 response:", responseText);
+      try {
+        const errorData = JSON.parse(responseText);
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
+          error: errorData.error
+        });
+      } catch (e) {
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${responseText.substring(0, 200)}`
+        });
+      }
+    }
+    
+    // Parse and return response
+    try {
+      const parsedResponse = JSON.parse(responseText);
+      const content = parsedResponse.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('Empty response from ChatGPT API');
+      }
+      
+      // Parse JSON content
+      let parsedContent;
+      try {
+        parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+      } catch (e) {
+        // If parsing fails, try to extract JSON from markdown
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                          content.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          throw new Error('Could not parse JSON from response');
+        }
+      }
+      
+      console.log('✅ ChatGPT recommendation completed successfully');
+      
+      return res.json({
+        status: 'success',
+        content: parsedContent,
+        usage: parsedResponse.usage
+      });
+    } catch (parseError) {
+      console.error("Parse error:", parseError);
+      return res.status(500).json({
+        status: 'error',
+        message: "Failed to parse response",
+        rawResponse: responseText.substring(0, 500) + "..."
+      });
+    }
+    
+  } catch (error) {
+    console.error("Error in ChatGPT API handler:", error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || "An error occurred processing your request",
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

@@ -119,7 +119,7 @@ export default function CampaignsEarlyAccessPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen flex items-center justify-center px-4 py-12 sm:py-20">
+      <div className="min-h-screen flex items-center justify-center px-4 py-6 sm:py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -131,7 +131,7 @@ export default function CampaignsEarlyAccessPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-900 dark:text-white mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4"
           >
             Campaigns
           </motion.h1>
@@ -141,15 +141,15 @@ export default function CampaignsEarlyAccessPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-12 max-w-2xl mx-auto space-y-4"
+            className="mb-6 max-w-2xl mx-auto space-y-2"
           >
-            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
               Create and manage mass job application campaigns. Target companies that interest you and automate your outreach.
             </p>
-            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
               Use AI to discover and apply to job opportunities that are never posted publicly. Generate personalized applications with just a few clicks—let AI handle the heavy lifting.
             </p>
-            <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 leading-relaxed">
               <span className="font-semibold text-gray-700 dark:text-gray-200">85% of opportunities</span> never reach job boards. Be the first to apply.
             </p>
           </motion.div>
@@ -160,23 +160,23 @@ export default function CampaignsEarlyAccessPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex justify-center items-center mb-16"
+              className="flex justify-center items-center mb-8"
             >
               <motion.button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium text-base shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium text-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     <span>Submitting...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-5 w-5" />
+                    <Sparkles className="h-4 w-4" />
                     <span>Request Early Access</span>
                   </>
                 )}
@@ -187,17 +187,17 @@ export default function CampaignsEarlyAccessPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
-              className="max-w-md mx-auto mb-16"
+              className="max-w-md mx-auto mb-8"
             >
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 flex items-center gap-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
-                  <Check className="h-6 w-6 text-white" />
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-center gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                  <Check className="h-5 w-5 text-white" />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-1">
+                  <h3 className="text-base font-semibold text-green-900 dark:text-green-100 mb-0.5">
                     You're on the list!
                   </h3>
-                  <p className="text-sm text-green-700 dark:text-green-300">
+                  <p className="text-xs text-green-700 dark:text-green-300">
                     We'll notify you as soon as Campaigns becomes available.
                   </p>
                 </div>
@@ -210,7 +210,7 @@ export default function CampaignsEarlyAccessPage() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="relative max-w-md mx-auto h-[160px]"
+            className="relative max-w-md mx-auto h-[130px]"
           >
             <div className="relative w-full h-full">
               {/* Background stacked cards (static) */}
@@ -248,16 +248,16 @@ export default function CampaignsEarlyAccessPage() {
                         duration: 0.6,
                         ease: [0.16, 1, 0.3, 1] // Custom easing for smooth Apple-like animation
                       }}
-                      className="absolute inset-0 bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-xl border border-gray-200 dark:border-gray-700"
+                      className="absolute inset-0 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-xl border border-gray-200 dark:border-gray-700"
                     >
-                      <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center gap-2.5 mb-2">
                         <motion.div 
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ delay: 0.2, duration: 0.4 }}
-                          className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0"
+                          className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0"
                         >
-                          <span className="text-white font-bold text-base">{card.icon}</span>
+                          <span className="text-white font-bold text-sm">{card.icon}</span>
                         </motion.div>
                         <motion.div 
                           initial={{ x: -10, opacity: 0 }}
@@ -265,7 +265,7 @@ export default function CampaignsEarlyAccessPage() {
                           transition={{ delay: 0.3, duration: 0.4 }}
                           className="flex-1 min-w-0"
                         >
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-base truncate">
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
                             {card.title}
                           </h3>
                           <p className="text-gray-600 dark:text-gray-400 text-xs truncate">
@@ -278,7 +278,7 @@ export default function CampaignsEarlyAccessPage() {
                           transition={{ delay: 0.4, duration: 0.4 }}
                           className="flex items-center gap-1.5 text-green-600 dark:text-green-400 flex-shrink-0"
                         >
-                          <Check className="h-4 w-4" />
+                          <Check className="h-3.5 w-3.5" />
                           <span className="text-xs font-medium">Applied</span>
                         </motion.div>
                       </div>
@@ -286,7 +286,7 @@ export default function CampaignsEarlyAccessPage() {
                         initial={{ y: 10, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.5, duration: 0.4 }}
-                        className="pt-3 border-t border-gray-200 dark:border-gray-700"
+                        className="pt-2 border-t border-gray-200 dark:border-gray-700"
                       >
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           AI-powered application sent automatically
