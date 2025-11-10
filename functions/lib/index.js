@@ -8,13 +8,14 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = void 0;
+exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const https_2 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const mailgun_js_1 = require("./lib/mailgun.js");
 const openai_1 = require("openai");
 const functions = require("firebase-functions");
+const stripe_1 = require("stripe");
 // Initialize Firebase Admin
 admin.initializeApp();
 // CORS helper function - robust solution for CORS handling
@@ -990,4 +991,659 @@ exports.sendHubSpotEventFunction = (0, https_2.onRequest)({
         });
     }
 });
+// ==================== Stripe Integration ====================
+/**
+ * Get Stripe API Key from Firestore or environment
+ */
+const getStripeApiKey = async () => {
+    var _a, _b;
+    try {
+        // Try Firestore first
+        const settingsDoc = await admin.firestore().collection('settings').doc('stripe').get();
+        if (settingsDoc.exists) {
+            const data = settingsDoc.data();
+            const apiKey = (data === null || data === void 0 ? void 0 : data.secretKey) || (data === null || data === void 0 ? void 0 : data.secret_key) || (data === null || data === void 0 ? void 0 : data.apiKey) || (data === null || data === void 0 ? void 0 : data.api_key);
+            if (apiKey) {
+                console.log('✅ Stripe API key retrieved from Firestore');
+                return apiKey;
+            }
+        }
+    }
+    catch (error) {
+        console.warn('⚠️  Failed to retrieve Stripe API key from Firestore:', error === null || error === void 0 ? void 0 : error.message);
+    }
+    // Fallback to environment variable
+    if (process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY) {
+        console.log('Using Stripe API key from environment variable');
+        return process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
+    }
+    // Fallback to Firebase config
+    try {
+        const config = functions.config();
+        if (((_a = config.stripe) === null || _a === void 0 ? void 0 : _a.secret_key) || ((_b = config.stripe) === null || _b === void 0 ? void 0 : _b.api_key)) {
+            console.log('Using Stripe API key from Firebase config');
+            return config.stripe.secret_key || config.stripe.api_key || '';
+        }
+    }
+    catch (e) {
+        console.warn('Could not access Firebase config:', e);
+    }
+    throw new Error('Stripe API key not found. Please configure it in Firestore (settings/stripe) or environment variables.');
+};
+/**
+ * Initialize Stripe client
+ */
+const getStripeClient = async () => {
+    const apiKey = await getStripeApiKey();
+    return new stripe_1.default(apiKey, {
+        apiVersion: '2025-10-29.clover',
+    });
+};
+/**
+ * Create a Stripe Checkout Session
+ * This endpoint creates a payment session for subscriptions or one-time payments
+ */
+exports.createCheckoutSession = (0, https_2.onRequest)({
+    region: 'us-central1',
+    cors: true,
+    maxInstances: 10,
+    invoker: 'public',
+}, async (req, res) => {
+    // Get origin from request
+    const origin = req.headers.origin;
+    // Set CORS headers - MUST be set before any response
+    // Firebase Functions v2 with cors: true should handle this, but we set it explicitly
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '3600');
+    // Handle preflight OPTIONS request FIRST
+    if (req.method === 'OPTIONS') {
+        console.log('✅ Handling OPTIONS preflight request from origin:', origin || 'no origin');
+        res.status(204).end();
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ success: false, message: 'Method not allowed' });
+        return;
+    }
+    try {
+        const { userId, planId, planName, price, credits, type, successUrl, cancelUrl } = req.body;
+        // Validation
+        if (!userId || !planId || !price) {
+            res.status(400).json({
+                success: false,
+                message: 'userId, planId, and price are required'
+            });
+            return;
+        }
+        // Get Stripe client
+        const stripe = await getStripeClient();
+        // Determine if it's a subscription or one-time payment
+        const isSubscription = type === 'plan' && planId !== 'free';
+        const priceInCents = Math.round(parseFloat(price) * 100); // Convert to cents
+        // Create or retrieve Stripe Price
+        let priceId;
+        if (isSubscription) {
+            // For subscriptions, create a recurring price
+            // First, check if a product already exists for this plan
+            const products = await stripe.products.list({ limit: 100 });
+            let product = products.data.find(p => { var _a; return ((_a = p.metadata) === null || _a === void 0 ? void 0 : _a.planId) === planId; });
+            if (!product) {
+                // Create product if it doesn't exist
+                product = await stripe.products.create({
+                    name: `${planName} Plan`,
+                    description: `JobzAI ${planName} Plan - ${credits} credits per month`,
+                    metadata: {
+                        planId,
+                        credits: credits.toString(),
+                    },
+                });
+            }
+            // Create or retrieve price
+            const prices = await stripe.prices.list({
+                product: product.id,
+                limit: 100,
+            });
+            let existingPrice = prices.data.find(p => { var _a; return p.unit_amount === priceInCents && ((_a = p.recurring) === null || _a === void 0 ? void 0 : _a.interval) === 'month'; });
+            if (!existingPrice) {
+                existingPrice = await stripe.prices.create({
+                    product: product.id,
+                    unit_amount: priceInCents,
+                    currency: 'eur',
+                    recurring: {
+                        interval: 'month',
+                    },
+                    metadata: {
+                        planId,
+                        credits: credits.toString(),
+                    },
+                });
+            }
+            priceId = existingPrice.id;
+        }
+        else {
+            // For one-time payments (credit packages), create a one-time price
+            const products = await stripe.products.list({ limit: 100 });
+            let product = products.data.find(p => { var _a, _b; return ((_a = p.metadata) === null || _a === void 0 ? void 0 : _a.type) === 'credit_package' && ((_b = p.metadata) === null || _b === void 0 ? void 0 : _b.packageId) === planId; });
+            if (!product) {
+                product = await stripe.products.create({
+                    name: `${credits} Credits`,
+                    description: `JobzAI Credit Package - ${credits} credits`,
+                    metadata: {
+                        type: 'credit_package',
+                        packageId: planId,
+                        credits: credits.toString(),
+                    },
+                });
+            }
+            // Create or retrieve one-time price
+            const prices = await stripe.prices.list({
+                product: product.id,
+                limit: 100,
+            });
+            let existingPrice = prices.data.find(p => p.unit_amount === priceInCents && !p.recurring);
+            if (!existingPrice) {
+                existingPrice = await stripe.prices.create({
+                    product: product.id,
+                    unit_amount: priceInCents,
+                    currency: 'eur',
+                    metadata: {
+                        type: 'credit_package',
+                        packageId: planId,
+                        credits: credits.toString(),
+                    },
+                });
+            }
+            priceId = existingPrice.id;
+        }
+        // Create Checkout Session
+        const sessionParams = {
+            mode: isSubscription ? 'subscription' : 'payment',
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
+            ],
+            customer_email: req.body.customerEmail,
+            metadata: {
+                userId,
+                planId,
+                planName,
+                credits: credits.toString(),
+                type: type || 'plan',
+            },
+            success_url: successUrl || `${req.headers.origin || 'https://jobzai.firebaseapp.com'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: cancelUrl || `${req.headers.origin || 'https://jobzai.firebaseapp.com'}/payment/cancel`,
+        };
+        // For subscriptions, add subscription metadata
+        if (isSubscription) {
+            sessionParams.subscription_data = {
+                metadata: {
+                    userId,
+                    planId,
+                    planName,
+                    credits: credits.toString(),
+                },
+            };
+        }
+        const session = await stripe.checkout.sessions.create(sessionParams);
+        console.log('✅ Stripe Checkout Session created:', session.id);
+        res.status(200).json({
+            success: true,
+            sessionId: session.id,
+            url: session.url,
+        });
+    }
+    catch (error) {
+        console.error('❌ Error creating Stripe Checkout Session:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to create checkout session',
+        });
+    }
+});
+/**
+ * Stripe Webhook Handler
+ * Handles Stripe events (payment success, subscription updates, etc.)
+ * Note: For webhook signature verification, we need raw body
+ */
+exports.stripeWebhook = (0, https_2.onRequest)({
+    region: 'us-central1',
+    maxInstances: 10,
+    invoker: 'public',
+}, async (req, res) => {
+    // Stripe webhook signature verification
+    const sig = req.headers['stripe-signature'];
+    if (!sig) {
+        console.error('❌ Missing Stripe signature');
+        res.status(400).send('Missing Stripe signature');
+        return;
+    }
+    try {
+        const stripe = await getStripeClient();
+        const webhookSecret = await getStripeWebhookSecret();
+        // Get raw body for signature verification
+        // Note: Firebase Functions v2 parses JSON automatically, so we need to stringify it back
+        // For production, you might need to use express.raw() middleware or similar
+        const rawBody = typeof req.body === 'string'
+            ? req.body
+            : JSON.stringify(req.body);
+        // Verify webhook signature
+        const event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+        console.log('✅ Stripe webhook event received:', event.type);
+        // Handle different event types
+        switch (event.type) {
+            case 'checkout.session.completed': {
+                const session = event.data.object;
+                await handleCheckoutCompleted(session);
+                break;
+            }
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated': {
+                const subscription = event.data.object;
+                await handleSubscriptionUpdate(subscription);
+                break;
+            }
+            case 'customer.subscription.deleted': {
+                const subscription = event.data.object;
+                await handleSubscriptionCancelled(subscription);
+                break;
+            }
+            case 'invoice.payment_succeeded': {
+                const invoice = event.data.object;
+                await handleInvoicePaymentSucceeded(invoice);
+                break;
+            }
+            case 'invoice.payment_failed': {
+                const invoice = event.data.object;
+                await handleInvoicePaymentFailed(invoice);
+                break;
+            }
+            default:
+                console.log(`Unhandled event type: ${event.type}`);
+        }
+        res.status(200).json({ received: true });
+    }
+    catch (error) {
+        console.error('❌ Error processing Stripe webhook:', error);
+        res.status(400).send(`Webhook Error: ${error.message}`);
+    }
+});
+/**
+ * Get Stripe Webhook Secret
+ */
+const getStripeWebhookSecret = async () => {
+    var _a;
+    try {
+        const settingsDoc = await admin.firestore().collection('settings').doc('stripe').get();
+        if (settingsDoc.exists) {
+            const data = settingsDoc.data();
+            const webhookSecret = (data === null || data === void 0 ? void 0 : data.webhookSecret) || (data === null || data === void 0 ? void 0 : data.webhook_secret);
+            if (webhookSecret) {
+                return webhookSecret;
+            }
+        }
+    }
+    catch (error) {
+        console.warn('⚠️  Failed to retrieve Stripe webhook secret from Firestore:', error === null || error === void 0 ? void 0 : error.message);
+    }
+    if (process.env.STRIPE_WEBHOOK_SECRET) {
+        return process.env.STRIPE_WEBHOOK_SECRET;
+    }
+    try {
+        const config = functions.config();
+        if ((_a = config.stripe) === null || _a === void 0 ? void 0 : _a.webhook_secret) {
+            return config.stripe.webhook_secret;
+        }
+    }
+    catch (e) {
+        console.warn('Could not access Firebase config:', e);
+    }
+    throw new Error('Stripe webhook secret not found');
+};
+/**
+ * Handle checkout.session.completed event
+ */
+const handleCheckoutCompleted = async (session) => {
+    var _a;
+    try {
+        console.log(`🔔 Processing checkout session: ${session.id}`);
+        console.log(`📋 Session metadata:`, JSON.stringify(session.metadata, null, 2));
+        const { userId, planId, planName, credits, type } = session.metadata || {};
+        if (!userId) {
+            console.error('❌ Missing userId in session metadata');
+            return;
+        }
+        console.log(`👤 User: ${userId}, Type: ${type}, Plan: ${planId}, Credits: ${credits}`);
+        // Debug: Check what type we received
+        if (!type) {
+            console.error('❌ Type is missing or undefined in metadata!');
+            console.error('   Full metadata:', session.metadata);
+            console.error('   This means the payment type cannot be determined');
+            console.error('   Expected: type="credits" or type="plan"');
+        }
+        // Check if this session has already been processed (outside transaction)
+        const creditHistoryRef = admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('creditHistory');
+        const historyDocId = `session_${session.id}`;
+        const historyRef = creditHistoryRef.doc(historyDocId);
+        const existingHistory = await historyRef.get();
+        if (existingHistory.exists) {
+            console.log(`⚠️  Session ${session.id} already processed, skipping duplicate`);
+            return;
+        }
+        const userRef = admin.firestore().collection('users').doc(userId);
+        const userDoc = await userRef.get();
+        if (!userDoc.exists) {
+            console.error(`❌ User not found: ${userId}`);
+            return;
+        }
+        const currentCredits = ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.credits) || 0;
+        console.log(`💰 Current credits: ${currentCredits}`);
+        // Process the payment
+        if (type === 'plan' && planId !== 'free') {
+            // Subscription plan
+            const creditsToAdd = parseInt(credits || '0', 10);
+            console.log(`💳 Processing subscription: ${creditsToAdd} credits for plan ${planId}`);
+            await userRef.update({
+                plan: planId,
+                credits: creditsToAdd,
+                planSelectedAt: admin.firestore.FieldValue.serverTimestamp(),
+                stripeCustomerId: session.customer || null,
+                stripeSubscriptionId: session.subscription || null,
+                paymentStatus: 'active',
+                lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            // Record credit history with fixed document ID to prevent duplicates
+            await historyRef.set({
+                credits: creditsToAdd,
+                change: creditsToAdd,
+                reason: 'subscription_payment',
+                planId,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                stripeSessionId: session.id,
+            });
+            console.log(`✅ User ${userId} subscription activated: ${planName} (${creditsToAdd} credits)`);
+        }
+        else if (type === 'credits') {
+            // One-time credit purchase
+            const creditsToAdd = parseInt(credits || '0', 10);
+            const newCredits = currentCredits + creditsToAdd;
+            console.log(`💳 Processing credit purchase: ${currentCredits} + ${creditsToAdd} = ${newCredits} credits`);
+            await userRef.update({
+                credits: newCredits,
+                lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            // Record credit history with fixed document ID to prevent duplicates
+            await historyRef.set({
+                credits: newCredits,
+                change: creditsToAdd,
+                reason: 'credit_purchase',
+                packageId: planId,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                stripeSessionId: session.id,
+            });
+            console.log(`✅ User ${userId} purchased ${creditsToAdd} credits (new total: ${newCredits})`);
+        }
+        else {
+            console.error(`❌ Unknown payment type: ${type}, planId: ${planId}`);
+            console.error(`   Full metadata:`, JSON.stringify(session.metadata, null, 2));
+            console.error(`   This payment will NOT add credits because type is not recognized`);
+            console.error(`   Expected type: "credits" or "plan"`);
+            console.error(`   Received type: "${type}"`);
+            // Try to infer type from planId if type is missing
+            if (!type && planId) {
+                console.log(`   Attempting to infer type from planId...`);
+                // If planId doesn't contain "free", it might be a credit package
+                if (planId !== 'free' && !planId.includes('plan')) {
+                    console.log(`   Inferred type: "credits" from planId`);
+                    const creditsToAdd = parseInt(credits || '0', 10);
+                    const newCredits = currentCredits + creditsToAdd;
+                    console.log(`💳 Processing credit purchase (inferred): ${currentCredits} + ${creditsToAdd} = ${newCredits} credits`);
+                    await userRef.update({
+                        credits: newCredits,
+                        lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                    await historyRef.set({
+                        credits: newCredits,
+                        change: creditsToAdd,
+                        reason: 'credit_purchase',
+                        packageId: planId,
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        stripeSessionId: session.id,
+                    });
+                    console.log(`✅ User ${userId} purchased ${creditsToAdd} credits (new total: ${newCredits}) - INFERRED TYPE`);
+                }
+            }
+        }
+        // Create invoice record
+        const invoiceDocId = `session_${session.id}`;
+        const invoiceRef = admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('invoices')
+            .doc(invoiceDocId);
+        const invoiceExists = await invoiceRef.get();
+        if (!invoiceExists.exists) {
+            await invoiceRef.set({
+                stripeSessionId: session.id,
+                amount: (session.amount_total || 0) / 100,
+                currency: session.currency || 'eur',
+                status: 'paid',
+                planId,
+                planName,
+                type,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            console.log(`✅ Invoice record created for session ${session.id}`);
+        }
+    }
+    catch (error) {
+        console.error('❌ Error handling checkout completed:', error);
+        console.error('   Error message:', error.message);
+        console.error('   Error stack:', error.stack);
+        // Don't throw, let the webhook return success so Stripe doesn't retry
+    }
+};
+/**
+ * Handle subscription update
+ */
+const handleSubscriptionUpdate = async (subscription) => {
+    try {
+        const { userId } = subscription.metadata || {};
+        if (!userId) {
+            console.error('❌ Missing userId in subscription metadata');
+            return;
+        }
+        const userRef = admin.firestore().collection('users').doc(userId);
+        await userRef.update({
+            stripeSubscriptionId: subscription.id,
+            paymentStatus: subscription.status === 'active' ? 'active' : 'inactive',
+            subscriptionStatus: subscription.status,
+        });
+        console.log(`✅ Subscription updated for user ${userId}: ${subscription.status}`);
+    }
+    catch (error) {
+        console.error('❌ Error handling subscription update:', error);
+    }
+};
+/**
+ * Handle subscription cancellation
+ */
+const handleSubscriptionCancelled = async (subscription) => {
+    try {
+        const { userId } = subscription.metadata || {};
+        if (!userId) {
+            console.error('❌ Missing userId in subscription metadata');
+            return;
+        }
+        const userRef = admin.firestore().collection('users').doc(userId);
+        // Downgrade to free plan
+        await userRef.update({
+            plan: 'free',
+            credits: 25,
+            paymentStatus: 'cancelled',
+            subscriptionStatus: 'cancelled',
+            planSelectedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log(`✅ Subscription cancelled for user ${userId}, downgraded to free plan`);
+    }
+    catch (error) {
+        console.error('❌ Error handling subscription cancellation:', error);
+    }
+};
+/**
+ * Handle successful invoice payment
+ */
+const handleInvoicePaymentSucceeded = async (invoice) => {
+    var _a;
+    try {
+        // Invoice.subscription can be a string (ID) or a Subscription object
+        const subscriptionId = typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : (_a = invoice.subscription) === null || _a === void 0 ? void 0 : _a.id;
+        if (!subscriptionId) {
+            // One-time payment, already handled in checkout.session.completed
+            return;
+        }
+        // Get subscription to find userId
+        const stripe = await getStripeClient();
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const { userId, planId, credits } = subscription.metadata || {};
+        if (!userId) {
+            console.error('❌ Missing userId in subscription metadata');
+            return;
+        }
+        const userRef = admin.firestore().collection('users').doc(userId);
+        // Renew credits for subscription
+        const creditsToAdd = parseInt(credits || '0', 10);
+        await userRef.update({
+            credits: creditsToAdd,
+            lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        // Record credit history
+        await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
+            credits: creditsToAdd,
+            change: creditsToAdd,
+            reason: 'subscription_renewal',
+            planId: planId || 'unknown',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            stripeInvoiceId: invoice.id,
+        });
+        console.log(`✅ Subscription renewed for user ${userId}: ${creditsToAdd} credits added`);
+    }
+    catch (error) {
+        console.error('❌ Error handling invoice payment succeeded:', error);
+    }
+};
+/**
+ * Manual function to process a Stripe checkout session and add credits
+ * This can be called manually if the webhook didn't fire
+ */
+exports.processStripeSession = (0, https_2.onRequest)({
+    region: 'us-central1',
+    cors: true,
+    maxInstances: 10,
+    invoker: 'public',
+}, async (req, res) => {
+    // Set CORS headers
+    const origin = req.headers.origin;
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ success: false, message: 'Method not allowed' });
+        return;
+    }
+    try {
+        const { sessionId } = req.body;
+        if (!sessionId) {
+            res.status(400).json({
+                success: false,
+                message: 'sessionId is required'
+            });
+            return;
+        }
+        // Get Stripe client
+        const stripe = await getStripeClient();
+        // Retrieve the session from Stripe
+        const session = await stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ['line_items', 'subscription'],
+        });
+        // Check if payment was successful
+        if (session.payment_status !== 'paid') {
+            res.status(400).json({
+                success: false,
+                message: `Payment status is ${session.payment_status}, not paid`
+            });
+            return;
+        }
+        // Process the session (same logic as webhook)
+        await handleCheckoutCompleted(session);
+        res.status(200).json({
+            success: true,
+            message: 'Session processed successfully',
+            sessionId: session.id,
+        });
+    }
+    catch (error) {
+        console.error('❌ Error processing Stripe session:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to process session',
+        });
+    }
+});
+/**
+ * Handle failed invoice payment
+ */
+const handleInvoicePaymentFailed = async (invoice) => {
+    var _a;
+    try {
+        // Invoice.subscription can be a string (ID) or a Subscription object
+        const subscriptionId = typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : (_a = invoice.subscription) === null || _a === void 0 ? void 0 : _a.id;
+        if (!subscriptionId) {
+            return;
+        }
+        // Get subscription to find userId
+        const stripe = await getStripeClient();
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const { userId } = subscription.metadata || {};
+        if (!userId) {
+            console.error('❌ Missing userId in subscription metadata');
+            return;
+        }
+        const userRef = admin.firestore().collection('users').doc(userId);
+        await userRef.update({
+            paymentStatus: 'failed',
+            lastPaymentFailure: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log(`⚠️  Payment failed for user ${userId}`);
+    }
+    catch (error) {
+        console.error('❌ Error handling invoice payment failed:', error);
+    }
+};
 //# sourceMappingURL=index.js.map

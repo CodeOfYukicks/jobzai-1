@@ -278,22 +278,21 @@ export default function RecommendationsPage() {
             onRefresh={() => generateRecommendation('career-path')}
           />
 
-          {/* Skills Gap & Job Strategy - Two Columns */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SkillsGapSection
-              data={recommendations.skillsGap?.data}
-              isLoading={recommendations.skillsGap?.isLoading || false}
-              error={recommendations.skillsGap?.error || null}
-              onRefresh={() => generateRecommendation('skills-gap')}
-            />
+          {/* Skills Gap Analysis Section - Full Width */}
+          <SkillsGapSection
+            data={recommendations.skillsGap?.data}
+            isLoading={recommendations.skillsGap?.isLoading || false}
+            error={recommendations.skillsGap?.error || null}
+            onRefresh={() => generateRecommendation('skills-gap')}
+          />
 
-            <JobStrategySection
-              data={recommendations.jobStrategy?.data}
-              isLoading={recommendations.jobStrategy?.isLoading || false}
-              error={recommendations.jobStrategy?.error || null}
-              onRefresh={() => generateRecommendation('job-strategy')}
-            />
-          </div>
+          {/* Job Search Strategy Section - Full Width */}
+          <JobStrategySection
+            data={recommendations.jobStrategy?.data}
+            isLoading={recommendations.jobStrategy?.isLoading || false}
+            error={recommendations.jobStrategy?.error || null}
+            onRefresh={() => generateRecommendation('job-strategy')}
+          />
           
           {/* Market Insights Section - Full Width */}
           <MarketInsightsSection

@@ -17,6 +17,8 @@ import BillingPage from './pages/BillingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import PaymentPage from './pages/PaymentPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import PaymentCancelPage from './pages/PaymentCancelPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import CookiesPage from './pages/CookiesPage';
@@ -121,6 +123,8 @@ export default function App() {
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/smart-matching" element={<SmartMatchingPage />} />
           <Route path="/search" element={<SearchPage />} />

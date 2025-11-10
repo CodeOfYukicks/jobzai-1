@@ -345,3 +345,8 @@ exports.analyzeCVVision = serverlessFunctions.analyzeCVVision;
 exports.syncUserToHubSpot = serverlessFunctions.syncUserToHubSpot;
 exports.sendHubSpotEventFunction = serverlessFunctions.sendHubSpotEventFunction;
 exports.syncUserToBrevo = serverlessFunctions.syncUserToBrevo;
+
+// Exporter les fonctions Stripe depuis le fichier compilé
+exports.createCheckoutSession = serverlessFunctions.createCheckoutSession;
+exports.stripeWebhook = serverlessFunctions.stripeWebhook;
+exports.processStripeSession = serverlessFunctions.processStripeSession;

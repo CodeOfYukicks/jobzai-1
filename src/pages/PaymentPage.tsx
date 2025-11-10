@@ -1,44 +1,63 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { CreditCard, Lock, Check } from 'lucide-react';
+import { CreditCard, Lock, Check, Loader2 } from 'lucide-react';
 import UserProfileMenu from '../components/UserProfileMenu';
+import { useAuth } from '../contexts/AuthContext';
+import { redirectToStripeCheckout } from '../services/stripe';
+import { toast } from 'react-hot-toast';
 
 export default function PaymentPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { type, plan, package: creditPackage } = location.state || {};
 
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || '';
-    const parts = [];
+  useEffect(() => {
+    // Redirect if no plan/package selected
+    if (!type || (!plan && !creditPackage)) {
+      navigate('/billing');
+    }
+  }, [type, plan, creditPackage, navigate]);
 
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
+  const handleCheckout = async () => {
+    if (!currentUser) {
+      toast.error('Please sign in to continue');
+      navigate('/login');
+      return;
     }
 
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return value;
+    if (!type || (!plan && !creditPackage)) {
+      toast.error('Invalid payment selection');
+      navigate('/billing');
+      return;
     }
-  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle payment submission
-    navigate('/billing');
+    try {
+      setIsLoading(true);
+
+      const params = {
+        userId: currentUser.uid,
+        planId: type === 'plan' ? plan.id : creditPackage.id,
+        planName: type === 'plan' ? plan.name : `${creditPackage.amount} Credits`,
+        price: type === 'plan' ? plan.price : creditPackage.price,
+        credits: type === 'plan' ? plan.credits : creditPackage.amount,
+        type: type as 'plan' | 'credits',
+        customerEmail: currentUser.email || undefined,
+      };
+
+      await redirectToStripeCheckout(params);
+      // User will be redirected to Stripe Checkout
+    } catch (error: any) {
+      console.error('Error initiating checkout:', error);
+      toast.error(error.message || 'Failed to initiate payment. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   if (!type || (!plan && !creditPackage)) {
-    navigate('/billing');
     return null;
   }
 
@@ -65,89 +84,57 @@ export default function PaymentPage() {
               JOBZ AI
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-            <p className="mt-2 text-gray-600">Enter your payment details to complete your purchase</p>
+            <p className="mt-2 text-gray-600">Secure payment powered by Stripe</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Payment Form */}
+            {/* Payment Button */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
               className="bg-white p-8 rounded-lg shadow-lg"
             >
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Card Number
-                  </label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                      placeholder="1234 5678 9012 3456"
-                      maxLength={19}
-                      className="pl-10 w-full p-3 border border-gray-300 rounded-md focus:ring-[#bb3e38] focus:border-[#bb3e38]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
-                      placeholder="MM/YY"
-                      maxLength={5}
-                      className="w-full p-3 border border-gray-300 rounded-md focus:ring-[#bb3e38] focus:border-[#bb3e38]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      CVV
-                    </label>
-                    <input
-                      type="text"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value)}
-                      placeholder="123"
-                      maxLength={3}
-                      className="w-full p-3 border border-gray-300 rounded-md focus:ring-[#bb3e38] focus:border-[#bb3e38]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cardholder Name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-[#bb3e38] focus:border-[#bb3e38]"
-                  />
+              <div className="space-y-6">
+                <div className="text-center">
+                  <CreditCard className="h-16 w-16 text-purple-600 mx-auto mb-4" />
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">
+                    Secure Checkout
+                  </h2>
+                  <p className="text-gray-600 text-sm">
+                    You'll be redirected to Stripe's secure payment page to complete your purchase
+                  </p>
                 </div>
 
                 <button
-                  type="submit"
-                  className="w-full bg-[#fad63c] text-black font-bold py-3 rounded-md hover:bg-[#fad63c]/90 transition-all"
+                  onClick={handleCheckout}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-4 rounded-md hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Complete Purchase
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-5 w-5" />
+                      Proceed to Payment
+                    </>
+                  )}
                 </button>
 
                 <div className="flex items-center justify-center text-sm text-gray-500">
                   <Lock className="h-4 w-4 mr-2" />
                   Secure payment powered by Stripe
                 </div>
-              </form>
+
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-gray-500 text-center">
+                    Your payment information is encrypted and secure. We never store your card details.
+                  </p>
+                </div>
+              </div>
             </motion.div>
 
             {/* Order Summary */}

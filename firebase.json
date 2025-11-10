@@ -35,6 +35,14 @@
         "function": "api"
       },
       {
+        "source": "/api/stripe/create-checkout-session",
+        "function": "createCheckoutSession"
+      },
+      {
+        "source": "/api/stripe/process-session",
+        "function": "processStripeSession"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

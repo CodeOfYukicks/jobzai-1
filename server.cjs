@@ -640,6 +640,43 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
   }
 });
 
+// Stripe Checkout Session Proxy - Pour éviter les problèmes CORS en développement
+app.post('/api/stripe/create-checkout-session', async (req, res) => {
+  try {
+    console.log('🔄 Proxying Stripe checkout session request to Firebase Functions');
+    
+    const functionsUrl = 'https://us-central1-jobzai.cloudfunctions.net/createCheckoutSession';
+    
+    const response = await fetch(functionsUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(req.body),
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('❌ Firebase Functions error:', error);
+      return res.status(response.status).json({
+        success: false,
+        message: error || 'Failed to create checkout session',
+      });
+    }
+    
+    const data = await response.json();
+    console.log('✅ Stripe checkout session created successfully');
+    
+    res.json(data);
+  } catch (error) {
+    console.error('❌ Error proxying Stripe request:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create checkout session',
+    });
+  }
+});
+
 // En production, pour toutes les autres routes, servir index.html
 // Cela permet à React Router de gérer les routes côté client
 if (isProduction) {
@@ -657,6 +694,7 @@ app.listen(PORT, () => {
   console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
   console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
   console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
+  console.log(`Stripe Checkout proxy available at http://localhost:${PORT}/api/stripe/create-checkout-session`);
   console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
   console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
   if (isProduction) {

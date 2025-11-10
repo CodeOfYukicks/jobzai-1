@@ -7,12 +7,13 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { recordCreditHistory } from '../lib/creditHistory';
+import { redirectToStripeCheckout } from '../services/stripe';
 
 const plans = [
   {
     id: 'free',
     name: 'Free',
-    price: 'Ôé¼0',
+    price: '0',
     credits: 25,
     description: 'Perfect for trying out the basics of Jobz.ai',
     features: [
@@ -26,7 +27,7 @@ const plans = [
   {
     id: 'standard',
     name: 'Standard',
-    price: 'Ôé¼39',
+    price: '39',
     credits: 500,
     description: 'Ideal for regular job seekers who need more credits.',
     features: [
@@ -42,7 +43,7 @@ const plans = [
   {
     id: 'premium',
     name: 'Premium',
-    price: 'Ôé¼69',
+    price: '69',
     credits: 999999,
     description: 'Designed for power users needing high-volume applications.',
     features: [
@@ -100,22 +101,27 @@ export default function PlanSelectionPage() {
         );
       }
 
-      toast.success(`${plan.name} plan activated successfully!`);
-
-      // If it's a paid plan, redirect to payment
+      // If it's a paid plan, redirect directly to Stripe Checkout
       if (planId !== 'free') {
-        navigate('/payment', { 
-          state: { 
-            type: 'plan',
-            plan: {
-              id: plan.id,
-              name: plan.name,
-              price: plan.price,
-              credits: plan.credits
-            }
-          }
-        });
+        try {
+          const params = {
+            userId: currentUser.uid,
+            planId: plan.id,
+            planName: plan.name,
+            price: plan.price, // Price is already clean
+            credits: plan.credits,
+            type: 'plan' as const,
+            customerEmail: currentUser.email || undefined,
+          };
+
+          await redirectToStripeCheckout(params);
+          // User will be redirected to Stripe Checkout
+        } catch (error: any) {
+          console.error('Error initiating checkout:', error);
+          toast.error(error.message || 'Failed to initiate payment. Please try again.');
+        }
       } else {
+        toast.success(`${plan.name} plan activated successfully!`);
         navigate('/dashboard');
       }
     } catch (error) {
@@ -184,9 +190,9 @@ export default function PlanSelectionPage() {
                 
                 <div className="mt-4 flex items-baseline">
                   <span className="text-3xl font-bold tracking-tight text-gray-900">
-                    {plan.price}
+                    €{plan.price}
                   </span>
-                  {plan.price !== 'Ôé¼0' && (
+                  {plan.price !== '0' && (
                     <span className="text-sm text-gray-500 ml-1">/month</span>
                   )}
                 </div>
@@ -217,7 +223,7 @@ export default function PlanSelectionPage() {
                       <span>Processing...</span>
                     </div>
                   ) : (
-                    <span>{plan.price === 'Ôé¼0' ? 'Start Free' : 'Get Started'}</span>
+                    <span>{plan.price === '0' ? 'Start Free' : 'Get Started'}</span>
                   )}
                 </button>
               </div>

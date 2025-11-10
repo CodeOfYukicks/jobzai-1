@@ -8,11 +8,13 @@ import {
   CreditCard, Plus, Check, Download, Calendar, TrendingUp, 
   Zap, BarChart3, Users, FileText, Mail, Target, Sparkles,
   ArrowRight, Crown, Gift, AlertCircle, Clock, Activity,
-  PieChart, ArrowUpRight, ArrowDownRight
+  PieChart, ArrowUpRight, ArrowDownRight, Loader2
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { getCreditHistory, type CreditHistoryEntry } from '../lib/creditHistory';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { redirectToStripeCheckout } from '../services/stripe';
+import { toast } from 'react-hot-toast';
 
 interface UserPlanData {
   plan: string;
@@ -130,6 +132,9 @@ export default function BillingPage() {
     usagePercentage: 0,
     averagePerDay: 0,
   });
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
+  const [processingPackageId, setProcessingPackageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -142,26 +147,53 @@ export default function BillingPage() {
           setUserPlanData(data);
           
           // Charger l'historique des crédits
-          const history = await getCreditHistory(currentUser.uid, 30);
+          const history = await getCreditHistory(currentUser.uid, 100);
           setCreditHistory(history);
           
-          // Calculer les statistiques d'usage
+          // Calculer les statistiques d'usage basées sur l'historique réel
           const currentPlan = plans.find(p => p.id === data.plan) || plans[0];
-          const creditsUsed = currentPlan.credits - (data.credits || 0);
-          const usagePercentage = currentPlan.credits > 0 
-            ? (creditsUsed / currentPlan.credits) * 100 
+          const currentCredits = data.credits || 0;
+          
+          // Calculer la date de début du cycle (plan sélectionné ou il y a 30 jours)
+          const planStartDate = data.planSelectedAt 
+            ? new Date(data.planSelectedAt)
+            : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          
+          const daysSinceStart = Math.max(1, Math.floor((Date.now() - planStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+          
+          // Filtrer l'historique pour ce cycle (depuis le début du plan)
+          const cycleHistory = history.filter(entry => {
+            const entryDate = entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp);
+            return entryDate >= planStartDate;
+          });
+          
+          // Calculer les crédits réellement utilisés (seulement les déductions, change < 0)
+          const creditsUsed = cycleHistory
+            .filter(entry => entry.change < 0)
+            .reduce((sum, entry) => sum + Math.abs(entry.change), 0);
+          
+          // Calculer les crédits ajoutés (pour référence)
+          const creditsAdded = cycleHistory
+            .filter(entry => entry.change > 0)
+            .reduce((sum, entry) => sum + entry.change, 0);
+          
+          // Calculer le pourcentage d'usage basé sur les crédits du plan
+          // Si l'utilisateur a plus de crédits que son plan (achats supplémentaires), 
+          // on calcule le % par rapport au plan initial
+          const planCredits = currentPlan.credits;
+          const usagePercentage = planCredits > 0 
+            ? Math.min(100, (creditsUsed / planCredits) * 100)
             : 0;
           
-          // Calculer la moyenne par jour (basé sur le mois écoulé)
-          const daysSinceStart = data.planSelectedAt 
-            ? Math.max(1, Math.floor((Date.now() - new Date(data.planSelectedAt).getTime()) / (1000 * 60 * 60 * 24)))
-            : 30;
-          const averagePerDay = creditsUsed / daysSinceStart;
+          // Calculer la moyenne par jour (basé sur les crédits réellement utilisés)
+          const averagePerDay = daysSinceStart > 0 
+            ? creditsUsed / daysSinceStart 
+            : 0;
           
           setUsageStats({
             creditsUsed,
-            creditsRemaining: data.credits || 0,
-            usagePercentage: Math.min(100, usagePercentage),
+            creditsRemaining: currentCredits,
+            usagePercentage: Math.max(0, Math.min(100, usagePercentage)),
             averagePerDay: Math.round(averagePerDay * 10) / 10,
           });
           
@@ -191,12 +223,78 @@ export default function BillingPage() {
     ? new Date(new Date(userPlanData.planSelectedAt).setMonth(new Date(userPlanData.planSelectedAt).getMonth() + 1))
     : new Date(new Date().setMonth(new Date().getMonth() + 1));
 
-  const handleUpgrade = (plan: typeof plans[0]) => {
-    navigate('/payment', { state: { type: 'plan', plan } });
+  const handleUpgrade = async (plan: typeof plans[0]) => {
+    if (!currentUser) {
+      toast.error('Please sign in to continue');
+      navigate('/login');
+      return;
+    }
+
+    if (isProcessing) return; // Prevent multiple clicks
+
+    setIsProcessing(true);
+    setProcessingPlanId(plan.id);
+    
+    // Show immediate feedback
+    toast.loading('Preparing checkout...', { id: 'checkout' });
+
+    try {
+      const params = {
+        userId: currentUser.uid,
+        planId: plan.id,
+        planName: plan.name,
+        price: plan.price,
+        credits: plan.credits,
+        type: 'plan' as const,
+        customerEmail: currentUser.email || undefined,
+      };
+
+      await redirectToStripeCheckout(params);
+      // User will be redirected to Stripe Checkout
+      toast.success('Redirecting to payment...', { id: 'checkout' });
+    } catch (error: any) {
+      console.error('Error initiating checkout:', error);
+      toast.error(error.message || 'Failed to initiate payment. Please try again.', { id: 'checkout' });
+      setIsProcessing(false);
+      setProcessingPlanId(null);
+    }
   };
 
-  const handleBuyCredits = (pkg: typeof creditPackages[0]) => {
-    navigate('/payment', { state: { type: 'credits', package: pkg } });
+  const handleBuyCredits = async (pkg: typeof creditPackages[0]) => {
+    if (!currentUser) {
+      toast.error('Please sign in to continue');
+      navigate('/login');
+      return;
+    }
+
+    if (isProcessing) return; // Prevent multiple clicks
+
+    setIsProcessing(true);
+    setProcessingPackageId(pkg.id);
+    
+    // Show immediate feedback
+    toast.loading('Preparing checkout...', { id: 'checkout' });
+
+    try {
+      const params = {
+        userId: currentUser.uid,
+        planId: pkg.id,
+        planName: `${pkg.amount} Credits`,
+        price: pkg.price,
+        credits: pkg.amount,
+        type: 'credits' as const,
+        customerEmail: currentUser.email || undefined,
+      };
+
+      await redirectToStripeCheckout(params);
+      // User will be redirected to Stripe Checkout
+      toast.success('Redirecting to payment...', { id: 'checkout' });
+    } catch (error: any) {
+      console.error('Error initiating checkout:', error);
+      toast.error(error.message || 'Failed to initiate payment. Please try again.', { id: 'checkout' });
+      setIsProcessing(false);
+      setProcessingPackageId(null);
+    }
   };
 
   if (isLoading) {
@@ -516,14 +614,16 @@ export default function BillingPage() {
 
                     <button
                       onClick={() => !isCurrentPlan && handleUpgrade(plan)}
-                      disabled={isCurrentPlan}
+                      disabled={isCurrentPlan || (isProcessing && processingPlanId === plan.id)}
                       className={`
                         w-full py-3.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 mt-auto
                         ${isCurrentPlan
                           ? 'bg-white text-purple-600 hover:bg-gray-50 cursor-default'
-                          : buttonAction === 'Upgrade'
-                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl'
-                            : 'bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-600/90 dark:hover:bg-gray-600'
+                          : isProcessing && processingPlanId === plan.id
+                            ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white cursor-wait opacity-75'
+                            : buttonAction === 'Upgrade'
+                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl active:scale-95'
+                              : 'bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-600/90 dark:hover:bg-gray-600 active:scale-95'
                         }
                       `}
                     >
@@ -531,6 +631,11 @@ export default function BillingPage() {
                         <>
                           <Check className="h-5 w-5" />
                           Current Plan
+                        </>
+                      ) : isProcessing && processingPlanId === plan.id ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Processing...
                         </>
                       ) : (
                         <>
@@ -607,13 +712,25 @@ export default function BillingPage() {
                   </div>
                   <button
                     onClick={() => handleBuyCredits(pkg)}
-                    className="w-full py-3 rounded-xl font-semibold
-                      bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
-                      hover:from-purple-700 hover:to-indigo-700 
-                      dark:bg-purple-600/90 dark:hover:bg-purple-600
-                      transition-all duration-200 shadow-lg hover:shadow-xl"
+                    disabled={isProcessing && processingPackageId === pkg.id}
+                    className={`
+                      w-full py-3 rounded-xl font-semibold
+                      transition-all duration-200 shadow-lg hover:shadow-xl
+                      flex items-center justify-center gap-2
+                      ${isProcessing && processingPackageId === pkg.id
+                        ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white cursor-wait opacity-75'
+                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 dark:bg-purple-600/90 dark:hover:bg-purple-600 active:scale-95'
+                      }
+                    `}
                   >
-                    Buy Now
+                    {isProcessing && processingPackageId === pkg.id ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Buy Now'
+                    )}
                   </button>
                 </div>
               </motion.div>
