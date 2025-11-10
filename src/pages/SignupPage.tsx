@@ -1,13 +1,11 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mail, Lock, User, Loader2, RefreshCw, Eye, EyeOff, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import FirebaseImage from '../components/FirebaseImage';
-import GoogleAuthButton from '../components/GoogleAuthButton';
-import AnimatedGridPattern from '../components/ui/animated-grid-pattern';
 import { forceLightMode } from '../lib/theme';
+import FirebaseImage from '../components/FirebaseImage';
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState('');
@@ -17,9 +15,43 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const navigate = useNavigate();
   const { signup, resendVerificationEmail, signInWithGoogle } = useAuth();
+
+  // Password validation criteria
+  const passwordCriteria = useMemo(() => {
+    return {
+      minLength: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecialChar: /[^a-zA-Z0-9]/.test(password),
+    };
+  }, [password]);
+
+  // Calculate password strength (0-5)
+  const passwordStrength = useMemo(() => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (passwordCriteria.hasUpperCase && passwordCriteria.hasLowerCase) strength++;
+    if (passwordCriteria.hasNumber) strength++;
+    if (passwordCriteria.hasSpecialChar) strength++;
+    return strength;
+  }, [password, passwordCriteria]);
+
+  // Check if password meets all requirements
+  const isPasswordValid = useMemo(() => {
+    return Object.values(passwordCriteria).every(Boolean);
+  }, [passwordCriteria]);
+
+  // Check if passwords match
+  const passwordsMatch = useMemo(() => {
+    return password && confirmPassword && password === confirmPassword;
+  }, [password, confirmPassword]);
 
   // Force light mode on signup page
   useEffect(() => {
@@ -34,13 +66,13 @@ export default function SignupPage() {
       return;
     }
 
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+    if (!isPasswordValid) {
+      toast.error('Password does not meet security requirements');
       return;
     }
 
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters long');
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -84,38 +116,27 @@ export default function SignupPage() {
 
   if (showVerificationMessage) {
     return (
-      <div className="min-h-screen bg-[#8D75E6] dark:bg-[#2A2831] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-200">
-        <AnimatedGridPattern 
-          width={40} 
-          height={40} 
-          x={0}
-          y={0}
-          className="absolute inset-0 h-full w-full fill-white/[0.1] stroke-white/[0.1]"
-          strokeDasharray="4 4"
-          numSquares={40}
-          maxOpacity={0.3}
-          duration={3}
-          repeatDelay={0.3}
-        />
+      <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg text-center border border-gray-200 dark:border-gray-700"
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-md w-full space-y-8 bg-white text-center"
         >
           <div>
-            <Mail className="mx-auto h-12 w-12 text-[#8D75E6]" />
-            <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <Mail className="mx-auto h-12 w-12 text-gray-900" />
+            <h2 className="mt-8 text-4xl font-semibold text-gray-900 tracking-tight">
               Verify your email
             </h2>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              We've sent a verification link to <strong className="text-gray-900 dark:text-gray-100">{email}</strong>. Please check your inbox and click the link to verify your account.
+            <p className="mt-4 text-base text-gray-600 leading-relaxed">
+              We've sent a verification link to <strong className="text-gray-900">{email}</strong>. Please check your inbox and click the link to verify your account.
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <button
               onClick={handleResendVerification}
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-[#8D75E6] dark:text-purple-400 bg-white dark:bg-gray-700 border border-[#8D75E6] dark:border-purple-500 rounded-md hover:bg-[#8D75E6] dark:hover:bg-purple-600 hover:text-white transition-colors"
+              className="flex items-center justify-center w-full px-4 py-3.5 text-[15px] font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-150"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Resend verification email
@@ -123,13 +144,13 @@ export default function SignupPage() {
 
             <Link
               to="/login"
-              className="block w-full px-4 py-2 text-sm font-medium text-white bg-[#8D75E6] rounded-md hover:bg-[#7B65D4] transition-colors"
+              className="block w-full px-4 py-3.5 text-[15px] font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-all duration-150"
             >
               Continue to login
             </Link>
           </div>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             Didn't receive the email? Check your spam folder or try another email address.
           </p>
         </motion.div>
@@ -138,36 +159,36 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen flex bg-white">
       {/* Panneau de formulaire (gauche) */}
-      <div className="w-full lg:w-1/2 p-8 flex items-center justify-center">
+      <div className="w-full lg:w-1/2 p-8 lg:p-16 flex items-center justify-center">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-md"
         >
-          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700">
-            <div>
-              <Link to="/" className="block text-center group">
+          <div className="bg-white">
+            <div className="mb-12">
+              <Link to="/" className="flex justify-center group mb-10">
                 <FirebaseImage 
-                  path="images/logo-dark.png"
-                  alt="Jobz.ai Logo" 
-                  className="h-12 mx-auto transform transition-transform group-hover:scale-105"
+                  path="images/logo-only.png"
+                  alt="JOBZ.AI Logo" 
+                  className="h-12 w-auto transform transition-transform group-hover:scale-105"
                 />
               </Link>
-              <h2 className="mt-8 text-center text-3xl font-bold text-purple-600 dark:text-white">
+              <h2 className="text-4xl font-semibold text-gray-900 tracking-tight text-center">
                 Create your account
               </h2>
-              <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
+              <p className="mt-4 text-base text-gray-600 text-center">
                 Already have an account?{' '}
-                <Link to="/login" className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors">
+                <Link to="/login" className="font-medium text-gray-900 hover:text-gray-700 transition-colors underline underline-offset-4">
                   Sign in
                 </Link>
               </p>
             </div>
 
-            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-              {/* Inputs avec le même style que LoginPage */}
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   {/* First Name Input */}
@@ -176,13 +197,13 @@ export default function SignupPage() {
                       type="text"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
-                        rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
-                        focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                        transition-all duration-200"
+                      className="block w-full pl-11 pr-4 py-3.5 bg-white border border-gray-300 
+                        rounded-lg text-gray-900 placeholder-gray-400 
+                        focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900
+                        transition-all duration-150 text-[15px]"
                       placeholder="First name"
                     />
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   </div>
                   
                   {/* Last Name Input */}
@@ -191,13 +212,13 @@ export default function SignupPage() {
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
-                        rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
-                        focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                        transition-all duration-200"
+                      className="block w-full pl-11 pr-4 py-3.5 bg-white border border-gray-300 
+                        rounded-lg text-gray-900 placeholder-gray-400 
+                        focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900
+                        transition-all duration-150 text-[15px]"
                       placeholder="Last name"
                     />
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   </div>
                 </div>
 
@@ -207,52 +228,206 @@ export default function SignupPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
-                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
-                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                      transition-all duration-200"
+                    className="block w-full pl-11 pr-4 py-3.5 bg-white border border-gray-300 
+                      rounded-lg text-gray-900 placeholder-gray-400 
+                      focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900
+                      transition-all duration-150 text-[15px]"
                     placeholder="Email address"
                   />
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 </div>
 
-                {/* Password Inputs */}
+                {/* Password Input */}
+                <div>
                 <div className="relative">
                   <input
-                    type="password"
+                      type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
-                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
-                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                      transition-all duration-200"
+                      className={`block w-full pl-11 pr-11 py-3.5 bg-white border rounded-lg 
+                        text-gray-900 placeholder-gray-400 
+                        focus:outline-none focus:ring-1 transition-all duration-150 text-[15px]
+                        ${
+                          password && !isPasswordValid
+                            ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                            : password && isPasswordValid
+                            ? 'border-green-500 focus:ring-green-500 focus:border-green-500'
+                            : 'border-gray-300 focus:ring-gray-900 focus:border-gray-900'
+                        }`}
                     placeholder="Password"
                   />
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+
+                  {/* Password Strength Indicator */}
+                  {password && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <motion.div
+                            key={level}
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: passwordStrength >= level ? 1 : 0 }}
+                            transition={{ duration: 0.2, delay: level * 0.03 }}
+                            className={`h-1 flex-1 rounded-full transition-all duration-200 ${
+                              passwordStrength >= level
+                                ? passwordStrength <= 2
+                                  ? 'bg-red-500'
+                                  : passwordStrength <= 3
+                                  ? 'bg-amber-500'
+                                  : 'bg-green-500'
+                                : 'bg-gray-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className={`text-xs font-medium ${
+                        passwordStrength <= 2 ? 'text-red-600' :
+                        passwordStrength <= 3 ? 'text-amber-600' :
+                        'text-green-600'
+                      }`}>
+                        {passwordStrength <= 2 ? 'Weak password' :
+                         passwordStrength <= 3 ? 'Medium password' :
+                         'Strong password'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Password Requirements */}
+                  {password && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <p className="text-xs font-semibold text-gray-900 mb-3">
+                        Password requirements:
+                      </p>
+                      <ul className="space-y-2 text-xs text-gray-600">
+                        <li className={`flex items-center gap-2.5 transition-colors ${
+                          passwordCriteria.minLength 
+                            ? 'text-gray-900' 
+                            : 'text-gray-500'
+                        }`}>
+                          {passwordCriteria.minLength ? (
+                            <Check className="w-3.5 h-3.5 flex-shrink-0 text-green-600" />
+                          ) : (
+                            <X className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                          )}
+                          <span>At least 8 characters</span>
+                        </li>
+                        <li className={`flex items-center gap-2.5 transition-colors ${
+                          passwordCriteria.hasUpperCase && passwordCriteria.hasLowerCase
+                            ? 'text-gray-900' 
+                            : 'text-gray-500'
+                        }`}>
+                          {passwordCriteria.hasUpperCase && passwordCriteria.hasLowerCase ? (
+                            <Check className="w-3.5 h-3.5 flex-shrink-0 text-green-600" />
+                          ) : (
+                            <X className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                          )}
+                          <span>Uppercase and lowercase letters</span>
+                        </li>
+                        <li className={`flex items-center gap-2.5 transition-colors ${
+                          passwordCriteria.hasNumber
+                            ? 'text-gray-900' 
+                            : 'text-gray-500'
+                        }`}>
+                          {passwordCriteria.hasNumber ? (
+                            <Check className="w-3.5 h-3.5 flex-shrink-0 text-green-600" />
+                          ) : (
+                            <X className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                          )}
+                          <span>At least one number</span>
+                        </li>
+                        <li className={`flex items-center gap-2.5 transition-colors ${
+                          passwordCriteria.hasSpecialChar
+                            ? 'text-gray-900' 
+                            : 'text-gray-500'
+                        }`}>
+                          {passwordCriteria.hasSpecialChar ? (
+                            <Check className="w-3.5 h-3.5 flex-shrink-0 text-green-600" />
+                          ) : (
+                            <X className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                          )}
+                          <span>At least one special character (!@#$%^&*)</span>
+                        </li>
+                      </ul>
+                    </motion.div>
+                  )}
                 </div>
 
+                {/* Confirm Password Input */}
+                <div>
                 <div className="relative">
                   <input
-                    type="password"
+                      type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
-                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
-                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                      transition-all duration-200"
+                      className={`block w-full pl-11 pr-11 py-3.5 bg-white border rounded-lg 
+                        text-gray-900 placeholder-gray-400 
+                        focus:outline-none focus:ring-1 transition-all duration-150 text-[15px]
+                        ${
+                          confirmPassword && !passwordsMatch
+                            ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                            : confirmPassword && passwordsMatch
+                            ? 'border-green-500 focus:ring-green-500 focus:border-green-500'
+                            : 'border-gray-300 focus:ring-gray-900 focus:border-gray-900'
+                        }`}
                     placeholder="Confirm password"
                   />
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+
+                  {/* Password Match Indicator */}
+                  {confirmPassword && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-2.5 flex items-center gap-2"
+                    >
+                      {passwordsMatch ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-green-600" />
+                          <span className="text-xs text-green-600 font-medium">
+                            Passwords match
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-3.5 h-3.5 text-red-600" />
+                          <span className="text-xs text-red-600 font-medium">
+                            Passwords do not match
+                          </span>
+                        </>
+                      )}
+                    </motion.div>
+                  )}
                 </div>
               </div>
 
               {/* Séparateur */}
-              <div className="relative my-6">
+              <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+                  <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl text-gray-500 dark:text-gray-400">
+                  <span className="px-4 bg-white text-gray-500 text-[13px]">
                     Or continue with
                   </span>
                 </div>
@@ -262,11 +437,13 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3
-                  bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3.5
+                  bg-white border border-gray-300 rounded-lg 
+                  hover:bg-gray-50 text-gray-900 
+                  transition-all duration-150 text-[15px] font-medium"
               >
                 {/* Google SVG icon */}
-                <svg width="18" height="18" viewBox="0 0 18 18" className="mr-2">
+                <svg width="18" height="18" viewBox="0 0 18 18">
                   <path
                     fill="#4285F4"
                     d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
@@ -284,23 +461,21 @@ export default function SignupPage() {
                     d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"
                   />
                 </svg>
-                <span className="text-gray-700 dark:text-gray-200">Continue with Google</span>
+                <span>Continue with Google</span>
               </button>
 
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center items-center gap-2 px-4 py-3
-                  bg-gradient-to-r from-purple-600 to-indigo-600
-                  hover:from-purple-700 hover:to-indigo-700
-                  text-white font-medium rounded-xl
-                  transform transition-all duration-200
-                  hover:shadow-lg hover:shadow-purple-500/25
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || !isPasswordValid || !passwordsMatch || !firstName || !lastName || !email}
+                className="w-full flex justify-center items-center gap-2 px-4 py-3.5
+                  bg-gray-900 hover:bg-gray-800
+                  text-white font-medium rounded-lg
+                  transition-all duration-150 text-[15px]
+                  disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-900"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Creating account...</span>
                   </>
                 ) : (
@@ -314,78 +489,136 @@ export default function SignupPage() {
 
       {/* Panneau latéral (droite) */}
       <motion.div 
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="hidden lg:flex w-1/2 bg-[#2A2831] flex-col items-center justify-center p-12 relative overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="hidden lg:flex w-1/2 bg-gradient-to-br from-[#8D75E6] via-[#7B65D4] to-[#6F58B8] flex-col items-center justify-center p-16 relative overflow-hidden"
       >
-        {/* Effets de lumière subtils - ajustés pour le nouveau fond */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#F6B17A]/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-t from-transparent to-white/[0.02]" />
+        {/* Effets de lumière animés */}
+        <motion.div 
+          animate={{ 
+            x: [0, 100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ 
+            duration: 20, 
+            repeat: Infinity, 
+            ease: "linear" 
+          }}
+          className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl"
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, -80, 0],
+            y: [0, -40, 0],
+            scale: [1, 1.3, 1]
+          }}
+          transition={{ 
+            duration: 15, 
+            repeat: Infinity, 
+            ease: "linear" 
+          }}
+          className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-300/20 rounded-full blur-3xl"
+        />
+        
+        {/* Gradient overlay animé */}
+        <motion.div 
+          animate={{ 
+            backgroundPosition: ['0% 0%', '100% 100%']
+          }}
+          transition={{ 
+            duration: 10, 
+            repeat: Infinity, 
+            repeatType: "reverse",
+            ease: "linear" 
+          }}
+          className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent"
+          style={{
+            backgroundSize: '200% 200%'
+          }}
+        />
 
         <div className="relative z-10 max-w-lg">
-          <div className="mb-12">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-5xl font-bold text-white mb-2"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mb-16"
+          >
+            <motion.h3 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="text-6xl font-semibold text-white tracking-tight mb-4"
             >
-              START YOUR
-            </motion.div>
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-6xl font-bold"
+              Welcome to
+            </motion.h3>
+            <motion.h3 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="text-6xl font-semibold text-white tracking-tight mb-4"
             >
-              <span className="text-white">NEXT</span>{' '}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#4D3E78] to-white">
-                CAREER
-              </span>
-            </motion.div>
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="text-6xl font-bold text-white"
+              your future
+            </motion.h3>
+            <motion.h3 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className="text-6xl font-semibold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent tracking-tight"
             >
-              JOURNEY
+              career
+            </motion.h3>
             </motion.div>
-          </div>
 
           <motion.p 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="text-white/90 text-lg mb-12 leading-relaxed"
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="text-white/95 text-lg leading-relaxed mb-16 font-light"
           >
-            Join thousands of professionals who've found their dream jobs through our AI-powered platform. Let's discover opportunities that match your unique skills and aspirations.
+            Join thousands of professionals who've transformed their job search with AI-powered personalized applications. Start your journey today.
           </motion.p>
 
-          {/* Statistiques animées */}
+          {/* Statistiques avec effet hover */}
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="grid grid-cols-2 gap-6"
+            transition={{ duration: 0.6, delay: 1 }}
+            className="grid grid-cols-2 gap-8"
           >
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <div className="text-3xl font-bold text-white">20K+</div>
-              <div className="text-white/70 text-sm">Active Users</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <div className="text-3xl font-bold text-white">93%</div>
-              <div className="text-white/70 text-sm">Success Rate</div>
-            </div>
+            <motion.div
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20"
+            >
+              <div className="text-5xl font-bold text-white mb-2">20K+</div>
+              <div className="text-white/90 text-sm font-medium">Active Users</div>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20"
+            >
+              <div className="text-5xl font-bold text-white mb-2">93%</div>
+              <div className="text-white/90 text-sm font-medium">Success Rate</div>
+            </motion.div>
           </motion.div>
         </div>
 
-        {/* Motif de points - opacité réduite pour le fond plus sombre */}
-        <div className="absolute inset-0 opacity-[0.07]" 
+        {/* Pattern animé */}
+        <motion.div 
+          animate={{ 
+            backgroundPosition: ['0 0', '40px 40px']
+          }}
+          transition={{ 
+            duration: 20, 
+            repeat: Infinity, 
+            ease: "linear" 
+          }}
+          className="absolute inset-0 opacity-[0.15]" 
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.4) 1px, transparent 0)`,
-            backgroundSize: '30px 30px'
+            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.6) 1.5px, transparent 0)`,
+            backgroundSize: '40px 40px'
           }}
         />
       </motion.div>

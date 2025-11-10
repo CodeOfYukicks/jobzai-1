@@ -16,7 +16,8 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
     lastName: '',
     email: '',
     gender: '',
-    location: '',
+    city: '',
+    country: '',
     contractType: ''
   });
 
@@ -28,12 +29,25 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          // Convertir l'ancien champ location en city et country si nécessaire
+          let city = userData.city || '';
+          let country = userData.country || '';
+          if ((!city || !country) && userData.location) {
+            const parts = userData.location.split(',').map((s: string) => s.trim());
+            if (parts.length === 2) {
+              city = city || parts[0];
+              country = country || parts[1];
+            } else if (parts.length === 1 && !city) {
+              city = parts[0];
+            }
+          }
           const newFormData = {
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
             email: userData.email || currentUser.email || '',
             gender: userData.gender || '',
-            location: userData.location || '',
+            city: city,
+            country: country,
             contractType: userData.contractType || ''
           };
           setFormData(newFormData);
@@ -153,18 +167,32 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
           </select>
         </div>
 
-        {/* Location */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Location
-          </label>
-          <input
-            type="text"
-            value={formData.location}
-            onChange={(e) => handleChange('location', e.target.value)}
-            placeholder="e.g., Paris, France"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-          />
+        {/* Location - City and Country */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              City
+            </label>
+            <input
+              type="text"
+              value={formData.city}
+              onChange={(e) => handleChange('city', e.target.value)}
+              placeholder="e.g., Paris"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              Country
+            </label>
+            <input
+              type="text"
+              value={formData.country}
+              onChange={(e) => handleChange('country', e.target.value)}
+              placeholder="e.g., France"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            />
+          </div>
         </div>
 
         {/* Contract Type */}

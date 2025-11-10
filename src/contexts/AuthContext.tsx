@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithPopup, User, createUserWithEmailAndPassword, sendEmailVerification, updateProfile, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -58,31 +58,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let unsubscribeFirestore: (() => void) | null = null;
+
     const unsubscribe = auth.onAuthStateChanged(async user => {
       setCurrentUser(user);
+      
+      // Unsubscribe from previous Firestore listener if exists
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+        unsubscribeFirestore = null;
+      }
+
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const userData = userDoc.data() as UserData;
-        setUserData(userData);
-        setIsProfileCompleted(userData?.profileCompleted ?? false);
-        
-        // Load and apply theme from Firestore if available (only when logged in)
-        if (userData?.theme) {
-          applyTheme(userData.theme as Theme);
-        } else {
-          // If no theme in Firestore, load from localStorage
-          const theme = loadThemeFromStorage();
-          applyTheme(theme);
-        }
+        // Listen to Firestore changes for real-time updates
+        unsubscribeFirestore = onSnapshot(
+          doc(db, 'users', user.uid),
+          (userDoc) => {
+            if (userDoc.exists()) {
+              const userData = userDoc.data() as UserData;
+              setUserData(userData);
+              setIsProfileCompleted(userData?.profileCompleted ?? false);
+              
+              // Load and apply theme from Firestore if available (only when logged in)
+              if (userData?.theme) {
+                applyTheme(userData.theme as Theme);
+              } else {
+                // If no theme in Firestore, load from localStorage
+                const theme = loadThemeFromStorage();
+                applyTheme(theme);
+              }
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error('Error listening to user document:', error);
+            setLoading(false);
+          }
+        );
       } else {
         setUserData(null);
+        setIsProfileCompleted(false);
         // Force light mode when logged out
         forceLightMode();
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+      }
+    };
   }, []);
 
   const completeProfile = async (profileData: any) => {
@@ -126,9 +153,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Brevo sync failed (non-critical):', brevoError);
       }
 
+      // Update context state immediately
       setIsProfileCompleted(true);
-      navigate('/hub');
-      toast.success('Profile completed successfully!');
+      
+      // Wait for Firestore snapshot to update the context
+      // This ensures that onSnapshot has time to update the context state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Double check that profileCompleted is set in Firestore
+      const userDoc = await getDoc(userRef);
+      const finalData = userDoc.data();
+      if (finalData?.profileCompleted) {
+        setIsProfileCompleted(true);
+        navigate('/hub');
+        toast.success('Profile completed successfully!');
+      } else {
+        // If profileCompleted is not set, try again
+        console.warn('Profile completed flag not set, retrying...');
+        await updateDoc(userRef, {
+          profileCompleted: true,
+        });
+        setIsProfileCompleted(true);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        navigate('/hub');
+        toast.success('Profile completed successfully!');
+      }
     } catch (error) {
       console.error('Error completing profile:', error);
       toast.error('Failed to complete profile');

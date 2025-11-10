@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minimize2, Maximize2, Sparkles } from 'lucide-react';
+import { Minimize2, Maximize2, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface BackgroundLoadingNotificationProps {
   isOpen: boolean;
@@ -7,8 +7,8 @@ interface BackgroundLoadingNotificationProps {
   message?: string;
   completedCount?: number;
   totalCount?: number;
+  completedRecommendations?: string[];
   onMinimize?: () => void;
-  onClose?: () => void;
   isMinimized?: boolean;
   onMaximize?: () => void;
 }
@@ -19,8 +19,8 @@ export default function BackgroundLoadingNotification({
   message = "Generating your AI recommendations",
   completedCount = 0,
   totalCount = 0,
+  completedRecommendations = [],
   onMinimize,
-  onClose,
   isMinimized = false,
   onMaximize
 }: BackgroundLoadingNotificationProps) {
@@ -106,26 +106,15 @@ export default function BackgroundLoadingNotification({
                 {message}
               </h3>
             </div>
-            <div className="flex items-center gap-2">
-              {onMinimize && (
-                <button
-                  onClick={onMinimize}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  title="Minimize"
-                >
-                  <Minimize2 className="w-4 h-4" />
-                </button>
-              )}
-              {onClose && (
-                <button
-                  onClick={onClose}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  title="Close"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+            {onMinimize && (
+              <button
+                onClick={onMinimize}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                title="Minimize"
+              >
+                <Minimize2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Progress */}
@@ -187,6 +176,29 @@ export default function BackgroundLoadingNotification({
               </p>
             </div>
           </div>
+
+          {/* Completed Recommendations List */}
+          {completedRecommendations.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                Ready:
+              </p>
+              <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
+                {completedRecommendations.map((name, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500 dark:text-green-400 flex-shrink-0" />
+                    <span className="text-gray-700 dark:text-gray-300">{name}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Info Text */}
           <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-4">

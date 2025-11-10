@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Briefcase, Clock, Calendar, GraduationCap } from 'lucide-react';
 
@@ -15,16 +16,23 @@ const contractTypes = [
 ] as const;
 
 export default function ContractTypeStep({ value, onNext, onBack }: ContractTypeStepProps) {
+  const [selectedContractType, setSelectedContractType] = useState(value);
+
+  // Update local state when prop value changes
+  useEffect(() => {
+    setSelectedContractType(value);
+  }, [value]);
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-2 gap-6">
         {contractTypes.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => onNext({ contractType: id })}
+            onClick={() => setSelectedContractType(id)}
             className={`
               group relative p-6 rounded-xl transition-all duration-200
-              ${value === id 
+              ${selectedContractType === id 
                 ? 'bg-[#8D75E6]/10 dark:bg-[#8D75E6]/20 border-2 border-[#8D75E6] dark:shadow-[0_0_0_1px_rgba(141,117,230,0.4),0_8px_16px_rgba(141,117,230,0.2)]' 
                 : 'bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent hover:border-[#8D75E6]/30 dark:hover:border-[#8D75E6]/30 dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
               }
@@ -32,10 +40,10 @@ export default function ContractTypeStep({ value, onNext, onBack }: ContractType
           >
             <div className="flex flex-col items-center text-center">
               <Icon className={`h-10 w-10 mb-4 transition-colors ${
-                value === id ? 'text-[#8D75E6]' : 'text-gray-400 dark:text-gray-500 group-hover:text-[#8D75E6]'
+                selectedContractType === id ? 'text-[#8D75E6]' : 'text-gray-400 dark:text-gray-500 group-hover:text-[#8D75E6]'
               }`} />
               <span className={`font-medium text-lg transition-colors ${
-                value === id ? 'text-[#8D75E6]' : 'text-gray-700 dark:text-gray-300'
+                selectedContractType === id ? 'text-[#8D75E6]' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 {label}
               </span>
@@ -52,8 +60,8 @@ export default function ContractTypeStep({ value, onNext, onBack }: ContractType
           Back
         </button>
         <button
-          onClick={() => value && onNext({ contractType: value as any })}
-          disabled={!value}
+          onClick={() => selectedContractType && onNext({ contractType: selectedContractType as any })}
+          disabled={!selectedContractType}
           className="px-8 py-2 bg-[#8D75E6] text-white rounded-lg font-medium
             disabled:opacity-50 disabled:cursor-not-allowed
             hover:bg-[#7B64D3] transition-all duration-200

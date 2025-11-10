@@ -44,7 +44,8 @@ const ProfessionalProfilePage = () => {
     lastName: '',
     email: '',
     gender: '',
-    location: '',
+    city: '',
+    country: '',
     contractType: '',
     
     // Location & Mobility
@@ -93,7 +94,8 @@ const ProfessionalProfilePage = () => {
       'lastName',
       'email',
       'gender',
-      'location',
+      'city',
+      'country',
       'contractType',
       
       // Location & Mobility
@@ -171,10 +173,32 @@ const ProfessionalProfilePage = () => {
           const newLastName = userData?.lastName || firestoreData.lastName || extractedLastName || prevData.lastName || '';
           const newEmail = currentUser.email || userData?.email || firestoreData.email || prevData.email || '';
           
+          // Convertir l'ancien champ location en city et country si nécessaire
+          let city = firestoreData.city || userData?.city || '';
+          let country = firestoreData.country || userData?.country || '';
+          
+          // Si city et country ne sont pas définis mais location existe, le convertir
+          if ((!city || !country) && (firestoreData.location || userData?.location)) {
+            const location = firestoreData.location || userData?.location || '';
+            const parts = location.split(',').map(s => s.trim());
+            if (parts.length === 2) {
+              city = city || parts[0];
+              country = country || parts[1];
+            } else if (parts.length === 1 && !city) {
+              city = parts[0];
+            }
+          }
+          
+          // Utiliser les valeurs par défaut si vides
+          city = city || prevData.city;
+          country = country || prevData.country;
+          
           // Vérifier si les valeurs ont changé
           if (prevData.firstName === newFirstName && 
               prevData.lastName === newLastName && 
               prevData.email === newEmail &&
+              prevData.city === city &&
+              prevData.country === country &&
               Object.keys(firestoreData).length === 0) {
             return prevData; // Pas de changement, retourner l'état précédent
           }
@@ -187,6 +211,9 @@ const ProfessionalProfilePage = () => {
             firstName: newFirstName,
             lastName: newLastName,
             email: newEmail,
+            // Utiliser city et country convertis
+            city,
+            country,
           };
         });
       } catch (error) {

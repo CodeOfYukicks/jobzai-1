@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Building, GraduationCap, TrendingUp, Sparkles, RefreshCw, Info } from 'lucide-react';
+import { Target, Building, GraduationCap, TrendingUp, Sparkles, Brain, Info } from 'lucide-react';
 import { useState } from 'react';
 import { CompleteUserData } from '../../lib/userDataFetcher';
 
@@ -136,8 +136,8 @@ export default function HeroSection({
       className="mb-12"
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+        <div className="flex-1">
           <h1 className="text-4xl font-bold text-purple-600 dark:text-white mb-2">
             AI Recommendations
           </h1>
@@ -146,21 +146,14 @@ export default function HeroSection({
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-          {completeUserData?.cvUrl && (
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
-              <Sparkles className="h-4 w-4 text-green-500" />
-              <span>CV Analyzed</span>
-            </div>
-          )}
-          
+        <div className="flex items-center">
           <button
             onClick={onRefresh}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Refresh All</span>
+            <Brain className={`h-4 w-4 ${isLoading ? 'animate-pulse' : ''}`} />
+            <span>Regenerate AI</span>
           </button>
         </div>
       </div>

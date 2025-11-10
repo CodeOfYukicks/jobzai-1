@@ -36,7 +36,7 @@ export default function RecommendationsPage() {
   const [completeUserData, setCompleteUserData] = useState<CompleteUserData | null>(null);
   const [profileCompleteness, setProfileCompleteness] = useState<number>(0);
   const { recommendations, setRecommendationLoading, setRecommendationError, setRecommendationData } = useRecommendations();
-  const { loadingState, startLoading, updateProgress, stopLoading, setMinimized, closeStartModal } = useRecommendationsLoading();
+  const { loadingState, startLoading, updateProgress, addCompletedRecommendation, stopLoading, closeStartModal } = useRecommendationsLoading();
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const completedRecommendationsRef = useRef<Set<RecommendationType>>(new Set());
@@ -60,18 +60,17 @@ export default function RecommendationsPage() {
       
       if (response.error) {
         setRecommendationError(type, response.error);
+        // Error toast only for critical failures
         if (showNotification) {
           toast.error(`Failed to generate ${RECOMMENDATION_NAMES[type]}: ${response.error}`);
         }
       } else {
         setRecommendationData(type, response.data);
         
-        // Show notification when a recommendation is completed (only if not already shown)
+        // Add to completed list in widget instead of showing toast
         if (showNotification && !completedRecommendationsRef.current.has(type)) {
           completedRecommendationsRef.current.add(type);
-          toast.success(`${RECOMMENDATION_NAMES[type]} ready! ✨`, {
-            duration: 3000,
-          });
+          addCompletedRecommendation(RECOMMENDATION_NAMES[type]);
         }
       }
     } catch (error) {

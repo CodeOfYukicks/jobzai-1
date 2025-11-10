@@ -14,10 +14,9 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
-  // On garde la location existante et on ajoute les nouveaux champs
   const [formData, setFormData] = useState({
-    location: '', // Champ existant
-    // Nouveaux champs
+    city: '',
+    country: '',
     willingToRelocate: false,
     workPreference: '',
     travelPreference: ''
@@ -32,7 +31,8 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setFormData({
-            location: userData.location || '',
+            city: userData.city || userData.location?.split(',')[0]?.trim() || '',
+            country: userData.country || userData.location?.split(',')[1]?.trim() || '',
             willingToRelocate: userData.willingToRelocate || false,
             workPreference: userData.workPreference || '',
             travelPreference: userData.travelPreference || ''
@@ -81,8 +81,8 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
             </label>
             <input
               type="text"
-              value={formData.location}
-              onChange={(e) => handleChange('location', e.target.value)}
+              value={formData.city}
+              onChange={(e) => handleChange('city', e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               placeholder="Enter your city"
             />

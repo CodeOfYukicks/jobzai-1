@@ -110,6 +110,20 @@ function AppContent() {
           </PrivateRoute>
         } />
         
+        {/* Payment success route - accessible without completed profile */}
+        <Route path="/payment/success" element={
+          <PrivateRoute requireProfileCompleted={false}>
+            <PaymentSuccessPage />
+          </PrivateRoute>
+        } />
+        
+        {/* Payment cancel route - accessible without completed profile */}
+        <Route path="/payment/cancel" element={
+          <PrivateRoute requireProfileCompleted={false}>
+            <PaymentCancelPage />
+          </PrivateRoute>
+        } />
+        
         {/* Protected routes requiring completed profile */}
         <Route element={<PrivateRoute requireProfileCompleted={true} />}>
           <Route path="/hub" element={<HubPage />} />
@@ -128,8 +142,6 @@ function AppContent() {
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/payment" element={<PaymentPage />} />
-          <Route path="/payment/success" element={<PaymentSuccessPage />} />
-          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/smart-matching" element={<SmartMatchingPage />} />
           <Route path="/search" element={<SearchPage />} />
@@ -156,12 +168,10 @@ function AppContent() {
         message={loadingState.message}
         completedCount={loadingState.completedCount}
         totalCount={loadingState.totalCount}
+        completedRecommendations={loadingState.completedRecommendations}
         isMinimized={loadingState.isMinimized}
         onMinimize={() => setMinimized(true)}
         onMaximize={() => setMinimized(false)}
-        onClose={() => {
-          stopLoading();
-        }}
       />
       
       <Toaster

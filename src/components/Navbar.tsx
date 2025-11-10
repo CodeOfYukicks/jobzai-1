@@ -155,6 +155,10 @@ export default function Navbar() {
     }
   };
 
+  // Sur la landing page, toujours afficher le menu public
+  const isLandingPage = location.pathname === '/';
+  const showPublicMenu = !currentUser || isLandingPage;
+
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
       scrolled ? 'pt-4' : 'pt-8'
@@ -176,8 +180,8 @@ export default function Navbar() {
             </a>
           </div>
           
-          {/* Desktop Navigation */}
-          {!currentUser && (
+          {/* Desktop Navigation - Public menu sur landing page ou si pas connecté */}
+          {showPublicMenu && (
             <div className="hidden md:flex items-center justify-center">
               <motion.div 
                 className="bg-[#6F58B8]/60 backdrop-blur-sm rounded-lg flex items-center"
@@ -207,8 +211,8 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Authenticated Navigation */}
-          {currentUser && (
+          {/* Authenticated Navigation - Seulement si connecté ET pas sur landing page */}
+          {currentUser && !isLandingPage && (
             <div className="hidden md:flex items-center space-x-8">
               {authenticatedNavigation.map((item) => (
                 <Link
@@ -223,18 +227,18 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Desktop Right Side Actions */}
-          {!currentUser && (
+          {/* Desktop Right Side Actions - Public menu sur landing page ou si pas connecté */}
+          {showPublicMenu && (
             <div className="hidden md:flex items-center space-x-4">
               <Link
                 to="/login"
-                className="text-white/90 hover:text-white font-medium transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white transition-all duration-200 rounded-lg hover:bg-white/10"
               >
                 Sign in
               </Link>
               <Link
                 to="/signup"
-                className="bg-white text-[#8D75E6] px-6 py-2 rounded-lg font-medium transition-all duration-300 hover:transform hover:scale-105 hover:bg-white/90"
+                className="px-6 py-2.5 text-sm font-semibold text-[#8D75E6] bg-white rounded-lg transition-all duration-200 hover:bg-white/90 hover:shadow-lg active:scale-[0.98]"
               >
                 Sign up
               </Link>
@@ -309,8 +313,8 @@ export default function Navbar() {
                   </a>
                 </div>
 
-                {/* Settings Section - Only show theme toggle when logged in */}
-                {currentUser && (
+                {/* Settings Section - Only show theme toggle when logged in AND not on landing page */}
+                {currentUser && !isLandingPage && (
                   <div className="space-y-1">
                     <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
                       Settings
@@ -353,28 +357,50 @@ export default function Navbar() {
                   </div>
                 )}
 
-                {/* Auth Section */}
-                <div className="space-y-1 pt-4 border-t border-white/10">
-                  <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
-                    Account
-                  </h3>
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-3 py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <LogIn className="h-5 w-5" />
-                    <span>Sign in</span>
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className="flex items-center space-x-3 py-3 px-4 bg-white text-[#8D75E6] rounded-lg hover:bg-white/90 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <UserPlus className="h-5 w-5" />
-                    <span>Sign up</span>
-                  </Link>
-                </div>
+                {/* Auth Section - Toujours afficher sur landing page ou si pas connecté */}
+                {showPublicMenu && (
+                  <div className="space-y-3 pt-4 border-t border-white/10">
+                    <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
+                      Account
+                    </h3>
+                    <Link
+                      to="/login"
+                      className="flex items-center justify-center space-x-3 py-3 px-5 text-white rounded-lg hover:bg-white/10 transition-all duration-200"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <LogIn className="h-4 w-4" />
+                      <span className="font-medium">Sign in</span>
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="flex items-center justify-center space-x-3 py-3 px-5 text-[#8D75E6] bg-white rounded-lg hover:bg-white/90 transition-all duration-200 active:scale-[0.98]"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span className="font-semibold">Sign up</span>
+                    </Link>
+                  </div>
+                )}
+
+                {/* Authenticated Navigation Mobile - Seulement si connecté ET pas sur landing page */}
+                {currentUser && !isLandingPage && (
+                  <div className="space-y-1 pt-4 border-t border-white/10">
+                    <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
+                      Dashboard
+                    </h3>
+                    {authenticatedNavigation.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className="flex items-center space-x-3 py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           </>

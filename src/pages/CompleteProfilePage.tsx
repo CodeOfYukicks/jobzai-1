@@ -31,7 +31,8 @@ export default function CompleteProfilePage() {
     lastName: '',
     gender: '',
     contractType: '',
-    location: '',
+    city: '',
+    country: '',
     cvUrl: '',
     cvName: '',
     motivation: '',
@@ -147,6 +148,7 @@ export default function CompleteProfilePage() {
         <GenderStep
           value={formData.gender}
           onNext={handleNext}
+          onBack={handleBack}
         />
       )}
 
@@ -160,7 +162,7 @@ export default function CompleteProfilePage() {
 
       {currentStep === 'location' && (
         <LocationStep
-          value={formData.location}
+          value={formData.city && formData.country ? `${formData.city}, ${formData.country}` : ''}
           onNext={handleNext}
           onBack={handleBack}
         />
@@ -188,6 +190,7 @@ export default function CompleteProfilePage() {
         <SubscriptionStep
           onComplete={handleComplete}
           onBack={handleBack}
+          profileData={formData}
         />
       )}
     </OnboardingLayout>

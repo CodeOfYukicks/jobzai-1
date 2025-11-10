@@ -1,18 +1,17 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import FirebaseImage from '../components/FirebaseImage';
-import GoogleAuthButton from '../components/GoogleAuthButton';
-import AnimatedGridPattern from '../components/ui/animated-grid-pattern';
 import { forceLightMode } from '../lib/theme';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const navigate = useNavigate();
   const { login, resetPassword, resendVerificationEmail, signInWithGoogle } = useAuth();
@@ -91,34 +90,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen flex bg-white">
       {/* Panneau de connexion (gauche) */}
-      <div className="w-full lg:w-1/2 p-8 flex items-center justify-center">
+      <div className="w-full lg:w-1/2 p-8 lg:p-16 flex items-center justify-center">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-md"
         >
-          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700">
-            <div>
-              <Link to="/" className="block text-center group">
+          <div className="bg-white">
+            <div className="mb-12">
+              <Link to="/" className="flex justify-center group mb-10">
                 <FirebaseImage 
-                  path="images/logo-dark.png"
-                  alt="Jobz.ai Logo" 
-                  className="h-12 mx-auto transform transition-transform group-hover:scale-105"
+                  path="images/logo-only.png"
+                  alt="JOBZ.AI Logo" 
+                  className="h-12 w-auto transform transition-transform group-hover:scale-105"
                 />
               </Link>
-              <h2 className="mt-8 text-center text-3xl font-bold text-purple-600 dark:text-white">
+              <h2 className="text-4xl font-semibold text-gray-900 tracking-tight text-center">
                 Sign in to your account
               </h2>
-              <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
+              <p className="mt-4 text-base text-gray-600 text-center">
                 Don't have an account?{' '}
-                <Link to="/signup" className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors">
+                <Link to="/signup" className="font-medium text-gray-900 hover:text-gray-700 transition-colors underline underline-offset-4">
                   Create one
                 </Link>
               </p>
             </div>
-            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div className="relative">
                   <input
@@ -130,32 +130,41 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
-                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 
-                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                      transition-all duration-200"
+                    className="block w-full pl-11 pr-4 py-3.5 bg-white border border-gray-300 
+                      rounded-lg text-gray-900 placeholder-gray-400 
+                      focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900
+                      transition-all duration-150 text-[15px]
+                      disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Email address"
                   />
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 </div>
 
                 <div className="relative">
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
-                    className="block w-full pl-11 pr-3 py-3 bg-gray-50/50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 
-                      rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
-                      focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                      transition-all duration-200"
+                    className="block w-full pl-11 pr-11 py-3.5 bg-white border border-gray-300 
+                      rounded-lg text-gray-900 placeholder-gray-400
+                      focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900
+                      transition-all duration-150 text-[15px]
+                      disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Password"
                   />
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -176,18 +185,18 @@ export default function LoginPage() {
                       toast.error('Please enter your email first');
                     }
                   }}
-                  className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors"
+                  className="text-sm font-medium text-gray-900 hover:text-gray-700 transition-colors"
                 >
                   Forgot your password?
                 </button>
               </div>
 
-              <div className="relative my-6">
+              <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+                  <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl text-gray-500 dark:text-gray-400">
+                  <span className="px-4 bg-white text-gray-500 text-[13px]">
                     Or continue with
                   </span>
                 </div>
@@ -196,10 +205,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3
-                  bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3.5
+                  bg-white border border-gray-300 rounded-lg 
+                  hover:bg-gray-50 text-gray-900 
+                  transition-all duration-150 text-[15px] font-medium
+                  disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg width="18" height="18" viewBox="0 0 18 18" className="mr-2">
+                <svg width="18" height="18" viewBox="0 0 18 18">
                   <path
                     fill="#4285F4"
                     d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
@@ -217,23 +230,21 @@ export default function LoginPage() {
                     d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"
                   />
                 </svg>
-                <span className="text-gray-700 dark:text-gray-200">Continue with Google</span>
+                <span>Continue with Google</span>
               </button>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center items-center gap-2 px-4 py-3
-                  bg-gradient-to-r from-purple-600 to-indigo-600
-                  hover:from-purple-700 hover:to-indigo-700
-                  text-white font-medium rounded-xl
-                  transform transition-all duration-200
-                  hover:shadow-lg hover:shadow-purple-500/25
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center items-center gap-2 px-4 py-3.5
+                  bg-gray-900 hover:bg-gray-800
+                  text-white font-medium rounded-lg
+                  transition-all duration-150 text-[15px]
+                  disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-900"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Signing in...</span>
                   </>
                 ) : (
@@ -247,78 +258,136 @@ export default function LoginPage() {
 
       {/* Panneau latéral (droite) */}
       <motion.div 
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="hidden lg:flex w-1/2 bg-[#8D75E6] flex-col items-center justify-center p-12 relative overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="hidden lg:flex w-1/2 bg-gradient-to-bl from-[#8D75E6] via-[#9B7FE8] to-[#A88FEA] flex-col items-center justify-center p-16 relative overflow-hidden"
       >
-        {/* Effets de lumière subtils - ajustés pour le nouveau fond violet */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-900/20 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-t from-transparent to-white/[0.02]" />
-
+        {/* Effets de lumière animés (différents de signup) */}
+        <motion.div 
+          animate={{ 
+            x: [0, -120, 0],
+            y: [0, 60, 0],
+            scale: [1, 1.4, 1]
+          }}
+          transition={{ 
+            duration: 18, 
+            repeat: Infinity, 
+            ease: "linear" 
+          }}
+          className="absolute top-0 left-0 w-[450px] h-[450px] bg-white/12 rounded-full blur-3xl"
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, 90, 0],
+            y: [0, -50, 0],
+            scale: [1, 1.25, 1]
+          }}
+          transition={{ 
+            duration: 22, 
+            repeat: Infinity, 
+            ease: "linear" 
+          }}
+          className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-200/15 rounded-full blur-3xl"
+        />
+        
+        {/* Gradient overlay animé (direction différente) */}
+        <motion.div 
+          animate={{ 
+            backgroundPosition: ['100% 100%', '0% 0%']
+          }}
+          transition={{ 
+            duration: 12, 
+            repeat: Infinity, 
+            repeatType: "reverse",
+            ease: "linear" 
+          }}
+          className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/5 to-transparent"
+          style={{
+            backgroundSize: '200% 200%'
+          }}
+        />
+        
         <div className="relative z-10 max-w-lg">
-          <div className="mb-12">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-5xl font-bold text-white mb-2"
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mb-16"
+          >
+            <motion.h3 
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="text-6xl font-semibold text-white tracking-tight mb-4"
             >
-              LET'S MAKE YOUR
-            </motion.div>
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-6xl font-bold"
+              Welcome
+            </motion.h3>
+            <motion.h3 
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="text-6xl font-semibold text-white tracking-tight mb-4"
             >
-              <span className="text-white">NEXT</span>{' '}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-200">
-                CAREER
-              </span>
-            </motion.div>
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="text-6xl font-bold text-white"
+              back
+            </motion.h3>
+            <motion.h3 
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className="text-6xl font-semibold bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent tracking-tight"
             >
-              MOVE
-            </motion.div>
-          </div>
+              champion
+            </motion.h3>
+          </motion.div>
 
           <motion.p 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="text-white/90 text-lg mb-12 leading-relaxed"
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="text-white/95 text-lg leading-relaxed mb-16 font-light"
           >
-            Join thousands of professionals who've found their dream jobs through our AI-powered platform. Let's discover opportunities that match your unique skills and aspirations.
+            Continue your journey with AI-powered job applications. Track your progress, discover new opportunities, and land your dream role.
           </motion.p>
 
-          {/* Statistiques animées */}
+          {/* Statistiques avec effet hover (style différent) */}
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="grid grid-cols-2 gap-6"
+            transition={{ duration: 0.6, delay: 1 }}
+            className="grid grid-cols-2 gap-8"
           >
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <div className="text-3xl font-bold text-white">20K+</div>
-              <div className="text-white/70 text-sm">Active Users</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <div className="text-3xl font-bold text-white">93%</div>
-              <div className="text-white/70 text-sm">Success Rate</div>
-            </div>
+            <motion.div
+              whileHover={{ scale: 1.05, y: -5, rotate: 1 }}
+              className="bg-white/15 backdrop-blur-md rounded-3xl p-6 border border-white/30 shadow-lg"
+            >
+              <div className="text-5xl font-bold text-white mb-2">20K+</div>
+              <div className="text-white/90 text-sm font-medium">Active Users</div>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05, y: -5, rotate: -1 }}
+              className="bg-white/15 backdrop-blur-md rounded-3xl p-6 border border-white/30 shadow-lg"
+            >
+              <div className="text-5xl font-bold text-white mb-2">93%</div>
+              <div className="text-white/90 text-sm font-medium">Success Rate</div>
+            </motion.div>
           </motion.div>
         </div>
 
-        {/* Motif de points - ajusté pour le fond violet */}
-        <div className="absolute inset-0 opacity-[0.08]" 
+        {/* Pattern animé (direction différente) */}
+        <motion.div 
+          animate={{ 
+            backgroundPosition: ['40px 40px', '0 0']
+          }}
+          transition={{ 
+            duration: 25, 
+            repeat: Infinity, 
+            ease: "linear" 
+          }}
+          className="absolute inset-0 opacity-[0.12]" 
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.4) 1px, transparent 0)`,
-            backgroundSize: '30px 30px'
+            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.7) 2px, transparent 0)`,
+            backgroundSize: '50px 50px'
           }}
         />
       </motion.div>

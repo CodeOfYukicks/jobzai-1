@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, FileText, Loader2 } from 'lucide-react';
+import { Upload, FileText, Loader2, Info } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -17,6 +17,14 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
   const { currentUser } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [uploadedCvUrl, setUploadedCvUrl] = useState<string>(cvUrl || '');
+  const [uploadedCvName, setUploadedCvName] = useState<string>(cvName || '');
+
+  // Update local state when props change
+  useEffect(() => {
+    setUploadedCvUrl(cvUrl || '');
+    setUploadedCvName(cvName || '');
+  }, [cvUrl, cvName]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -44,13 +52,15 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
       await uploadBytes(cvRef, selectedFile);
       const downloadUrl = await getDownloadURL(cvRef);
 
-      onNext({
-        cvUrl: downloadUrl,
-        cvName: selectedFile.name
-      });
+      // Store in local state instead of calling onNext immediately
+      setUploadedCvUrl(downloadUrl);
+      setUploadedCvName(selectedFile.name);
+      
+      toast.success('CV uploaded successfully! Click Continue to proceed.');
     } catch (error) {
       console.error('Error uploading CV:', error);
       toast.error('Failed to upload CV');
+      setFile(null);
     } finally {
       setIsUploading(false);
     }
@@ -65,14 +75,14 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
         </p>
       </div>
 
-      {cvUrl && cvName ? (
+      {uploadedCvUrl && uploadedCvName ? (
         <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700
           shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <FileText className="h-5 w-5 text-[#8D75E6]" />
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">{cvName}</p>
+                <p className="font-medium text-gray-900 dark:text-white">{uploadedCvName}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">CV uploaded successfully</p>
               </div>
             </div>
@@ -103,7 +113,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
 
           <div className="mt-4 flex items-center space-x-4 text-sm">
             <a
-              href={cvUrl}
+              href={uploadedCvUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#8D75E6] hover:underline flex items-center"
@@ -147,24 +157,52 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
         </div>
       )}
 
-      <div className="flex justify-between pt-6">
+      {/* Info box about CV importance */}
+      {!uploadedCvUrl && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="flex items-start space-x-3">
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+                Why upload your CV?
+              </p>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Your CV helps our AI understand your experience, skills, and background to provide more relevant job recommendations and personalized suggestions.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center pt-6">
         <button
           onClick={onBack}
           className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium"
         >
           Back
         </button>
-        <button
-          onClick={() => cvUrl && cvName && onNext({ cvUrl, cvName })}
-          disabled={!cvUrl || !cvName}
-          className="px-8 py-2 bg-[#8D75E6] text-white rounded-lg font-medium
-            disabled:opacity-50 disabled:cursor-not-allowed
-            hover:bg-[#7B64D3] transition-all duration-200
-            shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
-            hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]"
-        >
-          Continue
-        </button>
+        
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onNext({ cvUrl: '', cvName: '' })}
+            className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium
+              border border-gray-300 dark:border-gray-600 rounded-lg
+              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200"
+          >
+            Do it later
+          </button>
+          <button
+            onClick={() => uploadedCvUrl && uploadedCvName && onNext({ cvUrl: uploadedCvUrl, cvName: uploadedCvName })}
+            disabled={!uploadedCvUrl || !uploadedCvName}
+            className="px-8 py-2 bg-[#8D75E6] text-white rounded-lg font-medium
+              disabled:opacity-50 disabled:cursor-not-allowed
+              hover:bg-[#7B64D3] transition-all duration-200
+              shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
+              hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]"
+          >
+            Continue
+          </button>
+        </div>
       </div>
     </div>
   );

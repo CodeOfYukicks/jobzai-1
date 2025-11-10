@@ -6,10 +6,12 @@ import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { recordCreditHistory } from '../../../lib/creditHistory';
+import { redirectToStripeCheckout } from '../../../services/stripe';
 
 interface SubscriptionStepProps {
   onComplete: () => void;
   onBack: () => void;
+  profileData?: any; // Profile data to save before redirecting to Stripe
 }
 
 const plans = [
@@ -89,26 +91,18 @@ const plans = [
   },
 ];
 
-export default function SubscriptionStep({ onComplete, onBack }: SubscriptionStepProps) {
+export default function SubscriptionStep({ onComplete, onBack, profileData }: SubscriptionStepProps) {
   const { currentUser } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
-  const [paymentDetails, setPaymentDetails] = useState({
-    cardNumber: '',
-    expiry: '',
-    cvc: '',
-    name: '',
-  });
 
   const handlePlanSelect = (planId: string) => {
     setSelectedPlan(planId);
-    setShowPayment(planId !== 'free');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!currentUser) return;
 
     try {
@@ -119,18 +113,70 @@ export default function SubscriptionStep({ onComplete, onBack }: SubscriptionSte
         throw new Error('Invalid plan selected');
       }
 
-      // For paid plans, validate payment details
+      // For paid plans, redirect to Stripe Checkout
       if (selectedPlan !== 'free') {
-        if (!paymentDetails.cardNumber || !paymentDetails.expiry || !paymentDetails.cvc || !paymentDetails.name) {
-          toast.error('Please fill in all payment details');
+        try {
+          // Store profile data in Firestore BEFORE redirecting to Stripe
+          // This ensures we can retrieve it after payment, even if sessionStorage is lost
+          const userRef = doc(db, 'users', currentUser.uid);
+          
+          console.log('💾 Storing profile data in Firestore before Stripe redirect:', {
+            hasProfileData: !!profileData,
+            profileDataKeys: profileData ? Object.keys(profileData) : [],
+            planId: selectedPlan,
+            credits: selectedPlanData.credits
+          });
+          
+          await updateDoc(userRef, {
+            pendingProfileData: profileData || {},
+            pendingSubscription: {
+              planId: selectedPlan,
+              planName: selectedPlanData.name,
+              credits: selectedPlanData.credits,
+            },
+            pendingProfileCompletion: true,
+          });
+
+          // Verify the data was stored
+          const verifyDoc = await getDoc(userRef);
+          const verifyData = verifyDoc.data();
+          console.log('✅ Verified data stored in Firestore:', {
+            hasPendingProfileData: !!verifyData?.pendingProfileData,
+            hasPendingSubscription: !!verifyData?.pendingSubscription,
+            pendingProfileCompletion: verifyData?.pendingProfileCompletion
+          });
+
+          // Also store in localStorage as backup
+          localStorage.setItem('pendingSubscription', JSON.stringify({
+            planId: selectedPlan,
+            planName: selectedPlanData.name,
+            credits: selectedPlanData.credits,
+            userId: currentUser.uid,
+            profileData: profileData || {},
+          }));
+
+          // Redirect to Stripe Checkout
+          await redirectToStripeCheckout({
+            userId: currentUser.uid,
+            planId: selectedPlan,
+            planName: selectedPlanData.name,
+            price: selectedPlanData.price,
+            credits: selectedPlanData.credits,
+            type: 'plan',
+            customerEmail: currentUser.email || undefined,
+          });
+          
+          // The redirect will happen, so we don't need to continue
+          return;
+        } catch (error: any) {
+          console.error('Error redirecting to Stripe Checkout:', error);
+          toast.error(error.message || 'Failed to initiate payment. Please try again.');
+          setIsProcessing(false);
           return;
         }
-        // Here you would integrate with your payment processor (e.g., Stripe)
-        // For now, we'll simulate a successful payment
-        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
-      // Récupérer les crédits actuels pour calculer le changement
+      // For free plan, update directly
       const userRef = doc(db, 'users', currentUser.uid);
       const userSnap = await getDoc(userRef);
       const currentCredits = userSnap.data()?.credits || 0;
@@ -316,84 +362,23 @@ export default function SubscriptionStep({ onComplete, onBack }: SubscriptionSte
         })}
       </div>
 
-      {/* Payment Section */}
-      {showPayment && (
+      {/* Payment Info for Paid Plans */}
+      {selectedPlan !== 'free' && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          className="border border-gray-200 dark:border-gray-700 rounded-2xl p-6 sm:p-8 space-y-6 bg-white dark:bg-gray-800
+          className="border border-purple-200 dark:border-purple-800 rounded-2xl p-6 sm:p-8 space-y-4 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20
             shadow-lg dark:shadow-xl mb-8"
         >
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Payment Details</h3>
-            <p className="text-base text-gray-500 dark:text-gray-400">
-              Enter your payment information to complete your subscription
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="sm:col-span-2">
-              <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Card Number
-              </label>
-              <div className="relative">
-                <CreditCard className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
-                <input
-                  type="text"
-                  value={paymentDetails.cardNumber}
-                  onChange={(e) => setPaymentDetails(prev => ({ ...prev, cardNumber: e.target.value }))}
-                  placeholder="1234 5678 9012 3456"
-                  className="pl-12 pr-4 py-4 w-full border-2 border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base
-                    focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                    shadow-sm dark:shadow-md
-                    transition-all duration-200"
-                />
-              </div>
-            </div>
+          <div className="flex items-start gap-3">
+            <CreditCard className="h-6 w-6 text-purple-600 dark:text-purple-400 mt-1 flex-shrink-0" />
             <div>
-              <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Expiry Date
-              </label>
-              <input
-                type="text"
-                value={paymentDetails.expiry}
-                onChange={(e) => setPaymentDetails(prev => ({ ...prev, expiry: e.target.value }))}
-                placeholder="MM/YY"
-                className="w-full px-4 py-4 border-2 border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base
-                  focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                  shadow-sm dark:shadow-md
-                  transition-all duration-200"
-              />
-            </div>
-            <div>
-              <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                CVC
-              </label>
-              <input
-                type="text"
-                value={paymentDetails.cvc}
-                onChange={(e) => setPaymentDetails(prev => ({ ...prev, cvc: e.target.value }))}
-                placeholder="123"
-                className="w-full px-4 py-4 border-2 border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base
-                  focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                  shadow-sm dark:shadow-md
-                  transition-all duration-200"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Cardholder Name
-              </label>
-              <input
-                type="text"
-                value={paymentDetails.name}
-                onChange={(e) => setPaymentDetails(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="John Doe"
-                className="w-full px-4 py-4 border-2 border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base
-                  focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
-                  shadow-sm dark:shadow-md
-                  transition-all duration-200"
-              />
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Secure Payment</h3>
+              <p className="text-base text-gray-600 dark:text-gray-300">
+                You'll be redirected to Stripe Checkout, our secure payment processor, to complete your subscription. 
+                Your payment information is handled securely and never stored on our servers.
+              </p>
             </div>
           </div>
         </motion.div>

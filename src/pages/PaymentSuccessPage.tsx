@@ -3,14 +3,15 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
+import { recordCreditHistory } from '../lib/creditHistory';
 
 export default function PaymentSuccessPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { currentUser } = useAuth();
+  const { currentUser, completeProfile } = useAuth();
   const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
@@ -67,17 +68,152 @@ export default function PaymentSuccessPage() {
     // Listen for user updates (webhook will update the user document)
     const unsubscribe = onSnapshot(
       doc(db, 'users', currentUser.uid),
-      (doc) => {
-        if (doc.exists() && !hasRedirected) {
-          const data = doc.data();
+      async (docSnapshot) => {
+        if (docSnapshot.exists() && !hasRedirected) {
+          const data = docSnapshot.data();
+          
+          // Check if user is completing profile - get from Firestore first
+          let shouldCompleteProfile = false;
+          let pendingSubscription: any = null;
+          let profileData: any = null;
+
+          // First, check Firestore for pending profile data
+          if (data?.pendingProfileCompletion && data?.pendingProfileData) {
+            shouldCompleteProfile = true;
+            profileData = data.pendingProfileData;
+            pendingSubscription = data.pendingSubscription || {};
+            console.log('✅ Pending profile completion found in Firestore:', { 
+              hasProfileData: !!profileData, 
+              profileDataKeys: profileData ? Object.keys(profileData) : [],
+              pendingSubscription 
+            });
+          } else {
+            console.log('❌ No pending profile completion in Firestore:', {
+              hasPendingProfileCompletion: !!data?.pendingProfileCompletion,
+              hasPendingProfileData: !!data?.pendingProfileData,
+              pendingProfileData: data?.pendingProfileData
+            });
+          }
+
+          // If not found in Firestore, try localStorage
+          if (!shouldCompleteProfile) {
+            const pendingFromStorage = localStorage.getItem('pendingSubscription');
+            if (pendingFromStorage) {
+              try {
+                const subscriptionData = JSON.parse(pendingFromStorage);
+                shouldCompleteProfile = true;
+                profileData = subscriptionData.profileData || {};
+                pendingSubscription = subscriptionData;
+                console.log('Pending subscription found in localStorage:', subscriptionData);
+              } catch (error) {
+                console.error('Error parsing pending subscription from localStorage:', error);
+              }
+            }
+          }
+
+          // Last resort: try sessionStorage
+          if (!shouldCompleteProfile) {
+            const pendingFromSession = sessionStorage.getItem('pendingSubscription');
+            if (pendingFromSession) {
+              try {
+                const subscriptionData = JSON.parse(pendingFromSession);
+                shouldCompleteProfile = true;
+                profileData = subscriptionData.profileData || {};
+                pendingSubscription = subscriptionData;
+                console.log('Pending subscription found in sessionStorage:', subscriptionData);
+              } catch (error) {
+                console.error('Error parsing pending subscription from sessionStorage:', error);
+              }
+            }
+          }
+
           // Check if payment was successful (webhook should have updated this)
-          if (data.paymentStatus === 'active' || data.lastPaymentDate) {
+          if (data.paymentStatus === 'active' || data.lastPaymentDate || data.plan) {
             hasRedirected = true;
             if (timeoutId) clearTimeout(timeoutId);
-            toast.success('Payment successful! Your subscription has been activated.');
-            setTimeout(() => {
-              navigate('/billing');
-            }, 2000);
+            
+            // If completing profile, update subscription and complete profile
+            if (shouldCompleteProfile && profileData && pendingSubscription) {
+              try {
+                const planId = pendingSubscription.planId || pendingSubscription.plan?.planId;
+                const credits = pendingSubscription.credits || pendingSubscription.plan?.credits || 0;
+                
+                console.log('🔄 Starting profile completion process:', {
+                  hasProfileData: !!profileData,
+                  profileDataKeys: profileData ? Object.keys(profileData) : [],
+                  planId,
+                  credits
+                });
+                
+                // Update subscription and credits first
+                const userRef = doc(db, 'users', currentUser.uid);
+                const userSnap = await getDoc(userRef);
+                const currentCredits = userSnap.data()?.credits || 0;
+                const creditChange = credits - currentCredits;
+
+                // Update subscription details first
+                await updateDoc(userRef, {
+                  plan: planId,
+                  credits: credits,
+                  planSelectedAt: new Date().toISOString(),
+                });
+
+                // Record credit history
+                if (creditChange !== 0) {
+                  await recordCreditHistory(
+                    currentUser.uid,
+                    credits,
+                    creditChange,
+                    'subscription',
+                    planId
+                  );
+                }
+
+                // Complete profile with all data including subscription info
+                // This will set profileCompleted: true and navigate to /hub
+                console.log('✅ Completing profile with data:', { 
+                  profileDataKeys: profileData ? Object.keys(profileData) : [],
+                  planId, 
+                  credits 
+                });
+                
+                await completeProfile({
+                  ...profileData,
+                  plan: planId,
+                  credits: credits,
+                  planSelectedAt: new Date().toISOString(),
+                });
+
+                // Clear pending data from Firestore and storage
+                await updateDoc(userRef, {
+                  pendingProfileData: null,
+                  pendingSubscription: null,
+                  pendingProfileCompletion: false,
+                });
+                localStorage.removeItem('pendingSubscription');
+                sessionStorage.removeItem('pendingSubscription');
+                
+                // Force navigation to /hub after a delay to ensure context is updated
+                console.log('✅ Profile completed, navigating to /hub...');
+                setTimeout(() => {
+                  window.location.href = '/hub';
+                }, 1000);
+                
+                toast.success('Payment successful! Your profile has been completed. Thank you!');
+              } catch (error) {
+                console.error('❌ Error completing profile after payment:', error);
+                toast.error('Payment successful but failed to complete profile. Please contact support.');
+                setTimeout(() => {
+                  window.location.href = '/hub';
+                }, 2000);
+              }
+            } else {
+              console.log('ℹ️ No pending profile completion, redirecting to billing');
+              toast.success('Payment successful! Your subscription has been activated.');
+              setTimeout(() => {
+                navigate('/billing');
+              }, 2000);
+            }
           }
         }
       },
@@ -92,14 +228,140 @@ export default function PaymentSuccessPage() {
     }, 2000);
 
     // Fallback: redirect after 8 seconds even if webhook hasn't updated
-    timeoutId = setTimeout(() => {
+    timeoutId = setTimeout(async () => {
       if (!hasRedirected) {
         hasRedirected = true;
         unsubscribe();
-        toast.success('Payment successful! Your account is being updated.');
-        setTimeout(() => {
-          navigate('/billing');
-        }, 2000);
+        
+        // Check if user is completing profile - get from Firestore first
+        let shouldCompleteProfile = false;
+        let pendingSubscription: any = null;
+        let profileData: any = null;
+
+        try {
+          // First, check Firestore for pending profile data
+          const userRef = doc(db, 'users', currentUser.uid);
+          const userSnap = await getDoc(userRef);
+          
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            if (userData?.pendingProfileCompletion && userData?.pendingProfileData) {
+              shouldCompleteProfile = true;
+              profileData = userData.pendingProfileData;
+              pendingSubscription = userData.pendingSubscription || {};
+              console.log('Pending profile completion found in Firestore (fallback):', { profileData, pendingSubscription });
+            }
+          }
+
+          // If not found in Firestore, try localStorage
+          if (!shouldCompleteProfile) {
+            const pendingFromStorage = localStorage.getItem('pendingSubscription');
+            if (pendingFromStorage) {
+              try {
+                const subscriptionData = JSON.parse(pendingFromStorage);
+                shouldCompleteProfile = true;
+                profileData = subscriptionData.profileData || {};
+                pendingSubscription = subscriptionData;
+                console.log('Pending subscription found in localStorage (fallback):', subscriptionData);
+              } catch (error) {
+                console.error('Error parsing pending subscription from localStorage:', error);
+              }
+            }
+          }
+
+          // Last resort: try sessionStorage
+          if (!shouldCompleteProfile) {
+            const pendingFromSession = sessionStorage.getItem('pendingSubscription');
+            if (pendingFromSession) {
+              try {
+                const subscriptionData = JSON.parse(pendingFromSession);
+                shouldCompleteProfile = true;
+                profileData = subscriptionData.profileData || {};
+                pendingSubscription = subscriptionData;
+                console.log('Pending subscription found in sessionStorage (fallback):', subscriptionData);
+              } catch (error) {
+                console.error('Error parsing pending subscription from sessionStorage:', error);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error checking for pending profile completion (fallback):', error);
+        }
+        
+        // If completing profile, try to complete it
+        if (shouldCompleteProfile && profileData && pendingSubscription) {
+          try {
+            const planId = pendingSubscription.planId || pendingSubscription.plan?.planId;
+            const credits = pendingSubscription.credits || pendingSubscription.plan?.credits || 0;
+            
+            // Update subscription and credits first
+            const userRef = doc(db, 'users', currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            const currentCredits = userSnap.data()?.credits || 0;
+            const creditChange = credits - currentCredits;
+
+            // Update subscription details first
+            await updateDoc(userRef, {
+              plan: planId,
+              credits: credits,
+              planSelectedAt: new Date().toISOString(),
+            });
+
+            // Record credit history
+            if (creditChange !== 0) {
+              await recordCreditHistory(
+                currentUser.uid,
+                credits,
+                creditChange,
+                'subscription',
+                planId
+              );
+            }
+
+            // Complete profile with all data including subscription info
+            // This will set profileCompleted: true and navigate to /hub
+            console.log('✅ Completing profile with data (fallback):', { 
+              profileDataKeys: profileData ? Object.keys(profileData) : [],
+              planId, 
+              credits 
+            });
+            
+            await completeProfile({
+              ...profileData,
+              plan: planId,
+              credits: credits,
+              planSelectedAt: new Date().toISOString(),
+            });
+
+            // Clear pending data from Firestore and storage
+            await updateDoc(userRef, {
+              pendingProfileData: null,
+              pendingSubscription: null,
+              pendingProfileCompletion: false,
+            });
+            localStorage.removeItem('pendingSubscription');
+            sessionStorage.removeItem('pendingSubscription');
+            
+            // Force navigation to /hub after a delay to ensure context is updated
+            console.log('✅ Profile completed (fallback), navigating to /hub...');
+            setTimeout(() => {
+              window.location.href = '/hub';
+            }, 1000);
+            
+            toast.success('Payment successful! Your profile has been completed. Thank you!');
+          } catch (error) {
+            console.error('Error completing profile:', error);
+            toast.error('Payment successful but failed to complete profile. Please contact support.');
+            setTimeout(() => {
+              navigate('/hub');
+            }, 2000);
+          }
+        } else {
+          toast.success('Payment successful! Your account is being updated.');
+          setTimeout(() => {
+            navigate('/billing');
+          }, 2000);
+        }
       }
     }, 8000);
 
@@ -131,7 +393,9 @@ export default function PaymentSuccessPage() {
         </h1>
 
         <p className="text-gray-600 mb-6">
-          Thank you for your purchase. Your subscription has been activated and credits have been added to your account.
+          {sessionStorage.getItem('pendingSubscription') 
+            ? "Thank you for your purchase! We're completing your profile and activating your subscription."
+            : "Thank you for your purchase. Your subscription has been activated and credits have been added to your account."}
         </p>
 
         <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mb-6">
@@ -140,7 +404,9 @@ export default function PaymentSuccessPage() {
         </div>
 
         <p className="text-sm text-gray-500">
-          You will be redirected to your billing page shortly.
+          {sessionStorage.getItem('pendingSubscription')
+            ? "You will be redirected to your dashboard shortly."
+            : "You will be redirected to your billing page shortly."}
         </p>
       </motion.div>
     </div>

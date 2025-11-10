@@ -8,6 +8,7 @@ interface RecommendationsLoadingState {
   totalCount: number;
   isMinimized: boolean;
   showStartModal: boolean;
+  completedRecommendations: string[]; // List of completed recommendation names
 }
 
 interface RecommendationsLoadingContextType {
@@ -15,6 +16,7 @@ interface RecommendationsLoadingContextType {
   setLoadingState: (state: Partial<RecommendationsLoadingState>) => void;
   startLoading: (totalCount: number, message?: string) => void;
   updateProgress: (completedCount: number, progress: number) => void;
+  addCompletedRecommendation: (recommendationName: string) => void;
   stopLoading: () => void;
   toggleMinimized: () => void;
   setMinimized: (minimized: boolean) => void;
@@ -29,6 +31,7 @@ const initialState: RecommendationsLoadingState = {
   totalCount: 0,
   isMinimized: false,
   showStartModal: false,
+  completedRecommendations: [],
 };
 
 const RecommendationsLoadingContext = createContext<RecommendationsLoadingContextType | undefined>(undefined);
@@ -49,6 +52,7 @@ export const RecommendationsLoadingProvider: React.FC<{ children: ReactNode }> =
       totalCount,
       isMinimized: false,
       showStartModal: true,
+      completedRecommendations: [],
     });
   };
 
@@ -57,6 +61,13 @@ export const RecommendationsLoadingProvider: React.FC<{ children: ReactNode }> =
       ...prev,
       completedCount,
       progress,
+    }));
+  };
+
+  const addCompletedRecommendation = (recommendationName: string) => {
+    setLoadingStateState(prev => ({
+      ...prev,
+      completedRecommendations: [...prev.completedRecommendations, recommendationName],
     }));
   };
 
@@ -92,6 +103,7 @@ export const RecommendationsLoadingProvider: React.FC<{ children: ReactNode }> =
         setLoadingState,
         startLoading,
         updateProgress,
+        addCompletedRecommendation,
         stopLoading,
         toggleMinimized,
         setMinimized,
