@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import { getClaudeRecommendation, generateEnhancedPrompt, RecommendationType } from '../services/claude';
 import { useNavigate } from 'react-router-dom';
 import { useRecommendations, getStateKey } from '../contexts/RecommendationsContext';
+import { useRecommendationsLoading } from '../contexts/RecommendationsLoadingContext';
 import { fetchCompleteUserData, CompleteUserData } from '../lib/userDataFetcher';
+import { toast } from 'sonner';
+import LoadingStartModal from '../components/recommendations/LoadingStartModal';
 
 // Import new section components
 import HeroSection from '../components/recommendations/HeroSection';
@@ -16,21 +19,30 @@ import JobStrategySection from '../components/recommendations/JobStrategySection
 import MarketInsightsSection from '../components/recommendations/MarketInsightsSection';
 import ApplicationTimingSection from '../components/recommendations/ApplicationTimingSection';
 import SalaryInsightsSection from '../components/recommendations/SalaryInsightsSection';
-import LoadingModal from '../components/LoadingModal';
+
+// Map recommendation types to user-friendly names
+const RECOMMENDATION_NAMES: Record<RecommendationType, string> = {
+  'target-companies': 'Target Companies',
+  'career-path': 'Career Path',
+  'skills-gap': 'Skills Gap',
+  'market-insights': 'Market Insights',
+  'application-timing': 'Application Timing',
+  'salary-insights': 'Salary Insights',
+  'job-strategy': 'Job Strategy'
+};
 
 export default function RecommendationsPage() {
   const { currentUser } = useAuth();
   const [completeUserData, setCompleteUserData] = useState<CompleteUserData | null>(null);
   const [profileCompleteness, setProfileCompleteness] = useState<number>(0);
   const { recommendations, setRecommendationLoading, setRecommendationError, setRecommendationData } = useRecommendations();
+  const { loadingState, startLoading, updateProgress, stopLoading, setMinimized, closeStartModal } = useRecommendationsLoading();
   const [isLoading, setIsLoading] = useState(true);
-  const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false);
-  const [refreshProgress, setRefreshProgress] = useState<number>(0);
-  const [loadingMessage, setLoadingMessage] = useState<string>("Generating your AI recommendations");
   const navigate = useNavigate();
+  const completedRecommendationsRef = useRef<Set<RecommendationType>>(new Set());
 
   // Generate recommendation
-  const generateRecommendation = async (type: RecommendationType) => {
+  const generateRecommendation = async (type: RecommendationType, showNotification = true) => {
     if (!completeUserData) {
       console.error('No user data available');
       return;
@@ -48,12 +60,28 @@ export default function RecommendationsPage() {
       
       if (response.error) {
         setRecommendationError(type, response.error);
+        if (showNotification) {
+          toast.error(`Failed to generate ${RECOMMENDATION_NAMES[type]}: ${response.error}`);
+        }
       } else {
         setRecommendationData(type, response.data);
+        
+        // Show notification when a recommendation is completed (only if not already shown)
+        if (showNotification && !completedRecommendationsRef.current.has(type)) {
+          completedRecommendationsRef.current.add(type);
+          toast.success(`${RECOMMENDATION_NAMES[type]} ready! ✨`, {
+            duration: 3000,
+          });
+        }
       }
     } catch (error) {
       console.error(`Error generating ${type} recommendation:`, error);
       setRecommendationError(type, 'Failed to generate recommendation. Please try again.');
+      if (showNotification) {
+        toast.error(`Failed to generate ${RECOMMENDATION_NAMES[type]}. Please try again.`);
+      }
+    } finally {
+      setRecommendationLoading(type, false);
     }
   };
 
@@ -71,28 +99,33 @@ export default function RecommendationsPage() {
       'job-strategy'
     ];
     
-    // Show loading modal
-    setIsGeneratingRecommendations(true);
-    setRefreshProgress(0);
-    setLoadingMessage("Refreshing your AI recommendations");
+    // Reset state
+    completedRecommendationsRef.current.clear();
+    startLoading(allTypes.length, "Refreshing your AI recommendations");
     
     const total = allTypes.length;
     let completed = 0;
     
     // Load recommendations sequentially to show progress
     for (const type of allTypes) {
-      await generateRecommendation(type);
+      await generateRecommendation(type, true);
       completed++;
       const progress = Math.round((completed / total) * 100);
-      setRefreshProgress(progress);
+      updateProgress(completed, progress);
     }
     
     // Small delay to show 100% before closing
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Hide loading modal
-    setIsGeneratingRecommendations(false);
-    setRefreshProgress(0);
+    // Close modal first, then stop loading
+    closeStartModal();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    stopLoading();
+    
+    // Show completion toast
+    toast.success('All recommendations are ready! 🎉', {
+      duration: 5000,
+    });
   };
 
   // Fetch complete user data and auto-load recommendations
@@ -133,25 +166,32 @@ export default function RecommendationsPage() {
           
           // Load recommendations sequentially to show progress
           if (recommendationsToLoad.length > 0) {
-            setIsGeneratingRecommendations(true);
-            setRefreshProgress(0);
-            setLoadingMessage("Generating your AI recommendations");
+            // Reset state
+            completedRecommendationsRef.current.clear();
+            startLoading(recommendationsToLoad.length, "Generating your AI recommendations");
             
             const total = recommendationsToLoad.length;
             let completed = 0;
             
             for (const type of recommendationsToLoad) {
-              await generateRecommendation(type);
+              await generateRecommendation(type, true);
               completed++;
               const progress = Math.round((completed / total) * 100);
-              setRefreshProgress(progress);
+              updateProgress(completed, progress);
             }
             
             // Small delay to show 100% before closing
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 500));
             
-            setIsGeneratingRecommendations(false);
-            setRefreshProgress(0);
+            // Close modal first, then stop loading
+            closeStartModal();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            stopLoading();
+            
+            // Show completion toast
+            toast.success('All recommendations are ready! 🎉', {
+              duration: 5000,
+            });
           }
         } else {
           console.log(`Profile completeness (${completeness}%) is below minimum (${MIN_PROFILE_COMPLETENESS}%). Recommendations will not be auto-loaded.`);
@@ -248,9 +288,26 @@ export default function RecommendationsPage() {
     );
   }
 
+  const isGenerating = loadingState.isGenerating;
+
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Loading Modal - only on Recommendations page, stays visible during loading */}
+      <LoadingStartModal
+        isOpen={isGenerating && loadingState.showStartModal}
+        onClose={closeStartModal}
+        message="Your AI recommendations are being generated in the background. You can continue browsing using the menu on the left, we'll notify you when they're ready!"
+      />
+      
+      {/* Blur overlay ONLY for page content - sidebar remains accessible */}
+      <div className="relative">
+        {isGenerating && (
+          <div className="absolute inset-0 z-20 pointer-events-none">
+            <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-xl" />
+          </div>
+        )}
+        
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative ${isGenerating ? 'pointer-events-none select-none' : ''}`}>
         {/* Hero Section */}
         <HeroSection
           completeUserData={completeUserData}
@@ -319,13 +376,7 @@ export default function RecommendationsPage() {
             />
           </div>
         </div>
-
-        {/* Loading Modal for Refresh */}
-        <LoadingModal
-          isOpen={isGeneratingRecommendations}
-          progress={refreshProgress}
-          message={loadingMessage}
-        />
+        </div>
       </div>
     </AuthLayout>
   );

@@ -384,21 +384,38 @@ app.get('/api/claude/auth-test', async (req, res) => {
 app.post('/api/chatgpt', async (req, res) => {
   try {
     console.log("ChatGPT API endpoint called for recommendations");
+    console.log("Request body keys:", Object.keys(req.body || {}));
     
     // Get API key from Firestore or environment variables
-    let apiKey = await getOpenAIApiKey();
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+    } catch (keyError) {
+      console.error('❌ Error retrieving API key:', keyError);
+      return res.status(500).json({ 
+        status: 'error', 
+        message: `Failed to retrieve API key: ${keyError.message}`,
+        details: process.env.NODE_ENV === 'development' ? keyError.stack : undefined
+      });
+    }
     
     if (!apiKey) {
       console.error('❌ ERREUR: Clé API OpenAI manquante');
+      console.error('   Checking environment variables:');
+      console.error('   - OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'defined' : 'not defined');
+      console.error('   - VITE_OPENAI_API_KEY:', process.env.VITE_OPENAI_API_KEY ? 'defined' : 'not defined');
       return res.status(500).json({ 
         status: 'error', 
         message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).' 
       });
     }
     
+    console.log('✅ API key retrieved successfully (first 10 chars):', apiKey.substring(0, 10) + '...');
+    
     const { prompt, type, cvContent } = req.body;
     
     if (!prompt) {
+      console.error('❌ Prompt is missing in request body');
       return res.status(400).json({
         status: 'error',
         message: 'Prompt is required'
@@ -422,65 +439,111 @@ app.post('/api/chatgpt', async (req, res) => {
     console.log(`   Prompt length: ${prompt.length}`);
     
     // Call OpenAI API
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o", // Using GPT-4o for better quality
-        messages: messages,
-        response_format: { type: 'json_object' },
-        max_tokens: 4000,
-        temperature: 0.3 // Lower temperature for more consistent, structured responses
-      })
-    });
+    let openaiResponse;
+    let responseText;
     
-    console.log(`OpenAI API response status: ${openaiResponse.status}`);
-    
-    // Handle response
-    const responseText = await openaiResponse.text();
-    console.log("Response received, length:", responseText.length);
-    
-    if (!openaiResponse.ok) {
-      console.error("Non-200 response:", responseText);
-      try {
-        const errorData = JSON.parse(responseText);
-        return res.status(openaiResponse.status).json({
-          status: 'error',
-          message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
-          error: errorData.error
-        });
-      } catch (e) {
-        return res.status(openaiResponse.status).json({
-          status: 'error',
-          message: `OpenAI API error: ${responseText.substring(0, 200)}`
-        });
+    try {
+      openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o", // Using GPT-4o for better quality
+          messages: messages,
+          response_format: { type: 'json_object' },
+          max_tokens: 4000,
+          temperature: 0.3 // Lower temperature for more consistent, structured responses
+        })
+      });
+      
+      console.log(`OpenAI API response status: ${openaiResponse.status}`);
+      
+      // Handle response
+      responseText = await openaiResponse.text();
+      console.log("Response received, length:", responseText.length);
+      
+      if (!openaiResponse.ok) {
+        console.error("❌ Non-200 response from OpenAI API");
+        console.error("Response status:", openaiResponse.status);
+        console.error("Response text (first 500 chars):", responseText.substring(0, 500));
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          console.error("Parsed error data:", JSON.stringify(errorData, null, 2));
+          return res.status(openaiResponse.status).json({
+            status: 'error',
+            message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
+            error: errorData.error,
+            type: errorData.error?.type,
+            code: errorData.error?.code
+          });
+        } catch (parseError) {
+          console.error("Failed to parse error response:", parseError);
+          return res.status(openaiResponse.status).json({
+            status: 'error',
+            message: `OpenAI API error (status ${openaiResponse.status}): ${responseText.substring(0, 200)}`
+          });
+        }
       }
+    } catch (fetchError) {
+      console.error("❌ Error calling OpenAI API:", fetchError);
+      console.error("Error message:", fetchError.message);
+      console.error("Error stack:", fetchError.stack);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to call OpenAI API: ${fetchError.message}`,
+        details: process.env.NODE_ENV === 'development' ? fetchError.stack : undefined
+      });
     }
     
     // Parse and return response
     try {
+      console.log("Parsing OpenAI API response...");
       const parsedResponse = JSON.parse(responseText);
+      
+      if (!parsedResponse.choices || !Array.isArray(parsedResponse.choices) || parsedResponse.choices.length === 0) {
+        console.error("❌ Invalid response structure - no choices found");
+        console.error("Response structure:", JSON.stringify(parsedResponse, null, 2));
+        throw new Error('Invalid response structure from ChatGPT API - no choices found');
+      }
+      
       const content = parsedResponse.choices[0]?.message?.content;
       
       if (!content) {
+        console.error("❌ Empty content in response");
+        console.error("Response structure:", JSON.stringify(parsedResponse, null, 2));
         throw new Error('Empty response from ChatGPT API');
       }
+      
+      console.log("Content received, length:", content.length);
+      console.log("Content preview (first 200 chars):", content.substring(0, 200));
       
       // Parse JSON content
       let parsedContent;
       try {
         parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
-      } catch (e) {
+        console.log("✅ Successfully parsed JSON content");
+      } catch (parseError) {
+        console.warn("⚠️  Failed to parse content as JSON, trying to extract from markdown...");
+        console.warn("Parse error:", parseError.message);
         // If parsing fails, try to extract JSON from markdown
         const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                          content.match(/```\n([\s\S]*?)\n```/) ||
                           content.match(/{[\s\S]*}/);
         if (jsonMatch) {
-          parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+          try {
+            parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+            console.log("✅ Successfully extracted and parsed JSON from markdown");
+          } catch (extractError) {
+            console.error("❌ Failed to parse extracted JSON:", extractError.message);
+            throw new Error(`Could not parse JSON from response: ${extractError.message}`);
+          }
         } else {
-          throw new Error('Could not parse JSON from response');
+          console.error("❌ Could not find JSON in response content");
+          console.error("Content (first 1000 chars):", content.substring(0, 1000));
+          throw new Error('Could not parse JSON from response - no valid JSON found');
         }
       }
       
@@ -492,19 +555,33 @@ app.post('/api/chatgpt', async (req, res) => {
         usage: parsedResponse.usage
       });
     } catch (parseError) {
-      console.error("Parse error:", parseError);
+      console.error("❌ Parse error:", parseError);
+      console.error("Error message:", parseError.message);
+      console.error("Error stack:", parseError.stack);
+      console.error("Raw response (first 1000 chars):", responseText ? responseText.substring(0, 1000) : 'No response text');
       return res.status(500).json({
         status: 'error',
-        message: "Failed to parse response",
-        rawResponse: responseText.substring(0, 500) + "..."
+        message: `Failed to parse response: ${parseError.message}`,
+        rawResponse: responseText ? responseText.substring(0, 500) + "..." : "No response text available"
       });
     }
     
   } catch (error) {
-    console.error("Error in ChatGPT API handler:", error);
+    console.error("❌ Unexpected error in ChatGPT API handler:", error);
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    
+    // Check if response was already sent
+    if (res.headersSent) {
+      console.error("⚠️  Response already sent, cannot send error response");
+      return;
+    }
+    
     res.status(500).json({
       status: 'error',
       message: error.message || "An error occurred processing your request",
+      errorType: error.name || 'UnknownError',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }

@@ -2,6 +2,9 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { useRecommendationsLoading } from './contexts/RecommendationsLoadingContext';
+import BackgroundLoadingNotification from './components/recommendations/BackgroundLoadingNotification';
+import LoadingStartModal from './components/recommendations/LoadingStartModal';
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -67,14 +70,16 @@ console.log('Environment variables loaded into client side', {
   apiUrl: window.ENV.VITE_OPENAI_API_URL || 'Using default'
 });
 
-export default function App() {
+function AppContent() {
+  const { loadingState, stopLoading, toggleMinimized, setMinimized, closeStartModal } = useRecommendationsLoading();
+
   useEffect(() => {
     // Initialize interview notification service
     initNotificationService();
   }, []);
   
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <Routes>
         {/* Public routes */}
         <Route path="/" element={
@@ -143,6 +148,22 @@ export default function App() {
         <Route path="/cookies" element={<CookiesPage />} />
         <Route path="/calendar" element={<CalendarView />} />
       </Routes>
+      
+      {/* Global Background Loading Notification - visible on all pages */}
+      <BackgroundLoadingNotification
+        isOpen={loadingState.isGenerating}
+        progress={loadingState.progress}
+        message={loadingState.message}
+        completedCount={loadingState.completedCount}
+        totalCount={loadingState.totalCount}
+        isMinimized={loadingState.isMinimized}
+        onMinimize={() => setMinimized(true)}
+        onMaximize={() => setMinimized(false)}
+        onClose={() => {
+          stopLoading();
+        }}
+      />
+      
       <Toaster
         position="top-right"
         expand={false}
@@ -183,6 +204,14 @@ export default function App() {
           },
         }}
       />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
     </QueryClientProvider>
   );
 }
