@@ -14,7 +14,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
     targetPosition: '',
     targetSectors: [] as string[],
     contractType: '',
-    salaryRange: {
+    salaryExpectations: {
       min: '',
       max: '',
       currency: 'EUR'
@@ -30,15 +30,17 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          // Support both salaryRange (old) and salaryExpectations (new) for backward compatibility
+          const salaryData = userData.salaryExpectations || userData.salaryRange || {
+            min: '',
+            max: '',
+            currency: 'EUR'
+          };
           const newFormData = {
             targetPosition: userData.targetPosition || '',
             targetSectors: userData.targetSectors || [],
             contractType: userData.contractType || '',
-            salaryRange: userData.salaryRange || {
-              min: '',
-              max: '',
-              currency: 'EUR'
-            },
+            salaryExpectations: salaryData,
             availabilityDate: userData.availabilityDate || ''
           };
           setFormData(newFormData);
@@ -73,11 +75,6 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
 
   return (
     <section id="objectives" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-      <div className="flex items-center gap-3 mb-6">
-        <Target className="w-6 h-6 text-purple-600" />
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Professional Objectives</h2>
-      </div>
-
       <div className="space-y-6">
         {/* Target Position */}
         <div>
@@ -96,7 +93,10 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
         {/* Target Sectors */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Target Sectors
+            Target Sectors (Industries you're interested in)
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+              (e.g., FinTech, Healthcare, E-commerce)
+            </span>
           </label>
           <div className="flex flex-wrap gap-2">
             <input
@@ -154,7 +154,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
           </div>
         </div>
 
-        {/* Salary Range */}
+        {/* Salary Expectations */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Expected Salary Range
@@ -163,8 +163,8 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
             <div className="flex-1">
               <input
                 type="number"
-                value={formData.salaryRange.min}
-                onChange={(e) => handleChange('salaryRange', { ...formData.salaryRange, min: e.target.value })}
+                value={formData.salaryExpectations.min}
+                onChange={(e) => handleChange('salaryExpectations', { ...formData.salaryExpectations, min: e.target.value })}
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 placeholder="Min"
               />
@@ -172,16 +172,16 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
             <div className="flex-1">
               <input
                 type="number"
-                value={formData.salaryRange.max}
-                onChange={(e) => handleChange('salaryRange', { ...formData.salaryRange, max: e.target.value })}
+                value={formData.salaryExpectations.max}
+                onChange={(e) => handleChange('salaryExpectations', { ...formData.salaryExpectations, max: e.target.value })}
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 placeholder="Max"
               />
             </div>
             <div className="flex-1">
               <select
-                value={formData.salaryRange.currency}
-                onChange={(e) => handleChange('salaryRange', { ...formData.salaryRange, currency: e.target.value })}
+                value={formData.salaryExpectations.currency}
+                onChange={(e) => handleChange('salaryExpectations', { ...formData.salaryExpectations, currency: e.target.value })}
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               >
                 {currencies.map((currency) => (

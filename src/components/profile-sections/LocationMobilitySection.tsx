@@ -67,11 +67,6 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
 
   return (
     <section id="location" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-      <div className="flex items-center gap-3 mb-6">
-        <MapPin className="w-6 h-6 text-purple-600" />
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Location & Mobility</h2>
-      </div>
-
       <div className="space-y-6">
         {/* Current Location */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

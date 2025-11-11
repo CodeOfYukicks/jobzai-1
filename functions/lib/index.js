@@ -1316,46 +1316,21 @@ const getStripeWebhookSecret = async () => {
 const handleCheckoutCompleted = async (session) => {
     var _a;
     try {
-        console.log(`🔔 Processing checkout session: ${session.id}`);
-        console.log(`📋 Session metadata:`, JSON.stringify(session.metadata, null, 2));
         const { userId, planId, planName, credits, type } = session.metadata || {};
         if (!userId) {
             console.error('❌ Missing userId in session metadata');
             return;
         }
-        console.log(`👤 User: ${userId}, Type: ${type}, Plan: ${planId}, Credits: ${credits}`);
-        // Debug: Check what type we received
-        if (!type) {
-            console.error('❌ Type is missing or undefined in metadata!');
-            console.error('   Full metadata:', session.metadata);
-            console.error('   This means the payment type cannot be determined');
-            console.error('   Expected: type="credits" or type="plan"');
-        }
-        // Check if this session has already been processed (outside transaction)
-        const creditHistoryRef = admin.firestore()
-            .collection('users')
-            .doc(userId)
-            .collection('creditHistory');
-        const historyDocId = `session_${session.id}`;
-        const historyRef = creditHistoryRef.doc(historyDocId);
-        const existingHistory = await historyRef.get();
-        if (existingHistory.exists) {
-            console.log(`⚠️  Session ${session.id} already processed, skipping duplicate`);
-            return;
-        }
         const userRef = admin.firestore().collection('users').doc(userId);
         const userDoc = await userRef.get();
         if (!userDoc.exists) {
-            console.error(`❌ User not found: ${userId}`);
+            console.error('❌ User not found:', userId);
             return;
         }
-        const currentCredits = ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.credits) || 0;
-        console.log(`💰 Current credits: ${currentCredits}`);
-        // Process the payment
+        // Update user based on payment type
         if (type === 'plan' && planId !== 'free') {
             // Subscription plan
             const creditsToAdd = parseInt(credits || '0', 10);
-            console.log(`💳 Processing subscription: ${creditsToAdd} credits for plan ${planId}`);
             await userRef.update({
                 plan: planId,
                 credits: creditsToAdd,
@@ -1365,8 +1340,8 @@ const handleCheckoutCompleted = async (session) => {
                 paymentStatus: 'active',
                 lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
             });
-            // Record credit history with fixed document ID to prevent duplicates
-            await historyRef.set({
+            // Record credit history
+            await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
                 credits: creditsToAdd,
                 change: creditsToAdd,
                 reason: 'subscription_payment',
@@ -1374,86 +1349,42 @@ const handleCheckoutCompleted = async (session) => {
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 stripeSessionId: session.id,
             });
-            console.log(`✅ User ${userId} subscription activated: ${planName} (${creditsToAdd} credits)`);
+            console.log(`✅ User ${userId} subscription activated: ${planName} (${credits} credits)`);
         }
         else if (type === 'credits') {
             // One-time credit purchase
             const creditsToAdd = parseInt(credits || '0', 10);
-            const newCredits = currentCredits + creditsToAdd;
-            console.log(`💳 Processing credit purchase: ${currentCredits} + ${creditsToAdd} = ${newCredits} credits`);
+            const currentCredits = ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.credits) || 0;
             await userRef.update({
-                credits: newCredits,
+                credits: currentCredits + creditsToAdd,
                 lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
             });
-            // Record credit history with fixed document ID to prevent duplicates
-            await historyRef.set({
-                credits: newCredits,
+            // Record credit history
+            await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
+                credits: currentCredits + creditsToAdd,
                 change: creditsToAdd,
                 reason: 'credit_purchase',
                 packageId: planId,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 stripeSessionId: session.id,
             });
-            console.log(`✅ User ${userId} purchased ${creditsToAdd} credits (new total: ${newCredits})`);
-        }
-        else {
-            console.error(`❌ Unknown payment type: ${type}, planId: ${planId}`);
-            console.error(`   Full metadata:`, JSON.stringify(session.metadata, null, 2));
-            console.error(`   This payment will NOT add credits because type is not recognized`);
-            console.error(`   Expected type: "credits" or "plan"`);
-            console.error(`   Received type: "${type}"`);
-            // Try to infer type from planId if type is missing
-            if (!type && planId) {
-                console.log(`   Attempting to infer type from planId...`);
-                // If planId doesn't contain "free", it might be a credit package
-                if (planId !== 'free' && !planId.includes('plan')) {
-                    console.log(`   Inferred type: "credits" from planId`);
-                    const creditsToAdd = parseInt(credits || '0', 10);
-                    const newCredits = currentCredits + creditsToAdd;
-                    console.log(`💳 Processing credit purchase (inferred): ${currentCredits} + ${creditsToAdd} = ${newCredits} credits`);
-                    await userRef.update({
-                        credits: newCredits,
-                        lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
-                    });
-                    await historyRef.set({
-                        credits: newCredits,
-                        change: creditsToAdd,
-                        reason: 'credit_purchase',
-                        packageId: planId,
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        stripeSessionId: session.id,
-                    });
-                    console.log(`✅ User ${userId} purchased ${creditsToAdd} credits (new total: ${newCredits}) - INFERRED TYPE`);
-                }
-            }
+            console.log(`✅ User ${userId} purchased ${creditsToAdd} credits`);
         }
         // Create invoice record
-        const invoiceDocId = `session_${session.id}`;
-        const invoiceRef = admin.firestore()
-            .collection('users')
-            .doc(userId)
-            .collection('invoices')
-            .doc(invoiceDocId);
-        const invoiceExists = await invoiceRef.get();
-        if (!invoiceExists.exists) {
-            await invoiceRef.set({
-                stripeSessionId: session.id,
-                amount: (session.amount_total || 0) / 100,
-                currency: session.currency || 'eur',
-                status: 'paid',
-                planId,
-                planName,
-                type,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-            console.log(`✅ Invoice record created for session ${session.id}`);
-        }
+        await admin.firestore().collection('users').doc(userId).collection('invoices').add({
+            stripeSessionId: session.id,
+            amount: (session.amount_total || 0) / 100,
+            currency: session.currency || 'eur',
+            status: 'paid',
+            planId,
+            planName,
+            type,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
     }
     catch (error) {
         console.error('❌ Error handling checkout completed:', error);
-        console.error('   Error message:', error.message);
-        console.error('   Error stack:', error.stack);
-        // Don't throw, let the webhook return success so Stripe doesn't retry
+        throw error;
     }
 };
 /**

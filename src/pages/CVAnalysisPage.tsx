@@ -1128,6 +1128,8 @@ export default function CVAnalysisPage() {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLLabelElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [validationEnabled, setValidationEnabled] = useState(true);
   const [loadingStep, setLoadingStep] = useState<string>('preparing');
   const [loadingMessage, setLoadingMessage] = useState<string>('Preparing to analyze your resume...');
@@ -1377,11 +1379,49 @@ export default function CVAnalysisPage() {
     return normalized;
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return;
-    const file = e.target.files[0];
-    setCvFile(file);
+  const handleFileUpload = (file: File | React.ChangeEvent<HTMLInputElement>) => {
+    let fileToProcess: File;
+    
+    if (file instanceof File) {
+      fileToProcess = file;
+    } else {
+      if (!file.target.files?.[0]) return;
+      fileToProcess = file.target.files[0];
+    }
+    
+    // Validate file type
+    if (fileToProcess.type !== 'application/pdf') {
+      toast.error('Please upload a PDF file');
+      return;
+    }
+    
+    setCvFile(fileToProcess);
     toast.success('CV selected successfully');
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      handleFileUpload(file);
+    }
   };
 
   // Fonction pour désactiver/activer la validation
@@ -3939,29 +3979,44 @@ URL to visit: ${jobUrl}
           transition={{ duration: 0.3 }}
         >
           <div className="mb-4">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
-              className="w-full flex items-center p-4 border-2 border-dashed border-gray-200/60 dark:border-gray-700/50 rounded-xl 
-                hover:border-purple-400/60 dark:hover:border-purple-600/60 
+            <label
+              ref={dropZoneRef}
+              htmlFor="cv-upload-input-modal"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`w-full flex items-center p-4 border-2 border-dashed rounded-xl cursor-pointer
                 transition-all duration-200 ease-out
-                bg-gray-50/50 dark:bg-gray-800/30 backdrop-blur-sm
-                hover:bg-gray-100/60 dark:hover:bg-gray-800/50 
-                group"
+                backdrop-blur-sm
+                group
+                ${
+                  isDragging
+                    ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                    : cvFile
+                    ? 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
+                    : 'border-gray-200/60 dark:border-gray-700/50 hover:border-purple-400/60 dark:hover:border-purple-600/60 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
+                }`}
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 
-                flex items-center justify-center mr-4 group-hover:scale-105 transition-transform duration-200">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 transition-transform duration-200
+                ${
+                  isDragging
+                    ? 'bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/30 scale-105'
+                    : cvFile
+                    ? 'bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20'
+                    : 'bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 group-hover:scale-105'
+                }`}>
                 {cvFile ? 
                   <Check className="w-6 h-6 text-green-600 dark:text-green-400" /> : 
-                  <Upload className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  <Upload className={`w-6 h-6 ${isDragging ? 'text-purple-600 dark:text-purple-400' : 'text-purple-600 dark:text-purple-400'}`} />
                 }
               </div>
               <div className="flex-1 text-left">
-                <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-1">
-                  {cvFile ? "Resume Selected" : "Upload Your Resume"}
+                <h3 className={`font-semibold text-sm mb-1 ${
+                  isDragging
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-gray-900 dark:text-white'
+                }`}>
+                  {cvFile ? "Resume Selected" : isDragging ? "Drop your CV here" : "Upload Your Resume"}
                 </h3>
                 {cvFile ? (
                   <div>
@@ -3973,8 +4028,12 @@ URL to visit: ${jobUrl}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Click to select a PDF file for ATS analysis
+                  <p className={`text-xs ${
+                    isDragging
+                      ? 'text-purple-600 dark:text-purple-400 font-medium'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}>
+                    {isDragging ? "Release to upload" : "Click to select or drag and drop a PDF file"}
                   </p>
                 )}
               </div>
@@ -3983,7 +4042,15 @@ URL to visit: ${jobUrl}
                   <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </span>
               )}
-            </button>
+              <input
+                id="cv-upload-input-modal"
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".pdf"
+                className="hidden"
+              />
+            </label>
           </div>
           <div className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center mt-2 
             bg-blue-50/60 dark:bg-blue-900/20 backdrop-blur-sm 
@@ -4228,7 +4295,14 @@ URL to visit: ${jobUrl}
       input.addEventListener("change", (e) => {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files[0]) {
-          setCvFile(target.files[0]);
+          const file = target.files[0];
+          // Validate file type
+          if (file.type !== 'application/pdf') {
+            toast.error('Please upload a PDF file');
+            return;
+          }
+          setCvFile(file);
+          toast.success('CV selected successfully');
         }
       });
       
@@ -4522,10 +4596,10 @@ URL to visit: ${jobUrl}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden max-w-2xl w-full mx-auto p-5 md:p-6
+                  className="group relative bg-white dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden max-w-2xl w-full mx-auto p-5 md:p-6
                     transition-all duration-500 ease-out
                     hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
-                    border border-gray-100/50 dark:border-gray-800/50"
+                    border border-gray-200 dark:border-gray-800/50 shadow-xl"
                   style={{
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
                   }}
@@ -5003,11 +5077,7 @@ URL to visit: ${jobUrl}
       <input
         type="file"
         ref={fileInputRef}
-        onChange={(e) => {
-          if (e.target.files && e.target.files[0]) {
-            setCvFile(e.target.files[0]);
-          }
-        }}
+        onChange={handleFileUpload}
         className="hidden"
         accept=".pdf"
       />

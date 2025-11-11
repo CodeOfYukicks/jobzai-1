@@ -398,26 +398,26 @@ export default function EmailTemplatesPage() {
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
           </div>
         ) : filteredTemplates.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 
-              rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
-              <Mail className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Mail className="w-10 h-10 text-purple-600 dark:text-purple-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No templates yet
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
               {searchQuery 
-                ? "No templates match your search criteria" 
-                : "Get started by creating your first email template"}
+                ? 'No templates match your search'
+                : 'No templates yet'}
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+              {searchQuery 
+                ? 'Try adjusting your search criteria to see more results.'
+                : 'Get started by creating your first email template with AI or manually.'}
             </p>
             <button
               onClick={() => setShowGenerateModal(true)}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium 
-                text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+              className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto whitespace-nowrap"
             >
-              <Wand2 className="h-4 w-4 mr-2" />
-              Generate with AI
+              <Wand2 className="h-5 w-5 text-white flex-shrink-0" />
+              <span className="text-sm font-medium text-white">Generate with AI</span>
             </button>
           </div>
         ) : viewMode === 'grid' ? (

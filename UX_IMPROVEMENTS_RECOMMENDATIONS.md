@@ -185,3 +185,4 @@ Le code est modulaire et réutilisable :
 4. **Badge de Notification** : Afficher un badge sur le menu pour indiquer les nouvelles recommandations
 5. **Historique** : Sauvegarder l'historique des recommandations pour comparaison
 
+

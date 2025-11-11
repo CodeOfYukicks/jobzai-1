@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FileText, Link as LinkIcon, Github, Linkedin, Upload, X, ExternalLink } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
@@ -21,6 +21,8 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
     githubUrl: ''
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dropZoneRef = useRef<HTMLLabelElement>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -57,9 +59,21 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
     onUpdate(newFormData);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileUpload = async (file: File) => {
     if (!file || !currentUser) return;
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('CV must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a PDF or Word document');
+      return;
+    }
 
     try {
       setIsUploading(true);
@@ -75,11 +89,45 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
       setFormData(newFormData);
       onUpdate(newFormData);
       toast.success('CV uploaded successfully');
-    } catch (error) {
-      toast.error('Error uploading CV');
-      console.error('Error:', error);
+    } catch (error: any) {
+      console.error('Error uploading CV:', error);
+      if (error.code === 'storage/unauthorized') {
+        toast.error('Permission denied. Please try again or contact support.');
+      } else {
+        toast.error('Failed to upload CV. Please try again.');
+      }
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileUpload(file);
     }
   };
 
@@ -95,11 +143,6 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
 
   return (
     <section id="documents" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-      <div className="flex items-center gap-3 mb-6">
-        <FileText className="w-6 h-6 text-purple-600" />
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Documents & Links</h2>
-      </div>
-
       <div className="space-y-6">
         {/* CV Upload */}
         <div>
@@ -131,16 +174,26 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
                 </div>
               </div>
             ) : (
-              <label className="flex-1 flex items-center justify-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-purple-500 dark:hover:border-purple-400 transition-colors cursor-pointer bg-white dark:bg-gray-700">
+              <label
+                ref={dropZoneRef}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`flex-1 flex items-center justify-center p-6 border-2 border-dashed rounded-lg transition-all cursor-pointer bg-white dark:bg-gray-700 ${
+                  isDragging
+                    ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-400'
+                }`}
+              >
                 <div className="flex flex-col items-center gap-2">
-                  <Upload className={`w-8 h-8 ${isUploading ? 'animate-bounce text-purple-600' : 'text-gray-400'}`} />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {isUploading ? 'Uploading...' : 'Click to upload your CV'}
+                  <Upload className={`w-8 h-8 ${isUploading ? 'animate-bounce text-purple-600' : isDragging ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`} />
+                  <span className={`text-sm ${isDragging ? 'text-purple-600 dark:text-purple-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {isUploading ? 'Uploading...' : isDragging ? 'Drop your CV here' : 'Click to upload or drag and drop'}
                   </span>
                 </div>
                 <input
                   type="file"
-                  onChange={handleFileUpload}
+                  onChange={handleFileChange}
                   accept=".pdf,.doc,.docx"
                   className="hidden"
                   disabled={isUploading}

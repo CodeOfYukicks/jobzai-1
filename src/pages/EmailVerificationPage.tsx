@@ -5,7 +5,6 @@ import { Mail, RefreshCw, Loader2, CheckCircle2, ArrowLeft, AlertCircle } from '
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { sendEmailVerification } from 'firebase/auth';
-import FirebaseImage from '../components/FirebaseImage';
 import { forceLightMode } from '../lib/theme';
 
 export default function EmailVerificationPage() {
@@ -193,60 +192,49 @@ export default function EmailVerificationPage() {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-md"
         >
-          <div className="bg-white">
-            {/* Logo - Plus discret en haut */}
-            <div className="mb-10">
-              <Link to="/" className="inline-block group">
-                <FirebaseImage 
-                  path="images/logo-only.png"
-                  alt="JOBZ.AI Logo" 
-                  className="h-8 w-auto transform transition-transform group-hover:scale-105 opacity-60"
-                />
-              </Link>
-            </div>
-            
+          <div className="bg-white rounded-2xl p-8">
             {/* Icon and Title - Centered */}
-            <div className="text-center mb-10">
+            <div className="text-center mb-6">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring' }}
-                className="mx-auto w-20 h-20 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mb-6 shadow-lg shadow-purple-500/20"
+                className="mx-auto w-16 h-16 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20"
               >
-                <Mail className="h-10 w-10 text-white" />
+                <Mail className="h-8 w-8 text-white" />
               </motion.div>
-              <h1 className="text-4xl font-semibold text-gray-900 tracking-tight mb-3">
+              <h1 className="text-3xl font-semibold text-gray-900 tracking-tight mb-2">
                 Verify your email
               </h1>
-              <p className="text-base text-gray-600 mb-6">
+              <p className="text-sm text-gray-600 mb-4">
                 We've sent a verification link to
               </p>
               
               {/* Email Display - Centered and integrated with subtle color */}
-              <div className="inline-block bg-gradient-to-r from-gray-50 to-purple-50/30 rounded-lg px-5 py-3 border border-gray-200">
-                <p className="text-sm text-gray-500 mb-1 text-center">Email address</p>
-                <p className="text-lg font-semibold text-gray-900 text-center">
+              <div className="inline-block bg-gradient-to-r from-gray-50 to-purple-50/30 rounded-lg px-4 py-2.5 border border-gray-200">
+                <p className="text-xs text-gray-500 mb-0.5 text-center">Email address</p>
+                <p className="text-base font-semibold text-gray-900 text-center">
                   {currentUser?.email}
                 </p>
               </div>
             </div>
 
             {/* Instructions - Centered with better spacing and subtle colors */}
-            <div className="space-y-5 mb-10 max-w-md mx-auto">
+            <div className="space-y-3 mb-6 max-w-md mx-auto">
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex items-start gap-4 p-4 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
+                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
-                  <span className="text-white font-semibold text-sm">1</span>
+                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
+                  <span className="text-white font-semibold text-xs">1</span>
                 </div>
                 <div className="flex-1">
-                  <p className="text-gray-900 font-medium mb-1.5 text-[15px]">
+                  <p className="text-gray-900 font-medium mb-0.5 text-sm">
                     Check your inbox
                   </p>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <p className="text-gray-600 text-xs leading-relaxed">
                     We've sent a verification link to your email address
                   </p>
                 </div>
@@ -256,16 +244,16 @@ export default function EmailVerificationPage() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
-                className="flex items-start gap-4 p-4 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
+                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
-                  <span className="text-white font-semibold text-sm">2</span>
+                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
+                  <span className="text-white font-semibold text-xs">2</span>
                 </div>
                 <div className="flex-1">
-                  <p className="text-gray-900 font-medium mb-1.5 text-[15px]">
+                  <p className="text-gray-900 font-medium mb-0.5 text-sm">
                     Click the verification link
                   </p>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <p className="text-gray-600 text-xs leading-relaxed">
                     Open the email and click on the verification button or link
                   </p>
                 </div>
@@ -275,16 +263,16 @@ export default function EmailVerificationPage() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
-                className="flex items-start gap-4 p-4 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
+                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
-                  <span className="text-white font-semibold text-sm">3</span>
+                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
+                  <span className="text-white font-semibold text-xs">3</span>
                 </div>
                 <div className="flex-1">
-                  <p className="text-gray-900 font-medium mb-1.5 text-[15px]">
+                  <p className="text-gray-900 font-medium mb-0.5 text-sm">
                     Get started
                   </p>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <p className="text-gray-600 text-xs leading-relaxed">
                     Once verified, you'll be redirected to complete your profile
                   </p>
                 </div>
@@ -292,11 +280,11 @@ export default function EmailVerificationPage() {
             </div>
 
             {/* Resend Button - Centered */}
-            <div className="mb-8 max-w-md mx-auto">
+            <div className="mb-4 max-w-md mx-auto">
               <button
                 onClick={handleResendEmail}
                 disabled={timeLeft > 0 || isResending || !currentUser}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg font-medium transition-all duration-150 text-[15px]
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-150 text-sm
                   ${
                     timeLeft > 0 || isResending || !currentUser
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
@@ -328,23 +316,23 @@ export default function EmailVerificationPage() {
             </div>
 
             {/* Help Text - Centered with subtle color */}
-            <div className="bg-gradient-to-br from-blue-50/50 to-purple-50/30 rounded-lg p-5 border border-blue-100 mb-6 max-w-md mx-auto">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-[#8D75E6] flex-shrink-0 mt-0.5" />
+            <div className="bg-gradient-to-br from-blue-50/50 to-purple-50/30 rounded-lg p-3 border border-blue-100 mb-4 max-w-md mx-auto">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-[#8D75E6] flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 mb-3">
+                  <p className="text-xs font-medium text-gray-900 mb-2">
                     Didn't receive the email?
                   </p>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li className="flex items-start gap-2">
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li className="flex items-start gap-1.5">
                       <span className="text-[#8D75E6] mt-0.5">•</span>
                       <span>Check your <strong className="text-gray-900">spam or junk folder</strong> first</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5">
                       <span className="text-[#8D75E6] mt-0.5">•</span>
                       <span>Make sure you entered the correct email address</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5">
                       <span className="text-[#8D75E6] mt-0.5">•</span>
                       <span>Wait a few minutes and try resending</span>
                     </li>
@@ -354,8 +342,8 @@ export default function EmailVerificationPage() {
             </div>
 
             {/* Auto-check indicator - Centered */}
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-8">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#8D75E6]" />
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-4">
+              <Loader2 className="h-3 w-3 animate-spin text-[#8D75E6]" />
               <span>Automatically checking for verification...</span>
             </div>
 
@@ -363,9 +351,9 @@ export default function EmailVerificationPage() {
             <div className="text-center">
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#8D75E6] transition-colors"
+                className="inline-flex items-center gap-2 text-xs text-gray-600 hover:text-[#8D75E6] transition-colors"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Back to login</span>
               </Link>
             </div>

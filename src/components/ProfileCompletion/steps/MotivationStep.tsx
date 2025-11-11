@@ -105,7 +105,7 @@ Return only the improved text, nothing else.`
           }}
           rows={6}
           placeholder="Example: I'm looking to transition from my current role in marketing to a product management position. I'm particularly interested in tech companies with strong mentorship programs..."
-          className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl
+          className="w-full p-4 pr-32 border-2 border-gray-200 dark:border-gray-700 rounded-xl
             bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
             focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]
             transition-all duration-200 resize-none
@@ -113,28 +113,30 @@ Return only the improved text, nothing else.`
             focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
         />
         
-        {/* AI Improve Button */}
+        {/* AI Improve Button - Centered vertically on the right */}
         {motivation.trim() && !showImproved && (
           <button
             onClick={improveWithAI}
             disabled={isImproving}
-            className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 px-3 py-1.5 
-              bg-[#8D75E6]/10 dark:bg-[#8D75E6]/20 backdrop-blur-sm
-              border border-[#8D75E6]/30 dark:border-[#8D75E6]/40
-              text-[#8D75E6] dark:text-[#8D75E6] rounded-lg 
-              text-xs font-medium shadow-sm hover:shadow-md transition-all duration-200
+            className="absolute top-1/2 -translate-y-1/2 right-3 group flex items-center gap-1.5 px-3 py-1.5 
+              bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm
+              border border-gray-200 dark:border-gray-700
+              text-gray-600 dark:text-gray-400 rounded-lg 
+              text-xs font-medium transition-all duration-200
               disabled:opacity-50 disabled:cursor-not-allowed
-              hover:bg-[#8D75E6]/20 dark:hover:bg-[#8D75E6]/30
-              hover:border-[#8D75E6]/50 dark:hover:border-[#8D75E6]/60"
+              hover:bg-[#8D75E6]/10 dark:hover:bg-[#8D75E6]/20
+              hover:border-[#8D75E6]/40 dark:hover:border-[#8D75E6]/50
+              hover:text-[#8D75E6] dark:hover:text-[#8D75E6]
+              hover:shadow-md active:scale-[0.98]"
           >
             {isImproving ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#8D75E6]" />
                 <span>Improving...</span>
               </>
             ) : (
               <>
-                <Sparkles className="h-3.5 w-3.5" />
+                <Sparkles className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
                 <span>Improve with AI</span>
               </>
             )}

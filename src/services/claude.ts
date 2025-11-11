@@ -95,10 +95,43 @@ const calculateProfileCompleteness = (userData: CompleteUserData): { percentage:
   if (userData.firstName) availableFields.push('firstName'); else missingFields.push('firstName');
   if (userData.lastName) availableFields.push('lastName'); else missingFields.push('lastName');
   if (userData.email) availableFields.push('email'); else missingFields.push('email');
-  if (userData.location) availableFields.push('location'); else missingFields.push('location');
-  if (userData.currentPosition || userData.jobTitle) availableFields.push('currentPosition'); else missingFields.push('currentPosition');
+  // Location is now city + country in Location & Mobility section
+  if ((userData as any).city && (userData as any).country) {
+    availableFields.push('location');
+  } else if (userData.location) {
+    availableFields.push('location');
+  } else {
+    missingFields.push('location');
+  }
+  // Job Search Context (Phase 1)
+  if (userData.currentSituation) availableFields.push('currentSituation'); else missingFields.push('currentSituation');
+  if (userData.searchUrgency) availableFields.push('searchUrgency'); else missingFields.push('searchUrgency');
+  // Education & Languages (Phase 1)
+  if (userData.educationLevel) availableFields.push('educationLevel'); else missingFields.push('educationLevel');
+  if (userData.languages && userData.languages.length > 0) availableFields.push('languages'); else missingFields.push('languages');
+  // Professional History (Phase 2)
+  if (userData.professionalHistory && userData.professionalHistory.length > 0) availableFields.push('professionalHistory'); else missingFields.push('professionalHistory');
+  // Career Drivers (Phase 2)
+  if (userData.careerPriorities && userData.careerPriorities.length > 0) availableFields.push('careerPriorities'); else missingFields.push('careerPriorities');
+  if (userData.primaryMotivator) availableFields.push('primaryMotivator'); else missingFields.push('primaryMotivator');
+  // Role Preferences (Phase 2)
+  if (userData.roleType) availableFields.push('roleType'); else missingFields.push('roleType');
+  if (userData.preferredEnvironment && userData.preferredEnvironment.length > 0) availableFields.push('preferredEnvironment'); else missingFields.push('preferredEnvironment');
+  // currentPosition is now derived from professionalHistory[0] where current: true
+  if (userData.professionalHistory && userData.professionalHistory.length > 0 && userData.professionalHistory.some((exp: any) => exp.current)) {
+    availableFields.push('currentPosition');
+  } else if (userData.currentPosition || userData.jobTitle) {
+    availableFields.push('currentPosition');
+  } else {
+    missingFields.push('currentPosition');
+  }
   if (userData.industry) availableFields.push('industry'); else missingFields.push('industry');
-  if (userData.yearsOfExperience) availableFields.push('yearsOfExperience'); else missingFields.push('yearsOfExperience');
+  // yearsOfExperience is now calculated from professionalHistory
+  if (userData.yearsOfExperience || (userData.professionalHistory && userData.professionalHistory.length > 0)) {
+    availableFields.push('yearsOfExperience');
+  } else {
+    missingFields.push('yearsOfExperience');
+  }
   if (userData.skills && userData.skills.length > 0) availableFields.push('skills'); else missingFields.push('skills');
   if (userData.tools && userData.tools.length > 0) availableFields.push('tools'); else missingFields.push('tools');
   if (userData.targetPosition) availableFields.push('targetPosition'); else missingFields.push('targetPosition');
@@ -107,6 +140,7 @@ const calculateProfileCompleteness = (userData: CompleteUserData): { percentage:
   if (userData.cvContent) availableFields.push('cvContent'); else missingFields.push('cvContent');
   if (userData.workPreference) availableFields.push('workPreference'); else missingFields.push('workPreference');
   if (userData.willingToRelocate !== undefined) availableFields.push('willingToRelocate'); else missingFields.push('willingToRelocate');
+  // preferredCompanySize removed - using preferredEnvironment from Role Preferences instead
   
   const totalFields = availableFields.length + missingFields.length;
   const percentage = totalFields > 0 ? Math.round((availableFields.length / totalFields) * 100) : 0;
@@ -145,20 +179,208 @@ ${hasCampaigns ? `✅ CAMPAIGNS: ${userData.campaigns?.length || 0} campaigns tr
 ${userData.firstName && userData.lastName ? `✅ Full Name: ${userData.firstName} ${userData.lastName}` : `❌ Name: ${userData.firstName || ''} ${userData.lastName || ''} (incomplete)`}
 ${userData.email ? `✅ Email: ${userData.email}` : '❌ Email: Not provided'}
 ${userData.phone ? `✅ Phone: ${userData.phone}` : '❌ Phone: Not provided'}
-${userData.location ? `✅ Location: ${userData.location}` : '❌ Location: Not specified - this limits location-based recommendations'}
+${(() => {
+  const city = (userData as any).city || '';
+  const country = (userData as any).country || '';
+  const location = userData.location || '';
+  if (city && country) {
+    return `✅ Location: ${city}, ${country}`;
+  } else if (location) {
+    return `✅ Location: ${location}`;
+  } else {
+    return '❌ Location: Not specified - this limits location-based recommendations';
+  }
+})()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 JOB SEARCH CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.currentSituation ? 
+  `✅ Current Situation: ${userData.currentSituation === 'employed' ? 'Employed (with notice period)' : 
+    userData.currentSituation === 'unemployed' ? 'Unemployed / Between jobs' :
+    userData.currentSituation === 'freelance' ? 'Freelance / Consultant' :
+    userData.currentSituation === 'student' ? 'Student / Recent graduate' :
+    userData.currentSituation === 'transitioning' ? 'Career transitioning' : userData.currentSituation}` : 
+  '❌ Current Situation: Not specified - affects recommendation urgency and strategy'}
+${userData.searchUrgency ? 
+  `✅ Search Urgency: ${userData.searchUrgency === 'very-urgent' ? 'Very Urgent (1 month)' :
+    userData.searchUrgency === 'urgent' ? 'Urgent (3 months)' :
+    userData.searchUrgency === 'moderate' ? 'Moderate (6 months)' :
+    userData.searchUrgency === 'exploring' ? 'Exploring' : userData.searchUrgency}` : 
+  '❌ Search Urgency: Not specified - CRITICAL for timing recommendations'}
+${userData.searchReason ? 
+  `✅ Search Reason: ${userData.searchReason === 'career-growth' ? 'Career Growth' :
+    userData.searchReason === 'company-change' ? 'Company Change' :
+    userData.searchReason === 'relocation' ? 'Relocation' :
+    userData.searchReason === 'contract-end' ? 'Contract Ending' :
+    userData.searchReason === 'better-fit' ? 'Better Fit' :
+    userData.searchReason === 'salary' ? 'Salary Increase' : userData.searchReason}` : 
+  ''}
+${userData.searchIntensity ? 
+  `✅ Search Intensity: ${userData.searchIntensity === 'very-active' ? 'Very Active (daily applications)' :
+    userData.searchIntensity === 'active' ? 'Active (2-5 applications/week)' :
+    userData.searchIntensity === 'moderate' ? 'Moderate (1-2 applications/week)' :
+    userData.searchIntensity === 'passive' ? 'Passive (open to opportunities)' : userData.searchIntensity}` : 
+  ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎓 EDUCATION & LANGUAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.educationLevel ? 
+  `✅ Education Level: ${userData.educationLevel === 'high-school' ? 'High School / Bac' :
+    userData.educationLevel === 'associate' ? 'Associate / Bac+2' :
+    userData.educationLevel === 'bachelor' ? 'Bachelor / Bac+3' :
+    userData.educationLevel === 'master' ? 'Master / Bac+5' :
+    userData.educationLevel === 'phd' ? 'PhD / Doctorate' : userData.educationLevel}` : 
+  '❌ Education Level: Not specified - affects matching with job requirements'}
+${userData.educationField ? `✅ Field of Study: ${userData.educationField}` : ''}
+${userData.educationInstitution ? `✅ Institution: ${userData.educationInstitution}` : ''}
+${userData.educationMajor ? `✅ Major/Specialization: ${userData.educationMajor}` : ''}
+${userData.graduationYear ? `✅ Graduation Year: ${userData.graduationYear}` : ''}
+${userData.languages && userData.languages.length > 0 ? 
+  `✅ Languages (${userData.languages.length}):\n${userData.languages.map(lang => {
+    const levelLabel = lang.level === 'native' ? 'Native' :
+      lang.level === 'fluent' ? 'Fluent' :
+      lang.level === 'intermediate' ? 'Intermediate' :
+      lang.level === 'beginner' ? 'Beginner' : lang.level;
+    return `   - ${lang.language} (${levelLabel})`;
+  }).join('\n')}` : 
+  '❌ Languages: Not specified - CRITICAL for international opportunities'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 PROFESSIONAL HISTORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.professionalHistory && userData.professionalHistory.length > 0 ? 
+  `✅ Professional History (${userData.professionalHistory.length} experiences):\n${userData.professionalHistory.map((exp: any, index: number) => {
+    const period = exp.current ? `${exp.startDate} - Present` : `${exp.startDate} - ${exp.endDate || 'N/A'}`;
+    return `   ${index + 1}. ${exp.title} at ${exp.company} (${period})
+      - Industry: ${exp.industry || 'N/A'}
+      - Location: ${exp.location || 'N/A'}
+      - Contract: ${exp.contractType || 'N/A'}
+      ${exp.responsibilities && exp.responsibilities.length > 0 ? `- Responsibilities: ${exp.responsibilities.slice(0, 3).join('; ')}` : ''}
+      ${exp.achievements && exp.achievements.length > 0 ? `- Achievements: ${exp.achievements.slice(0, 2).join('; ')}` : ''}`;
+  }).join('\n')}` : 
+  '❌ Professional History: Not specified - CRITICAL for understanding career trajectory'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 CAREER DRIVERS & MOTIVATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.careerPriorities && userData.careerPriorities.length > 0 ? 
+  `✅ Career Priorities (ranked):\n${userData.careerPriorities.map((priority: string, index: number) => {
+    const labels: Record<string, string> = {
+      'growth': 'Career Growth',
+      'money': 'Compensation',
+      'impact': 'Impact',
+      'work-life': 'Work-Life Balance',
+      'learning': 'Learning & Development',
+      'autonomy': 'Autonomy',
+      'leadership': 'Leadership Opportunities'
+    };
+    return `   ${index + 1}. ${labels[priority] || priority}`;
+  }).join('\n')}` : 
+  '❌ Career Priorities: Not specified - affects culture and company matching'}
+${userData.primaryMotivator ? 
+  `✅ Primary Motivator: ${userData.primaryMotivator === 'growth' ? 'Career Growth' :
+    userData.primaryMotivator === 'money' ? 'Compensation' :
+    userData.primaryMotivator === 'impact' ? 'Impact' :
+    userData.primaryMotivator === 'work-life' ? 'Work-Life Balance' :
+    userData.primaryMotivator === 'learning' ? 'Learning & Development' :
+    userData.primaryMotivator === 'autonomy' ? 'Autonomy' :
+    userData.primaryMotivator === 'leadership' ? 'Leadership Opportunities' : userData.primaryMotivator}` : 
+  ''}
+${userData.dealBreakers && userData.dealBreakers.length > 0 ? 
+  `✅ Deal Breakers: ${userData.dealBreakers.join(', ')}` : 
+  ''}
+${userData.niceToHaves && userData.niceToHaves.length > 0 ? 
+  `✅ Nice to Haves: ${userData.niceToHaves.join(', ')}` : 
+  ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💼 ROLE PREFERENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.roleType ? 
+  `✅ Preferred Role Type: ${userData.roleType === 'ic' ? 'Individual Contributor (IC)' :
+    userData.roleType === 'manager' ? 'Manager' :
+    userData.roleType === 'lead' ? 'Lead / Tech Lead' :
+    userData.roleType === 'principal' ? 'Principal / Staff' :
+    userData.roleType === 'executive' ? 'Executive / Director+' :
+    userData.roleType === 'flexible' ? 'Flexible (IC or Management)' : userData.roleType}` : 
+  '❌ Role Type: Not specified - CRITICAL for role matching'}
+${userData.preferredEnvironment && userData.preferredEnvironment.length > 0 ? 
+  `✅ Preferred Environment: ${userData.preferredEnvironment.map((env: string) => {
+    const labels: Record<string, string> = {
+      'startup': 'Startup (1-50)',
+      'scale-up': 'Scale-up (51-200)',
+      'mid-size': 'Mid-size (201-1000)',
+      'enterprise': 'Enterprise (1000+)',
+      'all': 'All Sizes'
+    };
+    return labels[env] || env;
+  }).join(', ')}` : 
+  ''}
+${userData.productType && userData.productType.length > 0 ? 
+  `✅ Preferred Product Type: ${userData.productType.map((type: string) => type.toUpperCase()).join(', ')}` : 
+  ''}
+${userData.functionalDomain && userData.functionalDomain.length > 0 ? 
+  `✅ Functional Domain: ${userData.functionalDomain.map((domain: string) => {
+    return domain.charAt(0).toUpperCase() + domain.slice(1);
+  }).join(', ')}` : 
+  ''}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💼 CURRENT PROFESSIONAL STATUS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${userData.currentPosition || userData.jobTitle ? 
-  `✅ Current Position: ${userData.currentPosition || userData.jobTitle}` : 
-  '❌ Current Position: Not specified - user may be unemployed or career transitioning'}
+${(() => {
+  // Get current position from professionalHistory where current: true
+  const currentExp = userData.professionalHistory?.find((exp: any) => exp.current);
+  const currentPosition = currentExp?.title || userData.currentPosition || userData.jobTitle;
+  return currentPosition ? 
+    `✅ Current Position: ${currentPosition}${currentExp ? ` at ${currentExp.company}` : ''}` : 
+    '❌ Current Position: Not specified - user may be unemployed or career transitioning';
+})()}
 ${userData.industry ? `✅ Industry: ${userData.industry}` : '❌ Industry: Not specified - limits industry-specific recommendations'}
-${userData.yearsOfExperience ? 
-  `✅ Years of Experience: ${userData.yearsOfExperience} years` : 
-  '❌ Years of Experience: Not specified - affects seniority level assessment'}
-${userData.contractType ? `✅ Contract Type: ${userData.contractType}` : '❌ Contract Type: Not specified'}
+${(() => {
+  // Calculate yearsOfExperience from professionalHistory if available
+  let years = userData.yearsOfExperience;
+  if (!years && userData.professionalHistory && userData.professionalHistory.length > 0) {
+    const now = new Date();
+    let totalMonths = 0;
+    userData.professionalHistory.forEach((exp: any) => {
+      if (exp.startDate) {
+        // Parse date in YYYY-MM format
+        const startParts = exp.startDate.split('-');
+        if (startParts.length !== 2) return;
+        
+        const start = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, 1);
+        let end: Date;
+        
+        if (exp.current || !exp.endDate) {
+          end = now;
+        } else {
+          const endParts = exp.endDate.split('-');
+          if (endParts.length !== 2) return;
+          end = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, 1);
+        }
+        
+        if (end >= start) {
+          const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+          totalMonths += Math.max(0, months);
+        }
+      }
+    });
+    years = Math.round(totalMonths / 12);
+  }
+  return years ? 
+    `✅ Years of Experience: ${years} years${!userData.yearsOfExperience ? ' (calculated from professional history)' : ''}` : 
+    '❌ Years of Experience: Not specified - affects seniority level assessment';
+})()}
+${userData.contractType ? `✅ Preferred Contract Type: ${userData.contractType}` : ''}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -196,6 +418,87 @@ ${userData.availabilityDate ?
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+💰 SALARY FLEXIBILITY & COMPENSATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.salaryFlexibility ? 
+  `✅ Salary Flexibility: ${userData.salaryFlexibility === 'very-flexible' ? 'Very Flexible' :
+    userData.salaryFlexibility === 'flexible' ? 'Flexible' :
+    userData.salaryFlexibility === 'moderate' ? 'Moderate' :
+    userData.salaryFlexibility === 'strict' ? 'Strict' : userData.salaryFlexibility}` : 
+  ''}
+${userData.compensationPriorities && userData.compensationPriorities.length > 0 ? 
+  `✅ Compensation Priorities: ${userData.compensationPriorities.map((p: string) => {
+    const labels: Record<string, string> = {
+      'base-salary': 'Base Salary',
+      'equity': 'Equity / Stock Options',
+      'bonus': 'Performance Bonus',
+      'benefits': 'Benefits Package',
+      'learning': 'Learning Budget',
+      'remote': 'Remote Work'
+    };
+    return labels[p] || p;
+  }).join(', ')}` : 
+  ''}
+${userData.willingToTrade && userData.willingToTrade.length > 0 ? 
+  `✅ Willing to Trade Salary For: ${userData.willingToTrade.map((t: string) => {
+    const labels: Record<string, string> = {
+      'equity-for-salary': 'Equity',
+      'remote-for-salary': 'Remote Work',
+      'growth-for-salary': 'Growth Opportunities',
+      'learning-for-salary': 'Learning Opportunities',
+      'impact-for-salary': 'Meaningful Impact',
+      'work-life-for-salary': 'Work-Life Balance'
+    };
+    return labels[t] || t;
+  }).join(', ')}` : 
+  ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🤝 SOFT SKILLS & LEADERSHIP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.softSkills && userData.softSkills.length > 0 ? 
+  `✅ Soft Skills (${userData.softSkills.length}): ${userData.softSkills.map((skill: string) => {
+    const labels: Record<string, string> = {
+      'leadership': 'Leadership',
+      'communication': 'Communication',
+      'problem-solving': 'Problem Solving',
+      'collaboration': 'Collaboration',
+      'adaptability': 'Adaptability',
+      'empathy': 'Empathy',
+      'time-management': 'Time Management',
+      'conflict-resolution': 'Conflict Resolution',
+      'negotiation': 'Negotiation',
+      'public-speaking': 'Public Speaking'
+    };
+    return labels[skill] || skill;
+  }).join(', ')}` : 
+  ''}
+${userData.managementExperience?.hasExperience ? 
+  `✅ Management Experience: Yes (Team Size: ${userData.managementExperience.teamSize || 'N/A'}, Type: ${userData.managementExperience.teamType || 'N/A'})` : 
+  userData.managementExperience?.hasExperience === false ? '✅ Management Experience: No' : ''}
+${userData.mentoringExperience ? '✅ Mentoring / Coaching Experience: Yes' : ''}
+${userData.recruitingExperience ? '✅ Recruiting Experience: Yes' : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌍 DETAILED LOCATION PREFERENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.geographicFlexibility ? 
+  `✅ Geographic Flexibility: ${userData.geographicFlexibility === 'very-flexible' ? 'Very Flexible' :
+    userData.geographicFlexibility === 'flexible' ? 'Flexible' :
+    userData.geographicFlexibility === 'moderate' ? 'Moderate' :
+    userData.geographicFlexibility === 'strict' ? 'Strict' : userData.geographicFlexibility}` : 
+  ''}
+${userData.preferredCities && userData.preferredCities.length > 0 ? 
+  `✅ Preferred Cities/Regions (${userData.preferredCities.length}): ${userData.preferredCities.join(', ')}` : 
+  ''}
+${userData.preferredCountries && userData.preferredCountries.length > 0 ? 
+  `✅ Preferred Countries (${userData.preferredCountries.length}): ${userData.preferredCountries.join(', ')}` : 
+  ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 🌍 MOBILITY & WORK PREFERENCES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${userData.willingToRelocate !== undefined ? 
@@ -213,9 +516,18 @@ ${userData.workLifeBalance !== undefined ?
 ${userData.companyCulture ? 
   `✅ Preferred Company Culture: ${userData.companyCulture}` : 
   '❌ Company Culture Preference: Not specified'}
-${userData.preferredCompanySize ? 
-  `✅ Preferred Company Size: ${userData.preferredCompanySize}` : 
-  '❌ Company Size Preference: Not specified'}
+${userData.preferredEnvironment && userData.preferredEnvironment.length > 0 ? 
+  `✅ Preferred Company Environment: ${userData.preferredEnvironment.map((env: string) => {
+    const labels: Record<string, string> = {
+      'startup': 'Startup (1-50)',
+      'scale-up': 'Scale-up (51-200)',
+      'mid-size': 'Mid-size (201-1000)',
+      'enterprise': 'Enterprise (1000+)',
+      'all': 'All Sizes'
+    };
+    return labels[env] || env;
+  }).join(', ')}` : 
+  ''}
 ${userData.sectorsToAvoid && userData.sectorsToAvoid.length > 0 ? 
   `✅ Sectors to Avoid: ${userData.sectorsToAvoid.join(', ')}` : 
   ''}
@@ -399,6 +711,14 @@ ${jobMarket}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Analyze the user's complete profile with EXTREME attention to detail. Based on their:
+- **Job Search Context**: Current situation, urgency level, search reason, and intensity (CRITICAL for timing and strategy)
+- **Education & Languages**: Education level, field of study, and language proficiency (affects international opportunities and job requirements)
+- **Professional History**: Detailed work experience with companies, industries, responsibilities, and achievements (CRITICAL for understanding career trajectory and patterns)
+- **Career Drivers**: Priorities, motivations, deal-breakers, and nice-to-haves (CRITICAL for culture and company matching)
+- **Role Preferences**: Preferred role type (IC vs Manager), company environment (Startup vs Big Corp), product type, and functional domain (CRITICAL for role matching)
+- **Salary Flexibility**: Willingness to negotiate, compensation priorities, and trade-offs (affects matching with startups/scale-ups offering equity)
+- **Soft Skills & Leadership**: Leadership experience, management experience, mentoring, and recruiting (important for senior roles and culture fit)
+- **Detailed Location**: Specific cities, countries, and geographic flexibility (enables precise location-based recommendations)
 - Skills, experience level, and expertise (from CV and profile)
 - Career objectives and target position
 - Location preferences and mobility constraints

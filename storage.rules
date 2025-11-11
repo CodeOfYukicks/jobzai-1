@@ -1,0 +1,61 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isValidContentType(contentType) {
+      return contentType.matches('application/pdf') 
+          || contentType.matches('application/msword')
+          || contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+          || contentType.matches('image/.*');
+    }
+
+    // Public images folder - allow read for all, write for authenticated users
+    match /images/{allImages=**} {
+      allow read: if true;
+      allow write: if isSignedIn()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    
+    // User CVs - private to each user
+    match /cvs/{userId}/{fileName} {
+      allow read: if isSignedIn() && isOwner(userId);
+      allow write: if isSignedIn() && isOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024
+        && isValidContentType(request.resource.contentType);
+    }
+    
+    // Profile photos - private to each user
+    match /profile-photos/{userId}/{fileName} {
+      allow read: if isSignedIn() && isOwner(userId);
+      allow write: if isSignedIn() && isOwner(userId)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Cover photos - private to each user
+    match /cover-photos/{userId}/{fileName} {
+      allow read: if isSignedIn() && isOwner(userId);
+      allow write: if isSignedIn() && isOwner(userId)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Profile photos (alternative path - in case files were uploaded to profilePhotos)
+    match /profilePhotos/{userId}/{fileName} {
+      allow read: if isSignedIn() && isOwner(userId);
+      allow write: if isSignedIn() && isOwner(userId)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
+

@@ -139,6 +139,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
   const [isLoadingInterviews, setIsLoadingInterviews] = useState(true);
+  const [profilePhoto, setProfilePhoto] = useState<string>('');
 
   useEffect(() => {
     if (currentUser) {
@@ -149,6 +150,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             const userData = doc.data();
             setCredits(userData.credits || 0);
             setProfileCompletion(calculateProfileCompletion(userData));
+            setProfilePhoto(userData.profilePhoto || '');
           }
         }
       );
@@ -546,10 +548,18 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 
-                        flex items-center justify-center shadow-lg shadow-purple-600/20">
-                        <span className="text-white text-sm font-medium">
-                          {userInitial}
-                        </span>
+                        flex items-center justify-center shadow-lg shadow-purple-600/20 overflow-hidden">
+                        {profilePhoto ? (
+                          <img 
+                            src={profilePhoto} 
+                            alt={userFirstName}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white text-sm font-medium">
+                            {userInitial}
+                          </span>
+                        )}
                       </div>
                       <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-400 
                         border-2 border-white dark:border-gray-800" />
@@ -636,8 +646,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <div className="py-6 pb-20 md:pb-6">
             <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
               {/* Wrapper pour le contenu principal avec fond blanc */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border 
-                border-gray-200/50 dark:border-gray-700/30">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
                 {children}
               </div>
             </div>

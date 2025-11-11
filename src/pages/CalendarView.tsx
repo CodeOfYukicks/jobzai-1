@@ -24,10 +24,14 @@ import {
   Info,
   FileText,
   Plus,
-  GripVertical
+  GripVertical,
+  Sparkles,
+  Loader2,
+  Link
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { queryPerplexityForJobExtraction } from '../lib/perplexity';
 
 // Import types from JobApplicationsPage
 interface Interview {
@@ -240,7 +244,7 @@ interface AddEventModalProps {
 }
 
 const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps) => {
-  const [eventType, setEventType] = useState<'application' | 'interview'>('application');
+  const [eventType, setEventType] = useState<'application' | 'interview' | null>(null);
   const [formData, setFormData] = useState({
     companyName: '',
     position: '',
@@ -253,13 +257,300 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
     contactEmail: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzingJob, setIsAnalyzingJob] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setEventType(null);
+    setFormData({
+      companyName: '',
+      position: '',
+      location: '',
+      notes: '',
+      url: '',
+      interviewType: 'technical',
+      interviewTime: moment(selectedDate).format('HH:mm'),
+      contactName: '',
+      contactEmail: '',
+    });
+  };
+
+  // Fonction pour extraire les informations depuis l'URL avec AI
+  const handleExtractJobInfo = async () => {
+    if (!formData.url || !formData.url.trim()) {
+      toast.error('Please enter a job URL first');
+      return;
+    }
+
+    setIsAnalyzingJob(true);
+    toast.info('Analyzing job posting...', { duration: 2000 });
+
+    try {
+      const jobUrl = formData.url.trim();
+      const prompt = `
+You are a precise job posting information extractor. Your task is to visit this URL and extract EXACT information from the job posting page.
+
+URL TO VISIT: ${jobUrl}
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACTLY:
+1. You MUST visit the URL using web browsing/search capabilities
+2. Read the ENTIRE page content carefully - do NOT skim or rush
+3. Understand the STRUCTURE and CONTEXT of the page - analyze how information is organized
+4. Read the ACTUAL HTML content of the page - do NOT use training data or assumptions
+5. Extract ONLY information that is VISIBLY DISPLAYED on the page
+6. Do NOT guess, infer, or use information from similar job postings
+7. Do NOT use information from the URL or domain name to infer details
+8. For location specifically: 
+   - Read the ENTIRE page to understand the context
+   - Identify ALL location mentions on the page
+   - Analyze the CONTEXT around each location to determine which applies to THIS specific job posting
+   - The page may mention multiple locations (headquarters, other offices, general info) - you MUST identify which one is for THIS job
+
+EXTRACTION REQUIREMENTS FOR EACH FIELD:
+
+1. "companyName":
+   - Find the EXACT company name as displayed on the page
+   - Look in: page header, job title area, company information section, "About" section, footer
+   - Copy it EXACTLY as shown (case-sensitive, with exact spelling and punctuation)
+   - Examples: "Boston Consulting Group", "Google LLC", "Microsoft Corporation"
+   - Do NOT abbreviate or modify the company name
+
+2. "position":
+   - Find the EXACT job title/position as displayed on the page
+   - Look for: <h1>, <h2>, title tags, main job title element, job header section
+   - Copy it EXACTLY as shown (case-sensitive, with exact spelling, punctuation, and formatting)
+   - Examples: "Manager, Platinion", "Senior Software Engineer", "Product Manager - EMEA"
+   - Do NOT modify, abbreviate, or generalize the job title
+   - This is CRITICAL - the exact title is essential
+
+3. "location" - THIS IS THE MOST CRITICAL FIELD - CONTEXTUAL ANALYSIS REQUIRED:
+   - STOP: Before extracting location, you MUST read the ENTIRE page content carefully and understand the CONTEXT
+   - CRITICAL: The page may mention MULTIPLE locations (headquarters, other offices, general company info)
+   - You MUST identify which location applies to THIS SPECIFIC job posting by analyzing the CONTEXT
+   
+   CONTEXTUAL ANALYSIS PROCESS:
+   1. Read the ENTIRE page to understand the structure and context
+   2. Identify ALL location mentions on the page
+   3. For EACH location mention, analyze the CONTEXT around it:
+      - Is it in the job details section near the job title? → Likely the job location
+      - Is it in a "Location:" field in the job posting section? → Likely the job location
+      - Is it in the header/footer mentioning company headquarters? → NOT the job location
+      - Is it in a general "About Us" or "Our Offices" section? → NOT the job location
+      - Is it mentioned with phrases like "This role is based in...", "Location for this position:", "Work location:", "This position is located in..."? → Likely the job location
+      - Is it near the job title, job description, or application section? → Likely the job location
+   
+   SEARCH STRATEGY - Look for location in THIS ORDER OF PRIORITY:
+   1. Job-specific location indicators (HIGHEST PRIORITY):
+      * Location field/icon in the job details section (near job title)
+      * "Location:" or "Work Location:" in the job posting section
+      * "This role is based in..." or "This position is located in..."
+      * "Where you'll work:" section within the job posting
+      * Location mentioned in the job description or requirements section
+      * Location in the application information section
+   
+   2. Contextual phrases that indicate job location:
+      * "Based in [location]" near the job title or description
+      * "Location: [location]" in the job details
+      * "Work Location: [location]" in the job posting
+      * "Office Location: [location]" for this specific position
+      * "This position is in [location]"
+      * "The role is located in [location]"
+      * Any location mention that is clearly associated with THIS job posting
+   
+   3. AVOID these locations (they are NOT the job location):
+      * Company headquarters mentioned in header/footer
+      * General "Our Offices" section listing all offices
+      * Location in "About Us" or company information sections
+      * Location mentioned in unrelated job postings on the same page
+      * Location in general company information
+   
+   CRITICAL CONTEXTUAL VERIFICATION:
+   - If you see "New York" in the header/footer but "Paris" near the job title → Use "Paris"
+   - If you see multiple locations, identify which one is associated with THIS job posting
+   - Analyze the proximity: location near job title/description = job location
+   - Analyze the phrasing: "This role is based in Paris" = job location is Paris
+   - If location is mentioned with the job title or in job details section → That's the job location
+   - If location is in general company info → NOT the job location
+   
+   EXTRACTION RULES:
+   - Find the location that is CONTEXTUALLY associated with THIS specific job posting
+   - Read it word-for-word EXACTLY as displayed
+   - Copy it character-by-character - do NOT modify, translate, or interpret
+   - If the context clearly indicates "Paris, France" for this job → return "Paris, France"
+   - If the context clearly indicates "New York, NY, US" for this job → return "New York, NY, US"
+   - DO NOT use a location just because it appears on the page - it must be CONTEXTUALLY linked to THIS job
+   - If multiple locations are listed for this job, use the PRIMARY or FIRST one mentioned
+   - CRITICAL: The location MUST be the one that applies to THIS specific job posting based on context
+   - CRITICAL: If you cannot determine the job location from context, return an empty string "" - do NOT guess
+
+4. "summary":
+   - Extract a comprehensive, useful summary of the job posting
+   - Include: key responsibilities, required qualifications, main requirements, and what makes this role unique
+   - Format: 3-5 sentences that provide valuable context about the role
+   - Focus on: what the role entails, key responsibilities, required experience/skills, and any notable aspects
+   - Make it informative and useful for someone tracking this application
+   - Do NOT just copy the first paragraph - synthesize the most important information
+   - Length: approximately 150-300 words
+
+Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, no additional text):
+{
+  "companyName": "exact company name from page",
+  "position": "exact job title from page",
+  "location": "exact location for this specific job posting from page",
+  "summary": "comprehensive 3-5 sentence summary of the role, responsibilities, and key requirements"
+}
+
+URL to visit: ${jobUrl}
+`;
+
+      const response = await queryPerplexityForJobExtraction(prompt);
+      
+      if (response.error) {
+        throw new Error(response.errorMessage || 'Failed to analyze job posting');
+      }
+
+      let jsonString = response.text || '';
+      jsonString = jsonString.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+      const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonString = jsonMatch[0];
+      }
+      
+      const tryParseJSON = (str: string) => {
+        try {
+          return JSON.parse(str);
+        } catch (e) {
+          let repaired = str
+            .replace(/,\s*\]/g, ']')
+            .replace(/,\s*\}/g, '}')
+            .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
+            .replace(/:\s*'([^']*)'/g, ': "$1"')
+            .replace(/:\s*([^",{\[\]}\s]+)(\s*[,}\]])/g, ': "$1"$2')
+            .replace(/"([^"]*)"\s*:\s*"([^"]*)\n([^"]*)"/g, '"$1": "$2\\n$3"')
+            .replace(/"([^"]*)"\s*:\s*"([^"]*)"([^"]*)"/g, (match, key, val1, val2) => {
+              return `"${key}": "${val1}\\"${val2}"`;
+            });
+          
+          try {
+            return JSON.parse(repaired);
+          } catch (e2) {
+            return null;
+          }
+        }
+      };
+      
+      let extractedData = tryParseJSON(jsonString);
+      
+      if (!extractedData) {
+        const text = response.text || '';
+        const companyPatterns = [
+          /"companyName"\s*:\s*"([^"]+)"/i,
+          /companyName["\s]*:["\s]*([^",\n}]+)/i,
+        ];
+        let companyName = '';
+        for (const pattern of companyPatterns) {
+          const match = text.match(pattern);
+          if (match && match[1]) {
+            companyName = match[1].trim();
+            break;
+          }
+        }
+        
+        const positionPatterns = [
+          /"position"\s*:\s*"([^"]+)"/i,
+          /position["\s]*:["\s]*"([^"]+)"/i,
+        ];
+        let position = '';
+        for (const pattern of positionPatterns) {
+          const match = text.match(pattern);
+          if (match && match[1]) {
+            position = match[1].trim().replace(/^["']+|["']+$/g, '');
+            if (position.length > 5) break;
+          }
+        }
+        
+        const locationPatterns = [
+          /"location"\s*:\s*"([^"]+)"/i,
+          /location["\s]*:["\s]*"([^"]+)"/i,
+        ];
+        let location = '';
+        for (const pattern of locationPatterns) {
+          const match = text.match(pattern);
+          if (match && match[1]) {
+            location = match[1].trim().replace(/^["']+|["']+$/g, '');
+            if (location.length > 3) break;
+          }
+        }
+        
+        extractedData = {
+          companyName: companyName.trim(),
+          position: position.trim(),
+          location: location.trim(),
+          summary: ''
+        };
+      }
+
+      if (!extractedData.position || extractedData.position.length < 3) {
+        throw new Error('Could not extract valid job position from the posting');
+      }
+      
+      if (!extractedData.companyName || extractedData.companyName.length < 2) {
+        throw new Error('Could not extract valid company name from the posting');
+      }
+
+      const cleanedData = {
+        companyName: extractedData.companyName.trim(),
+        position: extractedData.position.trim(),
+        location: extractedData.location?.trim() || '',
+        summary: extractedData.summary?.trim() || ''
+      };
+
+      let formattedNotes = cleanedData.summary;
+      if (formattedNotes) {
+        formattedNotes = formattedNotes
+          .replace(/\\n/g, '\n')
+          .replace(/\\"/g, '"')
+          .replace(/\\'/g, "'")
+          .trim();
+        
+        if (formattedNotes.length < 50) {
+          formattedNotes = `Job Summary:\n${formattedNotes}`;
+        }
+        
+        if (formData.notes && formData.notes.trim()) {
+          formattedNotes = `${formData.notes}\n\n---\n\n${formattedNotes}`;
+        }
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        companyName: cleanedData.companyName || prev.companyName,
+        position: cleanedData.position || prev.position,
+        location: cleanedData.location || prev.location,
+        notes: formattedNotes || prev.notes || ''
+      }));
+
+      toast.success('Job information extracted successfully!');
+    } catch (error) {
+      console.error('Error extracting job info:', error);
+      toast.error(`Failed to extract job information: ${error instanceof Error ? error.message : 'Unknown error'}. Please fill in the fields manually.`);
+    } finally {
+      setIsAnalyzingJob(false);
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
     e.preventDefault();
+    }
+    
+    if (!eventType) {
+      toast.error('Please select an event type first');
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      // Préparer les données selon le type d'événement
       const eventData = {
         ...formData,
         date: moment(selectedDate).format('YYYY-MM-DD'),
@@ -267,6 +558,7 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
       };
       
       await onAddEvent(eventData);
+      resetForm();
       onClose();
     } catch (error) {
       console.error('Error adding event:', error);
@@ -281,94 +573,266 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={onClose}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={() => {
+        resetForm();
+        onClose();
+      }}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
     >
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, scale: 0.95, y: "100%" }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        exit={{ opacity: 0, scale: 0.95, y: "100%" }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700"
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="bg-white dark:bg-gray-800 w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700"
       >
+        {/* Drag handle for mobile */}
+        <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
+          <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+        </div>
+        
+        {/* Header */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
           <div>
-            <h3 className="font-semibold text-xl text-gray-900 dark:text-gray-100">
-            Add {eventType === 'application' ? 'Job Application' : 'Interview'}
-          </h3>
+            <h2 className="font-semibold text-xl text-gray-900 dark:text-gray-100">
+              {eventType ? `Add ${eventType === 'application' ? 'Job Application' : 'Interview'}` : 'Add Event'}
+            </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {moment(selectedDate).format('dddd, MMMM D, YYYY')}
             </p>
           </div>
-          <button 
-            onClick={onClose}
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setEventType(null);
+              setFormData({
+                companyName: '',
+                position: '',
+                location: '',
+                notes: '',
+                url: '',
+                interviewType: 'technical',
+                interviewTime: moment(selectedDate).format('HH:mm'),
+                contactName: '',
+                contactEmail: '',
+              });
+              onClose();
+            }}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
+            aria-label="Close modal"
           >
             <X className="w-5 h-5" />
-          </button>
+          </motion.button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Sélection du type d'événement */}
-          <div className="flex gap-2 bg-gray-50 dark:bg-gray-800/50 p-1 rounded-xl">
-            <button
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Sélection du type d'événement - Cartes visuelles */}
+          {!eventType && (
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">
+                What would you like to add?
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <motion.button
               type="button"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
               onClick={() => setEventType('application')}
-              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                eventType === 'application' 
-                ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-400 shadow-sm' 
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <Briefcase className="w-4 h-4 inline mr-2" />
-              Application
-            </button>
-            <button
+                  className="group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-purple-500 dark:hover:border-purple-500 transition-all text-left"
+                >
+                  <div className="flex flex-col items-start gap-3">
+                    <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                      <Briefcase className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
+                        Job Application
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Track a new job application you've submitted
+                      </p>
+                    </div>
+                  </div>
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                  </div>
+                </motion.button>
+                
+                <motion.button
               type="button"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
               onClick={() => setEventType('interview')}
-              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                eventType === 'interview' 
-                ? 'bg-white dark:bg-gray-700 text-purple-700 dark:text-purple-400 shadow-sm' 
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <CalIcon className="w-4 h-4 inline mr-2" />
+                  className="group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all text-left"
+                >
+                  <div className="flex flex-col items-start gap-3">
+                    <div className="p-3 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
+                      <CalIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
               Interview
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Schedule or log an interview for a position
+                      </p>
+                    </div>
+                  </div>
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                  </div>
+                </motion.button>
+              </div>
+            </div>
+          )}
+
+          {/* Bouton pour changer de type si déjà sélectionné */}
+          {eventType && (
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+              <div className="flex items-center gap-3">
+                {eventType === 'application' ? (
+                  <>
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                      <Briefcase className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm text-gray-900 dark:text-white">Adding Job Application</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Track a new application</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                      <CalIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm text-gray-900 dark:text-white">Adding Interview</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Schedule or log an interview</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setEventType(eventType === 'application' ? 'interview' : 'application')}
+                className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium transition-colors"
+              >
+                Switch
             </button>
           </div>
+          )}
           
-          {/* Champs communs */}
-          <div className="space-y-4">
+            {/* Formulaire - affiché seulement si un type est sélectionné */}
+            {eventType && (
+              <>
+            {/* Job URL - Featured First with AI Emphasis (only for applications) */}
+            {eventType === 'application' && (
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <Link className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  Job Posting URL
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500">
+                    <div className="relative flex rounded-xl bg-white dark:bg-gray-800/95 overflow-hidden">
+                      <input
+                        type="url"
+                        value={formData.url || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                        className="flex-1 px-4 py-3.5 rounded-l-xl bg-transparent border-0 focus:ring-0 focus:outline-none text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
+                        placeholder="https://linkedin.com/jobs/view/..."
+                        autoFocus
+                      />
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleExtractJobInfo}
+                        disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-r-xl bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        title="Extract job information with AI"
+                      >
+                        {isAnalyzingJob ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                            <span className="text-sm font-medium whitespace-nowrap">Extracting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-medium whitespace-nowrap">Extract</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>Paste the job posting URL and our AI will extract all information automatically</span>
+                </div>
+              </div>
+            )}
+
+            {/* Divider with subtle animation */}
+            {(formData.companyName || formData.position || formData.location) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="pt-2 border-t border-gray-200 dark:border-gray-700"
+              >
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-green-500" />
+                  <span>AI extracted information below</span>
+                </p>
+              </motion.div>
+            )}
+            
+            {/* Company Name */}
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Company Name *</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Company Name *
+              </label>
               <input
                 type="text"
                 required
                 value={formData.companyName}
-                onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
                 className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Enter company name"
               />
             </div>
             
+            {/* Position */}
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Position *</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Position *
+              </label>
               <input
                 type="text"
                 required
                 value={formData.position}
-                onChange={(e) => setFormData({...formData, position: e.target.value})}
+                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
                 className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Enter position"
               />
             </div>
             
+            {/* Location */}
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Location</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Location {eventType === 'application' ? '*' : ''}
+              </label>
               <input
                 type="text"
+                required={eventType === 'application'}
                 value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                 className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Enter location"
               />
@@ -381,7 +845,7 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
                   <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Interview Type</label>
                   <select
                     value={formData.interviewType}
-                    onChange={(e) => setFormData({...formData, interviewType: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({ ...prev, interviewType: e.target.value }))}
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   >
                     <option value="technical">Technical</option>
@@ -397,7 +861,7 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
                   <input
                     type="time"
                     value={formData.interviewTime}
-                    onChange={(e) => setFormData({...formData, interviewTime: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({ ...prev, interviewTime: e.target.value }))}
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   />
                 </div>
@@ -407,7 +871,7 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
                   <input
                     type="text"
                     value={formData.contactName}
-                    onChange={(e) => setFormData({...formData, contactName: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     placeholder="Enter contact name"
                   />
@@ -418,7 +882,7 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
                   <input
                     type="email"
                     value={formData.contactEmail}
-                    onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     placeholder="Enter contact email"
                   />
@@ -426,48 +890,43 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
               </>
             )}
             
-            {/* URL pour les candidatures */}
-            {eventType === 'application' && (
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Job URL</label>
-                <input
-                  type="url"
-                  value={formData.url}
-                  onChange={(e) => setFormData({...formData, url: e.target.value})}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  placeholder="https://..."
-                />
-              </div>
-            )}
-            
-            {/* Notes pour les deux types */}
+            {/* Notes */}
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Notes</label>
               <textarea
                 value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
                 placeholder="Add any relevant notes..."
+                rows={3}
               />
             </div>
+            </>
+            )}
+          </form>
           </div>
           
-          <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
+        {/* Footer with action buttons */}
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                resetForm();
+                onClose();
+              }}
               className="px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium active:scale-95"
             >
               Cancel
             </button>
             <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-70 font-medium active:scale-95 flex items-center gap-2 shadow-sm"
+            type="button"
+            onClick={handleSubmit}
+              disabled={isSubmitting || !eventType}
+            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed font-medium active:scale-95 flex items-center gap-2 shadow-sm"
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                <Loader2 className="w-4 h-4 animate-spin" />
                   Adding...
                 </>
               ) : (
@@ -478,7 +937,6 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
               )}
             </button>
           </div>
-        </form>
       </motion.div>
     </motion.div>
   );

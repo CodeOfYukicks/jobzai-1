@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Briefcase, Plus, X } from 'lucide-react';
+import { Briefcase, Plus, X, RotateCcw, Calculator } from 'lucide-react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,14 +9,54 @@ interface SectionProps {
   onUpdate: (data: any) => void;
 }
 
+// Fonction pour calculer les années d'expérience depuis professionalHistory
+const calculateYearsOfExperience = (history: Array<{
+  startDate: string;
+  endDate: string;
+  current: boolean;
+}>): number => {
+  if (!history || history.length === 0) return 0;
+  
+  let totalMonths = 0;
+  const now = new Date();
+  
+  history.forEach(exp => {
+    if (!exp.startDate) return;
+    
+    // Parse date in YYYY-MM format
+    const startParts = exp.startDate.split('-');
+    if (startParts.length !== 2) return;
+    
+    const start = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, 1);
+    let end: Date;
+    
+    if (exp.current || !exp.endDate) {
+      end = now;
+    } else {
+      const endParts = exp.endDate.split('-');
+      if (endParts.length !== 2) return;
+      end = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, 1);
+    }
+    
+    if (end >= start) {
+      const months = (end.getFullYear() - start.getFullYear()) * 12 + 
+                    (end.getMonth() - start.getMonth());
+      totalMonths += Math.max(0, months);
+    }
+  });
+  
+  return Math.round(totalMonths / 12);
+};
+
 const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [calculatedYears, setCalculatedYears] = useState<number | null>(null);
+  const [isManuallyEdited, setIsManuallyEdited] = useState(false);
   
   const [formData, setFormData] = useState({
     yearsOfExperience: '',
-    currentPosition: '',
     skills: [] as string[],
     tools: [] as string[],
     certifications: [] as Array<{
@@ -34,14 +74,26 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          
+          // Calculer les années depuis professionalHistory
+          const professionalHistory = userData.professionalHistory || [];
+          const calculated = calculateYearsOfExperience(professionalHistory);
+          setCalculatedYears(calculated);
+          
+          // Utiliser la valeur calculée si aucune valeur manuelle n'existe
+          const yearsValue = userData.yearsOfExperience || (calculated > 0 ? calculated.toString() : '');
+          const wasManuallyEdited = userData.yearsOfExperience && 
+            userData.yearsOfExperience !== calculated.toString();
+          
           const newFormData = {
-            yearsOfExperience: userData.yearsOfExperience || '',
-            currentPosition: userData.currentPosition || '',
+            yearsOfExperience: yearsValue,
             skills: userData.skills || [],
             tools: userData.tools || [],
             certifications: userData.certifications || []
           };
+          
           setFormData(newFormData);
+          setIsManuallyEdited(wasManuallyEdited);
           onUpdate(newFormData);
         }
       } catch (error) {
@@ -54,6 +106,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
 
     loadData();
   }, [currentUser]);
+  
 
   const handleChange = (field: string, value: any) => {
     const newFormData = {
@@ -61,7 +114,26 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
       [field]: value
     };
     setFormData(newFormData);
+    
+    // Marquer comme modifié manuellement si c'est yearsOfExperience
+    if (field === 'yearsOfExperience') {
+      setIsManuallyEdited(value !== calculatedYears?.toString() && value !== '');
+    }
+    
     onUpdate(newFormData);
+  };
+  
+  const handleResetToCalculated = () => {
+    if (calculatedYears !== null) {
+      const newFormData = {
+        ...formData,
+        yearsOfExperience: calculatedYears.toString()
+      };
+      setFormData(newFormData);
+      setIsManuallyEdited(false);
+      onUpdate(newFormData);
+      toast.success('Reset to calculated value');
+    }
   };
 
   const [newSkill, setNewSkill] = useState('');
@@ -83,38 +155,66 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
 
   return (
     <section id="experience" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-      <div className="flex items-center gap-3 mb-6">
-        <Briefcase className="w-6 h-6 text-purple-600" />
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Experience & Expertise</h2>
-      </div>
-
       <div className="space-y-6">
-        {/* Basic Information */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+        {/* Years of Experience - Hybrid: Auto-calculated + Manual override */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
               Years of Experience
             </label>
+            {isManuallyEdited && calculatedYears !== null && (
+              <button
+                onClick={handleResetToCalculated}
+                className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
+                title="Reset to calculated value"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Use calculated ({calculatedYears} years)
+              </button>
+            )}
+          </div>
+          
+          <div className="relative">
             <input
               type="number"
+              min="0"
+              max="100"
               value={formData.yearsOfExperience}
               onChange={(e) => handleChange('yearsOfExperience', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              placeholder="e.g., 5"
+              className={`w-full px-4 py-2 rounded-lg border ${
+                isManuallyEdited && calculatedYears !== null && formData.yearsOfExperience !== calculatedYears.toString()
+                  ? 'border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
+              } text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent`}
+              placeholder={calculatedYears !== null ? `Calculated: ${calculatedYears} years` : 'Enter years of experience'}
             />
+            {calculatedYears !== null && !isManuallyEdited && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <Calculator className="w-4 h-4" />
+                <span>Auto</span>
+              </div>
+            )}
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Current Position
-            </label>
-            <input
-              type="text"
-              value={formData.currentPosition}
-              onChange={(e) => handleChange('currentPosition', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              placeholder="e.g., Senior Developer"
-            />
+          
+          <div className="mt-1.5 flex items-start gap-1.5">
+            {calculatedYears !== null && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 flex-1">
+                {isManuallyEdited ? (
+                  <span>
+                    Calculated from your professional history: <span className="font-medium">{calculatedYears} years</span>
+                  </span>
+                ) : (
+                  <span>
+                    Automatically calculated from your professional history. You can edit this value manually if needed.
+                  </span>
+                )}
+              </p>
+            )}
+            {calculatedYears === null && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Enter your years of experience. This will be calculated automatically once you add work experiences.
+              </p>
+            )}
           </div>
         </div>
 

@@ -38,13 +38,84 @@ export interface CompleteUserData {
     max: string;
     currency: string;
   };
+  // Legacy field - kept for backward compatibility
+  salaryRange?: {
+    min: string;
+    max: string;
+    currency: string;
+  };
   availabilityDate?: string;
   workLifeBalance?: number;
   companyCulture?: string;
+  // Legacy field - removed in Phase 1, kept for backward compatibility
   preferredCompanySize?: string;
   sectorsToAvoid?: string[];
   desiredCulture?: string[];
   jobPreferences?: string;
+  
+  // Job Search Context (Phase 1)
+  currentSituation?: string;
+  searchUrgency?: string;
+  searchReason?: string;
+  searchIntensity?: string;
+  
+  // Education & Languages (Phase 1)
+  educationLevel?: string;
+  educationField?: string;
+  educationInstitution?: string;
+  graduationYear?: string;
+  educationMajor?: string;
+  languages?: Array<{ language: string; level: string }>;
+  
+  // Professional History (Phase 2)
+  professionalHistory?: Array<{
+    title: string;
+    company: string;
+    startDate: string;
+    endDate: string;
+    current: boolean;
+    industry: string;
+    contractType: string;
+    location: string;
+    responsibilities: string[];
+    achievements: string[];
+  }>;
+  
+  // Career Drivers (Phase 2)
+  careerPriorities?: string[];
+  primaryMotivator?: string;
+  dealBreakers?: string[];
+  niceToHaves?: string[];
+  
+  // Role Preferences (Phase 2)
+  roleType?: string;
+  preferredEnvironment?: string[];
+  productType?: string[];
+  functionalDomain?: string[];
+  
+  // Salary Flexibility (Phase 3)
+  salaryFlexibility?: string;
+  compensationPriorities?: string[];
+  willingToTrade?: string[];
+  
+  // Soft Skills & Leadership (Phase 3)
+  softSkills?: string[];
+  managementExperience?: {
+    hasExperience: boolean;
+    teamSize: string;
+    teamType: string;
+  };
+  mentoringExperience?: boolean;
+  recruitingExperience?: boolean;
+  
+  // Detailed Location (Phase 3)
+  preferredCities?: string[];
+  preferredCountries?: string[];
+  geographicFlexibility?: string;
+  
+  // Location & Mobility (Phase 1 cleanup)
+  city?: string;
+  country?: string;
   
   // Données enrichies
   cvContent?: string | null;

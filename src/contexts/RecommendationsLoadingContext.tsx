@@ -50,7 +50,7 @@ export const RecommendationsLoadingProvider: React.FC<{ children: ReactNode }> =
       message,
       completedCount: 0,
       totalCount,
-      isMinimized: false,
+      isMinimized: true,
       showStartModal: true,
       completedRecommendations: [],
     });

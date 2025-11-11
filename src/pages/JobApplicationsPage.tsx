@@ -27,6 +27,8 @@ import {
   X,
   Sparkles,
   Loader2,
+  Link,
+  Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
@@ -1686,61 +1688,51 @@ END:VCALENDAR`;
                 <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
                   <form className="space-y-5">
                     {/* Job URL - Featured First with AI Emphasis */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          Job URL
-                        </label>
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">AI Powered</span>
-                        </motion.div>
-                      </div>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <Link className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        Job Posting URL
+                      </label>
                       <div className="relative group">
-                        <input
-                          type="url"
-                          value={formData.url || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                          className="w-full px-4 py-3.5 pr-[140px] sm:pr-[150px] border-2 border-gray-200 dark:border-gray-700 rounded-xl dark:bg-gray-800/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                          placeholder="Paste job posting URL here..."
-                          autoFocus
-                        />
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleExtractJobInfo}
-                          disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center gap-1.5 px-3.5 py-2 min-w-[100px] sm:min-w-[120px] rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-sm hover:shadow-md z-10"
-                          title="Extract job information with AI"
-                        >
-                          {isAnalyzingJob ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-                              <span className="text-xs font-medium whitespace-nowrap">Analyzing...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-4 h-4 flex-shrink-0" />
-                              <span className="text-xs font-medium whitespace-nowrap">Auto-fill</span>
-                            </>
-                          )}
-                        </motion.button>
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 transition-opacity"></div>
+                        <div className="relative rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500">
+                          <div className="relative flex rounded-xl bg-white dark:bg-gray-800/95 overflow-hidden">
+                            <input
+                              type="url"
+                              value={formData.url || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                              className="flex-1 px-4 py-3.5 rounded-l-xl bg-transparent border-0 focus:ring-0 focus:outline-none text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
+                              placeholder="https://linkedin.com/jobs/view/..."
+                              autoFocus
+                            />
+                            <motion.button
+                              type="button"
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={handleExtractJobInfo}
+                              disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
+                              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-r-xl bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                              title="Extract job information with AI"
+                            >
+                              {isAnalyzingJob ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                                  <span className="text-sm font-medium whitespace-nowrap">Extracting...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-4 h-4 flex-shrink-0" />
+                                  <span className="text-sm font-medium whitespace-nowrap">Extract</span>
+                                </>
+                              )}
+                            </motion.button>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                        {formData.url ? (
-                          <span className="flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                            <span>Click "Auto-fill" to automatically extract company, position, and location</span>
-                          </span>
-                        ) : (
-                          <span>Paste a job posting URL and let AI fill in all the details for you</span>
-                        )}
-                      </p>
+                      <div className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span>Paste the job posting URL and our AI will extract all information automatically</span>
+                      </div>
                     </div>
 
                     {/* Divider with subtle animation */}

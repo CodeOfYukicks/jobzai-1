@@ -822,100 +822,38 @@ END:VCALENDAR`;
             ))}
           </div>
         ) : getFilteredInterviews().length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="mx-auto w-28 h-28 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 
-              rounded-full flex items-center justify-center mb-8 shadow-md">
-              <Calendar className="w-12 h-12 text-indigo-500 dark:text-indigo-400" />
+          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Calendar className="w-10 h-10 text-purple-600 dark:text-purple-400" />
             </div>
-            <h2 className="text-2xl font-medium text-gray-900 dark:text-white mb-4">
-              No interviews found
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-10">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
               {filterType !== 'all' || filterPeriod !== 'all'
-                ? `No interviews match your current filters. Try adjusting your filters to see more results.` 
-                : "Track all your interviews in one place and get prepared with AI-powered interview tools."}
+                ? 'No interviews match your filters'
+                : 'No interviews yet'}
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+              {filterType !== 'all' || filterPeriod !== 'all'
+                ? 'Try adjusting your filters to see more results.'
+                : 'Track all your interviews in one place and get prepared with AI-powered interview tools.'}
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-5 max-w-md mx-auto">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-md mx-auto">
               <Link
                 to="/applications"
-                className="inline-flex items-center justify-center px-5 py-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 
-                  border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 hover:shadow-md dark:hover:bg-gray-700/70 transition-all"
+                className="inline-flex items-center justify-center px-5 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 
+                  border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
               >
-                <Briefcase className="w-5 h-5 mr-2 text-indigo-500" />
-                <span className="font-medium">Track Applications</span>
+                <Briefcase className="w-4 h-4 mr-2" />
+                <span className="text-sm font-medium">Track Applications</span>
               </Link>
               <Link
                 to="/calendar"
-                className="inline-flex items-center justify-center px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700
-                  text-white rounded-lg shadow-md hover:shadow-lg transition-all"
+                className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 
+                  text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/20"
               >
-                <Calendar className="w-5 h-5 mr-2" />
-                <span className="font-medium">Schedule Interview</span>
+                <Calendar className="w-4 h-4 mr-2" />
+                <span className="text-sm font-medium">Schedule Interview</span>
               </Link>
-            </div>
-            
-            {/* Features section with cards */}
-            <div className="mt-16 max-w-4xl mx-auto">
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">
-                Get Ready for Success with JobZAI
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="bg-gradient-to-b from-indigo-50 to-white dark:from-indigo-900/20 dark:to-gray-800/90 
-                    border border-indigo-100 dark:border-indigo-800/30 rounded-xl p-5 text-left shadow-sm group hover:shadow-md transition-all"
-                >
-                  <div className="bg-white/80 dark:bg-gray-800/80 w-12 h-12 rounded-lg flex items-center justify-center 
-                    text-indigo-500 mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-semibold text-indigo-900 dark:text-indigo-300 mb-2">
-                    Mock Interviews
-                  </h4>
-                  <p className="text-sm text-indigo-700 dark:text-indigo-400">
-                    Practice with AI-generated questions specific to your industry and role.
-                  </p>
-                </motion.div>
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="bg-gradient-to-b from-purple-50 to-white dark:from-purple-900/20 dark:to-gray-800/90 
-                    border border-purple-100 dark:border-purple-800/30 rounded-xl p-5 text-left shadow-sm group hover:shadow-md transition-all"
-                >
-                  <div className="bg-white/80 dark:bg-gray-800/80 w-12 h-12 rounded-lg flex items-center justify-center 
-                    text-purple-500 mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                    <MessageSquare className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-semibold text-purple-900 dark:text-purple-300 mb-2">
-                    Answer Coaching
-                  </h4>
-                  <p className="text-sm text-purple-700 dark:text-purple-400">
-                    Get personalized feedback on your interview answers to improve your responses.
-                  </p>
-                </motion.div>
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="bg-gradient-to-b from-amber-50 to-white dark:from-amber-900/20 dark:to-gray-800/90 
-                    border border-amber-100 dark:border-amber-800/30 rounded-xl p-5 text-left shadow-sm group hover:shadow-md transition-all"
-                >
-                  <div className="bg-white/80 dark:bg-gray-800/80 w-12 h-12 rounded-lg flex items-center justify-center 
-                    text-amber-500 mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                    <Building className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-semibold text-amber-900 dark:text-amber-300 mb-2">
-                    Company Research
-                  </h4>
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Analyze job listings to understand key requirements and prepare tailored responses.
-                  </p>
-                </motion.div>
-              </div>
             </div>
           </div>
         ) : (

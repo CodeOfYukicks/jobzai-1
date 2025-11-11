@@ -215,13 +215,26 @@ export default function RecommendationsPage() {
       { key: 'lastName', value: data.lastName },
       { key: 'email', value: data.email },
       { key: 'gender', value: (data as any).gender },
-      { key: 'location', value: data.location },
-      { key: 'contractType', value: data.contractType },
+      { key: 'city', value: (data as any).city },
+      { key: 'country', value: (data as any).country },
+      // Job Search Context (Phase 1)
+      { key: 'currentSituation', value: data.currentSituation },
+      { key: 'searchUrgency', value: data.searchUrgency },
+      // Education & Languages (Phase 1)
+      { key: 'educationLevel', value: data.educationLevel },
+      { key: 'languages', value: data.languages },
+      // Professional History (Phase 2)
+      { key: 'professionalHistory', value: data.professionalHistory },
+      // Career Drivers (Phase 2)
+      { key: 'careerPriorities', value: data.careerPriorities },
+      { key: 'primaryMotivator', value: data.primaryMotivator },
+      // Role Preferences (Phase 2)
+      { key: 'roleType', value: data.roleType },
+      { key: 'preferredEnvironment', value: data.preferredEnvironment },
       { key: 'willingToRelocate', value: data.willingToRelocate },
       { key: 'workPreference', value: data.workPreference },
       { key: 'travelPreference', value: data.travelPreference },
       { key: 'yearsOfExperience', value: data.yearsOfExperience },
-      { key: 'currentPosition', value: data.currentPosition || data.jobTitle },
       { key: 'skills', value: data.skills },
       { key: 'tools', value: data.tools },
       { key: 'cvUrl', value: data.cvUrl },
@@ -230,20 +243,23 @@ export default function RecommendationsPage() {
       { key: 'targetSectors', value: data.targetSectors },
       { key: 'salaryExpectations', value: data.salaryExpectations },
       { key: 'workLifeBalance', value: data.workLifeBalance },
-      { key: 'companyCulture', value: data.companyCulture },
-      { key: 'preferredCompanySize', value: data.preferredCompanySize }
+      { key: 'companyCulture', value: data.companyCulture }
     ];
 
     let completedFields = 0;
 
     requiredFields.forEach(({ key, value }) => {
       if (Array.isArray(value)) {
+        // For arrays (skills, tools, languages, targetSectors, etc.)
         if (value.length > 0) completedFields++;
       } else if (typeof value === 'object' && value !== null) {
+        // For objects (salaryExpectations, etc.)
         if (Object.values(value).some(v => v !== '' && v !== null && v !== undefined)) completedFields++;
       } else if (key === 'willingToRelocate') {
+        // willingToRelocate is a boolean
         if (value === true || value === false) completedFields++;
       } else if (value !== undefined && value !== null && value !== '') {
+        // For strings, numbers, etc.
         completedFields++;
       }
     });

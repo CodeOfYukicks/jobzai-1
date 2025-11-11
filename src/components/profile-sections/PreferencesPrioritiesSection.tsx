@@ -14,7 +14,6 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
     workLifeBalance: 0,
     companyCulture: '',
     careerGrowth: '',
-    preferredCompanySize: '',
     sectorsToAvoid: [] as string[],
     desiredCulture: [] as string[]
   });
@@ -31,7 +30,6 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
             workLifeBalance: userData.workLifeBalance || 0,
             companyCulture: userData.companyCulture || '',
             careerGrowth: userData.careerGrowth || '',
-            preferredCompanySize: userData.preferredCompanySize || '',
             sectorsToAvoid: userData.sectorsToAvoid || [],
             desiredCulture: userData.desiredCulture || []
           };
@@ -45,13 +43,6 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
 
     loadData();
   }, [currentUser]);
-
-  const companyScales = [
-    { id: 'startup', label: 'Startup (1-50)' },
-    { id: 'small', label: 'Small (51-200)' },
-    { id: 'medium', label: 'Medium (201-1000)' },
-    { id: 'large', label: 'Large (1000+)' },
-  ];
 
   const cultureValues = [
     'Innovation', 'Work-Life Balance', 'Diversity', 'Sustainability',
@@ -128,34 +119,13 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
           />
         </div>
 
-        {/* Company Size */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Preferred Company Size
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {companyScales.map((scale) => (
-              <button
-                key={scale.id}
-                onClick={() => handleChange('preferredCompanySize', scale.id)}
-                className={`
-                  p-3 rounded-lg border-2 transition-all duration-200
-                  ${formData.preferredCompanySize === scale.id
-                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                  }
-                `}
-              >
-                {scale.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Sectors to Avoid */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Sectors to Avoid
+            Sectors to Avoid (Industries you don't want to work in)
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+              (Different from Target Sectors - these are excluded)
+            </span>
           </label>
           <div className="flex flex-wrap gap-2">
             <input
