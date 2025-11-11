@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { collection, query, onSnapshot, doc, updateDoc, orderBy, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, orderBy, addDoc, deleteDoc, serverTimestamp, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Activity,
   Calendar,
+  Calendar as CalIcon,
   Check,
   Clock,
   Download,
@@ -29,12 +30,15 @@ import {
   Loader2,
   Link,
   Info,
+  Briefcase,
+  Building,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
+import DatePicker from '../components/ui/DatePicker';
 
 interface Interview {
   id: string;
@@ -80,13 +84,26 @@ export default function JobApplicationsPage() {
   const [editModal, setEditModal] = useState<{show: boolean; application?: JobApplication}>({ show: false });
   const [deleteModal, setDeleteModal] = useState<{show: boolean; application?: JobApplication}>({ show: false });
   const [newApplicationModal, setNewApplicationModal] = useState(false);
-  const [formData, setFormData] = useState<Partial<JobApplication>>({
+  const [eventType, setEventType] = useState<'application' | 'interview' | null>(null);
+  const [formData, setFormData] = useState<Partial<JobApplication> & {
+    interviewType?: 'technical' | 'hr' | 'manager' | 'final' | 'other';
+    interviewTime?: string;
+    interviewDate?: string;
+  }>({
     companyName: '',
     position: '',
     location: '',
     status: 'applied',
     appliedDate: new Date().toISOString().split('T')[0],
+    interviewType: 'technical',
+    interviewTime: '09:00',
+    interviewDate: new Date().toISOString().split('T')[0],
   });
+  const [lookupApplications, setLookupApplications] = useState<JobApplication[]>([]);
+  const [lookupSearchQuery, setLookupSearchQuery] = useState('');
+  const [lookupSelectedApplication, setLookupSelectedApplication] = useState<JobApplication | null>(null);
+  const [showLookupDropdown, setShowLookupDropdown] = useState(false);
+  const [linkedApplicationId, setLinkedApplicationId] = useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [timelineModal, setTimelineModal] = useState(false);
   const [view, setView] = useState<'kanban' | 'analytics'>('kanban');
@@ -118,6 +135,43 @@ export default function JobApplicationsPage() {
 
     return () => unsubscribe();
   }, [currentUser]);
+
+  // Charger les candidatures existantes quand on sélectionne "interview" dans le modal
+  useEffect(() => {
+    if (eventType === 'interview' && currentUser) {
+      const fetchApplications = async () => {
+        try {
+          const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+          const applicationsSnapshot = await getDocs(query(applicationsRef));
+          const apps: JobApplication[] = [];
+          applicationsSnapshot.forEach((doc) => {
+            apps.push({ id: doc.id, ...doc.data() } as JobApplication);
+          });
+          setLookupApplications(apps);
+        } catch (error) {
+          console.error('Error fetching applications:', error);
+        }
+      };
+      fetchApplications();
+    }
+  }, [eventType, currentUser]);
+
+  // Fermer le dropdown quand on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.application-search-container')) {
+        setShowLookupDropdown(false);
+      }
+    };
+
+    if (showLookupDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showLookupDropdown]);
 
   const fireConfetti = () => {
     // Création d'un effet de confettis festif
@@ -342,13 +396,16 @@ EXTRACTION REQUIREMENTS FOR EACH FIELD:
    - CRITICAL: If you cannot determine the job location from context, return an empty string "" - do NOT guess
 
 4. "summary":
-   - Extract a comprehensive, useful summary of the job posting
-   - Include: key responsibilities, required qualifications, main requirements, and what makes this role unique
-   - Format: 3-5 sentences that provide valuable context about the role
-   - Focus on: what the role entails, key responsibilities, required experience/skills, and any notable aspects
-   - Make it informative and useful for someone tracking this application
-   - Do NOT just copy the first paragraph - synthesize the most important information
-   - Length: approximately 150-300 words
+   - Extract a concise, structured summary with exactly 3 key points about the job posting
+   - Format: Use bullet points (•) separated by newlines, each point on a single line
+   - Each point should be brief (15-30 words max) and focus on the most important information
+   - Structure the 3 points as follows:
+     1. Key responsibilities/main duties (what the role does)
+     2. Required qualifications/experience (what they're looking for)
+     3. Notable aspects/benefits/unique selling points (what makes this role interesting)
+   - Make it scannable and useful for quick reference on an application card
+   - Do NOT write long paragraphs - keep it concise and actionable
+   - Total length: maximum 100 words across all 3 points
 
 VALIDATION CHECKLIST - Before returning, verify EACH point:
 ✓ The company name matches EXACTLY what's displayed on the page
@@ -378,7 +435,7 @@ Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, n
   "companyName": "exact company name from page",
   "position": "exact job title from page",
   "location": "exact location for this specific job posting from page",
-  "summary": "comprehensive 3-5 sentence summary of the role, responsibilities, and key requirements"
+  "summary": "• First key point about responsibilities (15-30 words)\n• Second key point about qualifications (15-30 words)\n• Third key point about notable aspects (15-30 words)"
 }
 
 URL to visit: ${jobUrl}
@@ -604,7 +661,7 @@ URL to visit: ${jobUrl}
         summary: extractedData.summary?.trim() || ''
       };
 
-      // Formater le summary pour les notes - améliorer la présentation
+      // Formater le summary pour les notes - format structuré avec 3 points
       let formattedNotes = cleanedData.summary;
       if (formattedNotes) {
         // S'assurer que le summary est bien formaté
@@ -615,9 +672,21 @@ URL to visit: ${jobUrl}
           .replace(/\\'/g, "'")
           .trim();
         
-        // Si le summary est trop court, ajouter un préfixe informatif
-        if (formattedNotes.length < 50) {
-          formattedNotes = `Job Summary:\n${formattedNotes}`;
+        // S'assurer que les puces sont bien formatées (• ou -)
+        // Si le format n'a pas de puces, les ajouter
+        if (!formattedNotes.includes('•') && !formattedNotes.includes('-')) {
+          // Diviser par lignes et ajouter des puces
+          const lines = formattedNotes.split('\n').filter(line => line.trim().length > 0);
+          if (lines.length > 0) {
+            formattedNotes = lines.map(line => {
+              const trimmed = line.trim();
+              // Si la ligne ne commence pas déjà par une puce, en ajouter une
+              if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
+                return `• ${trimmed}`;
+              }
+              return trimmed;
+            }).join('\n');
+          }
         }
         
         // Ajouter une séparation visuelle si des notes existent déjà
@@ -650,54 +719,193 @@ URL to visit: ${jobUrl}
       toast.error('You must be logged in');
       return;
     }
+
+    if (!eventType) {
+      toast.error('Please select an event type first');
+      return;
+    }
     
     try {
-      // Formatage des données avant envoi
-      const newApplication = {
-        companyName: formData.companyName,
-        position: formData.position,
-        location: formData.location,
-        status: formData.status || 'applied',
-        appliedDate: formData.appliedDate,
-        url: formData.url || '',
-        notes: formData.notes || '',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        // Ajout de valeurs par défaut pour les champs optionnels
-        contactName: formData.contactName || '',
-        contactEmail: formData.contactEmail || '',
-        contactPhone: formData.contactPhone || '',
-        salary: formData.salary || ''
-      };
+      if (eventType === 'application') {
+        // Formatage des données avant envoi
+        const newApplication = {
+          companyName: formData.companyName,
+          position: formData.position,
+          location: formData.location,
+          status: formData.status || 'applied',
+          appliedDate: formData.appliedDate,
+          url: formData.url || '',
+          notes: formData.notes || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          // Ajout de valeurs par défaut pour les champs optionnels
+          contactName: formData.contactName || '',
+          contactEmail: formData.contactEmail || '',
+          contactPhone: formData.contactPhone || '',
+          salary: formData.salary || ''
+        };
 
-      // Vérification des champs requis
-      if (!newApplication.companyName || !newApplication.position || !newApplication.location || !newApplication.appliedDate) {
-        toast.error('Please fill in all required fields');
-        return;
+        // Vérification des champs requis
+        if (!newApplication.companyName || !newApplication.position || !newApplication.location || !newApplication.appliedDate) {
+          toast.error('Please fill in all required fields');
+          return;
+        }
+
+        // Création du document dans Firestore
+        const docRef = await addDoc(
+          collection(db, 'users', currentUser.uid, 'jobApplications'), 
+          newApplication
+        );
+
+        // Si la création réussit, on ferme le modal et réinitialise le formulaire
+        setNewApplicationModal(false);
+        setEventType(null);
+        setLookupSelectedApplication(null);
+        setLinkedApplicationId(null);
+        setLookupSearchQuery('');
+        setShowLookupDropdown(false);
+        setFormData({
+          companyName: '',
+          position: '',
+          location: '',
+          status: 'applied',
+          appliedDate: new Date().toISOString().split('T')[0],
+          url: '',
+          notes: '',
+          interviewType: 'technical',
+          interviewTime: '09:00',
+          interviewDate: new Date().toISOString().split('T')[0],
+        });
+        
+        toast.success('Application created successfully');
+      } else {
+        // Pour un entretien, vérifier si une candidature existe déjà
+        let existingApplication: any = null;
+        let applicationId: string;
+        
+        // Si un ID de candidature est fourni (lié depuis le modal), l'utiliser directement
+        if (linkedApplicationId) {
+          applicationId = linkedApplicationId;
+          const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+          const applicationDoc = await getDoc(applicationRef);
+          if (applicationDoc.exists()) {
+            existingApplication = { id: applicationDoc.id, ...applicationDoc.data() };
+          }
+        } else {
+          // Sinon, chercher par nom d'entreprise et poste
+          const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+          const applicationsSnapshot = await getDocs(query(applicationsRef));
+          
+          applicationsSnapshot.forEach(doc => {
+            const app = doc.data() as any;
+            if (
+              app.companyName?.toLowerCase() === formData.companyName?.toLowerCase() &&
+              app.position?.toLowerCase() === formData.position?.toLowerCase()
+            ) {
+              existingApplication = { id: doc.id, ...app };
+            }
+          });
+          
+          if (existingApplication) {
+            applicationId = existingApplication.id;
+          } else {
+            // Créer une nouvelle candidature
+            const applicationData = {
+              companyName: formData.companyName,
+              position: formData.position,
+              location: formData.location || '',
+              status: 'interview',
+              appliedDate: formData.interviewDate || new Date().toISOString().split('T')[0],
+              notes: formData.notes || '',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              statusHistory: [{
+                status: 'applied',
+                date: formData.interviewDate || new Date().toISOString().split('T')[0],
+                notes: 'Application created from job applications page'
+              }, {
+                status: 'interview',
+                date: formData.interviewDate || new Date().toISOString().split('T')[0],
+                notes: 'Interview scheduled from job applications page'
+              }]
+            };
+            
+            const docRef = await addDoc(
+              collection(db, 'users', currentUser.uid, 'jobApplications'), 
+              applicationData
+            );
+            
+            applicationId = docRef.id;
+          }
+        }
+        
+        // Vérification des champs requis pour l'interview
+        if (!formData.companyName || !formData.position || !formData.interviewDate) {
+          toast.error('Please fill in all required fields');
+          return;
+        }
+        
+        // Ajouter l'entretien
+        const interviewData = {
+          id: crypto.randomUUID(),
+          date: formData.interviewDate,
+          time: formData.interviewTime || '09:00',
+          type: formData.interviewType || 'technical',
+          status: 'scheduled',
+          location: formData.location || '',
+          notes: formData.notes || '',
+          contactName: formData.contactName || '',
+          contactEmail: formData.contactEmail || ''
+        };
+        
+        // Mise à jour de la candidature avec le nouvel entretien
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        await updateDoc(applicationRef, {
+          interviews: existingApplication?.interviews ? [...existingApplication.interviews, interviewData] : [interviewData],
+          status: 'interview',
+          updatedAt: serverTimestamp(),
+          statusHistory: existingApplication?.statusHistory ? 
+            [...existingApplication.statusHistory, {
+              status: 'interview',
+              date: formData.interviewDate,
+              notes: 'Interview added from job applications page'
+            }] : 
+            [{
+              status: 'applied',
+              date: formData.interviewDate || new Date().toISOString().split('T')[0],
+              notes: 'Application created from job applications page'
+            }, {
+              status: 'interview',
+              date: formData.interviewDate,
+              notes: 'Interview scheduled from job applications page'
+            }]
+        });
+
+        // Si la création réussit, on ferme le modal et réinitialise le formulaire
+        setNewApplicationModal(false);
+        setEventType(null);
+        setLookupSelectedApplication(null);
+        setLinkedApplicationId(null);
+        setLookupSearchQuery('');
+        setShowLookupDropdown(false);
+        setFormData({
+          companyName: '',
+          position: '',
+          location: '',
+          status: 'applied',
+          appliedDate: new Date().toISOString().split('T')[0],
+          url: '',
+          notes: '',
+          interviewType: 'technical',
+          interviewTime: '09:00',
+          interviewDate: new Date().toISOString().split('T')[0],
+        });
+        
+        toast.success('Interview added successfully');
       }
-
-      // Création du document dans Firestore
-      const docRef = await addDoc(
-        collection(db, 'users', currentUser.uid, 'jobApplications'), 
-        newApplication
-      );
-
-      // Si la création réussit, on ferme le modal et réinitialise le formulaire
-      setNewApplicationModal(false);
-      setFormData({
-        companyName: '',
-        position: '',
-        location: '',
-        status: 'applied',
-        appliedDate: new Date().toISOString().split('T')[0],
-        url: '',
-        notes: ''
-      });
-      
-      toast.success('Application created successfully');
     } catch (error) {
-      console.error('Error creating application:', error);
-      toast.error('Failed to create application: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.error('Error creating application/interview:', error);
+      toast.error('Failed to create: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -1110,7 +1318,14 @@ END:VCALENDAR`;
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setNewApplicationModal(true)}
+              onClick={() => {
+                setEventType(null);
+                setLookupSelectedApplication(null);
+                setLinkedApplicationId(null);
+                setLookupSearchQuery('');
+                setShowLookupDropdown(false);
+                setNewApplicationModal(true);
+              }}
               className="w-full sm:w-auto inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs sm:text-sm font-medium hover:opacity-90 transition-all duration-200"
             >
               <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
@@ -1258,7 +1473,7 @@ END:VCALENDAR`;
                                           initial={{ opacity: 0, y: 10 }}
                                           animate={{ opacity: 1, y: 0 }}
                                           transition={{ delay: index * 0.03, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                                          className={`group relative bg-white dark:bg-gray-900/80 backdrop-blur-xl rounded-xl overflow-hidden
+                                          className={`group relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden
                                             transition-all duration-500 ease-out
                                             ${snapshot.isDragging 
                                               ? 'ring-2 ring-purple-500/50 shadow-2xl scale-105' 
@@ -1424,7 +1639,14 @@ END:VCALENDAR`;
                     Start tracking your job applications to see analytics
                   </p>
                   <button
-                    onClick={() => setNewApplicationModal(true)}
+                    onClick={() => {
+                setEventType(null);
+                setLookupSelectedApplication(null);
+                setLinkedApplicationId(null);
+                setLookupSearchQuery('');
+                setShowLookupDropdown(false);
+                setNewApplicationModal(true);
+              }}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
                   >
                     <PlusCircle className="h-4 w-4" />
@@ -1649,16 +1871,35 @@ END:VCALENDAR`;
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setNewApplicationModal(false)}
+              onClick={() => {
+                setEventType(null);
+                setLookupSelectedApplication(null);
+                setLinkedApplicationId(null);
+                setLookupSearchQuery('');
+                setShowLookupDropdown(false);
+                setFormData({
+                  companyName: '',
+                  position: '',
+                  location: '',
+                  status: 'applied',
+                  appliedDate: new Date().toISOString().split('T')[0],
+                  url: '',
+                  notes: '',
+                  interviewType: 'technical',
+                  interviewTime: '09:00',
+                  interviewDate: new Date().toISOString().split('T')[0],
+                });
+                setNewApplicationModal(false);
+              }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
             >
-              <motion.div
+              <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: "100%" }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: "100%" }}
                 onClick={(e) => e.stopPropagation()}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="bg-white dark:bg-gray-800 w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 w-full rounded-2xl max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
                 {/* Drag handle for mobile */}
                 <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
@@ -1668,171 +1909,22 @@ END:VCALENDAR`;
                 {/* Header */}
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
                   <div>
-                    <h2 className="font-semibold text-xl text-gray-900 dark:text-gray-100">New Application</h2>
+                    <h2 className="font-semibold text-xl text-gray-900 dark:text-gray-100">
+                      {eventType ? `Add ${eventType === 'application' ? 'Job Application' : 'Interview'}` : 'Add Event'}
+                    </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Add a new job application to track
+                      {eventType ? (eventType === 'application' ? 'Track a new job application' : 'Schedule or log an interview') : 'Select an event type to continue'}
                     </p>
                   </div>
                   <motion.button 
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setNewApplicationModal(false)} 
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
-                    aria-label="Close modal"
-                  >
-                    <X className="w-5 h-5" />
-                  </motion.button>
-                </div>
-
-                {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
-                  <form className="space-y-5">
-                    {/* Job URL - Featured First with AI Emphasis */}
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        <Link className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                        Job Posting URL
-                      </label>
-                      <div className="relative group">
-                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 transition-opacity"></div>
-                        <div className="relative rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500">
-                          <div className="relative flex rounded-xl bg-white dark:bg-gray-800/95 overflow-hidden">
-                            <input
-                              type="url"
-                              value={formData.url || ''}
-                              onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                              className="flex-1 px-4 py-3.5 rounded-l-xl bg-transparent border-0 focus:ring-0 focus:outline-none text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
-                              placeholder="https://linkedin.com/jobs/view/..."
-                              autoFocus
-                            />
-                            <motion.button
-                              type="button"
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={handleExtractJobInfo}
-                              disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
-                              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-r-xl bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-                              title="Extract job information with AI"
-                            >
-                              {isAnalyzingJob ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-                                  <span className="text-sm font-medium whitespace-nowrap">Extracting...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles className="w-4 h-4 flex-shrink-0" />
-                                  <span className="text-sm font-medium whitespace-nowrap">Extract</span>
-                                </>
-                              )}
-                            </motion.button>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        <span>Paste the job posting URL and our AI will extract all information automatically</span>
-                      </div>
-                    </div>
-
-                    {/* Divider with subtle animation */}
-                    {(formData.companyName || formData.position || formData.location) && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="pt-2 border-t border-gray-200 dark:border-gray-700"
-                      >
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 flex items-center gap-1.5">
-                          <Check className="w-3.5 h-3.5 text-green-500" />
-                          <span>AI extracted information below</span>
-                        </p>
-                      </motion.div>
-                    )}
-
-                    {/* Company Name */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                        Company Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.companyName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter company name"
-                        required
-                      />
-                    </div>
-
-                    {/* Position */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                        Position *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.position}
-                        onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter position"
-                        required
-                      />
-                    </div>
-
-                    {/* Location */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                        Location *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.location}
-                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter location"
-                        required
-                      />
-                    </div>
-
-                    {/* Applied Date */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                        Applied Date *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          value={formData.appliedDate}
-                          onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
-                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          required
-                        />
-                        <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                      </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                        Notes
-                      </label>
-                      <textarea
-                        value={formData.notes || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
-                        placeholder="Add any relevant notes or job description summary..."
-                        rows={3}
-                      />
-                    </div>
-                  </form>
-                </div>
-
-                {/* Footer with action buttons */}
-                <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
-                  <button
-                    type="button"
                     onClick={() => {
-                      setNewApplicationModal(false);
+                      setEventType(null);
+                      setLookupSelectedApplication(null);
+                      setLinkedApplicationId(null);
+                      setLookupSearchQuery('');
+                      setShowLookupDropdown(false);
                       setFormData({
                         companyName: '',
                         position: '',
@@ -1842,6 +1934,483 @@ END:VCALENDAR`;
                         url: '',
                         notes: ''
                       });
+                      setNewApplicationModal(false);
+                    }}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
+                    aria-label="Close modal"
+                  >
+                    <X className="w-5 h-5" />
+                  </motion.button>
+                </div>
+                
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
+                  <form onSubmit={(e) => { e.preventDefault(); handleCreateApplication(); }} className="space-y-5">
+                    {/* Sélection du type d'événement - Cartes visuelles */}
+                    {!eventType && (
+                      <div className="space-y-4">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">
+                          What would you like to add?
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setEventType('application')}
+                            className="group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-purple-500 dark:hover:border-purple-500 transition-all text-left"
+                          >
+                            <div className="flex flex-col items-start gap-3">
+                              <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                                <Briefcase className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
+                                  Job Application
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  Track a new job application you've submitted
+                                </p>
+                              </div>
+                            </div>
+                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                            </div>
+                          </motion.button>
+                          
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setEventType('interview')}
+                            className="group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all text-left"
+                          >
+                            <div className="flex flex-col items-start gap-3">
+                              <div className="p-3 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
+                                <CalIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
+                                  Interview
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  Schedule or log an interview for a position
+                                </p>
+                              </div>
+                            </div>
+                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                            </div>
+                          </motion.button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bouton pour changer de type si déjà sélectionné */}
+                    {eventType && (
+                      <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          {eventType === 'application' ? (
+                            <>
+                              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                                <Briefcase className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm text-gray-900 dark:text-white">Adding Job Application</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Track a new application</p>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                                <CalIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm text-gray-900 dark:text-white">Adding Interview</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Schedule or log an interview</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEventType(eventType === 'application' ? 'interview' : 'application');
+                            setLookupSelectedApplication(null);
+                            setLinkedApplicationId(null);
+                            setLookupSearchQuery('');
+                            setShowLookupDropdown(false);
+                            setFormData(prev => ({
+                              ...prev,
+                              companyName: '',
+                              position: '',
+                              location: '',
+                            }));
+                          }}
+                          className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium transition-colors"
+                        >
+                          Switch
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Formulaire - affiché seulement si un type est sélectionné */}
+                    {eventType && (
+                      <>
+                        {/* Job URL - Featured First with AI Emphasis (only for applications) */}
+                        {eventType === 'application' && (
+                          <div className="space-y-3">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                              <Link className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              Job Posting URL
+                            </label>
+                            <div className="relative group">
+                              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 transition-opacity"></div>
+                              <div className="relative rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500">
+                                <div className="relative flex rounded-xl bg-white dark:bg-gray-800/95 overflow-hidden">
+                                  <input
+                                    type="url"
+                                    value={formData.url || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                                    className="flex-1 px-4 py-3.5 rounded-l-xl bg-transparent border-0 focus:ring-0 focus:outline-none text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
+                                    placeholder="https://linkedin.com/jobs/view/..."
+                                    autoFocus
+                                  />
+                                  <motion.button
+                                    type="button"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handleExtractJobInfo}
+                                    disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
+                                    className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-r-xl bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                    title="Extract job information with AI"
+                                  >
+                                    {isAnalyzingJob ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                                        <span className="text-sm font-medium whitespace-nowrap">Extracting...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Sparkles className="w-4 h-4 flex-shrink-0" />
+                                        <span className="text-sm font-medium whitespace-nowrap">Extract</span>
+                                      </>
+                                    )}
+                                  </motion.button>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                              <span>Paste the job posting URL and our AI will extract all information automatically</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Divider with subtle animation */}
+                        {(formData.companyName || formData.position || formData.location) && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="pt-2 border-t border-gray-200 dark:border-gray-700"
+                          >
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 flex items-center gap-1.5">
+                              <Check className="w-3.5 h-3.5 text-green-500" />
+                              <span>AI extracted information below</span>
+                            </p>
+                          </motion.div>
+                        )}
+
+                        {/* Recherche de candidature existante pour les interviews */}
+                        {eventType === 'interview' && (
+                          <div className="space-y-2 application-search-container">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                              <Link className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              Link to Existing Application (Optional)
+                            </label>
+                            <div className="relative">
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                  type="text"
+                                  value={lookupSearchQuery}
+                                  onChange={(e) => {
+                                    setLookupSearchQuery(e.target.value);
+                                    setShowLookupDropdown(true);
+                                  }}
+                                  onFocus={() => setShowLookupDropdown(true)}
+                                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                  placeholder="Search by company or position..."
+                                />
+                                {lookupSelectedApplication && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setLookupSelectedApplication(null);
+                                      setLinkedApplicationId(null);
+                                      setLookupSearchQuery('');
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        companyName: '',
+                                        position: '',
+                                        location: '',
+                                      }));
+                                    }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  >
+                                    <X className="w-4 h-4 text-gray-400" />
+                                  </button>
+                                )}
+                              </div>
+                              
+                              {/* Dropdown avec les résultats de recherche */}
+                              <AnimatePresence>
+                                {showLookupDropdown && lookupSearchQuery && !lookupSelectedApplication && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                                  >
+                                    {lookupApplications
+                                      .filter(app => 
+                                        app.companyName.toLowerCase().includes(lookupSearchQuery.toLowerCase()) ||
+                                        app.position.toLowerCase().includes(lookupSearchQuery.toLowerCase())
+                                      )
+                                      .slice(0, 5)
+                                      .map((app) => (
+                                        <button
+                                          key={app.id}
+                                          type="button"
+                                          onClick={() => {
+                                            setLookupSelectedApplication(app);
+                                            setLinkedApplicationId(app.id);
+                                            setLookupSearchQuery(`${app.companyName} - ${app.position}`);
+                                            setFormData(prev => ({
+                                              ...prev,
+                                              companyName: app.companyName,
+                                              position: app.position,
+                                              location: app.location || prev.location,
+                                            }));
+                                            setShowLookupDropdown(false);
+                                            toast.success('Application linked successfully');
+                                          }}
+                                          className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                                        >
+                                          <div className="flex items-start gap-3">
+                                            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+                                              <Building className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                                {app.companyName}
+                                              </p>
+                                              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                                {app.position}
+                                              </p>
+                                              {app.location && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                                  <MapPin className="w-3 h-3" />
+                                                  {app.location}
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </button>
+                                      ))}
+                                    {lookupApplications.filter(app => 
+                                      app.companyName.toLowerCase().includes(lookupSearchQuery.toLowerCase()) ||
+                                      app.position.toLowerCase().includes(lookupSearchQuery.toLowerCase())
+                                    ).length === 0 && (
+                                      <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                                        No applications found
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                            {lookupSelectedApplication && (
+                              <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl">
+                                <div className="flex items-center gap-2">
+                                  <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
+                                      Linked to: {lookupSelectedApplication.companyName} - {lookupSelectedApplication.position}
+                                    </p>
+                                    <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5">
+                                      Fields will be pre-filled from this application
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Search for an existing job application to link this interview. Fields will be auto-filled.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Company Name */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                            Company Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.companyName || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            placeholder="Enter company name"
+                          />
+                        </div>
+                        
+                        {/* Position */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                            Position *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.position || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            placeholder="Enter position"
+                          />
+                        </div>
+                        
+                        {/* Location */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                            Location {eventType === 'application' ? '*' : ''}
+                          </label>
+                          <input
+                            type="text"
+                            required={eventType === 'application'}
+                            value={formData.location || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            placeholder="Enter location"
+                          />
+                        </div>
+
+                        {/* Applied Date */}
+                        {eventType === 'application' && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                              Applied Date *
+                            </label>
+                            <DatePicker
+                              value={formData.appliedDate || ''}
+                              onChange={(value) => setFormData(prev => ({ ...prev, appliedDate: value }))}
+                              placeholder="jj/mm/aaaa"
+                              required
+                            />
+                          </div>
+                        )}
+
+                        {/* Champs spécifiques pour les entretiens */}
+                        {eventType === 'interview' && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Interview Date *</label>
+                              <DatePicker
+                                value={formData.interviewDate || ''}
+                                onChange={(value) => setFormData(prev => ({ ...prev, interviewDate: value }))}
+                                placeholder="jj/mm/aaaa"
+                                required
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Interview Type</label>
+                              <select
+                                value={formData.interviewType}
+                                onChange={(e) => setFormData(prev => ({ ...prev, interviewType: e.target.value as 'technical' | 'hr' | 'manager' | 'final' | 'other' }))}
+                                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                              >
+                                <option value="technical">Technical</option>
+                                <option value="hr">HR</option>
+                                <option value="manager">Manager</option>
+                                <option value="final">Final</option>
+                                <option value="other">Other</option>
+                              </select>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Time</label>
+                              <input
+                                type="time"
+                                value={formData.interviewTime}
+                                onChange={(e) => setFormData(prev => ({ ...prev, interviewTime: e.target.value }))}
+                                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Contact Name</label>
+                              <input
+                                type="text"
+                                value={formData.contactName || ''}
+                                onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
+                                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Enter contact name"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Contact Email</label>
+                              <input
+                                type="email"
+                                value={formData.contactEmail || ''}
+                                onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Enter contact email"
+                              />
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Notes */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                            Notes
+                          </label>
+                          <textarea
+                            value={formData.notes || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                            placeholder="Add any relevant notes..."
+                            rows={3}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </form>
+                </div>
+                
+                {/* Footer with action buttons */}
+                <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEventType(null);
+                      setLookupSelectedApplication(null);
+                      setLinkedApplicationId(null);
+                      setLookupSearchQuery('');
+                      setShowLookupDropdown(false);
+                      setFormData({
+                        companyName: '',
+                        position: '',
+                        location: '',
+                        status: 'applied',
+                        appliedDate: new Date().toISOString().split('T')[0],
+                        url: '',
+                        notes: ''
+                      });
+                      setNewApplicationModal(false);
                     }}
                     className="px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium active:scale-95"
                   >
@@ -1850,10 +2419,20 @@ END:VCALENDAR`;
                   <button
                     type="button"
                     onClick={handleCreateApplication}
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition-colors font-medium active:scale-95 flex items-center gap-2 shadow-sm"
+                    disabled={!eventType}
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed font-medium active:scale-95 flex items-center gap-2 shadow-sm"
                   >
-                    <Plus className="w-4 h-4" />
-                    Create Application
+                    {eventType === 'application' ? (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Create Application
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Add Event
+                      </>
+                    )}
                   </button>
                 </div>
               </motion.div>

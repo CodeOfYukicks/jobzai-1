@@ -577,6 +577,9 @@ export default function DashboardPage() {
   // Formatez les données pour les graphiques
   // Pour le graphique des crédits, utiliser directement l'historique des crédits
   const balanceData = useMemo(() => {
+    // Noms de mois en français
+    const monthNames = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    
     // Extraire uniquement les données de balance de l'historique
     const creditData = stats.historicalData
       .filter(item => item.balance !== undefined && item.balance !== null)
@@ -607,18 +610,16 @@ export default function DashboardPage() {
       let dateLabel: string;
       if (hasMultipleSameDay || creditData.length > 1) {
         // Toujours inclure l'heure si on a plusieurs points
-        dateLabel = date.toLocaleString('fr-FR', { 
-          day: 'numeric', 
-          month: 'short', 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
+        const day = date.getDate();
+        const month = monthNames[date.getMonth()];
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        dateLabel = `${day} ${month}, ${hours}:${minutes}`;
       } else {
-        dateLabel = date.toLocaleDateString('fr-FR', { 
-          day: 'numeric', 
-          month: 'short', 
-          year: 'numeric' 
-        });
+        const day = date.getDate();
+        const month = monthNames[date.getMonth()];
+        const year = date.getFullYear();
+        dateLabel = `${day} ${month} ${year}`;
       }
       
       return {
@@ -806,38 +807,44 @@ export default function DashboardPage() {
                                   const change = data.change || 0;
                                   const reason = data.reason || 'unknown';
                                   
-                                  // Traduire la raison en français
+                                  // Translate reason to English
                                   const reasonLabels: Record<string, string> = {
-                                    'campaign': 'Campagne',
-                                    'plan_selection': 'Sélection de plan',
-                                    'subscription': 'Abonnement',
-                                    'purchase': 'Achat',
-                                    'refund': 'Remboursement',
-                                    'initial': 'Solde initial',
-                                    'unknown': 'Inconnu'
+                                    'campaign': 'Campaign',
+                                    'plan_selection': 'Plan Selection',
+                                    'subscription': 'Subscription',
+                                    'subscription_payment': 'Subscription Payment',
+                                    'subscription_renewal': 'Subscription Renewal',
+                                    'credit_purchase': 'Credit Purchase',
+                                    'purchase': 'Purchase',
+                                    'refund': 'Refund',
+                                    'initial': 'Initial Balance',
+                                    'unknown': 'Unknown'
                                   };
                                   
                                   return (
                                     <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                                       <p className="font-medium text-gray-900 dark:text-white mb-1">
-                                        {data.value} crédits
+                                        {data.value} credits
                                       </p>
                                       {change !== 0 && (
                                         <p className={`text-sm ${change > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                          {change > 0 ? '+' : ''}{change} crédits
+                                          {change > 0 ? '+' : ''}{change} credits
                                         </p>
                                       )}
                                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                         {reasonLabels[reason] || reason}
                                       </p>
                                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                        {new Date(data.dateISO || data.date).toLocaleString('fr-FR', {
-                                          day: 'numeric',
-                                          month: 'short',
-                                          year: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })}
+                                        {(() => {
+                                          const date = new Date(data.dateISO || data.date);
+                                          const monthNames = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+                                          const day = date.getDate();
+                                          const month = monthNames[date.getMonth()];
+                                          const year = date.getFullYear();
+                                          const hours = date.getHours().toString().padStart(2, '0');
+                                          const minutes = date.getMinutes().toString().padStart(2, '0');
+                                          return `${day} ${month} ${year}, ${hours}:${minutes}`;
+                                        })()}
                                       </p>
                                     </div>
                                   );

@@ -259,3 +259,4 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
 export default SoftSkillsLeadershipSection;
 
 
+

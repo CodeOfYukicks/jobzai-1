@@ -371,7 +371,7 @@ END:VCALENDAR`;
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-        className={`group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden
+        className={`group relative bg-white dark:bg-gray-900 rounded-2xl overflow-hidden
           ${isPast 
             ? 'opacity-60' 
             : ''}
@@ -424,7 +424,7 @@ END:VCALENDAR`;
                     {isPast && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium 
                         bg-gray-100/60 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400
-                        backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+                        border border-gray-200/50 dark:border-gray-700/50">
                         <History className="w-3 h-3 mr-1" />
                         Past
                       </span>
@@ -432,7 +432,7 @@ END:VCALENDAR`;
                     {!isPast && item.interview.status === 'scheduled' && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium 
                         bg-violet-50/80 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400
-                        backdrop-blur-sm border border-violet-200/50 dark:border-violet-800/30">
+                        border border-violet-200/50 dark:border-violet-800/30">
                         <TrendingUp className="w-3 h-3 mr-1" />
                         Upcoming
                       </span>
@@ -449,7 +449,7 @@ END:VCALENDAR`;
                 
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium capitalize
-                    backdrop-blur-sm border
+                    border
                     ${item.interview.type === 'hr' ? 'bg-pink-50/60 text-pink-700 border-pink-200/50 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-800/30' :
                       item.interview.type === 'technical' ? 'bg-teal-50/60 text-teal-700 border-teal-200/50 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-800/30' :
                       item.interview.type === 'manager' ? 'bg-amber-50/60 text-amber-700 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30' :
@@ -466,7 +466,7 @@ END:VCALENDAR`;
                         ? null 
                         : `${item.application.id}-${item.interview.id}`)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium
-                        backdrop-blur-sm border transition-all duration-200
+                        border transition-all duration-200
                         ${item.interview.status === 'scheduled' 
                           ? 'bg-blue-50/60 text-blue-700 border-blue-200/50 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/30 hover:bg-blue-100/80' 
                           : item.interview.status === 'completed'
@@ -534,7 +534,7 @@ END:VCALENDAR`;
 
               {/* Date/Time/Location - Apple style cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 mb-4">
-                <div className="flex items-center rounded-lg bg-gray-50/50 dark:bg-gray-800/30 backdrop-blur-sm 
+                <div className="flex items-center rounded-lg bg-gray-50/50 dark:bg-gray-800/30 
                   p-3 border border-gray-100/50 dark:border-gray-800/50
                   transition-all duration-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50">
                   <Calendar className="w-4 h-4 mr-2.5 text-gray-400 dark:text-gray-500 shrink-0" />
@@ -545,7 +545,7 @@ END:VCALENDAR`;
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center rounded-lg bg-gray-50/50 dark:bg-gray-800/30 backdrop-blur-sm 
+                <div className="flex items-center rounded-lg bg-gray-50/50 dark:bg-gray-800/30 
                   p-3 border border-gray-100/50 dark:border-gray-800/50
                   transition-all duration-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50">
                   <Clock className="w-4 h-4 mr-2.5 text-gray-400 dark:text-gray-500 shrink-0" />
@@ -557,7 +557,7 @@ END:VCALENDAR`;
                   </div>
                 </div>
                 {item.interview.location && (
-                  <div className="flex items-center rounded-lg bg-gray-50/50 dark:bg-gray-800/30 backdrop-blur-sm 
+                  <div className="flex items-center rounded-lg bg-gray-50/50 dark:bg-gray-800/30 
                     p-3 border border-gray-100/50 dark:border-gray-800/50
                     transition-all duration-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50">
                     <MapPin className="w-4 h-4 mr-2.5 text-gray-400 dark:text-gray-500 shrink-0" />
@@ -594,7 +594,7 @@ END:VCALENDAR`;
                 className="flex-1 flex items-center justify-center gap-2 text-xs font-medium 
                   text-gray-700 dark:text-gray-300 py-2.5 px-3
                   rounded-lg border border-gray-200/60 dark:border-gray-700/50
-                  bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm
+                  bg-white/50 dark:bg-gray-800/30
                   hover:bg-gray-50/80 dark:hover:bg-gray-800/50
                   transition-all duration-200 ease-out
                   active:scale-[0.98]"

@@ -196,3 +196,4 @@ const SalaryFlexibilitySection = ({ onUpdate }: SectionProps) => {
 export default SalaryFlexibilitySection;
 
 
+

@@ -238,3 +238,4 @@ const DetailedLocationSection = ({ onUpdate }: SectionProps) => {
 export default DetailedLocationSection;
 
 
+

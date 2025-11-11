@@ -4,7 +4,7 @@ import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
-import { collection, query, getDocs, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
@@ -27,7 +27,9 @@ import {
   GripVertical,
   Sparkles,
   Loader2,
-  Link
+  Link,
+  Search,
+  ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -244,6 +246,7 @@ interface AddEventModalProps {
 }
 
 const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps) => {
+  const { currentUser } = useAuth();
   const [eventType, setEventType] = useState<'application' | 'interview' | null>(null);
   const [formData, setFormData] = useState({
     companyName: '',
@@ -258,6 +261,11 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzingJob, setIsAnalyzingJob] = useState(false);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
+  const [showApplicationDropdown, setShowApplicationDropdown] = useState(false);
+  const [linkedApplicationId, setLinkedApplicationId] = useState<string | null>(null);
 
   const resetForm = () => {
     setEventType(null);
@@ -272,7 +280,48 @@ const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventModalProps
       contactName: '',
       contactEmail: '',
     });
+    setSearchQuery('');
+    setSelectedApplication(null);
+    setShowApplicationDropdown(false);
+    setLinkedApplicationId(null);
   };
+
+  // Charger les candidatures existantes quand on sélectionne "interview"
+  useEffect(() => {
+    if (eventType === 'interview' && currentUser) {
+      const fetchApplications = async () => {
+        try {
+          const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+          const applicationsSnapshot = await getDocs(query(applicationsRef));
+          const apps: JobApplication[] = [];
+          applicationsSnapshot.forEach((doc) => {
+            apps.push({ id: doc.id, ...doc.data() } as JobApplication);
+          });
+          setApplications(apps);
+        } catch (error) {
+          console.error('Error fetching applications:', error);
+        }
+      };
+      fetchApplications();
+    }
+  }, [eventType, currentUser]);
+
+  // Fermer le dropdown quand on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.application-search-container')) {
+        setShowApplicationDropdown(false);
+      }
+    };
+
+    if (showApplicationDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showApplicationDropdown]);
 
   // Fonction pour extraire les informations depuis l'URL avec AI
   const handleExtractJobInfo = async () => {
@@ -555,6 +604,7 @@ URL to visit: ${jobUrl}
         ...formData,
         date: moment(selectedDate).format('YYYY-MM-DD'),
         eventType,
+        linkedApplicationId: linkedApplicationId || undefined, // Passer l'ID de la candidature liée si elle existe
       };
       
       await onAddEvent(eventData);
@@ -585,7 +635,7 @@ URL to visit: ${jobUrl}
         exit={{ opacity: 0, scale: 0.95, y: "100%" }}
         onClick={(e) => e.stopPropagation()}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="bg-white dark:bg-gray-800 w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 w-full rounded-2xl max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
       >
         {/* Drag handle for mobile */}
         <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
@@ -718,12 +768,153 @@ URL to visit: ${jobUrl}
               </div>
               <button
                 type="button"
-                onClick={() => setEventType(eventType === 'application' ? 'interview' : 'application')}
+                onClick={() => {
+                  setEventType(eventType === 'application' ? 'interview' : 'application');
+                  setSelectedApplication(null);
+                  setLinkedApplicationId(null);
+                  setSearchQuery('');
+                  setFormData(prev => ({
+                    ...prev,
+                    companyName: '',
+                    position: '',
+                    location: '',
+                  }));
+                }}
                 className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium transition-colors"
               >
                 Switch
+          </button>
+        </div>
+          )}
+
+          {/* Recherche de candidature existante pour les interviews */}
+          {eventType === 'interview' && (
+            <div className="space-y-2 application-search-container">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                <Link className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                Link to Existing Application (Optional)
+              </label>
+              <div className="relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowApplicationDropdown(true);
+                    }}
+                    onFocus={() => setShowApplicationDropdown(true)}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    placeholder="Search by company or position..."
+                  />
+                  {selectedApplication && (
+            <button
+              type="button"
+                      onClick={() => {
+                        setSelectedApplication(null);
+                        setLinkedApplicationId(null);
+                        setSearchQuery('');
+                        setFormData(prev => ({
+                          ...prev,
+                          companyName: '',
+                          position: '',
+                          location: '',
+                        }));
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <X className="w-4 h-4 text-gray-400" />
             </button>
+                  )}
+                </div>
+                
+                {/* Dropdown avec les résultats de recherche */}
+                <AnimatePresence>
+                  {showApplicationDropdown && searchQuery && !selectedApplication && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                    >
+                      {applications
+                        .filter(app => 
+                          app.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          app.position.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .slice(0, 5)
+                        .map((app) => (
+            <button
+                            key={app.id}
+              type="button"
+                            onClick={() => {
+                              setSelectedApplication(app);
+                              setLinkedApplicationId(app.id);
+                              setSearchQuery(`${app.companyName} - ${app.position}`);
+                              setFormData(prev => ({
+                                ...prev,
+                                companyName: app.companyName,
+                                position: app.position,
+                                location: app.location || prev.location,
+                              }));
+                              setShowApplicationDropdown(false);
+                              toast.success('Application linked successfully');
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+                                <Building className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                  {app.companyName}
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                  {app.position}
+                                </p>
+                                {app.location && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {app.location}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+            </button>
+                        ))}
+                      {applications.filter(app => 
+                        app.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        app.position.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                          No applications found
           </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              {selectedApplication && (
+                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
+                        Linked to: {selectedApplication.companyName} - {selectedApplication.position}
+                      </p>
+                      <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5">
+                        Fields will be pre-filled from this application
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Search for an existing job application to link this interview. Fields will be auto-filled.
+              </p>
+            </div>
           )}
           
             {/* Formulaire - affiché seulement si un type est sélectionné */}
@@ -1972,11 +2163,22 @@ export default function CalendarView() {
         toast.success('Job application added successfully');
       } else {
         // Pour un entretien, vérifier si une candidature existe déjà
+        let existingApplication: any = null;
+        let applicationId: string;
+        
+        // Si un ID de candidature est fourni (lié depuis le modal), l'utiliser directement
+        if (eventData.linkedApplicationId) {
+          applicationId = eventData.linkedApplicationId;
+          const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+          const applicationDoc = await getDoc(applicationRef);
+          if (applicationDoc.exists()) {
+            existingApplication = { id: applicationDoc.id, ...applicationDoc.data() };
+          }
+        } else {
+          // Sinon, chercher par nom d'entreprise et poste (comportement existant)
         const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
         const applicationsSnapshot = await getDocs(query(applicationsRef));
         
-        // Chercher une candidature existante pour cette entreprise et poste
-        let existingApplication: any = null;
         applicationsSnapshot.forEach(doc => {
           const app = doc.data() as any;
           if (
@@ -1987,10 +2189,8 @@ export default function CalendarView() {
           }
         });
         
-        let applicationId;
-        
         if (existingApplication) {
-          // Utiliser la candidature existante
+            // Utiliser la candidature existante trouvée
           applicationId = existingApplication.id;
         } else {
           // Créer une nouvelle candidature
@@ -2034,6 +2234,7 @@ export default function CalendarView() {
           };
           
           setEvents(prev => [...prev, newApplicationEvent]);
+          }
         }
         
         // Ajouter l'entretien

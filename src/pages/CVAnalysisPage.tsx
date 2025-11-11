@@ -4111,44 +4111,41 @@ URL to visit: ${jobUrl}
                   <Link2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   Job Posting URL
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={formData.jobUrl}
-                    onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
-                    className="flex-1 px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
-                      focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
-                      dark:bg-gray-800/30 dark:text-white text-xs
-                      bg-gray-50/50 backdrop-blur-sm
-                      transition-all duration-200"
-                    placeholder="https://linkedin.com/jobs/view/..."
-                  />
-                  <button
-                    onClick={handleExtractJobInfo}
-                    disabled={!formData.jobUrl.trim() || isExtractingJob}
-                    className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
-                      hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
-                      text-white rounded-lg text-xs font-semibold 
-                      transition-all duration-200 ease-out
-                      disabled:cursor-not-allowed 
-                      flex items-center gap-1.5 
-                      shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
-                      hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
-                      disabled:shadow-none disabled:hover:shadow-none
-                      active:scale-[0.98]"
-                  >
-                    {isExtractingJob ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Extracting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Extract</span>
-                      </>
-                    )}
-                  </button>
+                <div className="relative group">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500">
+                    <div className="relative flex rounded-xl bg-white dark:bg-gray-800/95 overflow-hidden">
+                      <input
+                        type="url"
+                        value={formData.jobUrl}
+                        onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
+                        className="flex-1 px-4 py-3.5 rounded-l-xl bg-transparent border-0 focus:ring-0 focus:outline-none text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
+                        placeholder="https://linkedin.com/jobs/view/..."
+                        autoFocus
+                      />
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleExtractJobInfo}
+                        disabled={isExtractingJob || !formData.jobUrl || !formData.jobUrl.trim()}
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-r-xl bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        title="Extract job information with AI"
+                      >
+                        {isExtractingJob ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                            <span className="text-sm font-medium whitespace-nowrap">Extracting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-medium whitespace-nowrap">Extract</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
                   <Info className="w-3 h-3 flex-shrink-0" />
@@ -4576,45 +4573,42 @@ URL to visit: ${jobUrl}
         {/* Modal */}
         <AnimatePresence>
           {isModalOpen && (
-            <Dialog
-              open={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              className="fixed inset-0 z-[50] overflow-y-auto"
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
             >
-              <div className="flex items-center justify-center min-h-screen px-4">
-                <Dialog.Overlay 
-                  as={motion.div}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-                />
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="group relative bg-white dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden max-w-2xl w-full mx-auto p-5 md:p-6
-                    transition-all duration-500 ease-out
-                    hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
-                    border border-gray-200 dark:border-gray-800/50 shadow-xl"
-                  style={{
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
-                  }}
-                >
-                  {/* Subtle accent line - Apple style */}
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
-                  
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: "100%" }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: "100%" }}
+                onClick={(e) => e.stopPropagation()}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-white dark:bg-gray-800 w-full rounded-2xl max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+              >
+                {/* Drag handle for mobile */}
+                <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
+                  <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                </div>
+                
+                {/* Header */}
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
                   {/* Step Progress Indicator */}
-                  <div className="mb-5">
-                    <div className="flex justify-between items-center w-full relative">
-                      {/* Progress Bar */}
-                      <div className="absolute h-0.5 bg-gray-200/50 dark:bg-gray-700/50 left-0 right-0 top-1/2 -translate-y-1/2 z-0 rounded-full"></div>
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center w-full relative px-2">
+                      {/* Progress Bar Background */}
+                      <div className="absolute h-0.5 bg-gray-200 dark:bg-gray-700 left-8 right-8 top-1/2 -translate-y-1/2 z-0 rounded-full"></div>
+                      {/* Progress Bar Fill */}
                       <div 
-                        className="absolute h-0.5 bg-gradient-to-r from-purple-500/80 to-indigo-600/80 left-0 top-1/2 -translate-y-1/2 z-10 transition-all duration-500 ease-out rounded-full"
-                        style={{ width: `${(currentStep / steps.length) * 100 - (100 / steps.length / 2)}%` }}
+                        className="absolute h-0.5 bg-gradient-to-r from-purple-500 to-indigo-600 left-8 top-1/2 -translate-y-1/2 z-10 transition-all duration-500 ease-out rounded-full"
+                        style={{ 
+                          width: currentStep === 1 
+                            ? '0%' 
+                            : `${((currentStep - 1) / (steps.length - 1)) * 100}%`,
+                          maxWidth: 'calc(100% - 4rem)'
+                        }}
                       ></div>
                       
                       {/* Step Circles */}
@@ -4626,32 +4620,32 @@ URL to visit: ${jobUrl}
                         return (
                           <div 
                             key={step.title} 
-                            className="z-20 flex flex-col items-center"
+                            className="z-20 flex flex-col items-center flex-1 relative"
                           >
                             <div 
                               className={`
-                                w-8 h-8 rounded-full flex items-center justify-center mb-1.5
-                                transition-all duration-300 ease-out transform
+                                w-10 h-10 rounded-full flex items-center justify-center mb-2
+                                transition-all duration-300 ease-out
                                 ${isActive 
-                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-2 ring-purple-100/50 dark:ring-purple-900/30 scale-105 shadow-lg shadow-purple-500/20' 
+                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-4 ring-purple-100 dark:ring-purple-900/30 shadow-lg shadow-purple-500/20 scale-110' 
                                   : isCompleted 
-                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md shadow-purple-500/10'
-                                    : 'bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm text-gray-400 border border-gray-200/50 dark:border-gray-700/50'
+                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md shadow-purple-500/10' 
+                                    : 'bg-white dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-2 border-gray-200 dark:border-gray-600'
                                 }
                               `}
                             >
                               {isCompleted ? (
-                                <Check className="w-4 h-4" />
+                                <Check className="w-5 h-5" />
                               ) : (
-                                <span className="text-xs font-semibold">
+                                <span className="text-sm font-semibold">
                                   {stepNumber}
                                 </span>
                               )}
                             </div>
                             <span className={`
-                              text-[10px] font-medium hidden md:block transition-colors duration-300
+                              text-xs font-medium text-center transition-colors duration-300
                               ${isActive 
-                                ? 'text-purple-600 dark:text-purple-400'
+                                ? 'text-purple-600 dark:text-purple-400 font-semibold'
                                 : isCompleted
                                   ? 'text-gray-700 dark:text-gray-300'
                                   : 'text-gray-400 dark:text-gray-500'
@@ -4665,110 +4659,113 @@ URL to visit: ${jobUrl}
                     </div>
                   </div>
                   
-                  {/* Modal Header */}
-                  <div className="flex justify-between items-center mb-5">
+                  {/* Title Section */}
+                  <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-1.5">
-                        <span className="mr-2.5 inline-flex p-2 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400">
+                      <h2 className="font-semibold text-xl text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                        <span className="inline-flex p-2.5 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400">
                           {steps[currentStep - 1].icon}
                         </span>
                         {steps[currentStep - 1].title}
-                      </Dialog.Title>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 ml-11">
+                      </h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 ml-14">
                         {steps[currentStep - 1].description}
                       </p>
                     </div>
-                    <button
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => setIsModalOpen(false)}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full p-1.5 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 backdrop-blur-sm transition-all duration-200"
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95 ml-4 flex-shrink-0"
+                      aria-label="Close modal"
                     >
-                      <X className="w-4 h-4" />
-                    </button>
+                      <X className="w-5 h-5" />
+                    </motion.button>
                   </div>
-
-                  {/* Modal Content */}
-                  <div className="max-h-[50vh] overflow-y-auto pr-1 -mr-1 mb-5">
-                    {steps[currentStep - 1].content}
-                  </div>
+                </div>
+                
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
+                  {steps[currentStep - 1].content}
+                </div>
+                
+                {/* Footer */}
+                <div className="flex justify-between items-center p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (currentStep > 1) {
+                        setCurrentStep(currentStep - 1);
+                      }
+                    }}
+                    disabled={currentStep === 1}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 ${
+                      currentStep === 1 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700' 
+                    }`}
+                  >
+                    <ChevronRight className="h-4 w-4 mr-1 rotate-180" />
+                    Back
+                  </motion.button>
                   
-                  {/* Modal Footer */}
-                  <div className="flex justify-between pt-4 border-t border-gray-100/50 dark:border-gray-800/50">
-                    <button
-                      onClick={() => {
-                        if (currentStep > 1) {
-                          setCurrentStep(currentStep - 1);
-                        }
-                      }}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 ${
-                        currentStep === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100/60 dark:hover:bg-gray-800/60 backdrop-blur-sm' 
-                      }`}
-                      disabled={currentStep === 1}
-                    >
-                      <ChevronRight className="h-3.5 w-3.5 mr-1 rotate-180" />
-                      Back
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        if (currentStep < steps.length) {
-                          // Validate step 2 before proceeding
-                          if (currentStep === 2) {
-                            if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
-                              toast.error('Please fill in all job information fields');
-                              return;
-                            }
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (currentStep < steps.length) {
+                        // Validate step 2 before proceeding
+                        if (currentStep === 2) {
+                          if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
+                            toast.error('Please fill in all job information fields');
+                            return;
                           }
-                          setCurrentStep(currentStep + 1);
-                        } else {
-                          // Call handleAnalysis instead of just closing the modal
-                          handleAnalysis();
                         }
-                      }}
-                      className={`px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
-                        hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
-                        text-white rounded-lg text-xs font-semibold flex items-center 
-                        transition-all duration-200 ease-out
-                        disabled:cursor-not-allowed 
-                        shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
-                        hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
-                        disabled:shadow-none disabled:hover:shadow-none
-                        active:scale-[0.98]
-                        ${
-                        (currentStep === 1 && !cvFile) || 
-                        (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
-                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                      disabled={
-                        (currentStep === 1 && !cvFile) || 
-                        (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
-                        isLoading
+                        setCurrentStep(currentStep + 1);
+                      } else {
+                        // Call handleAnalysis instead of just closing the modal
+                        handleAnalysis();
                       }
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-white" />
-                          <span>Analysis in progress...</span>
-                        </>
-                      ) :
-                        <>
-                          {currentStep === steps.length ? (
-                            <>
-                              <Sparkles className="h-3.5 w-3.5 mr-2" />
-                              <span>Analyze Resume</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>Continue</span>
-                              <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                            </>
-                          )}
-                        </>
-                      }
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-            </Dialog>
+                    }}
+                    disabled={
+                      (currentStep === 1 && !cvFile) || 
+                      (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
+                      isLoading
+                    }
+                    className={`px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
+                      hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
+                      text-white rounded-lg text-sm font-semibold flex items-center 
+                      transition-all duration-200 ease-out
+                      disabled:cursor-not-allowed 
+                      shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
+                      hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
+                      disabled:shadow-none disabled:hover:shadow-none`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
+                        <span>Analysis in progress...</span>
+                      </>
+                    ) :
+                      <>
+                        {currentStep === steps.length ? (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            <span>Analyze Resume</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Continue</span>
+                            <ChevronRight className="h-4 w-4 ml-2" />
+                          </>
+                        )}
+                      </>
+                    }
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
 

@@ -108,3 +108,4 @@ Lors d'une requête, vous devriez voir dans les logs :
 Si vous voyez des erreurs (❌), notez le message d'erreur exact pour identifier le problème.
 
 
+

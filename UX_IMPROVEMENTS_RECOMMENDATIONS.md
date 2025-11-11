@@ -186,3 +186,4 @@ Le code est modulaire et réutilisable :
 5. **Historique** : Sauvegarder l'historique des recommandations pour comparaison
 
 
+

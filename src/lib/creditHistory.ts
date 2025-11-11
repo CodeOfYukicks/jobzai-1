@@ -63,9 +63,11 @@ export async function getCreditHistory(
     
     snapshot.forEach((doc) => {
       const data = doc.data();
+      // Support both 'balance' and 'credits' fields for backward compatibility
+      const balance = data.balance !== undefined ? data.balance : data.credits;
       history.push({
         id: doc.id,
-        balance: data.balance,
+        balance: balance,
         change: data.change,
         reason: data.reason,
         referenceId: data.referenceId,

@@ -1544,7 +1544,7 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
       
       // Record credit history
       await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
-        credits: creditsToAdd,
+        balance: creditsToAdd,
         change: creditsToAdd,
         reason: 'subscription_payment',
         planId,
@@ -1565,7 +1565,7 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
       
       // Record credit history
       await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
-        credits: currentCredits + creditsToAdd,
+        balance: currentCredits + creditsToAdd,
         change: creditsToAdd,
         reason: 'credit_purchase',
         packageId: planId,
@@ -1684,7 +1684,7 @@ const handleInvoicePaymentSucceeded = async (invoice: Stripe.Invoice) => {
     
     // Record credit history
     await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
-      credits: creditsToAdd,
+      balance: creditsToAdd,
       change: creditsToAdd,
       reason: 'subscription_renewal',
       planId: planId || 'unknown',
