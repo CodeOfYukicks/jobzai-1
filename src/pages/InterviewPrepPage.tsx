@@ -19,7 +19,8 @@ import {
   Search, RefreshCw, Maximize2, Minimize2, ArrowRight,
   MousePointer, Square, Circle, Minus, Link2, ArrowUp,
   CheckSquare, ExternalLink, BarChart2, Bookmark, ThumbsUp,
-  Newspaper, Users, PieChart, Award, Flag, Edit, Sparkles, Zap, Brain, Target
+  Newspaper, Users, PieChart, Award, Flag, Edit, Sparkles, Zap, Brain, Target,
+  Info, PanelLeftClose, TrendingUp, Lightbulb, Target as TargetIcon
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -99,13 +100,14 @@ interface ChatMessage {
 
 interface Shape {
   id: string;
-  type: 'arrow' | 'line' | 'rectangle' | 'circle';
+  type: 'arrow' | 'line' | 'rectangle' | 'circle' | 'pen';
   startX: number;
   startY: number;
   endX?: number;
   endY?: number;
   color: string;
   label?: string;
+  path?: string;
 }
 
 interface ChecklistItem {
@@ -177,13 +179,24 @@ export default function InterviewPrepPage() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartTime, setDragStartTime] = useState(0);
-  const [selectedTool, setSelectedTool] = useState<'select' | 'arrow' | 'line' | 'rectangle' | 'circle'>('select');
+  const [selectedTool, setSelectedTool] = useState<'select' | 'pen' | 'arrow' | 'line' | 'rectangle' | 'circle' | 'text' | 'sticky'>('select');
   const [drawingShape, setDrawingShape] = useState<Shape | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isDrawingShape, setIsDrawingShape] = useState(false);
   const [showConnectionMenu, setShowConnectionMenu] = useState(false);
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [connectionMenuPosition, setConnectionMenuPosition] = useState({ x: 0, y: 0 });
   const [filterColor, setFilterColor] = useState<string | null>(null);
+  const [drawingColor, setDrawingColor] = useState('#ef4444'); // Red by default
+  const [drawingStrokeWidth, setDrawingStrokeWidth] = useState(3);
+  const [shapes, setShapes] = useState<Shape[]>([]);
+  const [selectedShape, setSelectedShape] = useState<string | null>(null);
+  const [isResizingShape, setIsResizingShape] = useState(false);
+  const [drawingPath, setDrawingPath] = useState<string>('');
+  const [isDrawingPath, setIsDrawingPath] = useState(false);
+  const [pathPoints, setPathPoints] = useState<{ x: number; y: number }[]>([]);
+  const [showToolSubmenu, setShowToolSubmenu] = useState(false);
+  const [draggedTool, setDraggedTool] = useState<string | null>(null);
   const [preparationProgress, setPreparationProgress] = useState<number>(0);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     { id: '1', task: 'Research company background', completed: false, section: 'overview' },
@@ -208,6 +221,7 @@ export default function InterviewPrepPage() {
   const [activeQuestionFilter, setActiveQuestionFilter] = useState<'all' | 'technical' | 'behavioral' | 'company-specific' | 'role-specific'>('all');
   const [showAllChecklistItems, setShowAllChecklistItems] = useState(false);
   const [showAllNewsItems, setShowAllNewsItems] = useState(false);
+  const [isJobSummaryOpen, setIsJobSummaryOpen] = useState(false);
   
 
   // Function to determine question tags based on content
@@ -1974,13 +1988,22 @@ Make sure each answer is completely unique and specific to its question - no gen
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    // Handle pen tool (free drawing)
+    if (selectedTool === 'pen') {
+      setIsDrawingPath(true);
+      setPathPoints([{ x, y }]);
+      setDrawingPath(`M ${x} ${y}`);
+      return;
+    }
+
+    // Handle other tools
     setIsDrawingShape(true);
     const newShape: Shape = {
       id: uuidv4(),
       type: selectedTool,
       startX: x,
       startY: y,
-      color: '#6b21a8'
+      color: drawingColor
     };
 
     setDrawingShape(newShape);
@@ -1992,6 +2015,13 @@ Make sure each answer is completely unique and specific to its question - no gen
 
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // Handle pen tool (free drawing)
+    if (isDrawingPath && selectedTool === 'pen') {
+      setPathPoints(prev => [...prev, { x, y }]);
+      setDrawingPath(prev => `${prev} L ${x} ${y}`);
+      return;
+    }
 
     if (isDrawingShape && drawingShape) {
       setDrawingShape({
@@ -2009,6 +2039,25 @@ Make sure each answer is completely unique and specific to its question - no gen
   };
 
   const handleCanvasMouseUp = () => {
+    // Handle pen tool (free drawing)
+    if (isDrawingPath && selectedTool === 'pen' && pathPoints.length > 1) {
+      const pathShape: Shape = {
+        id: uuidv4(),
+        type: 'pen',
+        startX: pathPoints[0].x,
+        startY: pathPoints[0].y,
+        endX: pathPoints[pathPoints.length - 1].x,
+        endY: pathPoints[pathPoints.length - 1].y,
+        color: drawingColor,
+        path: drawingPath
+      };
+      setShapes(prev => [...prev, pathShape]);
+      setDrawingPath('');
+      setPathPoints([]);
+      setIsDrawingPath(false);
+      return;
+    }
+
     if (isDrawingShape && drawingShape) {
       setShapes(prev => [...prev, drawingShape]);
       setDrawingShape(null);
@@ -2122,6 +2171,22 @@ Make sure each answer is completely unique and specific to its question - no gen
       };
     }
   }, [isResizing, resizingNoteId, resizeStart, stickyNotes, noteSizes, currentUser, application, interview, applicationId]);
+
+  // Close tool submenu when clicking outside
+  useEffect(() => {
+    if (showToolSubmenu) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.tool-submenu') && !target.closest('.tool-menu')) {
+          setShowToolSubmenu(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showToolSubmenu]);
 
   const deleteShape = (shapeId: string) => {
     setShapes(prev => prev.filter(shape => shape.id !== shapeId));
@@ -2498,15 +2563,35 @@ Make sure each answer is completely unique and specific to its question - no gen
             </div>
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
               <div>
-                <h1 className="text-3xl font-bold text-purple-600 dark:text-white mb-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
                   Interview Preparation
                 </h1>
+                    {interview?.preparation && (
+                      <div className="relative group">
+                        <button
+                          onClick={() => setIsJobSummaryOpen(true)}
+                          className="p-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors group/btn"
+                          title="View job summary"
+                        >
+                          <Info className="w-5 h-5 text-purple-500 dark:text-purple-400 group-hover/btn:text-purple-600 dark:group-hover/btn:text-purple-300 transition-colors" />
+                        </button>
+                        {/* Tooltip */}
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg z-50">
+                          View job summary & insights
+                          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 {application && (
                   <p className="text-gray-600 dark:text-gray-300 font-medium">
                     {application.position} at {application.companyName}
                   </p>
                 )}
+                </div>
               </div>
               
               {interview && (
@@ -4913,13 +4998,374 @@ Make sure each answer is completely unique and specific to its question - no gen
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="relative h-[calc(100%-80px)] overflow-hidden bg-gray-50 dark:bg-gray-900/50"
+                  className="relative h-[calc(100%-80px)] overflow-hidden bg-gray-50 dark:bg-gray-900/50 flex"
                 >
+                  {/* Tools Menu - Left Side */}
+                  <div className="relative z-20">
+                    <div className="tool-menu h-full bg-white dark:bg-gray-800 rounded-l-2xl shadow-lg border-r border-gray-200 dark:border-gray-700 p-2 flex flex-col items-center gap-2">
+                      {/* Close button */}
+                      <button
+                        onClick={() => setIsNotesExpanded(false)}
+                        className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors mb-2"
+                      >
+                        <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                      </button>
+                      
+                      {/* Tool buttons */}
+                      <button
+                        onClick={() => {
+                          setSelectedTool('select');
+                          setShowToolSubmenu(false);
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          selectedTool === 'select'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="Select"
+                      >
+                        <MousePointer className="w-5 h-5" />
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedTool('pen');
+                          setShowToolSubmenu(true);
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          selectedTool === 'pen'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="Pen"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                          <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                          <path d="M2 2l7.586 7.586" />
+                          <circle cx="11" cy="11" r="2" />
+                        </svg>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedTool('rectangle');
+                          setShowToolSubmenu(false);
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          selectedTool === 'rectangle'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="Rectangle"
+                      >
+                        <Square className="w-5 h-5" />
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedTool('circle');
+                          setShowToolSubmenu(false);
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          selectedTool === 'circle'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="Circle"
+                      >
+                        <Circle className="w-5 h-5" />
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedTool('line');
+                          setShowToolSubmenu(false);
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          selectedTool === 'line'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="Line"
+                      >
+                        <Minus className="w-5 h-5 rotate-45" />
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedTool('arrow');
+                          setShowToolSubmenu(false);
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          selectedTool === 'arrow'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="Arrow"
+                      >
+                        <ArrowUp className="w-5 h-5 rotate-45" />
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedTool('sticky');
+                          setShowToolSubmenu(false);
+                          createNewNote();
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          selectedTool === 'sticky'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="Sticky Note"
+                      >
+                        <StickyNote className="w-5 h-5" />
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedTool('text');
+                          setShowToolSubmenu(false);
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          selectedTool === 'text'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="Text"
+                      >
+                        <span className="text-lg font-bold">T</span>
+                      </button>
+                    </div>
+                    
+                    {/* Submenu for pen tool */}
+                    {showToolSubmenu && selectedTool === 'pen' && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="tool-submenu absolute left-full ml-2 top-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-3 min-w-[120px]"
+                      >
+                        <div className="space-y-2">
+                          {/* Color options */}
+                          <div className="space-y-1.5">
+                            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Colors</div>
+                            {[
+                              { color: '#3b82f6', name: 'Blue' },
+                              { color: '#ef4444', name: 'Red' },
+                              { color: '#fbbf24', name: 'Yellow' },
+                              { color: '#ec4899', name: 'Pink' },
+                              { color: '#ef4444', name: 'Red Circle' },
+                            ].map((colorOption, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  if (idx === 4) {
+                                    // Red circle option
+                                    setDrawingColor('#ef4444');
+                                  } else {
+                                    setDrawingColor(colorOption.color);
+                                  }
+                                }}
+                                className={`w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                  drawingColor === colorOption.color ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                                }`}
+                              >
+                                {idx === 4 ? (
+                                  <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-gray-300"></div>
+                                ) : (
+                                  <div className="w-4 h-4 rounded" style={{ backgroundColor: colorOption.color }}></div>
+                                )}
+                                <span className="text-xs text-gray-700 dark:text-gray-300">{colorOption.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                          
+                          {/* Stroke width */}
+                          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Thickness</div>
+                            <div className="space-y-1">
+                              {[1, 2, 3].map((width) => (
+                                <button
+                                  key={width}
+                                  onClick={() => setDrawingStrokeWidth(width)}
+                                  className={`w-full flex items-center gap-2 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                                    drawingStrokeWidth === width ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                                  }`}
+                                >
+                                  <div className="flex gap-0.5">
+                                    {Array(width).fill(0).map((_, i) => (
+                                      <div key={i} className="w-1 h-4 bg-gray-400 rounded"></div>
+                                    ))}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                  
                   {/* Canvas area */}
                   <div 
-                    className="relative h-full p-4"
+                    className={`relative flex-1 h-full overflow-hidden ${
+                      selectedTool === 'pen' ? 'cursor-crosshair' :
+                      selectedTool === 'select' ? 'cursor-default' :
+                      selectedTool === 'text' ? 'cursor-text' :
+                      'cursor-crosshair'
+                    }`}
                     ref={canvasRef}
+                    onMouseDown={handleCanvasMouseDown}
+                    onMouseMove={handleCanvasMouseMove}
+                    onMouseUp={handleCanvasMouseUp}
+                    onMouseLeave={handleCanvasMouseUp}
                   >
+                    {/* SVG overlay for drawing */}
+                    <svg
+                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      style={{ zIndex: 10 }}
+                    >
+                      {/* Render all shapes */}
+                      {shapes.map((shape) => {
+                        if (shape.type === 'pen' && shape.path) {
+                          // Render path for pen drawings
+                          return (
+                            <path
+                              key={shape.id}
+                              d={shape.path}
+                              stroke={shape.color}
+                              strokeWidth={drawingStrokeWidth}
+                              fill="none"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className={selectedShape === shape.id ? 'opacity-80' : ''}
+                            />
+                          );
+                        }
+                        if (shape.type === 'line' || shape.type === 'arrow') {
+                          const dx = (shape.endX || 0) - shape.startX;
+                          const dy = (shape.endY || 0) - shape.startY;
+                          const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                          return (
+                            <g key={shape.id}>
+                              <line
+                                x1={shape.startX}
+                                y1={shape.startY}
+                                x2={shape.endX || shape.startX}
+                                y2={shape.endY || shape.startY}
+                                stroke={shape.color}
+                                strokeWidth={drawingStrokeWidth}
+                                strokeLinecap="round"
+                                className={selectedShape === shape.id ? 'opacity-80' : ''}
+                              />
+                              {shape.type === 'arrow' && (
+                                <polygon
+                                  points={`${shape.endX || shape.startX},${shape.endY || shape.startY} ${(shape.endX || shape.startX) - 10},${(shape.endY || shape.startY) - 5} ${(shape.endX || shape.startX) - 10},${(shape.endY || shape.startY) + 5}`}
+                                  fill={shape.color}
+                                  transform={`rotate(${angle} ${shape.endX || shape.startX} ${shape.endY || shape.startY})`}
+                                />
+                              )}
+                            </g>
+                          );
+                        }
+                        if (shape.type === 'rectangle') {
+                          return (
+                            <rect
+                              key={shape.id}
+                              x={Math.min(shape.startX, shape.endX || shape.startX)}
+                              y={Math.min(shape.startY, shape.endY || shape.startY)}
+                              width={Math.abs((shape.endX || shape.startX) - shape.startX)}
+                              height={Math.abs((shape.endY || shape.startY) - shape.startY)}
+                              stroke={shape.color}
+                              strokeWidth={drawingStrokeWidth}
+                              fill="none"
+                              className={selectedShape === shape.id ? 'opacity-80' : ''}
+                            />
+                          );
+                        }
+                        if (shape.type === 'circle') {
+                          const radius = Math.sqrt(
+                            Math.pow((shape.endX || shape.startX) - shape.startX, 2) +
+                            Math.pow((shape.endY || shape.startY) - shape.startY, 2)
+                          );
+                          return (
+                            <circle
+                              key={shape.id}
+                              cx={shape.startX}
+                              cy={shape.startY}
+                              r={radius}
+                              stroke={shape.color}
+                              strokeWidth={drawingStrokeWidth}
+                              fill="none"
+                              className={selectedShape === shape.id ? 'opacity-80' : ''}
+                            />
+                          );
+                        }
+                        return null;
+                      })}
+                      
+                      {/* Render current drawing shape */}
+                      {drawingShape && (
+                        <>
+                          {drawingShape.type === 'line' || drawingShape.type === 'arrow' ? (
+                            <g>
+                              <line
+                                x1={drawingShape.startX}
+                                y1={drawingShape.startY}
+                                x2={drawingShape.endX || drawingShape.startX}
+                                y2={drawingShape.endY || drawingShape.startY}
+                                stroke={drawingShape.color}
+                                strokeWidth={drawingStrokeWidth}
+                                strokeLinecap="round"
+                              />
+                              {drawingShape.type === 'arrow' && drawingShape.endX && drawingShape.endY && (
+                                <polygon
+                                  points={`${drawingShape.endX},${drawingShape.endY} ${drawingShape.endX - 10},${drawingShape.endY - 5} ${drawingShape.endX - 10},${drawingShape.endY + 5}`}
+                                  fill={drawingShape.color}
+                                />
+                              )}
+                            </g>
+                          ) : drawingShape.type === 'rectangle' ? (
+                            <rect
+                              x={Math.min(drawingShape.startX, drawingShape.endX || drawingShape.startX)}
+                              y={Math.min(drawingShape.startY, drawingShape.endY || drawingShape.startY)}
+                              width={Math.abs((drawingShape.endX || drawingShape.startX) - drawingShape.startX)}
+                              height={Math.abs((drawingShape.endY || drawingShape.startY) - drawingShape.startY)}
+                              stroke={drawingShape.color}
+                              strokeWidth={drawingStrokeWidth}
+                              fill="none"
+                            />
+                          ) : drawingShape.type === 'circle' ? (
+                            <circle
+                              cx={drawingShape.startX}
+                              cy={drawingShape.startY}
+                              r={Math.sqrt(
+                                Math.pow((drawingShape.endX || drawingShape.startX) - drawingShape.startX, 2) +
+                                Math.pow((drawingShape.endY || drawingShape.startY) - drawingShape.startY, 2)
+                              )}
+                              stroke={drawingShape.color}
+                              strokeWidth={drawingStrokeWidth}
+                              fill="none"
+                            />
+                          ) : null}
+                        </>
+                      )}
+                      
+                      {/* Render current pen path */}
+                      {isDrawingPath && drawingPath && (
+                        <path
+                          d={drawingPath}
+                          stroke={drawingColor}
+                          strokeWidth={drawingStrokeWidth}
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      )}
+                    </svg>
+                    
+                    {/* Notes overlay */}
                     {filteredNotes.length === 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
                         <div className="text-center">
@@ -4944,9 +5390,10 @@ Make sure each answer is completely unique and specific to its question - no gen
                             onStart={handleDragStart}
                             onStop={(e, data) => handleDragStop(note.id, e, data)}
                             bounds="parent"
+                            disabled={selectedTool !== 'select'}
                           >
                           <div 
-                            className="absolute rounded-lg shadow-lg cursor-move"
+                            className="absolute rounded-lg shadow-lg cursor-move z-20"
                             style={{ 
                               backgroundColor: note.color,
                               width: `${noteSizes[note.id]?.width || note.width || 250}px`,
@@ -4971,7 +5418,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                               <div 
                                 className="text-sm text-gray-700 flex-1 overflow-y-auto"
                                 onClick={(e) => {
-                                  if (!isDragging && !isResizing) {
+                                  if (!isDragging && !isResizing && selectedTool === 'select') {
                                     handleNoteClick(note.id, e);
                                   }
                                 }}

@@ -16,6 +16,7 @@ interface CVUploadStepProps {
 export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUploadStepProps) {
   const { currentUser } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadedCvUrl, setUploadedCvUrl] = useState<string>(cvUrl || '');
   const [uploadedCvName, setUploadedCvName] = useState<string>(cvName || '');
@@ -26,8 +27,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
     setUploadedCvName(cvName || '');
   }, [cvUrl, cvName]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  const handleFileUpload = async (selectedFile: File) => {
     if (!selectedFile || !currentUser) return;
 
     // Validate file size (5MB limit)
@@ -63,6 +63,36 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
       setFile(null);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      await handleFileUpload(selectedFile);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileUpload(file);
     }
   };
 
@@ -125,11 +155,20 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
         </div>
       ) : (
         <div className="flex items-center justify-center w-full">
-          <label className="flex flex-col w-full h-32 border-2 border-gray-300 dark:border-gray-700 border-dashed 
-            rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 
+          <label 
+            className={`flex flex-col w-full h-32 border-2 border-dashed 
+            rounded-lg cursor-pointer 
             transition-all duration-200 bg-white dark:bg-gray-800
             shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
-            hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]">
+            ${
+              isDragging
+                ? 'border-[#8D75E6] bg-[#8D75E6]/10 dark:bg-[#8D75E6]/20 shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]'
+                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-[#8D75E6]/50 dark:hover:border-[#8D75E6]/50 hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               {isUploading ? (
                 <>
@@ -138,7 +177,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
                 </>
               ) : (
                 <>
-                  <Upload className="w-8 h-8 mb-3 text-gray-400 dark:text-gray-500" />
+                  <Upload className={`w-8 h-8 mb-3 ${isDragging ? 'text-[#8D75E6]' : 'text-gray-400 dark:text-gray-500'}`} />
                   <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>

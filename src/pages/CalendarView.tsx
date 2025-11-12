@@ -432,20 +432,23 @@ EXTRACTION REQUIREMENTS FOR EACH FIELD:
    - CRITICAL: If you cannot determine the job location from context, return an empty string "" - do NOT guess
 
 4. "summary":
-   - Extract a comprehensive, useful summary of the job posting
-   - Include: key responsibilities, required qualifications, main requirements, and what makes this role unique
-   - Format: 3-5 sentences that provide valuable context about the role
-   - Focus on: what the role entails, key responsibilities, required experience/skills, and any notable aspects
-   - Make it informative and useful for someone tracking this application
-   - Do NOT just copy the first paragraph - synthesize the most important information
-   - Length: approximately 150-300 words
+   - Extract a concise, structured summary with exactly 3 key points about the job posting
+   - Format: Use bullet points (•) separated by newlines, each point on a single line
+   - Each point should be brief (15-30 words max) and focus on the most important information
+   - Structure the 3 points as follows:
+     1. Key responsibilities/main duties (what the role does)
+     2. Required qualifications/experience (what they're looking for)
+     3. Notable aspects/benefits/unique selling points (what makes this role interesting)
+   - Make it scannable and useful for quick reference on an application card
+   - Do NOT write long paragraphs - keep it concise and actionable
+   - Total length: maximum 100 words across all 3 points
 
 Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, no additional text):
 {
   "companyName": "exact company name from page",
   "position": "exact job title from page",
   "location": "exact location for this specific job posting from page",
-  "summary": "comprehensive 3-5 sentence summary of the role, responsibilities, and key requirements"
+  "summary": "• First key point about responsibilities (15-30 words)\n• Second key point about qualifications (15-30 words)\n• Third key point about notable aspects (15-30 words)"
 }
 
 URL to visit: ${jobUrl}
@@ -553,18 +556,35 @@ URL to visit: ${jobUrl}
         summary: extractedData.summary?.trim() || ''
       };
 
+      // Formater le summary pour les notes - format structuré avec 3 points
       let formattedNotes = cleanedData.summary;
       if (formattedNotes) {
+        // S'assurer que le summary est bien formaté
+        // Enlever les échappements JSON si présents
         formattedNotes = formattedNotes
           .replace(/\\n/g, '\n')
           .replace(/\\"/g, '"')
           .replace(/\\'/g, "'")
           .trim();
         
-        if (formattedNotes.length < 50) {
-          formattedNotes = `Job Summary:\n${formattedNotes}`;
+        // S'assurer que les puces sont bien formatées (• ou -)
+        // Si le format n'a pas de puces, les ajouter
+        if (!formattedNotes.includes('•') && !formattedNotes.includes('-')) {
+          // Diviser par lignes et ajouter des puces
+          const lines = formattedNotes.split('\n').filter(line => line.trim().length > 0);
+          if (lines.length > 0) {
+            formattedNotes = lines.map(line => {
+              const trimmed = line.trim();
+              // Si la ligne ne commence pas déjà par une puce, en ajouter une
+              if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
+                return `• ${trimmed}`;
+              }
+              return trimmed;
+            }).join('\n');
+          }
         }
         
+        // Ajouter une séparation visuelle si des notes existent déjà
         if (formData.notes && formData.notes.trim()) {
           formattedNotes = `${formData.notes}\n\n---\n\n${formattedNotes}`;
         }
@@ -916,6 +936,26 @@ URL to visit: ${jobUrl}
               </p>
             </div>
           )}
+
+          {/* Interview Type - Remonté pour meilleure visibilité après le lookup */}
+          {eventType === 'interview' && (
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Interview Type *
+              </label>
+              <select
+                value={formData.interviewType}
+                onChange={(e) => setFormData(prev => ({ ...prev, interviewType: e.target.value }))}
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              >
+                <option value="technical">Technical</option>
+                <option value="hr">HR</option>
+                <option value="manager">Manager</option>
+                <option value="final">Final</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          )}
           
             {/* Formulaire - affiché seulement si un type est sélectionné */}
             {eventType && (
@@ -1032,21 +1072,6 @@ URL to visit: ${jobUrl}
             {/* Champs spécifiques pour les entretiens */}
             {eventType === 'interview' && (
               <>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Interview Type</label>
-                  <select
-                    value={formData.interviewType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, interviewType: e.target.value }))}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  >
-                    <option value="technical">Technical</option>
-                    <option value="hr">HR</option>
-                    <option value="manager">Manager</option>
-                    <option value="final">Final</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Time</label>
                   <input

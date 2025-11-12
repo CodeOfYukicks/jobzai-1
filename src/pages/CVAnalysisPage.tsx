@@ -110,6 +110,7 @@ interface ATSAnalysis {
       recommendations: string[];
     };
   };
+  jobSummary?: string; // AI-generated job summary
   resumeQuality?: {
     actionVerbs: { count: number; examples: string[]; recommendations: string[] };
     quantification: { score: number; achievementsWithNumbers: number; totalAchievements: number; recommendations: string[] };
@@ -961,6 +962,182 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
   };
 };
 
+// Generate job post summary using AI
+const generateJobSummary = async (jobTitle: string, company: string, jobDescription: string): Promise<string | null> => {
+  try {
+    // Generate summary even if description is short, but skip if completely empty
+    if (!jobDescription || jobDescription.trim().length === 0 || jobDescription === 'Not provided') {
+      console.warn('Skipping job summary generation: no job description provided');
+      return null;
+    }
+    
+    // Log for debugging
+    console.log('📝 Generating job summary for:', { jobTitle, company, descriptionLength: jobDescription.length });
+
+    const prompt = `You are an expert career consultant. Analyze this job posting and create a clear, concise summary that highlights only the most important information.
+
+JOB POSTING DETAILS:
+- Job Title: ${jobTitle}
+- Company: ${company}
+- Full Job Description:
+${jobDescription.substring(0, 4000)}
+
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
+You MUST return ONLY plain text with markdown-style formatting. DO NOT return JSON. DO NOT use code blocks. DO NOT use curly braces {} or square brackets [] for structure.
+
+Create a well-structured summary EXACTLY in this format:
+
+**Key Responsibilities**
+• [Responsibility 1]
+• [Responsibility 2]
+• [Responsibility 3]
+
+**Required Qualifications**
+• [Qualification 1]
+• [Qualification 2]
+• [Qualification 3]
+
+**Preferred Qualifications**
+• [Qualification 1]
+• [Qualification 2]
+
+**Company/Team Context**
+[Brief context about the company or team if available]
+
+FORMATTING RULES:
+1. Use ** (double asterisks) for section headers ONLY (e.g., **Key Responsibilities**)
+2. Use bullet points (•) for list items
+3. Each section header must be on its own line
+4. Each bullet point must be on its own line starting with •
+5. Sections must be separated by TWO blank lines
+6. Return ONLY the formatted text - NO JSON, NO code blocks, NO curly braces, NO square brackets
+7. Start directly with **Key Responsibilities** - no introduction, no explanation`;
+
+    const response = await fetch('/api/chatgpt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'cv-edit', prompt }),
+    });
+
+    if (!response.ok) {
+      console.warn('Failed to generate job summary, continuing without it');
+      return null;
+    }
+
+    const text = await response.text();
+    if (!text) {
+      return null;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.warn('Failed to parse job summary response');
+      return null;
+    }
+
+    if (data.status !== 'success') {
+      return null;
+    }
+
+    let summary = '';
+    if (typeof data.content === 'string') {
+      summary = data.content;
+    } else if (data.content && typeof data.content === 'object') {
+      summary = JSON.stringify(data.content, null, 2);
+    } else {
+      return null;
+    }
+
+    // Clean up the summary - try to parse JSON if it's JSON format
+    summary = summary.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    
+    // Try to parse and format if it's JSON
+    try {
+      const parsed = JSON.parse(summary);
+      
+      // Handle different JSON structures
+      let data: any = null;
+      if (parsed.summary) {
+        data = parsed.summary;
+      } else if (parsed.content) {
+        data = parsed.content;
+      } else if (parsed['Key Responsibilities'] || parsed.keyResponsibilities) {
+        data = parsed;
+      } else {
+        const keys = Object.keys(parsed);
+        if (keys.length > 0 && typeof parsed[keys[0]] === 'object') {
+          data = parsed[keys[0]];
+        } else {
+          data = parsed;
+        }
+      }
+      
+      if (data && typeof data === 'object') {
+        let formatted = '';
+        
+        if (data['Key Responsibilities'] || data.keyResponsibilities) {
+          formatted += '**Key Responsibilities**\n\n';
+          const responsibilities = data['Key Responsibilities'] || data.keyResponsibilities || [];
+          if (Array.isArray(responsibilities)) {
+            responsibilities.forEach((item: string) => {
+              formatted += `• ${item}\n`;
+            });
+          }
+          formatted += '\n';
+        }
+        
+        if (data['Required Qualifications'] || data.requiredQualifications) {
+          formatted += '**Required Qualifications**\n\n';
+          const required = data['Required Qualifications'] || data.requiredQualifications || [];
+          if (Array.isArray(required)) {
+            required.forEach((item: string) => {
+              formatted += `• ${item}\n`;
+            });
+          }
+          formatted += '\n';
+        }
+        
+        if (data['Preferred Qualifications'] || data.preferredQualifications) {
+          formatted += '**Preferred Qualifications**\n\n';
+          const preferred = data['Preferred Qualifications'] || data.preferredQualifications || [];
+          if (Array.isArray(preferred)) {
+            preferred.forEach((item: string) => {
+              formatted += `• ${item}\n`;
+            });
+          }
+          formatted += '\n';
+        }
+        
+        if (data['Company/Team Context'] || data.companyContext || data.context) {
+          formatted += '**Company/Team Context**\n\n';
+          const context = data['Company/Team Context'] || data.companyContext || data.context || '';
+          if (typeof context === 'string') {
+            formatted += `${context}\n`;
+          } else if (Array.isArray(context)) {
+            context.forEach((item: string) => {
+              formatted += `• ${item}\n`;
+            });
+          }
+          formatted += '\n';
+        }
+        
+        if (formatted.trim()) {
+          summary = formatted.trim();
+        }
+      }
+    } catch (e) {
+      // Not JSON, keep as is
+    }
+    
+    return summary || null;
+  } catch (e) {
+    console.warn('Error generating job summary:', e);
+    return null;
+  }
+};
+
 // Fonction d'analyse plus sophistiquée
 const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
   try {
@@ -1185,8 +1362,8 @@ export default function CVAnalysisPage() {
               savedAnalyses.push({
                 id: doc.id,
                 date: data.date,
-                jobTitle: data.jobTitle,
-                company: data.company,
+                jobTitle: data.jobTitle || 'Untitled Position',
+                company: data.company || 'Unknown Company',
                 matchScore: data.matchScore,
                 userId: '', // Assuming userId is not provided in the saved data
                 keyFindings: data.keyFindings,
@@ -1195,6 +1372,7 @@ export default function CVAnalysisPage() {
                 recommendations: data.recommendations,
                 categoryScores: data.categoryScores,
                 executiveSummary: data.executiveSummary,
+                jobSummary: data.jobSummary || undefined, // Include job summary if available
               });
             }
           });
@@ -2120,15 +2298,35 @@ URL to visit: ${jobUrl}
         }
         
         // Mettre à jour le formulaire avec les données extraites
-          setFormData({
-            ...formData,
-          jobTitle: extractedData.position.trim(),
-          company: extractedData.companyName.trim(),
-          jobDescription: (extractedData.jobDescription || '').trim(),
+        const extractedJobTitle = extractedData.position?.trim() || '';
+        const extractedCompany = extractedData.companyName?.trim() || '';
+        const extractedDescription = (extractedData.jobDescription || '').trim();
+        
+        console.log('📥 Extracted data:', {
+          jobTitle: extractedJobTitle,
+          company: extractedCompany,
+          descriptionLength: extractedDescription.length
+        });
+        
+        if (!extractedJobTitle || !extractedCompany) {
+          throw new Error('Failed to extract job title or company name. Please try again or enter manually.');
+        }
+        
+        setFormData({
+          ...formData,
+          jobTitle: extractedJobTitle,
+          company: extractedCompany,
+          jobDescription: extractedDescription,
+        });
+        
+        console.log('✅ FormData updated:', {
+          jobTitle: extractedJobTitle,
+          company: extractedCompany,
+          descriptionLength: extractedDescription.length
         });
         
         // Message de succès avec information sur la longueur
-        const descLength = (extractedData.jobDescription || '').length;
+        const descLength = extractedDescription.length;
         if (descLength > 500) {
           toast.success(`Job information extracted successfully! (${descLength} characters)`);
         } else {
@@ -2192,38 +2390,82 @@ URL to visit: ${jobUrl}
           setLoadingProgress(30);
           await new Promise(resolve => setTimeout(resolve, 500));
           
-          // Prepare job details
+          // Prepare job details - use actual formData values, not defaults
+          const jobTitle = formData.jobTitle?.trim() || '';
+          const company = formData.company?.trim() || '';
+          const jobDescription = formData.jobDescription?.trim() || '';
+          
+          console.log('🔍 Current formData before analysis:', {
+            jobTitle,
+            company,
+            jobDescriptionLength: jobDescription.length,
+            formDataKeys: Object.keys(formData),
+            fullFormData: formData
+          });
+          
+          if (!jobTitle || !company || jobTitle === 'Untitled Position' || company === 'Unknown Company') {
+            toast.error('Job title and company are required. Please extract or enter them first.');
+            console.error('❌ Missing job information:', { jobTitle, company });
+            setIsLoading(false);
+            return;
+          }
+          
           const jobDetails = {
-            jobTitle: formData.jobTitle || 'Not specified',
-            company: formData.company || 'Not specified',
-            jobDescription: formData.jobDescription || 'Not provided'
+            jobTitle,
+            company,
+            jobDescription: jobDescription || 'Not provided'
           };
           
-          console.log('📡 Sending request to GPT-4o Vision API...');
+          console.log('📋 Job details for analysis:', { jobTitle, company, descriptionLength: jobDescription.length });
           
-          // Update loading step
+          // Generate job summary in parallel with analysis
           setLoadingStep('analyzing');
           setLoadingProgress(40);
           
-          // Call GPT-4o Vision API with the images
-          const analysis = await analyzeCVWithGPT4Vision(images, jobDetails);
+          const [analysis, jobSummary] = await Promise.all([
+            analyzeCVWithGPT4Vision(images, jobDetails),
+            generateJobSummary(jobTitle, company, jobDescription)
+          ]);
           
           console.log('✅ GPT-4o Vision analysis successful!', analysis);
+          console.log('✅ Job summary generated:', jobSummary ? `Yes (${jobSummary.length} chars)` : 'No');
+          if (jobSummary) {
+            console.log('📄 Job summary preview:', jobSummary.substring(0, 200));
+          }
           
           // Update loading step
           setLoadingStep('matching');
           setLoadingProgress(80);
           await new Promise(resolve => setTimeout(resolve, 2000));
           
-          // Create analysis object
+          // Create analysis object with actual values
           const fullAnalysis = {
             ...analysis,
             id: `analysis_${Date.now()}`,
             date: formatDateString(analysis.date),
             userId: auth.currentUser?.uid || 'anonymous',
-            jobTitle: jobDetails.jobTitle,
-            company: jobDetails.company
+            jobTitle: jobTitle, // Use actual value, not from jobDetails
+            company: company, // Use actual value, not from jobDetails
+            jobSummary: jobSummary || undefined
           };
+          
+          console.log('💾 Saving analysis with:', { 
+            jobTitle: fullAnalysis.jobTitle, 
+            company: fullAnalysis.company, 
+            hasJobSummary: !!fullAnalysis.jobSummary,
+            jobSummaryLength: fullAnalysis.jobSummary?.length || 0
+          });
+          
+          // Verify the data before saving
+          if (!fullAnalysis.jobTitle || fullAnalysis.jobTitle === 'Untitled Position') {
+            console.error('⚠️ WARNING: jobTitle is missing or default value!');
+          }
+          if (!fullAnalysis.company || fullAnalysis.company === 'Unknown Company') {
+            console.error('⚠️ WARNING: company is missing or default value!');
+          }
+          if (!fullAnalysis.jobSummary) {
+            console.warn('⚠️ WARNING: jobSummary is missing!');
+          }
           
           // Update loading step
           setLoadingStep('finalizing');
@@ -4902,6 +5144,72 @@ URL to visit: ${jobUrl}
                       </div>
                     ))}
                   </div>
+
+                  {/* Job Summary */}
+                  {selectedAnalysis.jobSummary ? (
+                    <div className="bg-gradient-to-br from-purple-50/50 to-indigo-50/50 dark:from-purple-900/10 dark:to-indigo-900/10 rounded-xl p-6 border border-purple-100/50 dark:border-purple-800/30">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        Job Post Summary
+                      </h3>
+                      <div className="space-y-5">
+                        {(() => {
+                          const sections = selectedAnalysis.jobSummary.split(/\n\n+/).filter(s => s.trim());
+                          
+                          return sections.map((section, sectionIdx) => {
+                            const lines = section.split('\n').filter(l => l.trim());
+                            if (lines.length === 0) return null;
+                            
+                            const firstLine = lines[0]?.trim() || '';
+                            
+                            if (firstLine.startsWith('**') && firstLine.endsWith('**')) {
+                              const headerText = firstLine.replace(/\*\*/g, '').trim();
+                              const contentLines = lines.slice(1);
+                              
+                              return (
+                                <div key={sectionIdx} className={sectionIdx > 0 ? 'pt-5 border-t border-purple-200/60 dark:border-purple-700/40' : ''}>
+                                  <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                    {headerText}
+                                  </h4>
+                                  <div className="space-y-2 ml-3.5">
+                                    {contentLines.map((line, lineIdx) => {
+                                      const cleanLine = line.replace(/^[-•]\s*/, '').trim();
+                                      if (!cleanLine) return null;
+                                      
+                                      return (
+                                        <div key={lineIdx} className="flex items-start gap-2.5">
+                                          <span className="text-purple-500 dark:text-purple-400 mt-1.5 flex-shrink-0 text-xs">▸</span>
+                                          <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{cleanLine}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            
+                            const cleanSection = section.trim();
+                            if (cleanSection && !cleanSection.startsWith('{') && !cleanSection.startsWith('[')) {
+                              return (
+                                <div key={sectionIdx} className={sectionIdx > 0 ? 'pt-5 border-t border-purple-200/60 dark:border-purple-700/40' : ''}>
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{cleanSection}</p>
+                                </div>
+                              );
+                            }
+                            
+                            return null;
+                          });
+                        })()}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                        Job summary not available for this analysis
+                      </p>
+                    </div>
+                  )}
 
                   {/* Executive Summary */}
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">

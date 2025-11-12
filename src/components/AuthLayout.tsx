@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
@@ -46,18 +46,19 @@ interface UpcomingInterview {
 const navigationGroups = {
   activities: [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Template Studio', href: '/email-templates', icon: Mail, ai: true },
-    { name: 'Campaigns', href: '/campaigns', icon: ScrollText, ai: true },
+    { name: 'Template Studio', href: '/email-templates', icon: Mail },
+    { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
   ],
   jobTracking: [
-    { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch, ai: true },
+    { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
+    { name: 'CV Optimizer', href: '/cv-optimizer', icon: ScrollText },
     { name: 'Application Tracking', href: '/applications', icon: Briefcase },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
-    { name: 'Interview Hub', href: '/upcoming-interviews', icon: Clock, ai: true },
+    { name: 'Interview Hub', href: '/upcoming-interviews', icon: Clock },
   ],
   profile: [
     { name: 'Professional Profile', href: '/professional-profile', icon: User },
-    { name: 'Recommendations', href: '/recommendations', icon: Lightbulb, ai: true },
+    { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
   ],
 };
 
@@ -140,6 +141,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
   const [isLoadingInterviews, setIsLoadingInterviews] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState<string>('');
+  const [isCollapsed, setIsCollapsed] = useState(location.pathname.startsWith('/cv-optimizer/'));
+
+  useEffect(() => {
+    // Auto-collapse sidebar on CV Optimizer edit pages for full-width editing
+    if (location.pathname.startsWith('/cv-optimizer/')) {
+      setIsCollapsed(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (currentUser) {
@@ -244,20 +253,38 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar desktop */}
-      <div className="hidden md:fixed md:inset-y-0 md:flex md:w-72 lg:w-80 z-50">
-        <div className="flex flex-col h-full bg-white dark:bg-gray-800 shadow-xl">
-          {/* Logo */}
-          <div className="flex h-14 shrink-0 items-center justify-center px-5 border-b border-gray-200 dark:border-gray-700">
+      <div className={`hidden md:fixed md:inset-y-0 md:flex z-50 md:pl-3 lg:pl-4 md:py-4 transition-all duration-300 ${isCollapsed ? 'md:w-20 lg:w-20' : 'md:w-72 lg:w-80'}`}>
+        <div className="relative flex flex-col h-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl">
+          {/* Logo avec bouton collapse */}
+          <div className="relative flex h-14 shrink-0 items-center justify-center border-b border-gray-200 dark:border-gray-700">
+            {/* Logo centré */}
             <Link 
               to="/"
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              className="flex items-center justify-center hover:opacity-80 transition-opacity"
             >
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="h-7 w-auto" />
+                <img src={logoUrl} alt="Logo" className={`${isCollapsed ? 'h-7 w-7' : 'h-7 w-auto'}`} />
               ) : (
-                <div className="h-7 w-28 bg-gray-100 animate-pulse rounded" />
+                <div className={`${isCollapsed ? 'h-7 w-7' : 'h-7 w-28'} bg-gray-100 animate-pulse rounded`} />
               )}
             </Link>
+            
+            {/* Bouton collapse - positionné à droite */}
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className={`absolute right-3 group flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200
+                text-gray-400 dark:text-gray-500 
+                hover:text-gray-600 dark:hover:text-gray-300
+                hover:bg-gray-100 dark:hover:bg-gray-700/50
+                active:scale-95`}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              ) : (
+                <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              )}
+            </button>
           </div>
 
           {/* Navigation principale - flex-1 pour prendre l'espace disponible */}
@@ -265,21 +292,24 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <nav className="p-3 space-y-4">
               {/* Activities Section */}
               <div className="space-y-1">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Spontaneous Applications
-                </p>
+                {!isCollapsed && (
+                  <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Spontaneous Applications
+                  </p>
+                )}
                 {navigationGroups.activities.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
                     onMouseEnter={() => setIsHovered(item.name)}
                     onMouseLeave={() => setIsHovered(null)}
-                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl 
+                    className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 text-sm font-medium rounded-xl 
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                         ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
+                    title={isCollapsed ? item.name : undefined}
                   >
                     {/* Hover Effect */}
                     {isHovered === item.name && (
@@ -293,19 +323,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       />
                     )}
                     
-                    <div className="relative flex items-center gap-3 flex-1">
+                    <div className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 flex-1'}`}>
                       <item.icon className={`h-5 w-5 transition-colors
                         ${location.pathname === item.href 
                           ? 'text-purple-600 dark:text-purple-400' 
                           : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
                       />
-                      <span className="flex-1">{item.name}</span>
-                      {item.ai && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-medium tracking-[0.05em] uppercase 
-                          text-gray-500 dark:text-gray-400 bg-transparent border border-gray-300/60 
-                          dark:border-gray-600/40 rounded-[3px]">
-                          AI
-                        </span>
+                      {!isCollapsed && (
+                        <span className="flex-1">{item.name}</span>
                       )}
                     </div>
 
@@ -322,21 +347,24 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
               {/* Job Tracking Section */}
               <div className="space-y-1">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Job Tracking
-                </p>
+                {!isCollapsed && (
+                  <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Job Tracking
+                  </p>
+                )}
                 {navigationGroups.jobTracking.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
                     onMouseEnter={() => setIsHovered(item.name)}
                     onMouseLeave={() => setIsHovered(null)}
-                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl 
+                    className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 text-sm font-medium rounded-xl 
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                         ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
+                    title={isCollapsed ? item.name : undefined}
                   >
                     {/* Hover Effect */}
                     {isHovered === item.name && (
@@ -350,19 +378,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       />
                     )}
                     
-                    <div className="relative flex items-center gap-3 flex-1">
+                    <div className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 flex-1'}`}>
                       <item.icon className={`h-5 w-5 transition-colors
                         ${location.pathname === item.href 
                           ? 'text-purple-600 dark:text-purple-400' 
                           : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
                       />
-                      <span className="flex-1">{item.name}</span>
-                      {item.ai && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-medium tracking-[0.05em] uppercase 
-                          text-gray-500 dark:text-gray-400 bg-transparent border border-gray-300/60 
-                          dark:border-gray-600/40 rounded-[3px]">
-                          AI
-                        </span>
+                      {!isCollapsed && (
+                        <span className="flex-1">{item.name}</span>
                       )}
                     </div>
 
@@ -379,21 +402,24 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
               {/* Profile Section */}
               <div className="space-y-1">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Profile & Recommendations
-                </p>
+                {!isCollapsed && (
+                  <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Profile & Recommendations
+                  </p>
+                )}
                 {navigationGroups.profile.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
                     onMouseEnter={() => setIsHovered(item.name)}
                     onMouseLeave={() => setIsHovered(null)}
-                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl 
+                    className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 text-sm font-medium rounded-xl 
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                         ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
+                    title={isCollapsed ? item.name : undefined}
                   >
                     {/* Hover Effect */}
                     {isHovered === item.name && (
@@ -407,19 +433,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       />
                     )}
                     
-                    <div className="relative flex items-center gap-3 flex-1">
+                    <div className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 flex-1'}`}>
                       <item.icon className={`h-5 w-5 transition-colors
                         ${location.pathname === item.href 
                           ? 'text-purple-600 dark:text-purple-400' 
                           : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
                       />
-                      <span className="flex-1">{item.name}</span>
-                      {item.ai && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-medium tracking-[0.05em] uppercase 
-                          text-gray-500 dark:text-gray-400 bg-transparent border border-gray-300/60 
-                          dark:border-gray-600/40 rounded-[3px]">
-                          AI
-                        </span>
+                      {!isCollapsed && (
+                        <span className="flex-1">{item.name}</span>
                       )}
                     </div>
 
@@ -435,7 +456,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               </div>
 
               {/* Profile Completion Alert si < 90% */}
-              {profileCompletion < 90 && (
+              {!isCollapsed && profileCompletion < 90 && (
                 <div className="mt-3">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -498,57 +519,69 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           {/* Section du bas - flex-shrink-0 pour taille fixe */}
           <div className="flex-shrink-0">
             {/* Credits Card - Version améliorée */}
-            <div className="p-2.5 border-t border-gray-200 dark:border-gray-700">
-              <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 p-3">
-                {/* Cercles décoratifs en arrière-plan */}
-                <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/10" />
-                <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-white/5" />
-                
-                <div className="relative">
-                  {/* Montant des crédits */}
-                  <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-2xl font-bold text-white">{credits}</span>
-                    <span className="text-xs text-white/70">credits</span>
-                  </div>
-
-                  {/* Barre de progression stylisée */}
-                  <div className="h-1 bg-white/20 rounded-full overflow-hidden mb-2">
-                    <motion.div 
-                      className="h-full bg-white/40 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(credits / 500) * 100}%` }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
-                    />
-                  </div>
-
-                  {/* Bouton Add More Credits */}
-                  <Link
-                    to="/billing"
-                    className="inline-flex items-center gap-1 text-xs text-white/90 hover:text-white
-                      transition-colors group"
-                  >
-                    <div className="flex items-center justify-center w-4 h-4 rounded-full bg-white/20 
-                      group-hover:bg-white/30 transition-colors">
-                      <Plus className="h-3 w-3" />
+            {!isCollapsed ? (
+              <div className="p-2.5 border-t border-gray-200 dark:border-gray-700">
+                <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 p-3">
+                  {/* Cercles décoratifs en arrière-plan */}
+                  <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/10" />
+                  <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-white/5" />
+                  
+                  <div className="relative">
+                    {/* Montant des crédits */}
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-2xl font-bold text-white">{credits}</span>
+                      <span className="text-xs text-white/70">credits</span>
                     </div>
-                    <span>Add More Credits</span>
-                  </Link>
+
+                    {/* Barre de progression stylisée */}
+                    <div className="h-1 bg-white/20 rounded-full overflow-hidden mb-2">
+                      <motion.div 
+                        className="h-full bg-white/40 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(credits / 500) * 100}%` }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                      />
+                    </div>
+
+                    {/* Bouton Add More Credits */}
+                    <Link
+                      to="/billing"
+                      className="inline-flex items-center gap-1 text-xs text-white/90 hover:text-white
+                        transition-colors group"
+                    >
+                      <div className="flex items-center justify-center w-4 h-4 rounded-full bg-white/20 
+                        group-hover:bg-white/30 transition-colors">
+                        <Plus className="h-3 w-3" />
+                      </div>
+                      <span>Add More Credits</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                <Link
+                  to="/billing"
+                  className="flex items-center justify-center w-full p-2 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 hover:opacity-90 transition-opacity"
+                  title={`${credits} credits`}
+                >
+                  <CreditCard className="h-5 w-5 text-white" />
+                </Link>
+              </div>
+            )}
 
             {/* User Profile */}
-            <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+            <div className={`${isCollapsed ? 'p-2' : 'p-3'} border-t border-gray-200 dark:border-gray-700`}>
               <div className="relative">
                 <button 
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className="w-full group p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 
-                    transition-all duration-200"
+                  className={`w-full group ${isCollapsed ? 'p-2 justify-center' : 'p-2.5'} rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 
+                    transition-all duration-200 flex items-center ${isCollapsed ? 'flex-col' : ''}`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center ${isCollapsed ? 'flex-col' : 'gap-3'}`}>
                     <div className="relative">
-                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 
-                        flex items-center justify-center shadow-lg shadow-purple-600/20 overflow-hidden">
+                      <div className={`${isCollapsed ? 'h-10 w-10' : 'h-10 w-10'} rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 
+                        flex items-center justify-center shadow-lg shadow-purple-600/20 overflow-hidden`}>
                         {profilePhoto ? (
                           <img 
                             src={profilePhoto} 
@@ -564,14 +597,16 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-400 
                         border-2 border-white dark:border-gray-800" />
                     </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {userFirstName}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {currentUser?.email}
-                      </p>
-                    </div>
+                    {!isCollapsed && (
+                      <div className="flex-1 text-left min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {userFirstName}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {currentUser?.email}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </button>
 
@@ -582,8 +617,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-gray-800 
-                        rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+                      className={`absolute bottom-full ${isCollapsed ? 'left-0 w-48' : 'left-0 w-full'} mb-2 bg-white dark:bg-gray-800 
+                        rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden`}
                     >
                       <div className="py-1">
                         <Link
@@ -641,7 +676,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className="md:pl-72 lg:pl-80 flex flex-col flex-1">
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed ? 'md:pl-20 lg:pl-20' : 'md:pl-72 lg:pl-80'}`}>
         <main className="flex-1">
           <div className="py-6 pb-20 md:pb-6">
             <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">

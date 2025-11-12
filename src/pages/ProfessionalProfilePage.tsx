@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,6 +55,10 @@ const ProfessionalProfilePage = () => {
   const [useWizard, setUseWizard] = useState(false); // Toggle pour basculer entre wizard et vue complète
   const [showLanding, setShowLanding] = useState(false); // Afficher la landing page
   const [hasChosenMode, setHasChosenMode] = useState(false); // Si l'utilisateur a déjà choisi un mode
+  const isInitialMount = useRef(true); // Track si c'est le premier rendu
+  const [shouldAnimate, setShouldAnimate] = useState(false); // Contrôle si on doit animer
+  const prevUseWizard = useRef(useWizard); // Track la valeur précédente de useWizard
+  const prevShowLanding = useRef(showLanding); // Track la valeur précédente de showLanding
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -489,6 +493,36 @@ const ProfessionalProfilePage = () => {
 
 
 
+  // Activer les animations après le premier rendu
+  useEffect(() => {
+    if (isInitialMount.current) {
+      // Au premier rendu, désactiver l'animation
+      isInitialMount.current = false;
+      setShouldAnimate(false);
+      // Activer les animations après un court délai pour les transitions futures
+      const timer = setTimeout(() => {
+        setShouldAnimate(true);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, []); // Seulement au montage du composant
+
+  // Activer l'animation pour les changements internes (wizard <-> vue complète)
+  useEffect(() => {
+    // Vérifier si les valeurs ont réellement changé (pas juste au premier rendu)
+    const wizardChanged = prevUseWizard.current !== useWizard;
+    const landingChanged = prevShowLanding.current !== showLanding;
+    
+    if ((wizardChanged || landingChanged) && !isInitialMount.current) {
+      // Activer l'animation seulement si les valeurs ont changé ET ce n'est pas le premier rendu
+      setShouldAnimate(true);
+    }
+    
+    // Mettre à jour les refs
+    prevUseWizard.current = useWizard;
+    prevShowLanding.current = showLanding;
+  }, [useWizard, showLanding]);
+
   // Handlers pour les choix de la landing page
   const handleChooseStepMode = () => {
     setHasChosenMode(true);
@@ -511,10 +545,10 @@ const ProfessionalProfilePage = () => {
           {showLanding ? (
             <motion.div
               key="landing"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={shouldAnimate ? { opacity: 0, scale: 0.95, y: 20 } : false}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -20 }}
-              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              exit={shouldAnimate ? { opacity: 0, scale: 0.95, y: -20 } : false}
+              transition={shouldAnimate ? { duration: 0.35, ease: [0.4, 0, 0.2, 1] } : { duration: 0 }}
             >
               <ProfileLandingPage
                 completionPercentage={completionPercentage}
@@ -525,14 +559,14 @@ const ProfessionalProfilePage = () => {
           ) : useWizard ? (
             <motion.div
               key="wizard"
-              initial={{ opacity: 0, x: 100, scale: 0.95 }}
+              initial={shouldAnimate ? { opacity: 0, x: 100, scale: 0.95 } : false}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -100, scale: 0.95 }}
-              transition={{ 
+              exit={shouldAnimate ? { opacity: 0, x: -100, scale: 0.95 } : false}
+              transition={shouldAnimate ? { 
                 duration: 0.5, 
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.3 }
-              }}
+              } : { duration: 0 }}
               style={{ position: 'relative' }}
             >
               <ProfileWizard
@@ -549,14 +583,14 @@ const ProfessionalProfilePage = () => {
           ) : (
             <motion.div
               key="profile"
-              initial={{ opacity: 0, x: -100, scale: 0.95 }}
+              initial={shouldAnimate ? { opacity: 0, x: -100, scale: 0.95 } : false}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 100, scale: 0.95 }}
-              transition={{ 
+              exit={shouldAnimate ? { opacity: 0, x: 100, scale: 0.95 } : false}
+              transition={shouldAnimate ? { 
                 duration: 0.5, 
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.3 }
-              }}
+              } : { duration: 0 }}
               className="min-h-screen bg-gray-50 dark:bg-gray-900"
               style={{ margin: '-1.5rem', padding: '1.5rem' }}
             >

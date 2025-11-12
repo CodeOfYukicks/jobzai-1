@@ -857,8 +857,8 @@ export default function DashboardPage() {
                               dataKey="value" 
                               stroke="#8B5CF6" 
                               strokeWidth={2}
-                              dot={{ fill: '#8B5CF6', r: 5 }}
-                              activeDot={{ fill: '#8B5CF6', r: 7, strokeWidth: 2 }}
+                              dot={{ fill: '#8B5CF6', r: 3 }}
+                              activeDot={{ fill: '#8B5CF6', r: 5, strokeWidth: 2 }}
                             />
                           </LineChart>
                         </ResponsiveContainer>

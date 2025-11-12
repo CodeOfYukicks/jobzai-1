@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useRecommendationsLoading } from './contexts/RecommendationsLoadingContext';
 import BackgroundLoadingNotification from './components/recommendations/BackgroundLoadingNotification';
 import LoadingStartModal from './components/recommendations/LoadingStartModal';
+import PageLoader from './components/PageLoader';
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -40,6 +41,9 @@ import InterviewPrepPage from './pages/InterviewPrepPage';
 import UpcomingInterviewsPage from './pages/UpcomingInterviewsPage';
 import InterviewHelpPage from './pages/InterviewHelpPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
+import CVOptimizerPage from './pages/CVOptimizerPage';
+import OptimizedCVEditPage from './pages/OptimizedCVEditPage';
+import CVCreatorPage from './pages/CVCreatorPage';
 
 import { initNotificationService } from './services/notificationService';
 
@@ -80,6 +84,7 @@ function AppContent() {
   
   return (
     <>
+      <PageLoader />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={
@@ -147,6 +152,9 @@ function AppContent() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/professional-profile" element={<ProfessionalProfilePage />} />
           <Route path="/cv-analysis" element={<CVAnalysisPage />} />
+          <Route path="/cv-optimizer" element={<CVOptimizerPage />} />
+          <Route path="/cv-optimizer/:id" element={<OptimizedCVEditPage />} />
+          <Route path="/cv-creator" element={<CVCreatorPage />} />
           <Route path="/applications" element={<JobApplicationsPage />} />
           <Route path="/interview-prep/:applicationId/:interviewId" element={<InterviewPrepPage />} />
           <Route path="/upcoming-interviews" element={<UpcomingInterviewsPage />} />

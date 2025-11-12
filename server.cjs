@@ -590,31 +590,79 @@ app.post('/api/chatgpt', async (req, res) => {
 // GPT-4o Vision API route for CV analysis
 app.post('/api/analyze-cv-vision', async (req, res) => {
   try {
-    console.log("GPT-4o Vision API endpoint called");
+    console.log("🔵 GPT-4o Vision API endpoint called");
+    console.log("   Request body keys:", Object.keys(req.body || {}));
     
     // Get API key from Firestore or environment variables
-    let apiKey = await getOpenAIApiKey();
+    let apiKey;
+    let apiKeySource = 'unknown';
+    
+    try {
+      apiKey = await getOpenAIApiKey();
+      
+      // Check environment variables directly as fallback
+      if (!apiKey) {
+        if (process.env.OPENAI_API_KEY) {
+          apiKey = process.env.OPENAI_API_KEY;
+          apiKeySource = 'OPENAI_API_KEY env var';
+          console.log('✅ Using API key from OPENAI_API_KEY environment variable');
+        } else if (process.env.VITE_OPENAI_API_KEY) {
+          apiKey = process.env.VITE_OPENAI_API_KEY;
+          apiKeySource = 'VITE_OPENAI_API_KEY env var';
+          console.log('✅ Using API key from VITE_OPENAI_API_KEY environment variable');
+        }
+      } else {
+        apiKeySource = 'Firestore or env var';
+      }
+    } catch (keyError) {
+      console.error('❌ Error retrieving API key from Firestore:', keyError.message);
+      // Try environment variables as fallback
+      if (process.env.OPENAI_API_KEY) {
+        apiKey = process.env.OPENAI_API_KEY;
+        apiKeySource = 'OPENAI_API_KEY env var (fallback)';
+        console.log('✅ Using API key from OPENAI_API_KEY environment variable (fallback)');
+      } else if (process.env.VITE_OPENAI_API_KEY) {
+        apiKey = process.env.VITE_OPENAI_API_KEY;
+        apiKeySource = 'VITE_OPENAI_API_KEY env var (fallback)';
+        console.log('✅ Using API key from VITE_OPENAI_API_KEY environment variable (fallback)');
+      }
+    }
     
     if (!apiKey) {
       console.error('❌ ERREUR: Clé API OpenAI manquante');
-      console.error('   Solution: Ajoutez la clé dans Firestore (settings/openai) ou dans .env (OPENAI_API_KEY=sk-...)');
+      console.error('   Sources vérifiées:');
+      console.error('   - Firestore (settings/openai)');
+      console.error('   - OPENAI_API_KEY env var:', process.env.OPENAI_API_KEY ? '✅ Found' : '❌ Not found');
+      console.error('   - VITE_OPENAI_API_KEY env var:', process.env.VITE_OPENAI_API_KEY ? '✅ Found' : '❌ Not found');
+      console.error('   Solution: Ajoutez la clé dans .env (OPENAI_API_KEY=sk-...) ou dans Firestore (settings/openai)');
       return res.status(500).json({ 
         status: 'error', 
-        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).' 
+        message: 'OpenAI API key is missing. Please add OPENAI_API_KEY to your .env file or settings/openai in Firestore.' 
       });
     }
+    
+    console.log(`✅ API key retrieved successfully from: ${apiKeySource}`);
+    console.log('   Key length:', apiKey.length);
+    console.log('   First 10 chars:', apiKey.substring(0, 10) + '...');
     
     // Extract request data
     const { model, messages, response_format, max_tokens, temperature } = req.body;
     
     // Validate request
     if (!model || !messages || !Array.isArray(messages)) {
-      console.error('Invalid request format:', { model, hasMessages: !!messages });
+      console.error('❌ Invalid request format:', { 
+        model, 
+        hasMessages: !!messages, 
+        messagesType: typeof messages,
+        messagesLength: Array.isArray(messages) ? messages.length : 'N/A'
+      });
       return res.status(400).json({
         status: 'error',
         message: 'Invalid request format: model and messages array are required'
       });
     }
+    
+    console.log('✅ Request validation passed');
     
     console.log('📡 Sending request to GPT-4o Vision API...');
     console.log(`   Model: ${model}`);
@@ -628,65 +676,112 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
     });
     console.log(`   Images: ${imageCount}`);
     
-    // Call OpenAI API
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model || 'gpt-4o',
-        messages: messages,
-        response_format: response_format || { type: 'json_object' },
-        max_tokens: max_tokens || 6000, // Increased for more detailed analysis
-        temperature: temperature || 0.1, // Lower temperature for more precise, consistent analysis
-      })
+    // Prepare request body
+    const requestBody = {
+      model: model || 'gpt-4o',
+      messages: messages,
+      max_tokens: max_tokens || 6000, // Increased for more detailed analysis
+      temperature: temperature || 0.1, // Lower temperature for more precise, consistent analysis
+    };
+
+    // Only add response_format if it's specified (required for json_object mode)
+    if (response_format) {
+      requestBody.response_format = response_format;
+    }
+
+    console.log('📤 Request body prepared:', {
+      model: requestBody.model,
+      messagesCount: requestBody.messages.length,
+      hasResponseFormat: !!requestBody.response_format,
+      maxTokens: requestBody.max_tokens
     });
+
+    // Call OpenAI API
+    let openaiResponse;
+    try {
+      openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+    } catch (fetchError) {
+      console.error("❌ Fetch error:", fetchError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Network error: ${fetchError.message || 'Failed to connect to OpenAI API'}`,
+        details: process.env.NODE_ENV === 'development' ? fetchError.stack : undefined
+      });
+    }
     
-    console.log(`OpenAI API response status: ${openaiResponse.status}`);
+    console.log(`📥 OpenAI API response status: ${openaiResponse.status}`);
     
     // Handle response
     const responseText = await openaiResponse.text();
-    console.log("Response received, length:", responseText.length);
+    console.log("📄 Response received, length:", responseText.length);
     
     if (!openaiResponse.ok) {
-      console.error("Non-200 response:", responseText);
+      console.error("❌ Non-200 response:", responseText.substring(0, 500));
       try {
         const errorData = JSON.parse(responseText);
+        console.error("❌ Error details:", errorData);
         return res.status(openaiResponse.status).json({
           status: 'error',
           message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
-          error: errorData.error
+          error: errorData.error,
+          errorType: errorData.error?.type,
+          errorCode: errorData.error?.code
         });
       } catch (e) {
+        console.error("❌ Failed to parse error response:", e);
         return res.status(openaiResponse.status).json({
           status: 'error',
-          message: `OpenAI API error: ${responseText.substring(0, 200)}`
+          message: `OpenAI API error: ${responseText.substring(0, 200)}`,
+          rawResponse: responseText.substring(0, 500)
         });
       }
     }
     
     // Parse and return response
     try {
+      console.log('📝 Parsing response...');
       const parsedResponse = JSON.parse(responseText);
+      
+      if (!parsedResponse.choices || !Array.isArray(parsedResponse.choices) || parsedResponse.choices.length === 0) {
+        console.error('❌ No choices in response:', parsedResponse);
+        throw new Error('No choices in OpenAI API response');
+      }
+      
       const content = parsedResponse.choices[0]?.message?.content;
       
       if (!content) {
+        console.error('❌ Empty content in response:', parsedResponse);
         throw new Error('Empty response from GPT-4o Vision API');
       }
+      
+      console.log('✅ Content extracted, length:', content.length);
       
       // Parse JSON if needed
       let parsedContent;
       try {
-        parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+        if (typeof content === 'string') {
+          parsedContent = JSON.parse(content);
+        } else {
+          parsedContent = content;
+        }
+        console.log('✅ Content parsed as JSON successfully');
       } catch (e) {
+        console.warn('⚠️  Direct JSON parse failed, trying to extract JSON from markdown...');
         // If parsing fails, try to extract JSON from markdown
         const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
                           content.match(/{[\s\S]*}/);
         if (jsonMatch) {
           parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+          console.log('✅ JSON extracted from markdown');
         } else {
+          console.error('❌ Could not parse JSON from response. Content preview:', content.substring(0, 200));
           throw new Error('Could not parse JSON from response');
         }
       }
@@ -699,10 +794,12 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
         usage: parsedResponse.usage
       });
     } catch (parseError) {
-      console.error("Parse error:", parseError);
+      console.error("❌ Parse error:", parseError);
+      console.error("   Error message:", parseError.message);
+      console.error("   Response preview:", responseText.substring(0, 500));
       return res.status(500).json({
         status: 'error',
-        message: "Failed to parse response",
+        message: `Failed to parse response: ${parseError.message || 'Unknown error'}`,
         rawResponse: responseText.substring(0, 500) + "..."
       });
     }
@@ -754,6 +851,324 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
   }
 });
 
+// Extract job posting content from URL using Puppeteer
+app.post('/api/extract-job-url', async (req, res) => {
+  try {
+    const { url } = req.body;
+    
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'URL is required' 
+      });
+    }
+
+    console.log('🔍 Extracting job posting from URL:', url);
+
+    // Lazy load puppeteer to avoid startup issues
+    let puppeteer;
+    try {
+      puppeteer = require('puppeteer');
+    } catch (e) {
+      console.error('❌ Puppeteer not available:', e.message);
+      return res.status(500).json({ 
+        status: 'error', 
+        message: 'Puppeteer is not available on the server' 
+      });
+    }
+
+    let browser;
+    try {
+      // Launch browser with optimized settings
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu',
+          '--window-size=1920,1080'
+        ]
+      });
+
+      const page = await browser.newPage();
+      
+      // Set a reasonable timeout
+      await page.setDefaultNavigationTimeout(30000);
+      
+      // Set user agent to avoid bot detection
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      
+      console.log('📄 Navigating to URL...');
+      await page.goto(url, { 
+        waitUntil: 'networkidle2',
+        timeout: 30000 
+      });
+
+      // Wait a bit for dynamic content to load
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      console.log('📝 Extracting page content...');
+      
+      // Extract all text content from the page
+      const pageContent = await page.evaluate(() => {
+        // Remove script and style elements
+        const scripts = document.querySelectorAll('script, style, noscript, iframe');
+        scripts.forEach(el => el.remove());
+
+        // Get main content areas (common job posting selectors)
+        const selectors = [
+          'main',
+          '[role="main"]',
+          '.job-description',
+          '.job-posting',
+          '.job-details',
+          '#job-description',
+          '#job-details',
+          'article',
+          '.content',
+          'body'
+        ];
+
+        let content = '';
+        for (const selector of selectors) {
+          const element = document.querySelector(selector);
+          if (element) {
+            content = element.innerText || element.textContent || '';
+            if (content.length > 500) break; // Use first substantial content found
+          }
+        }
+
+        // Fallback to body if no specific content found
+        if (!content || content.length < 500) {
+          content = document.body.innerText || document.body.textContent || '';
+        }
+
+        // Also try to get structured data
+        // Extract job title with multiple selectors
+        const titleSelectors = [
+          'h1',
+          '.job-title',
+          '[data-testid="job-title"]',
+          '[data-testid="jobTitle"]',
+          '.jobTitle',
+          'h1.job-title',
+          '.job-header h1',
+          '.job-header-title',
+          '[class*="job-title"]',
+          '[class*="jobTitle"]'
+        ];
+        let title = '';
+        for (const selector of titleSelectors) {
+          const element = document.querySelector(selector);
+          if (element && element.innerText && element.innerText.trim().length > 0) {
+            title = element.innerText.trim();
+            break;
+          }
+        }
+        
+        // Extract company with multiple selectors
+        const companySelectors = [
+          '.company-name',
+          '[data-testid="company-name"]',
+          '[data-testid="companyName"]',
+          '.employer-name',
+          '.company',
+          '.employer',
+          '[class*="company-name"]',
+          '[class*="companyName"]',
+          '[class*="employer"]',
+          '.job-company',
+          '.job-header .company',
+          '[itemprop="hiringOrganization"]',
+          '[itemprop="name"]'
+        ];
+        let company = '';
+        for (const selector of companySelectors) {
+          const element = document.querySelector(selector);
+          if (element && element.innerText && element.innerText.trim().length > 0) {
+            company = element.innerText.trim();
+            // Clean up common patterns
+            company = company.replace(/^at\s+/i, '').trim();
+            // Remove common suffixes and navigation text
+            company = company.replace(/\s*(linkedin|linkedin page|page|website|site|careers|jobs|job board|job posting).*$/i, '').trim();
+            company = company.replace(/\s*-\s*(linkedin|page|website|site).*$/i, '').trim();
+            // Remove URLs
+            company = company.replace(/https?:\/\/[^\s]+/gi, '').trim();
+            // Remove email addresses
+            company = company.replace(/[^\s]+@[^\s]+/gi, '').trim();
+            // Remove extra whitespace
+            company = company.replace(/\s+/g, ' ').trim();
+            if (company.length > 0 && company.length < 100) {
+              break;
+            }
+          }
+        }
+        
+        // If company not found with selectors, try extracting from links
+        if (!company || company.length === 0) {
+          const companyLinks = document.querySelectorAll('a[href*="/company/"], a[href*="/employer/"], a[href*="/organizations/"]');
+          for (const link of companyLinks) {
+            const linkText = link.innerText.trim();
+            if (linkText && linkText.length > 0 && linkText.length < 100) {
+              // Clean up the link text
+              let cleanText = linkText.replace(/\s*(linkedin|linkedin page|page|website|site).*$/i, '').trim();
+              cleanText = cleanText.replace(/\s*-\s*(linkedin|page).*$/i, '').trim();
+              if (cleanText.length > 0) {
+                company = cleanText;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Helper function to clean company name
+        const cleanCompanyName = (name) => {
+          if (!name) return '';
+          let cleaned = name.trim();
+          // Remove common suffixes and navigation text
+          cleaned = cleaned.replace(/\s*(linkedin|linkedin page|page|website|site|careers|jobs|job board|job posting).*$/i, '').trim();
+          cleaned = cleaned.replace(/\s*-\s*(linkedin|page|website|site).*$/i, '').trim();
+          // Remove URLs
+          cleaned = cleaned.replace(/https?:\/\/[^\s]+/gi, '').trim();
+          // Remove email addresses
+          cleaned = cleaned.replace(/[^\s]+@[^\s]+/gi, '').trim();
+          // Remove extra whitespace
+          cleaned = cleaned.replace(/\s+/g, ' ').trim();
+          return cleaned;
+        };
+        
+        // Clean the company name we found
+        company = cleanCompanyName(company);
+        
+        // If company not found, try to extract from meta tags
+        if (!company || company.length === 0) {
+          const metaCompany = document.querySelector('meta[property="og:site_name"], meta[name="company"], meta[property="company"]');
+          if (metaCompany) {
+            const metaValue = metaCompany.getAttribute('content') || metaCompany.getAttribute('value') || '';
+            company = cleanCompanyName(metaValue);
+          }
+        }
+        
+        // If still not found, try to extract from structured data (JSON-LD)
+        if (!company || company.length === 0) {
+          const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+          for (const script of jsonLdScripts) {
+            try {
+              const data = JSON.parse(script.textContent || '{}');
+              if (data.hiringOrganization && data.hiringOrganization.name) {
+                company = cleanCompanyName(data.hiringOrganization.name);
+                if (company) break;
+              }
+              if (data.employer && data.employer.name) {
+                company = cleanCompanyName(data.employer.name);
+                if (company) break;
+              }
+            } catch (e) {
+              // Ignore JSON parse errors
+            }
+          }
+        }
+        
+        // Final cleanup
+        company = cleanCompanyName(company);
+        
+        // Extract location
+        const locationSelectors = [
+          '.location',
+          '[data-testid="location"]',
+          '[data-testid="jobLocation"]',
+          '.job-location',
+          '[class*="location"]',
+          '[itemprop="jobLocation"]'
+        ];
+        let location = '';
+        for (const selector of locationSelectors) {
+          const element = document.querySelector(selector);
+          if (element && element.innerText && element.innerText.trim().length > 0) {
+            location = element.innerText.trim();
+            break;
+          }
+        }
+
+        return {
+          fullText: content.trim(),
+          title: title.trim(),
+          company: company.trim(),
+          location: location.trim(),
+          url: window.location.href
+        };
+      });
+
+      await browser.close();
+
+      console.log('✅ Successfully extracted content:', {
+        titleLength: pageContent.title.length,
+        companyLength: pageContent.company.length,
+        fullTextLength: pageContent.fullText.length
+      });
+
+      return res.json({
+        status: 'success',
+        content: pageContent.fullText,
+        title: pageContent.title,
+        company: pageContent.company,
+        location: pageContent.location,
+        url: pageContent.url
+      });
+
+    } catch (browserError) {
+      if (browser) {
+        await browser.close().catch(() => {});
+      }
+      throw browserError;
+    }
+
+  } catch (error) {
+    console.error('❌ Error extracting job URL:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to extract job posting content',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Render external JSON Resume theme to HTML (client will preview this)
+app.post('/api/render-theme', async (req, res) => {
+  try {
+    const { themeId, resumeJson } = req.body || {};
+    if (!themeId || !resumeJson) {
+      return res.status(400).json({ status: 'error', message: 'themeId and resumeJson are required' });
+    }
+    // Map ids to npm packages; extend as needed
+    const THEME_PACKAGES = {
+      elegant: 'jsonresume-theme-elegant',
+      stackoverflow: 'jsonresume-theme-stackoverflow'
+    };
+    const pkg = THEME_PACKAGES[themeId];
+    if (!pkg) {
+      return res.status(400).json({ status: 'error', message: `Unknown themeId ${themeId}` });
+    }
+    let theme;
+    try {
+      theme = require(pkg);
+    } catch (e) {
+      console.error('Failed to require theme package:', pkg, e.message);
+      return res.status(500).json({ status: 'error', message: `Theme package ${pkg} not found on server` });
+    }
+    if (typeof theme.render !== 'function') {
+      return res.status(500).json({ status: 'error', message: 'Theme does not expose a render() function' });
+    }
+    const html = theme.render(resumeJson);
+    return res.json({ status: 'success', html });
+  } catch (error) {
+    console.error('Error in /api/render-theme:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 // En production, pour toutes les autres routes, servir index.html
 // Cela permet à React Router de gérer les routes côté client
 if (isProduction) {
@@ -771,6 +1186,7 @@ app.listen(PORT, () => {
   console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
   console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
   console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
+  console.log(`Job URL extraction available at http://localhost:${PORT}/api/extract-job-url`);
   console.log(`Stripe Checkout proxy available at http://localhost:${PORT}/api/stripe/create-checkout-session`);
   console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
   console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
