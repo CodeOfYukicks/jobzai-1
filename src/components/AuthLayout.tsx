@@ -382,22 +382,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       {!isCollapsed && (
                         <span className="flex-1 flex items-center gap-2">
                           <span>{item.name}</span>
-                          {item.name === 'Campaigns' && (
-                            <motion.span
-                              initial={{ opacity: 0, scale: 0.5, rotate: -12 }}
-                              animate={{ opacity: 1, scale: 1, rotate: -8 }}
-                              className="relative inline-flex items-center px-1 py-0.5 rounded text-[9px] font-black uppercase tracking-tight
-                                text-white
-                                shadow-[0_1px_2px_rgba(0,0,0,0.2),0_0_4px_rgba(86,86,214,0.4)]
-                                border-[0.5px] border-[#5656D6]/60
-                                font-mono leading-none"
-                              style={{
-                                background: 'linear-gradient(to bottom right, #6B6BE6, #5656D6, #4545B8)'
-                              }}
-                            >
-                              <span className="relative z-10 drop-shadow-[0_0.5px_1px_rgba(0,0,0,0.3)]">NEW</span>
-                            </motion.span>
-                          )}
                         </span>
                       )}
                     </div>
