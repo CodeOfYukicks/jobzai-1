@@ -6,6 +6,9 @@ import { db } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
 import { toast } from 'sonner';
+import ProfilePhotoCropper from './ProfilePhotoCropper';
+import CoverPhotoCropper from './CoverPhotoCropper';
+import CoverPhotoGallery from './CoverPhotoGallery';
 
 interface ProfileHeaderProps {
   onUpdate?: (data: any) => void;
@@ -16,6 +19,11 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
+  const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+  const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -54,14 +62,21 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
     loadData();
   }, [currentUser]);
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
     if (!file || !currentUser?.uid) return;
+    // Open cropper modal with selected file
+    setSelectedPhotoFile(file);
+    setIsCropperOpen(true);
+  };
 
+  const handleCroppedPhoto = async (blob: Blob) => {
+    if (!currentUser?.uid) return;
     setIsUploading(true);
     try {
-      const photoRef = ref(storage, `profile-photos/${currentUser.uid}/${Date.now()}_${file.name}`);
-      await uploadBytes(photoRef, file);
+      const fileName = selectedPhotoFile?.name?.replace(/\.[^/.]+$/, '') || 'photo';
+      const photoRef = ref(storage, `profile-photos/${currentUser.uid}/${Date.now()}_${fileName}.jpg`);
+      await uploadBytes(photoRef, blob, { contentType: 'image/jpeg' });
       const photoUrl = await getDownloadURL(photoRef);
 
       await updateDoc(doc(db, 'users', currentUser.uid), {
@@ -74,21 +89,29 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
       }
       toast.success('Profile photo updated');
     } catch (error) {
-      console.error('Error uploading photo:', error);
+      console.error('Error uploading cropped photo:', error);
       toast.error('Failed to upload photo');
     } finally {
       setIsUploading(false);
+      setIsCropperOpen(false);
+      setSelectedPhotoFile(null);
     }
   };
 
-  const handleCoverPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleCoverPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
     if (!file || !currentUser?.uid) return;
+    setSelectedCoverFile(file);
+    setIsCoverCropperOpen(true);
+  };
 
+  const handleCroppedCover = async (blob: Blob) => {
+    if (!currentUser?.uid) return;
     setIsUploadingCover(true);
     try {
-      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${Date.now()}_${file.name}`);
-      await uploadBytes(coverRef, file);
+      const baseName = (selectedCoverFile instanceof File ? selectedCoverFile.name.replace(/\.[^/.]+$/, '') : 'cover');
+      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${Date.now()}_${baseName}.jpg`);
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
       const coverUrl = await getDownloadURL(coverRef);
 
       await updateDoc(doc(db, 'users', currentUser.uid), {
@@ -101,10 +124,12 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
       }
       toast.success('Cover photo updated');
     } catch (error) {
-      console.error('Error uploading cover photo:', error);
+      console.error('Error uploading cropped cover:', error);
       toast.error('Failed to upload cover photo');
     } finally {
       setIsUploadingCover(false);
+      setIsCoverCropperOpen(false);
+      setSelectedCoverFile(null);
     }
   };
 
@@ -160,23 +185,31 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
         )}
         
         {/* Upload Cover Photo Button - Visible on hover */}
-        <label className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-2.5 rounded-lg cursor-pointer transition-all opacity-0 group-hover:opacity-100 flex items-center gap-2 text-sm font-medium">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleCoverPhotoUpload}
-            className="hidden"
-            disabled={isUploadingCover}
-          />
-          {isUploadingCover ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <>
-              <Image className="w-4 h-4" />
-              {formData.coverPhoto ? 'Change' : 'Add Cover'}
-            </>
-          )}
-        </label>
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+          <label className="bg-black/50 hover:bg-black/70 text-white px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center gap-2 text-sm font-medium">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleCoverPhotoUpload}
+              className="hidden"
+              disabled={isUploadingCover}
+            />
+            {isUploadingCover ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <Image className="w-4 h-4" />
+                {formData.coverPhoto ? 'Change' : 'Add Cover'}
+              </>
+            )}
+          </label>
+          <button
+            onClick={() => setIsCoverGalleryOpen(true)}
+            className="bg-black/50 hover:bg-black/70 text-white px-3 py-2 rounded-lg transition-all text-sm font-medium"
+          >
+            Cover options
+          </button>
+        </div>
       </div>
 
       {/* Profile Content - No overlap for text */}
@@ -313,6 +346,38 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
           )}
         </div>
       </div>
+      {/* Cropper Modal */}
+      <ProfilePhotoCropper
+        isOpen={isCropperOpen}
+        file={selectedPhotoFile}
+        onClose={() => {
+          setIsCropperOpen(false);
+          setSelectedPhotoFile(null);
+        }}
+        onCropped={handleCroppedPhoto}
+        exportSize={512}
+      />
+      <CoverPhotoCropper
+        isOpen={isCoverCropperOpen}
+        file={selectedCoverFile}
+        onClose={() => {
+          setIsCoverCropperOpen(false);
+          setSelectedCoverFile(null);
+        }}
+        onCropped={handleCroppedCover}
+        exportWidth={1584}
+        exportHeight={396}
+      />
+      <CoverPhotoGallery
+        isOpen={isCoverGalleryOpen}
+        onClose={() => setIsCoverGalleryOpen(false)}
+        onSelectBlob={(blob) => {
+          // Open cropper directly with selected template
+          setSelectedCoverFile(blob);
+          setIsCoverGalleryOpen(false);
+          setIsCoverCropperOpen(true);
+        }}
+      />
     </div>
   );
 };

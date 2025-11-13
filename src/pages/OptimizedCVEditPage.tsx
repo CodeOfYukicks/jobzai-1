@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Dialog, Disclosure, Popover } from '@headlessui/react';
+import { Dialog, Disclosure, Popover, Transition } from '@headlessui/react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
   ArrowLeft, Download, Save, FileText, Check, Loader2, Sparkles, Copy, Trash2,
   ChevronDown, Copy as CopyIcon, Plus, X, GripVertical, Upload,
-  Mail, Phone, MapPin, Link as LinkIcon
+  Mail, Phone, MapPin, Link as LinkIcon, Info, Briefcase, Building2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
@@ -71,6 +71,12 @@ interface Certificate {
   order: number;
 }
 
+interface Hobby {
+  id: string;
+  name: string;
+  order: number;
+}
+
 interface CVData {
   personalInfo: PersonalInfo;
   professionalSummary: string;
@@ -79,6 +85,7 @@ interface CVData {
   skills: Skill[];
   languages: Language[];
   certificates: Certificate[];
+  hobbies?: Hobby[];
 }
 
 function normalizeCVData(input: CVData): CVData {
@@ -127,6 +134,11 @@ function normalizeCVData(input: CVData): CVData {
       issuer: c.issuer || '',
       date: c.date || '',
       order: typeof c.order === 'number' ? c.order : idx,
+    })),
+    hobbies: (input.hobbies || []).map((h, idx) => ({
+      id: h.id || `hobby-${idx}-${Date.now()}`,
+      name: h.name || '',
+      order: typeof h.order === 'number' ? h.order : idx,
     })),
   };
   return normalized;
@@ -187,6 +199,7 @@ function parseMarkdownToCVData(markdown: string): CVData {
     skills: [],
     languages: [],
     certificates: [],
+    hobbies: [],
   };
 
   let currentSection = '';
@@ -197,6 +210,7 @@ function parseMarkdownToCVData(markdown: string): CVData {
   let skillId = 0;
   let languageId = 0;
   let certificateId = 0;
+  let hobbyId = 0;
 
   // First pass: Extract personal info from header - Improved extraction
   // Try multiple patterns for name extraction
@@ -327,6 +341,8 @@ function parseMarkdownToCVData(markdown: string): CVData {
         currentSection = 'languages';
       } else if (sectionTitle.includes('certificate') || sectionTitle.includes('certificat')) {
         currentSection = 'certificates';
+      } else if (sectionTitle.includes('hobby') || sectionTitle.includes('hobbie') || sectionTitle.includes('interest') || sectionTitle.includes('loisir')) {
+        currentSection = 'hobbies';
       } else if (sectionTitle.includes('summary') || sectionTitle.includes('résumé') || sectionTitle.includes('resume') || sectionTitle.includes('professional')) {
         currentSection = 'summary';
       } else if (sectionTitle.includes('personal') || sectionTitle.includes('contact') || sectionTitle.includes('header')) {
@@ -391,7 +407,7 @@ function parseMarkdownToCVData(markdown: string): CVData {
     } else if (
       // Headerless uppercase section titles like "EXPERIENCE", "WORK EXPERIENCE", etc.
       /^[A-Z][A-Z\s]+:?$/.test(line) ||
-      /^(Experience|Work Experience|Education|Summary|Professional Summary|Skills|Languages|Certificates)[:\s]*$/i.test(line)
+      /^(Experience|Work Experience|Education|Summary|Professional Summary|Skills|Languages|Certificates|Hobbies|Interests|Loisirs)[:\s]*$/i.test(line)
     ) {
       const t = line.replace(/[:]/g, '').trim().toLowerCase();
       if (t.includes('experience') && !t.includes('education')) currentSection = 'experience';
@@ -400,6 +416,7 @@ function parseMarkdownToCVData(markdown: string): CVData {
       else if (t.includes('skill')) currentSection = 'skills';
       else if (t.includes('language')) currentSection = 'languages';
       else if (t.includes('certificate')) currentSection = 'certificates';
+      else if (t.includes('hobbies') || t.includes('interests') || t.includes('loisirs')) currentSection = 'hobbies';
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       // Bullet point
       const bullet = line.substring(2).trim();
@@ -444,6 +461,12 @@ function parseMarkdownToCVData(markdown: string): CVData {
             order: cvData.certificates.length,
           });
         }
+      } else if (currentSection === 'hobbies') {
+        cvData.hobbies!.push({
+          id: `hobby-${hobbyId++}`,
+          name: bullet,
+          order: cvData.hobbies!.length,
+        });
       }
     } else if (line && !line.startsWith('#')) {
       // Regular text line
@@ -514,6 +537,28 @@ function parseMarkdownToCVData(markdown: string): CVData {
 function convertCVDataToMarkdown(cvData: CVData): string {
   let markdown = '';
 
+  // Personal Information (CRITICAL: Include all personal info for context)
+  if (cvData.personalInfo) {
+    const pi = cvData.personalInfo;
+    const fullName = [pi.firstName, pi.lastName].filter(Boolean).join(' ');
+    if (fullName) {
+      markdown += `# ${fullName}\n\n`;
+    }
+    
+    // Contact information
+    const contactInfo: string[] = [];
+    if (pi.email) contactInfo.push(`Email: ${pi.email}`);
+    if (pi.phone) contactInfo.push(`Phone: ${pi.phone}`);
+    if (pi.location) contactInfo.push(`Location: ${pi.location}`);
+    if (pi.linkedin) contactInfo.push(`LinkedIn: ${pi.linkedin}`);
+    if (pi.portfolio) contactInfo.push(`Portfolio: ${pi.portfolio}`);
+    if (pi.jobTitle) contactInfo.push(`Current Title: ${pi.jobTitle}`);
+    
+    if (contactInfo.length > 0) {
+      markdown += contactInfo.join(' | ') + '\n\n';
+    }
+  }
+
   // Professional Summary
   if (cvData.professionalSummary) {
     markdown += `# Professional Summary\n\n${cvData.professionalSummary.trim()}\n\n`;
@@ -525,9 +570,11 @@ function convertCVDataToMarkdown(cvData: CVData): string {
     cvData.experiences.forEach(exp => {
       markdown += `## ${exp.title} - ${exp.company}\n`;
       markdown += `${exp.startDate} - ${exp.isCurrent ? 'Present' : exp.endDate}\n\n`;
+      if (exp.description && exp.description.length > 0) {
       exp.description.forEach(desc => {
         markdown += `- ${desc}\n`;
       });
+      }
       markdown += '\n';
     });
   }
@@ -537,8 +584,10 @@ function convertCVDataToMarkdown(cvData: CVData): string {
     markdown += `# Education\n\n`;
     cvData.educations.forEach(edu => {
       markdown += `## ${edu.degree}\n`;
-      markdown += `${edu.institution}\n`;
-      markdown += `${edu.startDate} - ${edu.isCurrent ? 'Present' : edu.endDate}\n`;
+      if (edu.institution) markdown += `${edu.institution}\n`;
+      if (edu.startDate || edu.endDate) {
+        markdown += `${edu.startDate || ''} - ${edu.isCurrent ? 'Present' : (edu.endDate || '')}\n`;
+      }
       if (edu.description) {
         markdown += `${edu.description}\n`;
       }
@@ -550,7 +599,7 @@ function convertCVDataToMarkdown(cvData: CVData): string {
   if (cvData.skills.length > 0) {
     markdown += `# Skills\n\n`;
     cvData.skills.forEach(skill => {
-      markdown += `- ${skill.name} - ${skill.level}\n`;
+      markdown += `- ${skill.name}${skill.level ? ` - ${skill.level}` : ''}\n`;
     });
     markdown += '\n';
   }
@@ -559,7 +608,7 @@ function convertCVDataToMarkdown(cvData: CVData): string {
   if (cvData.languages.length > 0) {
     markdown += `# Languages\n\n`;
     cvData.languages.forEach(lang => {
-      markdown += `- ${lang.name} - ${lang.level}\n`;
+      markdown += `- ${lang.name}${lang.level ? ` - ${lang.level}` : ''}\n`;
     });
     markdown += '\n';
   }
@@ -568,7 +617,10 @@ function convertCVDataToMarkdown(cvData: CVData): string {
   if (cvData.certificates.length > 0) {
     markdown += `# Certificates\n\n`;
     cvData.certificates.forEach(cert => {
-      markdown += `- ${cert.name} - ${cert.issuer} (${cert.date})\n`;
+      const certParts = [cert.name];
+      if (cert.issuer) certParts.push(cert.issuer);
+      if (cert.date) certParts.push(`(${cert.date})`);
+      markdown += `- ${certParts.join(' - ')}\n`;
     });
   }
 
@@ -804,6 +856,83 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
         </div>
       );
     
+    case 'hobbies':
+      if (!cvData.hobbies || cvData.hobbies.length === 0) return null;
+      return (
+        <div key="hobbies">
+          <h2 style={{ 
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            color: styling.color,
+            marginBottom: '12px',
+            borderBottom: `1px solid ${styling.color}`,
+            paddingBottom: '4px'
+          }}>
+            Hobbies
+          </h2>
+          <ul style={{ paddingLeft: '16px', margin: 0 }}>
+            {cvData.hobbies.map((h) => (
+              <li key={h.id} style={{ fontSize: '11px', color: '#1a202c', marginBottom: '4px' }}>
+                {h.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+
+    case 'hobbies':
+      if (!cvData.hobbies || cvData.hobbies.length === 0) return null;
+      return (
+        <div key="hobbies">
+          <h2 style={{ 
+            fontSize: '12px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            color: styling.color,
+            borderBottom: `2px solid ${styling.color}`,
+            paddingBottom: '5px',
+            marginBottom: '10px'
+          }}>
+            HOBBIES
+          </h2>
+          <ul style={{ paddingLeft: '16px', margin: 0 }}>
+            {cvData.hobbies.map((h) => (
+              <li key={h.id} style={{ fontSize: '10px', color: '#1a202c', marginBottom: '4px' }}>
+                {h.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    
+    case 'hobbies':
+      if (!cvData.hobbies || cvData.hobbies.length === 0) return null;
+      return (
+        <div key="hobbies" style={{ marginTop: '16px' }}>
+          <h2 style={{ 
+            fontSize: '12px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            color: styling.color,
+            borderBottom: `2px solid ${styling.color}`,
+            paddingBottom: '5px',
+            marginBottom: '10px'
+          }}>
+            HOBBIES
+          </h2>
+          <ul style={{ paddingLeft: '16px', margin: 0 }}>
+            {cvData.hobbies.map((h) => (
+              <li key={h.id} style={{ fontSize: '10px', color: '#1a202c', marginBottom: '4px' }}>
+                {h.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    
     default:
       return null;
   }
@@ -813,7 +942,7 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
 function HarvardTemplate({ cvData, styling, sectionOrder, showSkillLevel }: { cvData: CVData | null; styling: any; sectionOrder?: string[]; showSkillLevel?: boolean }) {
   if (!cvData) return null;
 
-  const defaultOrder = ['professionalSummary', 'experience', 'education', 'skills', 'languages', 'certificates'];
+  const defaultOrder = ['professionalSummary', 'experience', 'education', 'skills', 'languages', 'certificates', 'hobbies'];
   const order = sectionOrder || defaultOrder;
 
   return (
@@ -1249,6 +1378,7 @@ function OptimizedCVEditPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isGlowing, setIsGlowing] = useState(false);
   const [cvData, setCvData] = useState<CVData | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['personalize']));
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -1276,7 +1406,8 @@ function OptimizedCVEditPage() {
     'education',
     'skills',
     'languages',
-    'certificates'
+    'certificates',
+    'hobbies'
   ]);
   const [styling, setStyling] = useState({
     color: '#000000',
@@ -1295,8 +1426,70 @@ function OptimizedCVEditPage() {
   const [openChatSummary, setOpenChatSummary] = useState(false); // Chat open for summary
   const [openChatSkills, setOpenChatSkills] = useState(false); // Chat open for skills
   const [openChatEducationId, setOpenChatEducationId] = useState<string | null>(null); // Which education has chat open
-  const [chatMessages, setChatMessages] = useState<Record<string, Array<{ role: 'user' | 'assistant'; content: string }>>>({}); // Chat history per experience/section
+  // Chat history per experience/section (supports assistant suggestions that can be inserted)
+  const [chatMessages, setChatMessages] = useState<Record<string, Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    // Optional suggestion payload to enable "Insert" UX
+    suggestion?: {
+      kind: 'experience' | 'summary' | 'education' | 'skills';
+      id?: string;
+      data: any;
+    };
+  }>>>({}); // Chat history per experience/section
   const [chatInput, setChatInput] = useState<Record<string, string>>({}); // Input text per experience/section
+  // Job overview (structured summary of the target position)
+  const [jobOverview, setJobOverview] = useState<{
+    summary: string;
+    responsibilities?: string[];
+    requirements?: string[];
+    seniority?: string;
+    location?: string;
+  } | null>(null);
+  const [isLoadingJobOverview, setIsLoadingJobOverview] = useState(false);
+
+  // Apply a pending assistant suggestion into the CV data and clear the suggestion flag on that message
+  const applySuggestion = (threadKey: string, messageIndex: number) => {
+    const thread = chatMessages[threadKey] || [];
+    const msg = thread[messageIndex];
+    if (!msg?.suggestion || !cvData) return;
+
+    const { kind, id, data } = msg.suggestion;
+    try {
+      if (kind === 'experience' && id && Array.isArray(data?.bullets)) {
+        updateExperience(id, { description: data.bullets });
+        setAiPulseExperience(id);
+        setTimeout(() => setAiPulseExperience(null), 1200);
+        toast.success('Inserted AI bullets into experience');
+      } else if (kind === 'summary' && typeof data?.summary === 'string') {
+        setCvData(prev => prev ? { ...prev, professionalSummary: data.summary } : prev);
+        setAiPulseSummary(true);
+        setTimeout(() => setAiPulseSummary(false), 1200);
+        toast.success('Inserted AI summary');
+      } else if (kind === 'education' && id && typeof data?.description === 'string') {
+        updateEducation(id, { description: data.description });
+        setAiPulseEducation(id);
+        setTimeout(() => setAiPulseEducation(null), 1200);
+        toast.success('Inserted AI education description');
+      } else if (kind === 'skills' && Array.isArray(data?.skills)) {
+        setCvData(prev => prev ? { ...prev, skills: data.skills } : prev);
+        setAiPulseSkills(true);
+        setTimeout(() => setAiPulseSkills(false), 1200);
+        toast.success('Inserted AI skills');
+      }
+    } finally {
+      // Replace the message with a non-actionable confirmation note
+      const updated = [...thread];
+      updated[messageIndex] = {
+        role: 'assistant',
+        content: `${msg.content}\n\nInserted into your resume.`,
+      };
+      setChatMessages({
+        ...chatMessages,
+        [threadKey]: updated,
+      });
+    }
+  };
 
   // Load CV data and merge with Professional Profile info
   useEffect(() => {
@@ -1328,6 +1521,10 @@ function OptimizedCVEditPage() {
             jobTitle: data.jobTitle,
             company: data.company
           });
+          // Load job overview if available
+          if ((data as any).jobOverview) {
+            setJobOverview((data as any).jobOverview);
+          }
           
           if (profileData) {
             console.log('👤 Profile data loaded for merge:', {
@@ -1473,6 +1670,92 @@ function OptimizedCVEditPage() {
 
     loadCV();
   }, [id, currentUser, navigate]);
+
+  // Generate a structured job overview if missing
+  useEffect(() => {
+    const run = async () => {
+      if (!currentUser || !cv || jobOverview || isLoadingJobOverview) return;
+      try {
+        setIsLoadingJobOverview(true);
+        // Try to get job content: prefer stored jobDescription, else extract from jobUrl if present
+        let jobContent: string = (cv as any).jobDescription || '';
+        if ((!jobContent || jobContent.length < 50) && (cv as any).jobUrl) {
+          try {
+            const res = await fetch('/api/extract-job-url', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: (cv as any).jobUrl })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.status === 'success' && typeof data?.content === 'string' && data.content.length > 50) {
+                jobContent = data.content;
+              }
+            }
+          } catch (e) {
+            console.warn('extract-job-url failed, continuing without it', e);
+          }
+        }
+        // If still nothing substantial, build a minimal text from title and keywords
+        if (!jobContent || jobContent.length < 50) {
+          const kws = Array.isArray((cv as any).keywordsUsed) ? (cv as any).keywordsUsed.slice(0, 15).join(', ') : '';
+          jobContent = `Role: ${cv.jobTitle} at ${cv.company || 'Company'}. Key terms: ${kws}.`;
+        }
+        const prompt = `
+You are a hiring expert. Read the job posting and produce a concise, structured overview that helps a candidate tailor their CV.
+Return ONLY JSON with this schema:
+{
+  "summary": "2-3 sentences summarizing the mission and impact",
+  "responsibilities": ["bullet", "bullet", "bullet"],
+  "requirements": ["bullet", "bullet", "bullet"],
+  "seniority": "e.g., Mid, Senior, Lead (if inferable)",
+  "location": "Location or Remote (if inferable)"
+}
+Job Title: ${cv.jobTitle}
+Company: ${cv.company || 'N/A'}
+Job Posting:
+"""
+${jobContent.substring(0, 6000)}
+"""`.trim();
+        const resp = await fetch('/api/chatgpt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'job-overview', prompt })
+        });
+        if (!resp.ok) throw new Error('Failed to generate job overview');
+        const data = await resp.json();
+        let parsed: any;
+        if (typeof data.content === 'string') {
+          const normalized = data.content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          parsed = JSON.parse(normalized);
+        } else {
+          parsed = data.content;
+        }
+        // Basic validation
+        const overview = {
+          summary: String(parsed?.summary || '').trim(),
+          responsibilities: Array.isArray(parsed?.responsibilities) ? parsed.responsibilities.slice(0, 6) : [],
+          requirements: Array.isArray(parsed?.requirements) ? parsed.requirements.slice(0, 6) : [],
+          seniority: parsed?.seniority ? String(parsed.seniority) : undefined,
+          location: parsed?.location ? String(parsed.location) : undefined,
+        };
+        setJobOverview(overview);
+        // Persist to Firestore
+        try {
+          await updateDoc(doc(db, 'users', currentUser.uid, 'optimizedCVs', cv.id), {
+            jobOverview: overview
+          });
+        } catch (e) {
+          console.warn('Failed to save jobOverview to Firestore', e);
+        }
+      } catch (err) {
+        console.error('Job overview generation failed', err);
+      } finally {
+        setIsLoadingJobOverview(false);
+      }
+    };
+    run();
+  }, [currentUser, cv, jobOverview, isLoadingJobOverview]);
 
   // Load all language versions of this CV (same job)
   useEffect(() => {
@@ -1669,6 +1952,46 @@ function OptimizedCVEditPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Handle save and exit with glow effect
+  const handleSaveAndExit = async () => {
+    if (!cv || !currentUser || !cvData) {
+      navigate('/cv-optimizer');
+      return;
+    }
+
+    // Activate glow effect
+    setIsGlowing(true);
+    
+    // Save the CV
+    setIsSaving(true);
+    try {
+      const markdown = convertCVDataToMarkdown(cvData);
+      await updateDoc(doc(db, 'users', currentUser.uid, 'optimizedCVs', cv.id), {
+        optimizedResumeMarkdown: markdown,
+        cvData: cvData,
+        cvPhoto: cvPhoto || null,
+        sectionOrder: sectionOrder,
+        showSkillLevel: showSkillLevel,
+        updatedAt: serverTimestamp(),
+      });
+      setCv({ ...cv, optimizedResumeMarkdown: markdown });
+    } catch (error: any) {
+      console.error('Error saving CV:', error);
+      toast.error('Failed to save changes');
+      setIsSaving(false);
+      setIsGlowing(false);
+      return;
+    }
+
+    // Wait 300ms to show the save animation
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Reset states and navigate
+    setIsSaving(false);
+    setIsGlowing(false);
+    navigate('/cv-optimizer');
   };
 
   // Handle section reordering via drag and drop
@@ -2025,20 +2348,17 @@ RETURN JSON ONLY:
       if (bullets.length === 0) {
         throw new Error('AI did not return bullet points');
       }
-      updateExperience(expId, { description: bullets });
-      
-      // Add AI response to chat history
-      const responseText = `I've updated the bullet points for this experience. Here are the new bullets:\n\n${bullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}`;
+      // Prepare assistant suggestion instead of immediately updating
+      const responseText = `Suggested bullet points:\n\n${bullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}`;
       const currentMessages = chatMessages[expId] || [];
       setChatMessages({
         ...chatMessages,
-        [expId]: [...currentMessages, { role: 'assistant', content: responseText }]
+        [expId]: [
+          ...currentMessages,
+          { role: 'assistant', content: responseText, suggestion: { kind: 'experience', id: expId, data: { bullets } } }
+        ]
       });
-      
-      // Pulse animation cue
-      setAiPulseExperience(expId);
-      setTimeout(() => setAiPulseExperience(null), 1200);
-      toast.success('Experience updated with AI');
+      // No immediate update; user can insert or continue chatting
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || 'Failed to improve bullets');
@@ -2132,19 +2452,17 @@ Return JSON only:
         }
       }
       summary = summary.replace(/\s+/g, ' ').trim();
-      setCvData(prev => prev ? { ...prev, professionalSummary: summary } : prev);
-      
-      // Add AI response to chat history
-      const responseText = `I've updated the professional summary:\n\n"${summary}"`;
+      // Add assistant suggestion instead of directly updating
+      const responseText = `Suggested professional summary:\n\n"${summary}"`;
       const currentMessages = chatMessages['summary'] || [];
       setChatMessages({
         ...chatMessages,
-        'summary': [...currentMessages, { role: 'assistant', content: responseText }]
+        'summary': [
+          ...currentMessages,
+          { role: 'assistant', content: responseText, suggestion: { kind: 'summary', data: { summary } } }
+        ]
       });
-      
-      setAiPulseSummary(true);
-      setTimeout(() => setAiPulseSummary(false), 1200);
-      toast.success('Professional Summary updated with AI');
+      // No immediate update; user can insert or continue chatting
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || 'Failed to improve summary');
@@ -2241,19 +2559,17 @@ Return JSON only:
         }
       }
       description = description.replace(/\s+/g, ' ').trim();
-      updateEducation(eduId, { description });
-      
-      // Add AI response to chat history
-      const responseText = `I've updated the education description:\n\n"${description}"`;
+      // Add assistant suggestion instead of directly updating
+      const responseText = `Suggested education description:\n\n"${description}"`;
       const currentMessages = chatMessages[`education-${eduId}`] || [];
       setChatMessages({
         ...chatMessages,
-        [`education-${eduId}`]: [...currentMessages, { role: 'assistant', content: responseText }]
+        [`education-${eduId}`]: [
+          ...currentMessages,
+          { role: 'assistant', content: responseText, suggestion: { kind: 'education', id: eduId, data: { description } } }
+        ]
       });
-      
-      setAiPulseEducation(eduId);
-      setTimeout(() => setAiPulseEducation(null), 1200);
-      toast.success('Education updated with AI');
+      // No immediate update; user can insert or continue chatting
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || 'Failed to improve education');
@@ -2375,20 +2691,18 @@ JSON ONLY:
         .slice(0, 10) as any[];
 
       if (!cleaned.length) throw new Error('AI did not return skills');
-
-      setCvData(prev => prev ? { ...prev, skills: cleaned } : prev);
       
-      // Add AI response to chat history
-      const responseText = `I've updated the skills list:\n\n${cleaned.map((s, i) => `${i + 1}. ${s.name} (${s.level})`).join('\n')}`;
+      // Add assistant suggestion instead of directly updating
+      const responseText = `Suggested skills list:\n\n${cleaned.map((s, i) => `${i + 1}. ${s.name} (${s.level})`).join('\n')}`;
       const currentMessages = chatMessages['skills'] || [];
       setChatMessages({
         ...chatMessages,
-        'skills': [...currentMessages, { role: 'assistant', content: responseText }]
+        'skills': [
+          ...currentMessages,
+          { role: 'assistant', content: responseText, suggestion: { kind: 'skills', data: { skills: cleaned } } }
+        ]
       });
-      
-      setAiPulseSkills(true);
-      setTimeout(() => setAiPulseSkills(false), 1200);
-      toast.success('Skills updated with AI');
+      // No immediate update; user can insert or continue chatting
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || 'Failed to generate skills');
@@ -2568,6 +2882,33 @@ JSON ONLY:
     });
   };
 
+  // Hobbies CRUD
+  const addHobby = () => {
+    if (!cvData) return;
+    const newHobby: Hobby = {
+      id: `hobby-${Date.now()}`,
+      name: '',
+      order: (cvData.hobbies || []).length,
+    };
+    setCvData({ ...cvData, hobbies: [...(cvData.hobbies || []), newHobby] });
+  };
+
+  const updateHobby = (id: string, updates: Partial<Hobby>) => {
+    if (!cvData) return;
+    setCvData({
+      ...cvData,
+      hobbies: (cvData.hobbies || []).map(h => h.id === id ? { ...h, ...updates } : h),
+    });
+  };
+
+  const deleteHobby = (id: string) => {
+    if (!cvData) return;
+    setCvData({
+      ...cvData,
+      hobbies: (cvData.hobbies || []).filter(h => h.id !== id),
+    });
+  };
+
   // Delete certificate
   const deleteCertificate = (id: string) => {
     if (!cvData) return;
@@ -2680,11 +3021,11 @@ JSON ONLY:
 
   // Language options for translation
   const languageOptions = [
-    { code: 'en', name: 'English', shortCode: 'EN' },
-    { code: 'fr', name: 'French', shortCode: 'FR' },
-    { code: 'es', name: 'Spanish', shortCode: 'ES' },
-    { code: 'de', name: 'German', shortCode: 'DE' },
-    { code: 'it', name: 'Italian', shortCode: 'IT' },
+    { code: 'en', name: 'English', shortCode: 'EN', flag: '🇬🇧' },
+    { code: 'fr', name: 'French', shortCode: 'FR', flag: '🇫🇷' },
+    { code: 'es', name: 'Spanish', shortCode: 'ES', flag: '🇪🇸' },
+    { code: 'de', name: 'German', shortCode: 'DE', flag: '🇩🇪' },
+    { code: 'it', name: 'Italian', shortCode: 'IT', flag: '🇮🇹' },
   ];
 
   // Duplicate and translate CV to a new language
@@ -2726,132 +3067,242 @@ JSON ONLY:
     try {
       toast.info(`Creating ${targetLanguageName} version...`);
 
-      // Get current CV content
+      // Get current CV content - NOW INCLUDES ALL INFORMATION (personal info, etc.)
       const currentMarkdown = convertCVDataToMarkdown(cvData);
       const currentCVData = { ...cvData };
 
-      // Create comprehensive, high-quality translation prompt
-      const translationPrompt = `You are a master-level professional translator and career consultant specializing in CV/resume localization. Your task is to translate this CV from its current language to ${targetLanguageName} with exceptional quality, cultural adaptation, and professional coherence.
+      // Create comprehensive, high-quality translation prompt with enhanced context awareness
+      const translationPrompt = `You are an elite professional translator and localization expert specializing in CV/resume translation for ${targetLanguageName}-speaking markets. Your mission is to produce a PERFECT translation that reads as if the CV was originally written by a native ${targetLanguageName} professional in the candidate's industry.
 
-## CORE TRANSLATION PHILOSOPHY
-Do NOT translate word-for-word. Instead, understand the meaning, context, and professional intent behind each section, then express it naturally in ${targetLanguageName} as a native professional would write it. Think like a ${targetLanguageName}-speaking HR professional reviewing this CV.
+## CRITICAL TRANSLATION PHILOSOPHY
+This is NOT a word-for-word translation. This is a PROFESSIONAL LOCALIZATION. You must:
+1. Read and understand the ENTIRE CV context first (industry, seniority, career trajectory)
+2. Identify the professional domain and adapt terminology accordingly
+3. Translate meaning, intent, and professional impact - not individual words
+4. Produce text that a native ${targetLanguageName} speaker would naturally write
+5. Think like a ${targetLanguageName}-speaking recruiter or HR professional reading this CV
 
-## TRANSLATION PRINCIPLES
+## COMPREHENSIVE TRANSLATION STRATEGY
 
-### 1. CONTEXTUAL UNDERSTANDING
-- Read and comprehend the ENTIRE CV first to understand the candidate's career narrative
-- Identify the industry, seniority level, and professional context
-- Maintain consistency in terminology throughout the document
-- Ensure all sections tell a coherent professional story in ${targetLanguageName}
+### STEP 1: CONTEXTUAL ANALYSIS
+Before translating ANYTHING:
+- Analyze the candidate's industry (tech, finance, marketing, etc.)
+- Identify their seniority level (junior, mid-level, senior, executive)
+- Understand their career progression and narrative arc
+- Note the professional domain-specific terminology used
+- Recognize cultural references and professional conventions
 
-### 2. CULTURAL & PROFESSIONAL ADAPTATION
-- Adapt job titles to ${targetLanguageName} professional conventions (e.g., "Project Manager" might become "Chef de Projet" in French, "Gerente de Proyecto" in Spanish)
-- Translate achievements and responsibilities using ${targetLanguageName} business language patterns
-- Use industry-standard terminology in ${targetLanguageName} for the candidate's field
-- Adapt numerical formats, dates, and measurements to ${targetLanguageName} conventions
-- Ensure the tone matches ${targetLanguageName} professional CV standards (more/less formal as appropriate)
+### STEP 2: INTELLIGENT TERMINOLOGY HANDLING
 
-### 3. TECHNICAL & BRAND PRESERVATION
-- Keep software names, technologies, and tools in their original form (e.g., "Salesforce", "Python", "AWS")
-- Preserve company names as they appear (unless they have official ${targetLanguageName} translations)
-- Maintain technical certifications and acronyms in their standard form
-- Keep URLs, email addresses, and contact information unchanged
+#### Technical Terms & Anglicisms (CRITICAL RULES):
+- **KEEP in original form**: Programming languages (Python, JavaScript, TypeScript, Java, C++, etc.)
+- **KEEP in original form**: Frameworks & libraries (React, Angular, Vue, Django, Spring, etc.)
+- **KEEP in original form**: Tools & platforms (AWS, Azure, Docker, Kubernetes, Git, Jenkins, etc.)
+- **KEEP in original form**: Software & services (Salesforce, SAP, Tableau, Power BI, etc.)
+- **KEEP in original form**: Methodologies (Agile, Scrum, DevOps, CI/CD, etc.)
+- **KEEP in original form**: Technical acronyms (API, REST, SQL, NoSQL, JSON, XML, etc.)
+- **KEEP in original form**: Cloud services (S3, EC2, Lambda, etc.)
+- **TRANSLATE**: Generic terms like "project management", "team leadership", "client relations" → use ${targetLanguageName} equivalents
+- **TRANSLATE**: Soft skills and business concepts → use natural ${targetLanguageName} expressions
+- **ADAPT**: Job titles to ${targetLanguageName} conventions (e.g., "Software Engineer" → "Ingénieur Logiciel" in French, "Ingeniero de Software" in Spanish)
 
-### 4. LINGUISTIC EXCELLENCE
-- Use natural, idiomatic ${targetLanguageName} that sounds native
+#### Industry-Specific Guidelines:
+- **Tech Industry**: Keep most technical terms in English, translate descriptions and achievements
+- **Business/Finance**: Translate business terminology, keep financial software names
+- **Marketing**: Translate marketing concepts, keep platform names (Google Ads, Facebook Ads)
+- **Healthcare**: Translate medical terms appropriately, keep certification names
+- **Legal**: Translate legal terminology, keep jurisdiction-specific terms
+
+### STEP 3: CULTURAL & PROFESSIONAL ADAPTATION
+
+#### Job Titles:
+- Adapt to ${targetLanguageName} professional conventions
+- Examples:
+  * English "Project Manager" → French "Chef de Projet" or "Responsable de Projet"
+  * English "Senior Developer" → French "Développeur Senior" or "Ingénieur Senior"
+  * English "Product Manager" → French "Chef de Produit" or "Responsable Produit"
+- Research common ${targetLanguageName} job title patterns for the industry
+
+#### Professional Language:
+- Use ${targetLanguageName} business action verbs (e.g., French: "dirigé", "développé", "optimisé", "implémenté")
+- Adapt achievement descriptions to ${targetLanguageName} professional writing style
+- Use natural ${targetLanguageName} expressions for business outcomes
+- Match the formality level expected in ${targetLanguageName} CVs for this industry level
+
+#### Formatting & Conventions:
+- Adapt date formats to ${targetLanguageName} conventions (e.g., French: "janvier 2020" vs "January 2020")
+- Adapt number formats (e.g., French: "25 %" with space, Spanish: "25%" without space)
+- Use ${targetLanguageName} currency symbols and formats when relevant
+- Adapt measurement units if culturally appropriate
+
+### STEP 4: LINGUISTIC EXCELLENCE & NATURALNESS
+
+#### Writing Quality:
+- Use natural, idiomatic ${targetLanguageName} - avoid literal translations
 - Vary sentence structure to avoid repetitive patterns
-- Use strong action verbs appropriate to ${targetLanguageName} professional writing
-- Ensure proper grammar, syntax, and professional vocabulary
-- Match the formality level expected in ${targetLanguageName} CVs for this industry
+- Use strong, industry-appropriate action verbs
+- Ensure perfect grammar, syntax, and professional vocabulary
+- Write as a native ${targetLanguageName} professional would - not as a translator
 
-### 5. STRUCTURE & FORMATTING
+#### Professional Tone:
+- Match the formality level: more formal for senior roles, slightly less formal for creative/tech roles
+- Use ${targetLanguageName} professional CV conventions
+- Ensure the tone is consistent throughout all sections
+- Make it sound confident and professional, not translated
+
+### STEP 5: SECTION-SPECIFIC GUIDELINES
+
+#### Personal Information:
+- Keep names, emails, phone numbers, URLs exactly as they are
+- Translate location names only if there's a standard ${targetLanguageName} version
+- Keep LinkedIn, portfolio URLs unchanged
+
+#### Professional Summary:
+- Translate to sound like a native ${targetLanguageName} professional wrote it
+- Use ${targetLanguageName} professional summary conventions and structure
+- Maintain the impact and value proposition
+- Use natural ${targetLanguageName} phrasing, not literal translation
+- Ensure it flows naturally and professionally
+
+#### Experience Descriptions:
+- Translate achievements using ${targetLanguageName} business action verbs
+- Adapt metrics and results to ${targetLanguageName} formatting conventions
+- Use ${targetLanguageName} professional achievement language patterns
+- Each bullet point must read naturally in ${targetLanguageName}
+- Preserve the impact and quantification of achievements
+- Use varied sentence structures to avoid repetition
+
+#### Education:
+- Adapt degree names to ${targetLanguageName} equivalents when appropriate
+- Translate institution names only if they have official ${targetLanguageName} names
+- Keep international university names as they are
+- Adapt dates to ${targetLanguageName} format
+
+#### Skills:
+- Keep technical skill names in original form (Python, React, AWS, etc.)
+- Translate skill categories if needed (e.g., "Programming Languages" → "Langages de Programmation" in French)
+- Adapt proficiency levels to ${targetLanguageName} conventions if different
+
+#### Languages:
+- Translate language names to ${targetLanguageName} (e.g., "English" → "Anglais" in French)
+- Adapt proficiency levels to ${targetLanguageName} conventions
+
+#### Certifications:
+- Keep certification names in their original form (AWS Certified Solutions Architect, PMP, etc.)
+- Translate issuer names only if they have official ${targetLanguageName} names
+- Keep certification numbers and dates as they are
+
+### STEP 6: STRUCTURE & FORMATTING PRESERVATION
 - Preserve EXACTLY the same Markdown structure, headings, and formatting
 - Maintain all bullet points, sections, and organizational hierarchy
 - Keep the same visual structure (headers, subheaders, lists)
-- Preserve spacing and line breaks
+- Preserve spacing and line breaks exactly
+- Do NOT change the document structure
 
-### 6. CONTENT COHERENCE
+### STEP 7: COHERENCE & CONSISTENCY
 - Ensure all dates, numbers, and achievements are logically consistent
 - Maintain the professional narrative flow across all sections
 - Ensure skills, experiences, and education align coherently
 - Verify that the professional summary matches the experience descriptions
+- Use consistent terminology throughout (e.g., if you translate "project" as "projet" in one place, use it consistently)
 
-## SPECIFIC TRANSLATION GUIDELINES
+## OUTPUT FORMAT - CRITICAL
+You MUST return a valid JSON object (NO markdown code blocks, NO explanations) with TWO required fields:
 
-### Professional Summary
-- Translate to sound like a native ${targetLanguageName} professional wrote it
-- Use ${targetLanguageName} professional summary conventions
-- Maintain the impact and value proposition while using natural ${targetLanguageName} phrasing
-
-### Experience Descriptions
-- Translate achievements using ${targetLanguageName} business action verbs
-- Adapt metrics and results to ${targetLanguageName} formatting (e.g., "25%" vs "25 %" in French)
-- Use ${targetLanguageName} professional achievement language patterns
-- Ensure each bullet point reads naturally in ${targetLanguageName}
-
-### Education & Certifications
-- Adapt degree names to ${targetLanguageName} equivalents when appropriate
-- Translate institution names only if they have official ${targetLanguageName} names
-- Maintain certification names in their original form
-
-### Skills & Languages
-- Translate skill categories naturally in ${targetLanguageName}
-- Keep technical skill names in original form
-- Adapt proficiency levels to ${targetLanguageName} conventions
-
-## OUTPUT FORMAT
-You MUST return a JSON object with TWO fields:
-1. "translated_content": The complete translated Markdown content (for display)
-2. "translated_cv_data": A structured JSON object matching this exact format:
 {
+  "translated_content": "<Complete translated Markdown content with all sections, preserving structure>",
+  "translated_cv_data": {
   "personalInfo": {
-    "firstName": "...",
-    "lastName": "...",
-    "email": "...",
-    "phone": "...",
-    "location": "...",
-    "linkedin": "...",
-    "portfolio": "...",
-    "jobTitle": "..."
-  },
-  "professionalSummary": "...",
+      "firstName": "<translated if culturally appropriate, otherwise keep>",
+      "lastName": "<keep as is>",
+      "email": "<keep as is>",
+      "phone": "<keep as is>",
+      "location": "<translate location name if standard ${targetLanguageName} version exists>",
+      "linkedin": "<keep as is>",
+      "portfolio": "<keep as is>",
+      "jobTitle": "<translate to ${targetLanguageName} professional convention>"
+    },
+    "professionalSummary": "<translated professional summary in natural ${targetLanguageName}>",
   "experiences": [
     {
       "id": "exp-1",
-      "title": "...",
-      "company": "...",
-      "startDate": "...",
-      "endDate": "...",
-      "isCurrent": false,
-      "description": ["bullet 1", "bullet 2"],
-      "order": 0
-    }
-  ],
-  "educations": [...],
-  "skills": [...],
-  "languages": [...],
-  "certificates": [...]
+        "title": "<translated job title following ${targetLanguageName} conventions>",
+        "company": "<keep company name as is unless official ${targetLanguageName} name exists>",
+        "startDate": "<adapt date format to ${targetLanguageName} conventions>",
+        "endDate": "<adapt date format, use 'Present' equivalent in ${targetLanguageName}>",
+        "isCurrent": <boolean>,
+        "description": ["<translated bullet 1 in natural ${targetLanguageName}>", "<translated bullet 2>", ...],
+        "order": <number>
+      }
+    ],
+    "educations": [
+      {
+        "id": "edu-1",
+        "degree": "<translated degree name if ${targetLanguageName} equivalent exists>",
+        "institution": "<keep as is unless official ${targetLanguageName} name>",
+        "startDate": "<adapt format>",
+        "endDate": "<adapt format>",
+        "isCurrent": <boolean>,
+        "description": "<translated if present>",
+        "order": <number>
+      }
+    ],
+    "skills": [
+      {
+        "id": "skill-1",
+        "name": "<keep technical skills in original, translate generic categories>",
+        "level": "<translate proficiency level to ${targetLanguageName} conventions>",
+        "order": <number>
+      }
+    ],
+    "languages": [
+      {
+        "id": "lang-1",
+        "name": "<translate language name to ${targetLanguageName}>",
+        "level": "<translate proficiency level to ${targetLanguageName} conventions>",
+        "order": <number>
+      }
+    ],
+    "certificates": [
+      {
+        "id": "cert-1",
+        "name": "<keep certification name in original form>",
+        "issuer": "<translate issuer if official ${targetLanguageName} name exists>",
+        "date": "<keep as is>",
+        "order": <number>
+      }
+    ]
+  }
 }
 
-CRITICAL: Both fields are required. The "translated_cv_data" must be a complete, valid JSON object with all sections properly structured.
-
-## CV CONTENT TO TRANSLATE:
+## COMPLETE CV CONTENT TO TRANSLATE:
 ${currentMarkdown}
 
-Remember: This is not a literal translation. This is a professional localization that makes the CV read as if it was originally written in ${targetLanguageName} by a native professional. Quality, coherence, and naturalness are paramount.`;
+## FINAL REMINDERS:
+- This must read as if written by a native ${targetLanguageName} professional
+- Keep technical terms, tools, and technologies in their original form
+- Translate meaning and intent, not words
+- Use natural, idiomatic ${targetLanguageName} throughout
+- Ensure professional coherence and consistency
+- The translation should be PERFECT - indistinguishable from a native-written CV
 
-      // Call AI for translation
+Return ONLY the JSON object. No markdown code blocks, no explanations, no additional text.`;
+
+      // Call AI for translation with enhanced prompt
       // Add explicit instruction for JSON format in the prompt
       const enhancedPrompt = `${translationPrompt}
 
 IMPORTANT: You MUST return a valid JSON object with both "translated_content" (markdown string) and "translated_cv_data" (structured JSON object) fields. Do not wrap the response in markdown code blocks. Return only the raw JSON.`;
       
+      // Use 'resume-optimizer' type to get higher token limit (8000 tokens) for comprehensive translations
       const response = await fetch('/api/chatgpt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'cv-edit',
-          prompt: enhancedPrompt
+          type: 'resume-optimizer', // Use this type for higher token limit (8000 vs 4000)
+          prompt: enhancedPrompt,
+          // Include full CV data as context for better translation quality
+          cvContent: currentMarkdown
         })
       });
 
@@ -3037,13 +3488,65 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
         {/* Main bar */}
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/cv-optimizer')}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            <motion.button
+              onClick={handleSaveAndExit}
+              disabled={isSaving}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Save and exit</span>
-            </button>
+              {/* Glow effect */}
+              {isGlowing && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ 
+                      opacity: [0, 1, 0.9, 0.7, 0],
+                      scale: [0.8, 1.3, 1.6, 1.8, 2]
+                    }}
+                    transition={{ 
+                      duration: 0.6,
+                      times: [0, 0.2, 0.4, 0.6, 1],
+                      ease: "easeOut"
+                    }}
+                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/40 via-indigo-500/40 to-purple-500/40 -z-10"
+                    style={{
+                      filter: 'blur(16px)',
+                      transform: 'translateZ(0)',
+                    }}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ 
+                      opacity: [0, 0.8, 0.6, 0],
+                      scale: [0.9, 1.5, 1.8, 2.2]
+                    }}
+                    transition={{ 
+                      duration: 0.5,
+                      times: [0, 0.3, 0.6, 1],
+                      ease: "easeOut",
+                      delay: 0.1
+                    }}
+                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-400/30 via-purple-400/30 to-indigo-400/30 -z-10"
+                    style={{
+                      filter: 'blur(20px)',
+                      transform: 'translateZ(0)',
+                    }}
+                  />
+                </>
+              )}
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm font-medium">Saving...</span>
+                </>
+              ) : (
+                <>
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="text-sm font-medium">Save and exit</span>
+                </>
+              )}
+            </motion.button>
             <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
             <div className="flex flex-col">
               <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Job Position</span>
@@ -3060,15 +3563,14 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">CV Optimizer</h1>
-            {isSaved && (
+          {isSaved && (
+            <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                 <Check className="w-4 h-4" />
                 <span className="text-xs font-medium">Saved in the cloud</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             {/* Zoom Controls */}
@@ -3111,39 +3613,6 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
           </div>
         </div>
 
-        {/* Language versions switcher */}
-        {cvVersions.length > 1 && (
-          <div className="px-6 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-            <div className="flex items-center gap-2 overflow-x-auto">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Versions:</span>
-              {cvVersions.map((version) => {
-                const lang = languageOptions.find(l => l.code === (version.language || 'en')) || languageOptions[0];
-                const isActive = version.id === cv?.id;
-                
-                return (
-                  <button
-                    key={version.id}
-                    onClick={() => navigate(`/cv-optimizer/${version.id}`)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-                      isActive
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <div className={`flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${
-                      isActive
-                        ? 'bg-white/20 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                    }`}>
-                      {lang.shortCode}
-                    </div>
-                    <span>{lang.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Main Content - Split Layout */}
@@ -3190,6 +3659,185 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{cv.company}</p>
             </div>
+
+            {/* Job overview - collapsible summary */}
+            <Disclosure>
+              {({ open }) => (
+                <>
+                  <Disclosure.Button className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-left text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm hover:shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
+                        <Briefcase className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      </div>
+                      <div className="flex flex-col text-left">
+                        <span className="font-semibold">Job overview</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+                          {cv.jobTitle}{cv.company ? ` · ${cv.company}` : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'transform rotate-180' : ''}`} />
+                  </Disclosure.Button>
+                  <Disclosure.Panel className="px-4 py-3 space-y-3">
+                    {/* Company and link */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                        <Building2 className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{cv.company || '—'}</span>
+                      </div>
+                      {cv.jobUrl && (
+                        <a
+                          href={cv.jobUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                          <LinkIcon className="w-3.5 h-3.5" />
+                          View posting
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Structured summary */}
+                    {jobOverview?.summary ? (
+                      <div className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50/70 dark:bg-gray-900/40 border border-gray-200/60 dark:border-gray-700/60 rounded-lg p-3">
+                        {jobOverview.summary}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-2">
+                        {isLoadingJobOverview ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Analyzing job posting…</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                            <span>A concise role summary will appear here when available.</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Responsibilities and requirements */}
+                    {(jobOverview?.responsibilities?.length || jobOverview?.requirements?.length) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {jobOverview?.responsibilities?.length ? (
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                              Responsibilities
+                            </h4>
+                            <ul className="list-disc pl-5 space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                              {jobOverview.responsibilities.map((r, i) => (
+                                <li key={`resp-${i}`}>{r}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                        {jobOverview?.requirements?.length ? (
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                              Requirements
+                            </h4>
+                            <ul className="list-disc pl-5 space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                              {jobOverview.requirements.map((r, i) => (
+                                <li key={`req-${i}`}>{r}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {/* Keywords */}
+                    {Array.isArray((cv as any).keywordsUsed) && (cv as any).keywordsUsed.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {(cv as any).keywordsUsed.slice(0, 12).map((kw: string, idx: number) => (
+                          <span
+                            key={`${kw}-${idx}`}
+                            className="text-xs px-2.5 py-1 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-700 dark:text-purple-300 rounded-full font-medium border border-purple-200/50 dark:border-purple-700/50"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                        {(cv as any).keywordsUsed.length > 12 && (
+                          <span className="text-xs px-2.5 py-1 text-gray-500 dark:text-gray-400 font-medium">
+                            +{(cv as any).keywordsUsed.length - 12}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </Disclosure.Panel>
+                </>
+              )}
+            </Disclosure>
+
+            {/* Language versions - simplified dropdown (no flag emojis) */}
+            {cvVersions.length > 1 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                    <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Versions</span>
+                </div>
+                <Popover className="relative">
+                  {({ close }) => (
+                    <>
+                      <Popover.Button
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {(() => {
+                          const currentLang = languageOptions.find(l => l.code === (cv?.language || 'en')) || languageOptions[0];
+                          return (
+                            <span className="flex items-center gap-2">
+                              <span className="font-semibold text-gray-900 dark:text-white">{currentLang.name}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">({currentLang.shortCode})</span>
+                            </span>
+                          );
+                        })()}
+                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                      </Popover.Button>
+                      <Transition
+                        as={Fragment}
+                        enter="transition ease-out duration-150"
+                        enterFrom="opacity-0 translate-y-1"
+                        enterTo="opacity-100 translate-y-0"
+                        leave="transition ease-in duration-100"
+                        leaveFrom="opacity-100 translate-y-0"
+                        leaveTo="opacity-0 translate-y-1"
+                      >
+                        <Popover.Panel className="absolute z-20 mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg overflow-hidden">
+                          <div className="py-1 max-h-64 overflow-y-auto">
+                            {cvVersions.map((version) => {
+                              const lang = languageOptions.find(l => l.code === (version.language || 'en')) || languageOptions[0];
+                              const isActive = version.id === cv?.id;
+                              return (
+                                <button
+                                  key={version.id}
+                                  onClick={() => { close(); navigate(`/cv-optimizer/${version.id}`); }}
+                                  className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between transition-colors ${
+                                    isActive
+                                      ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
+                                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span className="font-medium">{lang.name}</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">{lang.shortCode}</span>
+                                  </span>
+                                  {isActive && <Check className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </Popover.Panel>
+                      </Transition>
+                    </>
+                  )}
+                </Popover>
+              </div>
+            )}
 
             {/* Quick Actions - Apple Style */}
             <div className="space-y-2">
@@ -3685,6 +4333,29 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                               }`}>
                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                               </div>
+                                              {msg.role === 'assistant' && msg.suggestion && (
+                                                <div className="basis-full pl-10 mt-1.5 flex items-center gap-2">
+                                                  <button
+                                                    onClick={() => applySuggestion('summary', idx)}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-purple-600 text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition-colors"
+                                                  >
+                                                    <Check className="w-3 h-3" />
+                                                    Insert
+                                                  </button>
+                                                  <button
+                                                    onClick={() => {
+                                                      const thread = chatMessages['summary'] || [];
+                                                      const updated = [...thread];
+                                                      updated[idx] = { role: 'assistant', content: msg.content };
+                                                      setChatMessages({ ...chatMessages, ['summary']: updated });
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400/30 transition-colors"
+                                                  >
+                                                    <X className="w-3 h-3" />
+                                                    Dismiss
+                                                  </button>
+                                                </div>
+                                              )}
                                             </motion.div>
                                           ))
                                         ) : (
@@ -3970,6 +4641,29 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                               }`}>
                                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                                               </div>
+                                                              {msg.role === 'assistant' && msg.suggestion && (
+                                                                <div className="basis-full pl-10 mt-1.5 flex items-center gap-2">
+                                                                  <button
+                                                                    onClick={() => applySuggestion(exp.id, idx)}
+                                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors"
+                                                                  >
+                                                                    <Check className="w-3 h-3" />
+                                                                    Insert
+                                                                  </button>
+                                                                  <button
+                                                                    onClick={() => {
+                                                                      const thread = chatMessages[exp.id] || [];
+                                                                      const updated = [...thread];
+                                                                      updated[idx] = { role: 'assistant', content: msg.content };
+                                                                      setChatMessages({ ...chatMessages, [exp.id]: updated });
+                                                                    }}
+                                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400/30 transition-colors"
+                                                                  >
+                                                                    <X className="w-3 h-3" />
+                                                                    Dismiss
+                                                                  </button>
+                                                                </div>
+                                                              )}
                                                             </motion.div>
                                                           ))
                                                         ) : (
@@ -4207,6 +4901,29 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                     }`}>
                                                       <p className="whitespace-pre-wrap">{msg.content}</p>
                                                     </div>
+                                                    {msg.role === 'assistant' && msg.suggestion && (
+                                                      <div className="basis-full pl-10 mt-1.5 flex items-center gap-2">
+                                                        <button
+                                                          onClick={() => applySuggestion(`education-${edu.id}`, idx)}
+                                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors"
+                                                        >
+                                                          <Check className="w-3 h-3" />
+                                                          Insert
+                                                        </button>
+                                                        <button
+                                                          onClick={() => {
+                                                            const thread = chatMessages[`education-${edu.id}`] || [];
+                                                            const updated = [...thread];
+                                                            updated[idx] = { role: 'assistant', content: msg.content };
+                                                            setChatMessages({ ...chatMessages, [`education-${edu.id}`]: updated });
+                                                          }}
+                                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400/30 transition-colors"
+                                                        >
+                                                          <X className="w-3 h-3" />
+                                                          Dismiss
+                                                        </button>
+                                                      </div>
+                                                    )}
                                                   </motion.div>
                                                 ))
                                               ) : (
@@ -4416,6 +5133,29 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                               }`}>
                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                               </div>
+                                              {msg.role === 'assistant' && msg.suggestion && (
+                                                <div className="basis-full pl-10 mt-1.5 flex items-center gap-2">
+                                                  <button
+                                                    onClick={() => applySuggestion('skills', idx)}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-purple-600 text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition-colors"
+                                                  >
+                                                    <Check className="w-3 h-3" />
+                                                    Insert
+                                                  </button>
+                                                  <button
+                                                    onClick={() => {
+                                                      const thread = chatMessages['skills'] || [];
+                                                      const updated = [...thread];
+                                                      updated[idx] = { role: 'assistant', content: msg.content };
+                                                      setChatMessages({ ...chatMessages, ['skills']: updated });
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400/30 transition-colors"
+                                                  >
+                                                    <X className="w-3 h-3" />
+                                                    Dismiss
+                                                  </button>
+                                                </div>
+                                              )}
                                             </motion.div>
                                           ))
                                         ) : (
@@ -4644,6 +5384,73 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                         );
                       }
                       
+                      // Hobbies Section
+                      if (sectionId === 'hobbies') {
+                        return (
+                          <Draggable key="hobbies" draggableId="hobbies" index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                style={{
+                                  ...provided.draggableProps.style,
+                                  transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                  opacity: snapshot.isDragging ? 1 : 1,
+                                  transform: snapshot.isDragging 
+                                    ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
+                                    : provided.draggableProps.style?.transform || 'none',
+                                  boxShadow: snapshot.isDragging 
+                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                    : '0 1px 3px rgba(0, 0, 0, 0.05)',
+                                  zIndex: snapshot.isDragging ? 1000 : 'auto',
+                                  backgroundColor: snapshot.isDragging ? '#faf5ff' : 'transparent',
+                                }}
+                                className="border-t border-gray-200 dark:border-gray-700 pt-6 rounded-lg"
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <div {...provided.dragHandleProps} className="flex items-center gap-2 flex-1">
+                                    <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
+                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Hobbies</h3>
+                                  </div>
+                                  <button
+                                    onClick={addHobby}
+                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                    Add
+                                  </button>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                  Add your hobbies or interests to show personality and stand out.
+                                </p>
+                                <div className="space-y-2">
+                                  {(cvData.hobbies || []).map((hobby) => (
+                                    <div
+                                      key={hobby.id}
+                                      className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600"
+                                    >
+                                      <input
+                                        type="text"
+                                        value={hobby.name}
+                                        onChange={(e) => updateHobby(hobby.id, { name: e.target.value })}
+                                        className="flex-1 text-sm text-gray-900 dark:text-white bg-transparent border-none focus:outline-none focus:ring-0"
+                                        placeholder="e.g., Chess, Generative AI projects, Cinema"
+                                      />
+                                      <button
+                                        onClick={() => deleteHobby(hobby.id)}
+                                        className="text-red-500 hover:text-red-700"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      }
+                      
                       return null;
                     })}
                     {provided.placeholder}
@@ -4767,12 +5574,29 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                         Active
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-3 pt-8">
-                      <h3 className="text-white font-bold text-base mb-0.5">Harvard</h3>
-                      <p className="text-white/90 text-xs mb-1.5">Classic single-column layout</p>
-                      <span className="inline-block px-2 py-0.5 bg-green-500 text-white rounded-full text-xs font-semibold">
-                        Recommended
-                      </span>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-3 pt-10 backdrop-blur-[2px]">
+                      <h3 className="text-white drop-shadow-md font-bold text-base mb-0.5">Harvard</h3>
+                      <p className="text-white/95 drop-shadow-md text-sm mb-1.5">Classic single-column layout</p>
+                      <div className="mt-1.5 flex items-center justify-between">
+                        <span className="inline-block px-2 py-0.5 bg-green-500 text-white rounded-full text-xs font-semibold">
+                          Recommended
+                        </span>
+                        <div className="relative group">
+                          <button
+                            type="button"
+                            aria-label="Why Harvard is recommended"
+                            className="p-1.5 rounded-full bg-white/80 text-gray-700 hover:bg-white shadow transition-colors"
+                          >
+                            <Info className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="absolute bottom-8 right-0 w-64 bg-white dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-300 p-3 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 opacity-0 pointer-events-none transition-opacity duration-200 group-hover:opacity-100">
+                            <p className="font-semibold text-gray-900 dark:text-white mb-1">Why Harvard?</p>
+                            <p>
+                              Clean single-column, highly readable, ATS-friendly structure that prints well and fits more content without clutter.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </button>
 
@@ -4811,9 +5635,9 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                         Active
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-3 pt-8">
-                      <h3 className="text-white font-bold text-base mb-0.5">Modern</h3>
-                      <p className="text-white/90 text-xs mb-1.5">Two-column layout with sidebar</p>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-3 pt-10 backdrop-blur-[2px]">
+                      <h3 className="text-white drop-shadow-md font-bold text-base mb-0.5">Modern</h3>
+                      <p className="text-white/95 drop-shadow-md text-sm mb-1.5">Two-column layout with sidebar</p>
                       <span className="inline-block px-2 py-0.5 bg-blue-500 text-white rounded-full text-xs font-semibold">
                         Popular
                       </span>

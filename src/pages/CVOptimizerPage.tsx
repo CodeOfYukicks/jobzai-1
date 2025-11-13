@@ -5,7 +5,7 @@ import {
   FileText, Briefcase, Building2, Sparkles, Upload, Check, X, 
   ChevronRight, Trash2, Loader2,
   Wand2, Calendar, Info, AlignLeft, Search, Filter, XCircle,
-  ArrowUpDown, LayoutGrid, List
+  ArrowUpDown, LayoutGrid, List, Globe2, ChevronDown
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +31,7 @@ interface OptimizedCV {
   changesSummary?: string[];
   shortSummary?: string;
   cvFileName?: string;
+  language?: string;
 }
 
 export default function CVOptimizerPage() {
@@ -59,6 +60,17 @@ export default function CVOptimizerPage() {
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month' | '3months'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'company'>('date');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; cvId: string | null; cvTitle: string }>({
+    isOpen: false,
+    cvId: null,
+    cvTitle: ''
+  });
+  const [openVersionDropdown, setOpenVersionDropdown] = useState<string | null>(null);
+  useEffect(() => {
+    const close = () => setOpenVersionDropdown(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
 
   // Load saved optimized CVs
   useEffect(() => {
@@ -118,6 +130,15 @@ export default function CVOptimizerPage() {
     }
   };
 
+  // Open delete confirmation modal
+  const openDeleteConfirm = (cvId: string, cvTitle: string) => {
+    setDeleteConfirmModal({
+      isOpen: true,
+      cvId,
+      cvTitle
+    });
+  };
+
   // Delete optimized CV
   const deleteOptimizedCV = async (cvId: string) => {
     if (!currentUser) return;
@@ -126,6 +147,7 @@ export default function CVOptimizerPage() {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'optimizedCVs', cvId));
       setOptimizedCVs(prev => prev.filter(cv => cv.id !== cvId));
       toast.success('Optimized resume deleted');
+      setDeleteConfirmModal({ isOpen: false, cvId: null, cvTitle: '' });
     } catch (error) {
       console.error('Error deleting optimized CV:', error);
       toast.error('Unable to delete optimized CV');
@@ -200,6 +222,60 @@ export default function CVOptimizerPage() {
   };
 
   const filteredCVs = filteredAndSortedCVs();
+
+  // Group CVs by jobTitle + company to show only one tile per job
+  interface GroupedCV {
+    jobKey: string; // jobTitle + company
+    versions: OptimizedCV[];
+    primaryCV: OptimizedCV; // The most recent or highest scored CV
+  }
+
+  const groupedCVs = (): GroupedCV[] => {
+    const groups = new Map<string, OptimizedCV[]>();
+    
+    // Group all filtered CVs by jobTitle + company
+    filteredCVs.forEach((cv) => {
+      const key = `${cv.jobTitle}|||${cv.company}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(cv);
+    });
+
+    // Convert to array and select primary CV for each group
+    const grouped = Array.from(groups.entries()).map(([jobKey, versions]) => {
+      // Sort versions: most recent first, then by score
+      versions.sort((a, b) => {
+        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return (b.atsScore || 0) - (a.atsScore || 0);
+      });
+      
+      return {
+        jobKey,
+        versions,
+        primaryCV: versions[0] // Most recent or highest scored
+      };
+    });
+
+    // Sort groups by the same criteria as filteredCVs
+    grouped.sort((a, b) => {
+      if (sortBy === 'date') {
+        return new Date(b.primaryCV.date).getTime() - new Date(a.primaryCV.date).getTime();
+      }
+      if (sortBy === 'score') {
+        return (b.primaryCV.atsScore || 0) - (a.primaryCV.atsScore || 0);
+      }
+      if (sortBy === 'company') {
+        return a.primaryCV.company.localeCompare(b.primaryCV.company);
+      }
+      return 0;
+    });
+
+    return grouped;
+  };
+
+  const groupedCVsList = groupedCVs();
 
   // Extract job info from URL using Puppeteer
 
@@ -289,6 +365,7 @@ export default function CVOptimizerPage() {
       skills: [],
       languages: [],
       certificates: [],
+      hobbies: [],
     };
 
     let currentSection = '';
@@ -330,6 +407,7 @@ export default function CVOptimizerPage() {
         else if (title.includes('skill')) currentSection = 'skills';
         else if (title.includes('language')) currentSection = 'languages';
         else if (title.includes('certificate')) currentSection = 'certificates';
+        else if (title.includes('hobbie') || title.includes('hobby') || title.includes('loisir')) currentSection = 'hobbies';
         else if (title.includes('summary') || title.includes('professional')) currentSection = 'summary';
         else currentSection = '';
       } else if (line.startsWith('## ')) {
@@ -375,6 +453,8 @@ export default function CVOptimizerPage() {
           cvData.languages.push({ id: `lang-${languageId++}`, name: bullet.split('-')[0].trim(), level: 'Intermediate', order: cvData.languages.length });
         } else if (currentSection === 'certificates') {
           cvData.certificates.push({ id: `cert-${certificateId++}`, name: bullet, issuer: '', date: '', order: cvData.certificates.length });
+        } else if (currentSection === 'hobbies') {
+          cvData.hobbies.push({ id: `hobby-${cvData.hobbies.length}`, name: bullet, order: cvData.hobbies.length });
         }
       } else if (line) {
         if (currentSection === 'summary') {
@@ -430,6 +510,186 @@ export default function CVOptimizerPage() {
     return cvData;
   }
 
+  // Ensure optimized data keeps all original information and stays concise
+  function enforceCompleteness(original: any, optimized: any) {
+    const merged = JSON.parse(JSON.stringify(optimized || {}));
+
+    // Helpers
+    const toKey = (exp: any) =>
+      `${(exp.title || '').toLowerCase()}|${(exp.company || '').toLowerCase()}|${(exp.startDate || '').toLowerCase()}|${(exp.endDate || '').toLowerCase()}`;
+    const limitWords = (text: string, maxWords: number) => {
+      if (!text) return '';
+      const words = text.split(/\s+/);
+      if (words.length <= maxWords) return text;
+      return words.slice(0, maxWords).join(' ');
+    };
+    const dedupeByName = (arr: any[] = []) => {
+      const map = new Map<string, any>();
+      for (const item of arr) {
+        const key = (item.name || '').trim().toLowerCase();
+        if (key && !map.has(key)) map.set(key, item);
+      }
+      return Array.from(map.values());
+    };
+
+    // Initialize required containers
+    merged.personalInfo = merged.personalInfo || original.personalInfo || {};
+    merged.professionalSummary = merged.professionalSummary || original.professionalSummary || '';
+    merged.experiences = Array.isArray(merged.experiences) ? merged.experiences : [];
+    merged.educations = Array.isArray(merged.educations) ? merged.educations : [];
+    merged.skills = Array.isArray(merged.skills) ? merged.skills : [];
+    merged.languages = Array.isArray(merged.languages) ? merged.languages : [];
+    merged.certificates = Array.isArray(merged.certificates) ? merged.certificates : [];
+    merged.hobbies = Array.isArray(merged.hobbies) ? merged.hobbies : [];
+
+    // EXPERIENCES: ensure all original experiences are present
+    const existingKeys = new Set(merged.experiences.map((e: any) => toKey(e)));
+    for (const exp of original.experiences || []) {
+      const key = toKey(exp);
+      if (!existingKeys.has(key)) {
+        // Add condensed copy
+        merged.experiences.push({
+          id: exp.id,
+          title: exp.title,
+          company: exp.company,
+          startDate: exp.startDate,
+          endDate: exp.endDate,
+          isCurrent: !!exp.isCurrent,
+          description: (exp.description || []).slice(0, 5).map((b: string) => limitWords(b, 20)),
+          order: typeof exp.order === 'number' ? exp.order : merged.experiences.length,
+        });
+      }
+    }
+
+    // For all experiences: enforce concise bullets: 3-5 bullets, 20 words each
+    merged.experiences = merged.experiences.map((e: any, idx: number) => {
+      const bullets = Array.isArray(e.description) ? e.description : [];
+      const trimmed = bullets.map((b: string) => limitWords(b, 20)).slice(0, Math.max(3, Math.min(5, bullets.length)));
+      return {
+        id: e.id || `exp-${idx}`,
+        title: e.title || '',
+        company: e.company || '',
+        startDate: e.startDate || '',
+        endDate: e.endDate || '',
+        isCurrent: !!e.isCurrent,
+        description: trimmed,
+        order: typeof e.order === 'number' ? e.order : idx,
+      };
+    });
+
+    // EDUCATIONS: union, preserve originals
+    const eduKeys = new Set(merged.educations.map((e: any) => `${(e.degree || '').toLowerCase()}|${(e.institution || '').toLowerCase()}`));
+    for (const edu of original.educations || []) {
+      const k = `${(edu.degree || '').toLowerCase()}|${(edu.institution || '').toLowerCase()}`;
+      if (!eduKeys.has(k)) {
+        merged.educations.push({
+          id: edu.id,
+          degree: edu.degree,
+          institution: edu.institution,
+          startDate: edu.startDate,
+          endDate: edu.endDate,
+          isCurrent: !!edu.isCurrent,
+          description: (edu.description || '').toString().slice(0, 300),
+          order: typeof edu.order === 'number' ? edu.order : merged.educations.length,
+        });
+      }
+    }
+
+    // SKILLS/LANGUAGES/CERTIFICATES: make union and dedupe
+    merged.skills = dedupeByName([...(merged.skills || []), ...(original.skills || [])]);
+    merged.languages = dedupeByName([...(merged.languages || []), ...(original.languages || [])]);
+    merged.certificates = dedupeByName([...(merged.certificates || []), ...(original.certificates || [])]);
+    merged.hobbies = dedupeByName([...(merged.hobbies || []), ...(original.hobbies || [])]);
+
+    return merged;
+  }
+
+  function serializeStructuredCVToMarkdown(cv: any): string {
+    const lines: string[] = [];
+    const name = [cv?.personalInfo?.firstName, cv?.personalInfo?.lastName].filter(Boolean).join(' ').trim();
+    if (name) lines.push(`# ${name}`);
+
+    // Contact line (compact)
+    const contacts: string[] = [];
+    if (cv?.personalInfo?.email) contacts.push(cv.personalInfo.email);
+    if (cv?.personalInfo?.phone) contacts.push(cv.personalInfo.phone);
+    if (cv?.personalInfo?.location) contacts.push(cv.personalInfo.location);
+    if (cv?.personalInfo?.linkedin) contacts.push(cv.personalInfo.linkedin);
+    if (contacts.length) {
+      lines.push(contacts.join(' · '));
+      lines.push('');
+    }
+
+    if (cv?.professionalSummary) {
+      lines.push(`## Professional Summary`);
+      lines.push(cv.professionalSummary.trim());
+      lines.push('');
+    }
+
+    if (Array.isArray(cv?.experiences) && cv.experiences.length) {
+      lines.push(`## Work Experience`);
+      cv.experiences
+        .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+        .forEach((e: any) => {
+          const header = [e.title, e.company].filter(Boolean).join(' - ');
+          if (header) lines.push(`### ${header}`);
+          const dateLine = [e.startDate, e.endDate].filter(Boolean).join(' - ');
+          if (dateLine) lines.push(dateLine);
+          (e.description || []).forEach((b: string) => lines.push(`- ${b}`));
+          lines.push('');
+        });
+    }
+
+    if (Array.isArray(cv?.educations) && cv.educations.length) {
+      lines.push(`## Education`);
+      cv.educations
+        .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+        .forEach((ed: any) => {
+          const header = [ed.degree, ed.institution].filter(Boolean).join(' - ');
+          if (header) lines.push(`### ${header}`);
+          const dateLine = [ed.startDate, ed.endDate].filter(Boolean).join(' - ');
+          if (dateLine) lines.push(dateLine);
+          if (ed.description) lines.push(ed.description);
+          lines.push('');
+        });
+    }
+
+    if (Array.isArray(cv?.skills) && cv.skills.length) {
+      lines.push(`## Skills`);
+      const skillNames = cv.skills.map((s: any) => s.name).filter(Boolean);
+      if (skillNames.length) lines.push(`- ${skillNames.join(', ')}`);
+      lines.push('');
+    }
+
+    if (Array.isArray(cv?.languages) && cv.languages.length) {
+      lines.push(`## Languages`);
+      cv.languages.forEach((l: any) => {
+        const label = [l.name, l.level ? `(${l.level})` : ''].filter(Boolean).join(' ');
+        lines.push(`- ${label}`);
+      });
+      lines.push('');
+    }
+
+    if (Array.isArray(cv?.certificates) && cv.certificates.length) {
+      lines.push(`## Certifications`);
+      cv.certificates.forEach((c: any) => {
+        const label = [c.name, c.issuer ? `- ${c.issuer}` : '', c.date ? `(${c.date})` : ''].filter(Boolean).join(' ');
+        lines.push(`- ${label}`);
+      });
+      lines.push('');
+    }
+
+    if (Array.isArray(cv?.hobbies) && cv.hobbies.length) {
+      lines.push(`## Hobbies`);
+      cv.hobbies.forEach((h: any) => {
+        const label = h.name || '';
+        if (label) lines.push(`- ${label}`);
+      });
+      lines.push('');
+    }
+
+    return lines.join('\n').trim();
+  }
   // Generate optimized CV
   const handleGenerate = async () => {
     if (!cvFile) {
@@ -469,33 +729,61 @@ export default function CVOptimizerPage() {
       setLoadingProgress(30);
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Step 2: Extract CV text with GPT‑5 Vision
+      // Step 2: Extract CV with Vision API - COMPREHENSIVE STRUCTURED EXTRACTION
       setLoadingStep('analyzing');
       setLoadingProgress(40);
-      setLoadingMessage('Extracting resume content...');
+      setLoadingMessage('Analyzing resume with Vision AI...');
 
-      const cvExtractionPrompt = `
-Analyze this resume/CV image and extract ALL text content in a structured format.
+      const comprehensiveExtractionPrompt = `
+You are an expert CV/resume analyst. Your task is to analyze this resume image(s) and extract EVERYTHING you see, then rewrite it in a well-structured markdown format.
 
-Extract:
-1. Personal information (name, email, phone, address, LinkedIn, etc.)
-2. Professional summary/objective (if present)
-3. Work experience (all positions with dates, companies, titles, descriptions)
-4. Education (degrees, institutions, dates)
-5. Skills (technical skills, soft skills, languages)
-6. Certifications (if any)
-7. Projects (if any)
-8. Any other relevant sections
+CRITICAL INSTRUCTIONS:
+1. Look at EVERY section, EVERY line, EVERY detail visible in the resume images
+2. Extract ALL information including:
+   - Personal information (full name, email, phone, address, city, country, LinkedIn URL, portfolio, GitHub, etc.)
+   - Professional summary/objective (if present, extract the complete text)
+   - Work experience (EVERY position with: exact job title, company name, location, start date, end date, current status, ALL bullet points and descriptions)
+   - Education (EVERY degree/certificate with: degree name, institution, location, dates, GPA/honors if mentioned, relevant coursework)
+   - Skills (ALL technical skills, soft skills, tools, technologies, frameworks, methodologies - extract EVERYTHING)
+   - Languages (ALL languages with proficiency levels if mentioned)
+   - Certifications (ALL certifications with issuer, date, credential ID if visible)
+   - Projects (ALL projects with descriptions, technologies used, outcomes)
+   - Awards/Achievements (if any)
+   - Publications (if any)
+   - Volunteer work (if any)
+   - Any other sections visible
 
-Return the extracted content as a JSON object with this exact structure:
+3. After extracting everything, rewrite the complete CV in a clean, structured markdown format with these sections:
+   - # [Full Name]
+   - Contact information (email, phone, location, LinkedIn, etc.)
+   - ## Professional Summary (if present)
+   - ## Work Experience (each role as ## [Job Title] - [Company])
+   - ## Education (each degree as ## [Degree] - [Institution])
+   - ## Skills
+   - ## Languages (if present)
+   - ## Certifications (if present)
+   - ## Projects (if present)
+   - Any other relevant sections
+
+4. Be EXTREMELY thorough - do not skip any information. If you see it, include it.
+5. CRITICAL for Work Experience: Extract EVERY SINGLE work experience/position you see. Count them and make sure none are missing. Include ALL positions, even if they seem less relevant or older.
+6. Preserve all dates, numbers, percentages, company names, job titles exactly as they appear.
+7. For work experience bullets, include ALL bullet points you see, preserving the original wording as much as possible.
+8. If there are multiple pages, make sure to extract information from ALL pages.
+
+Return ONLY a JSON object with this structure:
 {
-  "text": "Full extracted text content preserving structure and formatting",
-  "extractedText": "Full extracted text content preserving structure and formatting"
+  "structuredCVMarkdown": "Complete CV rewritten in markdown format with all sections and information",
+  "extractionNotes": "Brief notes about what sections were found and any challenges in extraction"
 }
 
-Be thorough and extract EVERYTHING visible on the resume. The "text" and "extractedText" fields should contain the complete extracted text content.
+The "structuredCVMarkdown" field should be a complete, well-formatted markdown document that contains ALL information from the resume.
 `;
 
+      let structuredCVMarkdown = '';
+      let extractionOk = false;
+      
+      try {
       const extractionResponse = await fetch('/api/analyze-cv-vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -505,23 +793,23 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
             {
               role: 'user',
               content: [
-                { type: 'text', text: cvExtractionPrompt },
+                  { type: 'text', text: comprehensiveExtractionPrompt },
                 ...images.map(img => ({
                   type: 'image_url',
-                  image_url: { url: `data:image/jpeg;base64,${img}` }
+                    image_url: { 
+                      url: `data:image/jpeg;base64,${img}`,
+                      detail: 'high' // High detail for comprehensive visual analysis
+                    }
                 }))
               ]
             }
           ],
           response_format: { type: 'json_object' },
-          max_tokens: 4000,
+            max_tokens: 8000, // Increased for comprehensive extraction
           temperature: 0.1
         })
       });
 
-      let cvText = '';
-      let extractionOk = false;
-      try {
         if (!extractionResponse.ok) {
           const errorData = await extractionResponse.json().catch(() => ({ message: 'Unknown error' }));
           throw new Error(errorData.message || 'Failed to extract CV content');
@@ -533,21 +821,30 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
           throw new Error(extractionData.message || 'Failed to extract CV content');
         }
 
-        // Handle different response formats
+        // Parse the structured extraction
+        let parsedExtraction: any = {};
         if (typeof extractionData.content === 'string') {
           try {
             const normalized = extractionData.content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-            const parsed = JSON.parse(normalized);
-            cvText = parsed.text || parsed.extractedText || normalized;
+            parsedExtraction = JSON.parse(normalized);
           } catch {
-            cvText = extractionData.content;
+            // If parsing fails, try to extract markdown directly
+            parsedExtraction = { structuredCVMarkdown: extractionData.content };
           }
         } else if (extractionData.content && typeof extractionData.content === 'object') {
-          cvText = extractionData.content.text || extractionData.content.extractedText || '';
+          parsedExtraction = extractionData.content;
         }
-        extractionOk = !!cvText;
+
+        structuredCVMarkdown = parsedExtraction.structuredCVMarkdown || parsedExtraction.text || '';
+        extractionOk = !!structuredCVMarkdown && structuredCVMarkdown.trim().length > 100;
+        
+        if (extractionOk) {
+          console.log('✅ Comprehensive CV extraction successful');
+          console.log('   Extraction notes:', parsedExtraction.extractionNotes || 'N/A');
+          console.log('   Structured markdown length:', structuredCVMarkdown.length);
+        }
       } catch (e) {
-        console.warn('Vision extraction failed, will try pdfjs fallback', e);
+        console.warn('⚠️ Vision extraction failed, will try pdfjs fallback', e);
       }
 
       // Fallback via pdfjs if needed
@@ -555,12 +852,17 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
         setLoadingStep('analyzing');
         setLoadingMessage('Fallback: extracting text from PDF...');
         const text = await extractTextWithPDFJS(cvFile);
-        cvText = text;
+        structuredCVMarkdown = text;
+        console.log('⚠️ Using PDF.js fallback extraction');
       }
 
-      if (!cvText || cvText.trim().length < 50) {
+      if (!structuredCVMarkdown || structuredCVMarkdown.trim().length < 50) {
         throw new Error('Extracted CV content is too short or empty. Please ensure your resume is clear and readable.');
       }
+
+      // Use the structured markdown as our base CV text
+      const cvText = structuredCVMarkdown;
+      const originalStructured = parseMarkdownToCVData(cvText);
 
       setLoadingProgress(60);
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -578,23 +880,58 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
       if (jobInputMode === 'ai' && formData.jobUrl && (!jobDescription || jobDescription.trim().length < 100)) {
         try {
           setLoadingMessage('Extracting job posting content...');
+          
+          // Validate URL before sending
+          const urlToExtract = formData.jobUrl.trim();
+          if (!urlToExtract || urlToExtract.length < 10) {
+            throw new Error('Invalid URL. Please provide a valid job posting URL.');
+          }
+
+          console.log('📡 Sending extraction request for URL:', urlToExtract);
+          
           const extractResponse = await fetch('/api/extract-job-url', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: formData.jobUrl.trim() })
+            body: JSON.stringify({ url: urlToExtract })
           });
 
           if (!extractResponse.ok) {
-            const errorText = await extractResponse.text();
-            console.error('❌ Extraction failed:', extractResponse.status, errorText);
-            throw new Error(`Failed to extract job posting: ${extractResponse.status === 404 ? 'Endpoint not found. Please restart the server.' : extractResponse.statusText}`);
+            let errorMessage = 'Failed to extract job posting';
+            try {
+              const errorData = await extractResponse.json();
+              errorMessage = errorData.message || errorMessage;
+              console.error('❌ Extraction failed with error:', errorData);
+            } catch {
+              const errorText = await extractResponse.text();
+              console.error('❌ Extraction failed:', extractResponse.status, errorText);
+              errorMessage = extractResponse.status === 404 
+                ? 'Endpoint not found. Please restart the server.' 
+                : errorText || extractResponse.statusText;
+            }
+            throw new Error(errorMessage);
           }
 
           const extractData = await extractResponse.json();
+          
           if (extractData.status === 'success') {
-            jobDescription = extractData.content || jobDescription;
-            jobTitle = extractData.title || jobTitle;
-            company = extractData.company || company;
+            // Validate extracted data
+            if (!extractData.content || extractData.content.trim().length < 50) {
+              throw new Error('Extracted job description is too short. The page may not contain a valid job posting.');
+            }
+
+            // Use extracted data, with fallbacks
+            jobDescription = extractData.content.trim() || jobDescription;
+            jobTitle = (extractData.title && extractData.title.trim()) || jobTitle || 'Not specified';
+            company = (extractData.company && extractData.company.trim()) || company || 'Not specified';
+
+            // Log what was extracted
+            console.log('✅ Job content extracted successfully:', {
+              title: jobTitle,
+              company: company,
+              contentLength: jobDescription.length,
+              location: extractData.location || 'Not specified'
+            });
+
             // Update formData with extracted values so they're saved correctly
             setFormData({
               ...formData,
@@ -602,14 +939,28 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
               company: company,
               jobDescription: jobDescription
             });
-            console.log('✅ Job content extracted for optimization');
           } else {
             throw new Error(extractData.message || 'Failed to extract job posting content');
           }
         } catch (extractError: any) {
           console.error('❌ Failed to extract job content:', extractError);
-          // If extraction fails, we cannot continue without job description
-          throw new Error(`Failed to extract job posting from URL: ${extractError.message || 'Unknown error'}. Please try manual entry or check the URL.`);
+          console.error('   Error details:', {
+            message: extractError.message,
+            name: extractError.name,
+            stack: extractError.stack
+          });
+          
+          // Provide helpful error message
+          let errorMessage = `Failed to extract job posting from URL: ${extractError.message || 'Unknown error'}`;
+          if (extractError.message?.includes('timeout') || extractError.message?.includes('Navigation')) {
+            errorMessage += '. The page may be taking too long to load or may require authentication.';
+          } else if (extractError.message?.includes('too short')) {
+            errorMessage += ' Please try manual entry or check if the URL points to a valid job posting.';
+          } else {
+            errorMessage += ' Please try manual entry or check the URL.';
+          }
+          
+          throw new Error(errorMessage);
         }
       }
 
@@ -617,10 +968,19 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
         throw new Error('Job description is required. Please provide job information.');
       }
 
-      // Step 4: Optimize with AI using the job posting content
+      // Step 4: Compare and optimize - Compare structured CV with job post
       setLoadingStep('retargeting');
       setLoadingProgress(75);
-      setLoadingMessage('Retargeting CV to the job description...');
+      setLoadingMessage('Comparing CV with job requirements...');
+
+      // First, do a comparison analysis
+      setLoadingMessage('Analyzing job requirements vs CV...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Then optimize
+      setLoadingStep('matching');
+      setLoadingProgress(80);
+      setLoadingMessage('Optimizing resume to match job posting...');
 
       const optimizationPrompt = buildOptimizationPrompt({
         cvText,
@@ -629,10 +989,6 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
         jobDescription: jobDescription,
         jobUrl: formData.jobUrl || undefined
       });
-
-      // Move to matching while calling optimizer
-      setLoadingStep('matching');
-      setLoadingMessage('Optimizing resume with AI...');
 
       const optimizationResponse = await fetch('/api/chatgpt', {
         method: 'POST',
@@ -661,12 +1017,66 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
         shortSummary?: string;
         structuredCV?: any;
       };
+      
+      try {
       if (typeof optimizationData.content === 'string') {
-        const normalized = optimizationData.content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          // Try to parse as JSON string
+          let normalized = optimizationData.content.trim();
+          // Remove markdown code blocks if present
+          normalized = normalized.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
         optimizedResult = JSON.parse(normalized);
-      } else {
+        } else if (optimizationData.content && typeof optimizationData.content === 'object') {
+          // Already an object
         optimizedResult = optimizationData.content;
+        } else {
+          throw new Error('Invalid content format from API');
+        }
+
+        // Validate required fields
+        if (!optimizedResult.optimizedResumeMarkdown) {
+          console.error('❌ Missing optimizedResumeMarkdown in response');
+          throw new Error('Missing optimizedResumeMarkdown in API response');
+        }
+
+        // Validate structuredCV if present
+        if (optimizedResult.structuredCV) {
+          if (!optimizedResult.structuredCV.personalInfo) {
+            console.warn('⚠️ structuredCV missing personalInfo, will parse from markdown');
+            optimizedResult.structuredCV = undefined; // Will be parsed from markdown
+          } else {
+            // Ensure required arrays exist
+            optimizedResult.structuredCV.experiences = optimizedResult.structuredCV.experiences || [];
+            optimizedResult.structuredCV.educations = optimizedResult.structuredCV.educations || [];
+            optimizedResult.structuredCV.skills = optimizedResult.structuredCV.skills || [];
+            optimizedResult.structuredCV.languages = optimizedResult.structuredCV.languages || [];
+            optimizedResult.structuredCV.certificates = optimizedResult.structuredCV.certificates || [];
+          }
+        }
+
+        console.log('✅ Successfully parsed optimization result:', {
+          hasMarkdown: !!optimizedResult.optimizedResumeMarkdown,
+          markdownLength: optimizedResult.optimizedResumeMarkdown.length,
+          hasStructuredCV: !!optimizedResult.structuredCV,
+          atsScore: optimizedResult.atsScore,
+          keywordsCount: optimizedResult.keywordsUsed?.length || 0
+        });
+      } catch (parseError: any) {
+        console.error('❌ Error parsing optimization result:', parseError);
+        console.error('Raw content type:', typeof optimizationData.content);
+        console.error('Raw content preview:', 
+          typeof optimizationData.content === 'string' 
+            ? optimizationData.content.substring(0, 500) 
+            : JSON.stringify(optimizationData.content).substring(0, 500)
+        );
+        throw new Error(`Failed to parse optimization result: ${parseError.message || 'Invalid JSON format'}`);
       }
+
+      // Build structured data candidate from AI, then enforce completeness against original
+      let candidateStructured: any = optimizedResult.structuredCV && optimizedResult.structuredCV.personalInfo
+        ? optimizedResult.structuredCV
+        : parseMarkdownToCVData(optimizedResult.optimizedResumeMarkdown || '');
+      const mergedStructured = enforceCompleteness(originalStructured, candidateStructured);
+      const finalMarkdown = serializeStructuredCVToMarkdown(mergedStructured);
 
       setLoadingStep('finalizing');
       setLoadingProgress(90);
@@ -680,7 +1090,7 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
         jobUrl: formData.jobUrl || undefined,
         date: formatDateString(new Date().toISOString().split('T')[0]),
         userId: currentUser?.uid || '',
-        optimizedResumeMarkdown: optimizedResult.optimizedResumeMarkdown,
+        optimizedResumeMarkdown: finalMarkdown,
         atsScore: optimizedResult.atsScore,
         keywordsUsed: optimizedResult.keywordsUsed,
         changesSummary: optimizedResult.changesSummary,
@@ -690,39 +1100,22 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
 
       // Parse markdown to structured data and persist, then navigate to editor
       if (savedId && currentUser) {
-        console.log('🔍 DEBUG: Checking structuredCV from AI response...');
-        console.log('structuredCV present:', !!optimizedResult.structuredCV);
+        console.log('🔍 DEBUG: Using merged structured data with completeness checks...');
+        const structured = mergedStructured;
         
-        // Prefer structuredCV from the model if present; fall back to parsing markdown
-        let structured = optimizedResult.structuredCV;
-        
-        if (!structured || !structured.personalInfo) {
-          console.warn('⚠️ structuredCV missing or invalid, parsing markdown instead...');
-          console.log('optimizedResumeMarkdown length:', optimizedResult.optimizedResumeMarkdown?.length || 0);
-          structured = parseMarkdownToCVData(optimizedResult.optimizedResumeMarkdown || '');
-          console.log('Parsed cvData:', {
-            hasName: !!structured.personalInfo.firstName,
-            expCount: structured.experiences.length,
-            eduCount: structured.educations.length,
-            skillsCount: structured.skills.length
-          });
-        } else {
-          console.log('✅ Using structuredCV from AI:', {
-            hasName: !!structured.personalInfo.firstName,
-            expCount: structured.experiences?.length || 0,
-            eduCount: structured.educations?.length || 0,
-            skillsCount: structured.skills?.length || 0
-          });
-        }
-        
+        // Save structured data to Firestore
         try {
           await updateDoc(doc(db, 'users', currentUser.uid, 'optimizedCVs', savedId), {
             cvData: structured,
+            optimizedResumeMarkdown: finalMarkdown
           });
           console.log('✅ cvData saved successfully to Firestore');
-        } catch (e) {
-          console.error('❌ Failed to save structured cvData:', e);
+        } catch (saveError: any) {
+          console.error('❌ Failed to save structured cvData:', saveError);
+          // Don't throw - navigation should still happen even if save fails
+          toast.warning('CV optimized but failed to save structured data. You can still edit the resume.');
         }
+        
         navigate(`/cv-optimizer/${savedId}`);
       }
 
@@ -1055,7 +1448,7 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
-                CV Optimizer
+                Resume Lab
               </h1>
               <p className="mt-2 text-gray-500 dark:text-gray-400">
                 Optimize your resume to perfectly match each job posting with AI
@@ -1117,15 +1510,13 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <Briefcase className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {optimizedCVs.length > 0 
-                      ? Math.round(optimizedCVs.reduce((sum, cv) => sum + (cv.atsScore || 0), 0) / optimizedCVs.length)
-                      : 0}%
+                    {new Set(optimizedCVs.map(cv => `${cv.jobTitle}|||${cv.company}`)).size}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Average Score</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Unique Jobs</p>
                 </div>
               </div>
             </div>
@@ -1227,71 +1618,143 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
         )}
 
         {/* Liste des CVs optimisés */}
-        {filteredCVs.length > 0 ? (
+        {groupedCVsList.length > 0 ? (
           <div className={`${viewMode === 'grid' 
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
             : 'space-y-4'
           }`}>
-            {filteredCVs.map((cv) => (
-              <motion.div
-                key={cv.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 
-                  hover:shadow-lg transition-all cursor-pointer group"
-                onClick={() => navigate(`/cv-optimizer/${cv.id}`)}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                      {cv.jobTitle}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <Building2 className="w-3 h-3" />
-                      {cv.company}
-                    </p>
-                  </div>
-                  {cv.atsScore && (
-                    <div className={`text-2xl font-bold ${
-                      cv.atsScore >= 80 ? 'text-purple-600' :
-                      cv.atsScore >= 65 ? 'text-blue-600' : 'text-pink-600'
-                    }`}>
-                      {cv.atsScore}%
+            {groupedCVsList.map((group) => {
+              const hasMultipleVersions = group.versions.length > 1;
+              
+              return (
+                <motion.div
+                  key={group.jobKey}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 
+                    hover:border-purple-300 dark:hover:border-purple-700
+                    hover:shadow-xl hover:shadow-purple-500/10 dark:hover:shadow-purple-900/20
+                    transition-all duration-300 cursor-pointer group
+                    overflow-hidden"
+                  onClick={() => navigate(`/cv-optimizer/${group.primaryCV.id}`)}
+                >
+                  {/* Gradient background effect on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50/0 via-indigo-50/0 to-purple-50/0 
+                    group-hover:from-purple-50/50 group-hover:via-indigo-50/30 group-hover:to-purple-50/50
+                    dark:group-hover:from-purple-950/20 dark:group-hover:via-indigo-950/10 dark:group-hover:to-purple-950/20
+                    transition-all duration-300 -z-0" />
+                  
+                  <div className="relative z-10">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        {group.primaryCV.jobTitle}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1.5 font-medium">
+                        <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                        <span className="truncate">{group.primaryCV.company}</span>
+                      </p>
                     </div>
-                  )}
-                </div>
-                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {formatDateString(cv.date)}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteOptimizedCV(cv.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                {cv.keywordsUsed && cv.keywordsUsed.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {cv.keywordsUsed.slice(0, 5).map((keyword, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[10px] px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-full"
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-4">
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span className="font-medium">{formatDateString(group.primaryCV.date)}</span>
+                      </div>
+                      {hasMultipleVersions && (
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenVersionDropdown(openVersionDropdown === group.jobKey ? null : group.jobKey);
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
+                            aria-label="Select version"
+                          >
+                            <Globe2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                            <span className="font-medium text-indigo-700 dark:text-indigo-300">
+                              {group.versions.length} versions
+                            </span>
+                            <ChevronDown className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                          </button>
+                          {openVersionDropdown === group.jobKey && (
+                            <div className="absolute right-0 mt-2 w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">
+                              <div className="py-1 max-h-64 overflow-y-auto">
+                                {group.versions.map((v) => (
+                                  <button
+                                    key={v.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/cv-optimizer/${v.id}`);
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-start gap-2"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {(v.language || '').toUpperCase() || 'VERSION'}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        {(typeof v.atsScore === 'number' ? `Score ${v.atsScore}%` : 'Score —')} · {formatDateString(v.date)}
+                                      </div>
+                                    </div>
+                                    <ChevronRight className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteConfirm(group.primaryCV.id, group.primaryCV.jobTitle);
+                        }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="opacity-0 group-hover:opacity-100 transition-all duration-200 
+                          p-2 rounded-lg bg-red-50 dark:bg-red-900/20 
+                          text-red-600 dark:text-red-400 
+                          hover:bg-red-100 dark:hover:bg-red-900/30
+                          hover:shadow-md"
+                        aria-label="Delete resume"
                       >
-                        {keyword}
-                      </span>
-                    ))}
-                    {cv.keywordsUsed.length > 5 && (
-                      <span className="text-[10px] text-gray-400">+{cv.keywordsUsed.length - 5}</span>
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                    
+                    {group.primaryCV.keywordsUsed && group.primaryCV.keywordsUsed.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.primaryCV.keywordsUsed.slice(0, 5).map((keyword, idx) => (
+                          <motion.span
+                            key={idx}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="text-xs px-2.5 py-1 bg-gradient-to-r from-purple-100 to-indigo-100 
+                              dark:from-purple-900/30 dark:to-indigo-900/30
+                              text-purple-700 dark:text-purple-300 
+                              rounded-full font-medium
+                              border border-purple-200/50 dark:border-purple-700/50
+                              group-hover:from-purple-200 group-hover:to-indigo-200
+                              dark:group-hover:from-purple-800/40 dark:group-hover:to-indigo-800/40
+                              transition-all duration-200"
+                          >
+                            {keyword}
+                          </motion.span>
+                        ))}
+                        {group.primaryCV.keywordsUsed.length > 5 && (
+                          <span className="text-xs px-2.5 py-1 text-gray-500 dark:text-gray-400 font-medium">
+                            +{group.primaryCV.keywordsUsed.length - 5}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         ) : optimizedCVs.length === 0 ? (
           <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -1374,68 +1837,40 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
                 
                 {/* Header */}
                 <div className="p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
-                  {/* Step Progress Indicator */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center w-full relative px-2">
-                      {/* Progress Bar Background */}
-                      <div className="absolute h-0.5 bg-gray-200 dark:bg-gray-700 left-8 right-8 top-1/2 -translate-y-1/2 z-0 rounded-full"></div>
-                      {/* Progress Bar Fill */}
-                      <div 
-                        className="absolute h-0.5 bg-gradient-to-r from-purple-500 to-indigo-600 left-8 top-1/2 -translate-y-1/2 z-10 transition-all duration-500 ease-out rounded-full"
-                        style={{ 
-                          width: currentStep === 1 
-                            ? '0%' 
-                            : `${((currentStep - 1) / (steps.length - 1)) * 100}%`,
-                          maxWidth: 'calc(100% - 4rem)'
-                        }}
-                      ></div>
+                  {/* Minimal Step Indicator - très discret */}
+                  <div className="mb-3 flex items-center justify-center gap-1">
+                    {steps.map((step, index) => {
+                      const stepNumber = index + 1;
+                      const isActive = currentStep === stepNumber;
+                      const isCompleted = currentStep > stepNumber;
                       
-                      {/* Step Circles */}
-                      {steps.map((step, index) => {
-                        const stepNumber = index + 1;
-                        const isActive = currentStep === stepNumber;
-                        const isCompleted = currentStep > stepNumber;
-                        
-                        return (
+                      return (
+                        <div key={step.title} className="flex items-center">
                           <div 
-                            key={step.title} 
-                            className="z-20 flex flex-col items-center flex-1 relative"
-                          >
+                            className={`
+                              w-1.5 h-1.5 rounded-full transition-all duration-300
+                              ${isActive 
+                                ? 'bg-purple-600 dark:bg-purple-400 w-2 h-2' 
+                                : isCompleted 
+                                  ? 'bg-purple-400 dark:bg-purple-500' 
+                                  : 'bg-gray-300 dark:bg-gray-600'
+                              }
+                            `}
+                          />
+                          {index < steps.length - 1 && (
                             <div 
                               className={`
-                                w-10 h-10 rounded-full flex items-center justify-center mb-2
-                                transition-all duration-300 ease-out
-                                ${isActive 
-                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-4 ring-purple-100 dark:ring-purple-900/30 shadow-lg shadow-purple-500/20 scale-110' 
-                                  : isCompleted 
-                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md shadow-purple-500/10' 
-                                    : 'bg-white dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-2 border-gray-200 dark:border-gray-600'
+                                h-0.5 w-3 mx-0.5 transition-all duration-300
+                                ${isCompleted 
+                                  ? 'bg-purple-400 dark:bg-purple-500' 
+                                  : 'bg-gray-200 dark:bg-gray-700'
                                 }
                               `}
-                            >
-                              {isCompleted ? (
-                                <Check className="w-5 h-5" />
-                              ) : (
-                                <span className="text-sm font-semibold">
-                                  {stepNumber}
-                                </span>
-                              )}
-                            </div>
-                            <span className={`
-                              text-xs font-medium text-center transition-colors duration-300
-                              ${isActive 
-                                ? 'text-purple-600 dark:text-purple-400 font-semibold'
-                                : isCompleted
-                                  ? 'text-gray-700 dark:text-gray-300'
-                                  : 'text-gray-400 dark:text-gray-500'
-                              }
-                            `}>
-                              {step.title}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   
                   {/* Title Section */}
@@ -1570,6 +2005,49 @@ Be thorough and extract EVERYTHING visible on the resume. The "text" and "extrac
           progress={loadingProgress}
           message={loadingMessage}
         />
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmModal.isOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+              <div className="flex justify-between items-center mb-1">
+                <h2 className="text-lg font-semibold">Delete Resume</h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setDeleteConfirmModal({ isOpen: false, cvId: null, cvTitle: '' })}
+                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
+              </div>
+              
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Are you sure you want to delete your optimized resume for <strong>{deleteConfirmModal.cvTitle}</strong>? This action cannot be undone.
+              </p>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setDeleteConfirmModal({ isOpen: false, cvId: null, cvTitle: '' })}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg flex-1 sm:flex-initial"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (deleteConfirmModal.cvId) {
+                      deleteOptimizedCV(deleteConfirmModal.cvId);
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-lg flex-1 sm:flex-initial"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AuthLayout>
   );
@@ -1580,14 +2058,16 @@ function buildOptimizationPrompt(params: { cvText: string; jobTitle: string; com
   return `
 You are a principal CV optimization expert and ATS specialist. Your mission is to transform this candidate's CV to PERFECTLY match the target job while preserving truth and authenticity.
 
+IMPORTANT: The CV text below is a COMPREHENSIVE structured extraction from the original resume. It contains ALL information from the candidate's CV. Your job is to compare this complete CV with the job posting and adapt it intelligently.
+
 ═══════════════════════════════════════════════════════════════════
-TARGET JOB
+TARGET JOB POSTING
 ═══════════════════════════════════════════════════════════════════
 Position: ${jobTitle || 'Not specified'}
 Company: ${company || 'Not specified'}
 ${jobUrl ? `Job Posting URL: ${jobUrl}` : ''}
 
-Full Job Description (extracted from the job posting${jobUrl ? ` at ${jobUrl}` : ''}):
+Full Job Description:
 """
 ${jobDescription}
 """
@@ -1595,76 +2075,143 @@ ${jobDescription}
 ${jobUrl ? `NOTE: The job description above was extracted from the job posting URL: ${jobUrl}. Analyze this content carefully to understand the exact requirements, responsibilities, and qualifications needed for this position.` : ''}
 
 ═══════════════════════════════════════════════════════════════════
-CANDIDATE'S CURRENT CV
+CANDIDATE'S COMPLETE CV (STRUCTURED EXTRACTION)
 ═══════════════════════════════════════════════════════════════════
+This is a comprehensive structured extraction of the candidate's resume containing ALL their information:
 """
 ${cvText}
 """
 
 ═══════════════════════════════════════════════════════════════════
-YOUR MISSION - CRITICAL OPTIMIZATION STEPS
+YOUR MISSION - INTELLIGENT COMPARISON & OPTIMIZATION
 ═══════════════════════════════════════════════════════════════════
 
-STEP 1: DEEP ANALYSIS
-Analyze the job description line by line and extract:
-- Must-have technical skills, tools, technologies, frameworks
+STEP 1: DEEP JOB ANALYSIS
+Analyze the job description systematically and extract:
+- Must-have technical skills, tools, technologies, frameworks (list ALL)
 - Must-have soft skills and methodologies
-- Key responsibilities and expected outcomes
+- Key responsibilities and expected outcomes (prioritize by importance)
 - Industry-specific terminology and jargon
 - Seniority level and years of experience expected
 - Company culture indicators
+- Preferred qualifications (nice-to-have)
 
-STEP 2: CV GAP ANALYSIS
-Compare the candidate's CV with the job requirements:
-- What EXACTLY matches (skills, tools, responsibilities, outcomes)
-- What the candidate HAS but is UNDER-EMPHASIZED (hidden gems to highlight)
-- What's IRRELEVANT for this specific job (de-emphasize or remove)
-- What's MISSING entirely (acknowledge but don't invent)
+STEP 2: COMPREHENSIVE CV vs JOB COMPARISON
+Systematically compare the candidate's COMPLETE CV (from the structured extraction above) with the job requirements:
 
-STEP 3: STRATEGIC REWRITING
-Transform each section to maximize ATS score and recruiter appeal:
+A) EXACT MATCHES - What the candidate has that directly matches:
+   - Skills/tools that appear in both CV and job posting
+   - Experiences/responsibilities that align
+   - Qualifications that match requirements
 
-A) PROFESSIONAL SUMMARY (2-4 sentences, ~50-80 words):
+B) HIDDEN GEMS - What the candidate HAS but needs highlighting:
+   - Skills/experiences in CV that are relevant but not emphasized
+   - Transferable skills that could match job requirements
+   - Achievements that demonstrate required competencies
+
+C) CONTENT TO ADAPT (NOT REMOVE):
+   - Skills/experiences that can be rephrased to match job terminology
+   - Bullet points that can be rewritten to emphasize relevant aspects
+   - Information that can be condensed or reworded for better alignment
+
+D) MISSING REQUIREMENTS - What's in job but not in CV:
+   - List what's missing (but DO NOT invent - be honest)
+   - Note if candidate has similar/equivalent skills that could compensate
+
+STEP 3: STRATEGIC TEXT ADAPTATION (PRESERVE ALL STRUCTURE)
+CRITICAL: You MUST keep ALL experiences, ALL education entries, ALL skills, ALL sections from the original CV.
+Your job is ONLY to adapt the TEXT/DESCRIPTIONS, not to remove any content.
+
+Transform the CV to maximize ATS score and recruiter appeal while staying 100% truthful:
+
+A) PROFESSIONAL SUMMARY (2-3 sentences, ~50-60 words MAX for one-page CV):
    - Lead with years of experience + exact job title match if applicable
-   - Mention 3-4 TOP skills/tools from the job description that the candidate has
-   - Include 1-2 quantified achievements that relate to the role
+   - Mention 2-3 TOP skills/tools from the job description that the candidate has
+   - Include 1 quantified achievement that relates to the role
    - Use power words from the job posting
+   - Keep it concise to save space for experiences
 
-B) SKILLS SECTION (6-12 items):
-   - Prioritize skills mentioned in the job description that the candidate has
+B) SKILLS SECTION:
+   ⚠️ MANDATORY: Include ALL skills from the original CV
+   - Keep all skills, just reorder by relevance to the job (most important first)
+   - Prioritize skills mentioned in the job description at the top
    - Group by category if needed (Technical, Tools, Methodologies)
    - Include exact tool names/versions from job posting when candidate has them
-   - Order by relevance to the job (most important first)
+   - Format compactly to save space (comma-separated or short list)
 
-C) WORK EXPERIENCE (PER ROLE):
-   - Title: Keep exact title or adapt slightly to match job posting terminology
-   - Company: Keep factual
-   - Dates: Keep factual
-   - Bullets (4-6 per role):
+C) WORK EXPERIENCE (CRITICAL - KEEP ALL EXPERIENCES):
+   ⚠️ MANDATORY: You MUST include EVERY SINGLE work experience from the original CV. DO NOT remove, skip, or omit any experience.
+   - Title: Keep exact title (DO NOT change)
+   - Company: Keep factual (DO NOT change)
+   - Dates: Keep factual (DO NOT change)
+   - Location: Keep if present (DO NOT change)
+   - For EACH experience, adapt ONLY the bullet points/descriptions:
+     * Keep the SAME NUMBER of bullets (or condense if too many, but keep all key points)
+     * Rewrite bullets to match job description language and keywords
      * Start with STRONG action verbs (Led, Spearheaded, Architected, Optimized, Delivered, Implemented, etc.)
      * MIRROR the job description's language and keywords naturally
-     * Quantify results when implied by original CV (%, $, time, scale, impact)
+     * Quantify results when present in original CV (%, $, time, scale, impact)
      * Focus on outcomes and achievements, not just tasks
      * Make each bullet UNIQUE and SPECIFIC to that role
-     * Keep bullets concise (≤22 words)
+     * Keep bullets concise (≤20 words per bullet to fit one page)
      * Use present tense for current role, past tense for previous roles
-     * PRIORITIZE experiences that match the target job (reorder if needed)
+     * If an experience has many bullets, prioritize the most relevant ones but keep a summary of others
+   - You may reorder experiences to put most relevant first, but ALL must be included
 
 D) EDUCATION:
-   - Keep factual
-   - Add relevant coursework, honors, or projects ONLY if they relate to the target job
-   - De-emphasize if not directly relevant
+   ⚠️ MANDATORY: Include ALL education entries from the original CV
+   - Keep ALL degrees, institutions, dates exactly as they appear
+   - Keep relevant coursework, honors, or projects if present
+   - You may condense descriptions but keep all entries
 
-E) CERTIFICATIONS/ADDITIONAL:
-   - Highlight only if relevant to the job
-   - Remove if not adding value for this specific role
+E) SKILLS:
+   ⚠️ MANDATORY: Include ALL skills from the original CV
+   - Keep all skills, just reorder by relevance to the job
+   - Prioritize skills mentioned in job description at the top
+   - Do not remove any skills
 
-STEP 4: QUALITY CHECKS
+F) LANGUAGES:
+   ⚠️ MANDATORY: Include ALL languages from the original CV
+   - Keep all languages exactly as they appear
+
+G) CERTIFICATIONS/ADDITIONAL:
+   ⚠️ MANDATORY: Include ALL certifications from the original CV
+   - Keep all certifications, just reorder by relevance if needed
+   - Do not remove any certifications
+
+STEP 4: ONE-PAGE CV OPTIMIZATION & QUALITY CHECKS
+CRITICAL RULES - NEVER VIOLATE:
+- ✅ DO preserve ALL factual information (dates, companies, titles, achievements)
+- ✅ DO include ALL experiences, ALL education, ALL skills, ALL certifications from original CV
+- ✅ DO rephrase and emphasize existing content to match job keywords
+- ✅ DO reorder sections/experiences to highlight most relevant first
+- ✅ DO use job posting terminology when describing similar experiences
+- ✅ DO condense bullet points to fit one page (aim for 3-5 bullets per experience, max 20 words each)
+- ✅ DO prioritize most relevant content but keep everything
+- ❌ DO NOT invent skills, experiences, or achievements
+- ❌ DO NOT change dates, company names, or job titles
+- ❌ DO NOT remove any work experience, education entry, skill, language, or certification
+- ❌ DO NOT add qualifications the candidate doesn't have
+- ❌ DO NOT exaggerate or fabricate accomplishments
+
+ONE-PAGE CV REQUIREMENTS:
+- The final CV must fit on ONE page
+- To achieve this, condense bullet points (3-5 per experience instead of 6-8)
+- Keep descriptions concise (max 20 words per bullet)
+- Prioritize most relevant experiences at the top with more detail
+- Less relevant experiences can have fewer bullets but must still be included
+- Professional summary should be 2-3 sentences (50-60 words max)
+- Skills section: list all skills but in a compact format
+
+Additional Quality Checks:
 - Ensure NO DUPLICATION of accomplishments across different roles
-- Verify consistent tense usage
+- Verify consistent tense usage (present for current, past for previous)
 - Confirm all facts are preserved (no inventions)
+- Confirm ALL original experiences are included (count them)
 - Validate ATS-friendly formatting (no tables, columns, or special characters)
-- Check that top 10 keywords from job description appear naturally in CV
+- Check that top 15 keywords from job description appear naturally in CV
+- Ensure natural language flow (don't stuff keywords unnaturally)
+- Verify the CV fits on one page when formatted
 
 ═══════════════════════════════════════════════════════════════════
 OUTPUT FORMAT - CRITICAL
@@ -1673,32 +2220,81 @@ OUTPUT FORMAT - CRITICAL
 Return ONLY a valid JSON object (NO markdown, NO code blocks, NO explanations).
 The JSON MUST have this EXACT structure:
 {
-  "optimizedResumeMarkdown": "<full CV in Markdown with the sections above>",
-  "atsScore": <integer 0-100>,
-  "keywordsUsed": ["keyword1 from job posting", "..."],
-  "changesSummary": ["what changed and why", "..."],
-  "shortSummary": "2-3 lines executive summary tailored to the role",
+  "optimizedResumeMarkdown": "<full optimized CV in Markdown format with all sections>",
+  "atsScore": <integer 0-100, calculated based on keyword matching and relevance>,
+  "keywordsUsed": ["keyword1 from job posting that appears in optimized CV", "keyword2", ...],
+  "changesSummary": [
+    "Brief description of what changed and why (e.g., 'Emphasized React experience in summary to match job requirements')",
+    "Another change...",
+    ...
+  ],
+  "shortSummary": "2-3 lines executive summary of the candidate tailored specifically to this role",
   "structuredCV": {
     "personalInfo": {
-      "firstName": "", "lastName": "", "email": "", "phone": "",
-      "location": "", "linkedin": "", "portfolio": "", "jobTitle": ""
+      "firstName": "<extracted from CV>",
+      "lastName": "<extracted from CV>",
+      "email": "<extracted from CV>",
+      "phone": "<extracted from CV>",
+      "location": "<extracted from CV>",
+      "linkedin": "<extracted from CV, if present>",
+      "portfolio": "<extracted from CV, if present>",
+      "jobTitle": "<current or most recent job title>"
     },
-    "professionalSummary": "",
+    "professionalSummary": "<optimized professional summary tailored to the job>",
     "experiences": [
-      { "title": "", "company": "", "startDate": "", "endDate": "", "isCurrent": false, "description": ["...","..."] }
+      {
+        "title": "<job title, keep factual>",
+        "company": "<company name, keep factual>",
+        "startDate": "<start date, keep factual>",
+        "endDate": "<end date or 'Present', keep factual>",
+        "isCurrent": <true/false>,
+        "description": ["<optimized bullet point 1>", "<optimized bullet point 2>", ...]
+      }
     ],
     "educations": [
-      { "degree": "", "institution": "", "startDate": "", "endDate": "", "isCurrent": false, "description": "" }
+      {
+        "degree": "<degree name, keep factual>",
+        "institution": "<institution name, keep factual>",
+        "startDate": "<start date, if available>",
+        "endDate": "<end date, keep factual>",
+        "isCurrent": <true/false>,
+        "description": "<any additional info like GPA, honors, relevant coursework>"
+      }
     ],
-    "skills": [{ "name": "", "level": "Beginner|Intermediate|Advanced|Expert" }],
-    "languages": [{ "name": "", "level": "Basic|Intermediate|Advanced|Native" }],
-    "certificates": [{ "name": "", "issuer": "", "date": "" }]
+    "skills": [
+      { "name": "<skill name>", "level": "Beginner|Intermediate|Advanced|Expert" }
+    ],
+    "languages": [
+      { "name": "<language name>", "level": "Basic|Intermediate|Advanced|Native" }
+    ],
+    "certificates": [
+      { "name": "<certificate name>", "issuer": "<issuing organization>", "date": "<date if available>" }
+    ]
   }
 }
 
-IMPORTANT FORMATTING
-- Use "#" for title, "##" for sections, "-" bullets, blank lines between sections.
-- Keep clean, ATS-friendly, no tables/columns, no markdown fences.
+CRITICAL INSTRUCTIONS FOR structuredCV:
+- Extract ALL information from the optimizedResumeMarkdown
+- ⚠️ MANDATORY: Include ALL experiences from the original CV - count them and ensure none are missing
+- ⚠️ MANDATORY: Include ALL educations from the original CV
+- ⚠️ MANDATORY: Include ALL skills from the original CV
+- ⚠️ MANDATORY: Include ALL languages from the original CV
+- ⚠️ MANDATORY: Include ALL certificates from the original CV
+- For skills: If no level is specified in CV, default to "Intermediate"
+- For languages: If no level is specified, default to "Intermediate"
+- Ensure dates are preserved exactly as they appear in the CV
+- The structuredCV should be a complete representation of the optimizedResumeMarkdown
+- Each experience should have optimized descriptions but the same structure (title, company, dates)
+
+IMPORTANT FORMATTING FOR optimizedResumeMarkdown:
+- Use "#" for main title (candidate name)
+- Use "##" for major sections (Professional Summary, Work Experience, Education, etc.)
+- Use "###" for individual roles within Work Experience
+- Use "-" for bullet points
+- Keep clean, ATS-friendly formatting (no tables, columns, or special markdown fences)
+- Preserve all factual information while optimizing language and emphasis
+- Format to fit ONE PAGE: concise bullets (max 20 words), 3-5 bullets per experience
+- Include ALL experiences, even if some have fewer bullets to fit the page
 `.trim();
 }
 

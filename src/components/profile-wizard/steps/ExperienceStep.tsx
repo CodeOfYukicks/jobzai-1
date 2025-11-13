@@ -50,11 +50,33 @@ const ExperienceStep = ({ data, onUpdate }: ExperienceStepProps) => {
         'paypal': 'paypal.com', 'danone': 'danone.com'
       };
       
+      // Fonction helper pour vérifier un logo via le proxy
+      const checkLogoViaProxy = async (domain: string): Promise<string | null> => {
+        try {
+          // Utiliser le proxy local en développement, ou directement en production
+          const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          const apiUrl = isDevelopment 
+            ? `http://localhost:3000/api/company-logo?domain=${encodeURIComponent(domain)}`
+            : `/api/company-logo?domain=${encodeURIComponent(domain)}`;
+          
+          const response = await fetch(apiUrl);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.logoUrl) {
+              return data.logoUrl;
+            }
+          }
+          return null;
+        } catch (e) {
+          console.warn(`Failed to fetch logo for ${domain}:`, e);
+          return null;
+        }
+      };
+      
       const mappedDomain = companyMappings[cleanName];
       if (mappedDomain) {
-        const logoUrl = `https://logo.clearbit.com/${mappedDomain}`;
-        const response = await fetch(logoUrl, { method: 'HEAD' });
-        if (response.ok) return logoUrl;
+        const logoUrl = await checkLogoViaProxy(mappedDomain);
+        if (logoUrl) return logoUrl;
       }
       
       const words = cleanName.split(' ').filter(w => w.length > 0);
@@ -64,13 +86,8 @@ const ExperienceStep = ({ data, onUpdate }: ExperienceStepProps) => {
       ];
       
       for (const domain of possibleDomains) {
-        const logoUrl = `https://logo.clearbit.com/${domain}`;
-        try {
-          const response = await fetch(logoUrl, { method: 'HEAD' });
-          if (response.ok) return logoUrl;
-        } catch (e) {
-          continue;
-        }
+        const logoUrl = await checkLogoViaProxy(domain);
+        if (logoUrl) return logoUrl;
       }
     } catch (error) {
       console.error('Error fetching company logo:', error);

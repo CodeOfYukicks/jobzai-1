@@ -1,6 +1,6 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon, ChevronLeft, ChevronRight, FileText, Search, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
@@ -9,8 +9,7 @@ import { toast } from 'sonner';
 import '../styles/navigation.css';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import MobileNavigation from './mobile/MobileNavigation';
-import { QuickSettingsButton } from './settings/QuickSettingsButton';
-import { QuickSettingsPanel } from './settings/QuickSettingsPanel';
+import ThemeSwitch from './ThemeSwitch';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -44,21 +43,23 @@ interface UpcomingInterview {
 
 // Définir les groupes de navigation
 const navigationGroups = {
-  activities: [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  apply: [
+    { name: 'Resume Lab', href: '/cv-optimizer', icon: ScrollText },
+    { name: 'ATS Check', href: '/cv-analysis', icon: FileSearch },
     { name: 'Template Studio', href: '/email-templates', icon: Mail },
     { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
   ],
-  jobTracking: [
-    { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
-    { name: 'CV Optimizer', href: '/cv-optimizer', icon: ScrollText },
+  track: [
     { name: 'Application Tracking', href: '/applications', icon: Briefcase },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
+  ],
+  prepare: [
     { name: 'Interview Hub', href: '/upcoming-interviews', icon: Clock },
   ],
-  profile: [
+  improve: [
     { name: 'Professional Profile', href: '/professional-profile', icon: User },
     { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   ],
 };
 
@@ -134,7 +135,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [credits, setCredits] = useState(0);
   const { currentUser, logout } = useAuth();
   const [logoUrl, setLogoUrl] = useState<string>('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState<string | null>(null);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -142,6 +142,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [isLoadingInterviews, setIsLoadingInterviews] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(location.pathname.startsWith('/cv-optimizer/'));
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [hasScrolled, setHasScrolled] = useState<boolean>(false);
 
   useEffect(() => {
     // Auto-collapse sidebar on CV Optimizer edit pages for full-width editing
@@ -182,6 +184,54 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
     loadLogo();
   }, []);
+
+  // Track scroll to add elevation to mobile header
+  useEffect(() => {
+    const onScroll = () => {
+      setHasScrolled(window.scrollY > 4);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Resolve current route title for mobile header
+  const getCurrentRouteTitle = (pathname: string): string => {
+    const groups = Object.values(navigationGroups).flat();
+    const exact = groups.find(item => item.href === pathname);
+    if (exact) return exact.name;
+    const starts = groups.find(item => pathname.startsWith(item.href) && item.href !== '/');
+    if (starts) return starts.name;
+    if (pathname === '/' || pathname === '/dashboard') return 'Dashboard';
+    return 'Jobzai';
+  };
+  const currentTitle = useMemo(() => getCurrentRouteTitle(location.pathname), [location.pathname]);
+  const canGoBack = typeof window !== 'undefined' ? window.history.length > 1 : false;
+
+  // Initialize theme from localStorage or system preference
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      const stored = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const shouldUseDark = stored ? stored === 'dark' : prefersDark;
+      setIsDarkMode(shouldUseDark);
+      root.classList.toggle('dark', shouldUseDark);
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  const handleThemeToggle = (checked: boolean) => {
+    try {
+      setIsDarkMode(checked);
+      const root = document.documentElement;
+      root.classList.toggle('dark', checked);
+      localStorage.setItem('theme', checked ? 'dark' : 'light');
+    } catch {
+      // no-op
+    }
+  };
 
   // Fetch upcoming interviews
   useEffect(() => {
@@ -290,14 +340,87 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           {/* Navigation principale - flex-1 pour prendre l'espace disponible */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <nav className="p-3 space-y-4">
-              {/* Activities Section */}
+              {/* APPLY Section */}
               <div className="space-y-1">
                 {!isCollapsed && (
                   <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    Spontaneous Applications
+                    APPLY
                   </p>
                 )}
-                {navigationGroups.activities.map((item) => (
+                {navigationGroups.apply.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onMouseEnter={() => setIsHovered(item.name)}
+                    onMouseLeave={() => setIsHovered(null)}
+                    className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 text-sm font-medium rounded-xl 
+                      transition-all duration-200 relative overflow-hidden
+                      ${location.pathname === item.href || (item.href === '/cv-optimizer' && location.pathname.startsWith('/cv-optimizer'))
+                        ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    {/* Hover Effect */}
+                    {isHovered === item.name && (
+                      <motion.div
+                        layoutId="hoverEffect"
+                        className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                    
+                    <div className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 flex-1'}`}>
+                      <item.icon className={`h-5 w-5 transition-colors
+                        ${location.pathname === item.href || (item.href === '/cv-optimizer' && location.pathname.startsWith('/cv-optimizer'))
+                          ? 'text-purple-600 dark:text-purple-400' 
+                          : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
+                      />
+                      {!isCollapsed && (
+                        <span className="flex-1 flex items-center gap-2">
+                          <span>{item.name}</span>
+                          {item.name === 'Campaigns' && (
+                            <motion.span
+                              initial={{ opacity: 0, scale: 0.5, rotate: -12 }}
+                              animate={{ opacity: 1, scale: 1, rotate: -8 }}
+                              className="relative inline-flex items-center px-1 py-0.5 rounded text-[9px] font-black uppercase tracking-tight
+                                text-white
+                                shadow-[0_1px_2px_rgba(0,0,0,0.2),0_0_4px_rgba(86,86,214,0.4)]
+                                border-[0.5px] border-[#5656D6]/60
+                                font-mono leading-none"
+                              style={{
+                                background: 'linear-gradient(to bottom right, #6B6BE6, #5656D6, #4545B8)'
+                              }}
+                            >
+                              <span className="relative z-10 drop-shadow-[0_0.5px_1px_rgba(0,0,0,0.3)]">NEW</span>
+                            </motion.span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+
+                    {(location.pathname === item.href || (item.href === '/cv-optimizer' && location.pathname.startsWith('/cv-optimizer'))) && (
+                      <motion.div
+                        layoutId="activeIndicator"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 
+                          bg-gradient-to-b from-purple-600 to-indigo-600 rounded-r-full"
+                      />
+                    )}
+                  </Link>
+                ))}
+              </div>
+
+              {/* TRACK Section */}
+              <div className="space-y-1">
+                {!isCollapsed && (
+                  <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    TRACK
+                  </p>
+                )}
+                {navigationGroups.track.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
@@ -345,14 +468,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 ))}
               </div>
 
-              {/* Job Tracking Section */}
+              {/* PREPARE Section */}
               <div className="space-y-1">
                 {!isCollapsed && (
                   <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    Job Tracking
+                    PREPARE
                   </p>
                 )}
-                {navigationGroups.jobTracking.map((item) => (
+                {navigationGroups.prepare.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
@@ -400,14 +523,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 ))}
               </div>
 
-              {/* Profile Section */}
+              {/* IMPROVE Section */}
               <div className="space-y-1">
                 {!isCollapsed && (
                   <p className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    Profile & Recommendations
+                    IMPROVE
                   </p>
                 )}
-                {navigationGroups.profile.map((item) => (
+                {navigationGroups.improve.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
@@ -573,42 +696,52 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             {/* User Profile */}
             <div className={`${isCollapsed ? 'p-2' : 'p-3'} border-t border-gray-200 dark:border-gray-700`}>
               <div className="relative">
-                <button 
-                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className={`w-full group ${isCollapsed ? 'p-2 justify-center' : 'p-2.5'} rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 
-                    transition-all duration-200 flex items-center ${isCollapsed ? 'flex-col' : ''}`}
-                >
-                  <div className={`flex items-center ${isCollapsed ? 'flex-col' : 'gap-3'}`}>
-                    <div className="relative">
-                      <div className={`${isCollapsed ? 'h-10 w-10' : 'h-10 w-10'} rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 
-                        flex items-center justify-center shadow-lg shadow-purple-600/20 overflow-hidden`}>
-                        {profilePhoto ? (
-                          <img 
-                            src={profilePhoto} 
-                            alt={userFirstName}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-white text-sm font-medium">
-                            {userInitial}
-                          </span>
-                        )}
+                <div className={`${!isCollapsed ? 'flex items-center justify-between gap-3' : ''}`}>
+                  <button 
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className={`w-full group ${isCollapsed ? 'p-2 justify-center' : 'p-2.5'} rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 
+                      transition-all duration-200 flex items-center ${isCollapsed ? 'flex-col' : ''} ${!isCollapsed ? 'flex-1' : ''}`}
+                  >
+                    <div className={`flex items-center ${isCollapsed ? 'flex-col' : 'gap-3'}`}>
+                      <div className="relative">
+                        <div className={`${isCollapsed ? 'h-10 w-10' : 'h-10 w-10'} rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 
+                          flex items-center justify-center shadow-lg shadow-purple-600/20 overflow-hidden`}>
+                          {profilePhoto ? (
+                            <img 
+                              src={profilePhoto} 
+                              alt={userFirstName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-white text-sm font-medium">
+                              {userInitial}
+                            </span>
+                          )}
+                        </div>
+                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-400 
+                          border-2 border-white dark:border-gray-800" />
                       </div>
-                      <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-400 
-                        border-2 border-white dark:border-gray-800" />
+                      {!isCollapsed && (
+                        <div className="flex-1 text-left min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {userFirstName}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {currentUser?.email}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    {!isCollapsed && (
-                      <div className="flex-1 text-left min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                          {userFirstName}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {currentUser?.email}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </button>
+                  </button>
+                  {!isCollapsed && (
+                    <ThemeSwitch
+                      checked={isDarkMode}
+                      onChange={handleThemeToggle}
+                      size={12}
+                      widthEm={4.8}
+                    />
+                  )}
+                </div>
 
                 {/* Menu déroulant */}
                 <AnimatePresence>
@@ -660,28 +793,58 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </div>
 
-      {/* Header mobile modifié */}
-      <div className="sticky top-0 z-10 md:hidden bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="flex items-center justify-center h-16 px-4">
-          {logoUrl && (
-            <Link to="/" className="hover:opacity-80 transition-opacity">
-              <img
-                src={logoUrl}
-                alt="Logo"
-                className="h-6 w-auto"
-              />
-            </Link>
-          )}
+      {/* Mobile Top App Bar */}
+      <div
+        className={`sticky top-0 z-30 md:hidden transition-shadow ${
+          hasScrolled ? 'shadow-sm' : ''
+        } bg-white/75 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/60 dark:border-gray-800/60`}
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}
+      >
+        <div className="flex items-center justify-between h-[56px] px-4">
+          <div className="flex items-center gap-2">
+            <button
+              aria-label="Go back"
+              onClick={() => (canGoBack ? navigate(-1) : navigate('/'))}
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              {logoUrl && <img src={logoUrl} alt="Logo" className="h-5 w-auto opacity-90" />}
+              <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
+                {currentTitle}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              aria-label="Search"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition"
+            >
+              <Search className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => navigate('/settings')}
+              aria-label="Open profile"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full overflow-hidden ring-1 ring-gray-200/70 dark:ring-gray-700/60 bg-gray-100/50 dark:bg-gray-800/60 active:scale-95 transition"
+            >
+              {profilePhoto ? (
+                <img src={profilePhoto} alt={userFirstName} className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed ? 'md:pl-20 lg:pl-20' : 'md:pl-72 lg:pl-80'}`}>
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed ? 'md:pl-24 lg:pl-24' : 'md:pl-[19rem] lg:pl-[21rem]'}`}>
         <main className="flex-1">
-          <div className="py-6 pb-20 md:pb-6">
+          <div className="pt-2 md:py-6 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-6">
             <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
               {/* Wrapper pour le contenu principal avec fond blanc */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+              <div className="md:bg-white md:dark:bg-gray-800 md:rounded-xl md:shadow-sm overflow-hidden">
                 {children}
               </div>
             </div>
@@ -691,25 +854,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* Nouvelle navigation mobile */}
       <MobileNavigation />
-
-      {/* Quick Settings Button - Visible uniquement sur mobile */}
-      <div className="md:hidden">
-        <QuickSettingsButton 
-          onClick={() => setIsSettingsOpen(true)}
-          hasUpdates={credits > 0}
-        />
-      </div>
       
-      <QuickSettingsPanel
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        credits={credits}
-        user={{
-          name: userFirstName,
-          email: currentUser?.email || '',
-        }}
-        onSignOut={handleSignOut}
-      />
     </div>
   );
 }

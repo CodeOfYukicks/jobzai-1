@@ -423,10 +423,18 @@ app.post('/api/chatgpt', async (req, res) => {
     }
     
     // Build messages for ChatGPT
+    // Adapt system message based on request type for better context
+    let systemMessage = "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object.";
+    
+    // Enhanced system message for translation tasks
+    if ((type === 'cv-edit' || type === 'resume-optimizer') && (prompt.includes('translate') || prompt.includes('translation') || prompt.includes('localization'))) {
+      systemMessage = "You are an elite professional translator and localization expert. You specialize in producing perfect, native-quality translations that read as if originally written in the target language. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object.";
+    }
+    
     const messages = [
       {
         role: "system",
-        content: "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object."
+        content: systemMessage
       },
       {
         role: "user",
@@ -442,6 +450,9 @@ app.post('/api/chatgpt', async (req, res) => {
     let openaiResponse;
     let responseText;
     
+    // Increase max_tokens for resume-optimizer to handle comprehensive CVs with structured data
+    const maxTokens = type === 'resume-optimizer' ? 8000 : 4000;
+    
     try {
       openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -453,7 +464,7 @@ app.post('/api/chatgpt', async (req, res) => {
           model: "gpt-4o", // Using GPT-4o for better quality
           messages: messages,
           response_format: { type: 'json_object' },
-          max_tokens: 4000,
+          max_tokens: maxTokens,
           temperature: 0.3 // Lower temperature for more consistent, structured responses
         })
       });
@@ -530,14 +541,17 @@ app.post('/api/chatgpt', async (req, res) => {
         console.warn("Parse error:", parseError.message);
         // If parsing fails, try to extract JSON from markdown
         const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                          content.match(/```json\s*([\s\S]*?)\s*```/) ||
                           content.match(/```\n([\s\S]*?)\n```/) ||
                           content.match(/{[\s\S]*}/);
         if (jsonMatch) {
           try {
-            parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+            const jsonString = jsonMatch[1] || jsonMatch[0];
+            parsedContent = JSON.parse(jsonString);
             console.log("✅ Successfully extracted and parsed JSON from markdown");
           } catch (extractError) {
             console.error("❌ Failed to parse extracted JSON:", extractError.message);
+            console.error("Extracted JSON preview:", (jsonMatch[1] || jsonMatch[0]).substring(0, 500));
             throw new Error(`Could not parse JSON from response: ${extractError.message}`);
           }
         } else {
@@ -545,6 +559,50 @@ app.post('/api/chatgpt', async (req, res) => {
           console.error("Content (first 1000 chars):", content.substring(0, 1000));
           throw new Error('Could not parse JSON from response - no valid JSON found');
         }
+      }
+
+      // Validate parsed content structure for resume-optimizer type
+      if (type === 'resume-optimizer') {
+        if (!parsedContent || typeof parsedContent !== 'object') {
+          throw new Error('Parsed content is not a valid object');
+        }
+        if (!parsedContent.optimizedResumeMarkdown) {
+          console.warn("⚠️  Missing optimizedResumeMarkdown in response");
+          // Don't throw - let client handle it, but log warning
+        }
+        // Validate structuredCV if present
+        if (parsedContent.structuredCV) {
+          if (typeof parsedContent.structuredCV !== 'object') {
+            console.warn("⚠️  structuredCV is not an object, removing it");
+            delete parsedContent.structuredCV;
+          } else {
+            // Ensure it has required structure
+            if (!parsedContent.structuredCV.personalInfo) {
+              console.warn("⚠️  structuredCV missing personalInfo");
+            }
+            // Ensure arrays exist
+            if (!Array.isArray(parsedContent.structuredCV.experiences)) {
+              parsedContent.structuredCV.experiences = [];
+            }
+            if (!Array.isArray(parsedContent.structuredCV.educations)) {
+              parsedContent.structuredCV.educations = [];
+            }
+            if (!Array.isArray(parsedContent.structuredCV.skills)) {
+              parsedContent.structuredCV.skills = [];
+            }
+            if (!Array.isArray(parsedContent.structuredCV.languages)) {
+              parsedContent.structuredCV.languages = [];
+            }
+            if (!Array.isArray(parsedContent.structuredCV.certificates)) {
+              parsedContent.structuredCV.certificates = [];
+            }
+          }
+        }
+        console.log('✅ Resume optimizer response validated:', {
+          hasMarkdown: !!parsedContent.optimizedResumeMarkdown,
+          hasStructuredCV: !!parsedContent.structuredCV,
+          atsScore: parsedContent.atsScore
+        });
       }
       
       console.log('✅ ChatGPT recommendation completed successfully');
@@ -616,6 +674,7 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
       }
     } catch (keyError) {
       console.error('❌ Error retrieving API key from Firestore:', keyError.message);
+      console.error('   Stack:', keyError.stack);
       // Try environment variables as fallback
       if (process.env.OPENAI_API_KEY) {
         apiKey = process.env.OPENAI_API_KEY;
@@ -805,10 +864,21 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
     }
     
   } catch (error) {
-    console.error("Error in GPT-4o Vision API handler:", error);
+    console.error("❌ Error in GPT-4o Vision API handler:", error);
+    console.error("   Error name:", error.name);
+    console.error("   Error message:", error.message);
+    console.error("   Error stack:", error.stack);
+    
+    // Check if response was already sent
+    if (res.headersSent) {
+      console.error("⚠️  Response already sent, cannot send error response");
+      return;
+    }
+    
     res.status(500).json({
       status: 'error',
       message: error.message || "An error occurred processing your request",
+      errorType: error.name || 'UnknownError',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
@@ -851,34 +921,99 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
   }
 });
 
+// Clearbit Logo API Proxy - Pour éviter les problèmes CORS en développement
+app.get('/api/company-logo', async (req, res) => {
+  try {
+    const { domain } = req.query;
+    
+    if (!domain || typeof domain !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Domain parameter is required',
+      });
+    }
+    
+    console.log(`🔄 Fetching logo for domain: ${domain}`);
+    
+    const logoUrl = `https://logo.clearbit.com/${domain}`;
+    
+    // Faire une requête HEAD pour vérifier si le logo existe
+    const response = await fetch(logoUrl, { method: 'HEAD' });
+    
+    if (response.ok) {
+      // Si le logo existe, retourner l'URL
+      res.json({
+        success: true,
+        logoUrl: logoUrl,
+      });
+    } else {
+      // Si le logo n'existe pas, retourner null
+      res.json({
+        success: false,
+        logoUrl: null,
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error fetching company logo:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch company logo',
+      logoUrl: null,
+    });
+  }
+});
+
 // Extract job posting content from URL using Puppeteer
 app.post('/api/extract-job-url', async (req, res) => {
+  let browser = null;
+  
   try {
     const { url } = req.body;
     
+    // Validate URL
     if (!url || typeof url !== 'string') {
       return res.status(400).json({ 
         status: 'error', 
-        message: 'URL is required' 
+        message: 'URL is required and must be a string' 
       });
     }
 
-    console.log('🔍 Extracting job posting from URL:', url);
+    // Normalize URL
+    let normalizedUrl = url.trim();
+    
+    // Add protocol if missing
+    if (!normalizedUrl.match(/^https?:\/\//i)) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(normalizedUrl);
+    } catch (urlError) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'Invalid URL format' 
+      });
+    }
+
+    console.log('🔍 Extracting job posting from URL:', normalizedUrl);
 
     // Lazy load puppeteer to avoid startup issues
     let puppeteer;
     try {
       puppeteer = require('puppeteer');
+      console.log('✅ Puppeteer loaded successfully');
     } catch (e) {
       console.error('❌ Puppeteer not available:', e.message);
+      console.error('   Stack:', e.stack);
       return res.status(500).json({ 
         status: 'error', 
-        message: 'Puppeteer is not available on the server' 
+        message: `Puppeteer is not available on the server: ${e.message}` 
       });
     }
 
-    let browser;
     try {
+      console.log('🚀 Launching browser...');
       // Launch browser with optimized settings
       browser = await puppeteer.launch({
         headless: true,
@@ -891,23 +1026,41 @@ app.post('/api/extract-job-url', async (req, res) => {
           '--window-size=1920,1080'
         ]
       });
+      console.log('✅ Browser launched successfully');
 
       const page = await browser.newPage();
       
       // Set a reasonable timeout
-      await page.setDefaultNavigationTimeout(30000);
+      await page.setDefaultNavigationTimeout(45000);
+      await page.setDefaultTimeout(45000);
       
       // Set user agent to avoid bot detection
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
       
       console.log('📄 Navigating to URL...');
-      await page.goto(url, { 
-        waitUntil: 'networkidle2',
-        timeout: 30000 
-      });
+      try {
+        await page.goto(normalizedUrl, { 
+          waitUntil: 'networkidle2',
+          timeout: 45000 
+        });
+        console.log('✅ Page loaded with networkidle2');
+      } catch (navError) {
+        console.warn('⚠️  networkidle2 failed, trying domcontentloaded:', navError.message);
+        try {
+          await page.goto(normalizedUrl, { 
+            waitUntil: 'domcontentloaded',
+            timeout: 45000 
+          });
+          console.log('✅ Page loaded with domcontentloaded');
+        } catch (fallbackError) {
+          console.error('❌ Navigation failed with both methods:', fallbackError.message);
+          throw new Error(`Failed to navigate to URL: ${fallbackError.message}`);
+        }
+      }
 
       // Wait a bit for dynamic content to load
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('⏳ Waiting for dynamic content...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       console.log('📝 Extracting page content...');
       
@@ -984,22 +1137,120 @@ app.post('/api/extract-job-url', async (req, res) => {
           '[itemprop="hiringOrganization"]',
           '[itemprop="name"]'
         ];
+        // Helper function to clean company name (defined early for use in extraction)
+        const cleanCompanyNameEarly = (name) => {
+          if (!name) return '';
+          let cleaned = name.trim();
+          
+          // Common words to exclude from company names
+          const commonWordsRegex = /^(Now|The|How|What|When|Where|Why|This|That|These|Those|Here|There|From|With|About|Learn|See|View|Read|More|Page|Site|Link|Job|Jobs|Career|Careers)$/i;
+          
+          // If the text is too long (> 50 chars), it's likely a sentence/description, not just the company name
+          // Try to extract the company name from the sentence
+          if (cleaned.length > 50) {
+            // Pattern 1: Extract company name from patterns like "how [CompanyName] uses [CompanyName]"
+            // Also handles cases like "Now on NowHear how ServiceNow uses ServiceNow"
+            const pattern1 = /(?:how|about|learn\s+about|see\s+how|on\s+\w+\s+how)\s+([A-Z][a-zA-Z0-9&\s-]{3,30}?)\s+(?:uses|works|does|is)/i;
+            const match1 = cleaned.match(pattern1);
+            if (match1 && match1[1]) {
+              const extracted1 = match1[1].trim();
+              // If the extracted name is valid, use it
+              if (extracted1.length >= 4 && !commonWordsRegex.test(extracted1)) {
+                cleaned = extracted1;
+              }
+            }
+            
+            // Pattern 1b: Look for company name that appears after "how" and before "uses/works/etc"
+            // This handles cases where there's text before "how"
+            // Only try if pattern1 didn't find a valid name
+            if (cleaned.length > 50) {
+              const pattern1b = /how\s+([A-Z][a-zA-Z0-9&\s-]{3,30}?)\s+(?:uses|works|does|is)/i;
+              const match1b = cleaned.match(pattern1b);
+              if (match1b && match1b[1]) {
+                const extracted = match1b[1].trim();
+                if (extracted.length >= 4 && !commonWordsRegex.test(extracted)) {
+                  cleaned = extracted;
+                }
+              }
+            }
+            
+            // Pattern 2: Look for repeated company names (e.g., "ServiceNow uses ServiceNow")
+            const words = cleaned.split(/\s+/);
+            const wordCounts = {};
+            words.forEach(word => {
+              const cleanWord = word.replace(/[^\w&]/g, '');
+              // Focus on longer words (3+ chars) that start with capital and are likely company names
+              // Exclude common short words like "Now", "The", "How", etc.
+              if (cleanWord.length >= 3 && /^[A-Z]/.test(cleanWord) && !commonWordsRegex.test(cleanWord)) {
+                wordCounts[cleanWord] = (wordCounts[cleanWord] || 0) + 1;
+              }
+            });
+            // Find the most repeated capitalized word (likely the company name)
+            // Prefer longer words if they appear multiple times
+            const mostRepeated = Object.entries(wordCounts)
+              .sort((a, b) => {
+                // First sort by count (descending)
+                if (b[1] !== a[1]) return b[1] - a[1];
+                // Then by length (descending) - longer words are more likely to be company names
+                return b[0].length - a[0].length;
+              })[0];
+            if (mostRepeated && mostRepeated[1] > 1) {
+              cleaned = mostRepeated[0];
+            } else {
+                // Pattern 3: Extract first capitalized word/phrase (likely company name)
+                const firstCapMatch = cleaned.match(/^[^A-Z]*([A-Z][a-zA-Z0-9&\s-]{2,30}?)(?:\s|$|\.|,)/);
+                if (firstCapMatch && firstCapMatch[1]) {
+                  cleaned = firstCapMatch[1].trim();
+                } else {
+                  // Pattern 4: Take first 3-4 words if they start with capital
+                  const firstWords = words.slice(0, 4).filter(w => /^[A-Z]/.test(w));
+                  if (firstWords.length > 0) {
+                    cleaned = firstWords.join(' ').substring(0, 50);
+                  }
+                }
+              }
+            }
+          }
+          
+          // Remove common prefixes
+          cleaned = cleaned.replace(/^(at|from|by|with|via|for)\s+/i, '').trim();
+          
+            // Remove common suffixes and navigation text
+          cleaned = cleaned.replace(/\s*(linkedin|linkedin page|page|website|site|careers|jobs|job board|job posting|learn more|see more|view|read more).*$/i, '').trim();
+          cleaned = cleaned.replace(/\s*-\s*(linkedin|page|website|site).*$/i, '').trim();
+          
+          // Remove sentence endings and descriptions
+          cleaned = cleaned.replace(/\s*(uses|works|does|is|are|was|were|will|can|may|might|should|could|would|has|have|had|get|got|go|goes|went|come|comes|came|make|makes|made|take|takes|took|see|sees|saw|know|knows|knew|think|thinks|thought|say|says|said|tell|tells|told|give|gives|gave|find|finds|found|use|using|used|work|working|worked|do|doing|done|be|being|been|have|having|had|get|getting|got|go|going|went|come|coming|came|make|making|made|take|taking|took|see|seeing|saw|know|knowing|knew|think|thinking|thought|say|saying|said|tell|telling|told|give|giving|gave|find|finding|found).*$/i, '').trim();
+          
+            // Remove URLs
+          cleaned = cleaned.replace(/https?:\/\/[^\s]+/gi, '').trim();
+          
+            // Remove email addresses
+          cleaned = cleaned.replace(/[^\s]+@[^\s]+/gi, '').trim();
+          
+          // Remove trailing punctuation and common sentence endings
+          cleaned = cleaned.replace(/[.,;:!?]+$/g, '').trim();
+          
+            // Remove extra whitespace
+          cleaned = cleaned.replace(/\s+/g, ' ').trim();
+          
+          // Final validation: if still too long or contains too many words, take first 2-3 words
+          const finalWords = cleaned.split(/\s+/);
+          if (finalWords.length > 4 || cleaned.length > 50) {
+            cleaned = finalWords.slice(0, 3).join(' ').trim();
+          }
+          
+          // Remove any remaining trailing punctuation
+          cleaned = cleaned.replace(/[.,;:!?]+$/g, '').trim();
+          
+          return cleaned;
+        };
+        
         let company = '';
         for (const selector of companySelectors) {
           const element = document.querySelector(selector);
           if (element && element.innerText && element.innerText.trim().length > 0) {
-            company = element.innerText.trim();
-            // Clean up common patterns
-            company = company.replace(/^at\s+/i, '').trim();
-            // Remove common suffixes and navigation text
-            company = company.replace(/\s*(linkedin|linkedin page|page|website|site|careers|jobs|job board|job posting).*$/i, '').trim();
-            company = company.replace(/\s*-\s*(linkedin|page|website|site).*$/i, '').trim();
-            // Remove URLs
-            company = company.replace(/https?:\/\/[^\s]+/gi, '').trim();
-            // Remove email addresses
-            company = company.replace(/[^\s]+@[^\s]+/gi, '').trim();
-            // Remove extra whitespace
-            company = company.replace(/\s+/g, ' ').trim();
+            company = cleanCompanyNameEarly(element.innerText.trim());
             if (company.length > 0 && company.length < 100) {
               break;
             }
@@ -1011,43 +1262,25 @@ app.post('/api/extract-job-url', async (req, res) => {
           const companyLinks = document.querySelectorAll('a[href*="/company/"], a[href*="/employer/"], a[href*="/organizations/"]');
           for (const link of companyLinks) {
             const linkText = link.innerText.trim();
-            if (linkText && linkText.length > 0 && linkText.length < 100) {
-              // Clean up the link text
-              let cleanText = linkText.replace(/\s*(linkedin|linkedin page|page|website|site).*$/i, '').trim();
-              cleanText = cleanText.replace(/\s*-\s*(linkedin|page).*$/i, '').trim();
-              if (cleanText.length > 0) {
-                company = cleanText;
+            if (linkText && linkText.length > 0) {
+              const cleanedLinkText = cleanCompanyNameEarly(linkText);
+              if (cleanedLinkText.length > 0 && cleanedLinkText.length < 100) {
+                company = cleanedLinkText;
                 break;
               }
             }
           }
         }
         
-        // Helper function to clean company name
-        const cleanCompanyName = (name) => {
-          if (!name) return '';
-          let cleaned = name.trim();
-          // Remove common suffixes and navigation text
-          cleaned = cleaned.replace(/\s*(linkedin|linkedin page|page|website|site|careers|jobs|job board|job posting).*$/i, '').trim();
-          cleaned = cleaned.replace(/\s*-\s*(linkedin|page|website|site).*$/i, '').trim();
-          // Remove URLs
-          cleaned = cleaned.replace(/https?:\/\/[^\s]+/gi, '').trim();
-          // Remove email addresses
-          cleaned = cleaned.replace(/[^\s]+@[^\s]+/gi, '').trim();
-          // Remove extra whitespace
-          cleaned = cleaned.replace(/\s+/g, ' ').trim();
-          return cleaned;
-        };
-        
-        // Clean the company name we found
-        company = cleanCompanyName(company);
+        // Clean the company name we found (final pass)
+        company = cleanCompanyNameEarly(company);
         
         // If company not found, try to extract from meta tags
         if (!company || company.length === 0) {
           const metaCompany = document.querySelector('meta[property="og:site_name"], meta[name="company"], meta[property="company"]');
           if (metaCompany) {
             const metaValue = metaCompany.getAttribute('content') || metaCompany.getAttribute('value') || '';
-            company = cleanCompanyName(metaValue);
+            company = cleanCompanyNameEarly(metaValue);
           }
         }
         
@@ -1058,11 +1291,11 @@ app.post('/api/extract-job-url', async (req, res) => {
             try {
               const data = JSON.parse(script.textContent || '{}');
               if (data.hiringOrganization && data.hiringOrganization.name) {
-                company = cleanCompanyName(data.hiringOrganization.name);
+                company = cleanCompanyNameEarly(data.hiringOrganization.name);
                 if (company) break;
               }
               if (data.employer && data.employer.name) {
-                company = cleanCompanyName(data.employer.name);
+                company = cleanCompanyNameEarly(data.employer.name);
                 if (company) break;
               }
             } catch (e) {
@@ -1072,7 +1305,7 @@ app.post('/api/extract-job-url', async (req, res) => {
         }
         
         // Final cleanup
-        company = cleanCompanyName(company);
+        company = cleanCompanyNameEarly(company);
         
         // Extract location
         const locationSelectors = [
@@ -1102,34 +1335,127 @@ app.post('/api/extract-job-url', async (req, res) => {
       });
 
       await browser.close();
+      browser = null;
 
-      console.log('✅ Successfully extracted content:', {
-        titleLength: pageContent.title.length,
-        companyLength: pageContent.company.length,
-        fullTextLength: pageContent.fullText.length
+      // Validate and clean extracted data
+      const extractedTitle = (pageContent.title || '').trim();
+      const extractedCompany = (pageContent.company || '').trim();
+      const extractedContent = (pageContent.fullText || '').trim();
+      const extractedLocation = (pageContent.location || '').trim();
+      const extractedUrl = (pageContent.url || normalizedUrl).trim();
+
+      // Validate that we have sufficient content
+      if (!extractedContent || extractedContent.length < 100) {
+        console.warn('⚠️  Extracted content is too short:', extractedContent.length);
+        // Don't fail, but log warning - let client decide
+      }
+
+      // Clean and normalize title
+      let cleanedTitle = extractedTitle;
+      if (cleanedTitle) {
+        // Remove common prefixes/suffixes
+        cleanedTitle = cleanedTitle.replace(/^(Job|Position|Role|Opening):\s*/i, '').trim();
+        cleanedTitle = cleanedTitle.replace(/\s*-\s*(Apply|View|See).*$/i, '').trim();
+        // Limit length
+        if (cleanedTitle.length > 200) {
+          cleanedTitle = cleanedTitle.substring(0, 200).trim();
+        }
+      }
+
+      // Clean and normalize company
+      let cleanedCompany = extractedCompany;
+      if (cleanedCompany) {
+        // Remove common prefixes
+        cleanedCompany = cleanedCompany.replace(/^(Company|Employer|Organization):\s*/i, '').trim();
+        // Limit length
+        if (cleanedCompany.length > 100) {
+          cleanedCompany = cleanedCompany.substring(0, 100).trim();
+        }
+      }
+
+      // Clean content - remove excessive whitespace
+      let cleanedContent = extractedContent;
+      if (cleanedContent) {
+        // Remove excessive newlines and whitespace
+        cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n');
+        cleanedContent = cleanedContent.replace(/[ \t]+/g, ' ');
+        cleanedContent = cleanedContent.trim();
+      }
+
+      console.log('✅ Successfully extracted and cleaned content:', {
+        title: cleanedTitle || 'NOT FOUND',
+        titleLength: cleanedTitle.length,
+        company: cleanedCompany || 'NOT FOUND',
+        companyLength: cleanedCompany.length,
+        contentLength: cleanedContent.length,
+        location: extractedLocation || 'NOT FOUND',
+        hasContent: cleanedContent.length >= 100
       });
+
+      // Validate minimum requirements
+      if (!cleanedContent || cleanedContent.length < 50) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Could not extract sufficient job description content from the URL. The page may be protected, require login, or not contain a job posting.',
+          extracted: {
+            title: cleanedTitle,
+            company: cleanedCompany,
+            contentLength: cleanedContent.length
+          }
+        });
+      }
 
       return res.json({
         status: 'success',
-        content: pageContent.fullText,
-        title: pageContent.title,
-        company: pageContent.company,
-        location: pageContent.location,
-        url: pageContent.url
+        content: cleanedContent,
+        title: cleanedTitle || undefined,
+        company: cleanedCompany || undefined,
+        location: extractedLocation || undefined,
+        url: extractedUrl
       });
 
     } catch (browserError) {
+      console.error('❌ Browser error:', browserError);
+      console.error('   Error name:', browserError.name);
+      console.error('   Error message:', browserError.message);
+      console.error('   Error stack:', browserError.stack);
+      
       if (browser) {
-        await browser.close().catch(() => {});
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.error('❌ Error closing browser:', closeError.message);
+        }
+        browser = null;
       }
       throw browserError;
     }
 
   } catch (error) {
     console.error('❌ Error extracting job URL:', error);
+    console.error('   Error name:', error.name);
+    console.error('   Error message:', error.message);
+    console.error('   Error stack:', error.stack);
+    
+    // Ensure browser is closed even if error occurred
+    if (browser) {
+      try {
+        await browser.close().catch(() => {});
+      } catch (closeError) {
+        console.error('❌ Error closing browser in catch block:', closeError.message);
+      }
+    }
+    
+    // Check if response was already sent
+    if (res.headersSent) {
+      console.error("⚠️  Response already sent, cannot send error response");
+      return;
+    }
+    
     return res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to extract job posting content',
+      errorType: error.name || 'UnknownError',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
@@ -1183,13 +1509,14 @@ if (isProduction) {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-  console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
-  console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
-  console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
-  console.log(`Job URL extraction available at http://localhost:${PORT}/api/extract-job-url`);
-  console.log(`Stripe Checkout proxy available at http://localhost:${PORT}/api/stripe/create-checkout-session`);
-  console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
-  console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
+    console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
+    console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
+    console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
+    console.log(`Job URL extraction available at http://localhost:${PORT}/api/extract-job-url`);
+    console.log(`Stripe Checkout proxy available at http://localhost:${PORT}/api/stripe/create-checkout-session`);
+    console.log(`Company Logo API proxy available at http://localhost:${PORT}/api/company-logo`);
+    console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
+    console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
   if (isProduction) {
     console.log(`Application available at http://localhost:${PORT}`);
   }

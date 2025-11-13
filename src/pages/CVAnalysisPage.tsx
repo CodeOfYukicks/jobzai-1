@@ -2640,166 +2640,110 @@ URL to visit: ${jobUrl}
     const isGrid = viewMode === 'grid';
     
     return (
-      <motion.div 
+      <motion.div
+        key={analysis.id}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-        className={`group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden
-          transition-all duration-500 ease-out
-          hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
-          hover:-translate-y-0.5
-          border border-gray-100/50 dark:border-gray-800/50
-          ${isGrid ? 'h-full flex flex-col' : ''}`}
-        style={{
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+        whileHover={{ y: -4, scale: 1.02 }}
+        transition={{ duration: 0.2 }}
+        className="relative bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 
+          hover:border-purple-300 dark:hover:border-purple-700
+          hover:shadow-xl hover:shadow-purple-500/10 dark:hover:shadow-purple-900/20
+          transition-all duration-300 cursor-pointer group
+          overflow-hidden"
+        onClick={() => {
+          if (onSelect) {
+            onSelect();
+          } else {
+            toggleExpand();
+          }
         }}
       >
-        {/* Subtle accent line - Apple style */}
-        <div className={`absolute top-0 left-0 right-0 h-0.5
-          ${analysis.matchScore >= 80 ? 'bg-gradient-to-r from-purple-400/60 to-indigo-500/40' :
-            analysis.matchScore >= 65 ? 'bg-gradient-to-r from-blue-400/60 to-cyan-500/40' :
-            'bg-gradient-to-r from-pink-400/60 to-rose-500/40'}`}
-        />
+        {/* Gradient background effect on hover */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-50/0 via-indigo-50/0 to-purple-50/0 
+          group-hover:from-purple-50/50 group-hover:via-indigo-50/30 group-hover:to-purple-50/50
+          dark:group-hover:from-purple-950/20 dark:group-hover:via-indigo-950/10 dark:group-hover:to-purple-950/20
+          transition-all duration-300 -z-0" />
         
-        {/* Card Header - Always visible and clickable */}
-        <div 
-          onClick={() => {
-            if (onSelect) {
-              onSelect();
-            } else {
-              toggleExpand();
-            }
-          }}
-          className={`${isGrid ? 'p-5' : 'p-4'} cursor-pointer flex ${isGrid ? 'flex-col' : 'items-center justify-between'} group`}
-        >
-          <div className={`flex ${isGrid ? 'flex-col items-center text-center space-y-2' : 'items-center space-x-3 flex-1'}`}>
-            {/* Score Circle */}
-            <div className="relative flex-shrink-0">
-              <CircularProgressWithCenterText 
-                value={analysis.matchScore} 
-                size={isGrid ? 70 : 65}
-                strokeWidth={7}
-                textSize={isGrid ? "text-xl font-bold" : "text-lg font-bold"}
-                colorClass={getScoreColorClass(analysis.matchScore)}
-              />
-              <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md border border-white dark:border-gray-800">
-                <div className={`${isGrid ? 'w-5 h-5' : 'w-4 h-4'} rounded-full flex items-center justify-center ${
-                  analysis.matchScore >= 80 
-                    ? 'bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 shadow-amber-200/50' 
-                    : analysis.matchScore >= 65 
-                    ? 'bg-gradient-to-br from-blue-400 via-cyan-400 to-blue-500 shadow-blue-200/50' 
-                    : 'bg-gradient-to-br from-pink-400 via-rose-400 to-pink-500 shadow-pink-200/50'
-                }`}>
-                  <Trophy className={`${isGrid ? 'w-3 h-3' : 'w-2.5 h-2.5'} text-white drop-shadow-sm`} />
-                </div>
-              </div>
+        <div className="relative z-10">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                {analysis.jobTitle}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1.5 font-medium">
+                <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                <span className="truncate">{analysis.company}</span>
+              </p>
             </div>
-            
-            {/* Job Title and Company */}
-            <div className={`flex-1 ${isGrid ? 'w-full' : ''}`}>
-              <div className={`flex items-center ${isGrid ? 'justify-center flex-col' : ''}`}>
-                <h3 className={`${isGrid ? 'text-lg' : 'text-base md:text-lg'} font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors ${isGrid ? 'mb-1' : ''}`}>
-                  {analysis.jobTitle}
-                </h3>
-                {analysis.matchScore >= 80 && (
-                  <div className={`${isGrid ? 'mt-1.5' : 'ml-2'} flex items-center 
-                    bg-purple-50/60 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 
-                    text-[10px] font-medium px-2 py-0.5 rounded-full 
-                    border border-purple-200/50 dark:border-purple-800/30
-                    backdrop-blur-sm`}>
-                    <CheckCircle className="w-2.5 h-2.5 mr-1" />
-                    High match
-                  </div>
-                )}
-              </div>
-              <div className={`flex items-center ${isGrid ? 'flex-col space-y-0.5 mt-2' : 'mt-1.5'}`}>
-                <p className={`text-xs text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
-                  <Building2 className="w-3 h-3 mr-1.5 text-gray-400 dark:text-gray-500" /> 
-                  {analysis.company}
-                </p>
-                {!isGrid && <span className="mx-1.5 text-gray-300 dark:text-gray-600">•</span>}
-                <p className={`text-xs text-gray-500 dark:text-gray-400 flex items-center ${isGrid ? 'justify-center' : ''}`}>
-                  <CalendarIcon className="w-3 h-3 mr-1.5 text-gray-400 dark:text-gray-500" /> 
-                  {formatDate(analysis.date)}
-                </p>
-              </div>
+            <div className={`ml-3 flex-shrink-0 text-2xl font-extrabold transition-all duration-300 ${
+              analysis.matchScore >= 80 
+                ? 'text-purple-600 dark:text-purple-400 group-hover:scale-110' :
+                analysis.matchScore >= 65 
+                ? 'text-blue-600 dark:text-blue-400 group-hover:scale-110' 
+                : 'text-pink-600 dark:text-pink-400 group-hover:scale-110'
+            }`}>
+              {analysis.matchScore}%
             </div>
           </div>
-
-          {/* Actions Menu */}
-          <div className={`flex items-center ${isGrid ? 'justify-center mt-3' : 'space-x-1.5'}`}>
-            <button 
+          
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="font-medium">{formatDate(analysis.date)}</span>
+            </div>
+            <motion.button
               onClick={(e) => {
                 e.stopPropagation();
                 setIsDeleteDialogOpen(true);
               }}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50/60 dark:hover:bg-red-900/20 
-                rounded-full transition-all duration-200 backdrop-blur-sm"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="opacity-0 group-hover:opacity-100 transition-all duration-200 
+                p-2 rounded-lg bg-red-50 dark:bg-red-900/20 
+                text-red-600 dark:text-red-400 
+                hover:bg-red-100 dark:hover:bg-red-900/30
+                hover:shadow-md"
               aria-label="Delete analysis"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-            {!onSelect && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleExpand();
-                }}
-                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 
-                  rounded-full transition-all duration-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 backdrop-blur-sm"
-                aria-label={isExpanded ? "Collapse" : "Expand"}
-              >
-                {isExpanded ? (
-                  <ChevronUp className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                )}
-            </button>
-            )}
+              <Trash2 className="w-4 h-4" />
+            </motion.button>
           </div>
-        </div>
-
-        {/* Skill Badges */}
-        {!isExpanded && (
-          <div className={`${isGrid ? 'px-5' : 'px-4'} pb-4 pt-0 flex flex-wrap gap-2 ${isGrid ? 'justify-center' : ''}`}>
-            {analysis.skillsMatch.matching
-              .sort((a, b) => b.relevance - a.relevance)
-              .slice(0, 3)
-              .map((skill, idx) => (
-                <SkillTag 
-                  key={`match-${idx}`} 
-                  skill={skill.name} 
-                  matched={true} 
-                  relevance={skill.relevance} 
-                />
-              ))}
-            
-            {/* Ajouter des skills manquantes (tags rouges) */}
-            {analysis.skillsMatch.missing
-              .slice(0, 2)
-              .map((skill, idx) => (
-                <SkillTag 
-                  key={`missing-${idx}`} 
-                  skill={skill.name} 
-                  matched={false} 
-                />
-              ))}
-              
-            {/* Compteur pour les skills restantes */}
-            {(analysis.skillsMatch.matching.length > 3 || analysis.skillsMatch.missing.length > 2) && (
-              <div className="text-[10px] font-medium 
-                bg-gray-100/60 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 
-                px-2 py-1 rounded-full backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50">
-                +{(analysis.skillsMatch.matching.length - 3) + (analysis.skillsMatch.missing.length - 2)} plus
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* Expanded Content */}
-        {isExpanded && (
-          <div className="px-5 pb-5"
-          >
+          
+          {!isExpanded && analysis.skillsMatch.matching.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {analysis.skillsMatch.matching
+                .sort((a, b) => b.relevance - a.relevance)
+                .slice(0, 5)
+                .map((skill, idx) => (
+                  <motion.span
+                    key={idx}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-100 to-indigo-100 
+                      dark:from-purple-900/30 dark:to-indigo-900/30
+                      text-purple-700 dark:text-purple-300 
+                      rounded-full font-medium
+                      border border-purple-200/50 dark:border-purple-700/50
+                      group-hover:from-purple-200 group-hover:to-indigo-200
+                      dark:group-hover:from-purple-800/40 dark:group-hover:to-indigo-800/40
+                      transition-all duration-200"
+                  >
+                    {skill.name}
+                  </motion.span>
+                ))}
+              {analysis.skillsMatch.matching.length > 5 && (
+                <span className="text-xs px-2.5 py-1 text-gray-500 dark:text-gray-400 font-medium">
+                  +{analysis.skillsMatch.matching.length - 5}
+                </span>
+              )}
+            </div>
+          )}
+          
+          {/* Expanded Content */}
+          {isExpanded && (
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             {/* Score Explanation Card */}
             <div className="mb-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
               <div className="p-4">
@@ -3711,7 +3655,8 @@ URL to visit: ${jobUrl}
               )}
             </div>
           </div>
-        )}
+          )}
+        </div>
 
         {/* Delete Confirmation Dialog */}
         <AnimatePresence>
@@ -4574,7 +4519,7 @@ URL to visit: ${jobUrl}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
-                  ATS Resume Analysis
+                  ATS Check
               </h1>
               <p className="mt-2 text-gray-500 dark:text-gray-400">
                 Get detailed insights on how your resume matches specific job positions. Improve your chances with AI-powered recommendations.
@@ -4744,8 +4689,8 @@ URL to visit: ${jobUrl}
         {/* Analyses List/Grid */}
         {filteredAnalyses.length > 0 ? (
           <div className={`${viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
-            : 'space-y-4'
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' 
+            : 'space-y-3'
           } ${isLoading ? 'pointer-events-none opacity-50' : ''}`}>
             {filteredAnalyses.map((analysis) => (
               <AnalysisCard 

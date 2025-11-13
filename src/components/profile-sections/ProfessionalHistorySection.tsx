@@ -111,7 +111,7 @@ const ProfessionalHistorySection = ({ onUpdate }: SectionProps) => {
     
     setLoadingLogo(prev => ({ ...prev, [index]: true }));
     try {
-      // Utiliser Clearbit Logo API qui est gratuite
+      // Utiliser Clearbit Logo API via proxy pour éviter les problèmes CORS
       // Format: https://logo.clearbit.com/{domain}
       
       // Nettoyer le nom de l'entreprise
@@ -152,18 +152,36 @@ const ProfessionalHistorySection = ({ onUpdate }: SectionProps) => {
         'paypal': 'paypal.com',
       };
       
+      // Fonction helper pour vérifier un logo via le proxy
+      const checkLogoViaProxy = async (domain: string): Promise<string | null> => {
+        try {
+          // Utiliser le proxy local en développement, ou directement en production
+          const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          const apiUrl = isDevelopment 
+            ? `http://localhost:3000/api/company-logo?domain=${encodeURIComponent(domain)}`
+            : `/api/company-logo?domain=${encodeURIComponent(domain)}`;
+          
+          const response = await fetch(apiUrl);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.logoUrl) {
+              return data.logoUrl;
+            }
+          }
+          return null;
+        } catch (e) {
+          console.warn(`Failed to fetch logo for ${domain}:`, e);
+          return null;
+        }
+      };
+      
       // Vérifier les mappings d'abord
       const mappedDomain = companyMappings[cleanName];
       if (mappedDomain) {
-        const logoUrl = `https://logo.clearbit.com/${mappedDomain}`;
-        try {
-          const response = await fetch(logoUrl, { method: 'HEAD' });
-          if (response.ok) {
-            setLoadingLogo(prev => ({ ...prev, [index]: false }));
-            return logoUrl;
-          }
-        } catch (e) {
-          // Continue
+        const logoUrl = await checkLogoViaProxy(mappedDomain);
+        if (logoUrl) {
+          setLoadingLogo(prev => ({ ...prev, [index]: false }));
+          return logoUrl;
         }
       }
       
@@ -179,15 +197,10 @@ const ProfessionalHistorySection = ({ onUpdate }: SectionProps) => {
       
       // Tester chaque domaine
       for (const domain of possibleDomains) {
-        const logoUrl = `https://logo.clearbit.com/${domain}`;
-        try {
-          const response = await fetch(logoUrl, { method: 'HEAD' });
-          if (response.ok) {
-            setLoadingLogo(prev => ({ ...prev, [index]: false }));
-            return logoUrl;
-          }
-        } catch (e) {
-          // Continue to next domain
+        const logoUrl = await checkLogoViaProxy(domain);
+        if (logoUrl) {
+          setLoadingLogo(prev => ({ ...prev, [index]: false }));
+          return logoUrl;
         }
       }
       
