@@ -24,7 +24,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
-import InterviewCountdownCat from '../components/InterviewCountdownCat';
+import HeaderCard from '../components/interview/HeaderCard';
+import AICard from '../components/interview/AICard';
+import TabPills from '../components/interview/TabPills';
+import MiniInfoCard from '../components/interview/MiniInfoCard';
 
 // Interface for the job application data
 interface Note {
@@ -2546,206 +2549,37 @@ Make sure each answer is completely unique and specific to its question - no gen
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
+            className="mt-8 mb-6"
           >
-            <div className="flex items-center justify-end mb-5 mr-1">
-              {interview && (
-                <div className="flex items-center px-3 py-1.5 rounded-full bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-sm">
-                  <Clock className="w-3.5 h-3.5 mr-1.5" />
-                  {new Date(`${interview.date}T${interview.time || '00:00'}`).toLocaleDateString('fr-FR', {
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric'
-                  })} at {interview.time || '00:00'}
-                </div>
-              )}
-            </div>
-            
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-              <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
-                  Interview Preparation
-                </h1>
-                    {interview?.preparation && (
-                      <div className="relative group">
-                        <button
-                          onClick={() => setIsJobSummaryOpen(true)}
-                          className="p-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors group/btn"
-                          title="View job summary"
-                        >
-                          <Info className="w-5 h-5 text-purple-500 dark:text-purple-400 group-hover/btn:text-purple-600 dark:group-hover/btn:text-purple-300 transition-colors" />
-                        </button>
-                        {/* Tooltip */}
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg z-50">
-                          View job summary & insights
-                          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                {application && (
-                  <p className="text-gray-600 dark:text-gray-300 font-medium">
-                    {application.position} at {application.companyName}
-                  </p>
-                )}
-                </div>
-              </div>
-              
-              {interview && (
-                <div className="flex items-center">
-                  <div className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-full p-1 flex">
-                    {(['scheduled', 'completed', 'cancelled'] as const).map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => updateInterviewStatus(status)}
-                        className={`text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
-                          interview.status === status
-                            ? status === 'scheduled' 
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' 
-                              : status === 'completed'
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                                : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {status === 'scheduled' && <Calendar className="w-3.5 h-3.5" />}
-                        {status === 'completed' && <CheckCircle className="w-3.5 h-3.5" />}
-                        {status === 'cancelled' && <XCircle className="w-3.5 h-3.5" />}
-                        <span className="capitalize">{status}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <HeaderCard
+              companyName={application?.companyName || ''}
+              position={application?.position || 'Interview Preparation'}
+              location={application?.location}
+              interviewType={interview?.type as any}
+              status={interview?.status as any}
+            />
           </motion.div>
 
-          {/* Job URL Input Section - Elegant Apple-style Design */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl overflow-hidden mb-8
-              transition-all duration-500 ease-out
-              hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
-              border border-gray-100/50 dark:border-gray-800/50"
-            style={{
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
-            }}
-          >
-            {/* Subtle accent line - Apple style */}
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
-            
-            {/* Subtle background pattern */}
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500 rounded-full blur-3xl"></div>
+          {/* Top: AI card + side countdown module aligned */}
+          <div className="mb-8 flex flex-col md:flex-row gap-6 md:items-stretch">
+            <div className="flex-1 min-w-0 flex">
+              <AICard
+                jobUrl={jobUrl}
+                onJobUrlChange={setJobUrl}
+                isAnalyzing={isAnalyzing}
+                onAnalyze={handleAnalyzeJobPost}
+                className="w-full h-full"
+              />
             </div>
-            
-            <div className="relative p-6">
-              {/* Header Section with AI Value Proposition */}
-              <div className="mb-5">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0
-                    transition-all duration-300 ease-out
-                    group-hover:scale-105
-                    bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20">
-                    <Sparkles className="w-7 h-7 text-purple-500/80 dark:text-purple-400/60" />
-                      </div>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1.5 
-                      tracking-tight leading-tight">
-                          AI-Powered Job Analysis
-                        </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-normal">
-                          Transform any job posting into personalized interview prep
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* AI Capabilities Badges */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium 
-                    bg-purple-50/60 text-purple-700 border border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30
-                    backdrop-blur-sm">
-                    <Brain className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                        <span>Smart Analysis</span>
-                      </div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium 
-                    bg-indigo-50/60 text-indigo-700 border border-indigo-200/50 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800/30
-                    backdrop-blur-sm">
-                    <Target className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-                        <span>Personalized Questions</span>
-                      </div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium 
-                    bg-amber-50/60 text-amber-700 border border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30
-                    backdrop-blur-sm">
-                    <Zap className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                        <span>Instant Insights</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Input Section */}
-              <div className="relative group/input">
-                <div className="relative bg-gray-50/50 dark:bg-gray-800/30 backdrop-blur-sm 
-                  rounded-xl border border-gray-100/50 dark:border-gray-800/50
-                  transition-all duration-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50
-                  p-1.5">
-                    <div className="flex items-center gap-2">
-                    <div className="flex-shrink-0 pl-3 pr-2">
-                      <div className="p-2 rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20">
-                        <Link2 className="w-4 h-4 text-purple-500/80 dark:text-purple-400/60" />
-                        </div>
-                      </div>
-                      <input
-                        type="url"
-                        value={jobUrl}
-                        onChange={(e) => setJobUrl(e.target.value)}
-                        placeholder="Paste job posting URL here..."
-                      className="flex-1 px-3 py-3 bg-transparent border-0 focus:ring-0 text-gray-900 dark:text-white 
-                        placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium outline-none"
-                      />
-                      <button
-                        onClick={handleAnalyzeJobPost}
-                        disabled={isAnalyzing || !jobUrl}
-                      className="flex-shrink-0 px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 
-                        hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
-                        text-white rounded-lg transition-all duration-200 ease-out
-                        flex items-center justify-center gap-2 text-xs font-semibold 
-                        disabled:cursor-not-allowed 
-                        shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
-                        hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
-                        disabled:shadow-none disabled:hover:shadow-none
-                        active:scale-[0.98]"
-                      >
-                        {isAnalyzing ? (
-                          <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Analyzing...</span>
-                          </>
-                        ) : (
-                          <>
-                          <Sparkles className="w-3.5 h-3.5" />
-                            <span>Analyze with AI</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Value Proposition Text */}
-              <div className="mt-4 flex items-start gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-                <CheckCircle className="w-3 h-3 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                  <p className="leading-relaxed">
-                    Our AI extracts key requirements, generates personalized interview questions, and provides strategic insights to help you prepare effectively.
-                  </p>
-              </div>
+            <div className="w-full md:w-[320px] shrink-0 flex">
+              <MiniInfoCard
+                date={interview?.date || null}
+                time={interview?.time || null}
+                type={interview?.type || null}
+                className="w-full h-full"
+              />
             </div>
-          </motion.div>
+          </div>
 
           {/* Loading Overlay - Bird animation for job post analysis */}
           {isAnalyzing && (
@@ -2914,31 +2748,17 @@ Make sure each answer is completely unique and specific to its question - no gen
 
           {/* Tab navigation */}
           <div className="mb-8">
-            <div className="grid grid-cols-5 gap-2 md:gap-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-2">
-              {[
+            <TabPills
+              items={[
                 { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
                 { id: 'questions', label: 'Questions', icon: <HelpCircle className="w-4 h-4" /> },
                 { id: 'skills', label: 'Skills', icon: <Briefcase className="w-4 h-4" /> },
                 { id: 'resources', label: 'Resources', icon: <BookOpen className="w-4 h-4" /> },
                 { id: 'chat', label: 'Practice', icon: <MessageSquare className="w-4 h-4" /> }
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setTab(item.id as any)}
-                  className={`
-                    text-center py-3 rounded-md transition-all flex flex-col items-center
-                    ${tab === item.id
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}
-                  `}
-                >
-                  <div className={`mb-1 ${tab === item.id ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {item.icon}
-                  </div>
-                  <span className="text-xs font-medium">{item.label}</span>
-                </button>
-              ))}
-            </div>
+              ]}
+              activeId={tab as any}
+              onChange={(id) => setTab(id as any)}
+            />
           </div>
 
           {/* Tab content */}
@@ -3025,74 +2845,9 @@ Make sure each answer is completely unique and specific to its question - no gen
                         {/* Subtle accent line - Apple style */}
                         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
                         
-                      <div className="flex flex-col md:flex-row gap-6">
-                        {/* Countdown Section (40%) */}
-                        <div className="flex items-center md:w-2/5">
-                        <div className="flex-shrink-0 mr-4 sm:mr-5">
-                          {(() => {
-                            const interviewDate = new Date(`${interview?.date}T${interview?.time || '09:00'}`);
-                            const now = new Date();
-                            const diffMs = interviewDate.getTime() - now.getTime();
-                            const isPast = diffMs < 0;
-                            const diffDays = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
-                            const diffHours = Math.floor((Math.abs(diffMs) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            
-                            return (
-                              <InterviewCountdownCat 
-                                daysUntil={diffDays}
-                                hoursUntil={diffHours}
-                                isPast={isPast}
-                              />
-                            );
-                          })()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          {(() => {
-                            const interviewDate = new Date(`${interview?.date}T${interview?.time || '09:00'}`);
-                            const now = new Date();
-                            const diffMs = interviewDate.getTime() - now.getTime();
-                            const isPast = diffMs < 0;
-                            
-                            if (isPast) {
-                              return (
-                                <>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 font-medium uppercase tracking-wide">Interview passé</div>
-                                  <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">Terminé</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)}` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}
-                                  </div>
-                                </>
-                              );
-                            } else {
-                              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                              const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                                const isUrgent = diffDays < 3;
-                                
-                              return (
-                                <>
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Interview dans</div>
-                                      {isUrgent && (
-                                        <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full border border-red-200 dark:border-red-800">
-                                          Urgent
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                                    {diffDays} jours {diffHours} heures
-                          </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {interview?.type ? `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)}` : 'Interview'} • {new Date(interview?.date || '').toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}
-                                  </div>
-                                </>
-                              );
-                            }
-                          })()}
-                        </div>
-                        </div>
-                        
-                        {/* Progress & Next Actions Section (60%) */}
-                        <div className="flex-1 md:w-3/5">
+                      <div className="w-full">
+                        {/* Progress & Next Actions Section */}
+                        <div className="w-full">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold text-gray-900 dark:text-white flex items-center text-base">
                               <BarChart2 className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
@@ -3296,69 +3051,12 @@ Make sure each answer is completely unique and specific to its question - no gen
                         </div>
                     </motion.div>
 
-                    {/* SECTION 3: CONTEXT & INSIGHTS */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Interview Details (Left) */}
+                    {/* SECTION 3: KEY POINTS TO EMPHASIZE */}
+                    <div className="w-full">
+                      {/* Key Points to Emphasize (Full Width) */}
                       <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
-                      >
-                        <div className="flex items-center gap-3 mb-5">
-                          <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30">
-                            <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Interview Details</h3>
-                      </div>
-                      
-                        <div className="space-y-4">
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40">
-                            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
-                              <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Company</h4>
-                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{application.companyName}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40">
-                            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
-                              <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Position</h4>
-                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{application.position}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40">
-                            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex-shrink-0">
-                              <Users className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Interview Type</h4>
-                              <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{interview?.type || 'Unknown'} Interview</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40">
-                            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30 flex-shrink-0">
-                              <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Location</h4>
-                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{interview?.location || application.location || 'Remote/Virtual'}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                      
-                      {/* Key Points to Emphasize (Right) */}
-                      <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
                         className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
                       >

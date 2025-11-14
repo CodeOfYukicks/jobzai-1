@@ -1,3 +1,14 @@
+import * as admin from 'firebase-admin';
+
+if (!admin.apps.length) {
+	admin.initializeApp();
+}
+
+export { fetchJobsFromATS } from './fetchJobs';
+export { generateJobEmbedding } from './generateJobEmbedding';
+export { generateUserEmbedding } from './generateUserEmbedding';
+export { matchJobsForUsers } from './matchJobsForUsers';
+
 /**
  * Import function triggers from their respective submodules:
  *
@@ -9,14 +20,13 @@
 
 import {onCall} from "firebase-functions/v2/https";
 import {onRequest} from "firebase-functions/v2/https";
-import * as admin from "firebase-admin";
+// admin already imported and initialized above
 import { emailService } from './lib/mailgun.js';
 import OpenAI from 'openai';
 import * as functions from 'firebase-functions';
 import Stripe from 'stripe';
 
-// Initialize Firebase Admin
-admin.initializeApp();
+// Firebase Admin already initialized at top
 
 // CORS helper function - robust solution for CORS handling
 const handleCORS = (req: any, res: any, next: () => void) => {

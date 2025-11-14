@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Briefcase, Building, Target, 
@@ -10,7 +11,7 @@ import {
   Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
   SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound,
   Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2,
-  Eye, Zap
+  Eye, Zap, MoreHorizontal, Copy
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -1287,6 +1288,7 @@ async function createMockPdfFromText(text: string): Promise<string> {
 
 export default function CVAnalysisPage() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedCV, setSelectedCV] = useState<string | null>('');
@@ -1319,7 +1321,6 @@ export default function CVAnalysisPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'company'>('date');
   const [filterScore, setFilterScore] = useState<'all' | 'high' | 'medium' | 'low'>('all');
-  const [selectedAnalysis, setSelectedAnalysis] = useState<ATSAnalysis | null>(null);
 
   // Charger le CV depuis le profil utilisateur
   useEffect(() => {
@@ -2595,6 +2596,49 @@ URL to visit: ${jobUrl}
     }
   };
 
+  // Dupliquer une analyse
+  const duplicateAnalysis = async (analysis: ATSAnalysis) => {
+    try {
+      const copy: ATSAnalysis = {
+        ...analysis,
+        id: `local_${Date.now()}`,
+        jobTitle: `${analysis.jobTitle} (Copy)`,
+        date: formatDateString(new Date().toISOString().split('T')[0]),
+      };
+      const saved = await saveAnalysisToFirestore(copy);
+      setAnalyses(prev => [saved, ...prev]);
+      toast.success('Analysis duplicated');
+    } catch (e) {
+      console.error('Error duplicating analysis:', e);
+      toast.error('Unable to duplicate analysis');
+    }
+  };
+
+  // Helpers: logo from company name (best-effort) with placeholder fallback
+  const getDomainFromCompanyName = (name?: string | null) => {
+    if (!name) return null;
+    try {
+      const slug = name
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      if (!slug) return null;
+      return `${slug}.com`;
+    } catch {
+      return null;
+    }
+  };
+
+  const getCompanyLogoUrl = (company?: string | null) => {
+    const placeholder = '/images/logo-placeholder.svg';
+    const domain = getDomainFromCompanyName(company || '');
+    if (domain) {
+      return `https://logo.clearbit.com/${domain}`;
+    }
+    return placeholder;
+  };
+
   const AnalysisCard = ({ 
     analysis, 
     onDelete, 
@@ -2609,6 +2653,7 @@ URL to visit: ${jobUrl}
     const [isExpanded, setIsExpanded] = useState(false);
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
     
     const toggleExpand = () => {
       setIsExpanded(!isExpanded);
@@ -2644,11 +2689,7 @@ URL to visit: ${jobUrl}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -4, scale: 1.02 }}
         transition={{ duration: 0.2 }}
-        className="relative bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 
-          hover:border-purple-300 dark:hover:border-purple-700
-          hover:shadow-xl hover:shadow-purple-500/10 dark:hover:shadow-purple-900/20
-          transition-all duration-300 cursor-pointer group
-          overflow-hidden"
+        className="relative group rounded-xl p-5 border shadow-sm bg-white dark:bg-[#1E1F22] dark:border-[#2A2A2E] dark:text-gray-100 dark:shadow-none hover:shadow-md transition-all cursor-pointer dark:hover:bg-[#26262B]"
         onClick={() => {
           if (onSelect) {
             onSelect();
@@ -2657,87 +2698,109 @@ URL to visit: ${jobUrl}
           }
         }}
       >
-        {/* Gradient background effect on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-50/0 via-indigo-50/0 to-purple-50/0 
-          group-hover:from-purple-50/50 group-hover:via-indigo-50/30 group-hover:to-purple-50/50
-          dark:group-hover:from-purple-950/20 dark:group-hover:via-indigo-950/10 dark:group-hover:to-purple-950/20
-          transition-all duration-300 -z-0" />
-        
-        <div className="relative z-10">
-          <div className="flex items-start justify-between mb-3">
+        <div className="relative z-10 space-y-3">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center items-start gap-4">
+            <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-[#2A2A2E] bg-gray-50 dark:bg-[#26262B] flex items-center justify-center">
+              <img
+                src={getCompanyLogoUrl(analysis.company)}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/logo-placeholder.svg'; }}
+                alt={`${analysis.company} logo`}
+                className="w-10 h-10 object-contain"
+              />
+            </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+              <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {analysis.jobTitle}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1.5 font-medium">
+              <p className="text-sm text-gray-600 dark:text-gray-300 truncate flex items-center gap-1.5">
                 <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                 <span className="truncate">{analysis.company}</span>
               </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {formatDateString(analysis.date)}
+              </p>
             </div>
-            <div className={`ml-3 flex-shrink-0 text-2xl font-extrabold transition-all duration-300 ${
-              analysis.matchScore >= 80 
-                ? 'text-purple-600 dark:text-purple-400 group-hover:scale-110' :
-                analysis.matchScore >= 65 
-                ? 'text-blue-600 dark:text-blue-400 group-hover:scale-110' 
-                : 'text-pink-600 dark:text-pink-400 group-hover:scale-110'
-            }`}>
-              {analysis.matchScore}%
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full border dark:border-[#2A2A2E] ${
+                analysis.matchScore >= 80 
+                  ? 'bg-green-50 text-green-700 border-green-200 dark:bg-[#26262B] dark:text-green-400 dark:border-[#2A2A2E]'
+                  : analysis.matchScore >= 65
+                  ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-[#26262B] dark:text-blue-400 dark:border-[#2A2A2E]'
+                  : 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-[#26262B] dark:text-pink-400 dark:border-[#2A2A2E]'
+              }`}>
+                {analysis.matchScore}% match
+              </span>
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsActionMenuOpen(!isActionMenuOpen); }}
+                  className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-[#26262B] transition-opacity opacity-0 group-hover:opacity-100"
+                  aria-label="Card actions"
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
+                {isActionMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 dark:border-[#2A2A2E] bg-white dark:bg-[#1E1F22] shadow-lg z-30"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => { setIsActionMenuOpen(false); onSelect && onSelect(); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#26262B]"
+                    >
+                      View details
+                    </button>
+                    <button
+                      onClick={() => { setIsActionMenuOpen(false); duplicateAnalysis(analysis); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#26262B] flex items-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" /> Duplicate analysis
+                    </button>
+                    <button
+                      onClick={() => { setIsActionMenuOpen(false); setIsDeleteDialogOpen(true); }}
+                      className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-[#26262B] flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" /> Delete analysis
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-              <Calendar className="w-3.5 h-3.5" />
-              <span className="font-medium">{formatDate(analysis.date)}</span>
-            </div>
-            <motion.button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsDeleteDialogOpen(true);
-              }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="opacity-0 group-hover:opacity-100 transition-all duration-200 
-                p-2 rounded-lg bg-red-50 dark:bg-red-900/20 
-                text-red-600 dark:text-red-400 
-                hover:bg-red-100 dark:hover:bg-red-900/30
-                hover:shadow-md"
-              aria-label="Delete analysis"
-            >
-              <Trash2 className="w-4 h-4" />
-            </motion.button>
-          </div>
-          
+          {/* Skills preview (compact pills) */}
           {!isExpanded && analysis.skillsMatch.matching.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-2">
               {analysis.skillsMatch.matching
                 .sort((a, b) => b.relevance - a.relevance)
                 .slice(0, 5)
                 .map((skill, idx) => (
-                  <motion.span
+                  <span
                     key={idx}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-100 to-indigo-100 
-                      dark:from-purple-900/30 dark:to-indigo-900/30
-                      text-purple-700 dark:text-purple-300 
-                      rounded-full font-medium
-                      border border-purple-200/50 dark:border-purple-700/50
-                      group-hover:from-purple-200 group-hover:to-indigo-200
-                      dark:group-hover:from-purple-800/40 dark:group-hover:to-indigo-800/40
-                      transition-all duration-200"
+                    className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-[#26262B] dark:text-gray-300"
                   >
                     {skill.name}
-                  </motion.span>
+                  </span>
                 ))}
               {analysis.skillsMatch.matching.length > 5 && (
-                <span className="text-xs px-2.5 py-1 text-gray-500 dark:text-gray-400 font-medium">
+                <span className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-[#26262B] dark:text-gray-400">
                   +{analysis.skillsMatch.matching.length - 5}
                 </span>
               )}
             </div>
           )}
+          
+          {/* Divider and footer */}
+          <div className="h-px bg-gray-200 dark:bg-[#2A2A2E] my-3"></div>
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="font-medium">{formatDateString(analysis.date)}</span>
+            </div>
+            <div className="text-xs">
+              {analysis.skillsMatch.matching.length} matched skill{analysis.skillsMatch.matching.length !== 1 ? 's' : ''}
+            </div>
+          </div>
           
           {/* Expanded Content */}
           {isExpanded && (
@@ -4696,7 +4759,7 @@ URL to visit: ${jobUrl}
                 analysis={analysis} 
                 onDelete={deleteAnalysis}
                 viewMode={viewMode}
-                onSelect={() => setSelectedAnalysis(analysis)}
+                onSelect={() => navigate(`/ats-analysis/${analysis.id}`)}
               />
             ))}
           </div>
@@ -5119,345 +5182,6 @@ URL to visit: ${jobUrl}
           </div>
         )}
 
-      {/* Analysis Detail Modal */}
-      <AnimatePresence>
-        {selectedAnalysis && (
-          <Dialog
-            open={!!selectedAnalysis}
-            onClose={() => setSelectedAnalysis(null)}
-            className="fixed inset-0 z-[60] overflow-y-auto"
-          >
-            <div className="flex items-center justify-center min-h-screen px-4 py-8">
-              <Dialog.Overlay 
-                as={motion.div}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-                onClick={() => setSelectedAnalysis(null)}
-              />
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ duration: 0.3 }}
-                className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full mx-auto max-h-[90vh] overflow-hidden flex flex-col"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Modal Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="relative">
-                      <CircularProgressWithCenterText 
-                        value={selectedAnalysis.matchScore} 
-                        size={70}
-                        strokeWidth={7}
-                        textSize="text-xl font-semibold"
-                        colorClass={getScoreColorClass(selectedAnalysis.matchScore)}
-                      />
-                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md border border-gray-100 dark:border-gray-700">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                          selectedAnalysis.matchScore >= 80 
-                            ? 'bg-gradient-to-br from-amber-400 to-amber-500' 
-                            : selectedAnalysis.matchScore >= 65 
-                            ? 'bg-gradient-to-br from-blue-400 to-cyan-400' 
-                            : 'bg-gradient-to-br from-pink-400 to-rose-400'
-                        }`}>
-                          <Trophy className="w-3.5 h-3.5 text-white" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                        {selectedAnalysis.jobTitle}
-                      </h2>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="w-4 h-4" />
-                          {selectedAnalysis.company}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <CalendarIcon className="w-4 h-4" />
-                          {formatDateString(selectedAnalysis.date)}
-                        </div>
-                        {selectedAnalysis.matchScore >= 80 && (
-                          <div className="flex items-center gap-1.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-full text-xs font-semibold border border-purple-200 dark:border-purple-800">
-                            <CheckCircle className="w-3 h-3" />
-                            High match
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setSelectedAnalysis(null)}
-                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors ml-4"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-      </div>
-
-                {/* Modal Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                  {/* Match Score Overview */}
-                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-700/30 dark:to-gray-700/30 rounded-xl p-6 border border-purple-100 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        Overall Match Score
-                      </h3>
-                      <div className={`text-3xl font-bold ${getScoreColorClass(selectedAnalysis.matchScore)}`}>
-                        {selectedAnalysis.matchScore}%
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      {selectedAnalysis.matchScore >= 80 ? 
-                        "Your resume is very well aligned with this position! You appear to be a strong candidate based on the requirements." :
-                        selectedAnalysis.matchScore >= 65 ?
-                        "Your resume meets many of the key requirements, but there are some areas that could be improved." :
-                        "Your resume needs significant adjustments to better align with this position's requirements."
-                      }
-                    </p>
-                    <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          selectedAnalysis.matchScore >= 80 ? 'bg-gradient-to-r from-purple-500 to-indigo-500' : 
-                          selectedAnalysis.matchScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 
-                          'bg-gradient-to-r from-pink-500 to-rose-500'
-                        }`}
-                        style={{ width: `${selectedAnalysis.matchScore}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Category Scores Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(selectedAnalysis.categoryScores).map(([category, score], idx) => (
-                      <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 text-center">
-                        <div className="text-xs uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-2">
-                          {category.replace(/([A-Z])/g, ' $1').trim()}
-                        </div>
-                        <div className={`text-2xl font-bold ${getScoreColorClass(score)}`}>
-                          {Math.round(score)}%
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Job Summary */}
-                  {selectedAnalysis.jobSummary ? (
-                    <div className="bg-gradient-to-br from-purple-50/50 to-indigo-50/50 dark:from-purple-900/10 dark:to-indigo-900/10 rounded-xl p-6 border border-purple-100/50 dark:border-purple-800/30">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        Job Post Summary
-                      </h3>
-                      <div className="space-y-5">
-                        {(() => {
-                          const sections = selectedAnalysis.jobSummary.split(/\n\n+/).filter(s => s.trim());
-                          
-                          return sections.map((section, sectionIdx) => {
-                            const lines = section.split('\n').filter(l => l.trim());
-                            if (lines.length === 0) return null;
-                            
-                            const firstLine = lines[0]?.trim() || '';
-                            
-                            if (firstLine.startsWith('**') && firstLine.endsWith('**')) {
-                              const headerText = firstLine.replace(/\*\*/g, '').trim();
-                              const contentLines = lines.slice(1);
-                              
-                              return (
-                                <div key={sectionIdx} className={sectionIdx > 0 ? 'pt-5 border-t border-purple-200/60 dark:border-purple-700/40' : ''}>
-                                  <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                                    {headerText}
-                                  </h4>
-                                  <div className="space-y-2 ml-3.5">
-                                    {contentLines.map((line, lineIdx) => {
-                                      const cleanLine = line.replace(/^[-•]\s*/, '').trim();
-                                      if (!cleanLine) return null;
-                                      
-                                      return (
-                                        <div key={lineIdx} className="flex items-start gap-2.5">
-                                          <span className="text-purple-500 dark:text-purple-400 mt-1.5 flex-shrink-0 text-xs">▸</span>
-                                          <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{cleanLine}</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            }
-                            
-                            const cleanSection = section.trim();
-                            if (cleanSection && !cleanSection.startsWith('{') && !cleanSection.startsWith('[')) {
-                              return (
-                                <div key={sectionIdx} className={sectionIdx > 0 ? 'pt-5 border-t border-purple-200/60 dark:border-purple-700/40' : ''}>
-                                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{cleanSection}</p>
-                                </div>
-                              );
-                            }
-                            
-                            return null;
-                          });
-                        })()}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                        Job summary not available for this analysis
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Executive Summary */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                      Executive Summary
-                    </h3>
-                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {selectedAnalysis.executiveSummary}
-                    </p>
-                  </div>
-
-                  {/* Skills Match */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                      Matched Skills
-                    </h3>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {selectedAnalysis.skillsMatch.matching
-                        .sort((a, b) => b.relevance - a.relevance)
-                        .map((skill, idx) => (
-                          <div 
-                            key={idx}
-                            className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-full text-sm font-medium"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            {skill.name}
-                            <span className="text-xs opacity-75">({skill.relevance}%)</span>
-                          </div>
-                        ))}
-                    </div>
-
-                    {selectedAnalysis.skillsMatch.missing.length > 0 && (
-                      <>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 mt-6">
-                          <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                          Missing Skills
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedAnalysis.skillsMatch.missing
-                            .sort((a, b) => b.relevance - a.relevance)
-                            .map((skill, idx) => (
-                              <div 
-                                key={idx}
-                                className="flex items-center gap-2 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 px-3 py-1.5 rounded-full text-sm font-medium"
-                              >
-                                <AlertCircle className="w-4 h-4" />
-                                {skill.name}
-                                <span className="text-xs opacity-75">({skill.relevance}%)</span>
-                              </div>
-                            ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Recommendations */}
-                  {selectedAnalysis.recommendations && selectedAnalysis.recommendations.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Lightbulb className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                        Recommendations
-                      </h3>
-                      <div className="space-y-4">
-                        {selectedAnalysis.recommendations.map((rec, idx) => (
-                          <div 
-                            key={idx}
-                            className={`p-4 rounded-lg border-l-4 ${
-                              rec.priority === 'high' 
-                                ? 'bg-red-50 dark:bg-red-900/10 border-red-500' 
-                                : rec.priority === 'medium'
-                                ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-500'
-                                : 'bg-blue-50 dark:bg-blue-900/10 border-blue-500'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-semibold text-gray-900 dark:text-white">
-                                {rec.title}
-                              </h4>
-                              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                                rec.priority === 'high' 
-                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                                  : rec.priority === 'medium'
-                                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                              }`}>
-                                {rec.priority.toUpperCase()}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                              {rec.description}
-                            </p>
-                            {rec.examples && (
-                              <div className="mt-2 p-2 bg-white dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400 font-mono">
-                                {rec.examples}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Key Findings */}
-                  {selectedAnalysis.keyFindings && selectedAnalysis.keyFindings.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        Key Findings
-                      </h3>
-                      <ul className="space-y-2">
-                        {selectedAnalysis.keyFindings.map((finding, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
-                            <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
-                            <span>{finding}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-
-                {/* Modal Footer */}
-                <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                  <button
-                    onClick={() => {
-                      deleteAnalysis(selectedAnalysis.id);
-                      setSelectedAnalysis(null);
-                    }}
-                    className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete Analysis
-                  </button>
-                  <button
-                    onClick={() => setSelectedAnalysis(null)}
-                    className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium hover:opacity-90 transition-all shadow-lg shadow-purple-500/20"
-                  >
-                    Close
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          </Dialog>
-        )}
-      </AnimatePresence>
       
       {/* CV Selection Modal */}
       {cvModalOpen && false && (

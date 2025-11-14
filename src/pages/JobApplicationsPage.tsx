@@ -39,42 +39,8 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
 import DatePicker from '../components/ui/DatePicker';
-
-interface Interview {
-  id: string;
-  date: string;
-  time: string;
-  type: 'technical' | 'hr' | 'manager' | 'final' | 'other';
-  interviewers?: string[];
-  status: 'scheduled' | 'completed' | 'cancelled';
-  notes?: string;
-  location?: string;
-}
-
-interface StatusChange {
-  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived' | 'pending_decision';
-  date: string;
-  notes?: string;
-}
-
-interface JobApplication {
-  id: string;
-  companyName: string;
-  position: string;
-  location: string;
-  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived' | 'pending_decision';
-  appliedDate: string;
-  url?: string;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  salary?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-  interviews?: Interview[];
-  statusHistory?: StatusChange[];
-}
+import { JobApplication, Interview, StatusChange } from '../types/job';
+import { ApplicationList } from '../components/application/ApplicationList';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -1452,166 +1418,22 @@ END:VCALENDAR`;
                           </div>
 
                           <div className="space-y-2 sm:space-y-3">
-                            <AnimatePresence>
-                              {applications
-                                .filter(app => app.status === status)
-                                .map((app, index) => (
-                                  <Draggable key={app.id} draggableId={app.id} index={index}>
-                                    {(provided, snapshot) => (
-                                      <div
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        {...provided.dragHandleProps}
-                                        className={snapshot.isDragging ? 'dragging-card' : ''}
-                                        style={{
-                                          ...provided.draggableProps.style,
-                                          // On conserve tous les styles fournis par react-beautiful-dnd pendant le drag
-                                          zIndex: snapshot.isDragging ? 9999 : 'auto',
-                                        }}
-                                      >
-                                        <motion.div
-                                          initial={{ opacity: 0, y: 10 }}
-                                          animate={{ opacity: 1, y: 0 }}
-                                          transition={{ delay: index * 0.03, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                                          className={`group relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden
-                                            transition-all duration-500 ease-out
-                                            ${snapshot.isDragging 
-                                              ? 'ring-2 ring-purple-500/50 shadow-2xl scale-105' 
-                                              : 'hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/20 hover:-translate-y-1'
-                                            }
-                                            border border-gray-200/60 dark:border-gray-800/50`}
-                                          style={{
-                                            boxShadow: snapshot.isDragging 
-                                              ? '0 20px 25px -5px rgba(139, 92, 246, 0.2), 0 10px 10px -5px rgba(139, 92, 246, 0.1)'
-                                              : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
-                                          }}
-                                        >
-                                          {/* Subtle accent line - Apple style */}
-                                          <div className={`absolute top-0 left-0 right-0 h-0.5
-                                            ${app.status === 'applied' ? 'bg-gradient-to-r from-blue-400/60 to-blue-500/40' :
-                                              app.status === 'interview' ? 'bg-gradient-to-r from-purple-400/60 to-purple-500/40' :
-                                              app.status === 'offer' ? 'bg-gradient-to-r from-green-400/60 to-green-500/40' :
-                                              app.status === 'pending_decision' ? 'bg-gradient-to-r from-amber-400/60 to-amber-500/40' :
-                                              app.status === 'rejected' ? 'bg-gradient-to-r from-red-400/60 to-red-500/40' :
-                                              'bg-gradient-to-r from-gray-400/60 to-gray-500/40'}`}
-                                          />
-                                          
-                                          {/* Position absolute pour les boutons avec un effet de fond subtil */}
-                                          <div className="absolute top-0 right-0 h-full flex items-start pt-3 px-3 card-actions z-10">
-                                            <div className="absolute inset-0 bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent w-20 h-full pointer-events-none backdrop-blur-sm"></div>
-                                            <div className="relative flex gap-1.5 z-10">
-                                              <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setFormData(app);
-                                                  setEditModal({ show: true, application: app });
-                                                }}
-                                                className="w-7 h-7 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 
-                                                  hover:bg-purple-50/80 dark:hover:bg-purple-900/30 rounded-lg focus:outline-none backdrop-blur-sm transition-all duration-200"
-                                                aria-label="Edit application"
-                                              >
-                                                <Edit3 className="w-3.5 h-3.5" />
-                                              </motion.button>
-                                              <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setDeleteModal({ show: true, application: app });
-                                                }}
-                                                className="w-7 h-7 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 
-                                                  hover:bg-red-50/80 dark:hover:bg-red-900/30 rounded-lg focus:outline-none backdrop-blur-sm transition-all duration-200"
-                                                aria-label="Delete application"
-                                              >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                              </motion.button>
-                                            </div>
-                                          </div>
-
-                                          {/* Add onClick to show timeline - avec padding pour éviter le chevauchement avec les boutons */}
-                                          <div 
-                                            onClick={() => {
-                                              if (!snapshot.isDragging) {
-                                                setSelectedApplication(app);
-                                                setTimelineModal(true);
-                                              }
-                                            }}
-                                            className="cursor-pointer p-4 pr-20"
-                                          >
-                                            {/* Contenu de la carte */}
-                                            <div className="mb-3">
-                                              <h4 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate mb-1 tracking-tight">
-                                                {app.companyName}
-                                              </h4>
-                                              <p className="text-purple-600 dark:text-purple-400 text-xs sm:text-sm truncate font-medium">
-                                                {app.position}
-                                              </p>
-                                            </div>
-
-                                            {/* Indicateurs d'entretien avec petite animation sur hover */}
-                                            {app.interviews && app.interviews.length > 0 && (
-                                              <div className="mt-3 pt-3 border-t border-gray-200/60 dark:border-gray-700/50">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                  {app.interviews.slice(0, 3).map((interview, i) => (
-                                                    <motion.div
-                                                      key={interview.id}
-                                                      className="relative group"
-                                                      whileHover={{ y: -2, scale: 1.05 }}
-                                                      transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                                                    >
-                                                      <div
-                                                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 backdrop-blur-sm shadow-sm transition-all duration-200 ${
-                                                          interview.status === 'completed'
-                                                            ? 'bg-green-50/90 border-green-300/60 text-green-700 dark:bg-green-950/30 dark:border-green-800/30 dark:text-green-400'
-                                                            : interview.status === 'cancelled'
-                                                            ? 'bg-red-50/90 border-red-300/60 text-red-700 dark:bg-red-950/30 dark:border-red-800/30 dark:text-red-400'
-                                                            : 'bg-purple-50/90 border-purple-300/60 text-purple-700 dark:bg-purple-950/30 dark:border-purple-800/30 dark:text-purple-400'
-                                                        }`}
-                                                      >
-                                                        {interview.type.charAt(0).toUpperCase()}
-                                                      </div>
-                                                      {/* Tooltip avec animation */}
-                                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900/90 dark:bg-gray-800/90 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 shadow-xl backdrop-blur-sm">
-                                                        {interview.type} - {interview.date}
-                                                      </div>
-                                                    </motion.div>
-                                                  ))}
-                                                  {app.interviews.length > 3 && (
-                                                    <motion.div 
-                                                      whileHover={{ scale: 1.1 }}
-                                                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100/90 dark:bg-gray-800/50 border-2 border-gray-300/60 dark:border-gray-700/50 flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-300 backdrop-blur-sm shadow-sm transition-all duration-200"
-                                                    >
-                                                      +{app.interviews.length - 3}
-                                                    </motion.div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            )}
-
-                                            {/* Informations supplémentaires */}
-                                            <div className="mt-3 space-y-2">
-                                              <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
-                                                <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm mr-2">
-                                                  <MapPin className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                                                </div>
-                                                <span className="font-medium">{app.location}</span>
-                                              </div>
-                                              <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
-                                                <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm mr-2">
-                                                  <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                                                </div>
-                                                <span className="font-medium">Applied: {app.appliedDate}</span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </motion.div>
-                                      </div>
-                                    )}
-                                  </Draggable>
-                                ))}
-                            </AnimatePresence>
+                            <ApplicationList
+                              applications={applications.filter(a => a.status === status)}
+                              onCardClick={(app) => {
+                                if (!snapshot.isDragging) {
+                                  setSelectedApplication(app);
+                                  setTimelineModal(true);
+                                }
+                              }}
+                              onCardEdit={(app) => {
+                                setFormData(app);
+                                setEditModal({ show: true, application: app });
+                              }}
+                              onCardDelete={(app) => {
+                                setDeleteModal({ show: true, application: app });
+                              }}
+                            />
                             {provided.placeholder}
                           </div>
                         </motion.div>

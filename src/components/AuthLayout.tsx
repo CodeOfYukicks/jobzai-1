@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Mail, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon, ChevronLeft, ChevronRight, FileText, Search, Bell } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon, ChevronLeft, ChevronRight, FileText, Search, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
@@ -44,9 +44,9 @@ interface UpcomingInterview {
 // Définir les groupes de navigation
 const navigationGroups = {
   apply: [
+    { name: 'Jobs', href: '/jobs', icon: LayoutGrid },
     { name: 'Resume Lab', href: '/cv-optimizer', icon: ScrollText },
     { name: 'ATS Check', href: '/cv-analysis', icon: FileSearch },
-    { name: 'Template Studio', href: '/email-templates', icon: Mail },
     { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
   ],
   track: [

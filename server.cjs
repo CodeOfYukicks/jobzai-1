@@ -1461,6 +1461,65 @@ app.post('/api/extract-job-url', async (req, res) => {
   }
 });
 
+// Explain why a job matches a user
+app.post('/api/explainMatch', async (req, res) => {
+  try {
+    const { user, job } = req.body || {};
+    if (!user || !job) {
+      return res.status(400).json({ error: 'Missing user or job in body' });
+    }
+    const apiKey = await getOpenAIApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'OpenAI API key not configured' });
+    }
+    const apiUrl = process.env.VITE_OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions';
+    const systemPrompt = 'You are a helpful career coach. Explain concisely (6-10 sentences) why the job matches the user. Mention overlapping skills, experience alignment, and possible gaps with actionable suggestions. Avoid generic fluff.';
+    const userPrompt = `
+User Profile:
+- Name: ${user.name || ''}
+- Role: ${user.currentRole || ''}
+- Location: ${user.location || ''}
+- Years Experience: ${user.yearsExperience || ''}
+- Skills: ${(user.skills || []).join(', ')}
+- Preferences: remote=${user.preferences?.remote ? 'yes' : 'no'}, seniority=[${(user.preferences?.seniority || []).join(', ')}], domains=[${(user.preferences?.domains || []).join(', ')}]
+
+Job:
+- Title: ${job.title || ''}
+- Company: ${job.company || ''}
+- Location: ${job.location || ''}
+- Skills: ${(job.skills || []).join(', ')}
+- Description: ${(job.description || '').slice(0, 2000)}
+    `.trim();
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.5
+      })
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.error('OpenAI API error:', response.status, errorText);
+      return res.status(500).json({ error: 'Failed generating explanation' });
+    }
+    const json = await response.json();
+    const explanation = json?.choices?.[0]?.message?.content || '';
+    return res.json({ explanation });
+  } catch (e) {
+    console.error('Error in /api/explainMatch:', e);
+    return res.status(500).json({ error: e?.message || 'Unknown error' });
+  }
+});
+
 // Render external JSON Resume theme to HTML (client will preview this)
 app.post('/api/render-theme', async (req, res) => {
   try {

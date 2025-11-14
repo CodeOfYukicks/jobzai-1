@@ -350,3 +350,10 @@ exports.syncUserToBrevo = serverlessFunctions.syncUserToBrevo;
 exports.createCheckoutSession = serverlessFunctions.createCheckoutSession;
 exports.stripeWebhook = serverlessFunctions.stripeWebhook;
 exports.processStripeSession = serverlessFunctions.processStripeSession;
+
+// Exporter les fonctions d'ATS/embeddings/matching depuis le build TypeScript
+// (nécessaire pour que Firebase les détecte lors du déploiement)
+exports.fetchJobsFromATS = serverlessFunctions.fetchJobsFromATS;
+exports.generateJobEmbedding = serverlessFunctions.generateJobEmbedding;
+exports.generateUserEmbedding = serverlessFunctions.generateUserEmbedding;
+exports.matchJobsForUsers = serverlessFunctions.matchJobsForUsers;

@@ -1,4 +1,18 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
+const admin = require("firebase-admin");
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
+var fetchJobs_1 = require("./fetchJobs");
+Object.defineProperty(exports, "fetchJobsFromATS", { enumerable: true, get: function () { return fetchJobs_1.fetchJobsFromATS; } });
+var generateJobEmbedding_1 = require("./generateJobEmbedding");
+Object.defineProperty(exports, "generateJobEmbedding", { enumerable: true, get: function () { return generateJobEmbedding_1.generateJobEmbedding; } });
+var generateUserEmbedding_1 = require("./generateUserEmbedding");
+Object.defineProperty(exports, "generateUserEmbedding", { enumerable: true, get: function () { return generateUserEmbedding_1.generateUserEmbedding; } });
+var matchJobsForUsers_1 = require("./matchJobsForUsers");
+Object.defineProperty(exports, "matchJobsForUsers", { enumerable: true, get: function () { return matchJobsForUsers_1.matchJobsForUsers; } });
 /**
  * Import function triggers from their respective submodules:
  *
@@ -7,17 +21,14 @@
  *
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const https_2 = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+// admin already imported and initialized above
 const mailgun_js_1 = require("./lib/mailgun.js");
 const openai_1 = require("openai");
 const functions = require("firebase-functions");
 const stripe_1 = require("stripe");
-// Initialize Firebase Admin
-admin.initializeApp();
+// Firebase Admin already initialized at top
 // CORS helper function - robust solution for CORS handling
 const handleCORS = (req, res, next) => {
     // Set CORS headers
@@ -1342,7 +1353,7 @@ const handleCheckoutCompleted = async (session) => {
             });
             // Record credit history
             await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
-                credits: creditsToAdd,
+                balance: creditsToAdd,
                 change: creditsToAdd,
                 reason: 'subscription_payment',
                 planId,
@@ -1361,7 +1372,7 @@ const handleCheckoutCompleted = async (session) => {
             });
             // Record credit history
             await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
-                credits: currentCredits + creditsToAdd,
+                balance: currentCredits + creditsToAdd,
                 change: creditsToAdd,
                 reason: 'credit_purchase',
                 packageId: planId,
@@ -1465,7 +1476,7 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
         });
         // Record credit history
         await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
-            credits: creditsToAdd,
+            balance: creditsToAdd,
             change: creditsToAdd,
             reason: 'subscription_renewal',
             planId: planId || 'unknown',

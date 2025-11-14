@@ -35,11 +35,15 @@ import SmartMatchingPage from './pages/SmartMatchingPage';
 import SearchPage from './pages/SearchPage';
 import ProfessionalProfilePage from './pages/ProfessionalProfilePage';
 import CVAnalysisPage from './pages/CVAnalysisPage';
+import ATSAnalysisPage from './pages/ATSAnalysisPage';
 import JobApplicationsPage from './pages/JobApplicationsPage';
 import CalendarView from './pages/CalendarView';
 import InterviewPrepPage from './pages/InterviewPrepPage';
 import UpcomingInterviewsPage from './pages/UpcomingInterviewsPage';
 import InterviewHelpPage from './pages/InterviewHelpPage';
+import JobsPage from './pages/JobsPage';
+import JobBoardPage from './pages/JobBoardPage';
+import MatchesPage from './pages/MatchesPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import CVOptimizerPage from './pages/CVOptimizerPage';
 import OptimizedCVEditPage from './pages/OptimizedCVEditPage';
@@ -152,6 +156,7 @@ function AppContent() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/professional-profile" element={<ProfessionalProfilePage />} />
           <Route path="/cv-analysis" element={<CVAnalysisPage />} />
+          <Route path="/ats-analysis/:id" element={<ATSAnalysisPage />} />
           <Route path="/cv-optimizer" element={<CVOptimizerPage />} />
           <Route path="/cv-optimizer/:id" element={<OptimizedCVEditPage />} />
           <Route path="/cv-creator" element={<CVCreatorPage />} />
@@ -159,6 +164,8 @@ function AppContent() {
           <Route path="/interview-prep/:applicationId/:interviewId" element={<InterviewPrepPage />} />
           <Route path="/upcoming-interviews" element={<UpcomingInterviewsPage />} />
           <Route path="/interview-help" element={<InterviewHelpPage />} />
+          <Route path="/matches" element={<MatchesPage />} />
+          <Route path="/jobs" element={<JobBoardPage />} />
         </Route>
 
         {/* Public static pages */}

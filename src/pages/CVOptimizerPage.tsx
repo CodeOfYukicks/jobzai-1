@@ -5,7 +5,7 @@ import {
   FileText, Briefcase, Building2, Sparkles, Upload, Check, X, 
   ChevronRight, Trash2, Loader2,
   Wand2, Calendar, Info, AlignLeft, Search, Filter, XCircle,
-  ArrowUpDown, LayoutGrid, List, Globe2, ChevronDown
+  ArrowUpDown, LayoutGrid, List, Globe2, ChevronDown, MoreHorizontal, Copy
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -65,8 +65,12 @@ export default function CVOptimizerPage() {
     cvTitle: ''
   });
   const [openVersionDropdown, setOpenVersionDropdown] = useState<string | null>(null);
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   useEffect(() => {
-    const close = () => setOpenVersionDropdown(null);
+    const close = () => {
+      setOpenVersionDropdown(null);
+      setOpenActionMenu(null);
+    };
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
   }, []);
@@ -138,6 +142,25 @@ export default function CVOptimizerPage() {
     });
   };
 
+  // Helpers: logo URL from job posting domain
+  const getDomainFromUrl = (url?: string) => {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      return u.hostname.replace(/^www\./, '');
+    } catch {
+      return null;
+    }
+  };
+  const getCompanyLogoUrl = (company: string, jobUrl?: string) => {
+    const placeholder = '/images/logo-placeholder.svg';
+    const domain = getDomainFromUrl(jobUrl || '');
+    if (domain) {
+      return `https://logo.clearbit.com/${domain}`;
+    }
+    return placeholder;
+  };
+
   // Delete optimized CV
   const deleteOptimizedCV = async (cvId: string) => {
     if (!currentUser) return;
@@ -150,6 +173,29 @@ export default function CVOptimizerPage() {
     } catch (error) {
       console.error('Error deleting optimized CV:', error);
       toast.error('Unable to delete optimized CV');
+    }
+  };
+
+  // Duplicate optimized CV
+  const duplicateOptimizedCV = async (cv: OptimizedCV) => {
+    if (!currentUser) return;
+    try {
+      await saveOptimizedCV({
+        jobTitle: `${cv.jobTitle} (Copy)`,
+        company: cv.company,
+        jobUrl: cv.jobUrl,
+        date: formatDateString(new Date().toISOString().split('T')[0]),
+        userId: currentUser.uid,
+        optimizedResumeMarkdown: cv.optimizedResumeMarkdown,
+        atsScore: cv.atsScore,
+        keywordsUsed: cv.keywordsUsed,
+        changesSummary: cv.changesSummary,
+        shortSummary: cv.shortSummary,
+        cvFileName: cv.cvFileName
+      });
+    } catch (e) {
+      console.error('Error duplicating optimized CV', e);
+      toast.error('Unable to duplicate resume');
     }
   };
 
@@ -1632,125 +1678,138 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ y: -4, scale: 1.02 }}
                   transition={{ duration: 0.2 }}
-                  className="relative bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 
-                    hover:border-purple-300 dark:hover:border-purple-700
-                    hover:shadow-xl hover:shadow-purple-500/10 dark:hover:shadow-purple-900/20
-                    transition-all duration-300 cursor-pointer group
-                    overflow-hidden"
+                  className="relative group rounded-xl p-5 border shadow-sm bg-white dark:bg-[#1E1F22] dark:border-[#2A2A2E] dark:text-gray-100 dark:shadow-none hover:shadow-md transition-all cursor-pointer dark:hover:bg-[#26262B]"
                   onClick={() => navigate(`/cv-optimizer/${group.primaryCV.id}`)}
                 >
-                  {/* Gradient background effect on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50/0 via-indigo-50/0 to-purple-50/0 
-                    group-hover:from-purple-50/50 group-hover:via-indigo-50/30 group-hover:to-purple-50/50
-                    dark:group-hover:from-purple-950/20 dark:group-hover:via-indigo-950/10 dark:group-hover:to-purple-950/20
-                    transition-all duration-300 -z-0" />
-                  
-                  <div className="relative z-10">
-                    <div className="mb-4">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                  <div className="flex flex-col md:flex-row md:items-center items-start gap-4">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-[#2A2A2E] bg-gray-50 dark:bg-[#26262B] flex items-center justify-center">
+                      <img
+                        src={getCompanyLogoUrl(group.primaryCV.company, group.primaryCV.jobUrl)}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/logo-placeholder.svg'; }}
+                        alt={`${group.primaryCV.company} logo`}
+                        className="w-10 h-10 object-contain"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100 truncate">
                         {group.primaryCV.jobTitle}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1.5 font-medium">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 truncate flex items-center gap-1.5">
                         <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                         <span className="truncate">{group.primaryCV.company}</span>
                       </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {formatDateString(group.primaryCV.date)}
+                      </p>
                     </div>
-                    
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-4">
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span className="font-medium">{formatDateString(group.primaryCV.date)}</span>
-                      </div>
-                      {hasMultipleVersions && (
-                        <div className="relative">
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenActionMenu(openActionMenu === group.jobKey ? null : group.jobKey);
+                        }}
+                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-[#26262B] transition-opacity opacity-0 group-hover:opacity-100"
+                        aria-label="Card actions"
+                      >
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+                      {openActionMenu === group.jobKey && (
+                        <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 dark:border-[#2A2A2E] bg-white dark:bg-[#1E1F22] shadow-lg z-30">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setOpenVersionDropdown(openVersionDropdown === group.jobKey ? null : group.jobKey);
+                              setOpenVersionDropdown(group.jobKey);
+                              setOpenActionMenu(null);
                             }}
-                            className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
-                            aria-label="Select version"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#26262B]"
                           >
-                            <Globe2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                            <span className="font-medium text-indigo-700 dark:text-indigo-300">
-                              {group.versions.length} versions
-                            </span>
-                            <ChevronDown className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                            View resume versions
                           </button>
-                          {openVersionDropdown === group.jobKey && (
-                            <div className="absolute right-0 mt-2 w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">
-                              <div className="py-1 max-h-64 overflow-y-auto">
-                                {group.versions.map((v) => (
-                                  <button
-                                    key={v.id}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/cv-optimizer/${v.id}`);
-                                    }}
-                                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-start gap-2"
-                                  >
-                                    <div className="flex-1">
-                                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {(v.language || '').toUpperCase() || 'VERSION'}
-                                      </div>
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                                        {(typeof v.atsScore === 'number' ? `Score ${v.atsScore}%` : 'Score —')} · {formatDateString(v.date)}
-                                      </div>
-                                    </div>
-                                    <ChevronRight className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              duplicateOptimizedCV(group.primaryCV);
+                              setOpenActionMenu(null);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#26262B] flex items-center gap-2"
+                          >
+                            <Copy className="w-4 h-4" /> Duplicate resume
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDeleteConfirm(group.primaryCV.id, group.primaryCV.jobTitle);
+                              setOpenActionMenu(null);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-[#26262B] flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete resume
+                          </button>
                         </div>
                       )}
-                      <motion.button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDeleteConfirm(group.primaryCV.id, group.primaryCV.jobTitle);
-                        }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="opacity-0 group-hover:opacity-100 transition-all duration-200 
-                          p-2 rounded-lg bg-red-50 dark:bg-red-900/20 
-                          text-red-600 dark:text-red-400 
-                          hover:bg-red-100 dark:hover:bg-red-900/30
-                          hover:shadow-md"
-                        aria-label="Delete resume"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </motion.button>
                     </div>
-                    
-                    {group.primaryCV.keywordsUsed && group.primaryCV.keywordsUsed.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {group.primaryCV.keywordsUsed.slice(0, 5).map((keyword, idx) => (
-                          <motion.span
-                            key={idx}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="text-xs px-2.5 py-1 bg-gradient-to-r from-purple-100 to-indigo-100 
-                              dark:from-purple-900/30 dark:to-indigo-900/30
-                              text-purple-700 dark:text-purple-300 
-                              rounded-full font-medium
-                              border border-purple-200/50 dark:border-purple-700/50
-                              group-hover:from-purple-200 group-hover:to-indigo-200
-                              dark:group-hover:from-purple-800/40 dark:group-hover:to-indigo-800/40
-                              transition-all duration-200"
-                          >
-                            {keyword}
-                          </motion.span>
-                        ))}
-                        {group.primaryCV.keywordsUsed.length > 5 && (
-                          <span className="text-xs px-2.5 py-1 text-gray-500 dark:text-gray-400 font-medium">
-                            +{group.primaryCV.keywordsUsed.length - 5}
-                          </span>
-                        )}
-                      </div>
-                    )}
                   </div>
+
+                  {group.primaryCV.keywordsUsed && group.primaryCV.keywordsUsed.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {group.primaryCV.keywordsUsed.slice(0, 5).map((keyword, idx) => (
+                        <span
+                          key={idx}
+                          className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-[#26262B] dark:text-gray-300"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                      {group.primaryCV.keywordsUsed.length > 5 && (
+                        <span className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-[#26262B] dark:text-gray-400">
+                          +{group.primaryCV.keywordsUsed.length - 5}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="h-px bg-gray-200 dark:bg-[#2A2A2E] my-3"></div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {typeof group.primaryCV.atsScore === 'number' && (
+                        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 dark:bg-[#26262B] dark:border-[#2A2A2E] dark:text-green-400">
+                          Score {group.primaryCV.atsScore}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {group.versions.length} version{group.versions.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+
+                  {openVersionDropdown === group.jobKey && (
+                    <div className="absolute right-3 top-14 z-30 w-64 rounded-lg border border-gray-200 dark:border-[#2A2A2E] bg-white dark:bg-[#1E1F22] shadow-lg">
+                      <div className="py-1 max-h-64 overflow-y-auto">
+                        {group.versions.map((v) => (
+                          <button
+                            key={v.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/cv-optimizer/${v.id}`);
+                              setOpenVersionDropdown(null);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-[#26262B] transition-colors flex items-start gap-2"
+                          >
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {(v.language || '').toUpperCase() || 'VERSION'}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {(typeof v.atsScore === 'number' ? `Score ${v.atsScore}%` : 'Score —')} · {formatDateString(v.date)}
+                              </div>
+                            </div>
+                            <ChevronRight className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               );
             })}

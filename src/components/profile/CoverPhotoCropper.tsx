@@ -247,3 +247,4 @@ const CoverPhotoCropper = ({
 export default CoverPhotoCropper;
 
 
+
