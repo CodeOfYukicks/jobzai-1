@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
+import PageHeader from '../components/PageHeader';
 import { 
   Calendar, 
   Clock, 
@@ -384,144 +385,168 @@ END:VCALENDAR`;
         <header className="mb-10">
           <div className="flex flex-col gap-6 mb-8">
             {/* Title Section */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-purple-600 dark:text-white">
-                  All Interviews
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
-                  Track and manage all your job interviews in one place
-              </p>
-            </div>
+            <PageHeader 
+              title="All Interviews"
+              subtitle="Track and manage all your job interviews in one place"
+            />
 
-              {/* Stats Cards */}
-            <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 
-                  border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-2.5 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                    <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming</p>
-                      <p className="text-lg font-semibold text-violet-700 dark:text-violet-300">
-                        {getUpcomingInterviews().length}
-                      </p>
+            {/* Minimal, Notion-like overview & controls */}
+            <div className="rounded-2xl border border-gray-200/80 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-sm shadow-sm">
+              <div className="px-4 sm:px-6 py-4 sm:py-5 flex flex-col gap-5">
+                {/* Overview + stats */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
+                      Overview
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      You have{" "}
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {getUpcomingInterviews().length} upcoming
+                      </span>{" "}
+                      and{" "}
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {getPastInterviews().length} past
+                      </span>{" "}
+                      interviews.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="inline-flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/80 px-4 py-2.5 dark:border-violet-900/60 dark:bg-violet-900/20">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm dark:bg-gray-900">
+                        <TrendingUp className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-violet-700/80 dark:text-violet-300/90">
+                          Upcoming
+                        </p>
+                        <p className="text-lg font-semibold text-violet-800 dark:text-violet-200">
+                          {getUpcomingInterviews().length}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="inline-flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-2.5 dark:border-gray-800 dark:bg-gray-900/40">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm dark:bg-gray-900">
+                        <History className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-600/90 dark:text-gray-400/90">
+                          Past
+                        </p>
+                        <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                          {getPastInterviews().length}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800/50 dark:to-slate-800/50 
-                  border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <History className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Past</p>
-                      <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                        {getPastInterviews().length}
-                      </p>
+
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-gray-800" />
+
+                {/* Filters & sort - clean segmented controls */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Period Filter */}
+                    <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-gray-800 dark:bg-gray-900/60">
+                      <button
+                        onClick={() => setFilterPeriod('all')}
+                        className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                          ${filterPeriod === 'all'
+                            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-50 dark:text-gray-900'
+                            : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={() => setFilterPeriod('upcoming')}
+                        className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                          ${filterPeriod === 'upcoming'
+                            ? 'bg-white text-violet-700 shadow-sm dark:bg-gray-50 dark:text-violet-700'
+                            : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      >
+                        Upcoming
+                      </button>
+                      <button
+                        onClick={() => setFilterPeriod('past')}
+                        className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                          ${filterPeriod === 'past'
+                            ? 'bg-white text-gray-800 shadow-sm dark:bg-gray-50 dark:text-gray-900'
+                            : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      >
+                        Past
+                      </button>
+                    </div>
+
+                    {/* Type Filter */}
+                    <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-gray-800 dark:bg-gray-900/60">
+                      <button
+                        onClick={() => setFilterType('all')}
+                        className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                          ${filterType === 'all'
+                            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-50 dark:text-gray-900'
+                            : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      >
+                        All types
+                      </button>
+                      <button
+                        onClick={() => setFilterType('hr')}
+                        className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                          ${filterType === 'hr'
+                            ? 'bg-white text-pink-600 shadow-sm dark:bg-gray-50 dark:text-pink-600'
+                            : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      >
+                        HR
+                      </button>
+                      <button
+                        onClick={() => setFilterType('technical')}
+                        className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                          ${filterType === 'technical'
+                            ? 'bg-white text-teal-600 shadow-sm dark:bg-gray-50 dark:text-teal-600'
+                            : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      >
+                        Technical
+                      </button>
+                      <button
+                        onClick={() => setFilterType('manager')}
+                        className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                          ${filterType === 'manager'
+                            ? 'bg-white text-amber-600 shadow-sm dark:bg-gray-50 dark:text-amber-600'
+                            : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      >
+                        Manager
+                      </button>
+                      <button
+                        onClick={() => setFilterType('final')}
+                        className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                          ${filterType === 'final'
+                            ? 'bg-white text-green-600 shadow-sm dark:bg-gray-50 dark:text-green-600'
+                            : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      >
+                        Final
+                      </button>
                     </div>
                   </div>
+
+                  {/* Sort Button */}
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="inline-flex items-center justify-center self-start rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:bg-gray-800"
+                    aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
+                  >
+                    <Calendar className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''} transition-transform`} />
+                    <span className="ml-2 hidden sm:inline">
+                      Sort by date
+                    </span>
+                  </button>
                 </div>
               </div>
-            </div>
-
-            {/* Filters Section */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              {/* Period Filter */}
-              <div className="inline-flex rounded-lg shadow-md bg-white/90 dark:bg-gray-800/90 p-1 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => setFilterPeriod('all')}
-                  className={`px-4 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2
-                    ${filterPeriod === 'all' 
-                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm' 
-                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
-                >
-                  <Filter className="w-3.5 h-3.5" />
-                  All
-                </button>
-                <button
-                  onClick={() => setFilterPeriod('upcoming')}
-                  className={`px-4 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2
-                    ${filterPeriod === 'upcoming' 
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm' 
-                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
-                >
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  Upcoming
-                </button>
-                <button
-                  onClick={() => setFilterPeriod('past')}
-                  className={`px-4 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2
-                    ${filterPeriod === 'past' 
-                      ? 'bg-gradient-to-r from-gray-600 to-slate-600 text-white shadow-sm' 
-                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
-                >
-                  <History className="w-3.5 h-3.5" />
-                  Past
-                </button>
-              </div>
-
-              {/* Type Filter */}
-              <div className="inline-flex rounded-lg shadow-md bg-white/90 dark:bg-gray-800/90 p-1 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => setFilterType('all')}
-                  className={`px-3 py-2 text-xs font-medium rounded-md transition-all
-                    ${filterType === 'all' 
-                      ? 'bg-purple-600 text-white shadow-sm' 
-                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
-                >
-                  All Types
-                </button>
-                <button
-                  onClick={() => setFilterType('hr')}
-                  className={`px-3 py-2 text-xs font-medium rounded-md transition-all
-                    ${filterType === 'hr' 
-                      ? 'bg-pink-500 text-white shadow-sm' 
-                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
-                >
-                  HR
-                </button>
-                <button
-                  onClick={() => setFilterType('technical')}
-                  className={`px-3 py-2 text-xs font-medium rounded-md transition-all
-                    ${filterType === 'technical' 
-                      ? 'bg-teal-500 text-white shadow-sm' 
-                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
-                >
-                  Technical
-                </button>
-                <button
-                  onClick={() => setFilterType('manager')}
-                  className={`px-3 py-2 text-xs font-medium rounded-md transition-all
-                    ${filterType === 'manager' 
-                      ? 'bg-amber-500 text-white shadow-sm' 
-                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
-                >
-                  Manager
-                </button>
-                <button
-                  onClick={() => setFilterType('final')}
-                  className={`px-3 py-2 text-xs font-medium rounded-md transition-all
-                    ${filterType === 'final' 
-                      ? 'bg-green-500 text-white shadow-sm' 
-                      : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30'}`}
-                >
-                  Final
-                </button>
-              </div>
-
-              {/* Sort Button */}
-              <button
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="p-2.5 text-xs font-medium rounded-lg border border-gray-200 bg-white/90 
-                  text-gray-700 hover:bg-gray-50 dark:bg-gray-800/90 dark:border-gray-700 
-                  dark:text-gray-300 dark:hover:bg-gray-700/50 shadow-md backdrop-blur-sm transition-all"
-                aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
-              >
-                <Calendar className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''} transition-transform`} />
-              </button>
             </div>
           </div>
+        </header>
 
-          <div className="bg-gradient-to-r from-purple-100 to-blue-50 border border-purple-200 rounded-xl p-5 
+        <div className="mt-6 mb-10 bg-gradient-to-r from-purple-100 to-blue-50 border border-purple-200 rounded-xl p-5 
             dark:from-purple-900/20 dark:to-blue-900/20 dark:border-purple-800 shadow-sm">
             <div className="flex items-start md:items-center gap-4">
               <div className="bg-white/90 p-2 rounded-full shadow-sm dark:bg-gray-800/90">
@@ -536,7 +561,6 @@ END:VCALENDAR`;
               </div>
             </div>
           </div>
-        </header>
 
         {isLoading ? (
           <div className="space-y-6">

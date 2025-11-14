@@ -1819,3 +1819,226 @@ const handleInvoicePaymentFailed = async (invoice: Stripe.Invoice) => {
     console.error('❌ Error handling invoice payment failed:', error);
   }
 };
+
+// ==================== Job Search API ====================
+
+/**
+ * Global Job Search API
+ * Endpoint: GET /api/jobs
+ * Query params: keyword, location, remote, type, seniority, timePosted
+ */
+export const searchJobs = onRequest({
+  region: 'us-central1',
+  cors: true,
+  maxInstances: 10,
+  invoker: 'public',
+}, async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  // Only allow GET
+  if (req.method !== 'GET') {
+    res.status(405).json({
+      success: false,
+      message: 'Method not allowed. Use GET.'
+    });
+    return;
+  }
+
+  try {
+    console.log('🔍 Job search request received');
+    console.log('   Query params:', req.query);
+
+    // Extract query parameters
+    const keyword = (req.query.keyword as string) || '';
+    const location = (req.query.location as string) || '';
+    const remote = req.query.remote === 'true';
+    const fullTime = req.query.fullTime === 'true';
+    const senior = req.query.senior === 'true';
+    const last24h = req.query.last24h === 'true';
+    const experienceLevel = (req.query.experienceLevel as string) || '';
+    const jobType = (req.query.jobType as string) || '';
+    const limit = parseInt((req.query.limit as string) || '200', 10);
+
+    // Start with base query
+    let jobsQuery = admin.firestore()
+      .collection('jobs')
+      .orderBy('postedAt', 'desc')
+      .limit(Math.min(limit, 1000)); // Cap at 1000 for better search coverage (increased from 500)
+
+    // Execute the base query
+    const snapshot = await jobsQuery.get();
+    
+    console.log(`   Found ${snapshot.size} jobs in database`);
+
+    // Filter results in memory for text search
+    let jobs = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Array<{
+      id: string;
+      title?: string;
+      description?: string;
+      summary?: string;
+      company?: string;
+      companyLogo?: string;
+      logoUrl?: string;
+      location?: string;
+      skills?: string[];
+      postedAt?: any;
+      applyUrl?: string;
+      seniority?: string;
+      level?: string;
+      type?: string;
+      employmentType?: string;
+      salaryRange?: string;
+      compensation?: string;
+      remote?: string;
+      remotePolicy?: string;
+      ats?: string;
+    }>;
+
+    // Apply keyword filter (search in title, description, and company)
+    if (keyword) {
+      const keywordLower = keyword.toLowerCase();
+      console.log(`   Filtering by keyword: "${keyword}" (lowercase: "${keywordLower}")`);
+      console.log(`   Total jobs before filter: ${jobs.length}`);
+      
+      // Log first 3 companies for debugging
+      console.log(`   Sample companies:`, jobs.slice(0, 3).map(j => j.company || 'N/A'));
+      
+      jobs = jobs.filter(job => {
+        const title = (job.title || '').toLowerCase();
+        const description = (job.description || job.summary || '').toLowerCase();
+        const company = (job.company || '').toLowerCase();
+        const skills = Array.isArray(job.skills) 
+          ? job.skills.join(' ').toLowerCase() 
+          : '';
+        
+        const matches = title.includes(keywordLower) ||
+               description.includes(keywordLower) ||
+               company.includes(keywordLower) ||
+               skills.includes(keywordLower);
+               
+        // Log when we find a match with company name
+        if (matches && company.includes(keywordLower)) {
+          console.log(`   ✓ Match found in company: "${job.company}"`);
+        }
+        
+        return matches;
+      });
+      
+      console.log(`   Jobs after keyword filter: ${jobs.length}`);
+    }
+
+    // Apply location filter
+    if (location) {
+      const locationLower = location.toLowerCase();
+      jobs = jobs.filter(job => {
+        const jobLocation = (job.location || '').toLowerCase();
+        return jobLocation.includes(locationLower);
+      });
+    }
+
+    // Apply remote filter
+    if (remote) {
+      jobs = jobs.filter(job => {
+        const remotePolicy = (job.remote || job.remotePolicy || '').toLowerCase();
+        return remotePolicy.includes('remote') || 
+               remotePolicy.includes('fully remote') ||
+               remotePolicy.includes('work from home');
+      });
+    }
+
+    // Apply full-time filter
+    if (fullTime) {
+      jobs = jobs.filter(job => {
+        const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
+        return jobTypeStr.includes('full') || 
+               jobTypeStr.includes('full-time') ||
+               jobTypeStr.includes('fulltime');
+      });
+    }
+
+    // Apply seniority filter (senior)
+    if (senior) {
+      jobs = jobs.filter(job => {
+        const seniorityLevel = (job.seniority || job.level || '').toLowerCase();
+        return seniorityLevel.includes('senior') || 
+               seniorityLevel.includes('sr') ||
+               seniorityLevel.includes('lead') ||
+               seniorityLevel.includes('principal');
+      });
+    }
+
+    // Apply experience level filter (from dropdown)
+    if (experienceLevel) {
+      const levelLower = experienceLevel.toLowerCase();
+      jobs = jobs.filter(job => {
+        const jobLevel = (job.seniority || job.level || '').toLowerCase();
+        return jobLevel.includes(levelLower);
+      });
+    }
+
+    // Apply job type filter (from dropdown)
+    if (jobType) {
+      const typeLower = jobType.toLowerCase();
+      jobs = jobs.filter(job => {
+        const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
+        return jobTypeStr.includes(typeLower);
+      });
+    }
+
+    // Apply last 24 hours filter
+    if (last24h) {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      jobs = jobs.filter(job => {
+        if (!job.postedAt) return false;
+        const postedDate = job.postedAt.toDate ? job.postedAt.toDate() : new Date(job.postedAt);
+        return postedDate >= oneDayAgo;
+      });
+    }
+
+    console.log(`   Returning ${jobs.length} filtered jobs`);
+
+    // Format response
+    const formattedJobs = jobs.map(job => ({
+      id: job.id,
+      title: job.title || '',
+      company: job.company || '',
+      logoUrl: job.companyLogo || job.logoUrl || '',
+      location: job.location || '',
+      tags: Array.isArray(job.skills) ? job.skills : [],
+      postedAt: job.postedAt,
+      applyUrl: job.applyUrl || '',
+      description: job.description || job.summary || '',
+      seniority: job.seniority || job.level || '',
+      type: job.type || job.employmentType || '',
+      salaryRange: job.salaryRange || job.compensation || '',
+      remote: job.remote || job.remotePolicy || '',
+      ats: job.ats || 'workday',
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: formattedJobs.length,
+      jobs: formattedJobs
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error in job search:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});

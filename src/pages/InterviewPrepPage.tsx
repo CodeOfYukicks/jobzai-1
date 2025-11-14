@@ -28,6 +28,7 @@ import HeaderCard from '../components/interview/HeaderCard';
 import AICard from '../components/interview/AICard';
 import TabPills from '../components/interview/TabPills';
 import MiniInfoCard from '../components/interview/MiniInfoCard';
+import SectionCard from '../components/interview/SectionCard';
 
 // Interface for the job application data
 interface Note {
@@ -151,11 +152,6 @@ export default function InterviewPrepPage() {
   const [tab, setTab] = useState<'overview' | 'questions' | 'skills' | 'resources' | 'chat'>('overview');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [skillRatings, setSkillRatings] = useState<Record<string, number>>({});
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    'company-profile': true,
-    'position-details': true,
-    'culture-fit': true
-  });
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -2236,14 +2232,6 @@ Make sure each answer is completely unique and specific to its question - no gen
     }
   };
 
-  // Add a toggle function for expanding/collapsing sections
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
   // Calculate days until interview
   const getDaysUntilInterview = () => {
     if (!interview?.date) return { days: 0, hours: 0 };
@@ -2828,94 +2816,90 @@ Make sure each answer is completely unique and specific to its question - no gen
                     exit={{ opacity: 0 }}
                     className="space-y-6"
                   >
-                    {/* SECTION 1: HERO - Status & Urgency */}
+                    {/* SECTION 1: Preparation Progress */}
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                        className="group relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl overflow-hidden
-                          transition-all duration-500 ease-out
-                          hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/20
-                          border border-gray-100/50 dark:border-gray-700/50 shadow-sm
-                        p-6"
-                        style={{
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
-                        }}
+                    >
+                      <SectionCard
+                        icon={<BarChart2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+                        title="Preparation Progress"
+                        subtitle="Complete the key milestones to feel fully ready for your interview"
+                        actions={
+                          <div className="flex flex-col items-end">
+                            <div className="text-[20px] font-semibold text-purple-600 dark:text-purple-400">
+                              {preparationProgress}%
+                        </div>
+                            <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                              {getProgressMilestones().filter((m) => m.completed).length}/5 completed
+                                  </div>
+                                    </div>
+                        }
                       >
-                        {/* Subtle accent line - Apple style */}
-                        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
-                        
-                      <div className="w-full">
-                        {/* Progress & Next Actions Section */}
-                        <div className="w-full">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center text-base">
-                              <BarChart2 className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
-                            Preparation Progress
-                          </h3>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{preparationProgress}%</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {getProgressMilestones().filter(m => m.completed).length}/5 completed
-                        </div>
-                          </div>
-                        </div>
-                          <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-5">
+                        {/* Progress bar */}
+                        <div className="mb-4 h-2.5 rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
                             <motion.div 
                               initial={{ width: 0 }}
                               animate={{ width: `${preparationProgress}%` }}
                               transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-                              className="h-full bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 rounded-full shadow-sm"
+                            className="h-full rounded-full bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 shadow-sm"
                             />
                         </div>
                           
-                          {/* Next Actions (All 5 milestones) */}
-                          <div className="space-y-1.5">
-                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Next Actions</div>
-                            {getProgressMilestones()
-                              .map((milestone) => (
+                        {/* Next actions */}
+                        <div className="space-y-2">
+                          <div className="text-[12px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                            Next actions
+                          </div>
+                          {getProgressMilestones().map((milestone) => (
                                 <motion.button
                               key={milestone.id}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
+                              type="button"
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
                               onClick={milestone.action}
-                                  className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all duration-200 group ${
+                              className={[
+                                'w-full flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-[13px] transition-all duration-200 group',
                                 milestone.completed
-                                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                                      : 'bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/40 dark:to-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-sm'
-                              }`}
+                                  ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20'
+                                  : 'border-neutral-200 bg-white hover:border-purple-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-purple-700',
+                              ].join(' ')}
                             >
-                              <div className="flex items-center gap-2.5">
-                                    <div className={`p-1.5 rounded-md text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform ${
-                                  milestone.completed
-                                        ? 'bg-green-100 dark:bg-green-900/30'
-                                        : 'bg-purple-100 dark:bg-purple-900/30'
-                                }`}>
-                                      <div className="w-3.5 h-3.5">
-                                  {milestone.icon}
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={[
+                                    'flex h-8 w-8 items-center justify-center rounded-md text-purple-600 dark:text-purple-300 transition-transform',
+                                    milestone.completed ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-purple-50 dark:bg-purple-900/30',
+                                  ].join(' ')}
+                                >
+                                  <div className="h-4 w-4">{milestone.icon}</div>
                             </div>
-                                    </div>
-                                    <div className="text-left flex-1 min-w-0">
-                                      <div className={`font-medium text-xs text-gray-800 dark:text-gray-200 truncate ${
-                                        milestone.completed ? 'text-green-700 dark:text-green-300' : ''
-                                  }`}>
+                                <div className="min-w-0">
+                                  <div
+                                    className={[
+                                      'truncate font-medium',
+                                      milestone.completed
+                                        ? 'text-emerald-700 dark:text-emerald-300'
+                                        : 'text-neutral-900 dark:text-neutral-50',
+                                    ].join(' ')}
+                                  >
                                     {milestone.label}
                             </div>
-                                      <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                                  <div className="truncate text-[12px] text-neutral-500 dark:text-neutral-400">
                                     {milestone.description}
                           </div>
                             </div>
                           </div>
                               {milestone.completed ? (
-                                    <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                <CheckCircle className="h-4 w-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
                               ) : (
-                                    <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                                <ArrowRight className="h-4 w-4 flex-shrink-0 text-neutral-400 group-hover:text-purple-500 dark:group-hover:text-purple-300 group-hover:translate-x-0.5 transition-transform" />
                               )}
                                 </motion.button>
                           ))}
                         </div>
-                      </div>
-                    </div>
+                      </SectionCard>
                     </motion.div>
 
                     {/* SECTION 2: QUICK ACTIONS - Checklist */}
@@ -2923,43 +2907,32 @@ Make sure each answer is completely unique and specific to its question - no gen
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
                     >
-                      <div className="flex items-center justify-between mb-5">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/30">
-                            <CheckSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Preparation Checklist</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                              {checklist.filter(c => c.completed).length}/{checklist.length} tasks completed
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
+                      <SectionCard
+                        icon={<CheckSquare className="h-4 w-4 text-purple-600 dark:text-purple-400" />}
+                        title="Preparation Checklist"
+                        subtitle={`${checklist.filter((c) => c.completed).length}/${checklist.length} tasks completed`}
+                      >
                       {/* Add Task Input */}
-                      <div className="flex items-center gap-2 mb-5">
-                        <div className="flex-1 relative">
+                        <div className="mb-4 flex items-center gap-2">
+                          <div className="relative flex-1">
                           <input
                             type="text"
                             value={newTaskText}
                             onChange={(e) => setNewTaskText(e.target.value)}
                             placeholder="Add a new task..."
-                            className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 
-                              dark:bg-gray-700/50 dark:text-white 
-                              focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 
-                              transition-all duration-200 placeholder:text-gray-400"
-                            onKeyDown={(e) => { if (e.key === 'Enter') addChecklistItem(); }}
+                              className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:placeholder:text-neutral-500"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') addChecklistItem();
+                              }}
                           />
                         </div>
                         <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                            type="button"
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
                             onClick={addChecklistItem}
-                          className="px-4 py-2.5 text-sm font-medium bg-purple-600 text-white rounded-xl 
-                            hover:bg-purple-700 transition-colors shadow-sm hover:shadow-md"
+                            className="inline-flex items-center justify-center rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-purple-700"
                           >
                             Add
                         </motion.button>
@@ -2975,45 +2948,49 @@ Make sure each answer is completely unique and specific to its question - no gen
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ delay: index * 0.03 }}
-                              className={`flex items-center p-3 rounded-xl border transition-all ${
+                                className={[
+                                  'flex items-center rounded-lg border px-3 py-2.5 text-sm transition-all',
                                 item.priority 
-                                  ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800' 
+                                    ? 'border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-900/20'
                                   : item.completed
-                                  ? 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700'
-                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
-                              }`}
+                                    ? 'border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900/40'
+                                    : 'border-neutral-200 bg-white hover:border-purple-300 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-purple-700',
+                                ].join(' ')}
                             >
                                 <button 
+                                  type="button"
                                   onClick={() => toggleChecklistItem(item.id)}
-                                className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all mr-3 ${
+                                  className={[
+                                    'mr-3 flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all',
                                     item.completed 
-                                      ? 'bg-green-500 border-green-500 text-white' 
-                                    : 'border-gray-300 dark:border-gray-600 hover:border-purple-500'
-                                  }`}
+                                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                                      : 'border-neutral-300 hover:border-purple-500 dark:border-neutral-600',
+                                  ].join(' ')}
                                 >
-                                  {item.completed && <Check className="w-3 h-3" />}
+                                  {item.completed && <Check className="h-3 w-3" />}
                                 </button>
                                 <input
                                   value={item.task}
                                   onChange={(e) => updateChecklistItemText(item.id, e.target.value)}
-                                className={`flex-1 bg-transparent outline-none text-sm ${
+                                  className={[
+                                    'flex-1 bg-transparent text-sm outline-none',
                                   item.completed 
-                                    ? 'text-gray-500 dark:text-gray-400 line-through' 
-                                    : 'text-gray-800 dark:text-gray-200'
-                                }`}
-                              />
-                              <div className="flex items-center gap-2 ml-2">
+                                      ? 'text-neutral-500 line-through dark:text-neutral-400'
+                                      : 'text-neutral-800 dark:text-neutral-100',
+                                  ].join(' ')}
+                                />
+                                <div className="ml-2 flex items-center gap-2">
                               <button 
+                                    type="button"
                                 onClick={() => setTab(item.section)} 
-                                  className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 
-                                    rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                    className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
                               >
                                 Go
                               </button>
                                 <button
+                                    type="button"
                                   onClick={() => deleteChecklistItem(item.id)}
-                                  className="text-xs px-2.5 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 
-                                    rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                                    className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
                                 >
                                   Delete
                                 </button>
@@ -3021,232 +2998,213 @@ Make sure each answer is completely unique and specific to its question - no gen
                             </motion.div>
                           ))}
                         </AnimatePresence>
+
                         {checklist.length > 5 && (
                           <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="text-center pt-2"
+                              className="pt-1 text-center"
                           >
                             <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
+                                type="button"
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
                               onClick={() => setShowAllChecklistItems(!showAllChecklistItems)}
-                              className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium 
-                                flex items-center justify-center gap-1 mx-auto transition-colors"
+                                className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200"
                             >
                               {showAllChecklistItems ? (
                                 <>
-                                  <ChevronDown className="w-3 h-3 rotate-180" />
+                                    <ChevronDown className="h-3 w-3 rotate-180" />
                                   Show less
                                 </>
                               ) : (
                                 <>
                                   View all {checklist.length} tasks
-                                  <ArrowRight className="w-3 h-3" />
+                                    <ArrowRight className="h-3 w-3" />
                                 </>
                               )}
                             </motion.button>
                           </motion.div>
                         )}
                         </div>
+                      </SectionCard>
                     </motion.div>
 
                     {/* SECTION 3: KEY POINTS TO EMPHASIZE */}
-                    <div className="w-full">
-                      {/* Key Points to Emphasize (Full Width) */}
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                    >
+                      <SectionCard
+                        icon={<Flag className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                        title="Key Points to Emphasize"
+                        subtitle="Core messages to highlight during the interview"
                       >
-                        <div className="flex items-center gap-3 mb-5">
-                          <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/30">
-                            <Flag className="w-5 h-5 text-green-600 dark:text-green-400" />
-                      </div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Key Points to Emphasize</h3>
-                    </div>
-
                         {interview?.preparation?.keyPoints && interview.preparation.keyPoints.length > 0 ? (
-                          <div className="space-y-2.5">
+                          <div className="space-y-3">
+                            <ul className="space-y-2.5">
                             {interview.preparation.keyPoints.slice(0, 5).map((point, index) => (
-                              <motion.div 
-                                key={index}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.25 + index * 0.05 }}
-                                className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 
-                                  dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-800"
-                              >
-                                <Check className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{point}</span>
-                              </motion.div>
-                            ))}
+                                <li key={index} className="flex items-start gap-3">
+                                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                    <Check className="h-3 w-3" />
+                                  </div>
+                                  <p className="text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                    {point}
+                                  </p>
+                                </li>
+                              ))}
+                            </ul>
                             {interview.preparation.keyPoints.length > 5 && (
-                              <div className="text-center pt-2">
-                                <button className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">
-                                  View all {interview.preparation.keyPoints.length} points →
+                              <div className="pt-1 text-center">
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200"
+                                >
+                                  View all {interview.preparation.keyPoints.length} points
+                                  <ArrowRight className="h-3 w-3" />
                                 </button>
                               </div>
                             )}
                           </div>
                         ) : (
-                          <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-5 text-center border border-dashed border-gray-200 dark:border-gray-700">
-                            <Flag className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                              No key points available yet. Run the job post analysis to generate key points.
+                          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/40 px-4 py-6 text-center">
+                            <Flag className="mb-3 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
+                            <p className="mb-3 text-[14px] text-neutral-500 dark:text-neutral-400">
+                              No key points available yet. Run the job post analysis to generate tailored talking points.
                             </p>
                             <button
-                              onClick={() => (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()}
-                              className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium flex items-center justify-center mx-auto"
+                              type="button"
+                              onClick={() =>
+                                (document.querySelector('input[type=\"url\"]') as HTMLInputElement | null)?.focus()
+                              }
+                              className="inline-flex items-center justify-center gap-1 rounded-full bg-purple-50 px-3 py-1.5 text-[12px] font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-200 dark:hover:bg-purple-800/60"
                             >
-                              <ArrowUp className="w-3 h-3 mr-1.5" />
-                              Analyze a Job Posting
+                              <ArrowUp className="h-3 w-3" />
+                              Analyze a job posting
                             </button>
                           </div>
                         )}
+                      </SectionCard>
                       </motion.div>
-                    </div>
 
-                    {/* SECTION 4: DEEP DIVE - Accordéons */}
+                    {/* SECTION 4: DEEP DIVE - Company & Role */}
                     <div className="space-y-4">
-                      {/* Company Profile Accordion */}
+                      {/* Company Profile */}
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
                       >
-                        <div 
-                          className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 
-                            border-b border-blue-100 dark:border-blue-800/30 flex justify-between items-center cursor-pointer
-                            hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30
-                            transition-all duration-200"
-                          onClick={() => toggleSection('company-profile')}
+                        <SectionCard
+                          icon={<Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
+                          title="Company Profile"
+                          subtitle="How to describe the company and its context"
+                          collapsible
+                          defaultOpen
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                              <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                            <h3 className="font-semibold text-gray-900 dark:text-white">Company Profile</h3>
-                            {interview?.preparation?.companyInfo && (
-                              <span className="px-2 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
-                                Available
+                          <div className="space-y-4">
+                            <p className="text-[14px] leading-relaxed">
+                              <span className="mr-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+                                KEY
                               </span>
-                            )}
-                          </div>
-                          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedSections['company-profile'] ? 'transform rotate-180' : ''}`} />
-                        </div>
-                        
-                        <AnimatePresence>
-                        {expandedSections['company-profile'] && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                              className="overflow-hidden"
-                            >
-                              <div className="p-6">
-                            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-4">
-                              <p>
-                                    <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-0.5 rounded mr-2 font-medium">KEY</span>
-                                {interview?.preparation?.companyInfo?.split('.')[0] || `${application.companyName} is a leading company in its industry.`}
+                              {interview?.preparation?.companyInfo?.split('.')[0] ||
+                                `${application.companyName} is a leading company in its industry.`}
                               </p>
                               
                               {interview?.preparation?.companyInfo ? (
-                                    <p className="leading-relaxed">{interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}</p>
-                                  ) : (
-                                    <p className="text-gray-500 dark:text-gray-400 italic">No additional company information available. Run the job post analysis to generate company information.</p>
-                                  )}
-                                  
-                                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border-l-4 border-blue-500 dark:border-blue-700">
-                                    <div className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Focus points:</div>
-                                    <ul className="list-disc pl-5 text-xs space-y-1.5 text-gray-700 dark:text-gray-300">
-                                  <li>Research their mission and values</li>
-                                  <li>Review recent company achievements</li>
-                                  <li>Understand their market position</li>
+                              <p className="text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                {interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}
+                              </p>
+                            ) : (
+                              <p className="text-[13px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+                                No additional company information available yet. Run the job post analysis to
+                                generate richer company context.
+                              </p>
+                            )}
+
+                            <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-4 text-[13px] leading-relaxed dark:border-blue-900/60 dark:bg-blue-900/10">
+                              <div className="mb-2 text-[13px] font-semibold text-neutral-900 dark:text-neutral-50">
+                                Focus points
+                              </div>
+                              <ul className="space-y-1.5 text-[13px] text-neutral-700 dark:text-neutral-300">
+                                <li className="flex gap-2">
+                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                  <span>Research their mission, values, and long-term vision.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                  <span>Review recent company achievements, projects, or announcements.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                  <span>Understand their market position, competitors, and key challenges.</span>
+                                </li>
                                 </ul>
                               </div>
                             </div>
-                          </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        </SectionCard>
                       </motion.div>
                       
-                      {/* Position Details Accordion */}
+                      {/* Position Details & Required Skills */}
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.35 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
                       >
-                        <div 
-                          className="px-6 py-4 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 
-                            border-b border-purple-100 dark:border-purple-800/30 flex justify-between items-center cursor-pointer
-                            hover:bg-gradient-to-r hover:from-purple-100 hover:to-violet-100 dark:hover:from-purple-900/30 dark:hover:to-violet-900/30
-                            transition-all duration-200"
-                          onClick={() => toggleSection('position-details')}
+                        <SectionCard
+                          icon={<Briefcase className="h-4 w-4 text-purple-600 dark:text-purple-400" />}
+                          title="Position Details"
+                          subtitle="What this role expects and how to position yourself"
+                          collapsible
+                          defaultOpen
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                              <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                          </div>
-                            <h3 className="font-semibold text-gray-900 dark:text-white">Position Details</h3>
-                            {interview?.preparation?.positionDetails && (
-                              <span className="px-2 py-0.5 text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
-                                Available
+                          <div className="space-y-4">
+                            <p className="text-[14px] leading-relaxed">
+                              <span className="mr-2 inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-200">
+                                KEY
                               </span>
-                            )}
-                          </div>
-                          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedSections['position-details'] ? 'transform rotate-180' : ''}`} />
-                        </div>
-                        
-                        <AnimatePresence>
-                        {expandedSections['position-details'] && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                              className="overflow-hidden"
-                            >
-                              <div className="p-6">
-                            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-4">
-                              <p>
-                                    <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs px-2 py-0.5 rounded mr-2 font-medium">KEY</span>
-                                {interview?.preparation?.positionDetails?.split('.')[0] || `The ${application.position} role involves key responsibilities in the organization.`}
+                              {interview?.preparation?.positionDetails?.split('.')[0] ||
+                                `The ${application.position} role involves key responsibilities in the organization.`}
                               </p>
                               
                               {interview?.preparation?.positionDetails ? (
-                                    <p className="leading-relaxed">{interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}</p>
-                              ) : (
-                                    <p className="text-gray-500 dark:text-gray-400 italic">No detailed position information available. Run the job post analysis to generate position details.</p>
-                              )}
-                              
-                                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border-l-4 border-purple-500 dark:border-purple-700">
-                                    <div className="font-semibold text-sm text-gray-900 dark:text-white mb-2">Required skills:</div>
-                                <div className="flex flex-wrap gap-2 pt-1">
-                                  {interview?.preparation?.requiredSkills ? (
-                                    interview.preparation.requiredSkills.map((skill, index) => (
-                                          <span 
+                              <p className="text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                {interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}
+                              </p>
+                            ) : (
+                              <p className="text-[13px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+                                No detailed position information available yet. Run the job post analysis to get a
+                                more precise breakdown of responsibilities and expectations.
+                              </p>
+                            )}
+
+                            <div className="space-y-2">
+                              <div className="text-[13px] font-semibold text-neutral-900 dark:text-neutral-50">
+                                Required skills
+                              </div>
+                              {interview?.preparation?.requiredSkills &&
+                              interview.preparation.requiredSkills.length > 0 ? (
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  {interview.preparation.requiredSkills.map((skill, index) => (
+                                    <div
                                         key={index} 
-                                            className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs px-3 py-1 rounded-full font-medium"
-                                      >
-                                        {skill}
-                                          </span>
-                                    ))
-                                  ) : (
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">No skills information available</p>
+                                      className="inline-flex items-center rounded-md border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900/40 dark:text-neutral-100"
+                                    >
+                                      <span className="mr-2 h-1.5 w-1.5 rounded-full bg-purple-500" />
+                                      <span className="truncate">{skill}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[13px] text-neutral-500 dark:text-neutral-400">
+                                  No skills information available yet. Once you run the analysis, key skills will
+                                  appear here in a structured list.
+                                </p>
                                   )}
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                            </motion.div>
-                        )}
-                        </AnimatePresence>
+                        </SectionCard>
                       </motion.div>
                     </div>
 
@@ -3256,48 +3214,45 @@ Make sure each answer is completely unique and specific to its question - no gen
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
                       >
-                        <div className="flex justify-between items-center mb-5">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
-                              <Newspaper className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                        </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Company Updates</h3>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Latest news and announcements</p>
-                        </div>
-                    </div>
+                        <SectionCard
+                          icon={<Newspaper className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
+                          title="Company Updates"
+                          subtitle="Recent news and announcements about the company"
+                          actions={
                           <div className="flex items-center gap-2">
                             {isNewsLoading && (
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                Loading…
+                                <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  <span>Loading…</span>
                               </div>
                             )}
                             {newsError && (
-                              <div className="text-xs text-red-600 dark:text-red-400">{newsError}</div>
+                                <div className="text-[11px] text-red-600 dark:text-red-400">{newsError}</div>
                             )}
                             <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => { fetchCompanyNews(); }}
-                              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-700 
-                                text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                            >
-                              <RefreshCw className="w-3 h-3 inline mr-1" />
+                                type="button"
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => {
+                                  fetchCompanyNews();
+                                }}
+                                className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-medium text-neutral-700 hover:border-neutral-300 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-200 dark:hover:border-neutral-600"
+                              >
+                                <RefreshCw className="h-3 w-3" />
                               Refresh
                             </motion.button>
                           </div>
-                        </div>
-                        
+                          }
+                        >
                         <div className="space-y-3">
                           {newsItems.length === 0 && !isNewsLoading && !newsError && (
-                            <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
-                              <Newspaper className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                              No company updates yet.
+                              <div className="flex flex-col items-center justify-center py-8 text-[14px] text-neutral-500 dark:text-neutral-400">
+                                <Newspaper className="mb-2 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
+                                <p>No company updates yet. Try refreshing or running the analysis again.</p>
                             </div>
                           )}
+
                           <AnimatePresence>
                             {(showAllNewsItems ? newsItems : newsItems.slice(0, 3)).map((news, i) => (
                               <motion.div
@@ -3306,40 +3261,51 @@ Make sure each answer is completely unique and specific to its question - no gen
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, height: 0 }}
                                 transition={{ delay: i * 0.05 }}
-                                className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 
-                                  hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md transition-all duration-200"
-                              >
-                                <div className="flex items-start gap-3 mb-2">
-                                  <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                                  news.sentiment === 'positive' ? 'bg-green-500' : 
-                                  news.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-500'
-                                }`}></span>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1.5 leading-snug">{news.title}</h4>
-                                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                  className="rounded-lg border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-[14px] leading-relaxed hover:border-purple-300 hover:bg-white dark:border-neutral-800 dark:bg-neutral-900/40 dark:hover:border-purple-700"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <span
+                                      className={[
+                                        'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full',
+                                        news.sentiment === 'positive'
+                                          ? 'bg-emerald-500'
+                                          : news.sentiment === 'negative'
+                                          ? 'bg-red-500'
+                                          : 'bg-neutral-500',
+                                      ].join(' ')}
+                                    />
+                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <h4 className="truncate text-[14px] font-semibold text-neutral-900 dark:text-neutral-50">
+                                          {news.title}
+                                        </h4>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-neutral-500 dark:text-neutral-400">
                                     <span>{news.date}</span>
                                     {news.source && (
                                       <>
                                         <span>•</span>
-                                        <span className="flex items-center">
-                                          <Newspaper className="w-3 h-3 mr-1" />
+                                            <span className="inline-flex items-center gap-1">
+                                              <Newspaper className="h-3 w-3" />
                                           {news.source}
                                         </span>
                                       </>
                                     )}
                               </div>
-                                </div>
-                              </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 pl-5 mb-3 leading-relaxed line-clamp-2">{news.summary}</p>
-                                <div className="flex items-center justify-between pl-5">
+                                      {news.summary && (
+                                        <p className="line-clamp-2 text-[13px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                          {news.summary}
+                                        </p>
+                                      )}
+                                      <div className="mt-2 flex items-center justify-between gap-3">
                                   <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                          type="button"
+                                          whileHover={{ scale: 1.03 }}
+                                          whileTap={{ scale: 0.97 }}
                                   onClick={() => createNoteFromNews(news)}
-                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 
-                                      font-medium flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 px-3 py-1.5 rounded-lg transition-colors"
+                                          className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-3 py-1.5 text-[12px] font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-200 dark:hover:bg-purple-800/60"
                                   >
-                                    <MessageSquare className="w-3 h-3 mr-1.5" />
+                                          <MessageSquare className="h-3 w-3" />
                                     Talking points
                                   </motion.button>
                                 {news.url && (
@@ -3347,45 +3313,48 @@ Make sure each answer is completely unique and specific to its question - no gen
                                     href={news.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 
-                                        flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors"
+                                            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-medium text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800"
                                   >
-                                      <ExternalLink className="w-3 h-3 mr-1.5" />
+                                            <ExternalLink className="h-3 w-3" />
                                     Read more
                                   </a>
                                 )}
+                                      </div>
+                                    </div>
                               </div>
                               </motion.div>
                             ))}
                           </AnimatePresence>
+
                           {newsItems.length > 3 && (
                             <motion.div 
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              className="text-center pt-2"
+                                className="pt-2 text-center"
                             >
                               <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                  type="button"
+                                  whileHover={{ scale: 1.03 }}
+                                  whileTap={{ scale: 0.97 }}
                                 onClick={() => setShowAllNewsItems(!showAllNewsItems)}
-                                className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium 
-                                  flex items-center justify-center gap-1 mx-auto transition-colors"
+                                  className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200"
                               >
                                 {showAllNewsItems ? (
                                   <>
-                                    <ChevronDown className="w-3 h-3 rotate-180" />
+                                      <ChevronDown className="h-3 w-3 rotate-180" />
                                     Show less
                                   </>
                                 ) : (
                                   <>
                                     View all {newsItems.length} updates
-                                    <ArrowRight className="w-3 h-3" />
+                                      <ArrowRight className="h-3 w-3" />
                                   </>
                                 )}
                               </motion.button>
                             </motion.div>
                           )}
                         </div>
+                        </SectionCard>
                       </motion.div>
                     )}
                   </motion.div>

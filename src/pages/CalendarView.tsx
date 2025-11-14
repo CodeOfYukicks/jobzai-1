@@ -8,6 +8,7 @@ import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimes
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
+import PageHeader from '../components/PageHeader';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar as CalendarIcon, 
@@ -2383,12 +2384,10 @@ export default function CalendarView() {
           transition={{ duration: 0.3 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-purple-600 dark:text-white mb-2">
-            Calendar View
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Visualize and manage your job applications and interviews. Drag events to reschedule them.
-          </p>
+          <PageHeader 
+            title="Calendar View"
+            subtitle="Visualize and manage your job applications and interviews. Drag events to reschedule them."
+          />
         </motion.div>
 
         {/* Contrôles avec animation */}

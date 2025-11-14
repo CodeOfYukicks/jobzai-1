@@ -8,6 +8,7 @@ import {
   ArrowUpDown, LayoutGrid, List, Globe2, ChevronDown, MoreHorizontal, Copy
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
+import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   doc, collection, query, orderBy, 
@@ -1487,18 +1488,14 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
 
   return (
     <AuthLayout>
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isLoading ? 'overflow-hidden' : ''}`}>
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-inter-tight ${isLoading ? 'overflow-hidden' : ''}`}>
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
-                Resume Lab
-              </h1>
-              <p className="mt-2 text-gray-500 dark:text-gray-400">
-                Optimize your resume to perfectly match each job posting with AI
-              </p>
-            </div>
+          <PageHeader 
+            title="Resume Lab"
+            subtitle="Optimize your resume to perfectly match each job posting with AI"
+          />
+          <div className="flex justify-center mt-6">
             <button
               onClick={() => {
                 setFormData({
@@ -1512,7 +1509,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                 setJobInputMode('ai');
                 setIsModalOpen(true);
               }}
-              className="group px-4 py-2.5 rounded-xl 
+              className="group px-4 py-2.5 rounded-xl font-geist
                 bg-gradient-to-r from-purple-600 to-indigo-600
                 hover:opacity-90 transition-all duration-200
                 shadow-lg shadow-purple-500/20"
@@ -1578,7 +1575,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by job title, company, or keywords..."
-                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 
+                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 font-geist
                   border border-gray-200 dark:border-gray-700 rounded-xl
                   focus:ring-2 focus:ring-purple-500 focus:border-purple-500
                   text-sm"
@@ -1591,7 +1588,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                 <select
                   value={scoreFilter}
                   onChange={(e) => setScoreFilter(e.target.value as any)}
-                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-geist
                     rounded-xl px-4 py-3 pr-10 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   <option value="all">All Scores</option>
@@ -1607,7 +1604,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as any)}
-                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-geist
                     rounded-xl px-4 py-3 pr-10 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   <option value="all">All Time</option>
@@ -1623,7 +1620,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-geist
                     rounded-xl px-4 py-3 pr-10 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   <option value="date">Sort by Date</option>
@@ -1691,7 +1688,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100 truncate font-geist">
                         {group.primaryCV.jobTitle}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-300 truncate flex items-center gap-1.5">
@@ -1819,7 +1816,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
             <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
               <FileText className="w-10 h-10 text-purple-600 dark:text-purple-400" />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3 font-geist">
               No Optimized Resumes
             </h3>
             <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
@@ -1838,7 +1835,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                 setJobInputMode('ai');
                 setIsModalOpen(true);
               }}
-              className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto"
+              className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto font-geist"
             >
               <Sparkles className="h-5 w-5 text-white" />
               <span className="text-sm font-medium text-white">Create Your First Optimized Resume</span>
@@ -1849,7 +1846,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
             <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
               <Search className="w-10 h-10 text-purple-600 dark:text-purple-400" />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3 font-geist">
               No Results Found
             </h3>
             <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
@@ -1862,7 +1859,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                 setDateFilter('all');
                 setSortBy('date');
               }}
-              className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto"
+              className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto font-geist"
             >
               <XCircle className="h-5 w-5 text-white" />
               <span className="text-sm font-medium text-white">Clear All Filters</span>
@@ -1934,7 +1931,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                   {/* Title Section */}
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h2 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2.5">
+                      <h2 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2.5 font-geist">
                         <span className="inline-flex p-2 rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400">
                           {steps[currentStep - 1].icon}
                         </span>
@@ -1974,7 +1971,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                       }
                     }}
                     disabled={currentStep === 1}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 font-geist ${
                       currentStep === 1 
                         ? 'opacity-50 cursor-not-allowed' 
                         : 'hover:bg-gray-100 dark:hover:bg-gray-700' 
@@ -2020,7 +2017,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
                       )) ||
                       isLoading
                     }
-                    className={`px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
+                    className={`px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 font-geist
                       hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
                       text-white rounded-lg text-sm font-semibold flex items-center 
                       transition-all duration-200 ease-out
@@ -2227,7 +2224,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-1">
-                <h2 className="text-lg font-semibold">Delete Resume</h2>
+                <h2 className="text-lg font-semibold font-geist">Delete Resume</h2>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

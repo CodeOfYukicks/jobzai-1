@@ -12,6 +12,7 @@ import { doc, collection, onSnapshot, query, where, getDocs, limit, orderBy } fr
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
+import PageHeader from '../components/PageHeader';
 import FloatingCredits from '../components/FloatingCredits';
 import PremiumFeatureOverlay from '../components/PremiumFeatureOverlay';
 import { getCreditHistoryForChart } from '../lib/creditHistory';
@@ -658,15 +659,11 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
-                Dashboard
-              </h1>
-              <p className="mt-2 text-gray-500 dark:text-gray-400">
-                Track your job applications and progress
-              </p>
-            </div>
+          <PageHeader 
+            title="Dashboard"
+            subtitle="Track your job applications and progress"
+          />
+          <div className="flex justify-center mt-6">
             <button
               onClick={refreshDashboard}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl 

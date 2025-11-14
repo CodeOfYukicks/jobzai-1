@@ -10,6 +10,8 @@ import '../styles/navigation.css';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import MobileNavigation from './mobile/MobileNavigation';
 import ThemeSwitch from './ThemeSwitch';
+import SidebarSubmenu from './SidebarSubmenu';
+import SidebarLink from './SidebarLink';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -43,12 +45,16 @@ interface UpcomingInterview {
 
 // Définir les groupes de navigation
 const navigationGroups = {
-  apply: [
-    { name: 'Jobs', href: '/jobs', icon: LayoutGrid },
-    { name: 'Resume Lab', href: '/cv-optimizer', icon: ScrollText },
-    { name: 'ATS Check', href: '/cv-analysis', icon: FileSearch },
-    { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
-  ],
+  apply: {
+    main: [
+      { name: 'Job Board', href: '/jobs', icon: LayoutGrid },
+      { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
+    ],
+    resumeTools: [
+      { name: 'Resume Lab', href: '/cv-optimizer', icon: ScrollText },
+      { name: 'ATS Check', href: '/cv-analysis', icon: FileSearch },
+    ],
+  },
   track: [
     { name: 'Application Tracking', href: '/applications', icon: Briefcase },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
@@ -197,10 +203,17 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   // Resolve current route title for mobile header
   const getCurrentRouteTitle = (pathname: string): string => {
-    const groups = Object.values(navigationGroups).flat();
-    const exact = groups.find(item => item.href === pathname);
+    // Flatten all navigation items including the nested apply structure
+    const allItems = [
+      ...navigationGroups.apply.main,
+      ...navigationGroups.apply.resumeTools,
+      ...navigationGroups.track,
+      ...navigationGroups.prepare,
+      ...navigationGroups.improve,
+    ];
+    const exact = allItems.find(item => item.href === pathname);
     if (exact) return exact.name;
-    const starts = groups.find(item => pathname.startsWith(item.href) && item.href !== '/');
+    const starts = allItems.find(item => pathname.startsWith(item.href) && item.href !== '/');
     if (starts) return starts.name;
     if (pathname === '/' || pathname === '/dashboard') return 'Dashboard';
     return 'Jobzai';
@@ -313,9 +326,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               className="flex items-center justify-center hover:opacity-80 transition-opacity"
             >
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className={`${isCollapsed ? 'h-7 w-7' : 'h-7 w-auto'}`} />
+                <img src={logoUrl} alt="Logo" className={`${isCollapsed ? 'h-9 w-9' : 'h-9 w-auto'}`} />
               ) : (
-                <div className={`${isCollapsed ? 'h-7 w-7' : 'h-7 w-28'} bg-gray-100 animate-pulse rounded`} />
+                <div className={`${isCollapsed ? 'h-9 w-9' : 'h-9 w-28'} bg-gray-100 animate-pulse rounded`} />
               )}
             </Link>
             
@@ -347,54 +360,58 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     APPLY
                   </p>
                 )}
-                {navigationGroups.apply.map((item) => (
-                  <Link
+                
+                {/* Jobs */}
+                {navigationGroups.apply.main.map((item) => (
+                  <SidebarLink
                     key={item.name}
-                    to={item.href}
-                    onMouseEnter={() => setIsHovered(item.name)}
+                    name={item.name}
+                    href={item.href}
+                    icon={item.icon}
+                    isCollapsed={isCollapsed}
+                    isHovered={isHovered}
+                    onMouseEnter={setIsHovered}
                     onMouseLeave={() => setIsHovered(null)}
-                    className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 text-sm font-medium rounded-xl 
-                      transition-all duration-200 relative overflow-hidden
-                      ${location.pathname === item.href || (item.href === '/cv-optimizer' && location.pathname.startsWith('/cv-optimizer'))
-                        ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                      }`}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    {/* Hover Effect */}
-                    {isHovered === item.name && (
-                      <motion.div
-                        layoutId="hoverEffect"
-                        className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                      />
-                    )}
-                    
-                    <div className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 flex-1'}`}>
-                      <item.icon className={`h-5 w-5 transition-colors
-                        ${location.pathname === item.href || (item.href === '/cv-optimizer' && location.pathname.startsWith('/cv-optimizer'))
-                          ? 'text-purple-600 dark:text-purple-400' 
-                          : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
-                      />
-                      {!isCollapsed && (
-                        <span className="flex-1 flex items-center gap-2">
-                          <span>{item.name}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {(location.pathname === item.href || (item.href === '/cv-optimizer' && location.pathname.startsWith('/cv-optimizer'))) && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 
-                          bg-gradient-to-b from-purple-600 to-indigo-600 rounded-r-full"
-                      />
-                    )}
-                  </Link>
+                  />
                 ))}
+
+                {/* Resume Tools Submenu */}
+                {!isCollapsed ? (
+                  <SidebarSubmenu
+                    title="Resume Tools"
+                    icon={FileText}
+                    isCollapsed={isCollapsed}
+                    activePaths={navigationGroups.apply.resumeTools.map((item) => item.href)}
+                  >
+                    {navigationGroups.apply.resumeTools.map((item) => (
+                      <SidebarLink
+                        key={item.name}
+                        name={item.name}
+                        href={item.href}
+                        icon={item.icon}
+                        isCollapsed={isCollapsed}
+                        isHovered={isHovered}
+                        onMouseEnter={setIsHovered}
+                        onMouseLeave={() => setIsHovered(null)}
+                        isSubmenuItem={true}
+                      />
+                    ))}
+                  </SidebarSubmenu>
+                ) : (
+                  // When collapsed, show individual items
+                  navigationGroups.apply.resumeTools.map((item) => (
+                    <SidebarLink
+                      key={item.name}
+                      name={item.name}
+                      href={item.href}
+                      icon={item.icon}
+                      isCollapsed={isCollapsed}
+                      isHovered={isHovered}
+                      onMouseEnter={setIsHovered}
+                      onMouseLeave={() => setIsHovered(null)}
+                    />
+                  ))
+                )}
               </div>
 
               {/* TRACK Section */}
@@ -794,7 +811,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               <ChevronLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
-              {logoUrl && <img src={logoUrl} alt="Logo" className="h-5 w-auto opacity-90" />}
+              {logoUrl && <img src={logoUrl} alt="Logo" className="h-7 w-auto opacity-90" />}
               <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
                 {currentTitle}
               </span>

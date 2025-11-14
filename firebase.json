@@ -46,6 +46,10 @@
         "function": "processStripeSession"
       },
       {
+        "source": "/api/jobs",
+        "function": "searchJobs"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

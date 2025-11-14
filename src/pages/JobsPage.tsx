@@ -16,6 +16,7 @@ import { db } from '../lib/firebase';
 import JobCard from '../components/JobCard';
 import MatchExplanationModal from '../components/MatchExplanationModal';
 import Navbar from '../components/Navbar';
+import PageHeader from '../components/PageHeader';
 
 type MatchDoc = {
   userId: string;
@@ -182,12 +183,10 @@ export default function JobsPage() {
       <Navbar />
       <div className="mx-auto max-w-6xl p-6">
         <div className="mt-4 mb-6">
-          <h1 className="text-3xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Job Board
-          </h1>
-          <p className="mt-1 text-gray-600 dark:text-gray-400">
-            Discover opportunities tailored to your profile. Use search and filters to refine results.
-          </p>
+          <PageHeader 
+            title="Job Board"
+            subtitle="Discover opportunities tailored to your profile. Use search and filters to refine results."
+          />
         </div>
 
         <div className="flex gap-2 mb-6">

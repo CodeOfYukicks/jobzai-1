@@ -35,12 +35,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
+import PageHeader from '../components/PageHeader';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
 import DatePicker from '../components/ui/DatePicker';
 import { JobApplication, Interview, StatusChange } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
+import { JobDetailPanel } from '../components/job-detail-panel';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -61,6 +63,8 @@ export default function JobApplicationsPage() {
     location: '',
     status: 'applied',
     appliedDate: new Date().toISOString().split('T')[0],
+    description: '',
+    notes: '',
     interviewType: 'technical',
     interviewTime: '09:00',
     interviewDate: new Date().toISOString().split('T')[0],
@@ -627,12 +631,12 @@ URL to visit: ${jobUrl}
         summary: extractedData.summary?.trim() || ''
       };
 
-      // Formater le summary pour les notes - format structuré avec 3 points
-      let formattedNotes = cleanedData.summary;
-      if (formattedNotes) {
+      // Formater le summary pour la description - format structuré avec 3 points
+      let formattedDescription = cleanedData.summary;
+      if (formattedDescription) {
         // S'assurer que le summary est bien formaté
         // Enlever les échappements JSON si présents
-        formattedNotes = formattedNotes
+        formattedDescription = formattedDescription
           .replace(/\\n/g, '\n')
           .replace(/\\"/g, '"')
           .replace(/\\'/g, "'")
@@ -640,11 +644,11 @@ URL to visit: ${jobUrl}
         
         // S'assurer que les puces sont bien formatées (• ou -)
         // Si le format n'a pas de puces, les ajouter
-        if (!formattedNotes.includes('•') && !formattedNotes.includes('-')) {
+        if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
           // Diviser par lignes et ajouter des puces
-          const lines = formattedNotes.split('\n').filter(line => line.trim().length > 0);
+          const lines = formattedDescription.split('\n').filter(line => line.trim().length > 0);
           if (lines.length > 0) {
-            formattedNotes = lines.map(line => {
+            formattedDescription = lines.map(line => {
               const trimmed = line.trim();
               // Si la ligne ne commence pas déjà par une puce, en ajouter une
               if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
@@ -655,9 +659,9 @@ URL to visit: ${jobUrl}
           }
         }
         
-        // Ajouter une séparation visuelle si des notes existent déjà
-        if (formData.notes && formData.notes.trim()) {
-          formattedNotes = `${formData.notes}\n\n---\n\n${formattedNotes}`;
+        // Ajouter une séparation visuelle si une description existe déjà
+        if (formData.description && formData.description.trim()) {
+          formattedDescription = `${formData.description}\n\n---\n\n${formattedDescription}`;
         }
       }
 
@@ -667,7 +671,7 @@ URL to visit: ${jobUrl}
         companyName: cleanedData.companyName || prev.companyName,
         position: cleanedData.position || prev.position,
         location: cleanedData.location || prev.location,
-        notes: formattedNotes || prev.notes || ''
+        description: formattedDescription || prev.description || ''
       }));
 
       toast.success('Job information extracted successfully!');
@@ -701,7 +705,8 @@ URL to visit: ${jobUrl}
           status: formData.status || 'applied',
           appliedDate: formData.appliedDate,
           url: formData.url || '',
-          notes: formData.notes || '',
+          description: formData.description || '',  // Job description from AI
+          notes: formData.notes || '',              // User's personal notes
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           // Ajout de valeurs par défaut pour les champs optionnels
@@ -737,6 +742,7 @@ URL to visit: ${jobUrl}
           status: 'applied',
           appliedDate: new Date().toISOString().split('T')[0],
           url: '',
+          description: '',
           notes: '',
           interviewType: 'technical',
           interviewTime: '09:00',
@@ -861,6 +867,7 @@ URL to visit: ${jobUrl}
           status: 'applied',
           appliedDate: new Date().toISOString().split('T')[0],
           url: '',
+          description: '',
           notes: '',
           interviewType: 'technical',
           interviewTime: '09:00',
@@ -1272,15 +1279,11 @@ END:VCALENDAR`;
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="mb-4 sm:mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
-            <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 dark:text-white">
-                Job Applications
-              </h1>
-              <p className="mt-1 text-xs sm:text-sm lg:text-base text-gray-500 dark:text-gray-400">
-                Track and manage your job applications
-              </p>
-            </div>
+          <PageHeader 
+            title="Job Applications"
+            subtitle="Track and manage your job applications"
+          />
+          <div className="flex justify-center mt-6">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -1292,9 +1295,9 @@ END:VCALENDAR`;
                 setShowLookupDropdown(false);
                 setNewApplicationModal(true);
               }}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs sm:text-sm font-medium hover:opacity-90 transition-all duration-200"
+              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium hover:opacity-90 transition-all duration-200"
             >
-              <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+              <PlusCircle className="w-4 h-4 mr-2" />
               Add Application
             </motion.button>
           </div>
@@ -1706,6 +1709,7 @@ END:VCALENDAR`;
                   status: 'applied',
                   appliedDate: new Date().toISOString().split('T')[0],
                   url: '',
+                  description: '',
                   notes: '',
                   interviewType: 'technical',
                   interviewTime: '09:00',
@@ -1754,6 +1758,7 @@ END:VCALENDAR`;
                         status: 'applied',
                         appliedDate: new Date().toISOString().split('T')[0],
                         url: '',
+                        description: '',
                         notes: ''
                       });
                       setNewApplicationModal(false);
@@ -2230,6 +2235,7 @@ END:VCALENDAR`;
                         status: 'applied',
                         appliedDate: new Date().toISOString().split('T')[0],
                         url: '',
+                        description: '',
                         notes: ''
                       });
                       setNewApplicationModal(false);
@@ -2751,8 +2757,80 @@ END:VCALENDAR`;
           </div>
         )}
 
-        {/* Timeline Modal - Apple-style elegant design */}
-        {timelineModal && selectedApplication && (
+        {/* Job Detail Panel - Premium slide-over */}
+        <JobDetailPanel
+          job={selectedApplication}
+          open={timelineModal}
+          onClose={() => {
+            setTimelineModal(false);
+            setShowAddInterviewForm(false);
+            setNewInterview({
+              date: new Date().toISOString().split('T')[0],
+              time: '09:00',
+              type: 'technical',
+              status: 'scheduled',
+              location: '',
+              notes: ''
+            });
+          }}
+          onUpdate={async (updates) => {
+            if (!currentUser || !selectedApplication) return;
+            
+            try {
+              const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', selectedApplication.id);
+              await updateDoc(applicationRef, {
+                ...updates,
+                updatedAt: serverTimestamp()
+              });
+              
+              // Create the updated application object
+              const updatedApplication = {
+                ...selectedApplication,
+                ...updates,
+                updatedAt: new Date().toISOString()
+              };
+              
+              // Update local state
+              setApplications(prev => 
+                prev.map(app => 
+                  app.id === selectedApplication.id 
+                    ? updatedApplication
+                    : app
+                )
+              );
+              
+              // Update selected application to reflect changes immediately
+              setSelectedApplication(updatedApplication);
+              
+              // Don't show toast for every update (only for user-initiated saves)
+              if (!updates.interviews) {
+                toast.success('Application updated successfully');
+              }
+            } catch (error) {
+              console.error('Error updating application:', error);
+              toast.error('Failed to update application');
+            }
+          }}
+          onDelete={async () => {
+            if (!currentUser || !selectedApplication) return;
+            
+            try {
+              const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', selectedApplication.id);
+              await deleteDoc(applicationRef);
+              
+              setApplications(prev => prev.filter(app => app.id !== selectedApplication.id));
+              toast.success('Application deleted successfully');
+              setTimelineModal(false);
+              setSelectedApplication(null);
+            } catch (error) {
+              console.error('Error deleting application:', error);
+              toast.error('Failed to delete application');
+            }
+          }}
+        />
+
+        {/* Old Timeline Modal - Keeping temporarily as backup */}
+        {false && timelineModal && selectedApplication && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

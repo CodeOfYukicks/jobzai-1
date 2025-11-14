@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
+import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, getStorage, uploadBytes } from 'firebase/storage';
@@ -4577,15 +4578,11 @@ URL to visit: ${jobUrl}
         <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isLoading ? 'overflow-hidden' : ''}`}>
         {/* Hero Section */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
-                  ATS Check
-              </h1>
-              <p className="mt-2 text-gray-500 dark:text-gray-400">
-                Get detailed insights on how your resume matches specific job positions. Improve your chances with AI-powered recommendations.
-              </p>
-            </div>
+          <PageHeader 
+            title="ATS Check"
+            subtitle="Get detailed insights on how your resume matches specific job positions. Improve your chances with AI-powered recommendations."
+          />
+          <div className="flex justify-center mt-6">
             <button
               onClick={() => {
                 // Reset form when opening modal

@@ -39,7 +39,8 @@ export interface JobApplication {
   contactEmail?: string;
   contactPhone?: string;
   salary?: string;
-  notes?: string;
+  description?: string;  // Job description (from AI extraction or job posting)
+  notes?: string;         // Personal notes from the user
   createdAt: string;
   updatedAt: string;
   interviews?: Interview[];
