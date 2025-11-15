@@ -36,6 +36,7 @@ import SearchPage from './pages/SearchPage';
 import ProfessionalProfilePage from './pages/ProfessionalProfilePage';
 import CVAnalysisPage from './pages/CVAnalysisPage';
 import ATSAnalysisPage from './pages/ATSAnalysisPage';
+import ATSAnalysisRouter from './pages/ATSAnalysisRouter';
 import JobApplicationsPage from './pages/JobApplicationsPage';
 import CalendarView from './pages/CalendarView';
 import InterviewPrepPage from './pages/InterviewPrepPage';
@@ -156,7 +157,7 @@ function AppContent() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/professional-profile" element={<ProfessionalProfilePage />} />
           <Route path="/cv-analysis" element={<CVAnalysisPage />} />
-          <Route path="/ats-analysis/:id" element={<ATSAnalysisPage />} />
+          <Route path="/ats-analysis/:id" element={<ATSAnalysisRouter />} />
           <Route path="/cv-optimizer" element={<CVOptimizerPage />} />
           <Route path="/cv-optimizer/:id" element={<OptimizedCVEditPage />} />
           <Route path="/cv-creator" element={<CVCreatorPage />} />

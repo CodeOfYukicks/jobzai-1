@@ -18,6 +18,10 @@
         "function": "analyzeCVVision"
       },
       {
+        "source": "/api/analyze-cv-premium",
+        "function": "analyzeResumePremium"
+      },
+      {
         "source": "/api/sync-hubspot",
         "function": "syncUserToHubSpot"
       },

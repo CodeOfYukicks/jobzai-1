@@ -44,6 +44,8 @@ import { analyzeCVWithClaude, fileToBase64 } from '../lib/claudeAnalysis';
 // Import GPT-4o Vision Analysis functions (new optimized approach)
 import { pdfToImages } from '../lib/pdfToImages';
 import { analyzeCVWithGPT4Vision } from '../lib/gpt4VisionAnalysis';
+// Import Premium ATS Analysis (new elite-level analysis)
+import { pdfToBase64Images, analyzePDFWithPremiumATS } from '../lib/premiumATSAnalysis';
 // Add this import
 import CVSelectionModal from '../components/CVSelectionModal';
 // Import Perplexity for job extraction
@@ -1350,51 +1352,63 @@ export default function CVAnalysisPage() {
       try {
         console.log('Attempting to load analyses...');
         const analysesRef = collection(db, 'users', currentUser.uid, 'analyses');
-        const q = query(analysesRef, orderBy('timestamp', 'desc'));
         
-        try {
-          const querySnapshot = await getDocs(q);
-          
-          const savedAnalyses: ATSAnalysis[] = [];
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (!data.deleted) { // Don't load analyses marked as deleted
-              savedAnalyses.push({
-                id: doc.id,
-                date: data.date,
-                jobTitle: data.jobTitle || 'Untitled Position',
-                company: data.company || 'Unknown Company',
-                matchScore: data.matchScore,
-                userId: '', // Assuming userId is not provided in the saved data
-                keyFindings: data.keyFindings,
-                skillsMatch: data.skillsMatch,
-                experienceAnalysis: data.experienceAnalysis,
-                recommendations: data.recommendations,
-                categoryScores: data.categoryScores,
-                executiveSummary: data.executiveSummary,
-                jobSummary: data.jobSummary || undefined, // Include job summary if available
-              });
-            }
-          });
-          
-          if (savedAnalyses.length > 0) {
-            console.log(`Loaded ${savedAnalyses.length} saved analyses`);
-            setAnalyses(savedAnalyses);
+        // Get all analyses without ordering first (to support both timestamp and date fields)
+        const querySnapshot = await getDocs(analysesRef);
+        
+        const savedAnalyses: ATSAnalysis[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (!data.deleted && data.matchScore !== undefined) { // Don't load analyses marked as deleted or incomplete
+            // Support both old (timestamp) and new (date) formats
+            const analysisDate = data.date || data.timestamp;
+            
+            savedAnalyses.push({
+              id: doc.id,
+              date: analysisDate,
+              jobTitle: data.jobTitle || 'Untitled Position',
+              company: data.company || 'Unknown Company',
+              matchScore: data.matchScore,
+              userId: currentUser.uid,
+              keyFindings: data.keyFindings || (Array.isArray(data.executive_summary) ? data.executive_summary : [data.executive_summary || '']),
+              skillsMatch: data.skillsMatch || { matching: [], missing: [], alternative: [] },
+              experienceAnalysis: data.experienceAnalysis || [],
+              recommendations: data.recommendations || [],
+              categoryScores: data.categoryScores || {
+                skills: 0,
+                experience: 0,
+                education: 0,
+                industryFit: 0
+              },
+              executiveSummary: data.executiveSummary || data.executive_summary || '',
+              jobSummary: data.jobSummary || undefined,
+            });
           }
-        } catch (firestoreError) {
-          console.error('Error loading saved analyses:', firestoreError);
-          // Vérifier si c'est une erreur de permission
-          if (firestoreError instanceof Error && 
-              firestoreError.toString().includes('permission')) {
-            console.warn('Permission error detected. You need to update Firestore security rules.');
-            toast.error('Permission error. Please check Firestore security rules.');
-          } else {
-            toast.error('Unable to load your saved analyses');
-          }
+        });
+        
+        // Sort by date (most recent first)
+        savedAnalyses.sort((a, b) => {
+          const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date || 0);
+          const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        if (savedAnalyses.length > 0) {
+          console.log(`✅ Loaded ${savedAnalyses.length} saved analyses`);
+          setAnalyses(savedAnalyses);
+        } else {
+          console.log('ℹ️ No analyses found');
         }
       } catch (error) {
-        console.error('Unexpected error in fetchSavedAnalyses:', error);
-        toast.error('An unexpected error occurred');
+        console.error('Error loading saved analyses:', error);
+        // Vérifier si c'est une erreur de permission
+        if (error instanceof Error && 
+            error.toString().includes('permission')) {
+          console.warn('Permission error detected. You need to update Firestore security rules.');
+          toast.error('Permission error. Please check Firestore security rules.');
+        } else {
+          toast.error('Unable to load your saved analyses');
+        }
       }
     };
     
@@ -2373,24 +2387,12 @@ URL to visit: ${jobUrl}
         return;
       }
 
-      // Use PDF file for GPT-4o Vision analysis
+      // Use PDF file for PREMIUM ATS Analysis
       if (cvFile && cvFile.type === 'application/pdf') {
-        console.log('📄 Using GPT-4o Vision for PDF analysis:', cvFile.name);
+        console.log('🎯 Using PREMIUM ATS Analysis for PDF:', cvFile.name);
         
         try {
-          // Step 1: Convert PDF to images
-          console.log('📸 Converting PDF to images...');
-          setLoadingStep('preparing');
-          setLoadingProgress(10);
-          
-          // Convert PDF to images (max 2 pages, optimized scale)
-          const images = await pdfToImages(cvFile, 2, 1.5);
-          console.log(`✅ PDF converted to ${images.length} image(s)`);
-          
-          setLoadingProgress(30);
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Prepare job details - use actual formData values, not defaults
+          // Prepare job details - use actual formData values
           const jobTitle = formData.jobTitle?.trim() || '';
           const company = formData.company?.trim() || '';
           const jobDescription = formData.jobDescription?.trim() || '';
@@ -2399,8 +2401,6 @@ URL to visit: ${jobUrl}
             jobTitle,
             company,
             jobDescriptionLength: jobDescription.length,
-            formDataKeys: Object.keys(formData),
-            fullFormData: formData
           });
           
           if (!jobTitle || !company || jobTitle === 'Untitled Position' || company === 'Unknown Company') {
@@ -2410,84 +2410,116 @@ URL to visit: ${jobUrl}
             return;
           }
           
-          const jobDetails = {
-            jobTitle,
-            company,
-            jobDescription: jobDescription || 'Not provided'
-          };
+          // Update loading states
+          setLoadingStep('preparing');
+          setLoadingProgress(10);
           
-          console.log('📋 Job details for analysis:', { jobTitle, company, descriptionLength: jobDescription.length });
+          console.log('📸 Converting PDF to images for premium analysis...');
           
-          // Generate job summary in parallel with analysis
+          // Generate unique analysis ID
+          const analysisId = crypto.randomUUID();
+          
+          // Call premium analysis function
           setLoadingStep('analyzing');
-          setLoadingProgress(40);
+          setLoadingProgress(30);
           
-          const [analysis, jobSummary] = await Promise.all([
-            analyzeCVWithGPT4Vision(images, jobDetails),
-            generateJobSummary(jobTitle, company, jobDescription)
-          ]);
+          const result = await analyzePDFWithPremiumATS(
+            cvFile,
+            {
+              jobTitle,
+              company,
+              jobDescription: jobDescription || 'Not provided',
+              location: formData.location,
+              jobUrl: formData.jobUrl,
+            },
+            auth.currentUser?.uid || 'anonymous',
+            analysisId
+          );
           
-          console.log('✅ GPT-4o Vision analysis successful!', analysis);
-          console.log('✅ Job summary generated:', jobSummary ? `Yes (${jobSummary.length} chars)` : 'No');
-          if (jobSummary) {
-            console.log('📄 Job summary preview:', jobSummary.substring(0, 200));
+          if (result.status === 'error') {
+            throw new Error(result.message || 'Premium analysis failed');
           }
+          
+          console.log('✅ Premium ATS analysis successful!', result.analysis);
           
           // Update loading step
           setLoadingStep('matching');
+          setLoadingProgress(70);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Generate job summary in parallel
           setLoadingProgress(80);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Create analysis object with actual values
-          const fullAnalysis = {
-            ...analysis,
-            id: `analysis_${Date.now()}`,
-            date: formatDateString(analysis.date),
-            userId: auth.currentUser?.uid || 'anonymous',
-            jobTitle: jobTitle, // Use actual value, not from jobDetails
-            company: company, // Use actual value, not from jobDetails
-            jobSummary: jobSummary || undefined
-          };
-          
-          console.log('💾 Saving analysis with:', { 
-            jobTitle: fullAnalysis.jobTitle, 
-            company: fullAnalysis.company, 
-            hasJobSummary: !!fullAnalysis.jobSummary,
-            jobSummaryLength: fullAnalysis.jobSummary?.length || 0
-          });
-          
-          // Verify the data before saving
-          if (!fullAnalysis.jobTitle || fullAnalysis.jobTitle === 'Untitled Position') {
-            console.error('⚠️ WARNING: jobTitle is missing or default value!');
-          }
-          if (!fullAnalysis.company || fullAnalysis.company === 'Unknown Company') {
-            console.error('⚠️ WARNING: company is missing or default value!');
-          }
-          if (!fullAnalysis.jobSummary) {
-            console.warn('⚠️ WARNING: jobSummary is missing!');
-          }
+          const jobSummary = await generateJobSummary(jobTitle, company, jobDescription);
+          console.log('✅ Job summary generated:', jobSummary ? `Yes (${jobSummary.length} chars)` : 'No');
           
           // Update loading step
           setLoadingStep('finalizing');
           setLoadingProgress(90);
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
-          // Save and update UI
-          const savedAnalysis = await saveAnalysisToFirestore(fullAnalysis);
-          setAnalyses(prev => [savedAnalysis, ...prev]);
+          // The premium analysis already saved to Firestore in the Cloud Function
+          // Just fetch it and add to local state
+          const fullAnalysis = {
+            id: analysisId,
+            date: new Date().toISOString(),
+            userId: auth.currentUser?.uid || 'anonymous',
+            jobTitle: jobTitle,
+            company: company,
+            matchScore: result.analysis?.analysis?.match_scores?.overall_score || 0,
+            // Map premium analysis to existing interface
+            keyFindings: result.analysis?.analysis?.top_strengths?.map((s: any) => s.name) || [],
+            skillsMatch: {
+              matching: result.analysis?.analysis?.match_breakdown?.skills?.matched?.map((skill: string) => ({
+                name: skill,
+                relevance: 80
+              })) || [],
+              missing: result.analysis?.analysis?.match_breakdown?.skills?.missing?.map((skill: string) => ({
+                name: skill,
+                relevance: 60
+              })) || [],
+              alternative: []
+            },
+            categoryScores: {
+              skills: result.analysis?.analysis?.match_scores?.skills_score || 0,
+              experience: result.analysis?.analysis?.match_scores?.experience_score || 0,
+              education: result.analysis?.analysis?.match_scores?.education_score || 0,
+              industryFit: result.analysis?.analysis?.match_scores?.industry_fit_score || 0,
+            },
+            executiveSummary: result.analysis?.analysis?.executive_summary || '',
+            experienceAnalysis: [],
+            recommendations: result.analysis?.analysis?.top_gaps?.map((gap: any) => ({
+              title: gap.name,
+              description: `${gap.why_it_matters}\n\n${gap.how_to_fix}`,
+              priority: gap.severity === 'High' ? 'high' : gap.severity === 'Medium' ? 'medium' : 'low',
+              examples: gap.how_to_fix
+            })) || [],
+            jobSummary: jobSummary || undefined,
+            // Store full premium analysis for future use
+            _premiumAnalysis: result.analysis?.analysis,
+          };
+          
+          console.log('💾 Analysis completed with:', { 
+            jobTitle: fullAnalysis.jobTitle, 
+            company: fullAnalysis.company,
+            matchScore: fullAnalysis.matchScore,
+            hasJobSummary: !!fullAnalysis.jobSummary,
+          });
+          
+          // Update UI
+          setAnalyses(prev => [fullAnalysis as any, ...prev]);
           setCurrentStep(1);
           setCvFile(null);
           setSelectedCV('');
           setLoadingProgress(100);
           
-          // Short delay before hiding loading screen for a smooth transition
+          // Short delay before hiding loading screen
           await new Promise(resolve => setTimeout(resolve, 500));
           setIsLoading(false);
           
           toast.dismiss();
-          toast.success('CV analysis with GPT-4o Vision completed!');
+          toast.success('🎉 Premium ATS analysis completed!');
         } catch (error: any) {
-          console.error('❌ GPT-4o Vision API call failed:', error);
+          console.error('❌ Premium ATS analysis failed:', error);
           setIsLoading(false);
           toast.error(`Analysis failed: ${error.message || 'Unknown error'}`);
           throw error;
@@ -2770,7 +2802,7 @@ URL to visit: ${jobUrl}
           </div>
           
           {/* Skills preview (compact pills) */}
-          {!isExpanded && analysis.skillsMatch.matching.length > 0 && (
+          {!isExpanded && analysis.skillsMatch?.matching && analysis.skillsMatch.matching.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {analysis.skillsMatch.matching
                 .sort((a, b) => b.relevance - a.relevance)
@@ -2799,7 +2831,7 @@ URL to visit: ${jobUrl}
               <span className="font-medium">{formatDateString(analysis.date)}</span>
             </div>
             <div className="text-xs">
-              {analysis.skillsMatch.matching.length} matched skill{analysis.skillsMatch.matching.length !== 1 ? 's' : ''}
+              {analysis.skillsMatch?.matching?.length || 0} matched skill{(analysis.skillsMatch?.matching?.length || 0) !== 1 ? 's' : ''}
             </div>
           </div>
           
@@ -2905,18 +2937,22 @@ URL to visit: ${jobUrl}
                 </button>
                 {expandedSection === 'skills' && (
                   <div className="p-4 bg-white dark:bg-gray-800">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {analysis.skillsMatch.matching.map((skill, idx) => (
-                        <SkillTag 
-                          key={idx} 
-                          skill={skill.name} 
-                          matched={true} 
-                          relevance={skill.relevance} 
-                        />
-                      ))}
-                    </div>
+                    {analysis.skillsMatch?.matching && analysis.skillsMatch.matching.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {analysis.skillsMatch.matching.map((skill, idx) => (
+                          <SkillTag 
+                            key={idx} 
+                            skill={skill.name} 
+                            matched={true} 
+                            relevance={skill.relevance} 
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No skills data available</p>
+                    )}
                     
-                    {analysis.skillsMatch.missing.length > 0 && (
+                    {analysis.skillsMatch?.missing && analysis.skillsMatch.missing.length > 0 && (
                       <div className="mt-4">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Missing Skills</h4>
                         <div className="flex flex-wrap gap-2">
@@ -5226,10 +5262,31 @@ const Section = ({ title, icon, children }: any) => (
 );
 
 // Fonction utilitaire pour formater la date (ajoutée en haut du fichier)
-function formatDateString(dateString: string): string {
-  // Si la date contient le format ISO avec T, extraire seulement la partie date
-  if (dateString && dateString.includes('T')) {
-    return dateString.split('T')[0];
+function formatDateString(dateInput: any): string {
+  // Si c'est null ou undefined
+  if (!dateInput) {
+    return new Date().toISOString().split('T')[0];
   }
-  return dateString;
+  
+  // Si c'est un Timestamp Firestore (a une méthode toDate)
+  if (dateInput.toDate && typeof dateInput.toDate === 'function') {
+    return dateInput.toDate().toISOString().split('T')[0];
+  }
+  
+  // Si c'est un objet Date
+  if (dateInput instanceof Date) {
+    return dateInput.toISOString().split('T')[0];
+  }
+  
+  // Si c'est une string
+  if (typeof dateInput === 'string') {
+    // Si la date contient le format ISO avec T, extraire seulement la partie date
+    if (dateInput.includes('T')) {
+      return dateInput.split('T')[0];
+    }
+    return dateInput;
+  }
+  
+  // Fallback: retourner la date actuelle
+  return new Date().toISOString().split('T')[0];
 }

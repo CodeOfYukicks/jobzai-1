@@ -247,7 +247,7 @@ export default function ATSAnalysisPage() {
 
   // Calculate top strengths and weaknesses
   const getTopStrengths = () => {
-    if (!analysis) return [];
+    if (!analysis || !analysis.skillsMatch || !analysis.skillsMatch.matching) return [];
     const strengths = analysis.skillsMatch.matching
       .sort((a, b) => b.relevance - a.relevance)
       .slice(0, 3);
@@ -255,7 +255,7 @@ export default function ATSAnalysisPage() {
   };
 
   const getTopWeaknesses = () => {
-    if (!analysis) return [];
+    if (!analysis || !analysis.skillsMatch || !analysis.skillsMatch.missing) return [];
     const weaknesses = analysis.skillsMatch.missing
       .sort((a, b) => b.relevance - a.relevance)
       .slice(0, 3);
@@ -359,10 +359,10 @@ export default function ATSAnalysisPage() {
                       <ScoreDonut value={analysis.matchScore} size={80} strokeWidth={6} />
                     </div>
                     <div className="space-y-3">
-                      <ProgressBar label="Skills" value={analysis.categoryScores.skills} />
-                      <ProgressBar label="Experience" value={analysis.categoryScores.experience} />
-                      <ProgressBar label="Education" value={analysis.categoryScores.education} />
-                      <ProgressBar label="Industry Fit" value={analysis.categoryScores.industryFit} />
+                      <ProgressBar label="Skills" value={analysis.categoryScores?.skills ?? 0} />
+                      <ProgressBar label="Experience" value={analysis.categoryScores?.experience ?? 0} />
+                      <ProgressBar label="Education" value={analysis.categoryScores?.education ?? 0} />
+                      <ProgressBar label="Industry Fit" value={analysis.categoryScores?.industryFit ?? 0} />
                     </div>
                   </div>
                 </SectionCard>
@@ -471,7 +471,7 @@ export default function ATSAnalysisPage() {
                 title="Matched Skills"
                 icon={<CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />}
               >
-                {analysis.skillsMatch.matching.length > 0 ? (
+                {analysis.skillsMatch?.matching && analysis.skillsMatch.matching.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {analysis.skillsMatch.matching
                       .slice()
@@ -500,7 +500,7 @@ export default function ATSAnalysisPage() {
                 title="Missing Skills"
                 icon={<AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />}
               >
-                {analysis.skillsMatch.missing.length > 0 ? (
+                {analysis.skillsMatch?.missing && analysis.skillsMatch.missing.length > 0 ? (
                   <div className="space-y-4">
                     {analysis.skillsMatch.missing
                       .slice()

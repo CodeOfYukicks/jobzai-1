@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
+exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.testNewFunction = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
 const admin = require("firebase-admin");
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -22,8 +22,15 @@ Object.defineProperty(exports, "matchJobsForUsers", { enumerable: true, get: fun
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 const https_1 = require("firebase-functions/v2/https");
-const https_2 = require("firebase-functions/v2/https");
 // admin already imported and initialized above
+// Test function to verify deployment works
+exports.testNewFunction = (0, https_1.onRequest)({
+    region: 'us-central1',
+    cors: true,
+    invoker: 'public'
+}, async (req, res) => {
+    res.status(200).json({ message: 'Test function works!', timestamp: new Date().toISOString() });
+});
 const mailgun_js_1 = require("./lib/mailgun.js");
 const openai_1 = require("openai");
 const functions = require("firebase-functions");
@@ -48,7 +55,7 @@ const handleCORS = (req, res, next) => {
 // Initialize OpenAI client with Firestore API key
 let openai = null;
 const getOpenAIApiKey = async () => {
-    var _a;
+    var _a, _b;
     try {
         // Get API key from Firestore (settings/openai)
         console.log('🔑 Attempting to retrieve OpenAI API key from Firestore...');
@@ -82,9 +89,11 @@ const getOpenAIApiKey = async () => {
     // Fallback to Firebase config
     try {
         const config = functions.config();
-        if ((_a = config.openai) === null || _a === void 0 ? void 0 : _a.api_key) {
-            console.log('Using OpenAI API key from Firebase config');
-            return config.openai.api_key;
+        // Check both 'api_key' and 'key' for backwards compatibility
+        const firebaseConfigKey = ((_a = config.openai) === null || _a === void 0 ? void 0 : _a.api_key) || ((_b = config.openai) === null || _b === void 0 ? void 0 : _b.key);
+        if (firebaseConfigKey) {
+            console.log('✅ Using OpenAI API key from Firebase config (first 10 chars):', firebaseConfigKey.substring(0, 10) + '...');
+            return firebaseConfigKey;
         }
     }
     catch (e) {
@@ -182,7 +191,7 @@ exports.startCampaign = (0, https_1.onCall)({
         throw new Error(error instanceof Error ? error.message : "Failed to start campaign");
     }
 });
-exports.updateCampaignEmails = (0, https_2.onRequest)({
+exports.updateCampaignEmails = (0, https_1.onRequest)({
     region: 'us-central1',
     cors: true,
 }, async (req, res) => {
@@ -294,17 +303,110 @@ exports.updateCampaignEmails = (0, https_2.onRequest)({
     }
 });
 /**
- * Analyze CV with GPT-4o Vision
+ * Handle premium ATS analysis (shared logic)
+ */
+async function handlePremiumAnalysis(req, res, resumeImages, jobContext, userId, analysisId) {
+    var _a, _b;
+    try {
+        // Validate request
+        if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Resume images are required (array of base64 strings)'
+            });
+            return;
+        }
+        if (!jobContext || !jobContext.jobTitle || !jobContext.company || !jobContext.jobDescription) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Job context is required (jobTitle, company, jobDescription)'
+            });
+            return;
+        }
+        // Get OpenAI client
+        const openaiClient = await getOpenAIClient();
+        // Import premium prompt builder
+        const { buildPremiumATSPrompt } = await Promise.resolve().then(() => require('./utils/premiumATSPrompt.js'));
+        // Build premium prompt
+        const promptText = buildPremiumATSPrompt({
+            jobTitle: jobContext.jobTitle,
+            company: jobContext.company,
+            jobDescription: jobContext.jobDescription,
+            seniority: jobContext.seniority,
+            targetRoles: jobContext.targetRoles,
+        });
+        console.log('📡 Sending premium analysis request to GPT-4o...');
+        // Prepare messages with resume images
+        const imageContents = resumeImages.map((base64Image) => ({
+            type: 'image_url',
+            image_url: {
+                url: base64Image.startsWith('data:')
+                    ? base64Image
+                    : `data:image/jpeg;base64,${base64Image}`
+            }
+        }));
+        // Call OpenAI API with premium prompt
+        const completion = await openaiClient.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an elite ATS specialist with 25+ years of experience. Return ONLY valid JSON.'
+                },
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: promptText },
+                        ...imageContents
+                    ]
+                }
+            ],
+            response_format: { type: 'json_object' },
+            max_tokens: 8000,
+            temperature: 0.2,
+        });
+        console.log('✅ Premium analysis received from GPT-4o');
+        const content = (_b = (_a = completion.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content;
+        if (!content) {
+            throw new Error('Empty response from GPT-4o');
+        }
+        let parsedAnalysis = JSON.parse(content);
+        // Save to Firestore if userId and analysisId provided
+        if (userId && analysisId) {
+            await admin.firestore()
+                .collection('users')
+                .doc(userId)
+                .collection('analyses')
+                .doc(analysisId)
+                .set(Object.assign(Object.assign({}, parsedAnalysis.analysis), { id: analysisId, userId, jobTitle: jobContext.jobTitle, company: jobContext.company, date: admin.firestore.FieldValue.serverTimestamp(), status: 'completed', type: 'premium', matchScore: parsedAnalysis.analysis.match_scores.overall_score }), { merge: true });
+        }
+        res.status(200).json({
+            status: 'success',
+            analysis: parsedAnalysis,
+            usage: completion.usage,
+            analysisId,
+        });
+    }
+    catch (error) {
+        console.error('❌ Error in premium analysis:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || 'Internal server error'
+        });
+    }
+}
+/**
+ * Analyze CV with GPT-4o Vision (also handles premium analysis)
  * Endpoint: POST /api/analyze-cv-vision
  */
-exports.analyzeCVVision = (0, https_2.onRequest)({
+exports.analyzeCVVision = (0, https_1.onRequest)({
     region: 'us-central1',
     cors: true,
     maxInstances: 10,
     timeoutSeconds: 300,
     invoker: 'public', // Allow public access (no authentication required)
 }, async (req, res) => {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -327,8 +429,15 @@ exports.analyzeCVVision = (0, https_2.onRequest)({
         console.log('   Request method:', req.method);
         console.log('   Request headers:', JSON.stringify(req.headers));
         console.log('   Request body keys:', Object.keys(req.body || {}));
+        // Check if this is a premium analysis request
+        const { resumeImages, jobContext, userId, analysisId } = req.body;
+        if (resumeImages && jobContext) {
+            console.log('🎯 Detected premium ATS analysis request, redirecting...');
+            // Handle premium analysis inline
+            return await handlePremiumAnalysis(req, res, resumeImages, jobContext, userId, analysisId);
+        }
         const { model, messages, response_format, max_tokens, temperature } = req.body;
-        // Validate request
+        // Validate request for regular vision analysis
         if (!model || !messages || !Array.isArray(messages)) {
             console.error('Invalid request format:', { model, hasMessages: !!messages });
             res.status(400).json({
@@ -406,6 +515,182 @@ exports.analyzeCVVision = (0, https_2.onRequest)({
     }
     catch (error) {
         console.error('❌ Error in analyzeCVVision:', error);
+        console.error('   Error name:', error === null || error === void 0 ? void 0 : error.name);
+        console.error('   Error message:', error === null || error === void 0 ? void 0 : error.message);
+        console.error('   Error stack:', error === null || error === void 0 ? void 0 : error.stack);
+        console.error('   Error response:', JSON.stringify(((_c = error === null || error === void 0 ? void 0 : error.response) === null || _c === void 0 ? void 0 : _c.data) || {}));
+        // Handle OpenAI API errors
+        if (error.response) {
+            const statusCode = error.response.status || 500;
+            const errorMessage = ((_e = (_d = error.response.data) === null || _d === void 0 ? void 0 : _d.error) === null || _e === void 0 ? void 0 : _e.message) || error.message || 'Unknown error';
+            console.error(`   OpenAI API error ${statusCode}: ${errorMessage}`);
+            res.status(statusCode).json({
+                status: 'error',
+                message: `OpenAI API error: ${errorMessage}`,
+                error: (_f = error.response.data) === null || _f === void 0 ? void 0 : _f.error,
+                code: ((_h = (_g = error.response.data) === null || _g === void 0 ? void 0 : _g.error) === null || _h === void 0 ? void 0 : _h.code) || 'unknown'
+            });
+            return;
+        }
+        // Handle other errors with more details
+        const errorDetails = Object.assign({ status: 'error', message: error.message || 'Internal server error', errorType: error.constructor.name }, (process.env.NODE_ENV === 'development' && { stack: error.stack }));
+        console.error('   Returning error response:', JSON.stringify(errorDetails));
+        res.status(500).json(errorDetails);
+    }
+});
+/**
+ * Premium ATS Analysis with comprehensive JSON structure
+ * Endpoint: POST /api/analyze-cv-premium
+ */
+exports.analyzeResumePremium = (0, https_1.onRequest)({
+    region: 'us-central1',
+    cors: [/localhost:\d+/, /\.web\.app$/, /\.firebaseapp\.com$/],
+    maxInstances: 10,
+    timeoutSeconds: 300,
+    invoker: 'public',
+}, async (req, res) => {
+    var _a, _b, _c, _d, _e;
+    // Handle preflight OPTIONS request
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    // Only allow POST
+    if (req.method !== 'POST') {
+        res.status(405).json({
+            status: 'error',
+            message: 'Method not allowed'
+        });
+        return;
+    }
+    try {
+        console.log('🎯 Premium ATS analysis request received');
+        const { resumeImages, jobContext, userId, analysisId } = req.body;
+        // Validate request
+        if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Resume images are required (array of base64 strings)'
+            });
+            return;
+        }
+        if (!jobContext || !jobContext.jobTitle || !jobContext.company || !jobContext.jobDescription) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Job context is required (jobTitle, company, jobDescription)'
+            });
+            return;
+        }
+        // Get OpenAI client
+        let openaiClient;
+        try {
+            openaiClient = await getOpenAIClient();
+        }
+        catch (error) {
+            console.error('❌ Failed to get OpenAI client:', error);
+            res.status(500).json({
+                status: 'error',
+                message: `OpenAI API key configuration error: ${(error === null || error === void 0 ? void 0 : error.message) || 'Unknown error'}`
+            });
+            return;
+        }
+        // Import premium prompt builder
+        const { buildPremiumATSPrompt } = await Promise.resolve().then(() => require('./utils/premiumATSPrompt.js'));
+        // Build premium prompt
+        const promptText = buildPremiumATSPrompt({
+            jobTitle: jobContext.jobTitle,
+            company: jobContext.company,
+            jobDescription: jobContext.jobDescription,
+            seniority: jobContext.seniority,
+            targetRoles: jobContext.targetRoles,
+        });
+        console.log('📡 Sending premium analysis request to GPT-4o...');
+        console.log(`   Resume images: ${resumeImages.length}`);
+        console.log(`   Job: ${jobContext.jobTitle} at ${jobContext.company}`);
+        // Prepare messages with resume images
+        const imageContents = resumeImages.map((base64Image) => ({
+            type: 'image_url',
+            image_url: {
+                url: base64Image.startsWith('data:')
+                    ? base64Image
+                    : `data:image/jpeg;base64,${base64Image}`
+            }
+        }));
+        // Call OpenAI API with premium prompt
+        const completion = await openaiClient.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an elite ATS specialist with 25+ years of experience. You combine senior hiring manager expertise, Apple-grade UX writing, and McKinsey-level strategic thinking. Return ONLY valid JSON, no markdown.'
+                },
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'text',
+                            text: promptText
+                        },
+                        ...imageContents
+                    ]
+                }
+            ],
+            response_format: { type: 'json_object' },
+            max_tokens: 8000,
+            temperature: 0.2, // Low for consistency and precision
+        });
+        console.log('✅ Premium analysis received from GPT-4o');
+        // Extract and parse content
+        const content = (_b = (_a = completion.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content;
+        if (!content) {
+            throw new Error('Empty response from GPT-4o');
+        }
+        let parsedAnalysis;
+        try {
+            parsedAnalysis = typeof content === 'string' ? JSON.parse(content) : content;
+        }
+        catch (e) {
+            // Try to extract JSON from markdown if parsing fails
+            const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) ||
+                content.match(/{[\s\S]*}/);
+            if (jsonMatch) {
+                parsedAnalysis = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+            }
+            else {
+                throw new Error('Could not parse JSON from response');
+            }
+        }
+        // Save analysis to Firestore if userId and analysisId provided
+        if (userId && analysisId) {
+            console.log(`💾 Saving premium analysis to Firestore: users/${userId}/analyses/${analysisId}`);
+            await admin.firestore()
+                .collection('users')
+                .doc(userId)
+                .collection('analyses')
+                .doc(analysisId)
+                .set(Object.assign(Object.assign({}, parsedAnalysis.analysis), { id: analysisId, userId, jobTitle: jobContext.jobTitle, company: jobContext.company, location: jobContext.location || null, jobUrl: jobContext.jobUrl || null, date: admin.firestore.FieldValue.serverTimestamp(), status: 'completed', type: 'premium', 
+                // Store match score at top level for easy querying
+                matchScore: parsedAnalysis.analysis.match_scores.overall_score, category: parsedAnalysis.analysis.match_scores.category, 
+                // Store key data for list views
+                keyFindings: parsedAnalysis.analysis.executive_summary, categoryScores: {
+                    skills: parsedAnalysis.analysis.match_scores.skills_score,
+                    experience: parsedAnalysis.analysis.match_scores.experience_score,
+                    education: parsedAnalysis.analysis.match_scores.education_score,
+                    industryFit: parsedAnalysis.analysis.match_scores.industry_fit_score,
+                } }), { merge: true });
+            console.log('✅ Premium analysis saved to Firestore');
+        }
+        console.log('✅ Premium analysis completed successfully');
+        // Return success response
+        res.status(200).json({
+            status: 'success',
+            analysis: parsedAnalysis,
+            usage: completion.usage,
+            analysisId: analysisId || null,
+        });
+    }
+    catch (error) {
+        console.error('❌ Error in analyzeCVPremium:', error);
         // Handle OpenAI API errors
         if (error.response) {
             const statusCode = error.response.status || 500;
@@ -545,7 +830,7 @@ const createOrUpdateBrevoContact = async (apiKey, contact) => {
  * Called from client or Firestore trigger
  * Using onRequest instead of onCall to fix CORS issues
  */
-exports.syncUserToBrevo = (0, https_2.onRequest)({
+exports.syncUserToBrevo = (0, https_1.onRequest)({
     region: 'us-central1',
     cors: true,
     maxInstances: 10,
@@ -871,7 +1156,7 @@ const sendHubSpotEvent = async (apiKey, email, eventName, properties) => {
  * Called from client or Firestore trigger
  * Using onRequest instead of onCall to fix CORS issues
  */
-exports.syncUserToHubSpot = (0, https_2.onRequest)({
+exports.syncUserToHubSpot = (0, https_1.onRequest)({
     region: 'us-central1',
     cors: true,
     maxInstances: 10,
@@ -962,7 +1247,7 @@ exports.syncUserToHubSpot = (0, https_2.onRequest)({
  * Send event to HubSpot
  * Called from client
  */
-exports.sendHubSpotEventFunction = (0, https_2.onRequest)({
+exports.sendHubSpotEventFunction = (0, https_1.onRequest)({
     region: 'us-central1',
     maxInstances: 10,
     invoker: 'public',
@@ -1054,7 +1339,7 @@ const getStripeClient = async () => {
  * Create a Stripe Checkout Session
  * This endpoint creates a payment session for subscriptions or one-time payments
  */
-exports.createCheckoutSession = (0, https_2.onRequest)({
+exports.createCheckoutSession = (0, https_1.onRequest)({
     region: 'us-central1',
     cors: true,
     maxInstances: 10,
@@ -1227,7 +1512,7 @@ exports.createCheckoutSession = (0, https_2.onRequest)({
  * Handles Stripe events (payment success, subscription updates, etc.)
  * Note: For webhook signature verification, we need raw body
  */
-exports.stripeWebhook = (0, https_2.onRequest)({
+exports.stripeWebhook = (0, https_1.onRequest)({
     region: 'us-central1',
     maxInstances: 10,
     invoker: 'public',
@@ -1493,7 +1778,7 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
  * Manual function to process a Stripe checkout session and add credits
  * This can be called manually if the webhook didn't fire
  */
-exports.processStripeSession = (0, https_2.onRequest)({
+exports.processStripeSession = (0, https_1.onRequest)({
     region: 'us-central1',
     cors: true,
     maxInstances: 10,
@@ -1594,7 +1879,7 @@ const handleInvoicePaymentFailed = async (invoice) => {
  * Endpoint: GET /api/jobs
  * Query params: keyword, location, remote, type, seniority, timePosted
  */
-exports.searchJobs = (0, https_2.onRequest)({
+exports.searchJobs = (0, https_1.onRequest)({
     region: 'us-central1',
     cors: true,
     maxInstances: 10,

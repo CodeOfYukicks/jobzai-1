@@ -18,9 +18,17 @@ export { matchJobsForUsers } from './matchJobsForUsers';
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {onCall} from "firebase-functions/v2/https";
-import {onRequest} from "firebase-functions/v2/https";
+import {onCall, onRequest} from "firebase-functions/v2/https";
 // admin already imported and initialized above
+
+// Test function to verify deployment works
+export const testNewFunction = onRequest({ 
+  region: 'us-central1', 
+  cors: true, 
+  invoker: 'public' 
+}, async (req, res) => {
+  res.status(200).json({ message: 'Test function works!', timestamp: new Date().toISOString() });
+});
 import { emailService } from './lib/mailgun.js';
 import OpenAI from 'openai';
 import * as functions from 'firebase-functions';
@@ -84,9 +92,11 @@ const getOpenAIApiKey = async (): Promise<string> => {
   // Fallback to Firebase config
   try {
     const config = functions.config();
-    if (config.openai?.api_key) {
-      console.log('Using OpenAI API key from Firebase config');
-      return config.openai.api_key;
+    // Check both 'api_key' and 'key' for backwards compatibility
+    const firebaseConfigKey = config.openai?.api_key || config.openai?.key;
+    if (firebaseConfigKey) {
+      console.log('✅ Using OpenAI API key from Firebase config (first 10 chars):', firebaseConfigKey.substring(0, 10) + '...');
+      return firebaseConfigKey;
     }
   } catch (e) {
     console.warn('Could not access Firebase config:', e);
@@ -341,7 +351,128 @@ export const updateCampaignEmails = onRequest({
 });
 
 /**
- * Analyze CV with GPT-4o Vision
+ * Handle premium ATS analysis (shared logic)
+ */
+async function handlePremiumAnalysis(
+  req: any,
+  res: any,
+  resumeImages: string[],
+  jobContext: any,
+  userId: string,
+  analysisId: string
+) {
+  try {
+    // Validate request
+    if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Resume images are required (array of base64 strings)'
+      });
+      return;
+    }
+    
+    if (!jobContext || !jobContext.jobTitle || !jobContext.company || !jobContext.jobDescription) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Job context is required (jobTitle, company, jobDescription)'
+      });
+      return;
+    }
+
+    // Get OpenAI client
+    const openaiClient = await getOpenAIClient();
+
+    // Import premium prompt builder
+    const { buildPremiumATSPrompt } = await import('./utils/premiumATSPrompt.js');
+    
+    // Build premium prompt
+    const promptText = buildPremiumATSPrompt({
+      jobTitle: jobContext.jobTitle,
+      company: jobContext.company,
+      jobDescription: jobContext.jobDescription,
+      seniority: jobContext.seniority,
+      targetRoles: jobContext.targetRoles,
+    });
+
+    console.log('📡 Sending premium analysis request to GPT-4o...');
+    
+    // Prepare messages with resume images
+    const imageContents = resumeImages.map((base64Image: string) => ({
+      type: 'image_url' as const,
+      image_url: {
+        url: base64Image.startsWith('data:') 
+          ? base64Image 
+          : `data:image/jpeg;base64,${base64Image}`
+      }
+    }));
+
+    // Call OpenAI API with premium prompt
+    const completion = await openaiClient.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an elite ATS specialist with 25+ years of experience. Return ONLY valid JSON.'
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: promptText },
+            ...imageContents
+          ]
+        }
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 8000,
+      temperature: 0.2,
+    });
+
+    console.log('✅ Premium analysis received from GPT-4o');
+    
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Empty response from GPT-4o');
+    }
+
+    let parsedAnalysis = JSON.parse(content);
+
+    // Save to Firestore if userId and analysisId provided
+    if (userId && analysisId) {
+      await admin.firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('analyses')
+        .doc(analysisId)
+        .set({
+          ...parsedAnalysis.analysis,
+          id: analysisId,
+          userId,
+          jobTitle: jobContext.jobTitle,
+          company: jobContext.company,
+          date: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'completed',
+          type: 'premium',
+          matchScore: parsedAnalysis.analysis.match_scores.overall_score,
+        }, { merge: true });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      analysis: parsedAnalysis,
+      usage: completion.usage,
+      analysisId,
+    });
+  } catch (error: any) {
+    console.error('❌ Error in premium analysis:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Internal server error'
+    });
+  }
+}
+
+/**
+ * Analyze CV with GPT-4o Vision (also handles premium analysis)
  * Endpoint: POST /api/analyze-cv-vision
  */
 export const analyzeCVVision = onRequest({
@@ -377,9 +508,17 @@ export const analyzeCVVision = onRequest({
     console.log('   Request headers:', JSON.stringify(req.headers));
     console.log('   Request body keys:', Object.keys(req.body || {}));
     
+    // Check if this is a premium analysis request
+    const { resumeImages, jobContext, userId, analysisId } = req.body;
+    if (resumeImages && jobContext) {
+      console.log('🎯 Detected premium ATS analysis request, redirecting...');
+      // Handle premium analysis inline
+      return await handlePremiumAnalysis(req, res, resumeImages, jobContext, userId, analysisId);
+    }
+    
     const { model, messages, response_format, max_tokens, temperature } = req.body;
     
-    // Validate request
+    // Validate request for regular vision analysis
     if (!model || !messages || !Array.isArray(messages)) {
       console.error('Invalid request format:', { model, hasMessages: !!messages });
       res.status(400).json({
@@ -464,6 +603,225 @@ export const analyzeCVVision = onRequest({
 
   } catch (error: any) {
     console.error('❌ Error in analyzeCVVision:', error);
+    console.error('   Error name:', error?.name);
+    console.error('   Error message:', error?.message);
+    console.error('   Error stack:', error?.stack);
+    console.error('   Error response:', JSON.stringify(error?.response?.data || {}));
+    
+    // Handle OpenAI API errors
+    if (error.response) {
+      const statusCode = error.response.status || 500;
+      const errorMessage = error.response.data?.error?.message || error.message || 'Unknown error';
+      
+      console.error(`   OpenAI API error ${statusCode}: ${errorMessage}`);
+      
+      res.status(statusCode).json({
+        status: 'error',
+        message: `OpenAI API error: ${errorMessage}`,
+        error: error.response.data?.error,
+        code: error.response.data?.error?.code || 'unknown'
+      });
+      return;
+    }
+
+    // Handle other errors with more details
+    const errorDetails = {
+      status: 'error',
+      message: error.message || 'Internal server error',
+      errorType: error.constructor.name,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    };
+    
+    console.error('   Returning error response:', JSON.stringify(errorDetails));
+    
+    res.status(500).json(errorDetails);
+  }
+});
+
+/**
+ * Premium ATS Analysis with comprehensive JSON structure  
+ * Endpoint: POST /api/analyze-cv-premium
+ */
+export const analyzeResumePremium = onRequest(
+  {
+    region: 'us-central1',
+    cors: [/localhost:\d+/, /\.web\.app$/, /\.firebaseapp\.com$/],
+    maxInstances: 10,
+    timeoutSeconds: 300,
+    invoker: 'public',
+  },
+  async (req, res) => {
+    // Handle preflight OPTIONS request
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    // Only allow POST
+    if (req.method !== 'POST') {
+      res.status(405).json({
+        status: 'error',
+        message: 'Method not allowed'
+      });
+      return;
+    }
+
+  try {
+    console.log('🎯 Premium ATS analysis request received');
+    
+    const { resumeImages, jobContext, userId, analysisId } = req.body;
+    
+    // Validate request
+    if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Resume images are required (array of base64 strings)'
+      });
+      return;
+    }
+    
+    if (!jobContext || !jobContext.jobTitle || !jobContext.company || !jobContext.jobDescription) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Job context is required (jobTitle, company, jobDescription)'
+      });
+      return;
+    }
+
+    // Get OpenAI client
+    let openaiClient: OpenAI;
+    try {
+      openaiClient = await getOpenAIClient();
+    } catch (error: any) {
+      console.error('❌ Failed to get OpenAI client:', error);
+      res.status(500).json({
+        status: 'error',
+        message: `OpenAI API key configuration error: ${error?.message || 'Unknown error'}`
+      });
+      return;
+    }
+
+    // Import premium prompt builder
+    const { buildPremiumATSPrompt } = await import('./utils/premiumATSPrompt.js');
+    
+    // Build premium prompt
+    const promptText = buildPremiumATSPrompt({
+      jobTitle: jobContext.jobTitle,
+      company: jobContext.company,
+      jobDescription: jobContext.jobDescription,
+      seniority: jobContext.seniority,
+      targetRoles: jobContext.targetRoles,
+    });
+
+    console.log('📡 Sending premium analysis request to GPT-4o...');
+    console.log(`   Resume images: ${resumeImages.length}`);
+    console.log(`   Job: ${jobContext.jobTitle} at ${jobContext.company}`);
+    
+    // Prepare messages with resume images
+    const imageContents = resumeImages.map((base64Image: string) => ({
+      type: 'image_url' as const,
+      image_url: {
+        url: base64Image.startsWith('data:') 
+          ? base64Image 
+          : `data:image/jpeg;base64,${base64Image}`
+      }
+    }));
+
+    // Call OpenAI API with premium prompt
+    const completion = await openaiClient.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an elite ATS specialist with 25+ years of experience. You combine senior hiring manager expertise, Apple-grade UX writing, and McKinsey-level strategic thinking. Return ONLY valid JSON, no markdown.'
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: promptText
+            },
+            ...imageContents
+          ]
+        }
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 8000, // Increased for comprehensive analysis
+      temperature: 0.2, // Low for consistency and precision
+    });
+
+    console.log('✅ Premium analysis received from GPT-4o');
+    
+    // Extract and parse content
+    const content = completion.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('Empty response from GPT-4o');
+    }
+
+    let parsedAnalysis;
+    try {
+      parsedAnalysis = typeof content === 'string' ? JSON.parse(content) : content;
+    } catch (e) {
+      // Try to extract JSON from markdown if parsing fails
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                        content.match(/{[\s\S]*}/);
+      if (jsonMatch) {
+        parsedAnalysis = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      } else {
+        throw new Error('Could not parse JSON from response');
+      }
+    }
+
+    // Save analysis to Firestore if userId and analysisId provided
+    if (userId && analysisId) {
+      console.log(`💾 Saving premium analysis to Firestore: users/${userId}/analyses/${analysisId}`);
+      
+      await admin.firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('analyses')
+        .doc(analysisId)
+        .set({
+          ...parsedAnalysis.analysis,
+          id: analysisId,
+          userId,
+          jobTitle: jobContext.jobTitle,
+          company: jobContext.company,
+          location: jobContext.location || null,
+          jobUrl: jobContext.jobUrl || null,
+          date: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'completed',
+          type: 'premium',
+          // Store match score at top level for easy querying
+          matchScore: parsedAnalysis.analysis.match_scores.overall_score,
+          category: parsedAnalysis.analysis.match_scores.category,
+          // Store key data for list views
+          keyFindings: parsedAnalysis.analysis.executive_summary,
+          categoryScores: {
+            skills: parsedAnalysis.analysis.match_scores.skills_score,
+            experience: parsedAnalysis.analysis.match_scores.experience_score,
+            education: parsedAnalysis.analysis.match_scores.education_score,
+            industryFit: parsedAnalysis.analysis.match_scores.industry_fit_score,
+          },
+        }, { merge: true });
+      
+      console.log('✅ Premium analysis saved to Firestore');
+    }
+
+    console.log('✅ Premium analysis completed successfully');
+    
+    // Return success response
+    res.status(200).json({
+      status: 'success',
+      analysis: parsedAnalysis,
+      usage: completion.usage,
+      analysisId: analysisId || null,
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error in analyzeCVPremium:', error);
     
     // Handle OpenAI API errors
     if (error.response) {
