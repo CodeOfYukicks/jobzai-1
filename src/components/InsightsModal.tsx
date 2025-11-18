@@ -90,7 +90,7 @@ export default function InsightsModal({ category, title, onClose }: InsightsModa
         <div className="p-6 overflow-y-auto">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-[#8D75E6] mb-4" />
+              <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))] mb-4" />
               <p className="text-gray-500">Generating personalized insights...</p>
             </div>
           ) : error ? (
@@ -137,7 +137,7 @@ export default function InsightsModal({ category, title, onClose }: InsightsModa
                       transition={{ delay: index * 0.1 }}
                       className="flex items-start"
                     >
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#8D75E6] text-white flex items-center justify-center text-sm mr-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[hsl(var(--primary))] text-white flex items-center justify-center text-sm mr-3">
                         {index + 1}
                       </span>
                       <span className="text-gray-600">{tip}</span>
@@ -157,7 +157,7 @@ export default function InsightsModal({ category, title, onClose }: InsightsModa
         <div className="border-t p-6 bg-gray-50">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-[#8D75E6] text-white rounded-lg hover:bg-[#8D75E6]/90 transition-colors"
+            className="w-full px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:bg-[hsl(var(--primary))]/90 transition-colors"
           >
             Close
           </button>

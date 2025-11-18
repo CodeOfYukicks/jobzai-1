@@ -245,8 +245,45 @@ ${jobDetails.jobDescription}
 ## Analysis Requirements
 1. THOROUGHLY examine both the resume and job description
 2. Provide an HONEST and PRECISE match analysis with NO artificial inflation of scores
-3. Vary your scores meaningfully based on the actual match quality - don't default to generic mid-range scores
-4. Identify SPECIFIC strengths and gaps, not generic advice
+3. **CRITICAL: Vary your scores DRAMATICALLY based on actual match quality - use the FULL range (0-100)**
+4. **DO NOT cluster scores around 75-78% - this is a common mistake that makes the analysis useless**
+5. **CRITICAL: Detect SPECIFIC experience requirements (e.g., "5 years experience with Python", "5 years building ML models")**
+6. **If specific experience requirements are MISSING, scores MUST be LOW (20-40% maximum)**
+7. Identify SPECIFIC strengths and gaps, not generic advice
+
+## SCORING PHILOSOPHY - STRICT ENFORCEMENT
+
+**YOU MUST USE THE FULL SCORE RANGE (0-100) AND BE POLARIZED:**
+
+- **0-30%**: Poor match - Missing multiple critical requirements, fundamental misalignment
+- **31-50%**: Weak match - Missing critical requirements or major gaps
+- **51-65%**: Moderate match - Meets basic requirements but missing important ones
+- **66-75%**: Good match - Meets critical requirements, missing some important ones
+- **76-85%**: Strong match - Meets all critical requirements, most important ones
+- **86-95%**: Excellent match - Exceeds requirements, very competitive
+- **96-100%**: Exceptional match - RARE, truly outstanding alignment
+
+**CRITICAL REQUIREMENT ENFORCEMENT:**
+- Missing 1 critical must-have requirement → Maximum score: 60
+- Missing 2+ critical must-have requirements → Maximum score: 40
+- Missing 3+ critical must-have requirements → Maximum score: 30
+- **Missing SPECIFIC experience requirements (e.g., "5 years Python") → Maximum score: 30-40**
+- **Missing ALL specific experience requirements → Maximum score: 20-30**
+- This is NON-NEGOTIABLE. Be SEVERE and HONEST.
+
+**SPECIFIC EXPERIENCE REQUIREMENT DETECTION:**
+- Look for patterns like "5 years experience with Python", "Over 5 years building ML models", "5+ years Python, R, SQL"
+- These are DEAL-BREAKERS if missing from the resume
+- If job requires "5 years Python" and resume has NO Python experience → Score MUST be 20-40% maximum
+- If job requires "5 years ML" and resume has NO ML experience → Score MUST be 20-40% maximum
+- Do NOT give 60-70% scores when critical experience requirements are completely missing
+
+**SCORE VARIATION REQUIREMENTS:**
+- If you always give scores around 75-78%, you are FAILING at your job
+- Each analysis should produce DIFFERENT scores based on actual match quality
+- A poorly matched resume MUST get a low score (30-50%)
+- A well-matched resume CAN get a high score (80-95%)
+- Do NOT default to mid-range scores - analyze and score accurately
 
 ## Output Format
 Return ONLY a JSON object with the following structure:
@@ -284,10 +321,13 @@ Return ONLY a JSON object with the following structure:
 \`\`\`
 
 ## Important Guidelines
-- Ensure scores are MEANINGFUL and DIFFERENTIATED, not clustered in the 70-80% range
-- Assign lower scores (30-60%) when appropriate for poor matches
+- **NEVER cluster scores in the 70-80% range** - this makes your analysis useless
+- **Vary scores dramatically** - use 0-100 range based on actual match quality
+- Assign lower scores (20-50%) when appropriate for poor matches - DO NOT be afraid of low scores
 - Assign higher scores (80-95%) only for exceptionally strong matches
-- NEVER automatically inflate scores - be honest and precise
+- **NEVER automatically inflate scores** - be brutally honest and precise
+- If critical requirements are missing, scores MUST be low (30-60%)
+- If all critical requirements are met, scores CAN be high (70-95%)
 - Include specific job-relevant KEYWORDS found/missing in the resume
 - Provide detailed, actionable recommendations specific to this resume and job
 - Give real examples and fixes in your recommendations

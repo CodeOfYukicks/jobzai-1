@@ -11,14 +11,14 @@ interface NavItem {
 
 const PRIMARY_TABS: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: ScrollText, label: 'Resume', path: '/cv-optimizer' },
+  { icon: ScrollText, label: 'Resume Check', path: '/cv-optimizer' },
   { icon: Briefcase, label: 'Apps', path: '/applications' },
   { icon: Mail, label: 'Templates', path: '/email-templates' },
   // "More" will be a button opening a sheet, not a route
 ];
 
 const MORE_ITEMS: NavItem[] = [
-  { icon: FileSearch, label: 'ATS Check', path: '/cv-analysis' },
+  { icon: FileSearch, label: 'Resume Lab', path: '/cv-analysis' },
   { icon: Clock, label: 'Interviews', path: '/upcoming-interviews' },
   { icon: ScrollText, label: 'Campaigns', path: '/campaigns' },
   { icon: Lightbulb, label: 'Ideas', path: '/recommendations' },

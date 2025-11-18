@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -18,7 +18,7 @@ import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import { getDownloadURL, ref, getStorage, uploadBytes } from 'firebase/storage';
+import { getDownloadURL, ref, getStorage, uploadBytes, getBytes } from 'firebase/storage';
 import { toast } from 'sonner';
 import { db, storage, auth } from '../lib/firebase';
 import PrivateRoute from '../components/PrivateRoute';
@@ -48,6 +48,7 @@ import { analyzeCVWithGPT4Vision } from '../lib/gpt4VisionAnalysis';
 import { pdfToBase64Images, analyzePDFWithPremiumATS } from '../lib/premiumATSAnalysis';
 // Add this import
 import CVSelectionModal from '../components/CVSelectionModal';
+import CVPreviewModal from '../components/CVPreviewModal';
 // Import Perplexity for job extraction
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
 
@@ -208,6 +209,277 @@ interface AnalysisRequest {
   jobDescription: string;
 }
 
+// FEATURE 1: Extract employment experiences with dates from CV text
+interface EmploymentExperience {
+  title: string;
+  company: string;
+  startDate: string | null;
+  endDate: string | null;
+  isCurrent: boolean;
+  description: string;
+  context: 'professional' | 'project' | 'education' | 'volunteer' | 'unknown';
+}
+
+const extractEmploymentExperiences = (cvText: string): EmploymentExperience[] => {
+  const experiences: EmploymentExperience[] = [];
+  const lines = cvText.split('\n');
+  
+  // Patterns to detect experience sections
+  const experienceSectionMarkers = [
+    /^(experience|work experience|employment|professional experience|career|career history)/i,
+    /^(work|employment|professional)/i
+  ];
+  
+  // Patterns to detect dates (various formats)
+  const datePatterns = [
+    /(\w+\s+\d{4}|\d{4})\s*[-–—]\s*(\w+\s+\d{4}|\d{4}|present|current|actuel|présent)/i,
+    /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\s*[-–—]\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|present|current)/i,
+    /(\d{4})\s*[-–—]\s*(\d{4}|present|current)/i
+  ];
+  
+  let inExperienceSection = false;
+  let currentExp: Partial<EmploymentExperience> | null = null;
+  let currentDescription: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    // Check if we're entering an experience section
+    if (experienceSectionMarkers.some(pattern => pattern.test(line))) {
+      inExperienceSection = true;
+      continue;
+    }
+    
+    // Check if we're leaving experience section (entering education, skills, etc.)
+    if (/^(education|skills|projects|certifications|awards|hobbies|interests|references)/i.test(line)) {
+      if (currentExp) {
+        experiences.push({
+          ...currentExp as EmploymentExperience,
+          description: currentDescription.join(' '),
+          context: determineContext(currentExp.title || '', currentExp.company || '', currentDescription.join(' '))
+        });
+        currentExp = null;
+        currentDescription = [];
+      }
+      inExperienceSection = false;
+      continue;
+    }
+    
+    if (inExperienceSection || i < lines.length * 0.6) { // Focus on first 60% of CV (usually experience section)
+      // Try to extract date patterns
+      let dateFound = false;
+      for (const pattern of datePatterns) {
+        const match = line.match(pattern);
+        if (match) {
+          dateFound = true;
+          // If we have a current experience, finalize it
+          if (currentExp && (currentExp.startDate || currentExp.endDate)) {
+            experiences.push({
+              ...currentExp as EmploymentExperience,
+              description: currentDescription.join(' '),
+              context: determineContext(currentExp.title || '', currentExp.company || '', currentDescription.join(' '))
+            });
+          }
+          
+          // Start new experience
+          const startDate = match[1];
+          const endDate = match[2] || match[3] || 'present';
+          const isCurrent = /present|current|actuel|présent/i.test(endDate);
+          
+          // Try to extract title and company from surrounding lines
+          const prevLine = i > 0 ? lines[i - 1].trim() : '';
+          const nextLine = i < lines.length - 1 ? lines[i + 1].trim() : '';
+          
+          let title = '';
+          let company = '';
+          
+          // Pattern: "Title - Company" or "Title at Company"
+          if (prevLine) {
+            const titleCompanyMatch = prevLine.match(/^(.+?)\s*(?:[-–—]|at)\s*(.+)$/);
+            if (titleCompanyMatch) {
+              title = titleCompanyMatch[1].trim();
+              company = titleCompanyMatch[2].trim();
+            } else {
+              title = prevLine;
+            }
+          }
+          
+          if (!company && nextLine && !datePatterns.some(p => p.test(nextLine))) {
+            company = nextLine;
+          }
+          
+          currentExp = {
+            title: title || 'Unknown Position',
+            company: company || 'Unknown Company',
+            startDate: normalizeDateString(startDate),
+            endDate: normalizeDateString(endDate),
+            isCurrent
+          };
+          currentDescription = [];
+          break;
+        }
+      }
+      
+      // If no date found but we have a current experience, collect description
+      if (!dateFound && currentExp) {
+        // Check if this looks like a bullet point or description
+        if (line.match(/^[-•*]\s+/) || line.length > 20) {
+          currentDescription.push(line);
+        }
+      }
+    }
+  }
+  
+  // Add last experience if exists
+  if (currentExp) {
+    experiences.push({
+      ...currentExp as EmploymentExperience,
+      description: currentDescription.join(' '),
+      context: determineContext(currentExp.title || '', currentExp.company || '', currentDescription.join(' '))
+    });
+  }
+  
+  return experiences;
+};
+
+// Normalize date strings to YYYY-MM format for easier calculation
+const normalizeDateString = (dateStr: string): string | null => {
+  if (!dateStr || /present|current|actuel|présent/i.test(dateStr)) {
+    return null; // Will be treated as current date
+  }
+  
+  // Try to parse various formats
+  // Format: "Jan 2020" or "January 2020"
+  const monthYearMatch = dateStr.match(/(\w+)\s+(\d{4})/);
+  if (monthYearMatch) {
+    const monthNames: { [key: string]: string } = {
+      'jan': '01', 'january': '01', 'janvier': '01',
+      'feb': '02', 'february': '02', 'février': '02',
+      'mar': '03', 'march': '03', 'mars': '03',
+      'apr': '04', 'april': '04', 'avril': '04',
+      'may': '05', 'mai': '05',
+      'jun': '06', 'june': '06', 'juin': '06',
+      'jul': '07', 'july': '07', 'juillet': '07',
+      'aug': '08', 'august': '08', 'août': '08',
+      'sep': '09', 'september': '09', 'septembre': '09',
+      'oct': '10', 'october': '10', 'octobre': '10',
+      'nov': '11', 'november': '11', 'novembre': '11',
+      'dec': '12', 'december': '12', 'décembre': '12'
+    };
+    const month = monthNames[monthYearMatch[1].toLowerCase().substring(0, 3)];
+    const year = monthYearMatch[2];
+    if (month) return `${year}-${month}`;
+  }
+  
+  // Format: "2020" or "2020-01"
+  const yearMatch = dateStr.match(/(\d{4})(?:-(\d{1,2}))?/);
+  if (yearMatch) {
+    const year = yearMatch[1];
+    const month = yearMatch[2] ? yearMatch[2].padStart(2, '0') : '01';
+    return `${year}-${month}`;
+  }
+  
+  return null;
+};
+
+// FEATURE 2: Determine context of experience (professional vs project vs education)
+const determineContext = (title: string, company: string, description: string): 'professional' | 'project' | 'education' | 'volunteer' | 'unknown' => {
+  const titleLower = title.toLowerCase();
+  const companyLower = company.toLowerCase();
+  const descLower = description.toLowerCase();
+  const combined = `${titleLower} ${companyLower} ${descLower}`;
+  
+  // Education indicators
+  if (
+    /university|college|school|student|internship|stage|stagiare|étudiant|baccalauréat|master|phd|doctorate|diploma|degree/i.test(combined) ||
+    titleLower.includes('student') || titleLower.includes('intern')
+  ) {
+    return 'education';
+  }
+  
+  // Project indicators
+  if (
+    /project|projet|personal|personnel|side|freelance|freelancing|github|portfolio|open source|open-source/i.test(combined) ||
+    titleLower.includes('project') || titleLower.includes('developer') && companyLower.includes('personal')
+  ) {
+    return 'project';
+  }
+  
+  // Volunteer indicators
+  if (
+    /volunteer|bénévolat|non-profit|nonprofit|ngo|charity|charité/i.test(combined) ||
+    titleLower.includes('volunteer')
+  ) {
+    return 'volunteer';
+  }
+  
+  // Professional indicators (default if company name exists and not education/project)
+  if (company && company.length > 2 && !/university|college|school|project|personal/i.test(combined)) {
+    return 'professional';
+  }
+  
+  return 'unknown';
+};
+
+// Calculate actual years of experience with a specific skill based on employment dates
+const calculateSkillExperienceYears = (
+  skill: string,
+  experiences: EmploymentExperience[]
+): number => {
+  const skillVariations: string[] = [skill.toLowerCase()];
+  
+  // Add variations
+  if (skill.includes('python')) skillVariations.push('python', 'py', 'python3');
+  if (skill.includes('machine learning') || skill.includes('ml')) {
+    skillVariations.push('machine learning', 'ml', 'machine-learning', 'deep learning', 'neural network');
+  }
+  if (skill.includes('sql')) skillVariations.push('sql', 'mysql', 'postgresql');
+  if (skill.includes('javascript')) skillVariations.push('javascript', 'js', 'node', 'nodejs');
+  
+  let totalMonths = 0;
+  const now = new Date();
+  
+  experiences.forEach(exp => {
+    // Check if skill is mentioned in this experience
+    const expText = `${exp.title} ${exp.company} ${exp.description}`.toLowerCase();
+    const skillMentioned = skillVariations.some(variation => {
+      const regex = new RegExp(`\\b${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return regex.test(expText);
+    });
+    
+    if (!skillMentioned) return;
+    
+    // Calculate months for this experience
+    if (!exp.startDate) return;
+    
+    const startParts = exp.startDate.split('-');
+    if (startParts.length !== 2) return;
+    
+    const start = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, 1);
+    let end: Date;
+    
+    if (exp.isCurrent || !exp.endDate) {
+      end = now;
+    } else {
+      const endParts = exp.endDate.split('-');
+      if (endParts.length !== 2) {
+        end = now;
+      } else {
+        end = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, 1);
+      }
+    }
+    
+    if (end >= start) {
+      const months = (end.getFullYear() - start.getFullYear()) * 12 + 
+                    (end.getMonth() - start.getMonth());
+      totalMonths += Math.max(0, months);
+    }
+  });
+  
+  return Math.round(totalMonths / 12 * 10) / 10; // Round to 1 decimal
+};
+
 // Extraire des mots-clés d'un texte
 const extractKeywords = (text: string): string[] => {
   // Liste de mots-clés techniques courants à rechercher - expanded list
@@ -300,6 +572,485 @@ const extractKeywords = (text: string): string[] => {
 
 // Ajouter cette fonction utilitaire en dehors de toute autre fonction
 const roundScore = (score: number): number => Math.round(score);
+
+// ============================================
+// NOUVEAU SYSTÈME DE SCORING AVANCÉ
+// ============================================
+
+// Fonction pour analyser la progression de carrière
+const analyzeCareerProgression = (experiences: EmploymentExperience[]): number => {
+  if (experiences.length < 2) return 50; // Pas assez de données
+  
+  const professionalExp = experiences.filter(e => e.context === 'professional');
+  if (professionalExp.length < 2) return 50;
+  
+  // Analyser les titres pour détecter une progression
+  const seniorityLevels: { [key: string]: number } = {
+    'intern': 1,
+    'junior': 2,
+    'associate': 2,
+    'developer': 3,
+    'engineer': 3,
+    'analyst': 3,
+    'specialist': 4,
+    'senior': 5,
+    'lead': 6,
+    'principal': 6,
+    'architect': 7,
+    'manager': 7,
+    'director': 8,
+    'head': 8,
+    'vp': 9,
+    'vice president': 9,
+    'chief': 10,
+    'cto': 10,
+    'ceo': 10
+  };
+  
+  const levels = professionalExp.map(exp => {
+    const titleLower = exp.title.toLowerCase();
+    for (const [keyword, level] of Object.entries(seniorityLevels)) {
+      if (titleLower.includes(keyword)) {
+        return level;
+      }
+    }
+    return 3; // Default mid-level
+  });
+  
+  // Vérifier si c'est une progression ascendante
+  let progressionScore = 0;
+  for (let i = 1; i < levels.length; i++) {
+    if (levels[i] > levels[i-1]) {
+      progressionScore += 20; // Progression positive
+    } else if (levels[i] < levels[i-1]) {
+      progressionScore -= 10; // Rétrogradation
+    }
+  }
+  
+  return Math.max(0, Math.min(100, 50 + progressionScore));
+};
+
+// Fonction pour analyser l'optimisation ATS
+const analyzeATSOptimization = (cvText: string): number => {
+  let score = 50; // Base
+  
+  // Vérifier la structure (sections communes)
+  const sections = ['experience', 'education', 'skills', 'summary', 'objective'];
+  const foundSections = sections.filter(section => 
+    cvText.toLowerCase().includes(section)
+  );
+  score += (foundSections.length / sections.length) * 20;
+  
+  // Vérifier la longueur (optimal: 1-2 pages = ~400-800 mots)
+  const wordCount = cvText.split(/\s+/).length;
+  if (wordCount >= 400 && wordCount <= 800) {
+    score += 15;
+  } else if (wordCount < 300) {
+    score -= 10; // Trop court
+  } else if (wordCount > 1200) {
+    score -= 5; // Trop long
+  }
+  
+  // Vérifier les verbes d'action
+  const actionVerbs = ['achieved', 'delivered', 'improved', 'increased', 'managed', 'led', 'created', 'developed'];
+  const hasActionVerbs = actionVerbs.some(verb => cvText.toLowerCase().includes(verb));
+  if (hasActionVerbs) score += 10;
+  
+  // Vérifier la présence de chiffres (quantification)
+  const hasNumbers = /\d+/.test(cvText);
+  if (hasNumbers) score += 5;
+  
+  return Math.max(0, Math.min(100, score));
+};
+
+// Fonction pour calculer la densité optimale de keywords
+const calculateOptimalKeywordDensity = (
+  cvText: string,
+  jobKeywords: Array<{keyword: string; frequency: number; context: string}>
+): number => {
+  const cvWords = cvText.toLowerCase().split(/\s+/);
+  const totalWords = cvWords.length;
+  
+  if (totalWords === 0) return 0;
+  
+  // Compter les occurrences des keywords importants
+  let keywordCount = 0;
+  jobKeywords
+    .filter(kw => kw.context === 'requirement' || kw.context === 'preferred')
+    .forEach(kw => {
+      const regex = new RegExp(`\\b${kw.keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+      keywordCount += (cvText.toLowerCase().match(regex) || []).length;
+    });
+  
+  // Densité optimale: 2-5% des mots sont des keywords importants
+  const density = (keywordCount / totalWords) * 100;
+  
+  if (density >= 2 && density <= 5) {
+    return 100; // Optimal
+  } else if (density < 2) {
+    return Math.max(0, density * 50); // Trop peu
+  } else {
+    return Math.max(0, 100 - (density - 5) * 10); // Trop (keyword stuffing)
+  }
+};
+
+// Fonction pour calculer le score d'éducation
+const calculateEducationScore = (cvText: string, jobDescription: string): number => {
+  const educationTerms = ['degree', 'bachelor', 'master', 'phd', 'mba', 'certification', 'diploma', 'university', 'college'];
+  const jobHasEducation = educationTerms.some(term => jobDescription.toLowerCase().includes(term));
+  
+  if (!jobHasEducation) {
+    return 75; // Pas d'exigence = score neutre
+  }
+  
+  const cvHasEducation = educationTerms.some(term => cvText.toLowerCase().includes(term));
+  if (!cvHasEducation) {
+    return 20; // Exigence mais pas trouvé
+  }
+  
+  // Vérifier la correspondance exacte
+  const jobEducation = educationTerms.filter(term => jobDescription.toLowerCase().includes(term));
+  const cvEducation = educationTerms.filter(term => cvText.toLowerCase().includes(term));
+  
+  const matchRatio = jobEducation.filter(j => cvEducation.includes(j)).length / Math.max(1, jobEducation.length);
+  
+  return Math.round(50 + matchRatio * 50);
+};
+
+// Fonction pour calculer le score d'industry fit
+const calculateIndustryFitScore = (cvText: string, jobDescription: string, company: string): number => {
+  let score = 50; // Base
+  
+  // Domain keywords du job
+  const domainKeywords = extractKeywords(jobDescription)
+    .filter(kw => {
+      const kwLower = kw.toLowerCase();
+      return !['years', 'experience', 'required', 'must', 'have', 'skills'].includes(kwLower) &&
+             kw.length > 4;
+    });
+  
+  const domainMatches = domainKeywords.filter(kw => 
+    cvText.toLowerCase().includes(kw.toLowerCase())
+  ).length;
+  
+  score += (domainMatches / Math.max(1, domainKeywords.length)) * 40;
+  
+  // Mention de la company
+  if (company && cvText.toLowerCase().includes(company.toLowerCase())) {
+    score += 10;
+  }
+  
+  return Math.max(0, Math.min(100, score));
+};
+
+// Fonction pour calculer les pénalités critiques
+const calculateCriticalPenalty = (
+  criticalRequirements: Array<{years: number, skill: string}>,
+  employmentExperiences: EmploymentExperience[],
+  cvText: string
+): number => {
+  if (criticalRequirements.length === 0) return 0;
+  
+  let missingCount = 0;
+  criticalRequirements.forEach(({ years, skill }) => {
+    const actualYears = calculateSkillExperienceYears(skill, employmentExperiences);
+    const professionalExp = employmentExperiences.filter(e => 
+      e.context === 'professional' && 
+      `${e.title} ${e.company} ${e.description}`.toLowerCase().includes(skill)
+    );
+    const professionalYears = calculateSkillExperienceYears(skill, professionalExp);
+    const effectiveYears = years >= 5 ? professionalYears : actualYears;
+    
+    if (effectiveYears < years) {
+      missingCount++;
+    }
+  });
+  
+  const missingRatio = missingCount / criticalRequirements.length;
+  
+  // Pénalités sévères et différenciantes
+  if (missingRatio >= 1.0) return 70; // Tous manquants
+  if (missingRatio >= 0.75) return 55; // 75% manquants
+  if (missingRatio >= 0.5) return 40;  // 50% manquants
+  if (missingRatio >= 0.25) return 25; // 25% manquants
+  if (missingRatio > 0) return 10;     // Quelques manquants
+  
+  return 0; // Tous présents
+};
+
+// NOUVELLE FONCTION: Calcul de score amélioré avec différenciation qualitative
+const calculateAdvancedMatchScore = (
+  cvText: string,
+  jobDescription: string,
+  jobTitle: string,
+  company: string,
+  employmentExperiences: EmploymentExperience[]
+): {
+  matchScore: number;
+  categoryScores: { skills: number; experience: number; education: number; industryFit: number };
+  qualityFactors: {
+    keywordDensity: number;
+    achievementQuantification: number;
+    careerProgression: number;
+    atsOptimization: number;
+  };
+} => {
+  const cvTextLower = cvText.toLowerCase();
+  const jobDescLower = jobDescription.toLowerCase();
+  
+  // ============================================
+  // 1. ANALYSE QUALITATIVE DES KEYWORDS
+  // ============================================
+  
+  // Extraire keywords avec leur contexte et importance
+  const extractKeywordsWithContext = (text: string) => {
+    const keywords = extractKeywords(text);
+    const keywordsWithContext: Array<{
+      keyword: string;
+      frequency: number;
+      context: 'requirement' | 'preferred' | 'nice-to-have' | 'general';
+      position: number; // Position dans le texte (0-1)
+    }> = [];
+    
+    keywords.forEach(keyword => {
+      const keywordLower = keyword.toLowerCase();
+      const matches = [...text.toLowerCase().matchAll(new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'))];
+      const frequency = matches.length;
+      
+      // Déterminer le contexte
+      let context: 'requirement' | 'preferred' | 'nice-to-have' | 'general' = 'general';
+      matches.forEach(match => {
+        const start = Math.max(0, match.index! - 100);
+        const end = Math.min(text.length, match.index! + match[0].length + 100);
+        const contextText = text.substring(start, end).toLowerCase();
+        
+        if (contextText.match(/\b(required|must|essential|mandatory|critical)\b/)) {
+          context = 'requirement';
+        } else if (contextText.match(/\b(preferred|nice to have|bonus|plus)\b/)) {
+          context = 'nice-to-have';
+        } else if (contextText.match(/\b(strong|extensive|significant|proven)\b/)) {
+          context = 'preferred';
+        }
+      });
+      
+      // Position moyenne dans le texte
+      const avgPosition = matches.reduce((sum, m) => sum + (m.index! / text.length), 0) / matches.length;
+      
+      keywordsWithContext.push({
+        keyword,
+        frequency,
+        context,
+        position: avgPosition
+      });
+    });
+    
+    return keywordsWithContext;
+  };
+  
+  const jobKeywordsWithContext = extractKeywordsWithContext(jobDescription);
+  const cvKeywordsWithContext = extractKeywordsWithContext(cvText);
+  
+  // Calculer le score de matching avec pondération qualitative
+  let skillsScore = 0;
+  let totalWeight = 0;
+  let matchedWeight = 0;
+  
+  jobKeywordsWithContext.forEach(jobKw => {
+    const weight = 
+      (jobKw.context === 'requirement' ? 3.0 : 
+       jobKw.context === 'preferred' ? 2.0 : 
+       jobKw.context === 'nice-to-have' ? 0.5 : 1.0) *
+      (1 + Math.log(jobKw.frequency + 1)) * // Plus de mentions = plus important
+      (jobKw.position < 0.3 ? 1.2 : 1.0); // Mentionné tôt = plus important
+    
+    totalWeight += weight;
+    
+    // Chercher dans le CV avec analyse qualitative
+    const cvMatch = cvKeywordsWithContext.find(cvKw => 
+      cvKw.keyword.toLowerCase() === jobKw.keyword.toLowerCase() ||
+      cvKw.keyword.toLowerCase().includes(jobKw.keyword.toLowerCase()) ||
+      jobKw.keyword.toLowerCase().includes(cvKw.keyword.toLowerCase())
+    );
+    
+    if (cvMatch) {
+      // Score basé sur la fréquence et le contexte dans le CV
+      const cvWeight = 
+        (cvMatch.frequency > 1 ? 1.0 + Math.log(cvMatch.frequency) * 0.3 : 1.0) *
+        (cvMatch.position < 0.3 ? 1.1 : 1.0); // Mentionné tôt = mieux
+      
+      matchedWeight += weight * Math.min(1.0, cvWeight);
+    }
+  });
+  
+  skillsScore = totalWeight > 0 ? (matchedWeight / totalWeight) * 100 : 0;
+  
+  // ============================================
+  // 2. ANALYSE QUALITATIVE DE L'EXPÉRIENCE
+  // ============================================
+  
+  let experienceScore = 0;
+  
+  // Analyser les années d'expérience avec contexte professionnel
+  const specificExpPatterns = [
+    /(\d+)[\+]?\s+years?[^.]*?(?:of\s+)?experience[^.]*?(?:with|in|using|working|building|developing|coding)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi,
+    /over\s+(\d+)[\+]?\s+years?[^.]*?(?:of\s+)?experience[^.]*?(?:with|in|using|working|building|developing|coding)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi,
+    /(\d+)[\+]?\s+years?[^.]*?(?:building|developing|coding|working|with|in)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi,
+  ];
+  
+  const criticalRequirements: Array<{years: number, skill: string}> = [];
+  specificExpPatterns.forEach(pattern => {
+    let match;
+    pattern.lastIndex = 0;
+    while ((match = pattern.exec(jobDescription)) !== null) {
+      const years = parseInt(match[1], 10);
+      let skill = match[2].trim().toLowerCase();
+      skill = skill.replace(/\b(experience|with|in|of|using|working|building|developing|coding|models?|systems?|platforms?|applications?|solutions?)\b/g, '').trim();
+      if (skill && skill.length > 2) {
+        criticalRequirements.push({ years, skill });
+      }
+    }
+  });
+  
+  // Calculer le score d'expérience avec analyse qualitative
+  if (criticalRequirements.length > 0) {
+    let totalExpScore = 0;
+    criticalRequirements.forEach(({ years, skill }) => {
+      const actualYears = calculateSkillExperienceYears(skill, employmentExperiences);
+      const professionalExp = employmentExperiences.filter(e => 
+        e.context === 'professional' && 
+        `${e.title} ${e.company} ${e.description}`.toLowerCase().includes(skill)
+      );
+      const professionalYears = calculateSkillExperienceYears(skill, professionalExp);
+      
+      const effectiveYears = years >= 5 ? professionalYears : actualYears;
+      
+      if (effectiveYears >= years) {
+        // Bonus si dépasse les exigences
+        const excessRatio = Math.min((effectiveYears - years) / years, 0.5); // Max 50% bonus
+        totalExpScore += 100 + (excessRatio * 50);
+      } else if (effectiveYears >= years * 0.8) {
+        // Proche mais pas tout à fait
+        totalExpScore += 70 + ((effectiveYears - years * 0.8) / (years * 0.2)) * 20;
+      } else if (effectiveYears >= years * 0.5) {
+        // Moitié des exigences
+        totalExpScore += 40 + ((effectiveYears - years * 0.5) / (years * 0.3)) * 30;
+      } else if (effectiveYears > 0) {
+        // Quelque expérience mais insuffisante
+        totalExpScore += (effectiveYears / years) * 30;
+      }
+      // 0 si aucune expérience
+    });
+    
+    experienceScore = criticalRequirements.length > 0 ? totalExpScore / criticalRequirements.length : 0;
+  } else {
+    // Pas d'exigences spécifiques, analyser l'expérience générale
+    const totalYears = employmentExperiences
+      .filter(e => e.context === 'professional')
+      .reduce((sum, e) => {
+        if (!e.startDate) return sum;
+        const start = new Date(parseInt(e.startDate.split('-')[0]), parseInt(e.startDate.split('-')[1]) - 1);
+        const end = e.isCurrent ? new Date() : (e.endDate ? new Date(parseInt(e.endDate.split('-')[0]), parseInt(e.endDate.split('-')[1]) - 1) : new Date());
+        const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+        return sum + Math.max(0, months);
+      }, 0) / 12;
+    
+    // Analyser la progression de carrière
+    const progressionScore = analyzeCareerProgression(employmentExperiences);
+    
+    experienceScore = Math.min(100, (totalYears / 10) * 50 + progressionScore * 50);
+  }
+  
+  // ============================================
+  // 3. ANALYSE DE LA QUALITÉ DU CV
+  // ============================================
+  
+  // Quantification des achievements
+  const achievementPatterns = [
+    /\b(increased|improved|reduced|decreased|achieved|delivered|managed|led|grew|optimized|saved|generated|built|created|developed)\b[^.!?]*?(\d+[%]?|[0-9,]+)\b/gi,
+    /\b(\d+[%]?|[0-9,]+)\s*(increase|decrease|improvement|reduction|growth|users|customers|revenue|sales|efficiency|performance)\b/gi,
+  ];
+  
+  let quantifiedAchievements = 0;
+  let totalAchievements = 0;
+  
+  achievementPatterns.forEach(pattern => {
+    const matches = [...cvText.matchAll(pattern)];
+    quantifiedAchievements += matches.length;
+  });
+  
+  // Compter les verbes d'action (achievements potentiels)
+  const actionVerbs = ['achieved', 'delivered', 'improved', 'increased', 'reduced', 'managed', 'led', 'created', 'developed', 'built', 'implemented', 'optimized', 'designed', 'launched'];
+  actionVerbs.forEach(verb => {
+    const regex = new RegExp(`\\b${verb}\\b`, 'gi');
+    totalAchievements += (cvText.match(regex) || []).length;
+  });
+  
+  const achievementQuantification = totalAchievements > 0 
+    ? Math.min(100, (quantifiedAchievements / totalAchievements) * 100)
+    : 0;
+  
+  // Progression de carrière
+  const careerProgression = analyzeCareerProgression(employmentExperiences);
+  
+  // ATS Optimization (formatting, structure)
+  const atsOptimization = analyzeATSOptimization(cvText);
+  
+  // Keyword density (pas trop, pas trop peu)
+  const keywordDensity = calculateOptimalKeywordDensity(cvText, jobKeywordsWithContext);
+  
+  // ============================================
+  // 4. CALCUL DU SCORE GLOBAL AVEC PONDÉRATION
+  // ============================================
+  
+  // Score de base avec facteurs de qualité
+  const qualityMultiplier = 
+    (achievementQuantification * 0.25 + 
+     careerProgression * 0.25 + 
+     atsOptimization * 0.25 + 
+     keywordDensity * 0.25) / 100;
+  
+  // Score ajusté avec facteurs de qualité (0.7 à 1.3)
+  const adjustedSkillsScore = skillsScore * (0.7 + qualityMultiplier * 0.6);
+  const adjustedExperienceScore = experienceScore * (0.7 + qualityMultiplier * 0.6);
+  
+  // Score d'éducation (simplifié mais différenciant)
+  const educationScore = calculateEducationScore(cvText, jobDescription);
+  
+  // Score d'industry fit
+  const industryFitScore = calculateIndustryFitScore(cvText, jobDescription, company);
+  
+  // Score global avec pondération intelligente
+  const baseMatchScore = 
+    (adjustedSkillsScore * 0.35) +      // Compétences (35%)
+    (adjustedExperienceScore * 0.30) +   // Expérience (30%)
+    (educationScore * 0.15) +            // Éducation (15%)
+    (industryFitScore * 0.20);           // Industry fit (20%)
+  
+  // Appliquer des pénalités sévères pour les exigences critiques manquantes
+  const criticalPenalty = calculateCriticalPenalty(
+    criticalRequirements,
+    employmentExperiences,
+    cvText
+  );
+  
+  const finalMatchScore = Math.max(0, Math.min(100, baseMatchScore - criticalPenalty));
+  
+  return {
+    matchScore: Math.round(finalMatchScore),
+    categoryScores: {
+      skills: Math.round(Math.max(0, Math.min(100, adjustedSkillsScore))),
+      experience: Math.round(Math.max(0, Math.min(100, adjustedExperienceScore))),
+      education: Math.round(Math.max(0, Math.min(100, educationScore))),
+      industryFit: Math.round(Math.max(0, Math.min(100, industryFitScore)))
+    },
+    qualityFactors: {
+      keywordDensity: Math.round(keywordDensity),
+      achievementQuantification: Math.round(achievementQuantification),
+      careerProgression: Math.round(careerProgression),
+      atsOptimization: Math.round(atsOptimization)
+    }
+  };
+};
 
 // Fonction pour générer une analyse mock détaillée
 const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: string; jobDescription: string }): ATSAnalysis => {
@@ -473,13 +1224,214 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
     titleMatchScore = (titleWordsInCV / jobTitleWords.length) * 10; // Partial match
   }
   
-  // Calculate years of experience match
+  // CRITICAL: Detect SPECIFIC experience requirements (e.g., "5 years experience with Python")
+  // This is much more important than general experience years
+  const specificExpMatches: Array<{years: number, skill: string}> = [];
+  
+  // Pattern 1: "5 years experience with Python" or "5 years of experience with Python"
+  const pattern1 = /(\d+)[\+]?\s+years?[^.]*?(?:of\s+)?experience[^.]*?(?:with|in|using|working|building|developing|coding)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi;
+  let match;
+  while ((match = pattern1.exec(jobDesc)) !== null) {
+    const years = parseInt(match[1], 10);
+    let skill = match[2].trim().toLowerCase();
+    // Clean up the skill
+    skill = skill.replace(/\b(experience|with|in|of|using|working|building|developing|coding)\b/g, '').trim();
+    if (skill && skill.length > 2) {
+      specificExpMatches.push({ years, skill });
+    }
+  }
+  
+  // Pattern 2: "Over 5 years of experience with Python" or "Over 5 years experience with Python"
+  const pattern2 = /over\s+(\d+)[\+]?\s+years?[^.]*?(?:of\s+)?experience[^.]*?(?:with|in|using|working|building|developing|coding)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi;
+  while ((match = pattern2.exec(jobDesc)) !== null) {
+    const years = parseInt(match[1], 10);
+    let skill = match[2].trim().toLowerCase();
+    skill = skill.replace(/\b(experience|with|in|of|using|working|building|developing|coding)\b/g, '').trim();
+    if (skill && skill.length > 2 && !specificExpMatches.some(m => m.years === years && m.skill === skill)) {
+      specificExpMatches.push({ years, skill });
+    }
+  }
+  
+  // Pattern 3: "5+ years Python" or "5+ years of Python" (simpler pattern)
+  const pattern3 = /(\d+)[\+]?\s+years?[^.]*?(?:of\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/gi;
+  while ((match = pattern3.exec(jobDesc)) !== null) {
+    const years = parseInt(match[1], 10);
+    let skill = match[2].trim().toLowerCase();
+    // Skip if it's just "experience" or "years"
+    if (skill && skill.length > 2 && 
+        !['experience', 'years', 'working', 'building'].includes(skill) &&
+        !specificExpMatches.some(m => m.years === years && m.skill === skill)) {
+      specificExpMatches.push({ years, skill });
+    }
+  }
+  
+  // Pattern 4: "5 years building ML models" or "5 years building machine learning models"
+  const pattern4 = /(\d+)[\+]?\s+years?[^.]*?(?:building|developing|coding|working|with|in)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi;
+  while ((match = pattern4.exec(jobDesc)) !== null) {
+    const years = parseInt(match[1], 10);
+    let skill = match[2].trim().toLowerCase();
+    // Extract key skill words (e.g., "ML models" -> "ML", "machine learning models" -> "machine learning")
+    skill = skill.replace(/\b(models?|systems?|platforms?|applications?|solutions?)\b/g, '').trim();
+    if (skill && skill.length > 2 && 
+        !specificExpMatches.some(m => m.years === years && 
+          (m.skill.includes(skill) || skill.includes(m.skill)))) {
+      specificExpMatches.push({ years, skill });
+    }
+  }
+  
+  // Pattern 5: "5 years Python, R, SQL" (multiple skills in one requirement)
+  const pattern5 = /(\d+)[\+]?\s+years?[^.]*?(?:with|in|of|using|experience|working|building|developing|coding)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi;
+  while ((match = pattern5.exec(jobDesc)) !== null) {
+    const years = parseInt(match[1], 10);
+    const skillsText = match[2].trim().toLowerCase();
+    // Split by comma, semicolon, or "and" to get individual skills
+    const individualSkills = skillsText.split(/[,;]|\sand\s/).map(s => s.trim());
+    
+    individualSkills.forEach(skillText => {
+      let skill = skillText.replace(/\b(experience|with|in|of|using|working|building|developing|coding)\b/g, '').trim();
+      // Handle abbreviations like "ML" or "K8S"
+      if (skill && skill.length >= 2 && 
+          !specificExpMatches.some(m => m.years === years && 
+            (m.skill === skill || m.skill.includes(skill) || skill.includes(m.skill)))) {
+        specificExpMatches.push({ years, skill });
+      }
+    });
+  }
+  
+  // FEATURE 1 & 2: Extract employment experiences and calculate real experience years
+  const employmentExperiences = extractEmploymentExperiences(cvText);
+  
+  // CRITICAL: Check if CV has the required specific experience
+  let missingCriticalExperience = 0;
+  let totalCriticalExperience = 0;
+  
+  specificExpMatches.forEach(({ years, skill }) => {
+    totalCriticalExperience++;
+    
+    // Normalize skill names for better matching
+    const normalizedSkill = skill.toLowerCase().trim();
+    const skillVariations: string[] = [normalizedSkill];
+    
+    // Add common variations (e.g., "machine learning" = "ML" = "ml")
+    if (normalizedSkill.includes('machine learning')) {
+      skillVariations.push('ml', 'machine learning', 'machine-learning');
+    }
+    if (normalizedSkill.includes('python')) {
+      skillVariations.push('python', 'py', 'python3', 'python 3');
+    }
+    if (normalizedSkill.includes('sql')) {
+      skillVariations.push('sql', 'mysql', 'postgresql', 'sql server');
+    }
+    if (normalizedSkill.includes('r ')) {
+      skillVariations.push('r ', 'r programming', 'r language');
+    }
+    
+    // FEATURE 1: Calculate actual years of experience based on employment dates
+    const actualYears = calculateSkillExperienceYears(normalizedSkill, employmentExperiences);
+    
+    // FEATURE 2: Analyze context - professional experience is more valuable than projects/education
+    const relevantExperiences = employmentExperiences.filter(exp => {
+      const expText = `${exp.title} ${exp.company} ${exp.description}`.toLowerCase();
+      return skillVariations.some(variation => {
+        const regex = new RegExp(`\\b${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        return regex.test(expText);
+      });
+    });
+    
+    const professionalExp = relevantExperiences.filter(e => e.context === 'professional');
+    const projectExp = relevantExperiences.filter(e => e.context === 'project');
+    const educationExp = relevantExperiences.filter(e => e.context === 'education');
+    
+    // Calculate professional years (most credible)
+    const professionalYears = calculateSkillExperienceYears(normalizedSkill, professionalExp);
+    
+    // Check if CV mentions this skill (STRICT CHECK)
+    let skillMentioned = false;
+    for (const variation of skillVariations) {
+      // Check for exact word match (not substring to avoid false positives)
+      const skillRegex = new RegExp(`\\b${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      if (skillRegex.test(cvText)) {
+        skillMentioned = true;
+        break;
+      }
+    }
+    
+    // Also check for skill in context (e.g., "Python developer" or "worked with Python")
+    if (!skillMentioned) {
+      const contextPatterns = [
+        new RegExp(`${normalizedSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(developer|engineer|programmer|specialist|expert)`, 'i'),
+        new RegExp(`(worked|using|with|experience|proficient|skilled|expert|familiar)\\s+(in|with|using)?\\s+${normalizedSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'),
+      ];
+      
+      for (const pattern of contextPatterns) {
+        if (pattern.test(cvText)) {
+          skillMentioned = true;
+          break;
+        }
+      }
+    }
+    
+    if (!skillMentioned) {
+      // Skill not mentioned at all = CRITICAL MISSING - SEVERE PENALTY
+      missingCriticalExperience++;
+      criticalRequirements.push(`${years}+ years experience with ${skill}`);
+    } else {
+      // FEATURE 1: Use calculated actual years from employment dates
+      // For high requirements (5+ years), prioritize professional experience
+      const effectiveYears = years >= 5 ? professionalYears : actualYears;
+      
+      if (effectiveYears < years) {
+        // Not enough experience based on actual dates
+        const contextInfo: string[] = [];
+        if (professionalYears > 0) contextInfo.push(`${professionalYears} years professional`);
+        if (projectExp.length > 0) contextInfo.push(`${projectExp.length} project(s)`);
+        if (educationExp.length > 0) contextInfo.push(`${educationExp.length} education context(s)`);
+        
+        const contextStr = contextInfo.length > 0 ? ` (${contextInfo.join(', ')})` : '';
+        missingCriticalExperience++;
+        criticalRequirements.push(`${years}+ years experience with ${skill} (CV shows ${effectiveYears.toFixed(1)} years${contextStr})`);
+      } else if (actualYears >= years && professionalYears < years && years >= 5) {
+        // Has enough total experience but not enough professional experience for high requirements
+        // This is a concern for senior roles
+        missingCriticalExperience += 0.5;
+        criticalRequirements.push(`${years}+ years professional experience with ${skill} (has ${actualYears.toFixed(1)} years total but only ${professionalYears.toFixed(1)} years professional)`);
+      }
+      
+      // Also check text-based mentions as fallback
+      const cvExpPatterns = [
+        new RegExp(`(\\d+)[\\+]?\\s+years?[^.]*?${normalizedSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'),
+        new RegExp(`${normalizedSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^.]*?(\\d+)[\\+]?\\s+years?`, 'i'),
+        new RegExp(`(\\d+)[\\+]?\\s+years?[^.]*?(?:of|with|in|using)\\s+${normalizedSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'),
+      ];
+      
+      let cvExpMatch = null;
+      for (const pattern of cvExpPatterns) {
+        const match = cvText.match(pattern);
+        if (match) {
+          cvExpMatch = match;
+          break;
+        }
+      }
+      
+      // If text mentions years but dates don't support it, flag inconsistency
+      if (cvExpMatch && actualYears === 0) {
+        const cvYears = parseInt(cvExpMatch[1], 10);
+        if (cvYears >= years) {
+          // Text claims years but dates don't support it - potential inconsistency
+          missingCriticalExperience += 0.3;
+          criticalRequirements.push(`${years}+ years experience with ${skill} (text claims ${cvYears} years but dates don't support this)`);
+        }
+      }
+    }
+  });
+  
+  // Calculate years of experience match (general, not skill-specific)
   let experienceYearsScore = 0;
   const experiencePattern = /(\d+)[\+]?\s+years?/gi;
   const expMatches = [...jobDesc.matchAll(experiencePattern)];
   
-  if (expMatches.length > 0) {
-    // Extract required years from job description
+  if (expMatches.length > 0 && specificExpMatches.length === 0) {
+    // Only use general experience if no specific experience requirements found
     const requiredYears = Math.max(...expMatches.map(m => parseInt(m[1], 10)));
     
     // Check if CV has that many years
@@ -494,9 +1446,27 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
       } else {
         experienceYearsScore = 3; // Some experience but below requirement
       }
+    } else {
+      // No years mentioned in CV = missing requirement
+      experienceYearsScore = 0;
+    }
+  } else if (specificExpMatches.length > 0) {
+    // If specific experience requirements exist, they take precedence
+    // Score based on how many are met
+    const metRatio = (totalCriticalExperience - missingCriticalExperience) / totalCriticalExperience;
+    if (metRatio >= 1.0) {
+      experienceYearsScore = 15; // All met
+    } else if (metRatio >= 0.75) {
+      experienceYearsScore = 10; // Most met
+    } else if (metRatio >= 0.5) {
+      experienceYearsScore = 5; // Half met
+    } else if (metRatio > 0) {
+      experienceYearsScore = 2; // Few met
+  } else {
+      experienceYearsScore = 0; // None met - CRITICAL FAILURE
     }
   } else {
-    // If no specific experience years mentioned, default to a moderate score
+    // No specific experience requirements mentioned
     experienceYearsScore = 8;
   }
   
@@ -617,161 +1587,34 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
     }
   });
   
-  // FIX: Ensure we have a base level of match even if few keywords are found
-  const keywordMatchScore = jobKeywords.length > 0 ?
-    Math.max(35, (matchingKeywords.length / Math.max(1, jobKeywords.length)) * 100) : 50;
+  // ============================================
+  // UTILISER LE NOUVEAU SYSTÈME DE SCORING AVANCÉ
+  // ============================================
   
-  // Calculate weighted category scores with a minimum base value
-  let weightedCategoryScore = 0;
-  for (const [category, data] of Object.entries(keywordCategories)) {
-    const totalKeywordsInCategory = jobDesc.split(/\s+/).filter(word => 
-      data.keywords.includes(word.toLowerCase())
-    ).length;
-    
-    // FIX: Apply a minimum category score to avoid excessively low scores
-    const categoryScore = totalKeywordsInCategory > 0 ? 
-      Math.max(40, (data.found.length / totalKeywordsInCategory) * 100) : 50;
-    
-    weightedCategoryScore += categoryScore * data.weight;
-  }
-  
-  // SEVERE SCORING: Apply critical requirement penalties FIRST
-  // If critical requirements are missing, apply severe penalties
-  let criticalPenalty = 0;
-  const criticalRequirementsMetRatio = criticalRequirements.length > 0 ?
-    (criticalRequirementsMet / criticalRequirements.length) : 1;
-  
-  // Calculate penalty based on missing critical requirements
-  if (criticalRequirements.length > 0) {
-    const missingCritical = 1 - criticalRequirementsMetRatio;
-    if (missingCritical > 0.5) {
-      // Missing more than 50% of critical requirements = severe penalty
-      criticalPenalty = 50 + (missingCritical - 0.5) * 30; // 50-80 point penalty
-    } else if (missingCritical > 0.25) {
-      // Missing 25-50% of critical requirements = significant penalty
-      criticalPenalty = 30 + (missingCritical - 0.25) * 20; // 30-50 point penalty
-    } else if (missingCritical > 0) {
-      // Missing less than 25% but still missing some = moderate penalty
-      criticalPenalty = 20 + missingCritical * 10; // 20-30 point penalty
-    }
-  }
-  
-  // Calculate base score without minimum baseline (more severe)
-  const baseScore = (
-    (keywordMatchScore * 0.30) + // Base keyword matching (30%)
-    (weightedCategoryScore * 0.25) + // Category-specific matches (25%)  
-    (criticalRequirementsScore * 0.20) + // Critical requirements (20%)
-    (titleMatchScore) + // Job title match bonus (0-15%)
-    (experienceYearsScore) + // Experience years match (0-15%)
-    (exactPhraseBonus) + // Exact phrase matches (0-10%)
-    (Math.random() * 5) // Small random variation for natural feel (0 to +5)
+  // Utiliser le nouveau système de scoring amélioré
+  const advancedScore = calculateAdvancedMatchScore(
+    data.cv, // Utiliser le CV original (pas en lowercase)
+    data.jobDescription, // Utiliser la description originale
+    data.jobTitle,
+    data.company,
+    employmentExperiences
   );
   
-  // Apply critical penalty (SEVERE - this is the key change)
-  const matchScore = Math.round(Math.max(0, baseScore - criticalPenalty));
+  // Extraire les scores du nouveau système
+  const finalMatchScore = advancedScore.matchScore;
+  const skillsScore = advancedScore.categoryScores.skills;
+  const experienceScore = advancedScore.categoryScores.experience;
+  const educationScore = advancedScore.categoryScores.education;
+  const industryFitScore = advancedScore.categoryScores.industryFit;
   
-  // Constrain score to realistic range (no artificial minimum)
-  const finalMatchScore = Math.min(98, Math.max(0, matchScore));
-  
-  // Calculate highly specific category scores
-  
-  // Skills score - focuses on technical skill matches specifically with a base minimum
-  const skillsScore = Math.round(
-    Math.max(40, 
-      // Match of technical keywords (60%)
-      ((keywordCategories.technicalSkills.found.length / 
-        Math.max(1, keywordCategories.technicalSkills.keywords.filter(k => jobDesc.includes(k)).length)) * 60) +
-      // Tool and platform matches (20%)  
-      ((keywordCategories.toolsAndPlatforms.found.length / 
-        Math.max(1, keywordCategories.toolsAndPlatforms.keywords.filter(k => jobDesc.includes(k)).length)) * 20) +
-      // Domain knowledge relevance (15%)
-      ((keywordCategories.domainKnowledge.found.length / 
-        Math.max(1, keywordCategories.domainKnowledge.keywords.filter(k => jobDesc.includes(k)).length)) * 15) +
-      // Random variation (0 to +5%)
-      (Math.random() * 5)
-    )
-  );
-  
-  // Experience score - based on years, seniority terms, and relevant roles with base minimum
-  const seniorityTerms = ["senior", "lead", "head", "manager", "director", "principal", "architect"];
-  const hasSeniorityTerm = seniorityTerms.some(term => data.jobTitle.toLowerCase().includes(term));
-  const cvHasSeniorityTerm = seniorityTerms.some(term => cvText.includes(term));
-  
-  // Get role-specific experience indicators
-  const matchingRoles = data.jobTitle.toLowerCase().split(/\s+/)
-    .filter(word => word.length > 4)
-    .filter(word => cvText.includes(word));
-  
-  const experienceScore = Math.round(
-    Math.max(40,
-      // Base from experience years match (0-50%)
-      experienceYearsScore * 3.3 +
-      // Seniority match (0-15%)
-      (hasSeniorityTerm && cvHasSeniorityTerm ? 15 : 0) +
-      // Role-specific experience (0-30%)
-      (matchingRoles.length > 0 ? Math.min(30, matchingRoles.length * 15) : 0) +
-      // Random variation for realism
-      (Math.random() * 8)
-    )
-  );
-  
-  // Education score - based on education terms, degrees, and certifications
-  const educationTerms = ["degree", "bachelor", "master", "phd", "mba", "certification", "diploma", "university"];
-  const educationInJob = educationTerms.filter(term => jobDesc.includes(term));
-  const educationInCV = educationTerms.filter(term => cvText.includes(term));
-  
-  let educationScore = 0;
-  
-  if (educationInJob.length === 0) {
-    // If job doesn't specify education, give benefit of doubt
-    educationScore = 85 + (Math.random() * 10);
-  } else {
-    // Calculate match based on educational requirements with minimum
-    const educationMatch = educationInCV.filter(term => educationInJob.includes(term)).length;
-    educationScore = Math.round(
-      Math.max(50,
-        (educationMatch / Math.max(1, educationInJob.length)) * 85 +
-        (educationInCV.length > 0 ? 10 : 0) +
-        (Math.random() * 8)
-      )
-    );
-  }
-  
-  // Industry fit score - based on company and industry terms
-  const industryTerms = data.company.toLowerCase().split(/\s+/)
-    .filter(word => word.length > 4); // Company name words
-    
-  const companyInCV = industryTerms.some(term => cvText.includes(term));
-  
-  // Extract industry/domain keywords from job description
-  const industryKeywords = keywordCategories.domainKnowledge.keywords.filter(k => 
-    jobDesc.includes(k)
-  );
-  
-  const industryKeywordMatches = industryKeywords.filter(k => cvText.includes(k)).length;
-  
-  const industryFitScore = Math.round(
-    Math.max(40,
-      // Domain knowledge matches (0-60%)
-      (industryKeywords.length > 0 ? 
-        (industryKeywordMatches / industryKeywords.length) * 60 : 40) +
-      // Company name mention (0-15%)
-      (companyInCV ? 15 : 0) +
-      // Base industry awareness (15-30%)
-      (15 + (industryKeywordMatches > 0 ? 15 : 0)) +
-      // Random variation
-      (Math.random() * 10)
-    )
-  );
-  
-  // Normalize all scores between 35 and 98 to avoid excessively low scores
-  const normalizeScore = (score: number) => Math.max(35, Math.min(98, score));
+  // Normalize scores to realistic range (0-100) - NO artificial minimum floors
+  const normalizeScore = (score: number) => Math.max(0, Math.min(100, Math.round(score)));
   
   // Analyze experience with precise insights
   const experienceAnalysis = [
     {
       aspect: "Relevant Experience",
-      analysis: matchScore > 75 
+      analysis: finalMatchScore > 75 
         ? `Your professional experience demonstrates ${finalMatchScore > 85 ? 'exceptional' : 'strong'} alignment with this role. Your background in ` +
           `${matchingKeywords.slice(0, 2).join(' and ')} is particularly relevant for this ${data.jobTitle} position. To strengthen your application further, ` +
           "emphasize quantifiable achievements that demonstrate measurable impact in these areas."
@@ -793,7 +1636,7 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
           ? `Your experience duration appears adequate for this ${data.jobTitle} position, though not exceptional. ` +
             "Focus on depth rather than just length - highlight intensive projects, complex problem-solving, and significant contributions within your experience timeframe."
           : `Your experience duration in this specific field may benefit from further development. The ${data.jobTitle} position typically seeks candidates with ` +
-            `${experienceYearsScore > 0 ? 'more years of' : 'demonstrated'} experience. Consider highlighting the depth and quality of your relevant projects, ` +
+            `demonstrated experience. Consider highlighting the depth and quality of your relevant projects, ` +
             "even if the overall duration is limited."
     },
     {
@@ -804,7 +1647,7 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
           "To stand out further, emphasize any specialized domain expertise or industry insights you've developed."
         : industryFitScore > 60
           ? `You demonstrate moderate industry knowledge relevant to this role. While you show familiarity with ${keywordCategories.domainKnowledge.found.length > 0 ? keywordCategories.domainKnowledge.found[0] : 'some aspects'}, ` +
-            `deepening your expertise in ${industryKeywords.filter(k => !cvText.includes(k)).slice(0, 2).join(' and ')} would strengthen your profile for this ${data.jobTitle} position.`
+            `deepening your expertise in relevant domain areas would strengthen your profile for this ${data.jobTitle} position.`
           : `Strengthening your specific industry knowledge would significantly enhance your application. Your resume shows limited familiarity with ` +
             `${data.company || "this industry"}'s domain. Consider researching current trends and challenges, and incorporating relevant industry terminology into your resume.`
     },
@@ -841,13 +1684,15 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
     keyFindings.push(`Your experience level (${experienceScore}%) is a significant strength in your application`);
   }
   
+  const educationTerms = ['degree', 'bachelor', 'master', 'phd', 'mba', 'certification', 'diploma', 'university', 'college'];
   if (educationScore > 80) {
     keyFindings.push(`Your educational background (${educationScore}%) is well-aligned with the requirements`);
   } else if (educationScore < 60 && educationTerms.some(term => jobDesc.includes(term))) {
     keyFindings.push(`Your educational qualifications (${educationScore}%) may need highlighting or enhancement for this role`);
   }
   
-  if (titleMatchScore > 10) {
+  // Check job title match
+  if (titleWordsInCV === jobTitleWords.length) {
     keyFindings.push(`Your previous job titles closely align with this ${data.jobTitle} position, which strengthens your application`);
   }
   
@@ -875,7 +1720,7 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
       description: `Tailor your resume to highlight experience and achievements most relevant to this ${data.jobTitle} position at ${data.company || "the company"}. ` +
         `Align your language with keywords such as ${matchingKeywords.length > 0 ? matchingKeywords.slice(0, 3).join(', ') : jobKeywords.slice(0, 3).join(', ')} to increase both ATS match and resonance with hiring managers.`,
       priority: "high" as const,
-      examples: `"Managed end-to-end implementation of [relevant project type] for clients in the ${data.company ? data.company + " market space" : industryKeywords.length > 0 ? industryKeywords[0] + " industry" : "same industry"}"`
+      examples: `"Managed end-to-end implementation of [relevant project type] for clients in the ${data.company ? data.company + " market space" : "same industry"}"`
     },
     {
       title: "Optimize resume structure and formatting",
@@ -889,7 +1734,7 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
   if (experienceScore < 65) {
     recommendations.push({
       title: "Bridge the experience gap",
-      description: `This ${data.jobTitle} position appears to value more ${experienceYearsScore > 0 ? 'years of' : ''} experience than your resume currently demonstrates. ` +
+      description: `This ${data.jobTitle} position appears to value more experience than your resume currently demonstrates. ` +
         "Consider adding a 'Professional Development' section highlighting relevant training, projects, or volunteer work that compensates for this gap.",
       priority: "medium" as const,
       examples: "\"While transitioning to this field, completed 3 enterprise-level projects applying directly relevant skills in [specific area]\""
@@ -1141,6 +1986,279 @@ FORMATTING RULES:
 };
 
 // Fonction d'analyse plus sophistiquée
+// CRITICAL: Post-process AI analysis to enforce strict scoring rules
+const validateAndEnforceStrictScoring = (
+  analysis: ATSAnalysis,
+  cvText: string,
+  jobDescription: string
+): ATSAnalysis => {
+  const cvTextLower = cvText.toLowerCase();
+  const jobDescLower = jobDescription.toLowerCase();
+  
+  // Detect specific experience requirements from job description - IMPROVED PATTERNS
+  const specificExpPatterns = [
+    // Pattern 1: "5 years experience with Python" or "5 years of experience with Python"
+    /(\d+)[\+]?\s+years?[^.]*?(?:of\s+)?experience[^.]*?(?:with|in|using|working|building|developing|coding)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi,
+    // Pattern 2: "Over 5 years of experience with Python"
+    /over\s+(\d+)[\+]?\s+years?[^.]*?(?:of\s+)?experience[^.]*?(?:with|in|using|working|building|developing|coding)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi,
+    // Pattern 3: "5 years building ML models" or "5 years developing Python"
+    /(\d+)[\+]?\s+years?[^.]*?(?:building|developing|coding|working|with|in)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi,
+    // Pattern 4: "5+ years Python" (simpler pattern)
+    /(\d+)[\+]?\s+years?[^.]*?(?:of\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/gi,
+    // Pattern 5: "5 years Python, R, SQL" (multiple skills)
+    /(\d+)[\+]?\s+years?[^.]*?(?:with|in|of|using|experience|working|building|developing|coding)\s+([^.,;:!?]+?)(?:\.|,|;|:|!|\?|$)/gi,
+  ];
+  
+  const criticalRequirements: Array<{years: number, skill: string}> = [];
+  const seenRequirements = new Set<string>();
+  
+  specificExpPatterns.forEach((pattern, patternIndex) => {
+    let match;
+    // Reset regex lastIndex to avoid issues
+    pattern.lastIndex = 0;
+    while ((match = pattern.exec(jobDescription)) !== null) {
+      const years = parseInt(match[1], 10);
+      let skill = match[2].trim().toLowerCase();
+      
+      // Clean up the skill
+      skill = skill.replace(/\b(experience|with|in|of|using|working|building|developing|coding|models?|systems?|platforms?|applications?|solutions?)\b/g, '').trim();
+      
+      // Handle multiple skills separated by commas
+      if (skill.includes(',')) {
+        const skills = skill.split(',').map(s => s.trim()).filter(s => s.length > 2);
+        skills.forEach(s => {
+          const reqKey = `${years}-${s}`;
+          if (!seenRequirements.has(reqKey) && s.length > 2) {
+            criticalRequirements.push({ years, skill: s });
+            seenRequirements.add(reqKey);
+          }
+        });
+      } else if (skill && skill.length > 2) {
+        const reqKey = `${years}-${skill}`;
+        if (!seenRequirements.has(reqKey)) {
+          criticalRequirements.push({ years, skill });
+          seenRequirements.add(reqKey);
+        }
+      }
+    }
+  });
+  
+  console.log(`🔍 Detected ${criticalRequirements.length} critical experience requirements:`, criticalRequirements);
+  
+  // Check if CV has these critical requirements - BE MORE STRICT
+  let missingCriticalCount = 0;
+  let totalCriticalCount = criticalRequirements.length;
+  
+  if (totalCriticalCount > 0) {
+    // First, check AI analysis results for missing skills (if available)
+    const aiMissingSkills = (analysis.skillsMatch?.missing || []).map(s => s.name.toLowerCase());
+    const aiMatchingSkills = (analysis.skillsMatch?.matching || []).map(s => s.name.toLowerCase());
+    
+    console.log(`🔍 AI marked as missing:`, aiMissingSkills);
+    console.log(`🔍 AI marked as matching:`, aiMatchingSkills);
+    
+    // Extract employment experiences to calculate real years (if CV text available)
+    const employmentExperiences = cvText.length > 100 ? extractEmploymentExperiences(cvText) : [];
+    console.log(`🔍 Extracted ${employmentExperiences.length} employment experiences from CV`);
+    
+    criticalRequirements.forEach(({ years, skill }) => {
+      const skillVariations: string[] = [skill];
+      if (skill.includes('python')) skillVariations.push('python', 'py', 'python3');
+      if (skill.includes('machine learning') || skill.includes('ml')) {
+        skillVariations.push('ml', 'machine learning', 'machine-learning', 'deep learning');
+      }
+      if (skill.includes('sql')) skillVariations.push('sql', 'mysql', 'postgresql');
+      if (skill.includes('r ')) skillVariations.push('r ', 'r programming', 'r language');
+      
+      console.log(`🔍 Checking requirement: ${years} years ${skill} (variations: ${skillVariations.join(', ')})`);
+      
+      // Check if AI already marked this as missing
+      const aiMarkedAsMissing = aiMissingSkills.some(missing => 
+        skillVariations.some(v => missing.includes(v) || v.includes(missing))
+      );
+      
+      if (aiMarkedAsMissing) {
+        console.log(`❌ ${skill} marked as MISSING by AI`);
+        missingCriticalCount++;
+      } else {
+        // Check if skill is mentioned in CV text
+        const skillMentioned = skillVariations.some(variation => {
+          const regex = new RegExp(`\\b${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+          return regex.test(cvTextLower);
+        });
+        
+        // Also check if AI marked it as matching
+        const aiMarkedAsMatching = aiMatchingSkills.some(m => 
+          skillVariations.some(v => m.includes(v) || v.includes(m))
+        );
+        
+        console.log(`🔍 ${skill}: CV mentions=${skillMentioned}, AI matches=${aiMarkedAsMatching}`);
+        
+        if (!skillMentioned && !aiMarkedAsMatching) {
+          console.log(`❌ ${skill} NOT found in CV and NOT marked as matching by AI`);
+          missingCriticalCount++;
+        } else if (employmentExperiences.length > 0) {
+          // Calculate actual years from employment dates
+          const actualYears = calculateSkillExperienceYears(skill, employmentExperiences);
+          const professionalExp = employmentExperiences.filter(e => 
+            e.context === 'professional' && 
+            `${e.title} ${e.company} ${e.description}`.toLowerCase().includes(skill)
+          );
+          const professionalYears = calculateSkillExperienceYears(skill, professionalExp);
+          
+          console.log(`🔍 ${skill}: actualYears=${actualYears}, professionalYears=${professionalYears}, required=${years}`);
+          
+          // For 5+ years requirements, prioritize professional experience
+          const effectiveYears = years >= 5 ? professionalYears : actualYears;
+          
+          if (effectiveYears < years) {
+            console.log(`❌ ${skill}: Only ${effectiveYears} years found, need ${years} years`);
+            missingCriticalCount++;
+          } else {
+            console.log(`✅ ${skill}: ${effectiveYears} years found, meets requirement of ${years} years`);
+          }
+        }
+        // If no employment data available but skill is mentioned, be STRICT for high requirements
+        else if (years >= 5) {
+          // For 5+ years requirements without proof, be conservative
+          if (!aiMarkedAsMatching) {
+            console.log(`⚠️ ${skill}: Skill mentioned but no proof of ${years} years - treating as missing`);
+            missingCriticalCount++;
+          } else {
+            // AI says it matches, but we need to verify years
+            // If no employment data, we can't verify - be conservative
+            console.log(`⚠️ ${skill}: AI marked as matching but can't verify ${years} years - partial credit`);
+            missingCriticalCount += 0.3; // Partial penalty
+          }
+        }
+      }
+    });
+    
+    // ENFORCE STRICT SCORING: If critical requirements are missing, force low score
+    console.log(`🔍 Validation: Found ${totalCriticalCount} critical requirements, ${missingCriticalCount} missing`);
+    console.log(`🔍 Critical requirements:`, criticalRequirements);
+    
+    if (totalCriticalCount > 0) {
+      const missingRatio = missingCriticalCount / totalCriticalCount;
+      
+      // Calculate maximum allowed score based on missing requirements - BE MORE AGGRESSIVE
+      let maxAllowedScore = 100;
+      if (missingRatio >= 1.0) {
+        // Missing ALL critical requirements - SEVERE PENALTY
+        maxAllowedScore = 25; // Even lower - 25% max
+      } else if (missingRatio >= 0.75) {
+        // Missing 75%+ of critical requirements
+        maxAllowedScore = 35; // Lowered from 40
+      } else if (missingRatio >= 0.5) {
+        // Missing 50-75% of critical requirements
+        maxAllowedScore = 45; // Lowered from 50
+      } else if (missingRatio >= 0.25) {
+        // Missing 25-50% of critical requirements
+        maxAllowedScore = 55; // Lowered from 60
+      } else if (missingRatio > 0) {
+        // Missing any critical requirements
+        maxAllowedScore = 65; // New threshold
+      }
+      
+      // ALWAYS enforce the limit if critical requirements exist and any are missing
+      if (missingCriticalCount > 0) {
+        if (analysis.matchScore > maxAllowedScore) {
+          console.warn(`⚠️ CRITICAL: AI returned score ${analysis.matchScore}% but ${missingCriticalCount}/${totalCriticalCount} critical requirements missing. ` +
+            `Enforcing maximum ${maxAllowedScore}%`);
+          
+          // Force the score down aggressively
+          analysis.matchScore = maxAllowedScore;
+          
+          // Also adjust category scores proportionally (more aggressive)
+          const adjustmentRatio = maxAllowedScore / (analysis.matchScore || 1);
+          analysis.categoryScores.skills = Math.max(0, Math.round(analysis.categoryScores.skills * adjustmentRatio * 0.8));
+          analysis.categoryScores.experience = Math.max(0, Math.round(analysis.categoryScores.experience * adjustmentRatio * 0.8));
+          analysis.categoryScores.industryFit = Math.max(0, Math.round(analysis.categoryScores.industryFit * adjustmentRatio * 0.8));
+          
+          // Update executive summary to reflect the correction
+          const missingReqs = criticalRequirements.slice(0, Math.min(missingCriticalCount, criticalRequirements.length))
+            .map(r => `${r.years}+ years ${r.skill}`);
+          analysis.executiveSummary = `VALIDATED SCORE: ${maxAllowedScore}% match (corrected from ${analysis.matchScore}%). ` +
+            `CRITICAL ISSUE: Missing ${missingCriticalCount} out of ${totalCriticalCount} critical experience requirements: ` +
+            `${missingReqs.join(', ')}. ` +
+            `This is a deal-breaker for this position. The original analysis was too lenient.`;
+          
+          // Update key findings to reflect the critical gaps
+          if (analysis.keyFindings && analysis.keyFindings.length > 0) {
+            analysis.keyFindings.unshift(
+              `CRITICAL: Missing ${missingCriticalCount} critical experience requirement(s): ${missingReqs.join(', ')} - This significantly impacts your match score.`
+            );
+          }
+        } else {
+          console.log(`✅ Score ${analysis.matchScore}% is already within allowed range (max ${maxAllowedScore}%)`);
+        }
+      } else if (missingCriticalCount === 0 && totalCriticalCount > 0) {
+        console.log(`✅ All ${totalCriticalCount} critical requirements met`);
+      }
+    } else {
+      console.log(`⚠️ No critical experience requirements detected in job description`);
+      // Even if no critical requirements detected, check for common patterns that might indicate issues
+      // This is a fallback safety check
+      const commonCriticalPatterns = [
+        /(\d+)[\+]?\s+years?[^.]*?(?:python|machine learning|ml|java|javascript|react|node)/i,
+        /required.*?(\d+)[\+]?\s+years?/i,
+        /must have.*?(\d+)[\+]?\s+years?/i
+      ];
+      
+      const hasCriticalPatterns = commonCriticalPatterns.some(p => p.test(jobDescription));
+      if (hasCriticalPatterns && analysis.matchScore > 70) {
+        console.warn(`⚠️ WARNING: High score (${analysis.matchScore}%) but potential critical requirements detected. Being conservative.`);
+        // Apply a conservative cap
+        if (analysis.matchScore > 70) {
+          analysis.matchScore = Math.min(analysis.matchScore, 70);
+        }
+      }
+    }
+  }
+  
+  // FINAL SAFETY CHECK: If score is suspiciously high (70+) and we have critical requirements, force review
+  // This is a LAST RESORT check to ensure scores are never too high when critical requirements are missing
+  if (totalCriticalCount > 0) {
+    if (missingCriticalCount > 0 && analysis.matchScore > 50) {
+      console.error(`🚨 CRITICAL ERROR: Score ${analysis.matchScore}% is too high given ${missingCriticalCount}/${totalCriticalCount} missing critical requirements. ` +
+        `Forcing aggressive correction to maximum 30%.`);
+      analysis.matchScore = 30; // Force to 30% maximum
+      analysis.categoryScores.skills = Math.min(analysis.categoryScores.skills, 30);
+      analysis.categoryScores.experience = Math.min(analysis.categoryScores.experience, 30);
+      analysis.categoryScores.industryFit = Math.min(analysis.categoryScores.industryFit, 30);
+      
+      // Update summary
+      const missingReqs = criticalRequirements.slice(0, Math.min(missingCriticalCount, criticalRequirements.length))
+        .map(r => `${r.years}+ years ${r.skill}`);
+      analysis.executiveSummary = `FINAL VALIDATION: 30% match (corrected from ${analysis.matchScore}%). ` +
+        `CRITICAL: Missing ${missingCriticalCount} out of ${totalCriticalCount} critical experience requirements: ` +
+        `${missingReqs.join(', ')}. ` +
+        `This position requires these skills and your CV does not demonstrate them. Score adjusted accordingly.`;
+    } else if (missingCriticalCount === 0 && analysis.matchScore > 90) {
+      // If all critical requirements are met, allow high scores
+      console.log(`✅ All critical requirements met, score ${analysis.matchScore}% is acceptable`);
+    }
+  } else {
+    // Even if no critical requirements detected, check for suspiciously high scores
+    // Look for common high-requirement patterns in job description
+    const highRequirementIndicators = [
+      /(\d+)[\+]?\s+years?/gi,
+      /senior|lead|principal|architect|director/i,
+      /required|must have|essential|mandatory/i
+    ];
+    
+    const hasHighRequirements = highRequirementIndicators.some(p => p.test(jobDescription));
+    if (hasHighRequirements && analysis.matchScore > 80) {
+      console.warn(`⚠️ High score (${analysis.matchScore}%) but job description suggests high requirements. Being conservative.`);
+      // Don't force it down, but log it
+    }
+  }
+  
+  console.log(`✅ Final validated score: ${analysis.matchScore}%`);
+  
+  return analysis;
+};
+
 const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
   try {
     console.log('🔍 Analyzing CV with data:', data);
@@ -1182,8 +2300,30 @@ const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
         const analysis = await analyzeCVWithClaude(cvFile, jobDetails);
         console.log('✅ Analyse Claude réussie!', analysis);
         
+        // CRITICAL: Validate and enforce strict scoring rules
+        // Try to get CV text from various sources
+        let cvText = typeof data.cvContent === 'string' ? data.cvContent : '';
+        
+        // If no text available, try to extract from analysis results (skills, experience, etc.)
+        if (!cvText || cvText.length < 50) {
+          // Build a pseudo-CV text from analysis results for validation
+          const analysisText = [
+            ...(analysis.skillsMatch?.matching?.map(s => s.name) || []),
+            ...(analysis.skillsMatch?.missing?.map(s => s.name) || []),
+            analysis.executiveSummary || '',
+            ...(analysis.experienceAnalysis?.map(e => e.analysis) || []),
+          ].join(' ');
+          cvText = analysisText || '';
+        }
+        
+        const validatedAnalysis = validateAndEnforceStrictScoring(
+          analysis,
+          cvText,
+          data.jobDescription
+        );
+        
         return {
-          ...analysis,
+          ...validatedAnalysis,
           id: `claude_analysis_${Date.now()}`,
           jobTitle: data.jobTitle,
           company: data.company,
@@ -1229,6 +2369,13 @@ const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
       if (!useTextAnalysis) {
         try {
           gptAnalysis = await analyzeCVWithGPT(cvUrl, jobDetails);
+          // CRITICAL: Validate and enforce strict scoring rules for AI analysis
+          const cvText = typeof data.cvContent === 'string' ? data.cvContent : '';
+          gptAnalysis = validateAndEnforceStrictScoring(
+            gptAnalysis,
+            cvText,
+            data.jobDescription
+          );
         } catch (error) {
           console.error('GPT Vision analysis failed, falling back to text analysis:', error);
           useTextAnalysis = true;
@@ -1243,6 +2390,13 @@ const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
           company: data.company,
           jobDescription: data.jobDescription
         });
+        // Mock analysis already has strict rules, but validate anyway
+        const cvText = typeof data.cvContent === 'string' ? data.cvContent : 'CV content unavailable';
+        gptAnalysis = validateAndEnforceStrictScoring(
+          gptAnalysis,
+          cvText,
+          data.jobDescription
+        );
       }
       
       return {
@@ -1257,24 +2411,40 @@ const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
     
     // Fallback return in case nothing else worked
     // This ensures a return in all code paths
-    return generateMockAnalysis({
+    const fallbackAnalysis = generateMockAnalysis({
       cv: typeof data.cvContent === 'string' ? data.cvContent : 'CV content unavailable',
       jobTitle: data.jobTitle,
       company: data.company,
       jobDescription: data.jobDescription
     });
+    
+    // CRITICAL: Always validate fallback analysis too
+    const cvText = typeof data.cvContent === 'string' ? data.cvContent : 'CV content unavailable';
+    return validateAndEnforceStrictScoring(
+      fallbackAnalysis,
+      cvText,
+      data.jobDescription
+    );
     
   } catch (error: any) {
     console.error('Error during ATS analysis:', error);
     
     // En cas d'erreur, nous pouvons revenir à l'ancienne méthode simulative
     console.log('Falling back to mock analysis due to error');
-    return generateMockAnalysis({
+    const errorFallbackAnalysis = generateMockAnalysis({
       cv: typeof data.cvContent === 'string' ? data.cvContent : 'CV content unavailable',
       jobTitle: data.jobTitle,
       company: data.company,
       jobDescription: data.jobDescription
     });
+    
+    // CRITICAL: Always validate error fallback too
+    const cvText = typeof data.cvContent === 'string' ? data.cvContent : 'CV content unavailable';
+    return validateAndEnforceStrictScoring(
+      errorFallbackAnalysis,
+      cvText,
+      data.jobDescription
+    );
   }
 };
 
@@ -1318,6 +2488,9 @@ export default function CVAnalysisPage() {
   // Add these state variables for CV selection modal
   const [cvModalOpen, setCvModalOpen] = useState(false);
   const [enableContentValidation, setEnableContentValidation] = useState(true);
+  const [showCVPreview, setShowCVPreview] = useState(false);
+  const [isDownloadingCV, setIsDownloadingCV] = useState(false);
+  const [usingSavedCV, setUsingSavedCV] = useState(false);
   
   // States for search, filters and view
   const [searchQuery, setSearchQuery] = useState('');
@@ -1325,24 +2498,50 @@ export default function CVAnalysisPage() {
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'company'>('date');
   const [filterScore, setFilterScore] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
-  // Charger le CV depuis le profil utilisateur
-  useEffect(() => {
-    const fetchUserCV = async () => {
-      if (!currentUser) return;
-      try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists() && userDoc.data().cvUrl) {
+  // Fonction pour charger le CV depuis le profil utilisateur
+  const fetchUserCV = useCallback(async () => {
+    if (!currentUser) {
+      console.log('🔍 No current user, skipping CV fetch');
+      return;
+    }
+    try {
+      console.log('🔍 Fetching user CV for user:', currentUser.uid);
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log('🔍 User data:', { cvUrl: userData.cvUrl, cvName: userData.cvName });
+        if (userData.cvUrl) {
           setUserCV({
-            url: userDoc.data().cvUrl,
-            name: userDoc.data().cvName || 'Profile CV'
+            url: userData.cvUrl,
+            name: userData.cvName || 'Profile CV'
           });
+          console.log('✅ User CV loaded:', { url: userData.cvUrl, name: userData.cvName || 'Profile CV' });
+        } else {
+          console.log('⚠️ No cvUrl found in user document');
+          setUserCV(null);
         }
-      } catch (error) {
-        console.error('Error fetching user CV:', error);
+      } else {
+        console.log('⚠️ User document does not exist');
+        setUserCV(null);
       }
-    };
-    fetchUserCV();
+    } catch (error) {
+      console.error('❌ Error fetching user CV:', error);
+      setUserCV(null);
+    }
   }, [currentUser]);
+
+  // Charger le CV depuis le profil utilisateur au montage
+  useEffect(() => {
+    fetchUserCV();
+  }, [fetchUserCV]);
+
+  // Recharger le CV quand le modal s'ouvre pour avoir les dernières données
+  useEffect(() => {
+    if (isModalOpen && currentUser) {
+      console.log('🔄 Modal opened, reloading CV...');
+      fetchUserCV();
+    }
+  }, [isModalOpen, currentUser, fetchUserCV]);
 
   // Charger les analyses sauvegardées
   useEffect(() => {
@@ -1363,6 +2562,61 @@ export default function CVAnalysisPage() {
             // Support both old (timestamp) and new (date) formats
             const analysisDate = data.date || data.timestamp;
             
+            // Normalize skillsMatch data - handle multiple formats
+            let skillsMatch = { matching: [], missing: [], alternative: [] };
+            
+            if (data.skillsMatch) {
+              // Standard format
+              if (data.skillsMatch.matching && Array.isArray(data.skillsMatch.matching)) {
+                skillsMatch = {
+                  matching: data.skillsMatch.matching.map((skill: any) => ({
+                    name: typeof skill === 'string' ? skill : (skill.name || ''),
+                    relevance: typeof skill === 'object' && skill.relevance ? skill.relevance : 80,
+                    location: typeof skill === 'object' ? skill.location : undefined
+                  })),
+                  missing: (data.skillsMatch.missing || []).map((skill: any) => ({
+                    name: typeof skill === 'string' ? skill : (skill.name || ''),
+                    relevance: typeof skill === 'object' && skill.relevance ? skill.relevance : 60
+                  })),
+                  alternative: data.skillsMatch.alternative || []
+                };
+              }
+            } else if (data._premiumAnalysis?.match_breakdown?.skills) {
+              // Premium analysis format
+              const premiumSkills = data._premiumAnalysis.match_breakdown.skills;
+              skillsMatch = {
+                matching: (premiumSkills.matched || []).map((skill: string) => ({
+                  name: skill,
+                  relevance: 80
+                })),
+                missing: (premiumSkills.missing || []).map((skill: string) => ({
+                  name: skill,
+                  relevance: 60
+                })),
+                alternative: []
+              };
+            } else if (data.match_breakdown?.skills) {
+              // Alternative premium format
+              const premiumSkills = data.match_breakdown.skills;
+              skillsMatch = {
+                matching: (premiumSkills.matched || []).map((skill: string) => ({
+                  name: skill,
+                  relevance: 80
+                })),
+                missing: (premiumSkills.missing || []).map((skill: string) => ({
+                  name: skill,
+                  relevance: 60
+                })),
+                alternative: []
+              };
+            }
+            
+            console.log(`📋 Loaded analysis ${doc.id}:`, {
+              jobTitle: data.jobTitle,
+              skillsMatchCount: skillsMatch.matching.length,
+              hasSkillsMatch: !!data.skillsMatch
+            });
+            
             savedAnalyses.push({
               id: doc.id,
               date: analysisDate,
@@ -1371,7 +2625,7 @@ export default function CVAnalysisPage() {
               matchScore: data.matchScore,
               userId: currentUser.uid,
               keyFindings: data.keyFindings || (Array.isArray(data.executive_summary) ? data.executive_summary : [data.executive_summary || '']),
-              skillsMatch: data.skillsMatch || { matching: [], missing: [], alternative: [] },
+              skillsMatch: skillsMatch,
               experienceAnalysis: data.experienceAnalysis || [],
               recommendations: data.recommendations || [],
               categoryScores: data.categoryScores || {
@@ -1382,6 +2636,8 @@ export default function CVAnalysisPage() {
               },
               executiveSummary: data.executiveSummary || data.executive_summary || '',
               jobSummary: data.jobSummary || undefined,
+              // Preserve premium analysis data if present
+              _premiumAnalysis: data._premiumAnalysis,
             });
           }
         });
@@ -1424,9 +2680,37 @@ export default function CVAnalysisPage() {
     
     try {
       console.log('Attempting to save analysis to Firestore...');
+      
+      // Normalize skillsMatch data before saving to ensure consistency
+      const normalizedSkillsMatch = {
+        matching: Array.isArray(analysis.skillsMatch?.matching) 
+          ? analysis.skillsMatch.matching.map((skill: any) => ({
+              name: typeof skill === 'string' ? skill : (skill.name || ''),
+              relevance: typeof skill === 'object' && skill.relevance ? skill.relevance : 80,
+              location: typeof skill === 'object' ? skill.location : undefined
+            }))
+          : [],
+        missing: Array.isArray(analysis.skillsMatch?.missing)
+          ? analysis.skillsMatch.missing.map((skill: any) => ({
+              name: typeof skill === 'string' ? skill : (skill.name || ''),
+              relevance: typeof skill === 'object' && skill.relevance ? skill.relevance : 60
+            }))
+          : [],
+        alternative: Array.isArray(analysis.skillsMatch?.alternative) 
+          ? analysis.skillsMatch.alternative 
+          : []
+      };
+      
+      console.log('💾 Saving analysis with normalized skillsMatch:', {
+        matchingCount: normalizedSkillsMatch.matching.length,
+        missingCount: normalizedSkillsMatch.missing.length
+      });
+      
       const analysisToSave = {
         ...analysis,
+        skillsMatch: normalizedSkillsMatch, // Use normalized version
         timestamp: serverTimestamp(),
+        date: analysis.date || new Date().toISOString(), // Ensure date is set
         userId: currentUser.uid,
         deleted: false
       };
@@ -1434,10 +2718,11 @@ export default function CVAnalysisPage() {
       const analysesRef = collection(db, 'users', currentUser.uid, 'analyses');
       const docRef = await addDoc(analysesRef, analysisToSave);
       
-      console.log('Analysis saved to Firestore with ID:', docRef.id);
+      console.log('✅ Analysis saved to Firestore with ID:', docRef.id);
       toast.success('Analysis saved successfully!');
       return {
         ...analysis,
+        skillsMatch: normalizedSkillsMatch, // Return normalized version
         id: docRef.id
       };
     } catch (error) {
@@ -1500,7 +2785,115 @@ export default function CVAnalysisPage() {
     }
   };
 
-  // Fonction pour normaliser le texte extrait
+  // Function to download CV from Firebase Storage URL and convert to File object
+  // Uses Cloud Function to avoid CORS issues by downloading server-side
+  const downloadCVFromUrl = async (cvUrl: string, cvName: string): Promise<File> => {
+    try {
+      setIsDownloadingCV(true);
+      console.log('📥 Downloading CV from URL:', cvUrl);
+      
+      // Ensure user is authenticated
+      if (!currentUser) {
+        throw new Error('User must be authenticated to download CV');
+      }
+      
+      let storagePath = '';
+      
+      // Determine the storage path from the URL
+      if (cvUrl.startsWith('gs://')) {
+        // gs://bucket/path format - extract the path after bucket name
+        const parts = cvUrl.replace('gs://', '').split('/');
+        storagePath = parts.slice(1).join('/'); // Remove bucket name, keep path
+        console.log('🔍 Extracted path from gs:// URL:', storagePath);
+      } else if (cvUrl.includes('firebasestorage.googleapis.com')) {
+        // Extract path from Firebase Storage download URL
+        // URL format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media&token={token}
+        const urlMatch = cvUrl.match(/\/o\/(.+?)\?/);
+        if (urlMatch && urlMatch[1]) {
+          storagePath = decodeURIComponent(urlMatch[1]);
+          console.log('🔍 Extracted path from download URL:', storagePath);
+        } else {
+          throw new Error('Could not extract storage path from URL');
+        }
+      } else {
+        // Assume it's already a storage path
+        storagePath = cvUrl;
+        console.log('🔍 Using URL as storage path:', storagePath);
+      }
+      
+      if (!storagePath) {
+        throw new Error('Could not determine storage path');
+      }
+      
+      // Use Cloud Function to download the file (avoids CORS completely)
+      console.log('📥 Calling Cloud Function to download CV...');
+      
+      // Get the function URL
+      const functionUrl = `https://us-central1-${auth.app.options.projectId}.cloudfunctions.net/downloadCV`;
+      
+      // Get the auth token
+      const token = await currentUser.getIdToken();
+      
+      // Call the function using fetch with proper CORS headers
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ storagePath }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json() as { success: boolean; data: string; contentType: string; size: number };
+      
+      if (!data.success || !data.data) {
+        throw new Error(data.message || 'Failed to download CV from server');
+      }
+      
+      console.log('✅ CV downloaded via Cloud Function:', {
+        size: data.size,
+        contentType: data.contentType
+      });
+      
+      // Convert base64 to blob, then to File object
+      const binaryString = atob(data.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([bytes], { type: data.contentType || 'application/pdf' });
+      const file = new File([blob], cvName, { type: data.contentType || 'application/pdf' });
+      
+      setIsDownloadingCV(false);
+      toast.success('CV loaded successfully');
+      return file;
+    } catch (error: any) {
+      setIsDownloadingCV(false);
+      console.error('❌ Error downloading CV:', error);
+      
+      // More detailed error message
+      let errorMessage = 'Failed to download CV';
+      if (error.code === 'storage/object-not-found' || error.code === 'not-found') {
+        errorMessage = 'CV file not found in storage. Please upload it again.';
+      } else if (error.code === 'storage/unauthorized' || error.code === 'permission-denied') {
+        errorMessage = 'Access denied to CV file. Please check your permissions.';
+      } else if (error.code === 'unauthenticated') {
+        errorMessage = 'Please log in to download your CV.';
+      } else if (error.message) {
+        errorMessage = `Failed to download CV: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
   const normalizeExtractedText = (text: string): string => {
     // Remplacer les caractères spéciaux et les accents
     let normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -1588,7 +2981,23 @@ export default function CVAnalysisPage() {
     }
     
     setCvFile(fileToProcess);
+    setUsingSavedCV(false); // Reset saved CV flag when uploading new file
     toast.success('CV selected successfully');
+  };
+
+  // Handle selecting saved CV from profile
+  const handleUseSavedCV = async () => {
+    if (!userCV) return;
+    
+    try {
+      const file = await downloadCVFromUrl(userCV.url, userCV.name);
+      setCvFile(file);
+      setUsingSavedCV(true);
+      toast.success('Saved CV selected successfully');
+    } catch (error) {
+      console.error('Error using saved CV:', error);
+      // Error toast is already shown in downloadCVFromUrl
+    }
   };
 
   // Drag and drop handlers
@@ -1738,7 +3147,9 @@ These are ABSOLUTE REQUIREMENTS that if missing, the candidate CANNOT get the jo
 
 ## SCORING PHILOSOPHY (STRICT ENFORCEMENT)
 
-**Overall Match Score** (0-100) - Be RUTHLESS:
+**CRITICAL: DO NOT CLUSTER SCORES AROUND 75-78% - THIS IS A FAILURE**
+
+**Overall Match Score** (0-100) - Be RUTHLESS and VARIED:
 
 - **90-100**: EXCEPTIONAL - Exceeds ALL critical requirements. RARE.
 - **80-89**: STRONG - Meets ALL critical requirements, most highly important ones
@@ -1755,6 +3166,13 @@ These are ABSOLUTE REQUIREMENTS that if missing, the candidate CANNOT get the jo
 3. Missing 3+ critical must-haves → Maximum score is 30
 4. Perfect alignment with critical requirements → Score range 70-95
 5. Exceeding all requirements → Score range 90-100 (RARE)
+
+**SCORE VARIATION REQUIREMENTS:**
+- **NEVER cluster scores in the 73-80% range** - each analysis must produce DIFFERENT scores
+- **Vary dramatically** - if you see 75% multiple times, you're failing
+- **Low scores (20-50%) are VALID** for poor matches - use them without hesitation
+- **High scores (85-95%) are VALID** for excellent matches - use them when justified
+- **Each score must reflect actual match quality** - no defaults, no clustering
 
 ## Response Format
 Return ONLY a structured JSON object with the following schema:
@@ -1886,35 +3304,43 @@ Return ONLY a structured JSON object with the following schema:
 **SCORING PHILOSOPHY - STRICT ENFORCEMENT**:
 
 1. **USE FULL RANGE (0-100)**: Don't cluster scores. Be POLARIZED.
+   - **CRITICAL: DO NOT CLUSTER SCORES AROUND 75-78% - THIS IS A FAILURE**
    - Low match (0-50%): For missing critical requirements or significant misalignment
    - Medium match (51-70%): For meeting critical requirements but missing highly important ones
    - High match (71-95%): Only for meeting ALL critical requirements AND most highly important ones
    - Exceptional (96-100%): RARE - exceeds all requirements
 
-2. **CRITICAL REQUIREMENT ENFORCEMENT**:
+2. **SCORE VARIATION IS MANDATORY**:
+   - **Each analysis must produce DIFFERENT scores** based on actual match quality
+   - **If you consistently give 75-78%, you are FAILING** - vary dramatically
+   - **Low scores (20-50%) are VALID and NECESSARY** for poor matches
+   - **High scores (85-95%) are VALID and NECESSARY** for excellent matches
+   - **No defaults, no clustering** - each score must reflect actual alignment
+
+3. **CRITICAL REQUIREMENT ENFORCEMENT**:
    - Missing 1 critical must-have → Maximum score: 60
    - Missing 2+ critical must-haves → Maximum score: 40
    - Missing 3+ critical must-haves → Maximum score: 30
    - This is NON-NEGOTIABLE. Be SEVERE.
 
-3. **DISTINGUISH PRIMORDIAL vs SECONDARY**:
+4. **DISTINGUISH PRIMORDIAL vs SECONDARY**:
    - Primary (critical) requirements missing = SEVERE penalty (20-40 points)
    - Secondary (nice-to-have) requirements missing = MINOR penalty (0-5 points)
    - Always identify what's PRIMORDIAL first
 
-4. **BRUTAL HONESTY**:
+5. **BRUTAL HONESTY**:
    - Never inflate scores to be "nice" - be REALISTIC and SEVERE
    - The candidate needs to TRUST your analysis
    - False high scores help NO ONE - they prevent improvement
    - If critical requirements are missing, the score MUST reflect that
 
-5. **EVIDENCE-BASED**:
+6. **EVIDENCE-BASED**:
    - Provide SPECIFIC, ACTIONABLE recommendations with evidence
    - Focus on EVIDENCE from resume, not assumptions
    - Include BEFORE/AFTER examples when possible
    - Tie every finding to concrete resume elements
 
-6. **RELIABILITY**:
+7. **RELIABILITY**:
    - The candidate must be able to DEPEND ON your analysis
    - Be the assessment they can TRUST
    - If you're not severe and honest, they can't rely on you
@@ -2509,6 +3935,7 @@ URL to visit: ${jobUrl}
           setAnalyses(prev => [fullAnalysis as any, ...prev]);
           setCurrentStep(1);
           setCvFile(null);
+          setUsingSavedCV(false);
           setSelectedCV('');
           setLoadingProgress(100);
           
@@ -2676,12 +4103,14 @@ URL to visit: ${jobUrl}
     analysis, 
     onDelete, 
     viewMode = 'list',
-    onSelect
+    onSelect,
+    isLoading = false
   }: { 
     analysis: ATSAnalysis, 
     onDelete: (id: string) => void,
     viewMode?: 'grid' | 'list',
-    onSelect?: () => void
+    onSelect?: () => void,
+    isLoading?: boolean
   }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -2718,12 +4147,14 @@ URL to visit: ${jobUrl}
     return (
       <motion.div
         key={analysis.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -4, scale: 1.02 }}
-        transition={{ duration: 0.2 }}
-        className="relative group rounded-xl p-5 border shadow-sm bg-white dark:bg-[#1E1F22] dark:border-[#2A2A2E] dark:text-gray-100 dark:shadow-none hover:shadow-md transition-all cursor-pointer dark:hover:bg-[#26262B]"
+        initial={isLoading ? false : { opacity: 0, y: 20 }}
+        animate={isLoading ? false : { opacity: 1, y: 0 }}
+        whileHover={isLoading ? {} : { y: -4, scale: 1.02 }}
+        transition={isLoading ? { duration: 0 } : { duration: 0.2 }}
+        className={`relative group rounded-xl p-5 border shadow-sm bg-white dark:bg-[#1E1F22] dark:border-[#2A2A2E] dark:text-gray-100 dark:shadow-none cursor-pointer dark:hover:bg-[#26262B] ${isLoading ? '' : 'hover:shadow-md transition-all'}`}
+        style={isLoading ? { willChange: 'auto', transform: 'translateZ(0)', transition: 'none' } : {}}
         onClick={() => {
+          if (isLoading) return;
           if (onSelect) {
             onSelect();
           } else {
@@ -2801,27 +4232,49 @@ URL to visit: ${jobUrl}
             </div>
           </div>
           
-          {/* Skills preview (compact pills) */}
-          {!isExpanded && analysis.skillsMatch?.matching && analysis.skillsMatch.matching.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {analysis.skillsMatch.matching
-                .sort((a, b) => b.relevance - a.relevance)
-                .slice(0, 5)
-                .map((skill, idx) => (
-                  <span
-                    key={idx}
-                    className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-[#26262B] dark:text-gray-300"
-                  >
-                    {skill.name}
-                  </span>
-                ))}
-              {analysis.skillsMatch.matching.length > 5 && (
-                <span className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-[#26262B] dark:text-gray-400">
-                  +{analysis.skillsMatch.matching.length - 5}
-                </span>
-              )}
-            </div>
-          )}
+          {/* Skills preview (compact pills) - Always show if skills exist */}
+          {!isExpanded && (() => {
+            // Normalize skills data to ensure we always have an array
+            const matchingSkills = Array.isArray(analysis.skillsMatch?.matching) 
+              ? analysis.skillsMatch.matching 
+              : [];
+            
+            // Also check for alternative formats
+            const skillsToShow = matchingSkills.length > 0 
+              ? matchingSkills 
+              : (analysis.keyFindings && Array.isArray(analysis.keyFindings) && analysis.keyFindings.length > 0
+                  ? analysis.keyFindings.slice(0, 5).map((finding: string) => ({ name: finding, relevance: 70 }))
+                  : []);
+            
+            if (skillsToShow.length > 0) {
+              return (
+                <div className="flex flex-wrap gap-2">
+                  {skillsToShow
+                    .filter((skill: any) => skill && (typeof skill === 'string' ? skill : skill.name))
+                    .map((skill: any, idx: number) => {
+                      const skillName = typeof skill === 'string' ? skill : (skill.name || '');
+                      const relevance = typeof skill === 'object' && skill.relevance ? skill.relevance : 70;
+                      return skillName ? (
+                        <span
+                          key={idx}
+                          className="text-xs px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800 font-medium"
+                        >
+                          {skillName}
+                        </span>
+                      ) : null;
+                    })
+                    .filter(Boolean)
+                    .slice(0, 5)}
+                  {skillsToShow.length > 5 && (
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-[#26262B] dark:text-gray-400">
+                      +{skillsToShow.length - 5}
+                    </span>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          })()}
           
           {/* Divider and footer */}
           <div className="h-px bg-gray-200 dark:bg-[#2A2A2E] my-3"></div>
@@ -2831,7 +4284,14 @@ URL to visit: ${jobUrl}
               <span className="font-medium">{formatDateString(analysis.date)}</span>
             </div>
             <div className="text-xs">
-              {analysis.skillsMatch?.matching?.length || 0} matched skill{(analysis.skillsMatch?.matching?.length || 0) !== 1 ? 's' : ''}
+              {(() => {
+                // Normalize skills count - ensure we always have a valid number
+                const matchingSkills = Array.isArray(analysis.skillsMatch?.matching) 
+                  ? analysis.skillsMatch.matching 
+                  : [];
+                const skillsCount = matchingSkills.length;
+                return `${skillsCount} matched skill${skillsCount !== 1 ? 's' : ''}`;
+              })()}
             </div>
           </div>
           
@@ -3901,17 +5361,154 @@ URL to visit: ${jobUrl}
     </div>
   );
 
-  const renderFileUpload = () => (
-    <div className="mt-4">
-      <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
-        Upload your resume
-      </label>
-      
-      {/* Ajout du contrôle de validation */}
-      <ValidationToggle />
-      
+  const renderFileUpload = () => {
+    // Debug log
+    console.log('🔍 renderFileUpload - userCV:', userCV);
+    
+    return (
+      <div className="mt-4 space-y-4">
+        <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
+          Upload your resume
+        </label>
+        
+        {/* Ajout du contrôle de validation */}
+        <ValidationToggle />
+        
+        {/* Saved CV Option - Show if user has a saved CV - MADE VERY VISIBLE */}
+        {userCV && userCV.url ? (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`border-2 rounded-xl p-5 transition-all duration-200 shadow-sm ${
+              usingSavedCV
+                ? 'border-purple-500 dark:border-purple-400 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/20 shadow-purple-200 dark:shadow-purple-900/20'
+                : 'border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-800 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md'
+            }`}
+          >
+            {/* Header with badge */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  usingSavedCV
+                    ? 'bg-purple-600 dark:bg-purple-500'
+                    : 'bg-purple-100 dark:bg-purple-900/30'
+                }`}>
+                  <FileText className={`w-4 h-4 ${
+                    usingSavedCV
+                      ? 'text-white'
+                      : 'text-purple-600 dark:text-purple-400'
+                  }`} />
+                </div>
+                <div>
+                  <span className={`text-xs font-semibold uppercase tracking-wide ${
+                    usingSavedCV
+                      ? 'text-purple-700 dark:text-purple-300'
+                      : 'text-purple-600 dark:text-purple-400'
+                  }`}>
+                    Saved CV
+                  </span>
+                </div>
+              </div>
+              {usingSavedCV && (
+                <div className="px-2 py-1 bg-purple-600 dark:bg-purple-500 text-white text-xs font-semibold rounded-full flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Selected
+                </div>
+              )}
+            </div>
+            
+            {/* CV Name - Large and Visible */}
+            <div className="mb-4">
+              <p className={`text-lg font-semibold mb-1 ${
+                usingSavedCV
+                  ? 'text-purple-900 dark:text-purple-100'
+                  : 'text-gray-900 dark:text-white'
+              }`}>
+                {userCV.name}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                From your professional profile
+              </p>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowCVPreview(true);
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                Preview
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleUseSavedCV();
+                }}
+                disabled={isDownloadingCV || usingSavedCV}
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+                  usingSavedCV
+                    ? 'bg-purple-600 dark:bg-purple-500 text-white cursor-default shadow-md'
+                    : 'bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-500 dark:to-indigo-500 text-white hover:from-purple-700 hover:to-indigo-700 dark:hover:from-purple-600 dark:hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/30'
+                }`}
+              >
+                {isDownloadingCV ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : usingSavedCV ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Selected
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Use This CV
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </motion.div>
+        ) : (
+          <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50">
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+              No saved CV found in your profile. Upload a new one below.
+            </p>
+          </div>
+        )}
+
+      {/* Divider - Only show if user has saved CV */}
+      {userCV && userCV.url && (
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white dark:bg-gray-800 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+              OR
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Upload New CV Option */}
       <div 
-        className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
+          cvFile && !usingSavedCV
+            ? 'border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/20'
+            : 'border-gray-300 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-gray-50 dark:hover:bg-gray-800'
+        }`}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -3919,24 +5516,43 @@ URL to visit: ${jobUrl}
           const input = document.getElementById("global-file-input") as HTMLInputElement;
           if (input) input.click();
         }}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
-        {cvFile ? (
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3">
-              <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+        {cvFile && !usingSavedCV ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center w-full"
+          >
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+              <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{cvFile.name}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-base font-semibold text-gray-900 dark:text-white mb-1 break-words text-center max-w-md">
+              {cvFile.name}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
               {(cvFile.size / 1024).toFixed(1)} KB
             </p>
-            <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-              Resume selected successfully
-            </p>
-          </div>
+            <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <p className="text-xs font-medium text-green-700 dark:text-green-400">
+                ✓ Resume selected successfully
+              </p>
+            </div>
+          </motion.div>
         ) : (
           <div className="flex flex-col items-center">
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-3">
-              <Upload className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
+              isDragging
+                ? 'bg-purple-100 dark:bg-purple-900/30'
+                : 'bg-purple-100 dark:bg-purple-900/30'
+            }`}>
+              <Upload className={`w-6 h-6 ${
+                isDragging
+                  ? 'text-purple-600 dark:text-purple-400'
+                  : 'text-purple-600 dark:text-purple-400'
+              }`} />
             </div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">Upload your resume (PDF)</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -3949,21 +5565,23 @@ URL to visit: ${jobUrl}
         )}
         <input
           type="file"
+          id="global-file-input"
           ref={fileInputRef}
           onChange={(e) => {
             if (e.target.files && e.target.files[0]) {
-              setCvFile(e.target.files[0]);
+              handleFileUpload(e.target.files[0]);
             }
           }}
           className="hidden"
           accept=".pdf"
         />
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-        Your resume will be analyzed to determine its match with the job posting
-      </p>
-    </div>
-  );
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+          Your resume will be analyzed to determine its match with the job posting
+        </p>
+      </div>
+    );
+  };
 
   // Components for enhanced analysis interface
   const CircularProgressWithCenterText = ({ value, size = 64, strokeWidth = 6, textSize = "text-lg", colorClass = "text-purple-600" }: { value: number, size?: number, strokeWidth?: number, textSize?: string, colorClass?: string }) => {
@@ -4262,7 +5880,137 @@ URL to visit: ${jobUrl}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
+          className="space-y-4"
         >
+          {/* Saved CV Option - Show if user has a saved CV */}
+          {userCV && userCV.url ? (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`border-2 rounded-xl p-5 transition-all duration-200 shadow-sm ${
+                usingSavedCV
+                  ? 'border-purple-500 dark:border-purple-400 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/20 shadow-purple-200 dark:shadow-purple-900/20'
+                  : 'border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-800 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md'
+              }`}
+            >
+              {/* Header with badge */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    usingSavedCV
+                      ? 'bg-purple-600 dark:bg-purple-500'
+                      : 'bg-purple-100 dark:bg-purple-900/30'
+                  }`}>
+                    <FileText className={`w-4 h-4 ${
+                      usingSavedCV
+                        ? 'text-white'
+                        : 'text-purple-600 dark:text-purple-400'
+                    }`} />
+                  </div>
+                  <div>
+                    <span className={`text-xs font-semibold uppercase tracking-wide ${
+                      usingSavedCV
+                        ? 'text-purple-700 dark:text-purple-300'
+                        : 'text-purple-600 dark:text-purple-400'
+                    }`}>
+                      Saved CV
+                    </span>
+                  </div>
+                </div>
+                {usingSavedCV && (
+                  <div className="px-2 py-1 bg-purple-600 dark:bg-purple-500 text-white text-xs font-semibold rounded-full flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    Selected
+                  </div>
+                )}
+              </div>
+              
+              {/* CV Name - Large and Visible */}
+              <div className="mb-4">
+                <p className={`text-lg font-semibold mb-1 ${
+                  usingSavedCV
+                    ? 'text-purple-900 dark:text-purple-100'
+                    : 'text-gray-900 dark:text-white'
+                }`}>
+                  {userCV.name}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  From your professional profile
+                </p>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowCVPreview(true);
+                  }}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  Preview
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleUseSavedCV();
+                  }}
+                  disabled={isDownloadingCV || usingSavedCV}
+                  className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+                    usingSavedCV
+                      ? 'bg-purple-600 dark:bg-purple-500 text-white cursor-default shadow-md'
+                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-500 dark:to-indigo-500 text-white hover:from-purple-700 hover:to-indigo-700 dark:hover:from-purple-600 dark:hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/30'
+                  }`}
+                >
+                  {isDownloadingCV ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : usingSavedCV ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Selected
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Use This CV
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50">
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                No saved CV found in your profile. Upload a new one below.
+              </p>
+            </div>
+          )}
+
+          {/* Divider - Only show if user has saved CV */}
+          {userCV && userCV.url && (
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white dark:bg-gray-800 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                  OR
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Upload New CV Option */}
           <div className="mb-4">
             <label
               ref={dropZoneRef}
@@ -4277,7 +6025,7 @@ URL to visit: ${jobUrl}
                 ${
                   isDragging
                     ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                    : cvFile
+                    : cvFile && !usingSavedCV
                     ? 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
                     : 'border-gray-200/60 dark:border-gray-700/50 hover:border-purple-400/60 dark:hover:border-purple-600/60 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
                 }`}
@@ -4286,11 +6034,11 @@ URL to visit: ${jobUrl}
                 ${
                   isDragging
                     ? 'bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/30 scale-105'
-                    : cvFile
+                    : cvFile && !usingSavedCV
                     ? 'bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20'
                     : 'bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 group-hover:scale-105'
                 }`}>
-                {cvFile ? 
+                {cvFile && !usingSavedCV ? 
                   <Check className="w-6 h-6 text-green-600 dark:text-green-400" /> : 
                   <Upload className={`w-6 h-6 ${isDragging ? 'text-purple-600 dark:text-purple-400' : 'text-purple-600 dark:text-purple-400'}`} />
                 }
@@ -4301,9 +6049,9 @@ URL to visit: ${jobUrl}
                     ? 'text-purple-600 dark:text-purple-400'
                     : 'text-gray-900 dark:text-white'
                 }`}>
-                  {cvFile ? "Resume Selected" : isDragging ? "Drop your CV here" : "Upload Your Resume"}
+                  {cvFile && !usingSavedCV ? "Resume Selected" : isDragging ? "Drop your CV here" : "Upload Your Resume"}
                 </h3>
-                {cvFile ? (
+                {cvFile && !usingSavedCV ? (
                   <div>
                     <p className="text-xs text-gray-600 dark:text-gray-300 font-medium">
                       {cvFile.name}
@@ -4322,7 +6070,7 @@ URL to visit: ${jobUrl}
                   </p>
                 )}
               </div>
-              {cvFile && (
+              {cvFile && !usingSavedCV && (
                 <span className="ml-3 flex-shrink-0 rounded-full bg-green-100/60 dark:bg-green-900/30 backdrop-blur-sm p-2 border border-green-200/50 dark:border-green-800/30">
                   <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </span>
@@ -4611,11 +6359,13 @@ URL to visit: ${jobUrl}
 
   return (
     <AuthLayout>
-        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isLoading ? 'overflow-hidden' : ''}`}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isLoading ? 'overflow-hidden' : ''}`}
+        style={isLoading ? { willChange: 'auto' } : {}}
+        >
         {/* Hero Section */}
         <div className="mb-8">
           <PageHeader 
-            title="ATS Check"
+            title="Resume Lab"
             subtitle="Get detailed insights on how your resume matches specific job positions. Improve your chances with AI-powered recommendations."
           />
           <div className="flex justify-center mt-6">
@@ -4785,7 +6535,9 @@ URL to visit: ${jobUrl}
           <div className={`${viewMode === 'grid' 
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' 
             : 'space-y-3'
-          } ${isLoading ? 'pointer-events-none opacity-50' : ''}`}>
+          } ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+          style={isLoading ? { willChange: 'auto', transform: 'translateZ(0)' } : {}}
+          >
             {filteredAnalyses.map((analysis) => (
               <AnalysisCard 
                 key={analysis.id} 
@@ -4793,6 +6545,7 @@ URL to visit: ${jobUrl}
                 onDelete={deleteAnalysis}
                 viewMode={viewMode}
                 onSelect={() => navigate(`/ats-analysis/${analysis.id}`)}
+                isLoading={isLoading}
               />
             ))}
           </div>
@@ -4817,6 +6570,7 @@ URL to visit: ${jobUrl}
                       jobUrl: '',
                     });
                     setCvFile(null);
+                    setUsingSavedCV(false);
                     setCurrentStep(1);
                     setJobInputMode('ai');
                     setIsModalOpen(true);
@@ -5010,9 +6764,10 @@ URL to visit: ${jobUrl}
                       }
                     }}
                     disabled={
-                      (currentStep === 1 && !cvFile) || 
+                      (currentStep === 1 && !cvFile && !usingSavedCV) || 
                       (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
-                      isLoading
+                      isLoading ||
+                      isDownloadingCV
                     }
                     className={`px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
                       hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
@@ -5050,75 +6805,19 @@ URL to visit: ${jobUrl}
           )}
         </AnimatePresence>
 
-        {/* Loading Overlay - Bird animation */}
+        {/* Loading Overlay - Simple loader animation */}
         {isLoading && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style={{ willChange: 'auto' }}>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex flex-col items-center text-center px-6"
             >
-              <div className="cvopt-walker mb-8" aria-label="Loading">
-                <div className="loader">
-                  <svg className="legl" version="1.1" xmlns="http://www.w3.org/2000/svg" width="20.69332" height="68.19944" viewBox="0,0,20.69332,68.19944">
-                    <g transform="translate(-201.44063,-235.75466)">
-                      <g strokeMiterlimit={10}>
-                        <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
-                        <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
-                        <path d="M218.11971,301.20087c-2.20708,1.73229 -4.41416,0 -4.41416,0l-1.43017,-1.1437c-1.42954,-1.40829 -3.04351,-2.54728 -4.56954,-3.87927c-0.95183,-0.8308 -2.29837,-1.49883 -2.7652,-2.55433c-0.42378,-0.95815 0.14432,-2.02654 0.29355,-3.03399c0.41251,-2.78499 1.82164,-5.43386 2.41472,-8.22683c1.25895,-4.44509 2.73863,-8.98683 3.15318,-13.54796c0.22615,-2.4883 -0.21672,-5.0155 -0.00278,-7.50605c0.30636,-3.56649 1.24602,-7.10406 1.59992,-10.6738c0.29105,-2.93579 -0.00785,-5.9806 -0.00785,-8.93046c0,0 0,-2.44982 3.12129,-2.44982c3.12129,0 3.12129,2.44982 3.12129,2.44982c0,3.06839 0.28868,6.22201 -0.00786,9.27779c-0.34637,3.56935 -1.30115,7.10906 -1.59992,10.6738c-0.2103,2.50918 0.22586,5.05326 -0.00278,7.56284c-0.43159,4.7371 -1.94029,9.46317 -3.24651,14.07835c-0.47439,2.23403 -1.29927,4.31705 -2.05805,6.47156c-0.18628,0.52896 -0.1402,1.0974 -0.327,1.62624c-0.09463,0.26791 -0.64731,0.47816 -0.50641,0.73323c0.19122,0.34617 0.86423,0.3445 1.2346,0.58502c1.88637,1.22503 3.50777,2.79494 5.03,4.28305l0.96971,0.73991c0,0 2.20708,1.73229 0,3.46457z" fill="none" stroke="#191e2e" strokeWidth={7} />
-                      </g>
-                    </g>
-                  </svg>
-                  <svg className="legr" version="1.1" xmlns="http://www.w3.org/2000/svg" width="41.02537" height="64.85502" viewBox="0,0,41.02537,64.85502">
-                    <g transform="translate(-241.54137,-218.44347)">
-                      <g strokeMiterlimit={10}>
-                        <path d="M279.06674,279.42662c-2.27967,1.98991 -6.08116,0.58804 -6.08116,0.58804l-2.47264,-0.92915c-2.58799,-1.18826 -5.31176,-2.08831 -7.99917,-3.18902c-1.67622,-0.68654 -3.82471,-1.16116 -4.93147,-2.13229c-1.00468,-0.88156 -0.69132,-2.00318 -0.92827,-3.00935c-0.65501,-2.78142 0.12275,-5.56236 -0.287,-8.37565c-0.2181,-4.51941 -0.17458,-9.16283 -1.60696,-13.68334c-0.78143,-2.46614 -2.50162,-4.88125 -3.30086,-7.34796c-1.14452,-3.53236 -1.40387,-7.12078 -2.48433,-10.66266c-0.88858,-2.91287 -2.63779,-5.85389 -3.93351,-8.74177c0,0 -1.07608,-2.39835 3.22395,-2.81415c4.30003,-0.41581 2.41605,1.98254 2.41605,1.98254c1.34779,3.00392 3.13072,6.05282 4.06444,9.0839c1.09065,3.54049 1.33011,7.13302 2.48433,10.66266c0.81245,2.48448 2.5308,4.917 3.31813,7.40431c1.48619,4.69506 1.48366,9.52281 1.71137,14.21503c0.32776,2.25028 0.10631,4.39942 0.00736,6.60975c-0.02429,0.54266 0.28888,1.09302 0.26382,1.63563c-0.01269,0.27488 -0.68173,0.55435 -0.37558,0.78529c0.41549,0.31342 1.34191,0.22213 1.95781,0.40826c3.13684,0.94799 6.06014,2.26892 8.81088,3.52298l1.66093,0.59519c0,0 6.76155,1.40187 4.48187,3.39177z" fill="none" stroke="#000000" strokeWidth={7} />
-                        <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
-                        <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
-                      </g>
-                    </g>
-                  </svg>
-                  <div className="bod">
-                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="144.10576" height="144.91623" viewBox="0,0,144.10576,144.91623">
-                      <g transform="translate(-164.41679,-112.94712)">
-                        <g strokeMiterlimit={10}>
-                          <path d="M166.9168,184.02633c0,-36.49454 35.0206,-66.07921 72.05288,-66.07921c37.03228,0 67.05288,29.58467 67.05288,66.07921c0,6.94489 -1.08716,13.63956 -3.10292,19.92772c-2.71464,8.46831 -7.1134,16.19939 -12.809,22.81158c-2.31017,2.68194 -7.54471,12.91599 -7.54471,12.91599c0,0 -5.46714,-1.18309 -8.44434,0.6266c-3.86867,2.35159 -10.95356,10.86714 -10.95356,10.86714c0,0 -6.96906,-3.20396 -9.87477,-2.58085c-2.64748,0.56773 -6.72538,5.77072 -6.72538,5.77072c0,0 -5.5023,-4.25969 -7.5982,-4.25969c-3.08622,0 -9.09924,3.48259 -9.09924,3.48259c0,0 -6.0782,-5.11244 -9.00348,-5.91884c-4.26461,-1.17561 -12.23343,0.75049 -12.23343,0.75049c0,0 -5.18164,-8.26065 -7.60688,-9.90388c-3.50443,-2.37445 -8.8271,-3.95414 -8.8271,-3.95414c0,0 -5.33472,-8.81718 -7.27019,-11.40895c-4.81099,-6.44239 -13.46422,-9.83437 -15.65729,-17.76175c-1.53558,-5.55073 -2.35527,-21.36472 -2.35527,-21.36472z" fill="#191e2e" stroke="#000000" strokeWidth={5} strokeLinecap="butt" />
-                          <path d="M167.94713,180c0,-37.03228 35.0206,-67.05288 72.05288,-67.05288c37.03228,0 67.05288,30.0206 67.05288,67.05288c0,7.04722 -1.08716,13.84053 -3.10292,20.22135c-2.71464,8.59309 -7.1134,16.43809 -12.809,23.14771c-2.31017,2.72146 -7.54471,13.1063 -7.54471,13.1063c0,0 -5.46714,-1.20052 -8.44434,0.63584c-3.86867,2.38624 -10.95356,11.02726 -10.95356,11.02726c0,0 -6.96906,-3.25117 -9.87477,-2.61888c-2.64748,0.5761 -6.72538,5.85575 -6.72538,5.85575c0,0 -5.5023,-4.32246 -7.5982,-4.32246c-3.08622,0 -9.09924,3.5339 -9.09924,3.5339c0,0 -6.0782,-5.18777 -9.00348,-6.00605c-4.26461,-1.19293 -12.23343,0.76155 -12.23343,0.76155c0,0 -5.18164,-8.38236 -7.60688,-10.04981c-3.50443,-2.40943 -8.8271,-4.0124 -8.8271,-4.0124c0,0 -5.33472,-8.9471 -7.27019,-11.57706c-4.81099,-6.53732 -13.46422,-9.97928 -15.65729,-18.02347c-1.53558,-5.63252 -2.35527,-21.67953 -2.35527,-21.67953z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                          <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                          <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                          <path d="M216.22445,188.06994c0,0 1.02834,11.73245 -3.62335,21.11235c-4.65169,9.3799 -13.06183,10.03776 -13.06183,10.03776c0,0 7.0703,-3.03121 10.89231,-10.7381c4.34839,-8.76831 5.79288,-20.41201 5.79288,-20.41201z" fill="none" stroke="#2f3a50" strokeWidth={3} strokeLinecap="round" />
-                        </g>
-                      </g>
-                    </svg>
-                    <svg className="head" version="1.1" xmlns="http://www.w3.org/2000/svg" width="115.68559" height="88.29441" viewBox="0,0,115.68559,88.29441">
-                      <g transform="translate(-191.87889,-75.62023)">
-                        <g strokeMiterlimit={10}>
-                          <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                          <path d="M195.12889,128.77752c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,0.60102 -9.22352,20.49284 -9.22352,20.49284l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="butt" />
-                          <path d="M195.31785,124.43649c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,1.03481 -0.08666,2.8866 -0.08666,2.8866c0,0 16.8538,15.99287 16.21847,17.23929c-0.66726,1.30905 -23.05667,-4.14265 -23.05667,-4.14265l-2.29866,4.5096l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                          <path d="M271.10348,122.46768l10.06374,-3.28166l24.06547,24.28424" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="round" />
-                          <path d="M306.56448,144.85764l-41.62024,-8.16845l2.44004,-7.87698" fill="none" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" />
-                          <path d="M276.02738,115.72434c-0.66448,-4.64715 2.56411,-8.95308 7.21127,-9.61756c4.64715,-0.66448 8.95309,2.56411 9.61757,7.21126c0.46467,3.24972 -1.94776,8.02206 -5.96624,9.09336c-2.11289,-1.73012 -5.08673,-5.03426 -5.08673,-5.03426c0,0 -4.12095,1.16329 -4.60481,1.54229c-0.16433,-0.04891 -0.62732,-0.38126 -0.72803,-0.61269c-0.30602,-0.70328 -0.36302,-2.02286 -0.44303,-2.58239z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                          <path d="M242.49281,125.6424c0,-4.69442 3.80558,-8.5 8.5,-8.5c4.69442,0 8.5,3.80558 8.5,8.5c0,4.69442 -3.80558,8.5 -8.5,8.5c-4.69442,0 -8.5,-3.80558 -8.5,-8.5z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                          <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                        </g>
-                      </g>
-                    </svg>
-                  </div>
-                  <svg id="gnd" version="1.1" xmlns="http://www.w3.org/2000/svg" width={475} height={530} viewBox="0,0,163.40011,85.20095">
-                    <g transform="translate(-176.25,-207.64957)">
-                      <g stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeMiterlimit={10}>
-                        <path d="M295.5,273.1829c0,0 -57.38915,6.69521 -76.94095,-9.01465c-13.65063,-10.50609 15.70098,-20.69467 -2.5451,-19.94465c-30.31027,2.05753 -38.51396,-26.84135 -38.51396,-26.84135c0,0 6.50084,13.30023 18.93224,19.17888c9.53286,4.50796 26.23632,-1.02541 32.09529,4.95137c3.62417,3.69704 2.8012,6.33005 0.66517,8.49452c-3.79415,3.84467 -11.7312,6.21103 -6.24682,10.43645c22.01082,16.95812 72.55412,12.73944 72.55412,12.73944z" fill="#000000" />
-                        <path d="M338.92138,217.76285c0,0 -17.49626,12.55408 -45.36424,10.00353c-8.39872,-0.76867 -17.29557,-6.23066 -17.29557,-6.23066c0,0 3.06461,-2.23972 15.41857,0.72484c26.30467,6.31228 47.24124,-4.49771 47.24124,-4.49771z" fill="#000000" />
-                        <path d="M209.14443,223.00182l1.34223,15.4356l-10.0667,-15.4356" fill="none" />
-                        <path d="M198.20391,230.41806l12.95386,7.34824l6.71113,-12.08004" fill="none" />
-                        <path d="M211.19621,238.53825l8.5262,-6.09014" fill="none" />
-                        <path d="M317.57068,215.80173l5.27812,6.49615l0.40601,-13.39831" fill="none" />
-                        <path d="M323.66082,222.70389l6.09014,-9.33822" fill="none" />
-                      </g>
-                    </g>
-                  </svg>
-                </div>
+              <div className="loader-container mb-8" aria-label="Loading">
+                <div className="loader-dot" />
+                <div className="loader-dot" />
+                <div className="loader-dot" />
+                <div className="loader-dot" />
               </div>
               <div className="w-[min(60vw,520px)] h-2 rounded-full bg-white/20 dark:bg-white/15 overflow-hidden mb-4">
                 <div
@@ -5135,80 +6834,56 @@ URL to visit: ${jobUrl}
             </motion.div>
             <style>
               {`
-                .cvopt-walker .loader {
-                  position: relative;
-                  width: 200px;
-                  height: 200px;
-                  transform: translate(10px, -20px) scale(0.75);
+                .loader-container {
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  width: 3.75em; /* 60px */
                 }
-                .cvopt-walker .loader svg {
-                  position: absolute;
-                  top: 0;
-                  left: 0;
+
+                .loader-dot {
+                  height: 0.8125em; /* 13px */
+                  width: 1.25em; /* 20px */
+                  margin-right: 0.625em; /* 10px */
+                  border-radius: 0.625em; /* 10px */
+                  background-color: #721a8f;
+                  animation: loaderpulse 1.5s infinite ease-in-out;
                 }
-                .cvopt-walker .head {
-                  transform: translate(27px, -30px);
-                  z-index: 3;
-                  animation: bob-head 1s infinite ease-in;
+
+                .loader-dot:last-child {
+                  margin-right: 0;
                 }
-                .cvopt-walker .bod {
-                  transform: translate(0px, 30px);
-                  z-index: 3;
-                  animation: bob-bod 1s infinite ease-in-out;
+
+                .loader-dot:nth-child(1) {
+                  animation-delay: -0.1875s; /* -0.3s */
                 }
-                .cvopt-walker .legr {
-                  transform: translate(75px, 135px);
-                  z-index: 0;
-                  animation: rstep-full 1s infinite ease-in;
+
+                .loader-dot:nth-child(2) {
+                  animation-delay: -0.0625s; /* -0.1s */
                 }
-                .cvopt-walker .legr {
-                  animation-delay: 0.45s;
+
+                .loader-dot:nth-child(3) {
+                  animation-delay: 0.0625s; /* 0.1s */
                 }
-                .cvopt-walker .legl {
-                  transform: translate(30px, 155px);
-                  z-index: 3;
-                  animation: lstep-full 1s infinite ease-in;
-                }
-                @keyframes bob-head {
-                  0% { transform: translate(27px, -30px) rotate(3deg); }
-                  5% { transform: translate(27px, -30px) rotate(3deg); }
-                  25% { transform: translate(27px, -25px) rotate(0deg); }
-                  50% { transform: translate(27px, -30px) rotate(-3deg); }
-                  70% { transform: translate(27px, -25px) rotate(0deg); }
-                  100% { transform: translate(27px, -30px) rotate(3deg); }
-                }
-                @keyframes bob-bod {
-                  0% { transform: translate(0px, 30px) rotate(3deg); }
-                  5% { transform: translate(0px, 30px) rotate(3deg); }
-                  25% { transform: translate(0px, 35px) rotate(0deg); }
-                  50% { transform: translate(0px, 30px) rotate(-3deg); }
-                  70% { transform: translate(0px, 35px) rotate(0deg); }
-                  100% { transform: translate(0px, 30px) rotate(3deg); }
-                }
-                @keyframes lstep-full {
-                  0% { transform: translate(30px, 155px) rotate(-5deg); }
-                  33% { transform: translate(62px, 140px) rotate(35deg); }
-                  66% { transform: translate(55px, 155px) rotate(-25deg); }
-                  100% { transform: translate(30px, 155px) rotate(-5deg); }
-                }
-                @keyframes rstep-full {
-                  0% { transform: translate(75px, 135px) rotate(-5deg); }
-                  33% { transform: translate(105px, 125px) rotate(35deg); }
-                  66% { transform: translate(95px, 135px) rotate(-25deg); }
-                  100% { transform: translate(75px, 135px) rotate(-5deg); }
-                }
-                .cvopt-walker #gnd {
-                  transform: translate(-140px, 0) rotate(10deg);
-                  z-index: -1;
-                  filter: blur(0.5px) drop-shadow(1px 3px 5px #000000);
-                  opacity: 0.25;
-                  animation: scroll 5s infinite linear;
-                }
-                @keyframes scroll {
-                  0% { transform: translate(50px, 25px); opacity: 0; }
-                  33% { opacity: 0.25; }
-                  66% { opacity: 0.25; }
-                  100% { transform: translate(-100px, -50px); opacity: 0; }
+
+                @keyframes loaderpulse {
+                  0% {
+                    transform: scale(0.8);
+                    background-color: #d7b3fc;
+                    box-shadow: 0 0 0 0 rgb(196 178 252 / 70%);
+                  }
+
+                  50% {
+                    transform: scale(1.2);
+                    background-color: #70198e;
+                    box-shadow: 0 0 0 0.625em rgba(178, 212, 252, 0); /* 10px */
+                  }
+
+                  100% {
+                    transform: scale(0.8);
+                    background-color: #d7b3fc;
+                    box-shadow: 0 0 0 0 rgb(196 178 252 / 70%);
+                  }
                 }
               `}
             </style>
@@ -5233,6 +6908,15 @@ URL to visit: ${jobUrl}
           }}
           enableContentValidation={enableContentValidation}
           setEnableContentValidation={setEnableContentValidation}
+        />
+      )}
+
+      {/* CV Preview Modal */}
+      {showCVPreview && userCV && (
+        <CVPreviewModal
+          cvUrl={userCV.url}
+          cvName={userCV.name}
+          onClose={() => setShowCVPreview(false)}
         />
       )}
       

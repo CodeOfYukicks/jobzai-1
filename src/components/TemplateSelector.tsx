@@ -135,7 +135,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8D75E6]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(var(--primary))]"></div>
       </div>
     );
   }
@@ -151,12 +151,12 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search templates..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-[#8D75E6] focus:border-[#8D75E6]"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-[hsl(var(--primary))] focus:border-[hsl(var(--primary))]"
           />
         </div>
         <button
           onClick={() => setShowCreateDialog(true)}
-          className="flex items-center px-4 py-2 text-[#8D75E6] dark:text-purple-400 hover:bg-[#8D75E6]/5 dark:hover:bg-purple-500/10 rounded-lg transition-colors"
+          className="flex items-center px-4 py-2 text-[hsl(var(--primary))] dark:text-purple-400 hover:bg-[hsl(var(--primary))]/5 dark:hover:bg-purple-500/10 rounded-lg transition-colors"
         >
           <Plus className="h-5 w-5 mr-2" />
           Create New
@@ -173,8 +173,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
               animate={{ opacity: 1, y: 0 }}
               className={`p-4 border rounded-lg transition-all cursor-pointer ${
                 selectedTemplateId === template.id
-                  ? 'border-[#8D75E6] dark:border-purple-500 bg-[#8D75E6]/5 dark:bg-purple-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-[#8D75E6]/50 dark:hover:border-purple-500/50 bg-white dark:bg-gray-800'
+                  ? 'border-[hsl(var(--primary))] dark:border-purple-500 bg-[hsl(var(--primary))]/5 dark:bg-purple-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-[hsl(var(--primary))]/50 dark:hover:border-purple-500/50 bg-white dark:bg-gray-800'
               }`}
               onClick={() => handleTemplateSelect(template)}
             >
@@ -224,7 +224,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           </p>
           <button
             onClick={() => setShowCreateDialog(true)}
-            className="mt-4 inline-flex items-center px-4 py-2 text-[#8D75E6] dark:text-purple-400 hover:bg-[#8D75E6]/5 dark:hover:bg-purple-500/10 rounded-lg transition-colors"
+            className="mt-4 inline-flex items-center px-4 py-2 text-[hsl(var(--primary))] dark:text-purple-400 hover:bg-[hsl(var(--primary))]/5 dark:hover:bg-purple-500/10 rounded-lg transition-colors"
           >
             <Plus className="h-5 w-5 mr-2" />
             Create New Template

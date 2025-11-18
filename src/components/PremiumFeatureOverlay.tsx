@@ -25,15 +25,15 @@ export default function PremiumFeatureOverlay({ title, description }: PremiumFea
           <X className="w-5 h-5 text-gray-500" />
         </button>
         
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#8D75E6]/10 mb-4">
-          <Crown className="w-8 h-8 text-[#8D75E6]" />
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[hsl(var(--primary))]/10 mb-4">
+          <Crown className="w-8 h-8 text-[hsl(var(--primary))]" />
         </div>
         <h3 className="text-xl font-bold text-gray-900">{title}</h3>
         <p className="text-gray-600">{description}</p>
         <div className="pt-4">
           <Link
             to="/select-plan"
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-[#8D75E6] text-white font-semibold hover:bg-[#7B65D4] transition-colors"
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-[hsl(var(--primary))] text-white font-semibold hover:bg-[#7B65D4] transition-colors"
           >
             <Lock className="w-4 h-4 mr-2" />
             Upgrade to Premium

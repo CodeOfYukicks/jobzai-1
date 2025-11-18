@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
-import { useSidebarVisibility } from '../hooks/useScrollDirection';
+import { generateCVRewrite } from '../lib/cvRewriteService';
 
 // Import premium components
 import HeroPremium from '../components/ats-premium/HeroPremium';
@@ -62,12 +62,10 @@ export default function ATSAnalysisPagePremium() {
   const [analysis, setAnalysis] = useState<PremiumATSAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
+  const [isGeneratingCV, setIsGeneratingCV] = useState(false);
   
   const sectionsRef = useRef<{ [key: string]: HTMLElement | null }>({});
   const sidebarRef = useRef<HTMLElement>(null);
-  
-  // Smart sidebar visibility - hides when scrolled out of view
-  const { showSidebar } = useSidebarVisibility(sidebarRef);
 
   // Fetch analysis from Firestore
   useEffect(() => {
@@ -136,6 +134,98 @@ export default function ATSAnalysisPagePremium() {
     }
   };
 
+  // Generate CV Rewrite with AI - ULTIMATE QUALITY
+  const handleGenerateCVRewrite = async () => {
+    if (!analysis || !id || !currentUser) {
+      toast.error('Analysis data not available');
+      return;
+    }
+
+    // Check if we have the necessary data
+    if (!analysis.cvText && !analysis.extractedText) {
+      toast.error('CV text is missing. Please run a new analysis to enable CV Rewrite.', {
+        duration: 5000
+      });
+      return;
+    }
+
+    if (!analysis.jobDescription) {
+      toast.error('Job description is missing. Please run a new analysis with job details.', {
+        duration: 5000
+      });
+      return;
+    }
+
+    setIsGeneratingCV(true);
+    const toastId = toast.loading('🤖 Generating your optimized CV with AI... This may take up to 60 seconds.', {
+      duration: Infinity
+    });
+
+    try {
+      console.log('🎯 Starting CV Rewrite generation...');
+
+      // Extract data from analysis
+      const cvText = analysis.cvText || analysis.extractedText || '';
+      const topStrengths = analysis.analysis?.top_strengths?.map((s: any) => s.name) || [];
+      const topGaps = analysis.analysis?.top_gaps?.map((g: any) => g.name) || [];
+      const missingKeywords = analysis.analysis?.match_breakdown?.keywords?.missing || [];
+      const matchScore = analysis.analysis?.match_scores?.overall_score || 0;
+
+      console.log('📊 Analysis data extracted:', {
+        cvTextLength: cvText.length,
+        strengthsCount: topStrengths.length,
+        gapsCount: topGaps.length,
+        keywordsCount: missingKeywords.length,
+        matchScore
+      });
+
+      // Generate the CV with the ULTIMATE prompt
+      const result = await generateCVRewrite({
+        cvText,
+        jobDescription: analysis.jobDescription,
+        atsAnalysis: {
+          strengths: topStrengths,
+          gaps: topGaps,
+          keywords: missingKeywords,
+          matchScore
+        },
+        jobTitle: analysis.jobTitle,
+        company: analysis.company,
+      });
+
+      console.log('✅ CV Rewrite generated successfully!');
+
+      // Save to Firestore
+      await updateDoc(doc(db, 'users', currentUser.uid, 'analyses', id), {
+        cv_rewrite: result,
+        cv_rewrite_generated_at: new Date().toISOString()
+      });
+
+      console.log('💾 CV Rewrite saved to Firestore');
+
+      toast.success('🎉 CV generated successfully! Redirecting...', { id: toastId });
+
+      // Navigate to CV Rewrite page after a short delay
+      setTimeout(() => {
+        navigate(`/ats-analysis/${id}/cv-rewrite`);
+      }, 1000);
+
+    } catch (error: any) {
+      console.error('❌ Error generating CV Rewrite:', error);
+      
+      let errorMessage = 'Failed to generate CV';
+      if (error.message?.includes('API key')) {
+        errorMessage = 'OpenAI API key is missing. Please configure your environment.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage, { id: toastId, duration: 6000 });
+    } finally {
+      setIsGeneratingCV(false);
+    }
+  };
+
   // Prepare navigation sections with counts
   const navSections = DEFAULT_SECTIONS.map(section => ({
     ...section,
@@ -197,41 +287,31 @@ export default function ATSAnalysisPagePremium() {
         {/* Hero Section */}
         <HeroPremium analysis={analysis} />
 
-        {/* Main Content Area with Smart Layout */}
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="flex gap-8">
-            {/* Smart Animated Sidebar */}
-            <div className={`
-              transition-all duration-700 ease-in-out
-              ${showSidebar ? 'opacity-100 w-64' : 'opacity-0 w-0 overflow-hidden'}
-            `}>
-              <NavigationSidebar
-                sections={navSections}
-                activeSection={activeSection}
-                onNavigate={handleNavigate}
-                isVisible={showSidebar}
-                sidebarRef={sidebarRef}
-              />
-            </div>
-
-            {/* Content Sections - Expands to full width when sidebar hidden */}
-            <main 
-              className={`
-                space-y-16 min-w-0
-                transition-all duration-700 ease-in-out
-                ${showSidebar ? 'flex-1' : 'flex-1 max-w-4xl mx-auto'}
-              `}
+        {/* Main Content Area */}
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Horizontal Navigation Menu - Sticky */}
+          <NavigationSidebar
+            sections={navSections}
+            activeSection={activeSection}
+            onNavigate={handleNavigate}
+            isVisible={true}
+            sidebarRef={sidebarRef}
+            analysisId={id}
+            onGenerateCVRewrite={handleGenerateCVRewrite}
+            isGeneratingCV={isGeneratingCV}
+            horizontal={true}
+          />
+          
+          <main className="space-y-16 pb-16">
+            {/* Overview - Executive Summary */}
+            <div
+              ref={(el) => { sectionsRef.current['overview'] = el; }}
+              className="scroll-mt-32"
             >
-              {/* Overview - Executive Summary (already in hero, so we skip or add metadata) */}
-              <div
-                id="overview"
-                ref={(el) => { sectionsRef.current['overview'] = el; }}
-                className="scroll-mt-24"
-              >
-                <div className="bg-white dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-                  <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-                    Analysis Overview
-                  </h2>
+              <div className="bg-white dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+                  Analysis Overview
+                </h2>
                   <div className="grid md:grid-cols-3 gap-6">
                     <div className="text-center p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                       <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
@@ -255,106 +335,105 @@ export default function ATSAnalysisPagePremium() {
                 </div>
               </div>
 
-              {/* Job Summary */}
-              <div ref={(el) => { sectionsRef.current['job-summary'] = el; }}>
-                <Section
-                  id="job-summary"
-                  title="Job Summary"
-                  description="AI-powered breakdown of what this role really requires"
-                >
-                  <JobSummaryPanel jobSummary={analysis.job_summary} />
-                </Section>
-              </div>
+            {/* Job Summary */}
+            <div ref={(el) => { sectionsRef.current['job-summary'] = el; }}>
+              <Section
+                id="job-summary"
+                title="Job Summary"
+                description="AI-powered breakdown of what this role really requires"
+              >
+                <JobSummaryPanel jobSummary={analysis.job_summary} />
+              </Section>
+            </div>
 
-              {/* Match Breakdown */}
-              <div ref={(el) => { sectionsRef.current['breakdown'] = el; }}>
-                <Section
-                  id="breakdown"
-                  title="Match Breakdown"
-                  description="Detailed analysis of how your profile aligns with each category"
-                >
-                  <MatchBreakdownPanel
-                    matchBreakdown={analysis.match_breakdown}
-                    matchScores={analysis.match_scores}
-                  />
-                </Section>
-              </div>
+            {/* Match Breakdown */}
+            <div ref={(el) => { sectionsRef.current['breakdown'] = el; }}>
+              <Section
+                id="breakdown"
+                title="Match Breakdown"
+                description="Detailed analysis of how your profile aligns with each category"
+              >
+                <MatchBreakdownPanel
+                  matchBreakdown={analysis.match_breakdown}
+                  matchScores={analysis.match_scores}
+                />
+              </Section>
+            </div>
 
-              {/* Top Strengths */}
-              <div ref={(el) => { sectionsRef.current['strengths'] = el; }}>
-                <Section
-                  id="strengths"
-                  title="Top Strengths"
-                  description="Your strongest assets for this role with evidence from your resume"
-                >
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    {analysis.top_strengths.map((strength, index) => (
-                      <StrengthCard key={index} strength={strength} index={index} />
-                    ))}
-                  </div>
-                </Section>
-              </div>
+            {/* Top Strengths */}
+            <div ref={(el) => { sectionsRef.current['strengths'] = el; }}>
+              <Section
+                id="strengths"
+                title="Top Strengths"
+                description="Your strongest assets for this role with evidence from your resume"
+              >
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {analysis.top_strengths.map((strength, index) => (
+                    <StrengthCard key={index} strength={strength} index={index} />
+                  ))}
+                </div>
+              </Section>
+            </div>
 
-              {/* Top Gaps */}
-              <div ref={(el) => { sectionsRef.current['gaps'] = el; }}>
-                <Section
-                  id="gaps"
-                  title="Gaps to Address"
-                  description="Areas where your profile doesn't fully match requirements, with actionable fixes"
-                >
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    {analysis.top_gaps.map((gap, index) => (
-                      <GapCard key={index} gap={gap} index={index} />
-                    ))}
-                  </div>
-                </Section>
-              </div>
+            {/* Top Gaps */}
+            <div ref={(el) => { sectionsRef.current['gaps'] = el; }}>
+              <Section
+                id="gaps"
+                title="Gaps to Address"
+                description="Areas where your profile doesn't fully match requirements, with actionable fixes"
+              >
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {analysis.top_gaps.map((gap, index) => (
+                    <GapCard key={index} gap={gap} index={index} />
+                  ))}
+                </div>
+              </Section>
+            </div>
 
-              {/* CV Fixes */}
-              <div ref={(el) => { sectionsRef.current['cv-fixes'] = el; }}>
-                <Section
-                  id="cv-fixes"
-                  title="CV Optimization"
-                  description={`Make these changes to potentially gain +${analysis.cv_fixes.estimated_score_gain} points`}
-                >
-                  <CVFixesPanel cvFixes={analysis.cv_fixes} />
-                </Section>
-              </div>
+            {/* CV Fixes */}
+            <div ref={(el) => { sectionsRef.current['cv-fixes'] = el; }}>
+              <Section
+                id="cv-fixes"
+                title="CV Optimization"
+                description={`Make these changes to potentially gain +${analysis.cv_fixes.estimated_score_gain} points`}
+              >
+                <CVFixesPanel cvFixes={analysis.cv_fixes} />
+              </Section>
+            </div>
 
-              {/* 48H Action Plan */}
-              <div ref={(el) => { sectionsRef.current['action-plan'] = el; }}>
-                <Section
-                  id="action-plan"
-                  title="48-Hour Action Plan"
-                  description="Immediate steps to maximize your chances of landing an interview"
-                >
-                  <ActionPlan48H actionPlan={analysis.action_plan_48h} />
-                </Section>
-              </div>
+            {/* 48H Action Plan */}
+            <div ref={(el) => { sectionsRef.current['action-plan'] = el; }}>
+              <Section
+                id="action-plan"
+                title="48-Hour Action Plan"
+                description="Immediate steps to maximize your chances of landing an interview"
+              >
+                <ActionPlan48H actionPlan={analysis.action_plan_48h} />
+              </Section>
+            </div>
 
-              {/* Learning Path */}
-              <div ref={(el) => { sectionsRef.current['learning'] = el; }}>
-                <Section
-                  id="learning"
-                  title="Learning Path"
-                  description="Curated resources to close skill gaps and strengthen your candidacy"
-                >
-                  <LearningPathPanel learningPath={analysis.learning_path} />
-                </Section>
-              </div>
+            {/* Learning Path */}
+            <div ref={(el) => { sectionsRef.current['learning'] = el; }}>
+              <Section
+                id="learning"
+                title="Learning Path"
+                description="Curated resources to close skill gaps and strengthen your candidacy"
+              >
+                <LearningPathPanel learningPath={analysis.learning_path} />
+              </Section>
+            </div>
 
-              {/* Opportunity Fit */}
-              <div ref={(el) => { sectionsRef.current['fit'] = el; }}>
-                <Section
-                  id="fit"
-                  title="Opportunity Fit"
-                  description="Balanced perspective on why you'll succeed and potential challenges"
-                >
-                  <OpportunityFitPanel opportunityFit={analysis.opportunity_fit} />
-                </Section>
-              </div>
-            </main>
-          </div>
+            {/* Opportunity Fit */}
+            <div ref={(el) => { sectionsRef.current['fit'] = el; }}>
+              <Section
+                id="fit"
+                title="Opportunity Fit"
+                description="Balanced perspective on why you'll succeed and potential challenges"
+              >
+                <OpportunityFitPanel opportunityFit={analysis.opportunity_fit} />
+              </Section>
+            </div>
+          </main>
         </div>
       </div>
     </AuthLayout>

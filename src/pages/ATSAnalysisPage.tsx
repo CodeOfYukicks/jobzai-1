@@ -284,7 +284,7 @@ export default function ATSAnalysisPage() {
               onClick={() => navigate('/cv-analysis')}
               className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
-              Back to ATS Analysis
+              Back to Resume Lab
             </button>
           </div>
         </div>
@@ -302,7 +302,7 @@ export default function ATSAnalysisPage() {
 
   const handleAIAction = (action: string) => {
     toast.info(`${action} - Coming soon!`);
-    // TODO: Link to Resume Lab or implement action
+    // TODO: Link to Resume Check or implement action
   };
 
   return (
@@ -314,7 +314,7 @@ export default function ATSAnalysisPage() {
           className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to ATS Analysis
+          Back to Resume Lab
         </button>
 
         {/* Premium Header Card */}
@@ -598,11 +598,11 @@ export default function ATSAnalysisPage() {
                                 Apply Fix with AI
                               </button>
                               <button
-                                onClick={() => handleAIAction(`Open Resume Lab for: ${rec.title}`)}
+                                onClick={() => handleAIAction(`Open Resume Check for: ${rec.title}`)}
                                 className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 inline-flex items-center gap-1"
                               >
                                 <ExternalLink className="w-3 h-3" />
-                                Open in Resume Lab
+                                Open in Resume Check
                               </button>
                             </div>
                           </div>
@@ -647,11 +647,11 @@ export default function ATSAnalysisPage() {
                                 Apply Fix with AI
                               </button>
                               <button
-                                onClick={() => handleAIAction(`Open Resume Lab for: ${rec.title}`)}
+                                onClick={() => handleAIAction(`Open Resume Check for: ${rec.title}`)}
                                 className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 inline-flex items-center gap-1"
                               >
                                 <ExternalLink className="w-3 h-3" />
-                                Open in Resume Lab
+                                Open in Resume Check
                               </button>
                             </div>
                           </div>
@@ -696,11 +696,11 @@ export default function ATSAnalysisPage() {
                                 Apply Fix with AI
                               </button>
                               <button
-                                onClick={() => handleAIAction(`Open Resume Lab for: ${rec.title}`)}
+                                onClick={() => handleAIAction(`Open Resume Check for: ${rec.title}`)}
                                 className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 inline-flex items-center gap-1"
                               >
                                 <ExternalLink className="w-3 h-3" />
-                                Open in Resume Lab
+                                Open in Resume Check
                               </button>
                             </div>
                           </div>

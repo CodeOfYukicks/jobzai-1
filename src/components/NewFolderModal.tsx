@@ -54,7 +54,7 @@ export default function NewFolderModal({ onClose, onCreateFolder }: NewFolderMod
               id="folderName"
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8D75E6] focus:border-[#8D75E6]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[hsl(var(--primary))] focus:border-[hsl(var(--primary))]"
               placeholder="Enter folder name"
               autoFocus
             />
@@ -71,7 +71,7 @@ export default function NewFolderModal({ onClose, onCreateFolder }: NewFolderMod
             <button
               type="submit"
               disabled={isSubmitting || !folderName.trim()}
-              className="flex items-center px-4 py-2 bg-[#8D75E6] text-white rounded-lg hover:bg-[#8D75E6]/90 transition-colors disabled:opacity-50"
+              className="flex items-center px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:bg-[hsl(var(--primary))]/90 transition-colors disabled:opacity-50"
             >
               <FolderPlus className="h-5 w-5 mr-2" />
               Create Folder

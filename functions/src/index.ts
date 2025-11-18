@@ -435,9 +435,34 @@ async function handlePremiumAnalysis(
     }
 
     let parsedAnalysis = JSON.parse(content);
+    
+    // Debug: Log the structure of parsed analysis
+    console.log('📊 Parsed analysis structure:', {
+      hasAnalysis: !!parsedAnalysis.analysis,
+      hasCVRewrite: !!parsedAnalysis.cv_rewrite,
+      cvRewriteKeys: parsedAnalysis.cv_rewrite ? Object.keys(parsedAnalysis.cv_rewrite) : [],
+      analysisKeys: Object.keys(parsedAnalysis)
+    });
 
     // Save to Firestore if userId and analysisId provided
     if (userId && analysisId) {
+      // Extract CV text and CV rewrite from the analysis (cv_rewrite is inside analysis object)
+      const cvRewrite = parsedAnalysis.analysis?.cv_rewrite || null;
+      const cvText = cvRewrite?.extracted_text || 
+                     cvRewrite?.initial_cv || 
+                     cvRewrite?.analysis?.extracted_text || 
+                     '';
+      
+      console.log('💾 Preparing to save to Firestore:', {
+        userId,
+        analysisId,
+        hasCVRewrite: !!cvRewrite,
+        cvTextLength: cvText.length,
+        hasJobDescription: !!jobContext.jobDescription,
+        jobDescriptionLength: jobContext.jobDescription?.length || 0,
+        cvRewriteKeys: cvRewrite ? Object.keys(cvRewrite) : []
+      });
+      
       await admin.firestore()
         .collection('users')
         .doc(userId)
@@ -449,11 +474,20 @@ async function handlePremiumAnalysis(
           userId,
           jobTitle: jobContext.jobTitle,
           company: jobContext.company,
+          jobDescription: jobContext.jobDescription, // ✅ SAVE JOB DESCRIPTION
+          cvText: cvText, // ✅ SAVE CV TEXT
+          extractedText: cvText, // ✅ FALLBACK FIELD
           date: admin.firestore.FieldValue.serverTimestamp(),
           status: 'completed',
           type: 'premium',
           matchScore: parsedAnalysis.analysis.match_scores.overall_score,
+          // cv_rewrite is already in ...parsedAnalysis.analysis spread above
         }, { merge: true });
+        
+      console.log('✅ Successfully saved to Firestore', {
+        savedCVTextLength: cvText.length,
+        savedCVRewrite: !!cvRewrite
+      });
     }
 
     res.status(200).json({
@@ -2226,16 +2260,36 @@ export const searchJobs = onRequest({
     const jobType = (req.query.jobType as string) || '';
     const limit = parseInt((req.query.limit as string) || '200', 10);
 
-    // Start with base query
-    let jobsQuery = admin.firestore()
-      .collection('jobs')
-      .orderBy('postedAt', 'desc')
-      .limit(Math.min(limit, 1000)); // Cap at 1000 for better search coverage (increased from 500)
+    // Build optimized Firestore query
+    // Start with base query - always order by postedAt
+    let jobsQuery: admin.firestore.Query = admin.firestore()
+      .collection('jobs');
 
-    // Execute the base query
+    // Optimize: Use Firestore where() for filters that can be indexed
+    // Note: We can only use one range filter (postedAt) with orderBy
+    // So we prioritize last24h filter if present, otherwise use default limit
+    
+    if (last24h) {
+      // Optimize: Filter by date at database level
+      const oneDayAgo = admin.firestore.Timestamp.fromDate(
+        new Date(Date.now() - 24 * 60 * 60 * 1000)
+      );
+      jobsQuery = jobsQuery
+        .where('postedAt', '>=', oneDayAgo)
+        .orderBy('postedAt', 'desc')
+        .limit(Math.min(limit, 1000));
+      console.log(`   Using optimized query: last24h filter at database level`);
+    } else {
+      // Default: Get most recent jobs
+      jobsQuery = jobsQuery
+        .orderBy('postedAt', 'desc')
+        .limit(Math.min(limit, 1000));
+    }
+
+    // Execute the optimized query
     const snapshot = await jobsQuery.get();
     
-    console.log(`   Found ${snapshot.size} jobs in database`);
+    console.log(`   Found ${snapshot.size} jobs in database (after Firestore filters)`);
 
     // Filter results in memory for text search
     let jobs = snapshot.docs.map(doc => ({
@@ -2355,15 +2409,8 @@ export const searchJobs = onRequest({
       });
     }
 
-    // Apply last 24 hours filter
-    if (last24h) {
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      jobs = jobs.filter(job => {
-        if (!job.postedAt) return false;
-        const postedDate = job.postedAt.toDate ? job.postedAt.toDate() : new Date(job.postedAt);
-        return postedDate >= oneDayAgo;
-      });
-    }
+    // Note: last24h filter is already applied at Firestore query level for optimization
+    // No need to filter again in memory
 
     console.log(`   Returning ${jobs.length} filtered jobs`);
 
@@ -2397,6 +2444,124 @@ export const searchJobs = onRequest({
       success: false,
       message: error.message || 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+/**
+ * Cloud Function to download CV from Firebase Storage
+ * This avoids CORS issues by downloading the file server-side
+ * Using onRequest with explicit CORS handling for better compatibility
+ */
+export const downloadCV = onRequest({
+  region: 'us-central1',
+  cors: true,
+  maxInstances: 10,
+}, async (req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.status(204).send('');
+    return;
+  }
+
+  // Set CORS headers for actual request
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  try {
+    // Verify authentication via Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'unauthenticated', 
+        message: 'User must be authenticated' 
+      });
+      return;
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(token);
+    } catch (authError) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'unauthenticated', 
+        message: 'Invalid authentication token' 
+      });
+      return;
+    }
+
+    const { storagePath } = req.body;
+    
+    if (!storagePath) {
+      res.status(400).json({ 
+        success: false, 
+        error: 'invalid-argument', 
+        message: 'Storage path is required' 
+      });
+      return;
+    }
+
+    console.log('📥 Downloading CV from storage path:', storagePath);
+    console.log('   User ID:', decodedToken.uid);
+
+    // Get the file from Firebase Storage using Admin SDK
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(storagePath);
+
+    // Check if file exists and user has permission
+    const [exists] = await file.exists();
+    if (!exists) {
+      res.status(404).json({ 
+        success: false, 
+        error: 'not-found', 
+        message: 'CV file not found' 
+      });
+      return;
+    }
+
+    // Verify the file belongs to the user (security check)
+    const pathParts = storagePath.split('/');
+    if (pathParts[0] === 'cvs' && pathParts[1] !== decodedToken.uid) {
+      res.status(403).json({ 
+        success: false, 
+        error: 'permission-denied', 
+        message: 'Access denied to this CV file' 
+      });
+      return;
+    }
+
+    // Download the file
+    const [fileBuffer] = await file.download();
+    
+    // Convert to base64 for transmission
+    const base64 = fileBuffer.toString('base64');
+    const [metadata] = await file.getMetadata();
+    const contentType = metadata.contentType || 'application/pdf';
+
+    console.log('✅ CV downloaded successfully:', {
+      size: fileBuffer.length,
+      contentType
+    });
+
+    res.status(200).json({
+      success: true,
+      data: base64,
+      contentType,
+      size: fileBuffer.length
+    });
+  } catch (error: any) {
+    console.error('❌ Error downloading CV:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'internal', 
+      message: `Failed to download CV: ${error.message}` 
     });
   }
 });

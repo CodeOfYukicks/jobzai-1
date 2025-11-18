@@ -29,6 +29,10 @@ import AICard from '../components/interview/AICard';
 import TabPills from '../components/interview/TabPills';
 import MiniInfoCard from '../components/interview/MiniInfoCard';
 import SectionCard from '../components/interview/SectionCard';
+import { InterviewQuestionsHeader } from '../components/interview/questions/InterviewQuestionsHeader';
+import { QuestionCard, QuestionTag } from '../components/interview/questions/QuestionCard';
+import { FocusQuestionModal } from '../components/interview/questions/FocusQuestionModal';
+import { InterviewWhiteboard } from '../components/board/InterviewWhiteboard';
 
 // Interface for the job application data
 interface Note {
@@ -135,6 +139,164 @@ interface NewsItem {
   url?: string;
 }
 
+const QUESTION_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'technical', label: 'Technical' },
+  { id: 'behavioral', label: 'Behavioral' },
+  { id: 'company-specific', label: 'Company' },
+  { id: 'role-specific', label: 'Role' },
+] as const;
+
+type QuestionFilter = (typeof QUESTION_FILTERS)[number]['id'];
+
+interface QuestionEntry {
+  id: number;
+  rawValue: string;
+  text: string;
+  tags: QuestionTag[];
+  suggestedApproach?: string | null;
+}
+
+const sanitizeQuestionText = (input: unknown): string => {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+    .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
+    .replace(/^["']?answer["']?\s*:\s*["']?/i, '')
+    .replace(/["']?\s*,\s*["']?answer["']?\s*:\s*["']?.*?$/gi, '')
+    .replace(/["']?\s*,\s*["']?question["']?\s*:\s*["']?.*?$/gi, '')
+    .replace(/["']\s*,\s*$/g, '')
+    .replace(/,\s*$/g, '')
+    .replace(/["']?\s*\}\s*,?\s*$/g, '')
+    .replace(/["']?\s*\]\s*,?\s*$/g, '')
+    .replace(/^["']?/g, '')
+    .replace(/["']?$/g, '')
+    .replace(/^\[+\s*/, '')
+    .replace(/^\{+\s*/, '')
+    .replace(/^\(+\s*/, '')
+    .replace(/\s*\[+$/, '')
+    .replace(/\s*\{+$/, '')
+    .replace(/\s*\(+$/, '')
+    .replace(/^\(([^)]*)$/, '$1')
+    .replace(/^([^(]*)\)$/, '$1')
+    .trim();
+};
+
+const cleanAnswerText = (input: unknown): string => {
+  if (typeof input !== 'string') return '';
+  return input
+    .trim()
+    .replace(/^["']?answer["']?\s*:\s*["']?/i, '')
+    .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+    .replace(/["']\s*,\s*$/g, '')
+    .replace(/,\s*$/g, '')
+    .replace(/["']?\s*\}\s*,?\s*$/g, '')
+    .replace(/["']?\s*\]\s*,?\s*$/g, '')
+    .replace(/^["']?/g, '')
+    .replace(/["']?$/g, '')
+    .replace(/^\[+\s*/, '')
+    .replace(/^\{+\s*/, '')
+    .replace(/^\(+\s*/, '')
+    .replace(/\s*\[+$/, '')
+    .replace(/\s*\{+$/, '')
+    .replace(/\s*\(+$/, '')
+    .replace(/^\(([^)]*)$/, '$1')
+    .replace(/^([^(]*)\)$/, '$1')
+    .trim();
+};
+
+const normalizeQuestionForMatch = (input: unknown): string => {
+  if (typeof input !== 'string') return '';
+  return input
+    .toLowerCase()
+    .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+    .replace(/^["']?/g, '')
+    .replace(/["']?$/g, '')
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Function to determine question tags based on content
+const getQuestionTags = (question: string): ('technical' | 'behavioral' | 'company-specific' | 'role-specific')[] => {
+  if (!question || typeof question !== 'string') return [];
+  
+  const lowerQuestion = question.toLowerCase();
+  const tags: ('technical' | 'behavioral' | 'company-specific' | 'role-specific')[] = [];
+  
+  // Technical keywords
+  const technicalKeywords = [
+    'code', 'programming', 'algorithm', 'technical', 'technology', 'software', 'hardware',
+    'system', 'database', 'api', 'framework', 'language', 'tool', 'platform', 'architecture',
+    'debug', 'optimize', 'implement', 'develop', 'design pattern', 'data structure',
+    'testing', 'deployment', 'infrastructure', 'security', 'performance', 'scalability'
+  ];
+  
+  // Behavioral keywords
+  const behavioralKeywords = [
+    'tell me about', 'describe a time', 'situation', 'challenge', 'conflict', 'team',
+    'leadership', 'mistake', 'failure', 'success', 'difficult', 'pressure', 'stress',
+    'collaborate', 'communicate', 'manage', 'handle', 'deal with', 'experience',
+    'example', 'story', 'scenario', 'how did you', 'what did you', 'when did you'
+  ];
+  
+  // Company-specific keywords
+  const companyKeywords = [
+    'company', 'organization', 'firm', 'business', 'our company', 'this company',
+    'why do you want to work', 'why are you interested', 'what do you know about',
+    'culture', 'values', 'mission', 'vision', 'why us', 'why here'
+  ];
+  
+  // Role-specific keywords
+  const roleKeywords = [
+    'this role', 'this position', 'job', 'responsibilities', 'duties', 'expectations',
+    'qualifications', 'requirements', 'skills needed', 'what makes you qualified',
+    'why are you a good fit', 'how do you fit', 'relevant experience'
+  ];
+  
+  // Check for technical
+  if (technicalKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+    tags.push('technical');
+  }
+  
+  // Check for behavioral
+  if (behavioralKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+    tags.push('behavioral');
+  }
+  
+  // Check for company-specific
+  if (companyKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+    tags.push('company-specific');
+  }
+  
+  // Check for role-specific
+  if (roleKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+    tags.push('role-specific');
+  }
+  
+  // Default: if no tags found, assign based on question structure
+  if (tags.length === 0) {
+    // Questions starting with "How", "What", "Why" about processes are often technical
+    if (lowerQuestion.startsWith('how') && (lowerQuestion.includes('would you') || lowerQuestion.includes('do you'))) {
+      tags.push('technical');
+    }
+    // Questions about past experiences are behavioral
+    else if (lowerQuestion.includes('have you') || lowerQuestion.includes('did you')) {
+      tags.push('behavioral');
+    }
+    // Questions about the company
+    else if (lowerQuestion.includes('why') && (lowerQuestion.includes('want') || lowerQuestion.includes('interested'))) {
+      tags.push('company-specific');
+    }
+    // Default to role-specific
+    else {
+      tags.push('role-specific');
+    }
+  }
+  
+  return tags;
+};
+
 export default function InterviewPrepPage() {
   const { applicationId, interviewId } = useParams<{ applicationId: string, interviewId: string }>();
   const { currentUser } = useAuth();
@@ -216,90 +378,164 @@ export default function InterviewPrepPage() {
   const [resourcesData, setResourcesData] = useState<Interview['resourcesData']>({ reviewedTips: [], savedLinks: [] });
   const [newResourceTitle, setNewResourceTitle] = useState('');
   const [newResourceUrl, setNewResourceUrl] = useState('');
-  const [activeQuestionFilter, setActiveQuestionFilter] = useState<'all' | 'technical' | 'behavioral' | 'company-specific' | 'role-specific'>('all');
+  const [activeQuestionFilter, setActiveQuestionFilter] = useState<QuestionFilter>('all');
   const [showAllChecklistItems, setShowAllChecklistItems] = useState(false);
   const [showAllNewsItems, setShowAllNewsItems] = useState(false);
   const [isJobSummaryOpen, setIsJobSummaryOpen] = useState(false);
   
+  const questionEntries = useMemo<QuestionEntry[]>(() => {
+    if (!interview?.preparation?.suggestedQuestions) return [];
+    const answers = interview.preparation?.suggestedAnswers || [];
 
-  // Function to determine question tags based on content
-  const getQuestionTags = (question: string): ('technical' | 'behavioral' | 'company-specific' | 'role-specific')[] => {
-    if (!question || typeof question !== 'string') return [];
-    
-    const lowerQuestion = question.toLowerCase();
-    const tags: ('technical' | 'behavioral' | 'company-specific' | 'role-specific')[] = [];
-    
-    // Technical keywords
-    const technicalKeywords = [
-      'code', 'programming', 'algorithm', 'technical', 'technology', 'software', 'hardware',
-      'system', 'database', 'api', 'framework', 'language', 'tool', 'platform', 'architecture',
-      'debug', 'optimize', 'implement', 'develop', 'design pattern', 'data structure',
-      'testing', 'deployment', 'infrastructure', 'security', 'performance', 'scalability'
-    ];
-    
-    // Behavioral keywords
-    const behavioralKeywords = [
-      'tell me about', 'describe a time', 'situation', 'challenge', 'conflict', 'team',
-      'leadership', 'mistake', 'failure', 'success', 'difficult', 'pressure', 'stress',
-      'collaborate', 'communicate', 'manage', 'handle', 'deal with', 'experience',
-      'example', 'story', 'scenario', 'how did you', 'what did you', 'when did you'
-    ];
-    
-    // Company-specific keywords
-    const companyKeywords = [
-      'company', 'organization', 'firm', 'business', 'our company', 'this company',
-      'why do you want to work', 'why are you interested', 'what do you know about',
-      'culture', 'values', 'mission', 'vision', 'why us', 'why here'
-    ];
-    
-    // Role-specific keywords
-    const roleKeywords = [
-      'this role', 'this position', 'job', 'responsibilities', 'duties', 'expectations',
-      'qualifications', 'requirements', 'skills needed', 'what makes you qualified',
-      'why are you a good fit', 'how do you fit', 'relevant experience'
-    ];
-    
-    // Check for technical
-    if (technicalKeywords.some(keyword => lowerQuestion.includes(keyword))) {
-      tags.push('technical');
-    }
-    
-    // Check for behavioral
-    if (behavioralKeywords.some(keyword => lowerQuestion.includes(keyword))) {
-      tags.push('behavioral');
-    }
-    
-    // Check for company-specific
-    if (companyKeywords.some(keyword => lowerQuestion.includes(keyword))) {
-      tags.push('company-specific');
-    }
-    
-    // Check for role-specific
-    if (roleKeywords.some(keyword => lowerQuestion.includes(keyword))) {
-      tags.push('role-specific');
-    }
-    
-    // Default: if no tags found, assign based on question structure
-    if (tags.length === 0) {
-      // Questions starting with "How", "What", "Why" about processes are often technical
-      if (lowerQuestion.startsWith('how') && (lowerQuestion.includes('would you') || lowerQuestion.includes('do you'))) {
-        tags.push('technical');
+    const isGenericAnswer = (answer: string) => {
+      const normalized = answer.toLowerCase();
+      return (
+        (normalized.includes('structure your answer using the star method') && answer.length < 100) ||
+        normalized === 'use the star method' ||
+        normalized === 'use star method' ||
+        (normalized.includes('prepare a specific answer for this question') && answer.length < 150)
+      );
+    };
+
+    const extractAnswer = (candidate: any): string | null => {
+      if (!candidate) return null;
+      let rawValue: string | null = null;
+      if (typeof candidate === 'object' && 'answer' in candidate) {
+        rawValue = String(candidate.answer);
+      } else if (typeof candidate === 'string') {
+        rawValue = candidate;
       }
-      // Questions about past experiences are behavioral
-      else if (lowerQuestion.includes('have you') || lowerQuestion.includes('did you')) {
-        tags.push('behavioral');
+      if (!rawValue) return null;
+      const cleaned = cleanAnswerText(rawValue);
+      if (!cleaned || cleaned.length < 10 || isGenericAnswer(cleaned)) return null;
+      return cleaned;
+    };
+
+    const matchAnswerForQuestion = (normalizedQuestion: string): string | null => {
+      if (!normalizedQuestion) return null;
+      const directMatch = answers.find((entry: any) => {
+        if (typeof entry !== 'object' || entry === null || !('question' in entry)) return false;
+        const normalizedEntry = normalizeQuestionForMatch(entry.question);
+        return normalizedEntry && normalizedEntry === normalizedQuestion;
+      });
+      if (directMatch) {
+        const result = extractAnswer(directMatch);
+        if (result) return result;
       }
-      // Questions about the company
-      else if (lowerQuestion.includes('why') && (lowerQuestion.includes('want') || lowerQuestion.includes('interested'))) {
-        tags.push('company-specific');
+      const fuzzyMatch = answers.find((entry: any) => {
+        if (typeof entry !== 'object' || entry === null || !('question' in entry)) return false;
+        const normalizedEntry = normalizeQuestionForMatch(entry.question);
+        if (!normalizedEntry || !normalizedQuestion) return false;
+        const shortest = Math.min(normalizedEntry.length, normalizedQuestion.length) || 1;
+        const longest = Math.max(normalizedEntry.length, normalizedQuestion.length) || 1;
+        const similarity = shortest / longest;
+        return (
+          similarity > 0.6 &&
+          (normalizedEntry.includes(normalizedQuestion) || normalizedQuestion.includes(normalizedEntry))
+        );
+      });
+      if (fuzzyMatch) {
+        const result = extractAnswer(fuzzyMatch);
+        if (result) return result;
       }
-      // Default to role-specific
-      else {
-        tags.push('role-specific');
-      }
+      return null;
+    };
+
+    return interview.preparation.suggestedQuestions
+      .map((rawQuestion, index) => {
+        const text = sanitizeQuestionText(rawQuestion);
+        if (!text || text.length < 10 || text === 'question' || text === 'questions') {
+          return null;
+        }
+        const tags = getQuestionTags(text) as QuestionTag[];
+        const normalizedQuestion = normalizeQuestionForMatch(rawQuestion);
+        const suggestion =
+          extractAnswer(answers[index]) ??
+          matchAnswerForQuestion(normalizedQuestion);
+        return {
+          id: index,
+          rawValue: typeof rawQuestion === 'string' ? rawQuestion : String(rawQuestion),
+          text,
+          tags,
+          suggestedApproach: suggestion,
+        };
+      })
+      .filter((entry): entry is QuestionEntry => Boolean(entry));
+  }, [interview?.preparation?.suggestedQuestions, interview?.preparation?.suggestedAnswers]);
+
+  const filteredQuestions = useMemo(() => {
+    if (activeQuestionFilter === 'all') return questionEntries;
+    return questionEntries.filter((entry) => entry.tags.includes(activeQuestionFilter as QuestionTag));
+  }, [questionEntries, activeQuestionFilter]);
+  
+  useEffect(() => {
+    if (questionEntries.length === 0) {
+      setCollapsedQuestions({});
+      return;
     }
-    
-    return tags;
+    setCollapsedQuestions((prev) => {
+      const next: Record<number, boolean> = {};
+      let hasChanges = false;
+      questionEntries.forEach(({ id }) => {
+        if (prev[id] === undefined) {
+          next[id] = true;
+          hasChanges = true;
+        } else {
+          next[id] = prev[id];
+        }
+      });
+      if (Object.keys(prev).length !== Object.keys(next).length) {
+        hasChanges = true;
+      }
+      return hasChanges ? next : prev;
+    });
+  }, [questionEntries]);
+
+  const handleToggleSaveQuestion = (rawQuestion: string) => {
+    if (typeof window === 'undefined') return;
+    setSavedQuestionsState((prev) => {
+      const exists = prev.includes(rawQuestion);
+      const updated = exists ? prev.filter((item) => item !== rawQuestion) : [...prev, rawQuestion];
+      localStorage.setItem('savedQuestions', JSON.stringify(updated));
+      if (exists) {
+        toast.info('Question removed from saved list');
+      } else {
+        toast.success('Question saved');
+      }
+      return updated;
+    });
+  };
+
+  const handleCreateNoteFromQuestion = (content: string, displayIndex: number) => {
+    const newNoteId = uuidv4();
+    const newNote: Note = {
+      id: newNoteId,
+      title: `Interview Question ${displayIndex}`,
+      content,
+      color: '#f48fb1',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      position: { x: 50, y: 50 }
+    };
+    const updatedNotes = [...stickyNotes, newNote];
+    setStickyNotes(updatedNotes);
+    setNotePositions(prev => ({
+      ...prev,
+      [newNoteId]: { x: 50, y: 50 }
+    }));
+    setNoteSizes(prev => ({
+      ...prev,
+      [newNoteId]: { width: 250, height: 200 }
+    }));
+    updateInterviewNotes(updatedNotes);
+    toast.success('Note created from question');
+  };
+
+  const handleToggleSuggestionVisibility = (questionId: number) => {
+    setCollapsedQuestions(prev => ({
+      ...prev,
+      [questionId]: prev[questionId] === false ? true : false
+    }));
   };
 
   // Reusable company news fetcher
@@ -401,6 +637,7 @@ Key points to mention:
   // État pour suivre les questions sauvegardées et celles qui sont réduites/étendues
   const [savedQuestionsState, setSavedQuestionsState] = useState<string[]>([]);
   const [collapsedQuestions, setCollapsedQuestions] = useState<Record<number, boolean>>({});
+  const [focusedQuestion, setFocusedQuestion] = useState<QuestionEntry | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -2814,42 +3051,44 @@ Make sure each answer is completely unique and specific to its question - no gen
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="space-y-6"
+                    className="space-y-5"
                   >
                     {/* SECTION 1: Preparation Progress */}
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
+                      <motion.article
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                    >
-                      <SectionCard
-                        icon={<BarChart2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
-                        title="Preparation Progress"
-                        subtitle="Complete the key milestones to feel fully ready for your interview"
-                        actions={
-                          <div className="flex flex-col items-end">
-                            <div className="text-[20px] font-semibold text-purple-600 dark:text-purple-400">
+                        whileHover={{ y: -2 }}
+                        className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
+                      >
+                        <header className="mb-5 flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Preparation Progress</h2>
+                            <p className="text-sm text-neutral-500 dark:text-neutral-400">Complete the key milestones to feel fully ready</p>
+                          </div>
+                          <div className="flex flex-col items-end text-right">
+                            <div className="text-2xl font-semibold text-purple-600 dark:text-purple-400">
                               {preparationProgress}%
                         </div>
-                            <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                            <div className="text-xs text-neutral-500 dark:text-neutral-400">
                               {getProgressMilestones().filter((m) => m.completed).length}/5 completed
                                   </div>
                                     </div>
-                        }
-                      >
+                        </header>
+                        
                         {/* Progress bar */}
-                        <div className="mb-4 h-2.5 rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+                        <div className="mb-6 h-2 rounded-full bg-[#F5F5F7] dark:bg-neutral-800 overflow-hidden">
                             <motion.div 
                               initial={{ width: 0 }}
                               animate={{ width: `${preparationProgress}%` }}
                               transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-                            className="h-full rounded-full bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 shadow-sm"
+                            className="h-full rounded-full bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600"
                             />
                         </div>
                           
                         {/* Next actions */}
-                        <div className="space-y-2">
-                          <div className="text-[12px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                        <div className="space-y-2.5">
+                          <div className="text-xs font-medium uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500">
                             Next actions
                           </div>
                           {getProgressMilestones().map((milestone) => (
@@ -2860,68 +3099,73 @@ Make sure each answer is completely unique and specific to its question - no gen
                               animate={{ opacity: 1, y: 0 }}
                               onClick={milestone.action}
                               className={[
-                                'w-full flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-[13px] transition-all duration-200 group',
+                                'group/milestone w-full flex items-center justify-between rounded-[10px] px-4 py-3 text-left transition-all duration-200',
                                 milestone.completed
-                                  ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20'
-                                  : 'border-neutral-200 bg-white hover:border-purple-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-purple-700',
+                                  ? 'bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/50'
+                                  : 'bg-white/60 dark:bg-white/5 border border-black/[0.04] dark:border-white/5 hover:bg-white/90 dark:hover:bg-white/10 hover:border-purple-200/50 dark:hover:border-purple-800/50',
                               ].join(' ')}
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
                                 <div
                                   className={[
-                                    'flex h-8 w-8 items-center justify-center rounded-md text-purple-600 dark:text-purple-300 transition-transform',
-                                    milestone.completed ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-purple-50 dark:bg-purple-900/30',
+                                    'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[8px] transition-transform',
+                                    milestone.completed 
+                                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' 
+                                      : 'bg-[#F5F5F7] dark:bg-white/10 text-purple-600 dark:text-purple-400',
                                   ].join(' ')}
                                 >
                                   <div className="h-4 w-4">{milestone.icon}</div>
                             </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <div
                                     className={[
-                                      'truncate font-medium',
+                                      'truncate text-sm font-medium',
                                       milestone.completed
                                         ? 'text-emerald-700 dark:text-emerald-300'
-                                        : 'text-neutral-900 dark:text-neutral-50',
+                                        : 'text-neutral-900 dark:text-white',
                                     ].join(' ')}
                                   >
                                     {milestone.label}
                             </div>
-                                  <div className="truncate text-[12px] text-neutral-500 dark:text-neutral-400">
+                                  <div className="truncate text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                                     {milestone.description}
                           </div>
                             </div>
                           </div>
                               {milestone.completed ? (
-                                <CheckCircle className="h-4 w-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-600 dark:text-emerald-400 ml-2" />
                               ) : (
-                                <ArrowRight className="h-4 w-4 flex-shrink-0 text-neutral-400 group-hover:text-purple-500 dark:group-hover:text-purple-300 group-hover:translate-x-0.5 transition-transform" />
+                                <ArrowRight className="h-4 w-4 flex-shrink-0 text-neutral-400 dark:text-neutral-500 group-hover/milestone:text-purple-500 dark:group-hover/milestone:text-purple-400 group-hover/milestone:translate-x-0.5 transition-all ml-2" />
                               )}
                                 </motion.button>
                           ))}
                         </div>
-                      </SectionCard>
-                    </motion.div>
+                      </motion.article>
 
                     {/* SECTION 2: QUICK ACTIONS - Checklist */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
+                    <motion.article
+                      initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
+                      transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                      whileHover={{ y: -2 }}
+                      className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
                     >
-                      <SectionCard
-                        icon={<CheckSquare className="h-4 w-4 text-purple-600 dark:text-purple-400" />}
-                        title="Preparation Checklist"
-                        subtitle={`${checklist.filter((c) => c.completed).length}/${checklist.length} tasks completed`}
-                      >
+                      <header className="mb-5">
+                        <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Preparation Checklist</h2>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                          {checklist.filter((c) => c.completed).length}/{checklist.length} tasks completed
+                        </p>
+                      </header>
+                      
                       {/* Add Task Input */}
-                        <div className="mb-4 flex items-center gap-2">
+                      <div className="mb-5 flex items-center gap-2.5">
                           <div className="relative flex-1">
                           <input
                             type="text"
                             value={newTaskText}
                             onChange={(e) => setNewTaskText(e.target.value)}
                             placeholder="Add a new task..."
-                              className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:placeholder:text-neutral-500"
+                            className="w-full rounded-[10px] border border-black/[0.06] bg-white/80 px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-white/10 dark:bg-white/5 dark:text-neutral-50 dark:placeholder:text-neutral-500"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') addChecklistItem();
                               }}
@@ -2932,13 +3176,13 @@ Make sure each answer is completely unique and specific to its question - no gen
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
                             onClick={addChecklistItem}
-                            className="inline-flex items-center justify-center rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-purple-700"
+                          className="inline-flex items-center justify-center rounded-[10px] bg-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-purple-700 transition-colors"
                           >
                             Add
                         </motion.button>
                         </div>
                       
-                      {/* Checklist Items (Show max 5, with "View All" option) */}
+                      {/* Checklist Items */}
                       <div className="space-y-2">
                         <AnimatePresence>
                           {(showAllChecklistItems ? checklist : checklist.slice(0, 5)).map((item, index) => (
@@ -2949,22 +3193,22 @@ Make sure each answer is completely unique and specific to its question - no gen
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ delay: index * 0.03 }}
                                 className={[
-                                  'flex items-center rounded-lg border px-3 py-2.5 text-sm transition-all',
+                                'flex items-center rounded-[10px] px-3 py-2.5 text-sm transition-all border',
                                 item.priority 
-                                    ? 'border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-900/20'
+                                  ? 'border-purple-200/50 bg-purple-50/60 dark:border-purple-800/50 dark:bg-purple-900/20'
                                   : item.completed
-                                    ? 'border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900/40'
-                                    : 'border-neutral-200 bg-white hover:border-purple-300 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-purple-700',
+                                    ? 'border-black/[0.04] bg-neutral-50/60 dark:border-white/5 dark:bg-neutral-900/40'
+                                    : 'border-black/[0.04] bg-white/60 dark:border-white/5 dark:bg-white/5 hover:bg-white/90 dark:hover:bg-white/10',
                                 ].join(' ')}
                             >
                                 <button 
                                   type="button"
                                   onClick={() => toggleChecklistItem(item.id)}
                                   className={[
-                                    'mr-3 flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all',
+                                  'mr-3 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[6px] border-2 transition-all',
                                     item.completed 
                                       ? 'border-emerald-500 bg-emerald-500 text-white'
-                                      : 'border-neutral-300 hover:border-purple-500 dark:border-neutral-600',
+                                    : 'border-neutral-300 dark:border-neutral-600 hover:border-purple-500 dark:hover:border-purple-500',
                                   ].join(' ')}
                                 >
                                   {item.completed && <Check className="h-3 w-3" />}
@@ -2983,14 +3227,14 @@ Make sure each answer is completely unique and specific to its question - no gen
                               <button 
                                     type="button"
                                 onClick={() => setTab(item.section)} 
-                                    className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                                  className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[11px] font-medium text-neutral-700 hover:bg-black/[0.08] dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20 transition-colors"
                               >
                                 Go
                               </button>
                                 <button
                                     type="button"
                                   onClick={() => deleteChecklistItem(item.id)}
-                                    className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
+                                  className="rounded-full bg-red-50/80 px-2.5 py-1 text-[11px] font-medium text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
                                 >
                                   Delete
                                 </button>
@@ -3003,14 +3247,14 @@ Make sure each answer is completely unique and specific to its question - no gen
                           <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                              className="pt-1 text-center"
+                            className="pt-2 text-center"
                           >
                             <motion.button
                                 type="button"
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.97 }}
                               onClick={() => setShowAllChecklistItems(!showAllChecklistItems)}
-                                className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200"
+                              className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200 transition-colors"
                             >
                               {showAllChecklistItems ? (
                                 <>
@@ -3027,39 +3271,46 @@ Make sure each answer is completely unique and specific to its question - no gen
                           </motion.div>
                         )}
                         </div>
-                      </SectionCard>
-                    </motion.div>
+                    </motion.article>
 
                     {/* SECTION 3: KEY POINTS TO EMPHASIZE */}
-                      <motion.div
-                      initial={{ opacity: 0, y: 10 }}
+                    <motion.article
+                      initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
+                      transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                      whileHover={{ y: -2 }}
+                      className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
                     >
-                      <SectionCard
-                        icon={<Flag className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-                        title="Key Points to Emphasize"
-                        subtitle="Core messages to highlight during the interview"
-                      >
+                      <header className="mb-5">
+                        <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Key Points to Emphasize</h2>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">Core messages to highlight during the interview</p>
+                      </header>
+                      
                         {interview?.preparation?.keyPoints && interview.preparation.keyPoints.length > 0 ? (
                           <div className="space-y-3">
-                            <ul className="space-y-2.5">
+                          <ul className="space-y-3">
                             {interview.preparation.keyPoints.slice(0, 5).map((point, index) => (
-                                <li key={index} className="flex items-start gap-3">
-                                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+                              <motion.li 
+                                key={index} 
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="flex items-start gap-3"
+                              >
+                                <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
                                     <Check className="h-3 w-3" />
                                   </div>
-                                  <p className="text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
                                     {point}
                                   </p>
-                                </li>
+                              </motion.li>
                               ))}
                             </ul>
                             {interview.preparation.keyPoints.length > 5 && (
-                              <div className="pt-1 text-center">
+                            <div className="pt-2 text-center">
                                 <button
                                   type="button"
-                                  className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200"
+                                className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200 transition-colors"
                                 >
                                   View all {interview.preparation.keyPoints.length} points
                                   <ArrowRight className="h-3 w-3" />
@@ -3068,44 +3319,43 @@ Make sure each answer is completely unique and specific to its question - no gen
                             )}
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/40 px-4 py-6 text-center">
+                        <div className="flex flex-col items-center justify-center rounded-[12px] border border-dashed border-black/[0.08] bg-[#FAFAFA] dark:border-white/10 dark:bg-white/5 px-4 py-8 text-center">
                             <Flag className="mb-3 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
-                            <p className="mb-3 text-[14px] text-neutral-500 dark:text-neutral-400">
+                          <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
                               No key points available yet. Run the job post analysis to generate tailored talking points.
                             </p>
                             <button
                               type="button"
                               onClick={() =>
-                                (document.querySelector('input[type=\"url\"]') as HTMLInputElement | null)?.focus()
+                              (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()
                               }
-                              className="inline-flex items-center justify-center gap-1 rounded-full bg-purple-50 px-3 py-1.5 text-[12px] font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-200 dark:hover:bg-purple-800/60"
+                            className="inline-flex items-center justify-center gap-1 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-200 dark:hover:bg-purple-800/60 transition-colors"
                             >
                               <ArrowUp className="h-3 w-3" />
                               Analyze a job posting
                             </button>
                           </div>
                         )}
-                      </SectionCard>
-                      </motion.div>
+                    </motion.article>
 
                     {/* SECTION 4: DEEP DIVE - Company & Role */}
                     <div className="space-y-4">
                       {/* Company Profile */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                      <motion.article
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
+                        transition={{ delay: 0.3, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                        whileHover={{ y: -2 }}
+                        className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
                       >
-                        <SectionCard
-                          icon={<Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
-                          title="Company Profile"
-                          subtitle="How to describe the company and its context"
-                          collapsible
-                          defaultOpen
-                        >
+                        <header className="mb-5">
+                          <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Company Profile</h2>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-400">How to describe the company and its context</p>
+                        </header>
+                        
                           <div className="space-y-4">
-                            <p className="text-[14px] leading-relaxed">
-                              <span className="mr-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+                          <p className="text-sm leading-relaxed text-neutral-900 dark:text-white">
+                            <span className="mr-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
                                 KEY
                               </span>
                               {interview?.preparation?.companyInfo?.split('.')[0] ||
@@ -3113,55 +3363,53 @@ Make sure each answer is completely unique and specific to its question - no gen
                               </p>
                               
                               {interview?.preparation?.companyInfo ? (
-                              <p className="text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                            <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
                                 {interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}
                               </p>
                             ) : (
-                              <p className="text-[13px] leading-relaxed text-neutral-500 dark:text-neutral-400">
-                                No additional company information available yet. Run the job post analysis to
-                                generate richer company context.
+                            <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+                              No additional company information available yet. Run the job post analysis to generate richer company context.
                               </p>
                             )}
 
-                            <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-4 text-[13px] leading-relaxed dark:border-blue-900/60 dark:bg-blue-900/10">
-                              <div className="mb-2 text-[13px] font-semibold text-neutral-900 dark:text-neutral-50">
+                          <div className="rounded-[12px] border border-blue-200/50 bg-blue-50/60 p-4 dark:border-blue-900/60 dark:bg-blue-900/10">
+                            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-900 dark:text-neutral-50">
                                 Focus points
                               </div>
-                              <ul className="space-y-1.5 text-[13px] text-neutral-700 dark:text-neutral-300">
-                                <li className="flex gap-2">
-                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                            <ul className="space-y-2.5 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
+                              <li className="flex gap-2.5">
+                                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
                                   <span>Research their mission, values, and long-term vision.</span>
                                 </li>
-                                <li className="flex gap-2">
-                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                              <li className="flex gap-2.5">
+                                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
                                   <span>Review recent company achievements, projects, or announcements.</span>
                                 </li>
-                                <li className="flex gap-2">
-                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                              <li className="flex gap-2.5">
+                                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
                                   <span>Understand their market position, competitors, and key challenges.</span>
                                 </li>
                                 </ul>
                               </div>
                             </div>
-                        </SectionCard>
-                      </motion.div>
+                      </motion.article>
                       
                       {/* Position Details & Required Skills */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                      <motion.article
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.35 }}
+                        transition={{ delay: 0.35, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                        whileHover={{ y: -2 }}
+                        className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
                       >
-                        <SectionCard
-                          icon={<Briefcase className="h-4 w-4 text-purple-600 dark:text-purple-400" />}
-                          title="Position Details"
-                          subtitle="What this role expects and how to position yourself"
-                          collapsible
-                          defaultOpen
-                        >
+                        <header className="mb-5">
+                          <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Position Details</h2>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-400">What this role expects and how to position yourself</p>
+                        </header>
+                        
                           <div className="space-y-4">
-                            <p className="text-[14px] leading-relaxed">
-                              <span className="mr-2 inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-200">
+                          <p className="text-sm leading-relaxed text-neutral-900 dark:text-white">
+                            <span className="mr-2 inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-purple-700 dark:bg-purple-900/40 dark:text-purple-200">
                                 KEY
                               </span>
                               {interview?.preparation?.positionDetails?.split('.')[0] ||
@@ -3169,18 +3417,17 @@ Make sure each answer is completely unique and specific to its question - no gen
                               </p>
                               
                               {interview?.preparation?.positionDetails ? (
-                              <p className="text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                            <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
                                 {interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}
                               </p>
                             ) : (
-                              <p className="text-[13px] leading-relaxed text-neutral-500 dark:text-neutral-400">
-                                No detailed position information available yet. Run the job post analysis to get a
-                                more precise breakdown of responsibilities and expectations.
+                            <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+                              No detailed position information available yet. Run the job post analysis to get a more precise breakdown of responsibilities and expectations.
                               </p>
                             )}
 
-                            <div className="space-y-2">
-                              <div className="text-[13px] font-semibold text-neutral-900 dark:text-neutral-50">
+                          <div className="space-y-3">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-neutral-900 dark:text-neutral-50">
                                 Required skills
                               </div>
                               {interview?.preparation?.requiredSkills &&
@@ -3189,46 +3436,46 @@ Make sure each answer is completely unique and specific to its question - no gen
                                   {interview.preparation.requiredSkills.map((skill, index) => (
                                     <div
                                         key={index} 
-                                      className="inline-flex items-center rounded-md border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900/40 dark:text-neutral-100"
+                                    className="inline-flex items-center rounded-[8px] border border-black/[0.04] bg-white/80 px-3 py-1.5 text-xs text-neutral-800 dark:border-white/5 dark:bg-white/5 dark:text-neutral-100"
                                     >
-                                      <span className="mr-2 h-1.5 w-1.5 rounded-full bg-purple-500" />
+                                    <span className="mr-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-500" />
                                       <span className="truncate">{skill}</span>
                                     </div>
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-[13px] text-neutral-500 dark:text-neutral-400">
-                                  No skills information available yet. Once you run the analysis, key skills will
-                                  appear here in a structured list.
+                              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                No skills information available yet. Once you run the analysis, key skills will appear here in a structured list.
                                 </p>
                                   )}
                                 </div>
                               </div>
-                        </SectionCard>
-                      </motion.div>
+                      </motion.article>
                     </div>
 
                     {/* SECTION 5: NEWS & UPDATES */}
                     {interview?.preparation && (
-                            <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
+                      <motion.article
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
+                        transition={{ delay: 0.4, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                        whileHover={{ y: -2 }}
+                        className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
                       >
-                        <SectionCard
-                          icon={<Newspaper className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
-                          title="Company Updates"
-                          subtitle="Recent news and announcements about the company"
-                          actions={
+                        <header className="mb-5 flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Company Updates</h2>
+                            <p className="text-sm text-neutral-500 dark:text-neutral-400">Recent news and announcements about the company</p>
+                          </div>
                           <div className="flex items-center gap-2">
                             {isNewsLoading && (
-                                <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+                              <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
                                   <Loader2 className="h-3 w-3 animate-spin" />
                                   <span>Loading…</span>
                               </div>
                             )}
                             {newsError && (
-                                <div className="text-[11px] text-red-600 dark:text-red-400">{newsError}</div>
+                              <div className="text-xs text-red-600 dark:text-red-400">{newsError}</div>
                             )}
                             <motion.button
                                 type="button"
@@ -3237,17 +3484,17 @@ Make sure each answer is completely unique and specific to its question - no gen
                                 onClick={() => {
                                   fetchCompanyNews();
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-medium text-neutral-700 hover:border-neutral-300 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-200 dark:hover:border-neutral-600"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.06] bg-white/80 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:border-black/[0.12] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:border-white/20 transition-colors"
                               >
                                 <RefreshCw className="h-3 w-3" />
                               Refresh
                             </motion.button>
                           </div>
-                          }
-                        >
+                        </header>
+                        
                         <div className="space-y-3">
                           {newsItems.length === 0 && !isNewsLoading && !newsError && (
-                              <div className="flex flex-col items-center justify-center py-8 text-[14px] text-neutral-500 dark:text-neutral-400">
+                            <div className="flex flex-col items-center justify-center py-8 text-sm text-neutral-500 dark:text-neutral-400">
                                 <Newspaper className="mb-2 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
                                 <p>No company updates yet. Try refreshing or running the analysis again.</p>
                             </div>
@@ -3261,7 +3508,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, height: 0 }}
                                 transition={{ delay: i * 0.05 }}
-                                  className="rounded-lg border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-[14px] leading-relaxed hover:border-purple-300 hover:bg-white dark:border-neutral-800 dark:bg-neutral-900/40 dark:hover:border-purple-700"
+                                className="rounded-[12px] border border-black/[0.04] bg-white/80 px-4 py-3.5 text-sm leading-relaxed hover:border-purple-200/50 hover:bg-white dark:border-white/5 dark:bg-white/5 dark:hover:border-purple-800/50 dark:hover:bg-white/10 transition-all"
                                 >
                                   <div className="flex items-start gap-3">
                                     <span
@@ -3274,13 +3521,13 @@ Make sure each answer is completely unique and specific to its question - no gen
                                           : 'bg-neutral-500',
                                       ].join(' ')}
                                     />
-                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                  <div className="flex-1 min-w-0 space-y-2">
                                       <div className="flex items-center justify-between gap-2">
-                                        <h4 className="truncate text-[14px] font-semibold text-neutral-900 dark:text-neutral-50">
+                                      <h4 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-50">
                                           {news.title}
                                         </h4>
                                       </div>
-                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-neutral-500 dark:text-neutral-400">
+                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
                                     <span>{news.date}</span>
                                     {news.source && (
                                       <>
@@ -3293,7 +3540,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                                     )}
                               </div>
                                       {news.summary && (
-                                        <p className="line-clamp-2 text-[13px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                      <p className="line-clamp-2 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
                                           {news.summary}
                                         </p>
                                       )}
@@ -3303,7 +3550,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                                           whileHover={{ scale: 1.03 }}
                                           whileTap={{ scale: 0.97 }}
                                   onClick={() => createNoteFromNews(news)}
-                                          className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-3 py-1.5 text-[12px] font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-200 dark:hover:bg-purple-800/60"
+                                        className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-200 dark:hover:bg-purple-800/60 transition-colors"
                                   >
                                           <MessageSquare className="h-3 w-3" />
                                     Talking points
@@ -3313,7 +3560,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                                     href={news.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-medium text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800"
+                                          className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-800 hover:bg-black/[0.04] dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-white/10 transition-colors"
                                   >
                                             <ExternalLink className="h-3 w-3" />
                                     Read more
@@ -3337,7 +3584,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                                   whileHover={{ scale: 1.03 }}
                                   whileTap={{ scale: 0.97 }}
                                 onClick={() => setShowAllNewsItems(!showAllNewsItems)}
-                                  className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200"
+                                className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200 transition-colors"
                               >
                                 {showAllNewsItems ? (
                                   <>
@@ -3354,8 +3601,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                             </motion.div>
                           )}
                         </div>
-                        </SectionCard>
-                      </motion.div>
+                      </motion.article>
                     )}
                   </motion.div>
                 )}
@@ -3533,572 +3779,69 @@ Make sure each answer is completely unique and specific to its question - no gen
                       </div>
                     )}
                     
-                    {/* Responsive header section */}
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-                      <div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex flex-wrap items-center gap-2">
-                          <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
-                          <span>Interview Questions</span>
-                          {interview.preparation?.suggestedQuestions && !isRegeneratingQuestions && (() => {
-                            const allQuestions = interview.preparation.suggestedQuestions || [];
-                            const validQuestions = allQuestions.filter(q => {
-                              if (typeof q !== 'string') return false;
-                              return !q.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/);
-                            });
-                            
-                            const filteredCount = activeQuestionFilter === 'all' 
-                              ? validQuestions.length
-                              : validQuestions.filter(question => {
-                                  const cleaned = typeof question === 'string' 
-                                    ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
-                                               .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
-                                               .replace(/["']\s*,\s*$/g, '')
-                                               .replace(/,\s*$/g, '')
-                                               .replace(/["']?\s*\]\s*,?\s*$/g, '')
-                                               .replace(/["']?\s*\}\s*,?\s*$/g, '')
-                                               .replace(/^["']?/g, '')
-                                               .replace(/["']?$/g, '')
-                                               .trim()
-                                    : '';
-                                  
-                                  if (!cleaned || cleaned.length < 10) return false;
-                                  
-                                  const tags = getQuestionTags(cleaned);
-                                  return tags.includes(activeQuestionFilter);
-                                }).length;
-                            
-                            return (
-                              <span className="text-xs sm:text-sm font-normal bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
-                                {filteredCount} {filteredCount === 1 ? 'question' : 'questions'}
-                                {activeQuestionFilter !== 'all' && filteredCount < validQuestions.length && (
-                                  <span className="text-purple-500 dark:text-purple-300"> / {validQuestions.length}</span>
-                                )}
-                              </span>
-                            );
-                          })()}
-                        </h2>
-                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          Personalized questions for your {application.position} interview
+                    <InterviewQuestionsHeader
+                      totalCount={questionEntries.length}
+                      filteredCount={filteredQuestions.length}
+                      filters={QUESTION_FILTERS}
+                      activeFilter={activeQuestionFilter}
+                      onFilterChange={setActiveQuestionFilter}
+                      onRegenerate={regenerateQuestions}
+                      isRegenerating={isRegeneratingQuestions}
+                      subtitle={application ? `Tailored questions for your ${application.position} interview` : undefined}
+                    />
+                    
+                    {!isRegeneratingQuestions && (
+                      <div className="mt-8 space-y-5">
+                        {questionEntries.length === 0 && (
+                          <div className="rounded-[20px] border border-dashed border-black/10 bg-white/70 px-6 py-12 text-center shadow-[0_20px_40px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
+                            <MessageSquare className="mx-auto h-12 w-12 text-neutral-300 dark:text-neutral-600" />
+                            <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-white">No suggested questions yet</h3>
+                            <p className="mt-2 text-sm text-neutral-500">
+                              Analyze a job posting to let the AI craft premium interview questions for you.
                         </p>
                       </div>
-                      
-                      {interview.preparation?.suggestedQuestions && interview.preparation.suggestedQuestions.length > 0 && (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={regenerateQuestions}
-                          disabled={isRegeneratingQuestions}
-                          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-start sm:self-auto"
-                        >
-                          {isRegeneratingQuestions ? (
-                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                          )}
-                          <span>{isRegeneratingQuestions ? "Generating..." : "Generate New Questions"}</span>
-                        </motion.button>
-                      )}
-                    </div>
-                    
-                    {/* Question filters - responsive scrolling */}
-                    <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-                      {([
-                        { id: 'all', label: 'All Questions' },
-                        { id: 'technical', label: 'Technical' },
-                        { id: 'behavioral', label: 'Behavioral' },
-                        { id: 'company-specific', label: 'Company Specific' },
-                        { id: 'role-specific', label: 'Role Specific' }
-                      ] as const).map((filter) => {
-                        const isActive = activeQuestionFilter === filter.id;
-                        return (
-                          <button
-                            key={filter.id}
-                            onClick={() => setActiveQuestionFilter(filter.id as typeof activeQuestionFilter)}
-                            className={`px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-xs whitespace-nowrap transition-all flex-shrink-0 ${
-                              isActive
-                                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shadow-sm font-medium'
-                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                            }`}
-                          >
-                            {filter.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    
-                    {/* Add custom CSS for scrollbar styling */}
-                    <style>{`
-                      .scrollbar-none::-webkit-scrollbar {
-                        display: none;
-                      }
-                      .scrollbar-none {
-                        -ms-overflow-style: none;
-                        scrollbar-width: none;
-                      }
-                    `}</style>
-                    
-                    {/* Questions with Mind Maps - Masqués pendant la régénération */}
-                    {!isRegeneratingQuestions && interview.preparation?.suggestedQuestions
-                      ?.filter(q => {
-                        // Filtrer les éléments invalides comme "questions": [
-                        if (typeof q !== 'string') return false;
-                        return !q.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/);
-                      })
-                      ?.filter(question => {
-                        // Filter by active filter
-                        if (activeQuestionFilter === 'all') return true;
-                        
-                        // Clean the question for tag detection
-                        const cleaned = typeof question === 'string' 
-                          ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
-                                     .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
-                                     .replace(/["']\s*,\s*$/g, '')
-                                     .replace(/,\s*$/g, '')
-                                     .replace(/["']?\s*\]\s*,?\s*$/g, '')
-                                     .replace(/["']?\s*\}\s*,?\s*$/g, '')
-                                     .replace(/^["']?/g, '')
-                                     .replace(/["']?$/g, '')
-                                     .trim()
-                          : '';
-                        
-                        if (!cleaned || cleaned.length < 10) return false;
-                        
-                        // Get tags for this question
-                        const tags = getQuestionTags(cleaned);
-                        
-                        // Check if question matches the active filter
-                        return tags.includes(activeQuestionFilter);
-                      })
-                      ?.map((question, index) => {
-                        // Nettoyer la question pour vérifier qu'elle est valide
-                        const cleaned = typeof question === 'string' 
-                          ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
-                                     .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
-                                     .replace(/["']\s*,\s*$/g, '')
-                                     .replace(/,\s*$/g, '')
-                                     .replace(/["']?\s*\]\s*,?\s*$/g, '')
-                                     .replace(/["']?\s*\}\s*,?\s*$/g, '')
-                                     .replace(/^["']?/g, '')
-                                     .replace(/["']?$/g, '')
-                                     .trim()
-                          : '';
-                        if (!cleaned || cleaned.length < 10 || cleaned === 'question' || cleaned === 'questions') {
-                          return null;
-                        }
-                        return (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow mb-6"
-                      >
-                        <div className="flex items-start gap-3 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-semibold flex-shrink-0 text-sm sm:text-base">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start gap-2 mb-2 sm:mb-3">
-                              <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white leading-tight">
-                          {(() => {
-                            if (typeof question !== 'string') return 'Invalid question';
-                            
-                            // Filtrer les éléments invalides comme "questions": [
-                            if (question.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/)) {
-                              return null; // Ne pas afficher ce type d'élément
-                            }
-                            
-                            // Nettoyer les préfixes JSON et séparer question/answer si mélangés
-                            let cleaned = question
-                              .replace(/^["']?question["']?\s*:\s*["']?/i, '')
-                              .replace(/^["']?answer["']?\s*:\s*["']?/i, '')
-                              .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
-                              // Enlever les séparateurs JSON au milieu comme ", "answer": "
-                              .replace(/["']?\s*,\s*["']?answer["']?\s*:\s*["']?.*?$/gi, '')
-                              .replace(/["']?\s*,\s*["']?question["']?\s*:\s*["']?.*?$/gi, '')
-                              // Enlever les virgules à la fin (après les guillemets)
-                              .replace(/["']\s*,\s*$/g, '')
-                              .replace(/,\s*$/g, '')
-                              // Enlever les accolades et crochets à la fin
-                              .replace(/["']?\s*\}\s*$/g, '')
-                              .replace(/["']?\s*\]\s*$/g, '')
-                              .replace(/["']?\s*\}\s*,?\s*$/g, '')
-                              .replace(/["']?\s*\]\s*,?\s*$/g, '')
-                              // Enlever les guillemets au début
-                              .replace(/^["']?/g, '')
-                              // Enlever les guillemets à la fin (après avoir enlevé les virgules)
-                              .replace(/["']\s*$/g, '')
-                              .replace(/["']?$/g, '')
-                              // Enlever les crochets/parenthèses non fermés au début
-                              .replace(/^\[+\s*/, '')
-                              .replace(/^\{+\s*/, '')
-                              .replace(/^\(+\s*/, '')
-                              // Enlever les crochets/parenthèses non fermés à la fin
-                              .replace(/\s*\[+$/, '')
-                              .replace(/\s*\{+$/, '')
-                              .replace(/\s*\(+$/, '')
-                              // Enlever les parenthèses non fermées (sans fermeture correspondante)
-                              .replace(/^\(([^)]*)$/, '$1') // Enlever parenthèse ouverte au début si pas de fermeture
-                              .replace(/^([^(]*)\)$/, '$1') // Enlever parenthèse fermée à la fin si pas d'ouverture
-                              .trim();
-                            if (cleaned && cleaned !== 'question' && cleaned !== 'answer' && cleaned !== 'questions' && cleaned.length > 10) {
-                              return cleaned;
-                            }
-                            return 'Invalid question';
-                          })()}
+                        )}
+
+                        {questionEntries.length > 0 && filteredQuestions.length === 0 && (
+                          <div className="rounded-[20px] border border-black/5 bg-white/80 px-6 py-10 text-center shadow-[0_16px_30px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/5">
+                            <MessageSquare className="mx-auto h-12 w-12 text-neutral-200 dark:text-neutral-600" />
+                            <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-white">
+                              No {QUESTION_FILTERS.find(filter => filter.id === activeQuestionFilter)?.label?.toLowerCase() || 'selected'} questions found
                               </h3>
+                            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-300">
+                              Try another filter or show all questions to continue practicing.
+                            </p>
                               <button 
-                                onClick={() => setCollapsedQuestions(prev => ({
-                                  ...prev,
-                                  [index]: !prev[index]
-                                }))}
-                                className="p-1 sm:p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors flex-shrink-0 mt-0.5"
-                                aria-label={collapsedQuestions[index] ? "Expand question" : "Collapse question"}
-                              >
-                                <ChevronDown 
-                                  className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400 transition-transform ${
-                                    collapsedQuestions[index] ? "" : "transform rotate-180"
-                                  }`} 
-                                />
+                              type="button"
+                              onClick={() => setActiveQuestionFilter('all')}
+                              className="mt-4 inline-flex items-center justify-center rounded-full border border-black/10 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+                            >
+                              Show all questions
                               </button>
                             </div>
-                            
-                            {/* Question Tags */}
-                            {(() => {
-                              const questionText = typeof question === 'string' 
-                                ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
-                                           .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
-                                           .replace(/["']\s*,\s*$/g, '')
-                                           .replace(/,\s*$/g, '')
-                                           .replace(/["']?\s*\]\s*,?\s*$/g, '')
-                                           .replace(/["']?\s*\}\s*,?\s*$/g, '')
-                                           .replace(/^["']?/g, '')
-                                           .replace(/["']?$/g, '')
-                                           .trim()
-                                : '';
-                              
-                              if (!questionText || questionText.length < 10) return null;
-                              
-                              const tags = getQuestionTags(questionText);
-                              if (tags.length === 0) return null;
-                              
-                              const tagLabels: Record<string, string> = {
-                                'technical': 'Technical',
-                                'behavioral': 'Behavioral',
-                                'company-specific': 'Company Specific',
-                                'role-specific': 'Role Specific'
-                              };
-                              
-                              return (
-                                <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
-                                  {tags.map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800"
-                                    >
-                                      {tagLabels[tag]}
-                                    </span>
+                        )}
+
+                        {filteredQuestions.length > 0 && (
+                          <div className="space-y-5">
+                            {filteredQuestions.map((entry, displayIndex) => (
+                              <QuestionCard
+                                key={entry.id}
+                                index={displayIndex}
+                                question={entry.text}
+                                tags={entry.tags}
+                                suggestedApproach={entry.suggestedApproach}
+                                isSuggestionOpen={collapsedQuestions[entry.id] === false}
+                                isSaved={savedQuestionsState.includes(entry.rawValue)}
+                                onToggleSuggestion={() => handleToggleSuggestionVisibility(entry.id)}
+                                onToggleSave={() => handleToggleSaveQuestion(entry.rawValue)}
+                                onCreateNote={() => handleCreateNoteFromQuestion(entry.text, displayIndex + 1)}
+                                onFocus={() => setFocusedQuestion(entry)}
+                              />
                                   ))}
                                 </div>
-                              );
-                            })()}
-                            
-                            {/* Contenu déroulant - caché lorsque la question est réduite */}
-                            <AnimatePresence>
-                              {!collapsedQuestions[index] && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                                  animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
-                                  exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                                  transition={{ duration: 0.3 }}
-                                >
-                                  {/* Suggested Answer Approach - Only show if we have an answer */}
-                                  {(() => {
-                                        // Fonction pour nettoyer les chaînes
-                                        const cleanAnswer = (str: string): string => {
-                                          if (!str || typeof str !== 'string') return '';
-                                          return str
-                                            .trim()
-                                            .replace(/^["']?answer["']?\s*:\s*["']?/i, '')
-                                            .replace(/^["']?question["']?\s*:\s*["']?/i, '')
-                                            // Enlever les virgules à la fin
-                                            .replace(/["']\s*,\s*$/g, '')
-                                            .replace(/,\s*$/g, '')
-                                            // Enlever les accolades et crochets à la fin
-                                            .replace(/["']?\s*\}\s*$/g, '')
-                                            .replace(/["']?\s*\]\s*$/g, '')
-                                            .replace(/["']?\s*\}\s*,?\s*$/g, '')
-                                            .replace(/["']?\s*\]\s*,?\s*$/g, '')
-                                            // Enlever les guillemets au début
-                                            .replace(/^["']?/g, '')
-                                            // Enlever les guillemets à la fin (après avoir enlevé les virgules)
-                                            .replace(/["']\s*$/g, '')
-                                            .replace(/["']?$/g, '')
-                                            // Enlever les crochets/parenthèses non fermés
-                                            .replace(/^\[+\s*/, '')
-                                            .replace(/^\{+\s*/, '')
-                                            .replace(/^\(+\s*/, '')
-                                            .replace(/\s*\[+$/, '')
-                                            .replace(/\s*\{+$/, '')
-                                            .replace(/\s*\(+$/, '')
-                                            // Enlever les parenthèses non fermées (sans fermeture correspondante)
-                                            .replace(/^\(([^)]*)$/, '$1') // Enlever parenthèse ouverte au début si pas de fermeture
-                                            .replace(/^([^(]*)\)$/, '$1') // Enlever parenthèse fermée à la fin si pas d'ouverture
-                                            .trim();
-                                        };
-
-                                        // Fonction pour normaliser et comparer les questions (matching flexible)
-                                        const normalizeForMatch = (str: string): string => {
-                                          if (!str || typeof str !== 'string') return '';
-                                          return str
-                                            .toLowerCase()
-                                            .replace(/^["']?question["']?\s*:\s*["']?/i, '')
-                                            .replace(/^["']?/g, '')
-                                            .replace(/["']?$/g, '')
-                                            .replace(/[^\w\s]/g, '') // Enlever la ponctuation
-                                            .replace(/\s+/g, ' ') // Normaliser les espaces
-                                            .trim();
-                                        };
-                                        
-                                        // Nettoyer la question pour le matching
-                                        const cleanedQuestion = typeof question === 'string' ? normalizeForMatch(question) : '';
-                                        let answerText = '';
-                                        
-                                        // Chercher d'abord par index direct (ordre correspondant)
-                                        if (interview.preparation?.suggestedAnswers && interview.preparation.suggestedAnswers.length > index) {
-                                          const answerByIndex = interview.preparation.suggestedAnswers[index];
-                                          if (typeof answerByIndex === 'object' && 'answer' in answerByIndex) {
-                                            const cleaned = cleanAnswer(String(answerByIndex.answer));
-                                            if (cleaned && cleaned.length > 10) {
-                                              // Vérifier que la réponse n'est pas trop générique
-                                              const answerLower = cleaned.toLowerCase();
-                                              // Ne filtrer que les réponses vraiment génériques (juste "use STAR method" sans contexte)
-                                              const isTooGeneric = (answerLower.includes('structure your answer using the star method') && answerLower.length < 100) ||
-                                                                 (answerLower === 'use the star method' || answerLower === 'use star method') ||
-                                                                 (answerLower.includes('prepare a specific answer for this question') && answerLower.length < 150);
-                                              
-                                              if (!isTooGeneric) {
-                                                answerText = cleaned;
-                                              }
-                                            }
-                                          }
-                                        }
-                                        
-                                        // Si pas trouvé par index, chercher par matching exact de la question
-                                        if (!answerText && cleanedQuestion && interview.preparation?.suggestedAnswers) {
-                                          let matchingAnswer = interview.preparation.suggestedAnswers.find((a: any) => {
-                                            if (typeof a !== 'object' || !('question' in a) || !('answer' in a)) return false;
-                                            const aQuestion = normalizeForMatch(String(a.question));
-                                            return aQuestion === cleanedQuestion;
-                                          });
-                                          
-                                          // Si pas trouvé, chercher une correspondance partielle avec similarité élevée (au moins 60%)
-                                          if (!matchingAnswer) {
-                                            matchingAnswer = interview.preparation.suggestedAnswers.find((a: any) => {
-                                              if (typeof a !== 'object' || !('question' in a) || !('answer' in a)) return false;
-                                              const aQuestion = normalizeForMatch(String(a.question));
-                                              const similarity = Math.min(aQuestion.length, cleanedQuestion.length) / Math.max(aQuestion.length, cleanedQuestion.length);
-                                              return (aQuestion.includes(cleanedQuestion) || cleanedQuestion.includes(aQuestion)) &&
-                                                     similarity > 0.6;
-                                            });
-                                          }
-                                          
-                                          // Si une réponse correspondante est trouvée, l'utiliser
-                                          if (matchingAnswer && typeof matchingAnswer === 'object' && 'answer' in matchingAnswer) {
-                                            const cleaned = cleanAnswer(String(matchingAnswer.answer));
-                                            if (cleaned && cleaned.length > 10) {
-                                              // Vérifier que la réponse n'est pas trop générique
-                                              const answerLower = cleaned.toLowerCase();
-                                              // Ne filtrer que les réponses vraiment génériques
-                                              const isTooGeneric = (answerLower.includes('structure your answer using the star method') && answerLower.length < 100) ||
-                                                                 (answerLower === 'use the star method' || answerLower === 'use star method') ||
-                                                                 (answerLower.includes('prepare a specific answer for this question') && answerLower.length < 150);
-                                              
-                                              if (!isTooGeneric) {
-                                                answerText = cleaned;
-                                              }
-                                            }
-                                          }
-                                        }
-                                        
-                                        // Si on a une réponse, afficher la section
-                                        if (answerText && answerText.length > 10) {
-                                          return (
-                                            <>
-                                              <div className="mt-3 sm:mt-5 border-t border-gray-100 dark:border-gray-700 pt-3 sm:pt-4">
-                                                <h4 className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-400 mb-3 sm:mb-4">
-                                                  Suggested Answer Approach
-                                                </h4>
-                                                
-                                                {/* Answer Content - Primary focus on specific answer */}
-                                                <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-4 sm:p-6">
-                                                  <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                                                    {answerText}
-                                                  </p>
-                                                </div>
-                                              </div>
-                                            </>
-                                          );
-                                        }
-                                        
-                                        // Si pas de réponse, ne rien afficher
-                                        return null;
-                                      })()}
-                                  
-                                  {/* Interaction buttons - Mobile friendly */}
-                                  <div className="flex justify-between items-center mt-3 sm:mt-4">
-                                    <div className="flex gap-1.5 sm:gap-2">
-                                      <button 
-                                        onClick={() => {
-                                          // Définir la question comme sauvegardée
-                                          const savedQuestions: string[] = JSON.parse(localStorage.getItem('savedQuestions') || '[]');
-                                          if (!savedQuestions.includes(question)) {
-                                            savedQuestions.push(question);
-                                            localStorage.setItem('savedQuestions', JSON.stringify(savedQuestions));
-                                            setSavedQuestionsState(savedQuestions);
-                                            toast.success('Question saved');
-                                          } else {
-                                            // Si la question est déjà sauvegardée, la retirer
-                                            const updatedSavedQuestions = savedQuestions.filter(q => q !== question);
-                                            localStorage.setItem('savedQuestions', JSON.stringify(updatedSavedQuestions));
-                                            setSavedQuestionsState(updatedSavedQuestions);
-                                            toast.info('Question removed from saved list');
-                                          }
-                                        }}
-                                        className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 transition-colors
-                                          ${savedQuestionsState.includes(question) 
-                                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/30 font-medium' 
-                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                                          }`}
-                                        aria-label={savedQuestionsState.includes(question) ? "Unsave question" : "Save question"}
-                                      >
-                                        <Bookmark className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${savedQuestionsState.includes(question) ? 'fill-current' : ''}`} />
-                                        <span>{savedQuestionsState.includes(question) ? 'Saved' : 'Save'}</span>
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          // Créer une nouvelle note avec la question
-                                          const newNoteId = uuidv4();
-                                          const newNote: Note = {
-                                            id: newNoteId,
-                                            title: `Interview Question ${index + 1}`,
-                                            content: question,
-                                            color: '#f48fb1', // Rose pour les questions d'entretien
-                                            createdAt: Date.now(),
-                                            updatedAt: Date.now(),
-                                            position: { x: 50, y: 50 }
-                                          };
-                                          
-                                          // Ajouter la note à la liste des notes
-                                          const updatedNotes = [...stickyNotes, newNote];
-                                          setStickyNotes(updatedNotes);
-                                          
-                                          // Positionner la note
-                                          setNotePositions(prev => ({
-                                            ...prev,
-                                            [newNoteId]: { x: 50, y: 50 }
-                                          }));
-                                          
-                                          // Initialiser la taille de la note
-                                          setNoteSizes(prev => ({
-                                            ...prev,
-                                            [newNoteId]: { width: 250, height: 200 }
-                                          }));
-                                          
-                                          // Mettre à jour l'entretien avec la nouvelle note
-                                          updateInterviewNotes(updatedNotes);
-                                          
-                                          toast.success('Note created from question');
-                                        }}
-                                        className="text-[10px] sm:text-xs bg-gray-100 dark:bg-gray-800 px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                                        aria-label="Create note from question"
-                                      >
-                                        <Edit className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                        <span>Notes</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
+                        )}
                           </div>
-                        </div>
-                      </motion.div>
-                        );
-                      })
-                      .filter(Boolean)}
-                    
-                    {!isRegeneratingQuestions && (() => {
-                      const allQuestions = interview.preparation?.suggestedQuestions || [];
-                      const validQuestions = allQuestions.filter(q => {
-                        if (typeof q !== 'string') return false;
-                        return !q.trim().match(/^["']?\w+["']?\s*:\s*[\[{]/);
-                      });
-                      
-                      const filteredQuestions = validQuestions.filter(question => {
-                        if (activeQuestionFilter === 'all') return true;
-                        
-                        const cleaned = typeof question === 'string' 
-                          ? question.replace(/^["']?question["']?\s*:\s*["']?/i, '')
-                                     .replace(/^["']?questions["']?\s*:\s*["']?/i, '')
-                                     .replace(/["']\s*,\s*$/g, '')
-                                     .replace(/,\s*$/g, '')
-                                     .replace(/["']?\s*\]\s*,?\s*$/g, '')
-                                     .replace(/["']?\s*\}\s*,?\s*$/g, '')
-                                     .replace(/^["']?/g, '')
-                                     .replace(/["']?$/g, '')
-                                     .trim()
-                          : '';
-                        
-                        if (!cleaned || cleaned.length < 10) return false;
-                        
-                        const tags = getQuestionTags(cleaned);
-                        return tags.includes(activeQuestionFilter);
-                      });
-                      
-                      if (validQuestions.length === 0) {
-                        return (
-                          <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" />
-                            <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium">
-                              No suggested questions available
-                            </p>
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 px-4">
-                              Analyze a job posting to get AI-generated interview questions
-                            </p>
-                          </div>
-                        );
-                      }
-                      
-                      if (filteredQuestions.length === 0 && activeQuestionFilter !== 'all') {
-                        const filterLabels: Record<string, string> = {
-                          'technical': 'Technical',
-                          'behavioral': 'Behavioral',
-                          'company-specific': 'Company Specific',
-                          'role-specific': 'Role Specific'
-                        };
-                        
-                        return (
-                          <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" />
-                            <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium">
-                              No {filterLabels[activeQuestionFilter]} questions found
-                            </p>
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 px-4">
-                              Try selecting a different filter or click "All Questions" to see all available questions
-                            </p>
-                            <button
-                              onClick={() => setActiveQuestionFilter('all')}
-                              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                            >
-                              Show All Questions
-                            </button>
-                          </div>
-                        );
-                      }
-                      
-                      return null;
-                    })()}
+                    )}
                   </motion.div>
                 )}
                 
@@ -4908,8 +4651,46 @@ Make sure each answer is completely unique and specific to its question - no gen
             )}
           </div>
 
-          {/* Improve the sticky notes design */}
-          {/* Sticky Notes section */}
+          {/* Interview Whiteboard - Miro-like board */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mb-8 overflow-hidden"
+          >
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <StickyNote className="w-5 h-5 text-amber-500" />
+                Interview Notes
+              </h3>
+              <button
+                onClick={() => {
+                  const whiteboardElement = document.querySelector('[data-whiteboard-toggle]') as HTMLElement;
+                  if (whiteboardElement) {
+                    whiteboardElement.click();
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                title="Agrandir le tableau"
+              >
+                <Maximize2 className="w-4 h-4" />
+                <span className="text-sm font-medium">Agrandir</span>
+              </button>
+            </div>
+            <div className="h-[600px]">
+              {applicationId && interviewId && (
+                <InterviewWhiteboard
+                  applicationId={applicationId}
+                  interviewId={interviewId}
+                  initialNotes={stickyNotes}
+                  initialConnections={connections}
+                />
+              )}
+            </div>
+          </motion.div>
+
+          {/* Old sticky notes section - commented out for reference */}
+          {false && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -5487,6 +5268,21 @@ Make sure each answer is completely unique and specific to its question - no gen
               )}
             </AnimatePresence>
           </motion.div>
+          )}
+        
+        <FocusQuestionModal
+          open={Boolean(focusedQuestion)}
+          onClose={() => setFocusedQuestion(null)}
+          question={
+            focusedQuestion
+              ? {
+                  title: focusedQuestion.text,
+                  tags: focusedQuestion.tags,
+                  suggestedApproach: focusedQuestion.suggestedApproach ?? null,
+                }
+              : undefined
+          }
+        />
         
         {/* Improve the note modal */}
         <AnimatePresence>

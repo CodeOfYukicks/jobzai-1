@@ -13,7 +13,10 @@
     "logs": "firebase functions:log",
     "debug:greenhouse": "ts-node scripts/testFetchGreenhouse.ts",
     "debug:lever": "ts-node scripts/testFetchLever.ts",
-    "debug:ats": "ts-node scripts/testAllSources.ts"
+    "debug:ats": "ts-node scripts/testAllSources.ts",
+    "check:prod": "ts-node scripts/checkProdData.ts",
+    "seed:emulator": "ts-node scripts/seedEmulator.ts",
+    "fetch:local": "ts-node scripts/fetchJobsLocal.ts"
   },
   "engines": {
     "node": "20"

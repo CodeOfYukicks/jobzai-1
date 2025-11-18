@@ -78,7 +78,7 @@ export default function TemplateCard({ template, onUpdate, onDelete, isMobile }:
           
           <button
             onClick={() => setShowEditModal(true)}
-            className="p-2 rounded-full text-gray-400 hover:text-[#8D75E6] hover:bg-[#8D75E6]/20 transition-colors"
+            className="p-2 rounded-full text-gray-400 hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/20 transition-colors"
           >
             <Edit className="h-5 w-5" />
           </button>
@@ -105,8 +105,8 @@ export default function TemplateCard({ template, onUpdate, onDelete, isMobile }:
         <div className="flex flex-wrap gap-2">
           {template.aiGenerated && (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium 
-              bg-purple-100 dark:bg-[#8D75E6]/20 
-              text-purple-800 dark:text-[#8D75E6]">
+              bg-purple-100 dark:bg-[hsl(var(--primary))]/20 
+              text-purple-800 dark:text-[hsl(var(--primary))]">
               <Sparkles className="h-3 w-3 mr-1" />
               AI Generated
             </span>
@@ -145,7 +145,7 @@ export default function TemplateCard({ template, onUpdate, onDelete, isMobile }:
                 <div className="flex items-center gap-2 mb-2">
                   {template.aiGenerated && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium 
-                      bg-[#8D75E6]/10 text-[#8D75E6]">
+                      bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))]">
                       <Sparkles className="h-3 w-3 mr-1" />
                       AI
                     </span>
@@ -186,8 +186,8 @@ export default function TemplateCard({ template, onUpdate, onDelete, isMobile }:
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowEditModal(true)}
                   className="p-2 rounded-lg text-gray-400 
-                    hover:text-[#8D75E6] hover:bg-[#8D75E6]/10 
-                    active:bg-[#8D75E6]/20
+                    hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/10 
+                    active:bg-[hsl(var(--primary))]/20
                     transition-all duration-200"
                 >
                   <Edit className="h-4.5 w-4.5" />

@@ -77,7 +77,7 @@ export default function RecommendationCard({
           <button
             onClick={() => setShowInsights(true)}
             disabled={isPremium}
-            className="w-full flex items-center justify-center px-4 py-2 bg-[#8D75E6] text-white rounded-lg hover:bg-[#8D75E6]/90 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:bg-[hsl(var(--primary))]/90 transition-colors disabled:opacity-50"
           >
             {isPremium && <Lock className="w-4 h-4 mr-2" />}
             {ctaText}

@@ -94,7 +94,7 @@ export default function Footer() {
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-white text-[#8D75E6] font-semibold rounded-r hover:bg-white/90 transition-colors"
+                  className="px-4 py-2 bg-white text-[hsl(var(--primary))] font-semibold rounded-r hover:bg-white/90 transition-colors"
                 >
                   <Mail className="h-5 w-5" />
                 </button>

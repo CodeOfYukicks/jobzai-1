@@ -334,6 +334,42 @@ Use this EXACT structure:
         "Request microservices documentation/onboarding if hired, or study microservices patterns beforehand",
         "Lean on your strong fundamentals—React, TypeScript, performance—to compensate during ramp-up"
       ]
+    },
+    
+    "cv_rewrite": {
+      "analysis": {
+        "strengths": [
+          "Strong React and TypeScript expertise with measurable impact",
+          "Proven leadership and mentorship abilities",
+          "E-commerce scaling experience at high user volumes",
+          "Performance optimization with quantified results"
+        ],
+        "gaps": [
+          "Next.js framework experience not highlighted",
+          "System design documentation not emphasized",
+          "B2B SaaS context needs positioning"
+        ],
+        "recommended_keywords": [
+          "Next.js", "SSR", "ISR", "System design", "Architecture", "Technical documentation",
+          "B2B SaaS", "Microservices", "Leadership", "Mentorship", "Performance"
+        ],
+        "positioning_strategy": "Position as a React expert with proven leadership and scale experience, actively upskilling in Next.js and eager to bring e-commerce expertise to B2B SaaS. Emphasize measurable impact, team development, and technical depth.",
+        "experience_relevance": [
+          "Most recent role: Emphasize React mastery, performance work, and mentorship",
+          "Previous roles: Highlight relevant technical leadership and system building",
+          "All experiences: Focus on metrics, impact, and transferable skills"
+        ]
+      },
+      "initial_cv": "Complete rewritten CV in markdown format with ## for sections, ### for job titles, and - for bullets. Structured: Summary (2-3 lines), Work Experience, Skills, Education, Certifications.",
+      "cv_templates": {
+        "harvard": "Full CV in traditional Harvard Business School format with emphasis on leadership and achievements",
+        "tech_minimalist": "Modern, clean CV in Google/Linear style with focus on technologies and impact metrics",
+        "notion": "Notion-inspired CV with clear visual hierarchy and organized sections",
+        "apple": "Ultra-clean, minimal CV with elegant typography and maximum white space",
+        "consulting": "McKinsey/BCG style CV with metrics-first approach and STAR format",
+        "ats_boost": "ATS-optimized CV with strategic keyword placement and standard formatting"
+      },
+      "internal_prompt_used": "CV rewrite generated using comprehensive ATS analysis context and strategic positioning approach"
     }
   },
   
@@ -443,6 +479,117 @@ Use this EXACT structure:
   }
 }
 
+## PHASE 7: CV REWRITE GENERATION (CRITICAL NEW FEATURE)
+
+**MISSION:** Generate a complete, professionally rewritten CV tailored to this specific job while maintaining 100% accuracy.
+
+### CV REWRITE REQUIREMENTS:
+
+#### A. EXTRACTION FIRST
+Before rewriting, extract the COMPLETE ORIGINAL CV TEXT from the resume images:
+- Extract EVERY section, EVERY job, EVERY bullet point
+- Preserve all dates, company names, job titles, achievements
+- This extracted text is your SINGLE SOURCE OF TRUTH
+
+#### B. STRATEGIC ANALYSIS
+Based on your ATS analysis, determine:
+1. **Positioning Strategy**: How to optimally position this candidate (1 paragraph)
+2. **Key Strengths to Emphasize**: Which experiences/skills matter most
+3. **Gaps to Address**: How to address gaps through rephrasing (never invent)
+4. **Keyword Integration**: Which keywords to naturally weave in
+
+#### C. REWRITING RULES (ABSOLUTE - NEVER VIOLATE)
+✅ DO:
+- Extract full CV text first before rewriting
+- Rephrase and restructure existing content
+- Use strong action verbs (Led, Architected, Drove, Delivered, Optimized)
+- Emphasize quantified achievements from original CV
+- Integrate missing keywords naturally where contextually appropriate
+- Reorder experiences by relevance to job
+- Craft compelling professional summary (2-3 lines max)
+- Structure clearly: Summary, Experience, Skills, Education
+
+❌ DO NOT:
+- Invent jobs, dates, companies, or achievements that aren't in original CV
+- Fabricate metrics or numbers
+- Add skills/technologies not present in original CV
+- Create false certifications or degrees
+- Exaggerate beyond what's evidenced
+
+#### D. TEMPLATE GENERATION
+
+Generate 6 complete CV versions in different styles:
+
+1. **harvard**: Traditional professional format
+   - Serif font feel in content
+   - Emphasis on leadership and results
+   - Conservative structure
+   
+2. **tech_minimalist**: Google/Linear modern style
+   - Clean, minimal design
+   - Technology-focused
+   - Bullet points with impact metrics
+   
+3. **notion**: Clear hierarchy style
+   - Well-organized sections
+   - Visual clarity
+   - Easy to scan
+   
+4. **apple**: Ultra-elegant minimal
+   - Maximum white space
+   - Sophisticated typography
+   - Less is more philosophy
+   
+5. **consulting**: McKinsey metrics-first
+   - Numbers upfront
+   - STAR format bullets
+   - Quantified achievements prominent
+   
+6. **ats_boost**: ATS-optimized
+   - Keyword-dense but natural
+   - Standard sections
+   - ATS-friendly formatting
+
+**IMPORTANT:** Each template must be a COMPLETE CV (not template structure - actual filled content). All 6 should contain the same information, just formatted differently.
+
+#### E. OUTPUT FORMAT FOR CV_REWRITE
+
+The cv_rewrite object must include:
+
+{
+  "cv_rewrite": {
+    "extracted_text": "COMPLETE ORIGINAL CV TEXT extracted from the resume images. This is the raw, unmodified text containing ALL information from the original CV. This field is CRITICAL for future CV generation.",
+    "analysis": {
+      "strengths": ["List 4-6 key strengths to emphasize"],
+      "gaps": ["List 2-4 gaps to address through rephrasing"],
+      "recommended_keywords": ["List 8-12 keywords to integrate"],
+      "positioning_strategy": "One paragraph explaining optimal positioning",
+      "experience_relevance": ["Ordered list of which experiences are most relevant and why"]
+    },
+    "initial_cv": "COMPLETE rewritten CV in clean markdown format. Use ## for main sections (Experience, Skills, Education), ### for job titles/degrees, and - for bullets. Start with # [Full Name], then contact info, then ## Professional Summary (2-3 lines), then experiences with strong action verbs and metrics.",
+    "cv_templates": {
+      "harvard": "COMPLETE CV content in Harvard style...",
+      "tech_minimalist": "COMPLETE CV content in tech minimal style...",
+      "notion": "COMPLETE CV content in Notion style...",
+      "apple": "COMPLETE CV content in Apple style...",
+      "consulting": "COMPLETE CV content in consulting style...",
+      "ats_boost": "COMPLETE CV content in ATS-optimized style..."
+    },
+    "internal_prompt_used": "Generated from comprehensive ATS analysis with zero-hallucination rules"
+  }
+}
+
+**QUALITY CHECKLIST FOR CV REWRITE:**
+✅ Extracted complete original CV text before rewriting
+✅ No invented information (all content traceable to original CV)
+✅ Strong action verbs used throughout
+✅ Quantified achievements emphasized
+✅ Missing keywords integrated naturally
+✅ Professional summary is compelling and specific
+✅ Experiences reordered by relevance
+✅ All 6 templates are complete and properly formatted
+✅ Each template contains identical information, just different styling
+
 ## TONE & STYLE GUIDELINES
 
 **Apple UX Writing Principles:**
@@ -497,6 +644,13 @@ Use this EXACT structure:
 ✅ Learning resources are relevant and high-quality
 ✅ Product updates section is complete
 ✅ Tone is calm, elegant, premium throughout
+✅ **CV rewrite section is complete with:**
+   - Strategic analysis (strengths, gaps, keywords, positioning)
+   - Complete initial_cv in markdown format
+   - All 6 templates fully written (not empty or placeholder)
+   - No invented information - all content from original CV
+   - Strong action verbs and quantified achievements
+   - Natural keyword integration
 
 Now, analyze the provided resume and return the JSON output.
 `;

@@ -233,10 +233,18 @@ app.post('/api/chatgpt', async (req, res) => {
     }
     
     // Build messages for ChatGPT
+    // Adapt system message based on request type for better context
+    let systemMessage = "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object.";
+    
+    // Enhanced system message for CV section rewriting
+    if (type === 'cv-section-rewrite') {
+      systemMessage = "You are an elite CV strategist specializing in ATS optimization and professional content enhancement. You analyze CV sections deeply and provide powerful, achievement-focused rewrites. Always respond with valid JSON in this exact format: {\"content\": \"the improved text\"}. Never include markdown code blocks or extra formatting.";
+    }
+    
     const messages = [
       {
         role: "system",
-        content: "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object."
+        content: systemMessage
       },
       {
         role: "user",

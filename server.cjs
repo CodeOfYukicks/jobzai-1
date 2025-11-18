@@ -426,8 +426,18 @@ app.post('/api/chatgpt', async (req, res) => {
     // Adapt system message based on request type for better context
     let systemMessage = "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object.";
     
+    // Enhanced system message for CV section rewriting
+    if (type === 'cv-section-rewrite') {
+      systemMessage = "You are an elite CV strategist specializing in ATS optimization and professional content enhancement. You analyze CV sections deeply and provide powerful, achievement-focused rewrites. Always respond with valid JSON in this exact format: {\"content\": \"the improved text\"}. Never include markdown code blocks or extra formatting.";
+    }
+    
+    // Enhanced system message for CV rewrite generation (full CV with 6 templates)
+    if (type === 'cv-rewrite') {
+      systemMessage = "You are THE WORLD'S BEST CV STRATEGIST with 20+ years placing candidates at FAANG, McKinsey, and Fortune 500 companies. You provide detailed, accurate CV rewrites in JSON format with 6 professional templates. You NEVER fabricate information. Always respond with valid JSON matching the exact structure requested. Never include markdown code blocks.";
+    }
+    
     // Enhanced system message for translation tasks
-    if ((type === 'cv-edit' || type === 'resume-optimizer') && (prompt.includes('translate') || prompt.includes('translation') || prompt.includes('localization'))) {
+    if ((type === 'cv-edit' || type === 'resume-optimizer' || type === 'cv-translation') && (prompt.includes('translate') || prompt.includes('translation') || prompt.includes('localization'))) {
       systemMessage = "You are an elite professional translator and localization expert. You specialize in producing perfect, native-quality translations that read as if originally written in the target language. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object.";
     }
     
@@ -450,8 +460,11 @@ app.post('/api/chatgpt', async (req, res) => {
     let openaiResponse;
     let responseText;
     
-    // Increase max_tokens for resume-optimizer to handle comprehensive CVs with structured data
-    const maxTokens = type === 'resume-optimizer' ? 8000 : 4000;
+    // Increase max_tokens for resume-optimizer and cv-rewrite to handle comprehensive CVs
+    // cv-rewrite needs even more tokens because it generates 6 complete CV templates
+    const maxTokens = type === 'cv-rewrite' ? 16000 : 
+                      type === 'resume-optimizer' ? 8000 : 
+                      4000;
     
     try {
       openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -1138,7 +1151,7 @@ app.post('/api/extract-job-url', async (req, res) => {
           '[itemprop="name"]'
         ];
         // Helper function to clean company name (defined early for use in extraction)
-        const cleanCompanyNameEarly = (name) => {
+        function cleanCompanyNameEarly(name) {
           if (!name) return '';
           let cleaned = name.trim();
           
@@ -1209,7 +1222,6 @@ app.post('/api/extract-job-url', async (req, res) => {
                   }
                 }
               }
-            }
           }
           
           // Remove common prefixes
@@ -1244,7 +1256,7 @@ app.post('/api/extract-job-url', async (req, res) => {
           cleaned = cleaned.replace(/[.,;:!?]+$/g, '').trim();
           
           return cleaned;
-        };
+        }
         
         let company = '';
         for (const selector of companySelectors) {

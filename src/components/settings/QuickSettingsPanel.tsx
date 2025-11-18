@@ -60,7 +60,7 @@ export const QuickSettingsPanel = ({
               </div>
               
               <div className="flex items-center space-x-3">
-                <div className="h-12 w-12 rounded-full bg-[#8D75E6] flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-[hsl(var(--primary))] flex items-center justify-center">
                   {user.avatar ? (
                     <img src={user.avatar} alt="" className="h-12 w-12 rounded-full" />
                   ) : (
@@ -92,14 +92,14 @@ export const QuickSettingsPanel = ({
                 </div>
               </Link>
 
-              <div className="bg-gradient-to-r from-[#8D75E6]/10 to-transparent rounded-lg p-4">
+              <div className="bg-gradient-to-r from-[hsl(var(--primary))]/10 to-transparent rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Credits</span>
-                  <span className="text-lg font-bold text-[#8D75E6]">{credits}</span>
+                  <span className="text-lg font-bold text-[hsl(var(--primary))]">{credits}</span>
                 </div>
                 <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <motion.div 
-                    className="h-full bg-[#8D75E6] rounded-full"
+                    className="h-full bg-[hsl(var(--primary))] rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${(credits / 500) * 100}%` }}
                     transition={{ duration: 0.5 }}

@@ -121,7 +121,7 @@ export default function CampaignCard({
                   e.stopPropagation();
                   onStartCampaign(campaign.id);
                 }}
-                className="mt-4 w-full px-4 py-2 bg-[#8D75E6] text-white text-sm rounded-lg hover:bg-[#8D75E6]/90 transition-colors"
+                className="mt-4 w-full px-4 py-2 bg-[hsl(var(--primary))] text-white text-sm rounded-lg hover:bg-[hsl(var(--primary))]/90 transition-colors"
               >
                 Start Campaign
               </button>
@@ -178,7 +178,7 @@ export default function CampaignCard({
                 e.stopPropagation();
                 onStartCampaign(campaign.id);
               }}
-              className="px-4 py-2 bg-[#8D75E6] text-white text-sm rounded-lg hover:bg-[#8D75E6]/90 transition-colors"
+              className="px-4 py-2 bg-[hsl(var(--primary))] text-white text-sm rounded-lg hover:bg-[hsl(var(--primary))]/90 transition-colors"
             >
               Start Campaign
             </button>

@@ -781,49 +781,267 @@ export default function CVOptimizerPage() {
       setLoadingMessage('Analyzing resume with Vision AI...');
 
       const comprehensiveExtractionPrompt = `
-You are an expert CV/resume analyst. Your task is to analyze this resume image(s) and extract EVERYTHING you see, then rewrite it in a well-structured markdown format.
+You are an expert CV/resume analyst with EXTREME attention to detail. Your task is to analyze this resume image(s) and extract ABSOLUTELY EVERYTHING you see, then create a complete structured JSON representation.
 
-CRITICAL INSTRUCTIONS:
-1. Look at EVERY section, EVERY line, EVERY detail visible in the resume images
-2. Extract ALL information including:
-   - Personal information (full name, email, phone, address, city, country, LinkedIn URL, portfolio, GitHub, etc.)
-   - Professional summary/objective (if present, extract the complete text)
-   - Work experience (EVERY position with: exact job title, company name, location, start date, end date, current status, ALL bullet points and descriptions)
-   - Education (EVERY degree/certificate with: degree name, institution, location, dates, GPA/honors if mentioned, relevant coursework)
-   - Skills (ALL technical skills, soft skills, tools, technologies, frameworks, methodologies - extract EVERYTHING)
-   - Languages (ALL languages with proficiency levels if mentioned)
-   - Certifications (ALL certifications with issuer, date, credential ID if visible)
-   - Projects (ALL projects with descriptions, technologies used, outcomes)
-   - Awards/Achievements (if any)
-   - Publications (if any)
-   - Volunteer work (if any)
-   - Any other sections visible
+═══════════════════════════════════════════════════════════════════
+CRITICAL EXTRACTION RULES - READ CAREFULLY
+═══════════════════════════════════════════════════════════════════
 
-3. After extracting everything, rewrite the complete CV in a clean, structured markdown format with these sections:
-   - # [Full Name]
-   - Contact information (email, phone, location, LinkedIn, etc.)
-   - ## Professional Summary (if present)
-   - ## Work Experience (each role as ## [Job Title] - [Company])
-   - ## Education (each degree as ## [Degree] - [Institution])
-   - ## Skills
-   - ## Languages (if present)
-   - ## Certifications (if present)
-   - ## Projects (if present)
-   - Any other relevant sections
+1. **WORK EXPERIENCE - MOST CRITICAL SECTION**:
+   ⚠️ YOU MUST SEPARATE EVERY DISTINCT PROJECT/CLIENT/ROLE AS A SEPARATE EXPERIENCE
+   
+   Example: If you see:
+   - "Accenture - Technology Consultant (2018 - Present)"
+     - "Ayvens - Société Générale (PO/PM - 38 months)" with bullets
+     - "Danone (Project Manager - 12 months)" with bullets  
+     - "Technicolor (Business Analyst - 11 months)" with bullets
+   
+   YOU MUST CREATE 3 SEPARATE EXPERIENCES:
+   1. "PO/PM - Ayvens (via Accenture)" with its bullets
+   2. "Project Manager - Danone (via Accenture)" with its bullets
+   3. "Business Analyst - Technicolor (via Accenture)" with its bullets
+   
+   ⚠️ DO NOT group multiple projects under one experience entry
+   ⚠️ Each project/client with distinct dates or bullets = SEPARATE experience
+   ⚠️ Extract ALL bullet points for EACH experience - DO NOT skip any
+   ⚠️ If you see "38 months", "12 months", "11 months" - these are SEPARATE experiences
+   ⚠️ Preserve EXACT dates, durations, and ALL bullet points
 
-4. Be EXTREMELY thorough - do not skip any information. If you see it, include it.
-5. CRITICAL for Work Experience: Extract EVERY SINGLE work experience/position you see. Count them and make sure none are missing. Include ALL positions, even if they seem less relevant or older.
-6. Preserve all dates, numbers, percentages, company names, job titles exactly as they appear.
-7. For work experience bullets, include ALL bullet points you see, preserving the original wording as much as possible.
-8. If there are multiple pages, make sure to extract information from ALL pages.
+2. **EDUCATION - CRITICAL**:
+   ⚠️ Extract EVERY education entry separately:
+   - Master's degree = ONE entry
+   - Prépa/Preparatory course = ANOTHER separate entry
+   - Each degree, certificate, course = SEPARATE entry
+   ⚠️ DO NOT combine multiple educations into one entry
 
-Return ONLY a JSON object with this structure:
+3. **LANGUAGES vs CERTIFICATIONS - CRITICAL DISTINCTION**:
+   ⚠️ Languages section contains: French, English, Spanish, etc. with proficiency levels
+   ⚠️ Certifications section contains: Professional certifications (Salesforce, AWS, etc.)
+   ⚠️ DO NOT put languages in certifications section
+   ⚠️ DO NOT put certifications in languages section
+   ⚠️ If you see "French - Native" or "English - Fluent" → This is a LANGUAGE, not a certification
+
+4. **BULLET POINTS - EXTRACT ALL**:
+   ⚠️ Extract EVERY SINGLE bullet point you see
+   ⚠️ If an experience has 5 bullets, extract ALL 5
+   ⚠️ If an experience has 10 bullets, extract ALL 10
+   ⚠️ DO NOT summarize or condense bullets
+   ⚠️ Preserve the exact wording and ALL details
+
+═══════════════════════════════════════════════════════════════════
+EXTRACTION PROCESS - FOLLOW STEP BY STEP
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: Scan the ENTIRE resume image(s) systematically:
+- Read from top to bottom, left to right
+- Look at EVERY section header
+- Read EVERY line of text
+- Count items as you go
+
+STEP 2: Extract Personal Information:
+- Full name (exact as shown)
+- Email, phone, address, location
+- LinkedIn URL, portfolio, GitHub (if present)
+- Professional title/headline
+
+STEP 3: Extract Professional Summary:
+- Complete text, word-for-word
+- Do not summarize or shorten
+
+STEP 4: Extract Work Experience (MOST CRITICAL):
+- For EACH distinct project/client/role:
+  * Job title (exact as shown)
+  * Company name (the EMPLOYER/consulting firm, e.g., "Accenture")
+  * Client/project name (the CLIENT you worked for, e.g., "Ayvens", "Danone", "Technicolor")
+    ⚠️ CRITICAL DISTINCTION - READ CAREFULLY:
+    - If you see "Accenture - Technology Consultant" with sub-projects "Ayvens", "Danone", "Technicolor":
+      * company = "Accenture" (the employer/consulting firm)
+      * client = "Ayvens" (for the first project), "Danone" (for the second), "Technicolor" (for the third)
+    - If there's NO client/project mentioned (direct employment), leave client empty and put everything in company
+    - The client is the END CLIENT you worked for, not the consulting firm
+  * Start date (exact as shown)
+  * End date or "Present" (exact as shown)
+  * Duration (if mentioned, e.g., "38 months")
+  * ALL bullet points (extract EVERY SINGLE ONE)
+  * Location (if mentioned)
+
+STEP 5: Extract Education:
+- For EACH education entry:
+  * Degree name (exact as shown)
+  * Institution name (exact as shown)
+  * Start date (if shown)
+  * End date or graduation year (exact as shown)
+  * GPA/honors (if mentioned)
+  * Relevant coursework (if mentioned)
+  * Description/details (if any)
+
+STEP 6: Extract Skills:
+- Technical skills
+- Soft skills
+- Tools, technologies, frameworks
+- Methodologies
+- Extract EVERYTHING you see
+
+STEP 7: Extract Languages:
+- Language name
+- Proficiency level (Native, Fluent, Intermediate, Basic)
+- Extract ONLY languages, NOT certifications
+
+STEP 8: Extract Certifications:
+- Certification name
+- Issuing organization
+- Date or year
+- Credential ID (if visible)
+- Extract ONLY professional certifications, NOT languages
+
+STEP 9: Extract Other Sections:
+- Projects (if any)
+- Awards/Achievements (if any)
+- Publications (if any)
+- Volunteer work (if any)
+- Hobbies/Interests (if any)
+
+═══════════════════════════════════════════════════════════════════
+OUTPUT FORMAT - CRITICAL
+═══════════════════════════════════════════════════════════════════
+
+Return ONLY a JSON object with this EXACT structure:
+
 {
-  "structuredCVMarkdown": "Complete CV rewritten in markdown format with all sections and information",
-  "extractionNotes": "Brief notes about what sections were found and any challenges in extraction"
+  "extraction_summary": {
+    "experiences_found": <number - count of ALL work experiences (including each project/client separately)>,
+    "educations_found": <number - count of ALL education entries (including prépa, master, etc.)>,
+    "skills_found": <number - approximate count of skills>,
+    "certifications_found": <number - count of certifications ONLY (not languages)>,
+    "languages_found": <number - count of languages ONLY (not certifications)>,
+    "sections_detected": ["Professional Summary", "Work Experience", "Education", "Skills", "Languages", "Certifications", ...]
+  },
+  "structured_data": {
+    "personalInfo": {
+      "name": "<full name>",
+      "email": "<email>",
+      "phone": "<phone>",
+      "location": "<location>",
+      "linkedin": "<linkedin url if present>",
+      "title": "<professional title if present>"
+    },
+    "summary": "<complete professional summary text>",
+    "experiences": [
+      {
+        "id": "exp-0",
+        "title": "<exact job title, e.g., 'PO/PM' or 'Project Manager'>",
+        "company": "<EMPLOYER name (the consulting firm/company you work for), e.g., 'Accenture'>",
+        "client": "<CLIENT/PROJECT name (the end client you worked for), e.g., 'Ayvens', 'Danone', 'Technicolor'. If no client/project, leave empty string ''>",
+        "startDate": "<exact start date>",
+        "endDate": "<exact end date or 'Present'>",
+        "duration": "<duration if mentioned, e.g., '38 months'>",
+        "location": "<location if mentioned>",
+        "bullets": ["<bullet 1>", "<bullet 2>", "<bullet 3>", "... ALL bullets"]
+      },
+      {
+        "id": "exp-1",
+        "title": "<next experience title>",
+        "company": "<next experience EMPLOYER (e.g., 'Accenture')>",
+        "client": "<next experience CLIENT (e.g., 'Danone') or empty string if no client>",
+        ...
+      }
+      // ... ALL experiences, each project/client as separate entry
+      // EXAMPLE: If CV shows Accenture with 3 projects (Ayvens, Danone, Technicolor):
+      // {
+      //   "id": "exp-0",
+      //   "title": "PO/PM",
+      //   "company": "Accenture",
+      //   "client": "Ayvens - Société Générale",
+      //   "startDate": "2020",
+      //   "endDate": "2023",
+      //   "duration": "38 months",
+      //   "bullets": ["..."]
+      // },
+      // {
+      //   "id": "exp-1",
+      //   "title": "Project Manager",
+      //   "company": "Accenture",
+      //   "client": "Danone",
+      //   "startDate": "2019",
+      //   "endDate": "2020",
+      //   "duration": "12 months",
+      //   "bullets": ["..."]
+      // },
+      // {
+      //   "id": "exp-2",
+      //   "title": "Business Analyst",
+      //   "company": "Accenture",
+      //   "client": "Technicolor",
+      //   "startDate": "2018",
+      //   "endDate": "2019",
+      //   "duration": "11 months",
+      //   "bullets": ["..."]
+      // }
+    ],
+    "educations": [
+      {
+        "id": "edu-0",
+        "degree": "<exact degree name>",
+        "institution": "<exact institution name>",
+        "startDate": "<start date if shown>",
+        "endDate": "<end date or graduation year>",
+        "gpa": "<GPA if mentioned>",
+        "honors": "<honors if mentioned>",
+        "details": "<any additional details>"
+      },
+      {
+        "id": "edu-1",
+        "degree": "<next education entry>",
+        ...
+      }
+      // ... ALL education entries separately
+    ],
+    "skills": ["<skill 1>", "<skill 2>", "... ALL skills"],
+    "languages": [
+      {
+        "name": "<language name>",
+        "level": "<proficiency level: Native/Fluent/Intermediate/Basic>"
+      }
+      // ... ALL languages
+    ],
+    "certifications": [
+      {
+        "name": "<certification name>",
+        "issuer": "<issuing organization>",
+        "date": "<date or year>",
+        "credentialId": "<credential ID if visible>"
+      }
+      // ... ALL certifications (NOT languages)
+    ]
+  },
+  "structuredCVMarkdown": "Complete CV rewritten in markdown format. CRITICAL: Use ### for EACH separate experience (each project/client = separate ### header). Use ### for EACH separate education entry.",
+  "extractionNotes": "Detailed notes about what was found, validation that all experiences/educations were counted correctly, and any challenges encountered"
 }
 
-The "structuredCVMarkdown" field should be a complete, well-formatted markdown document that contains ALL information from the resume.
+═══════════════════════════════════════════════════════════════════
+VALIDATION CHECKLIST - VERIFY BEFORE RETURNING
+═══════════════════════════════════════════════════════════════════
+
+Before returning the JSON, verify:
+✓ Every distinct project/client is a separate experience in structured_data.experiences
+✓ For consulting roles with multiple clients (e.g., Accenture with Ayvens, Danone, Technicolor):
+  - Each client = separate experience entry
+  - company field = the employer (e.g., "Accenture")
+  - client field = the end client (e.g., "Ayvens", "Danone", "Technicolor")
+  - DO NOT put client name in company field
+  - DO NOT put company name in client field
+✓ Every education entry (master, prépa, etc.) is a separate entry in structured_data.educations
+✓ ALL bullet points are extracted for each experience (count them)
+✓ Languages are in structured_data.languages (NOT in certifications)
+✓ Certifications are in structured_data.certifications (NOT in languages)
+✓ The number of ### headers in structuredCVMarkdown matches experiences_found
+✓ The number of ### headers for education matches educations_found
+✓ No information was skipped or omitted
+✓ All dates, numbers, percentages are preserved exactly as shown
+✓ structuredCVMarkdown contains ALL experiences and educations as separate ### headers
+
+CRITICAL: If you see multiple projects under one company (e.g., Accenture with Ayvens, Danone, Technicolor), you MUST create separate experiences for EACH project. Do NOT group them.
+CRITICAL: Always distinguish between company (employer) and client (end client/project). If you see "Accenture - Ayvens project", then company="Accenture" and client="Ayvens".
 `;
 
       let structuredCVMarkdown = '';
@@ -851,7 +1069,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
             }
           ],
           response_format: { type: 'json_object' },
-            max_tokens: 8000, // Increased for comprehensive extraction
+            max_tokens: 16000, // Increased for comprehensive extraction with all experiences
           temperature: 0.1
         })
       });
@@ -881,14 +1099,40 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
           parsedExtraction = extractionData.content;
         }
 
+        // Use structured_data if available, otherwise fallback to markdown
+        const structuredData = parsedExtraction.structured_data;
         structuredCVMarkdown = parsedExtraction.structuredCVMarkdown || parsedExtraction.text || '';
         extractionOk = !!structuredCVMarkdown && structuredCVMarkdown.trim().length > 100;
         
         if (extractionOk) {
           console.log('✅ Comprehensive CV extraction successful');
+          console.log('   Extraction summary:', parsedExtraction.extraction_summary || 'N/A');
           console.log('   Extraction notes:', parsedExtraction.extractionNotes || 'N/A');
           console.log('   Structured markdown length:', structuredCVMarkdown.length);
+          
+          // Log structured data if available
+          if (structuredData) {
+            console.log('   ✅ Structured data available:', {
+              experiencesCount: structuredData.experiences?.length || 0,
+              educationsCount: structuredData.educations?.length || 0,
+              skillsCount: structuredData.skills?.length || 0,
+              languagesCount: structuredData.languages?.length || 0,
+              certificationsCount: structuredData.certifications?.length || 0,
+            });
+            
+            // Validate extraction
+            const summary = parsedExtraction.extraction_summary || {};
+            if (structuredData.experiences && summary.experiences_found !== structuredData.experiences.length) {
+              console.warn(`⚠️ Experience count mismatch: summary says ${summary.experiences_found}, but structured_data has ${structuredData.experiences.length}`);
+            }
+            if (structuredData.educations && summary.educations_found !== structuredData.educations.length) {
+              console.warn(`⚠️ Education count mismatch: summary says ${summary.educations_found}, but structured_data has ${structuredData.educations.length}`);
+            }
+          }
         }
+        
+        // Store structured_data for later use
+        (window as any).__extractedStructuredData = structuredData;
       } catch (e) {
         console.warn('⚠️ Vision extraction failed, will try pdfjs fallback', e);
       }
@@ -906,9 +1150,47 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
         throw new Error('Extracted CV content is too short or empty. Please ensure your resume is clear and readable.');
       }
 
-      // Use the structured markdown as our base CV text
-      const cvText = structuredCVMarkdown;
-      const originalStructured = parseMarkdownToCVData(cvText);
+      // Use structured_data if available, otherwise parse markdown
+      const extractedStructuredData = (window as any).__extractedStructuredData;
+      let originalStructured: any;
+      
+      if (extractedStructuredData && extractedStructuredData.experiences && extractedStructuredData.experiences.length > 0) {
+        // Use structured_data directly - it's more accurate
+        console.log('✅ Using extracted structured_data instead of parsing markdown');
+        originalStructured = {
+          personalInfo: extractedStructuredData.personalInfo || {},
+          professionalSummary: extractedStructuredData.summary || '',
+          experiences: extractedStructuredData.experiences.map((exp: any) => ({
+            id: exp.id || `exp-${Math.random()}`,
+            title: exp.title || '',
+            company: exp.company || '',
+            client: exp.client || '',
+            startDate: exp.startDate || '',
+            endDate: exp.endDate || 'Present',
+            isCurrent: /present|current/i.test(exp.endDate || ''),
+            description: exp.bullets || [],
+            order: 0,
+          })),
+          educations: extractedStructuredData.educations?.map((edu: any) => ({
+            id: edu.id || `edu-${Math.random()}`,
+            degree: edu.degree || '',
+            institution: edu.institution || '',
+            startDate: edu.startDate || '',
+            endDate: edu.endDate || '',
+            isCurrent: false,
+            description: edu.details || '',
+            order: 0,
+          })) || [],
+          skills: extractedStructuredData.skills || [],
+          languages: extractedStructuredData.languages || [],
+          certificates: extractedStructuredData.certifications || [],
+        };
+      } else {
+        // Fallback to parsing markdown
+        console.log('⚠️ No structured_data available, parsing markdown');
+        const cvText = structuredCVMarkdown;
+        originalStructured = parseMarkdownToCVData(cvText);
+      }
 
       setLoadingProgress(60);
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -1149,13 +1431,17 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
         console.log('🔍 DEBUG: Using merged structured data with completeness checks...');
         const structured = mergedStructured;
         
-        // Save structured data to Firestore
+        // Save structured data to Firestore with original extraction data
         try {
+          const extractedStructuredData = (window as any).__extractedStructuredData;
           await updateDoc(doc(db, 'users', currentUser.uid, 'optimizedCVs', savedId), {
             cvData: structured,
-            optimizedResumeMarkdown: finalMarkdown
+            optimizedResumeMarkdown: finalMarkdown,
+            // Save original structured extraction for reference
+            originalStructuredData: extractedStructuredData || null,
+            originalStructuredMarkdown: structuredCVMarkdown || null,
           });
-          console.log('✅ cvData saved successfully to Firestore');
+          console.log('✅ cvData saved successfully to Firestore with original structured data');
         } catch (saveError: any) {
           console.error('❌ Failed to save structured cvData:', saveError);
           // Don't throw - navigation should still happen even if save fails
@@ -1492,7 +1778,7 @@ The "structuredCVMarkdown" field should be a complete, well-formatted markdown d
         {/* Header */}
         <div className="mb-8">
           <PageHeader 
-            title="Resume Lab"
+            title="Resume Check"
             subtitle="Optimize your resume to perfectly match each job posting with AI"
           />
           <div className="flex justify-center mt-6">

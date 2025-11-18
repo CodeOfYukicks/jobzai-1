@@ -86,31 +86,34 @@ export function HeaderCard({
 	}
 
 	return (
-		<div className={['w-full py-4 border-b', 'bg-transparent', 'border-gray-200 dark:border-[#2A2A2E]', className].join(' ')}>
-			<div className="flex items-start justify-between">
-				<div className="flex items-start gap-4 min-w-0">
-					<div className="h-10 w-10 rounded-full flex items-center justify-center ring-8 ring-white dark:ring-[#1E1F22] dark:bg-[#2A2A2E]">
-						{logoSrc ? (
-							<img src={logoSrc} alt={`${companyName} logo`} onError={handleLogoError} className="h-8 w-8 rounded-full object-cover" />
-						) : (
-							<span className="text-sm font-semibold text-[#374151] dark:text-gray-200">{getInitials(companyName)}</span>
-						)}
+		<div className={['w-full py-12', 'bg-transparent', className].join(' ')}>
+			<div className="flex flex-col items-center justify-center text-center space-y-6">
+				{/* Logo centré - grande taille */}
+				<div className="h-20 w-20 rounded-full flex items-center justify-center bg-white dark:bg-[#2A2A2E] shadow-sm border border-gray-100 dark:border-[#2A2A2E]">
+					{logoSrc ? (
+						<img src={logoSrc} alt={`${companyName} logo`} onError={handleLogoError} className="h-16 w-16 rounded-full object-cover" />
+					) : (
+						<span className="text-2xl font-semibold text-[#374151] dark:text-gray-200">{getInitials(companyName)}</span>
+					)}
+				</div>
+
+				{/* Titre du poste - grande taille, centré */}
+				<div className="space-y-3">
+					<div className="text-gray-900 dark:text-gray-100 font-semibold text-3xl leading-tight tracking-[-0.02em] max-w-2xl">
+						{position}
 					</div>
-					<div className="min-w-0">
-						<div className="text-gray-900 dark:text-gray-100 font-semibold text-[17px] leading-tight tracking-[-0.01em]">
-							{position}
-						</div>
-						<div className="text-[14px] font-medium text-gray-600 dark:text-gray-400 leading-snug mt-1">
-							{companyName}{location ? ` • ${location}` : ''}
-						</div>
-						{interviewType && (
-							<div className="mt-2">
-								<StepChip type={interviewType} muted={false} />
-							</div>
-						)}
+					
+					{/* Nom entreprise • Localisation - centré */}
+					<div className="text-base font-medium text-gray-600 dark:text-gray-400 leading-relaxed">
+						{companyName}{location ? ` • ${location}` : ''}
 					</div>
 				</div>
-				<div className="flex items-center">
+
+				{/* Badges centrés */}
+				<div className="flex flex-wrap items-center justify-center gap-3">
+					{interviewType && (
+						<StepChip type={interviewType} muted={false} />
+					)}
 					{status && <StatusChip status={status} />}
 				</div>
 			</div>

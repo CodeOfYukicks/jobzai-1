@@ -88,7 +88,7 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
             className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
               errors.firstName
                 ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-[#8D75E6] focus:ring-2 focus:ring-[#8D75E6]/20'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20'
             } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
             placeholder="Enter your first name"
             autoFocus
@@ -113,7 +113,7 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
             className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
               errors.lastName
                 ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-[#8D75E6] focus:ring-2 focus:ring-[#8D75E6]/20'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20'
             } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
             placeholder="Enter your last name"
           />
@@ -127,7 +127,7 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
         type="submit"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="w-full px-6 py-3 bg-[#8D75E6] text-white rounded-lg font-medium hover:bg-[#7D65D6] transition-colors duration-200 shadow-lg hover:shadow-xl"
+        className="w-full px-6 py-3 bg-[hsl(var(--primary))] text-white rounded-lg font-medium hover:bg-[#7D65D6] transition-colors duration-200 shadow-lg hover:shadow-xl"
       >
         Continue
       </motion.button>

@@ -14,7 +14,7 @@ export default function PrivateRoute({ children, requireProfileCompleted = true 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8D75E6]"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(var(--primary))]"></div>
           <p className="text-gray-500">Loading...</p>
         </div>
       </div>

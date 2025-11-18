@@ -211,12 +211,20 @@ From the job description, you MUST identify with surgical precision:
 ### A. CRITICAL MUST-HAVE REQUIREMENTS (DEAL-BREAKERS)
 These are ABSOLUTE REQUIREMENTS that if missing, the candidate CANNOT get the job:
 - **PRIMARY TECHNICAL SKILLS**: Skills explicitly stated as "required", "must have", "essential", "mandatory"
+- **SPECIFIC EXPERIENCE REQUIREMENTS**: **CRITICAL** - Requirements like "5 years experience with Python", "Over 5 years building ML models", "5+ years Python, R, SQL"
+  - These are EXTREMELY IMPORTANT and must be detected precisely
+  - If job requires "5 years Python" and resume has NO Python → Score MUST be 20-40% maximum
+  - If job requires "5 years ML" and resume has NO ML → Score MUST be 20-40% maximum
+  - Missing ALL specific experience requirements → Score MUST be 20-30% maximum
 - **CORE EXPERIENCE**: Minimum years of experience, specific role experience, industry experience
 - **CRITICAL CERTIFICATIONS**: Certifications that are non-negotiable (e.g., security clearances, professional licenses)
 - **EDUCATION REQUIREMENTS**: Degree requirements that are explicitly stated as mandatory
 - **DOMAIN EXPERTISE**: Industry-specific knowledge that is fundamental to the role
 
-**SCORING IMPACT**: Missing even ONE critical must-have = automatic 20-40 point penalty to overall match score. Missing 2+ critical must-haves = 40-60 point penalty. This is NON-NEGOTIABLE.
+**SCORING IMPACT**: 
+- Missing SPECIFIC experience requirements (e.g., "5 years Python") = automatic 50-70 point penalty. Missing ALL = 70-90 point penalty.
+- Missing even ONE other critical must-have = automatic 20-40 point penalty to overall match score. Missing 2+ critical must-haves = 40-60 point penalty. 
+- This is NON-NEGOTIABLE.
 
 ### B. HIGHLY IMPORTANT REQUIREMENTS (STRONG IMPACT)
 These are very important but not absolute deal-breakers:
@@ -648,11 +656,20 @@ For EACH highly important requirement that is MISSING:
 ### STEP 11: EXECUTIVE ASSESSMENT (BE BRUTALLY HONEST AND POLARIZED)
 
 **CRITICAL SCORING PHILOSOPHY**: 
-- Use the FULL range of 0-100. Don't inflate scores.
-- Be POLARIZED: If critical requirements are missing, scores MUST be low (30-50). If all critical requirements are met, scores can be high (70-95).
+- **USE THE FULL RANGE OF 0-100. DO NOT INFLATE SCORES.**
+- **DO NOT CLUSTER SCORES AROUND 75-78% - THIS IS A CRITICAL FAILURE**
+- **EACH ANALYSIS MUST PRODUCE DIFFERENT SCORES BASED ON ACTUAL MATCH QUALITY**
+- Be POLARIZED: If critical requirements are missing, scores MUST be low (20-50). If all critical requirements are met, scores can be high (70-95).
 - ONE missing critical requirement = significant penalty (20-40 points).
 - Multiple missing critical requirements = severe penalty (40-60 points).
 - Perfect alignment with all critical requirements = high score (80-95).
+
+**SCORE VARIATION IS MANDATORY:**
+- If you consistently give scores around 75-78%, you are FAILING at accurate analysis
+- Poor matches MUST get low scores (20-50%) - DO NOT be afraid of low scores
+- Good matches CAN get high scores (80-95%) - but only if truly justified
+- Each resume-job pair should produce UNIQUE scores based on actual alignment
+- Do NOT default to mid-range scores - analyze precisely and score accordingly
 
 **Overall Match Score** (0-100): Be RUTHLESS, PRECISE, and POLARIZED based on ALL analysis above:
 
@@ -681,6 +698,13 @@ For EACH highly important requirement that is MISSING:
 4. Perfect alignment with critical requirements but missing highly important ones → Score range 60-75
 5. Perfect alignment with critical AND highly important requirements → Score range 75-95
 6. Exceeding requirements in all categories → Score range 90-100 (RARE)
+
+**ANTI-CLUSTERING RULE:**
+- **NEVER give scores between 73-80% unless the match quality truly falls in that narrow range**
+- **Vary your scores dramatically** - if you see 75% three times in a row, you're doing it wrong
+- **Each score must be justified by specific evidence** - don't default to mid-range
+- **Low scores (20-50%) are VALID and NECESSARY** for poor matches - use them!
+- **High scores (85-95%) are VALID and NECESSARY** for excellent matches - use them!
 
 - **Key Strengths**: Top 3-5 strengths that make candidate compelling (be specific with evidence)
 - **Critical Gaps**: Top 3-5 gaps that could prevent interview (be specific with impact)

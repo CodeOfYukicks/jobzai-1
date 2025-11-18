@@ -32,6 +32,8 @@ import {
   Info,
   Briefcase,
   Building,
+  Filter,
+  XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
@@ -87,6 +89,29 @@ export default function JobApplicationsPage() {
     location: '',
     notes: ''
   });
+
+  // Filter states
+  // Temporal filters
+  const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '3m' | '6m' | 'custom'>('all');
+  const [customDateRange, setCustomDateRange] = useState<{start: string, end: string} | null>(null);
+  const [updateDateFilter, setUpdateDateFilter] = useState<'all' | '24h' | '7d' | '30d'>('all');
+  const [upcomingInterviewsDays, setUpcomingInterviewsDays] = useState<number | null>(null);
+
+  // Interview filters
+  const [interviewTypes, setInterviewTypes] = useState<string[]>([]);
+  const [interviewStatus, setInterviewStatus] = useState<string[]>([]);
+  const [hasInterviews, setHasInterviews] = useState<'all' | 'with' | 'without' | 'upcoming'>('all');
+
+  // Sorting
+  const [sortBy, setSortBy] = useState<'appliedDate' | 'updatedAt' | 'companyName' | 'position' | 'interviewCount'>('appliedDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Company filters
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [companySearchQuery, setCompanySearchQuery] = useState('');
+
+  // Filter UI state
+  const [openFilterModal, setOpenFilterModal] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -644,11 +669,11 @@ URL to visit: ${jobUrl}
         
         // S'assurer que les puces sont bien formatées (• ou -)
         // Si le format n'a pas de puces, les ajouter
-        if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
+          if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
           // Diviser par lignes et ajouter des puces
-          const lines = formattedDescription.split('\n').filter(line => line.trim().length > 0);
+          const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
           if (lines.length > 0) {
-            formattedDescription = lines.map(line => {
+            formattedDescription = lines.map((line: string) => {
               const trimmed = line.trim();
               // Si la ligne ne commence pas déjà par une puce, en ajouter une
               if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
@@ -1035,10 +1060,203 @@ URL to visit: ${jobUrl}
     }
   };
 
-  const filteredApplications = applications.filter(app =>
-    app.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.position.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Get unique companies for company filter
+  const uniqueCompanies = Array.from(new Set(applications.map(app => app.companyName))).sort();
+
+  // Main filter function that combines all filters
+  const applyFilters = (apps: JobApplication[]): JobApplication[] => {
+    let filtered = [...apps];
+
+    // Text search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(app =>
+        app.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.position.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Company filter
+    if (selectedCompanies.length > 0) {
+      filtered = filtered.filter(app => selectedCompanies.includes(app.companyName));
+    }
+
+    // Date filter (applied date)
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      const filterDate = new Date();
+      
+      switch (dateFilter) {
+        case '7d':
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          filterDate.setDate(now.getDate() - 30);
+          break;
+        case '3m':
+          filterDate.setMonth(now.getMonth() - 3);
+          break;
+        case '6m':
+          filterDate.setMonth(now.getMonth() - 6);
+          break;
+        case 'custom':
+          if (customDateRange) {
+            filtered = filtered.filter(app => {
+              const appDate = new Date(app.appliedDate);
+              const startDate = new Date(customDateRange.start);
+              const endDate = new Date(customDateRange.end);
+              return appDate >= startDate && appDate <= endDate;
+            });
+            break;
+          }
+          break;
+      }
+      
+      if (dateFilter !== 'custom' || !customDateRange) {
+        filtered = filtered.filter(app => {
+          const appDate = new Date(app.appliedDate);
+          return appDate >= filterDate;
+        });
+      }
+    }
+
+    // Update date filter
+    if (updateDateFilter !== 'all') {
+      const now = new Date();
+      const filterDate = new Date();
+      
+      switch (updateDateFilter) {
+        case '24h':
+          filterDate.setHours(now.getHours() - 24);
+          break;
+        case '7d':
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          filterDate.setDate(now.getDate() - 30);
+          break;
+      }
+      
+      filtered = filtered.filter(app => {
+        const updatedAt = app.updatedAt ? new Date(app.updatedAt) : new Date(app.createdAt);
+        return updatedAt >= filterDate;
+      });
+    }
+
+    // Interview filters
+    if (hasInterviews !== 'all') {
+      if (hasInterviews === 'with') {
+        filtered = filtered.filter(app => app.interviews && app.interviews.length > 0);
+      } else if (hasInterviews === 'without') {
+        filtered = filtered.filter(app => !app.interviews || app.interviews.length === 0);
+      } else if (hasInterviews === 'upcoming') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        filtered = filtered.filter(app => {
+          if (!app.interviews || app.interviews.length === 0) return false;
+          return app.interviews.some(interview => {
+            const interviewDate = new Date(interview.date);
+            interviewDate.setHours(0, 0, 0, 0);
+            return interviewDate >= today && interview.status === 'scheduled';
+          });
+        });
+      }
+    }
+
+    // Interview type filter
+    if (interviewTypes.length > 0) {
+      filtered = filtered.filter(app => {
+        if (!app.interviews || app.interviews.length === 0) return false;
+        return app.interviews.some(interview => interviewTypes.includes(interview.type));
+      });
+    }
+
+    // Interview status filter
+    if (interviewStatus.length > 0) {
+      filtered = filtered.filter(app => {
+        if (!app.interviews || app.interviews.length === 0) return false;
+        return app.interviews.some(interview => interviewStatus.includes(interview.status));
+      });
+    }
+
+    // Upcoming interviews days filter
+    if (upcomingInterviewsDays !== null) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + upcomingInterviewsDays);
+      
+      filtered = filtered.filter(app => {
+        if (!app.interviews || app.interviews.length === 0) return false;
+        return app.interviews.some(interview => {
+          const interviewDate = new Date(interview.date);
+          interviewDate.setHours(0, 0, 0, 0);
+          return interviewDate >= today && interviewDate <= futureDate && interview.status === 'scheduled';
+        });
+      });
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'appliedDate':
+          comparison = new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
+          break;
+        case 'updatedAt':
+          const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+          const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
+          comparison = aUpdated - bUpdated;
+          break;
+        case 'companyName':
+          comparison = a.companyName.localeCompare(b.companyName);
+          break;
+        case 'position':
+          comparison = a.position.localeCompare(b.position);
+          break;
+        case 'interviewCount':
+          const aCount = a.interviews?.length || 0;
+          const bCount = b.interviews?.length || 0;
+          comparison = aCount - bCount;
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  };
+
+  const filteredApplications = applyFilters(applications);
+
+  // Count active filters
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (dateFilter !== 'all') count++;
+    if (updateDateFilter !== 'all') count++;
+    if (upcomingInterviewsDays !== null) count++;
+    if (interviewTypes.length > 0) count++;
+    if (interviewStatus.length > 0) count++;
+    if (hasInterviews !== 'all') count++;
+    if (selectedCompanies.length > 0) count++;
+    if (sortBy !== 'appliedDate' || sortOrder !== 'desc') count++;
+    return count;
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setDateFilter('all');
+    setCustomDateRange(null);
+    setUpdateDateFilter('all');
+    setUpcomingInterviewsDays(null);
+    setInterviewTypes([]);
+    setInterviewStatus([]);
+    setHasInterviews('all');
+    setSelectedCompanies([]);
+    setCompanySearchQuery('');
+    setSortBy('appliedDate');
+    setSortOrder('desc');
+  };
 
   const applicationsByStatus = {
     applied: filteredApplications.filter(app => app.status === 'applied'),
@@ -1362,13 +1580,14 @@ END:VCALENDAR`;
           </motion.div>
         </motion.div>
 
-        {/* Barre de recherche responsive - only show for kanban view */}
+        {/* Barre de recherche et filtres - only show for kanban view */}
         {view === 'kanban' && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mb-4 sm:mb-6">
+            className="mb-4 sm:mb-6 space-y-4">
+            {/* Search bar */}
             <div className="relative w-full">
               <input
                 type="text"
@@ -1379,6 +1598,166 @@ END:VCALENDAR`;
               />
               <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
+
+            {/* Filters bar */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+              <div className="flex flex-wrap gap-2 flex-1">
+                {/* Date Filter */}
+                <button
+                  onClick={() => setOpenFilterModal(openFilterModal === 'date' ? null : 'date')}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    dateFilter !== 'all' || customDateRange
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Date</span>
+                  {dateFilter !== 'all' || customDateRange ? (
+                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-purple-600 dark:bg-purple-500 px-1 text-xs font-semibold text-white">
+                      1
+                    </span>
+                  ) : null}
+                </button>
+
+                {/* Interview Filter */}
+                <button
+                  onClick={() => setOpenFilterModal(openFilterModal === 'interview' ? null : 'interview')}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Interviews</span>
+                  {hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null ? (
+                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-purple-600 dark:bg-purple-500 px-1 text-xs font-semibold text-white">
+                      {[hasInterviews !== 'all' ? 1 : 0, interviewTypes.length, interviewStatus.length, upcomingInterviewsDays !== null ? 1 : 0].reduce((a, b) => a + b, 0)}
+                    </span>
+                  ) : null}
+                </button>
+
+                {/* Company Filter */}
+                <button
+                  onClick={() => setOpenFilterModal(openFilterModal === 'company' ? null : 'company')}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedCompanies.length > 0
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Building className="w-4 h-4" />
+                  <span>Company</span>
+                  {selectedCompanies.length > 0 ? (
+                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-purple-600 dark:bg-purple-500 px-1 text-xs font-semibold text-white">
+                      {selectedCompanies.length}
+                    </span>
+                  ) : null}
+                </button>
+
+                {/* Sort Filter */}
+                <button
+                  onClick={() => setOpenFilterModal(openFilterModal === 'sort' ? null : 'sort')}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    sortBy !== 'appliedDate' || sortOrder !== 'desc'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  <span>Sort</span>
+                  {sortBy !== 'appliedDate' || sortOrder !== 'desc' ? (
+                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-purple-600 dark:bg-purple-500 px-1 text-xs font-semibold text-white">
+                      1
+                    </span>
+                  ) : null}
+                </button>
+              </div>
+
+              {/* Clear filters button */}
+              {getActiveFilterCount() > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>Clear all</span>
+                </button>
+              )}
+
+              {/* Results count */}
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {filteredApplications.length} {filteredApplications.length === 1 ? 'result' : 'results'}
+                {getActiveFilterCount() > 0 && (
+                  <span className="ml-1 text-purple-600 dark:text-purple-400">
+                    ({getActiveFilterCount()} {getActiveFilterCount() === 1 ? 'filter' : 'filters'})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Active filter badges */}
+            {getActiveFilterCount() > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {dateFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                    Date: {dateFilter === 'custom' && customDateRange 
+                      ? `${new Date(customDateRange.start).toLocaleDateString()} - ${new Date(customDateRange.end).toLocaleDateString()}`
+                      : dateFilter === '7d' ? 'Last 7 days'
+                      : dateFilter === '30d' ? 'Last 30 days'
+                      : dateFilter === '3m' ? 'Last 3 months'
+                      : dateFilter === '6m' ? 'Last 6 months'
+                      : 'All'}
+                    <button
+                      onClick={() => {
+                        setDateFilter('all');
+                        setCustomDateRange(null);
+                      }}
+                      className="ml-1 hover:text-purple-900 dark:hover:text-purple-100"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedCompanies.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                    Companies: {selectedCompanies.length}
+                    <button
+                      onClick={() => setSelectedCompanies([])}
+                      className="ml-1 hover:text-purple-900 dark:hover:text-purple-100"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {hasInterviews !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                    Interviews: {hasInterviews === 'with' ? 'With' : hasInterviews === 'without' ? 'Without' : 'Upcoming'}
+                    <button
+                      onClick={() => setHasInterviews('all')}
+                      className="ml-1 hover:text-purple-900 dark:hover:text-purple-100"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {(sortBy !== 'appliedDate' || sortOrder !== 'desc') && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                    Sort: {sortBy === 'appliedDate' ? 'Applied Date' : sortBy === 'updatedAt' ? 'Updated' : sortBy === 'companyName' ? 'Company' : sortBy === 'position' ? 'Position' : 'Interviews'} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
+                    <button
+                      onClick={() => {
+                        setSortBy('appliedDate');
+                        setSortOrder('desc');
+                      }}
+                      className="ml-1 hover:text-purple-900 dark:hover:text-purple-100"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -1416,18 +1795,16 @@ END:VCALENDAR`;
                               {status === 'pending_decision' ? 'Pending Decision' : status}
                             </h3>
                             <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                              {applications.filter(a => a.status === status).length}
+                              {filteredApplications.filter(a => a.status === status).length}
                             </span>
                           </div>
 
                           <div className="space-y-2 sm:space-y-3">
                             <ApplicationList
-                              applications={applications.filter(a => a.status === status)}
+                              applications={filteredApplications.filter(a => a.status === status)}
                               onCardClick={(app) => {
-                                if (!snapshot.isDragging) {
-                                  setSelectedApplication(app);
-                                  setTimelineModal(true);
-                                }
+                                setSelectedApplication(app);
+                                setTimelineModal(true);
                               }}
                               onCardEdit={(app) => {
                                 setFormData(app);
@@ -1685,6 +2062,481 @@ END:VCALENDAR`;
                   </div>
                 </>
               )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Filter Modals */}
+        <AnimatePresence>
+          {/* Date Filter Modal */}
+          {openFilterModal === 'date' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpenFilterModal(null)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filter by Date</h3>
+                  <button
+                    onClick={() => setOpenFilterModal(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Applied Date</label>
+                    <div className="space-y-2">
+                      {['all', '7d', '30d', '3m', '6m', 'custom'].map((option) => (
+                        <label key={option} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="dateFilter"
+                            value={option}
+                            checked={dateFilter === option}
+                            onChange={(e) => {
+                              setDateFilter(e.target.value as any);
+                              if (option !== 'custom') {
+                                setCustomDateRange(null);
+                              }
+                            }}
+                            className="w-4 h-4 text-purple-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {option === 'all' ? 'All dates' :
+                             option === '7d' ? 'Last 7 days' :
+                             option === '30d' ? 'Last 30 days' :
+                             option === '3m' ? 'Last 3 months' :
+                             option === '6m' ? 'Last 6 months' :
+                             'Custom range'}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    {dateFilter === 'custom' && (
+                      <div className="mt-4 space-y-2">
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Start Date</label>
+                          <input
+                            type="date"
+                            value={customDateRange?.start || ''}
+                            onChange={(e) => setCustomDateRange(prev => ({ ...prev || { start: '', end: '' }, start: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">End Date</label>
+                          <input
+                            type="date"
+                            value={customDateRange?.end || ''}
+                            onChange={(e) => setCustomDateRange(prev => ({ ...prev || { start: '', end: '' }, end: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Last Updated</label>
+                    <div className="space-y-2">
+                      {['all', '24h', '7d', '30d'].map((option) => (
+                        <label key={option} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="updateDateFilter"
+                            value={option}
+                            checked={updateDateFilter === option}
+                            onChange={(e) => setUpdateDateFilter(e.target.value as any)}
+                            className="w-4 h-4 text-purple-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {option === 'all' ? 'All time' :
+                             option === '24h' ? 'Last 24 hours' :
+                             option === '7d' ? 'Last 7 days' :
+                             'Last 30 days'}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setDateFilter('all');
+                      setCustomDateRange(null);
+                      setUpdateDateFilter('all');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => setOpenFilterModal(null)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Interview Filter Modal */}
+          {openFilterModal === 'interview' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpenFilterModal(null)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filter by Interviews</h3>
+                  <button
+                    onClick={() => setOpenFilterModal(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Interview Presence</label>
+                    <div className="space-y-2">
+                      {['all', 'with', 'without', 'upcoming'].map((option) => (
+                        <label key={option} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="hasInterviews"
+                            value={option}
+                            checked={hasInterviews === option}
+                            onChange={(e) => setHasInterviews(e.target.value as any)}
+                            className="w-4 h-4 text-purple-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {option === 'all' ? 'All applications' :
+                             option === 'with' ? 'With interviews' :
+                             option === 'without' ? 'Without interviews' :
+                             'Upcoming interviews only'}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Interview Types</label>
+                    <div className="space-y-2">
+                      {['technical', 'hr', 'manager', 'final', 'other'].map((type) => (
+                        <label key={type} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={interviewTypes.includes(type)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setInterviewTypes([...interviewTypes, type]);
+                              } else {
+                                setInterviewTypes(interviewTypes.filter(t => t !== type));
+                              }
+                            }}
+                            className="w-4 h-4 text-purple-600 rounded"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{type}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Interview Status</label>
+                    <div className="space-y-2">
+                      {['scheduled', 'completed', 'cancelled'].map((status) => (
+                        <label key={status} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={interviewStatus.includes(status)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setInterviewStatus([...interviewStatus, status]);
+                              } else {
+                                setInterviewStatus(interviewStatus.filter(s => s !== status));
+                              }
+                            }}
+                            className="w-4 h-4 text-purple-600 rounded"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{status}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Upcoming Interviews</label>
+                    <div className="space-y-2">
+                      {[null, 7, 14, 30].map((days) => (
+                        <label key={days || 'all'} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="upcomingInterviewsDays"
+                            checked={upcomingInterviewsDays === days}
+                            onChange={() => setUpcomingInterviewsDays(days)}
+                            className="w-4 h-4 text-purple-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {days === null ? 'All upcoming' : `Within next ${days} days`}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setHasInterviews('all');
+                      setInterviewTypes([]);
+                      setInterviewStatus([]);
+                      setUpcomingInterviewsDays(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => setOpenFilterModal(null)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Company Filter Modal */}
+          {openFilterModal === 'company' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpenFilterModal(null)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl max-h-[90vh] flex flex-col"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filter by Company</h3>
+                  <button
+                    onClick={() => setOpenFilterModal(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Search companies..."
+                    value={companySearchQuery}
+                    onChange={(e) => setCompanySearchQuery(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                  />
+                </div>
+
+                <div className="flex-1 overflow-y-auto mb-4">
+                  <div className="space-y-2">
+                    {uniqueCompanies
+                      .filter(company => company.toLowerCase().includes(companySearchQuery.toLowerCase()))
+                      .map((company) => {
+                        const count = applications.filter(app => app.companyName === company).length;
+                        return (
+                          <label key={company} className="flex items-center justify-between gap-3 cursor-pointer p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedCompanies.includes(company)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedCompanies([...selectedCompanies, company]);
+                                  } else {
+                                    setSelectedCompanies(selectedCompanies.filter(c => c !== company));
+                                  }
+                                }}
+                                className="w-4 h-4 text-purple-600 rounded"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{company}</span>
+                            </div>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{count} {count === 1 ? 'application' : 'applications'}</span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {selectedCompanies.length > 0 && (
+                  <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <div className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-2">Selected:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCompanies.map((company) => (
+                        <span
+                          key={company}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                        >
+                          {company}
+                          <button
+                            onClick={() => setSelectedCompanies(selectedCompanies.filter(c => c !== company))}
+                            className="hover:text-purple-900 dark:hover:text-purple-100"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setSelectedCompanies([]);
+                      setCompanySearchQuery('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => setOpenFilterModal(null)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Sort Filter Modal */}
+          {openFilterModal === 'sort' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpenFilterModal(null)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sort Applications</h3>
+                  <button
+                    onClick={() => setOpenFilterModal(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Sort By</label>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'appliedDate', label: 'Applied Date' },
+                        { value: 'updatedAt', label: 'Last Updated' },
+                        { value: 'companyName', label: 'Company Name' },
+                        { value: 'position', label: 'Position' },
+                        { value: 'interviewCount', label: 'Number of Interviews' }
+                      ].map((option) => (
+                        <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="sortBy"
+                            value={option.value}
+                            checked={sortBy === option.value}
+                            onChange={(e) => setSortBy(e.target.value as any)}
+                            className="w-4 h-4 text-purple-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Order</label>
+                    <div className="space-y-2">
+                      {['asc', 'desc'].map((order) => (
+                        <label key={order} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="sortOrder"
+                            value={order}
+                            checked={sortOrder === order}
+                            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                            className="w-4 h-4 text-purple-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {order === 'asc' ? 'Ascending (A-Z, Oldest first)' : 'Descending (Z-A, Newest first)'}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setSortBy('appliedDate');
+                      setSortOrder('desc');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => setOpenFilterModal(null)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

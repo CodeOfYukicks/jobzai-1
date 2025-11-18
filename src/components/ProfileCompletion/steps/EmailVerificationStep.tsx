@@ -58,8 +58,8 @@ export default function EmailVerificationStep({ onBack, userEmail }: EmailVerifi
   return (
     <div className="max-w-xl mx-auto">
       <div className="text-center mb-8">
-        <div className="mx-auto w-12 h-12 bg-[#8D75E6]/10 rounded-full flex items-center justify-center mb-4">
-          <Mail className="w-6 h-6 text-[#8D75E6]" />
+        <div className="mx-auto w-12 h-12 bg-[hsl(var(--primary))]/10 rounded-full flex items-center justify-center mb-4">
+          <Mail className="w-6 h-6 text-[hsl(var(--primary))]" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900">One Last Step!</h2>
         <p className="mt-2 text-gray-600">
@@ -75,7 +75,7 @@ export default function EmailVerificationStep({ onBack, userEmail }: EmailVerifi
         <button
           onClick={handleResendEmail}
           disabled={timeLeft > 0}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-[#8D75E6] text-white rounded-lg hover:bg-[#7B64D3] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-[hsl(var(--primary))] text-white rounded-lg hover:bg-[#7B64D3] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${timeLeft > 0 ? 'animate-spin' : ''}`} />
           <span>

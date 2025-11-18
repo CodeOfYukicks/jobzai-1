@@ -110,16 +110,16 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
           shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <FileText className="h-5 w-5 text-[#8D75E6]" />
+              <FileText className="h-5 w-5 text-[hsl(var(--primary))]" />
               <div>
                 <p className="font-medium text-gray-900 dark:text-white">{uploadedCvName}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">CV uploaded successfully</p>
               </div>
             </div>
             
-            <label className="flex items-center px-4 py-2 text-sm font-medium text-[#8D75E6] 
-              bg-[#8D75E6]/10 dark:bg-[#8D75E6]/20 rounded-lg cursor-pointer 
-              hover:bg-[#8D75E6]/20 dark:hover:bg-[#8D75E6]/30 
+            <label className="flex items-center px-4 py-2 text-sm font-medium text-[hsl(var(--primary))] 
+              bg-[hsl(var(--primary))]/10 dark:bg-[hsl(var(--primary))]/20 rounded-lg cursor-pointer 
+              hover:bg-[hsl(var(--primary))]/20 dark:hover:bg-[hsl(var(--primary))]/30 
               transition-all duration-200
               shadow-sm dark:shadow-[0_2px_4px_rgba(141,117,230,0.2)]
               hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(141,117,230,0.3)]">
@@ -146,7 +146,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
               href={uploadedCvUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#8D75E6] hover:underline flex items-center"
+              className="text-[hsl(var(--primary))] hover:underline flex items-center"
             >
               <FileText className="w-4 h-4 mr-1" />
               View CV
@@ -162,8 +162,8 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
             shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
             ${
               isDragging
-                ? 'border-[#8D75E6] bg-[#8D75E6]/10 dark:bg-[#8D75E6]/20 shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]'
-                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-[#8D75E6]/50 dark:hover:border-[#8D75E6]/50 hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
+                ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))]/10 dark:bg-[hsl(var(--primary))]/20 shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]'
+                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-[hsl(var(--primary))]/50 dark:hover:border-[hsl(var(--primary))]/50 hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -177,7 +177,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
                 </>
               ) : (
                 <>
-                  <Upload className={`w-8 h-8 mb-3 ${isDragging ? 'text-[#8D75E6]' : 'text-gray-400 dark:text-gray-500'}`} />
+                  <Upload className={`w-8 h-8 mb-3 ${isDragging ? 'text-[hsl(var(--primary))]' : 'text-gray-400 dark:text-gray-500'}`} />
                   <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
@@ -233,7 +233,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
           <button
             onClick={() => uploadedCvUrl && uploadedCvName && onNext({ cvUrl: uploadedCvUrl, cvName: uploadedCvName })}
             disabled={!uploadedCvUrl || !uploadedCvName}
-            className="px-8 py-2 bg-[#8D75E6] text-white rounded-lg font-medium
+            className="px-8 py-2 bg-[hsl(var(--primary))] text-white rounded-lg font-medium
               disabled:opacity-50 disabled:cursor-not-allowed
               hover:bg-[#7B64D3] transition-all duration-200
               shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]

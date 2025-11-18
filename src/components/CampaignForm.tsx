@@ -382,7 +382,7 @@ function FormField({ label, error, type = 'text', icon: Icon, options, className
           <select
             className={`w-full rounded-xl bg-gray-50/50 dark:bg-gray-800/50 
               border border-gray-200/50 dark:border-gray-700/30
-              focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]/50
+              focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]/50
               placeholder:text-gray-400
               transition-all duration-200
               ${Icon ? "pl-10 pr-4 py-3" : "px-4 py-3"}`}
@@ -398,7 +398,7 @@ function FormField({ label, error, type = 'text', icon: Icon, options, className
           <textarea
             className={`w-full rounded-xl bg-gray-50/50 dark:bg-gray-800/50 
               border border-gray-200/50 dark:border-gray-700/30
-              focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]/50
+              focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]/50
               placeholder:text-gray-400
               transition-all duration-200
               min-h-[120px] resize-y
@@ -410,7 +410,7 @@ function FormField({ label, error, type = 'text', icon: Icon, options, className
             type="text"
             className={`w-full rounded-xl bg-gray-50/50 dark:bg-gray-800/50 
               border border-gray-200/50 dark:border-gray-700/30
-              focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]/50
+              focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]/50
               placeholder:text-gray-400
               transition-all duration-200
               ${Icon ? "pl-10 pr-4 py-3" : "px-4 py-3"}`}

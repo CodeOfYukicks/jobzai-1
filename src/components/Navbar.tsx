@@ -238,7 +238,7 @@ export default function Navbar() {
               </Link>
               <Link
                 to="/signup"
-                className="px-6 py-2.5 text-sm font-semibold text-[#8D75E6] bg-white rounded-lg transition-all duration-200 hover:bg-white/90 hover:shadow-lg active:scale-[0.98]"
+                className="px-6 py-2.5 text-sm font-semibold text-[hsl(var(--primary))] bg-white rounded-lg transition-all duration-200 hover:bg-white/90 hover:shadow-lg active:scale-[0.98]"
               >
                 Sign up
               </Link>
@@ -279,7 +279,7 @@ export default function Navbar() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-20 left-0 right-0 bg-[#8D75E6]/95 dark:bg-[#2A2831]/95 backdrop-blur-md md:hidden shadow-lg"
+              className="absolute top-20 left-0 right-0 bg-[hsl(var(--primary))]/95 dark:bg-[#2A2831]/95 backdrop-blur-md md:hidden shadow-lg"
             >
               <div className="px-6 py-8 space-y-6">
                 {/* Navigation Section */}
@@ -347,9 +347,9 @@ export default function Navbar() {
                           }}
                         >
                           {isDark ? (
-                            <Moon className="w-3 h-3 text-[#8D75E6]" />
+                            <Moon className="w-3 h-3 text-[hsl(var(--primary))]" />
                           ) : (
-                            <Sun className="w-3 h-3 text-[#8D75E6]" />
+                            <Sun className="w-3 h-3 text-[hsl(var(--primary))]" />
                           )}
                         </motion.div>
                       </motion.button>
@@ -373,7 +373,7 @@ export default function Navbar() {
                     </Link>
                     <Link
                       to="/signup"
-                      className="flex items-center justify-center space-x-3 py-3 px-5 text-[#8D75E6] bg-white rounded-lg hover:bg-white/90 transition-all duration-200 active:scale-[0.98]"
+                      className="flex items-center justify-center space-x-3 py-3 px-5 text-[hsl(var(--primary))] bg-white rounded-lg hover:bg-white/90 transition-all duration-200 active:scale-[0.98]"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <UserPlus className="h-4 w-4" />

@@ -46,6 +46,7 @@ export default function JobBoardPage() {
 	const [userProfile, setUserProfile] = useState<any>(null);
 	const [explainOpen, setExplainOpen] = useState<boolean>(false);
 	const [selectedJob, setSelectedJob] = useState<ExtendedJob | null>(null);
+	const [error, setError] = useState<string | null>(null);
 	
 	// Filter states
 	const [activeFilters, setActiveFilters] = useState<string[]>([]);
@@ -75,6 +76,7 @@ export default function JobBoardPage() {
 	const loadInitial = useCallback(async () => {
 		setLoading(true);
 		setInitialLoading(true);
+		setError(null);
 		try {
 			const q = query(collection(db, 'jobs'), orderBy('postedAt', 'desc'), limit(PAGE_SIZE));
 			const snap = await getDocs(q);
@@ -84,6 +86,25 @@ export default function JobBoardPage() {
 			setLastDoc(docs[docs.length - 1] || null);
 			if (!selectedJob && items.length > 0) {
 				setSelectedJob(items[0]);
+			}
+			
+			// Check if Firestore is empty (only if no active search/filters)
+			if (items.length === 0 && titleQuery.trim() === '' && locationQuery.trim() === '' && activeFilters.length === 0) {
+				setError('empty');
+				console.warn('⚠️ No jobs found in Firestore. The database may be empty.');
+				console.log('💡 To populate with test data:');
+				console.log('   1. Start emulators: firebase emulators:start');
+				console.log('   2. Run seed script: cd functions && npm run seed:emulator');
+				console.log('   Or fetch from ATS: cd functions && npm run fetch:local');
+			}
+		} catch (err: any) {
+			console.error('❌ Error loading jobs:', err);
+			setError('connection');
+			if (err.code === 'unavailable' || err.code === 'failed-precondition') {
+				console.error('   → Firestore connection error. Check if:');
+				console.error('     - Firebase is properly configured');
+				console.error('     - Emulators are running (if using emulator)');
+				console.error('     - Network connection is stable');
 			}
 		} finally {
 			setLoading(false);
@@ -865,10 +886,60 @@ export default function JobBoardPage() {
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 										</svg>
 									</div>
-									<h3 className="text-[17px] font-semibold text-[#111111] dark:text-gray-100">No roles found</h3>
+									<h3 className="text-[17px] font-semibold text-[#111111] dark:text-gray-100">
+										{error === 'empty' ? 'No jobs available' : error === 'connection' ? 'Connection error' : 'No roles found'}
+									</h3>
 									<p className="mt-2 text-sm text-[#6B6B6F] dark:text-gray-400 max-w-xs mx-auto">
-										Try adjusting your search criteria or browse all available opportunities.
+										{error === 'empty' 
+											? 'The job database is currently empty. Jobs are fetched daily from ATS sources. For local development, you can seed test data.'
+											: error === 'connection'
+											? 'Unable to connect to Firestore. Please check your connection and try again.'
+											: 'Try adjusting your search criteria or browse all available opportunities.'
+										}
 									</p>
+									{(error === 'empty' || error === 'connection') && (
+										<div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+											<button
+												type="button"
+												onClick={() => {
+													setError(null);
+													loadInitial();
+												}}
+												className="
+													inline-flex items-center gap-2 px-4 py-2 
+													bg-gradient-to-r from-indigo-600 to-violet-600 text-white 
+													rounded-[10px] text-sm font-medium
+													shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
+													hover:from-indigo-700 hover:to-violet-700
+													transition-all duration-150
+												"
+											>
+												<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+												</svg>
+												Refresh
+											</button>
+											{error === 'empty' && (
+												<a
+													href="https://console.firebase.google.com/project/jobzai/firestore"
+													target="_blank"
+													rel="noopener noreferrer"
+													className="
+														inline-flex items-center gap-2 px-4 py-2 
+														border border-[#E5E7EB] dark:border-gray-700 bg-white dark:bg-gray-800/60 
+														text-[#111111] dark:text-gray-200 rounded-[10px] text-sm font-medium
+														hover:bg-[#F3F4F6] dark:hover:bg-gray-800
+														transition-all duration-150
+													"
+												>
+													<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+													</svg>
+													Check Firebase Console
+												</a>
+											)}
+										</div>
+									)}
 								</div>
 							) : (
 								// Job Cards

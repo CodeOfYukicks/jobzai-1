@@ -113,7 +113,7 @@ export default function RecommendationsPage() {
                 flex items-center space-x-2 px-4 py-2 rounded-lg
                 ${isAnalyzing || !userData?.cvUrl 
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-[#8D75E6] text-white hover:bg-[#7D63D6] transition-colors'}
+                  : 'bg-[hsl(var(--primary))] text-white hover:bg-[#7D63D6] transition-colors'}
               `}
             >
               {isAnalyzing ? (

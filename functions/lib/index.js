@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.testNewFunction = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
+exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.testNewFunction = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
 const admin = require("firebase-admin");
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -306,7 +306,7 @@ exports.updateCampaignEmails = (0, https_1.onRequest)({
  * Handle premium ATS analysis (shared logic)
  */
 async function handlePremiumAnalysis(req, res, resumeImages, jobContext, userId, analysisId) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e;
     try {
         // Validate request
         if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
@@ -371,14 +371,40 @@ async function handlePremiumAnalysis(req, res, resumeImages, jobContext, userId,
             throw new Error('Empty response from GPT-4o');
         }
         let parsedAnalysis = JSON.parse(content);
+        // Debug: Log the structure of parsed analysis
+        console.log('📊 Parsed analysis structure:', {
+            hasAnalysis: !!parsedAnalysis.analysis,
+            hasCVRewrite: !!parsedAnalysis.cv_rewrite,
+            cvRewriteKeys: parsedAnalysis.cv_rewrite ? Object.keys(parsedAnalysis.cv_rewrite) : [],
+            analysisKeys: Object.keys(parsedAnalysis)
+        });
         // Save to Firestore if userId and analysisId provided
         if (userId && analysisId) {
+            // Extract CV text and CV rewrite from the analysis (cv_rewrite is inside analysis object)
+            const cvRewrite = ((_c = parsedAnalysis.analysis) === null || _c === void 0 ? void 0 : _c.cv_rewrite) || null;
+            const cvText = (cvRewrite === null || cvRewrite === void 0 ? void 0 : cvRewrite.extracted_text) ||
+                (cvRewrite === null || cvRewrite === void 0 ? void 0 : cvRewrite.initial_cv) ||
+                ((_d = cvRewrite === null || cvRewrite === void 0 ? void 0 : cvRewrite.analysis) === null || _d === void 0 ? void 0 : _d.extracted_text) ||
+                '';
+            console.log('💾 Preparing to save to Firestore:', {
+                userId,
+                analysisId,
+                hasCVRewrite: !!cvRewrite,
+                cvTextLength: cvText.length,
+                hasJobDescription: !!jobContext.jobDescription,
+                jobDescriptionLength: ((_e = jobContext.jobDescription) === null || _e === void 0 ? void 0 : _e.length) || 0,
+                cvRewriteKeys: cvRewrite ? Object.keys(cvRewrite) : []
+            });
             await admin.firestore()
                 .collection('users')
                 .doc(userId)
                 .collection('analyses')
                 .doc(analysisId)
-                .set(Object.assign(Object.assign({}, parsedAnalysis.analysis), { id: analysisId, userId, jobTitle: jobContext.jobTitle, company: jobContext.company, date: admin.firestore.FieldValue.serverTimestamp(), status: 'completed', type: 'premium', matchScore: parsedAnalysis.analysis.match_scores.overall_score }), { merge: true });
+                .set(Object.assign(Object.assign({}, parsedAnalysis.analysis), { id: analysisId, userId, jobTitle: jobContext.jobTitle, company: jobContext.company, jobDescription: jobContext.jobDescription, cvText: cvText, extractedText: cvText, date: admin.firestore.FieldValue.serverTimestamp(), status: 'completed', type: 'premium', matchScore: parsedAnalysis.analysis.match_scores.overall_score }), { merge: true });
+            console.log('✅ Successfully saved to Firestore', {
+                savedCVTextLength: cvText.length,
+                savedCVRewrite: !!cvRewrite
+            });
         }
         res.status(200).json({
             status: 'success',
@@ -1915,14 +1941,31 @@ exports.searchJobs = (0, https_1.onRequest)({
         const experienceLevel = req.query.experienceLevel || '';
         const jobType = req.query.jobType || '';
         const limit = parseInt(req.query.limit || '200', 10);
-        // Start with base query
+        // Build optimized Firestore query
+        // Start with base query - always order by postedAt
         let jobsQuery = admin.firestore()
-            .collection('jobs')
-            .orderBy('postedAt', 'desc')
-            .limit(Math.min(limit, 1000)); // Cap at 1000 for better search coverage (increased from 500)
-        // Execute the base query
+            .collection('jobs');
+        // Optimize: Use Firestore where() for filters that can be indexed
+        // Note: We can only use one range filter (postedAt) with orderBy
+        // So we prioritize last24h filter if present, otherwise use default limit
+        if (last24h) {
+            // Optimize: Filter by date at database level
+            const oneDayAgo = admin.firestore.Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+            jobsQuery = jobsQuery
+                .where('postedAt', '>=', oneDayAgo)
+                .orderBy('postedAt', 'desc')
+                .limit(Math.min(limit, 1000));
+            console.log(`   Using optimized query: last24h filter at database level`);
+        }
+        else {
+            // Default: Get most recent jobs
+            jobsQuery = jobsQuery
+                .orderBy('postedAt', 'desc')
+                .limit(Math.min(limit, 1000));
+        }
+        // Execute the optimized query
         const snapshot = await jobsQuery.get();
-        console.log(`   Found ${snapshot.size} jobs in database`);
+        console.log(`   Found ${snapshot.size} jobs in database (after Firestore filters)`);
         // Filter results in memory for text search
         let jobs = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
         // Apply keyword filter (search in title, description, and company)
@@ -2003,16 +2046,8 @@ exports.searchJobs = (0, https_1.onRequest)({
                 return jobTypeStr.includes(typeLower);
             });
         }
-        // Apply last 24 hours filter
-        if (last24h) {
-            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            jobs = jobs.filter(job => {
-                if (!job.postedAt)
-                    return false;
-                const postedDate = job.postedAt.toDate ? job.postedAt.toDate() : new Date(job.postedAt);
-                return postedDate >= oneDayAgo;
-            });
-        }
+        // Note: last24h filter is already applied at Firestore query level for optimization
+        // No need to filter again in memory
         console.log(`   Returning ${jobs.length} filtered jobs`);
         // Format response
         const formattedJobs = jobs.map(job => ({
@@ -2043,6 +2078,112 @@ exports.searchJobs = (0, https_1.onRequest)({
             success: false,
             message: error.message || 'Internal server error',
             error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+/**
+ * Cloud Function to download CV from Firebase Storage
+ * This avoids CORS issues by downloading the file server-side
+ * Using onRequest with explicit CORS handling for better compatibility
+ */
+exports.downloadCV = (0, https_1.onRequest)({
+    region: 'us-central1',
+    cors: true,
+    maxInstances: 10,
+}, async (req, res) => {
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.status(204).send('');
+        return;
+    }
+    // Set CORS headers for actual request
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    try {
+        // Verify authentication via Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({
+                success: false,
+                error: 'unauthenticated',
+                message: 'User must be authenticated'
+            });
+            return;
+        }
+        const token = authHeader.split('Bearer ')[1];
+        let decodedToken;
+        try {
+            decodedToken = await admin.auth().verifyIdToken(token);
+        }
+        catch (authError) {
+            res.status(401).json({
+                success: false,
+                error: 'unauthenticated',
+                message: 'Invalid authentication token'
+            });
+            return;
+        }
+        const { storagePath } = req.body;
+        if (!storagePath) {
+            res.status(400).json({
+                success: false,
+                error: 'invalid-argument',
+                message: 'Storage path is required'
+            });
+            return;
+        }
+        console.log('📥 Downloading CV from storage path:', storagePath);
+        console.log('   User ID:', decodedToken.uid);
+        // Get the file from Firebase Storage using Admin SDK
+        const bucket = admin.storage().bucket();
+        const file = bucket.file(storagePath);
+        // Check if file exists and user has permission
+        const [exists] = await file.exists();
+        if (!exists) {
+            res.status(404).json({
+                success: false,
+                error: 'not-found',
+                message: 'CV file not found'
+            });
+            return;
+        }
+        // Verify the file belongs to the user (security check)
+        const pathParts = storagePath.split('/');
+        if (pathParts[0] === 'cvs' && pathParts[1] !== decodedToken.uid) {
+            res.status(403).json({
+                success: false,
+                error: 'permission-denied',
+                message: 'Access denied to this CV file'
+            });
+            return;
+        }
+        // Download the file
+        const [fileBuffer] = await file.download();
+        // Convert to base64 for transmission
+        const base64 = fileBuffer.toString('base64');
+        const [metadata] = await file.getMetadata();
+        const contentType = metadata.contentType || 'application/pdf';
+        console.log('✅ CV downloaded successfully:', {
+            size: fileBuffer.length,
+            contentType
+        });
+        res.status(200).json({
+            success: true,
+            data: base64,
+            contentType,
+            size: fileBuffer.length
+        });
+    }
+    catch (error) {
+        console.error('❌ Error downloading CV:', error);
+        res.status(500).json({
+            success: false,
+            error: 'internal',
+            message: `Failed to download CV: ${error.message}`
         });
     }
 });

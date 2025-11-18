@@ -261,7 +261,7 @@ export default function LoginPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="hidden lg:flex w-1/2 bg-gradient-to-bl from-[#8D75E6] via-[#9B7FE8] to-[#A88FEA] flex-col items-center justify-center p-16 relative overflow-hidden"
+        className="hidden lg:flex w-1/2 bg-gradient-to-bl from-[hsl(var(--primary))] via-[#9B7FE8] to-[#A88FEA] flex-col items-center justify-center p-16 relative overflow-hidden"
       >
         {/* Effets de lumière animés (différents de signup) */}
         <motion.div 

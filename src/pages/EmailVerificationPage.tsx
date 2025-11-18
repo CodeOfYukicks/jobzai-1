@@ -199,7 +199,7 @@ export default function EmailVerificationPage() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring' }}
-                className="mx-auto w-16 h-16 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20"
+                className="mx-auto w-16 h-16 bg-gradient-to-br from-[hsl(var(--primary))] to-[#7B65D4] rounded-full flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20"
               >
                 <Mail className="h-8 w-8 text-white" />
               </motion.div>
@@ -227,7 +227,7 @@ export default function EmailVerificationPage() {
                 transition={{ delay: 0.3 }}
                 className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
+                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[hsl(var(--primary))] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
                   <span className="text-white font-semibold text-xs">1</span>
                 </div>
                 <div className="flex-1">
@@ -246,7 +246,7 @@ export default function EmailVerificationPage() {
                 transition={{ delay: 0.4 }}
                 className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
+                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[hsl(var(--primary))] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
                   <span className="text-white font-semibold text-xs">2</span>
                 </div>
                 <div className="flex-1">
@@ -265,7 +265,7 @@ export default function EmailVerificationPage() {
                 transition={{ delay: 0.5 }}
                 className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[#8D75E6] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
+                <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-[hsl(var(--primary))] to-[#7B65D4] rounded-full flex items-center justify-center mt-0.5 shadow-sm">
                   <span className="text-white font-semibold text-xs">3</span>
                 </div>
                 <div className="flex-1">
@@ -318,22 +318,22 @@ export default function EmailVerificationPage() {
             {/* Help Text - Centered with subtle color */}
             <div className="bg-gradient-to-br from-blue-50/50 to-purple-50/30 rounded-lg p-3 border border-blue-100 mb-4 max-w-md mx-auto">
               <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-[#8D75E6] flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 text-[hsl(var(--primary))] flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-xs font-medium text-gray-900 mb-2">
                     Didn't receive the email?
                   </p>
                   <ul className="text-xs text-gray-600 space-y-1">
                     <li className="flex items-start gap-1.5">
-                      <span className="text-[#8D75E6] mt-0.5">•</span>
+                      <span className="text-[hsl(var(--primary))] mt-0.5">•</span>
                       <span>Check your <strong className="text-gray-900">spam or junk folder</strong> first</span>
                     </li>
                     <li className="flex items-start gap-1.5">
-                      <span className="text-[#8D75E6] mt-0.5">•</span>
+                      <span className="text-[hsl(var(--primary))] mt-0.5">•</span>
                       <span>Make sure you entered the correct email address</span>
                     </li>
                     <li className="flex items-start gap-1.5">
-                      <span className="text-[#8D75E6] mt-0.5">•</span>
+                      <span className="text-[hsl(var(--primary))] mt-0.5">•</span>
                       <span>Wait a few minutes and try resending</span>
                     </li>
                   </ul>
@@ -343,7 +343,7 @@ export default function EmailVerificationPage() {
 
             {/* Auto-check indicator - Centered */}
             <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-4">
-              <Loader2 className="h-3 w-3 animate-spin text-[#8D75E6]" />
+              <Loader2 className="h-3 w-3 animate-spin text-[hsl(var(--primary))]" />
               <span>Automatically checking for verification...</span>
             </div>
 
@@ -351,7 +351,7 @@ export default function EmailVerificationPage() {
             <div className="text-center">
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 text-xs text-gray-600 hover:text-[#8D75E6] transition-colors"
+                className="inline-flex items-center gap-2 text-xs text-gray-600 hover:text-[hsl(var(--primary))] transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Back to login</span>
@@ -366,7 +366,7 @@ export default function EmailVerificationPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="hidden lg:flex w-1/2 bg-gradient-to-bl from-[#8D75E6] via-[#9B7FE8] to-[#A88FEA] flex-col items-center justify-center p-16 relative overflow-hidden"
+        className="hidden lg:flex w-1/2 bg-gradient-to-bl from-[hsl(var(--primary))] via-[#9B7FE8] to-[#A88FEA] flex-col items-center justify-center p-16 relative overflow-hidden"
       >
         {/* Effets de lumière animés */}
         <motion.div 

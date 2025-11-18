@@ -12,8 +12,8 @@ export default function NetworkCard() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-[#8D75E6]/10 rounded-lg">
-                <Users className="h-5 w-5 text-[#8D75E6]" />
+              <div className="p-2 bg-[hsl(var(--primary))]/10 rounded-lg">
+                <Users className="h-5 w-5 text-[hsl(var(--primary))]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Network Insights</h3>
             </div>
@@ -42,15 +42,15 @@ export default function NetworkCard() {
         {/* Features */}
         <ul className="space-y-3 mb-6">
           <li className="flex items-center text-sm text-gray-600">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#8D75E6] mr-2" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] mr-2" />
             Connection recommendations
           </li>
           <li className="flex items-center text-sm text-gray-600">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#8D75E6] mr-2" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] mr-2" />
             Engagement strategies
           </li>
           <li className="flex items-center text-sm text-gray-600">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#8D75E6] mr-2" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] mr-2" />
             Event suggestions
           </li>
         </ul>
@@ -58,7 +58,7 @@ export default function NetworkCard() {
         {/* Action Button */}
         <button
           onClick={() => setShowModal(true)}
-          className="w-full py-2 px-4 bg-[#8D75E6]/10 text-[#8D75E6] rounded-lg hover:bg-[#8D75E6]/20 transition-colors"
+          className="w-full py-2 px-4 bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] rounded-lg hover:bg-[hsl(var(--primary))]/20 transition-colors"
         >
           View Details
         </button>

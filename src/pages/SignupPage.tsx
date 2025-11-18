@@ -492,7 +492,7 @@ export default function SignupPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="hidden lg:flex w-1/2 bg-gradient-to-br from-[#8D75E6] via-[#7B65D4] to-[#6F58B8] flex-col items-center justify-center p-16 relative overflow-hidden"
+        className="hidden lg:flex w-1/2 bg-gradient-to-br from-[hsl(var(--primary))] via-[#7B65D4] to-[#6F58B8] flex-col items-center justify-center p-16 relative overflow-hidden"
       >
         {/* Effets de lumière animés */}
         <motion.div 

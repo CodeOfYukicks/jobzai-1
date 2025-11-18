@@ -16,7 +16,7 @@ export const QuickSettingsButton = ({ onClick, hasUpdates }: QuickSettingsButton
     >
       {hasUpdates && (
         <motion.div
-          className="absolute -top-1 -right-1 w-3 h-3 bg-[#8D75E6] rounded-full"
+          className="absolute -top-1 -right-1 w-3 h-3 bg-[hsl(var(--primary))] rounded-full"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring" }}

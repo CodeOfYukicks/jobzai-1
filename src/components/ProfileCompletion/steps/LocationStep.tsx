@@ -341,7 +341,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
             placeholder="Enter city..."
             className="w-full pl-12 pr-10 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl
               bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-              focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]
+              focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]
               transition-all duration-200
               shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
               focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
@@ -404,7 +404,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
             placeholder="Enter country..."
             className="w-full pl-12 pr-10 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl
             bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-            focus:ring-2 focus:ring-[#8D75E6]/20 focus:border-[#8D75E6]
+            focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]
             transition-all duration-200
             shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
             focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
@@ -457,7 +457,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
               className={`
                 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
                 ${city === suggestion.name && country === suggestion.country
-                  ? 'bg-[#8D75E6] text-white shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]' 
+                  ? 'bg-[hsl(var(--primary))] text-white shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]' 
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
                 }
               `}
@@ -479,7 +479,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
         <button
           onClick={() => canContinue && onNext({ city: city.trim(), country: country.trim() })}
           disabled={!canContinue}
-          className="px-8 py-2 bg-[#8D75E6] text-white rounded-lg font-medium
+          className="px-8 py-2 bg-[hsl(var(--primary))] text-white rounded-lg font-medium
             disabled:opacity-50 disabled:cursor-not-allowed
             hover:bg-[#7B64D3] transition-all duration-200
             shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]

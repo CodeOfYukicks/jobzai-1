@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon, ChevronLeft, ChevronRight, FileText, Search, Bell } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Lightbulb, Settings, CreditCard, User, Menu, X, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, MessageSquare, Calendar, Clock, ArrowRightIcon, HelpCircleIcon, ChevronLeft, ChevronRight, Search, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
@@ -10,7 +10,6 @@ import '../styles/navigation.css';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import MobileNavigation from './mobile/MobileNavigation';
 import ThemeSwitch from './ThemeSwitch';
-import SidebarSubmenu from './SidebarSubmenu';
 import SidebarLink from './SidebarLink';
 
 interface AuthLayoutProps {
@@ -49,10 +48,7 @@ const navigationGroups = {
     main: [
       { name: 'Job Board', href: '/jobs', icon: LayoutGrid },
       { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
-    ],
-    resumeTools: [
-      { name: 'Resume Lab', href: '/cv-optimizer', icon: ScrollText },
-      { name: 'ATS Check', href: '/cv-analysis', icon: FileSearch },
+      { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
     ],
   },
   track: [
@@ -206,7 +202,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     // Flatten all navigation items including the nested apply structure
     const allItems = [
       ...navigationGroups.apply.main,
-      ...navigationGroups.apply.resumeTools,
       ...navigationGroups.track,
       ...navigationGroups.prepare,
       ...navigationGroups.improve,
@@ -374,44 +369,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     onMouseLeave={() => setIsHovered(null)}
                   />
                 ))}
-
-                {/* Resume Tools Submenu */}
-                {!isCollapsed ? (
-                  <SidebarSubmenu
-                    title="Resume Tools"
-                    icon={FileText}
-                    isCollapsed={isCollapsed}
-                    activePaths={navigationGroups.apply.resumeTools.map((item) => item.href)}
-                  >
-                    {navigationGroups.apply.resumeTools.map((item) => (
-                      <SidebarLink
-                        key={item.name}
-                        name={item.name}
-                        href={item.href}
-                        icon={item.icon}
-                        isCollapsed={isCollapsed}
-                        isHovered={isHovered}
-                        onMouseEnter={setIsHovered}
-                        onMouseLeave={() => setIsHovered(null)}
-                        isSubmenuItem={true}
-                      />
-                    ))}
-                  </SidebarSubmenu>
-                ) : (
-                  // When collapsed, show individual items
-                  navigationGroups.apply.resumeTools.map((item) => (
-                    <SidebarLink
-                      key={item.name}
-                      name={item.name}
-                      href={item.href}
-                      icon={item.icon}
-                      isCollapsed={isCollapsed}
-                      isHovered={isHovered}
-                      onMouseEnter={setIsHovered}
-                      onMouseLeave={() => setIsHovered(null)}
-                    />
-                  ))
-                )}
               </div>
 
               {/* TRACK Section */}

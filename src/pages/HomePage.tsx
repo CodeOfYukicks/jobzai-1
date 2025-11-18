@@ -134,7 +134,7 @@ export default function HomePage() {
   return (
     <div className="bg-white dark:bg-[#2A2831] transition-colors duration-200">
       {/* Hero Section */}
-      <section className="bg-[#8D75E6] dark:bg-[#2A2831] transition-colors duration-200">
+      <section className="bg-[hsl(var(--primary))] dark:bg-[#2A2831] transition-colors duration-200">
         <Hero />
       </section>
 
@@ -312,7 +312,7 @@ export default function HomePage() {
       </section>
 
       {/* Innovation Section */}
-      <section className="py-24 bg-[#8D75E6] relative transition-colors duration-200">
+      <section className="py-24 bg-[hsl(var(--primary))] relative transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <SparklesText 
             text="Innovation that flows"
@@ -429,7 +429,7 @@ export default function HomePage() {
       </section>
 
       {/* How it works Section */}
-      <section className="py-24 bg-[#8D75E6] dark:bg-[#2A2831] relative transition-colors duration-200">
+      <section className="py-24 bg-[hsl(var(--primary))] dark:bg-[#2A2831] relative transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <SparklesText 
@@ -453,7 +453,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-[#8D75E6] text-white relative">
+      <section className="py-24 bg-[hsl(var(--primary))] text-white relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {features.map((feature, index) => (
@@ -520,7 +520,7 @@ export default function HomePage() {
                     borderRadius={16}
                     borderWidth={2}
                     duration={8}
-                    color={["#8D75E6", "#4D3E78"]}
+                    color={["hsl(var(--primary))", "#4D3E78"]}
                     className="w-full h-full"
                   >
                     <PricingCard {...tier} noBorder />

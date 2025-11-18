@@ -172,12 +172,12 @@ export default function PlanSelectionPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 + 0.2 }}
               className={`relative flex flex-col h-full bg-white rounded-2xl shadow-sm ${
-                plan.mostPopular ? 'ring-2 ring-[#8D75E6]' : ''
+                plan.mostPopular ? 'ring-2 ring-[hsl(var(--primary))]' : ''
               }`}
             >
               {plan.mostPopular && (
                 <div className="absolute -top-5 inset-x-0 flex justify-center">
-                  <div className="inline-flex items-center px-4 py-1 rounded-full text-sm bg-[#8D75E6] text-white shadow-sm">
+                  <div className="inline-flex items-center px-4 py-1 rounded-full text-sm bg-[hsl(var(--primary))] text-white shadow-sm">
                     <Sparkles className="w-4 h-4 mr-1.5" />
                     Most Popular
                   </div>
@@ -200,7 +200,7 @@ export default function PlanSelectionPage() {
                 <ul className="mt-6 space-y-3">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start">
-                      <Check className="h-5 w-5 text-[#8D75E6] shrink-0" />
+                      <Check className="h-5 w-5 text-[hsl(var(--primary))] shrink-0" />
                       <span className="ml-3 text-sm text-gray-500">{feature}</span>
                     </li>
                   ))}
@@ -213,7 +213,7 @@ export default function PlanSelectionPage() {
                   disabled={isLoading && selectedPlan === plan.id}
                   className={`w-full py-3 px-4 rounded-lg font-semibold text-center transition-colors ${
                     plan.mostPopular
-                      ? 'bg-[#8D75E6] text-white hover:bg-[#7B65D4]'
+                      ? 'bg-[hsl(var(--primary))] text-white hover:bg-[#7B65D4]'
                       : 'bg-gray-900 text-white hover:bg-gray-800'
                   }`}
                 >

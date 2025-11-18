@@ -22,7 +22,7 @@ export default function MergeFieldSelector({ onSelectField }: MergeFieldSelector
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => onSelectField(field.value)}
-          className="flex-none inline-flex items-center px-4 py-2 rounded-lg bg-[#8D75E6]/10 text-[#8D75E6] text-sm font-medium hover:bg-[#8D75E6]/20 transition-colors"
+          className="flex-none inline-flex items-center px-4 py-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] text-sm font-medium hover:bg-[hsl(var(--primary))]/20 transition-colors"
         >
           <Tag className="w-4 h-4 mr-2" />
           {field.label}

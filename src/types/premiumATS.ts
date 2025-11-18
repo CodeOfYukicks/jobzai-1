@@ -15,6 +15,10 @@ export interface PremiumATSAnalysis {
   status?: 'processing' | 'completed' | 'failed';
   type: 'premium';
   
+  // Source data (for CV Rewrite feature)
+  cvText?: string;
+  jobDescription?: string;
+  
   // For backward compatibility and queries
   matchScore: number; // Same as match_scores.overall_score
   categoryScores: {
@@ -32,6 +36,7 @@ export interface PremiumATSAnalysis {
   top_strengths: Strength[];
   top_gaps: Gap[];
   cv_fixes: CVFixes;
+  cv_rewrite?: CVRewrite; // Optional, generated on-demand
   action_plan_48h: ActionPlan48H;
   learning_path: LearningPath;
   opportunity_fit: OpportunityFit;
@@ -121,6 +126,84 @@ export interface OpportunityFit {
   why_you_will_succeed: string[];
   risks: string[];
   mitigation: string[];
+}
+
+export interface CVRewrite {
+  analysis: {
+    strengths: string[];
+    gaps: string[];
+    recommended_keywords: string[];
+    positioning_strategy: string;
+    experience_relevance: string[];
+  };
+  initial_cv: string;
+  cv_templates: {
+    harvard: string;
+    tech_minimalist: string;
+    notion: string;
+    apple: string;
+    consulting: string;
+    ats_boost: string;
+  };
+  internal_prompt_used: string;
+  // NOUVEAU: Structure JSON complète et robuste pour parsing fiable
+  structured_data?: {
+    personalInfo: {
+      name?: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      location?: string;
+      linkedin?: string;
+      title?: string;
+      jobTitle?: string;
+    };
+    summary: string;
+    experiences: Array<{
+      id: string;
+      title: string;
+      company: string;
+      client?: string; // Pour projets sous une même entreprise
+      startDate: string;
+      endDate: string;
+      duration?: string; // Ex: "38 months"
+      location?: string;
+      bullets: string[]; // TOUS les bullets, jamais de perte
+    }>;
+    educations: Array<{
+      id: string;
+      degree: string;
+      institution: string;
+      startDate?: string;
+      endDate?: string;
+      year?: string;
+      gpa?: string;
+      honors?: string;
+      details?: string;
+    }>;
+    skills: string[];
+    languages: Array<{
+      name: string;
+      level: string; // Native, Fluent, Intermediate, Basic
+    }>;
+    certifications: Array<{
+      name: string;
+      issuer?: string;
+      date?: string;
+      year?: string;
+      credentialId?: string;
+      details?: string;
+    }>;
+    hobbies?: string[];
+  };
+  validation?: {
+    original_experiences_count: number;
+    rewritten_experiences_count: number;
+    original_educations_count: number;
+    rewritten_educations_count: number;
+    match: boolean;
+  };
 }
 
 // Helper type for navigation
