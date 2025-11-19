@@ -55,46 +55,57 @@ const CoverPhotoGallery = ({ isOpen, onClose, onSelectBlob }: CoverPhotoGalleryP
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-5xl mx-4">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 pb-8 px-4 overflow-y-auto">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative glass-card rounded-2xl shadow-premium w-full max-w-6xl my-auto">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0 sticky top-0 z-10 bg-white/80 dark:bg-gray-800/80 rounded-t-2xl">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Choose a cover</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Pick a template from our free gallery</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Choose a cover</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Pick a template from our free gallery</p>
           </div>
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200"
+            className="px-5 py-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm hover:bg-gray-200/80 dark:hover:bg-gray-600/80 text-gray-900 dark:text-gray-200 font-semibold text-sm transition-all duration-300 hover:scale-105"
           >
             Close
           </button>
         </div>
-        <div className="px-6 py-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        
+        {/* Content */}
+        <div className="px-6 py-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {thumbnails.map((item) => (
               <button
                 key={item.id}
                 disabled={isFetching}
                 onClick={() => handleUseUrl(item.full)}
-                className="group relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                className="group relative rounded-xl overflow-hidden border-2 border-gray-200/50 dark:border-gray-700/50 hover:border-purple-400/50 dark:hover:border-purple-500/50 shadow-sm hover:shadow-glow-sm transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Use this cover"
               >
                 <img
                   src={item.thumb}
                   alt={item.label}
-                  className="w-full h-28 object-cover group-hover:scale-[1.02] transition-transform"
+                  className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="px-4 py-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg text-sm font-semibold text-gray-900 dark:text-white shadow-lg">
+                    Select
+                  </div>
+                </div>
               </button>
             ))}
           </div>
-          <div className="mt-6 flex items-center justify-center">
+          
+          {/* Load More Button */}
+          <div className="mt-8 flex items-center justify-center pb-4">
             <button
               onClick={() => setSeeds((prev) => [...prev, ...generateBatch(8)])}
-              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200"
+              disabled={isFetching}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Load more
+              {isFetching ? 'Loading...' : 'Load more'}
             </button>
           </div>
         </div>

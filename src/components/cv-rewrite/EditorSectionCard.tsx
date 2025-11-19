@@ -51,6 +51,7 @@ interface EditorSectionCardProps {
   onEntryAdd?: () => void; // Callback pour ajouter une entrée
   onEntryDelete?: (id: string) => void; // Callback pour supprimer
   onEntryChange?: (id: string, content: string) => void; // Callback pour modifier
+  headless?: boolean;
 }
 
 type ExperienceMeta = {
@@ -205,6 +206,7 @@ export default function EditorSectionCard({
   jobContext,
   onChange,
   onAIAction,
+  headless = false,
 }: EditorSectionCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -243,8 +245,7 @@ export default function EditorSectionCard({
           : isLanguages
             ? 'Add Language'
             : null;
-  // Ne pas afficher le bouton d'ajout dans le header pour experience et education
-  // car ils ont déjà un bouton violet en bas dans CVRewritePage
+  
   const showAddButton = Boolean(addButtonLabel) && !isExperience && !isEducation;
   const hobbyTags = isHobbies
     ? editedContent
@@ -286,11 +287,9 @@ export default function EditorSectionCard({
     }
   }, [showSectionAIButton, isSectionMenuOpen]);
 
-  // Split content into logical blocks for richer editing
   const splitBlocks = (raw: string): string[] => {
     if (!raw.trim()) return [];
     if (isExperience || isEducation || isCertifications) {
-      // Split on headings starting with ### (job/degree blocks)
       const parts = raw.split(/\n(?=###\s+)/).map(p => p.trim()).filter(Boolean);
       return parts.length ? parts : [raw.trim()];
     }
@@ -311,7 +310,6 @@ export default function EditorSectionCard({
 
   const [blocks, setBlocks] = useState<string[]>(() => splitBlocks(content));
 
-  // Keep local state in sync when parent content changes (e.g. after AI rewrite)
   useEffect(() => {
     setEditedContent(content);
     setBlocks(splitBlocks(content));
@@ -515,84 +513,85 @@ export default function EditorSectionCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-[#FAFAFA] dark:bg-[#1A1A1D] rounded-xl border border-gray-200/60 dark:border-gray-800 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all"
-      style={{ padding: '24px' }}
+      className={`transition-all ${!headless ? 'bg-[#FAFAFA] dark:bg-[#1A1A1D] rounded-xl border border-gray-200/60 dark:border-gray-800 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] p-6' : ''}`}
     >
       {/* Card Header */}
-      <div className="space-y-4 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1.5 hover:bg-white dark:hover:bg-gray-700/60 rounded-lg transition-all"
-            >
-              {isExpanded ? (
-                <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              )}
-            </button>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-              {title}
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {showAddButton && (
+      {!headless && (
+        <div className="space-y-4 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
               <button
-                type="button"
-                onClick={handleAddBlock}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 transition-all shadow-sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-1.5 hover:bg-white dark:hover:bg-gray-700/60 rounded-lg transition-all"
               >
-                <Plus className="w-3.5 h-3.5" />
-                {addButtonLabel}
+                {isExpanded ? (
+                  <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                )}
               </button>
-            )}
-            {showSectionAIButton && (
-              <div className="relative" ref={sectionMenuRef}>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                {title}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              {showAddButton && (
                 <button
                   type="button"
-                  onClick={() => setIsSectionMenuOpen(prev => !prev)}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-[#26262B] border border-gray-200/70 dark:border-gray-700/70 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-purple-300 dark:hover:border-purple-600 hover:text-purple-600 dark:hover:text-purple-300 transition-all shadow-sm"
+                  onClick={handleAddBlock}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 transition-all shadow-sm"
                 >
-                  <Sparkles className="w-4 h-4 text-purple-500" />
-                  <span>AI Toolkit</span>
+                  <Plus className="w-3.5 h-3.5" />
+                  {addButtonLabel}
                 </button>
-                <AnimatePresence>
-                  {isSectionMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-48 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-[#111116] shadow-2xl shadow-purple-500/10 overflow-hidden z-10"
-                    >
-                      {AI_ACTIONS.map((action) => (
-                        <button
-                          key={action.id}
-                          type="button"
-                          onClick={() => {
-                            setIsSectionMenuOpen(false);
-                            handleAIAction(action);
-                          }}
-                          disabled={isGenerating}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50"
-                        >
-                          <span className="text-purple-500">{action.icon}</span>
-                          <span>{action.label}</span>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
+              )}
+              {showSectionAIButton && (
+                <div className="relative" ref={sectionMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsSectionMenuOpen(prev => !prev)}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-[#26262B] border border-gray-200/70 dark:border-gray-700/70 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-purple-300 dark:hover:border-purple-600 hover:text-purple-600 dark:hover:text-purple-300 transition-all shadow-sm"
+                  >
+                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    <span>AI Toolkit</span>
+                  </button>
+                  <AnimatePresence>
+                    {isSectionMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-48 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-[#111116] shadow-2xl shadow-purple-500/10 overflow-hidden z-10"
+                      >
+                        {AI_ACTIONS.map((action) => (
+                          <button
+                            key={action.id}
+                            type="button"
+                            onClick={() => {
+                              setIsSectionMenuOpen(false);
+                              handleAIAction(action);
+                            }}
+                            disabled={isGenerating}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50"
+                          >
+                            <span className="text-purple-500">{action.icon}</span>
+                            <span>{action.label}</span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Card Content */}
       <AnimatePresence>
-        {isExpanded && (
+        {(isExpanded || headless) && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -600,6 +599,52 @@ export default function EditorSectionCard({
             transition={{ duration: 0.3 }}
           >
             <div>
+              {/* AI Toolkit for Headless Mode */}
+              {headless && showSectionAIButton && (
+                <div className="flex justify-between items-center mb-4">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                     {/* Spacer or helpful text */}
+                  </div>
+                  <div className="relative" ref={sectionMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsSectionMenuOpen(prev => !prev)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-[#26262B] border border-gray-200/70 dark:border-gray-700/70 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-purple-300 dark:hover:border-purple-600 hover:text-purple-600 dark:hover:text-purple-300 transition-all shadow-sm"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                      <span>AI Toolkit</span>
+                    </button>
+                    <AnimatePresence>
+                      {isSectionMenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-[#111116] shadow-2xl shadow-purple-500/10 overflow-hidden z-50"
+                        >
+                          {AI_ACTIONS.map((action) => (
+                            <button
+                              key={action.id}
+                              type="button"
+                              onClick={() => {
+                                setIsSectionMenuOpen(false);
+                                handleAIAction(action);
+                              }}
+                              disabled={isGenerating}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50"
+                            >
+                              <span className="text-purple-500">{action.icon}</span>
+                              <span>{action.label}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              )}
+
               {/* AI Suggestion Banner */}
               <AnimatePresence>
                 {aiSuggestion && (
@@ -1072,4 +1117,3 @@ export default function EditorSectionCard({
     </motion.div>
   );
 }
-

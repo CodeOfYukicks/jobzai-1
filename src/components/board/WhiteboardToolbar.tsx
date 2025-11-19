@@ -18,17 +18,12 @@ import {
 } from 'lucide-react';
 import { useWhiteboardStore } from '../../stores/whiteboardStore';
 import { ToolType } from '../../types/whiteboard';
-import { ColorPicker } from './ColorPicker';
 
 const tools: Array<{ type: ToolType; icon: React.ReactNode; label: string; shortcut?: string }> = [
   { type: 'pointer', icon: <MousePointer className="w-5 h-5" />, label: 'Select', shortcut: 'V' },
   { type: 'sticky', icon: <StickyNote className="w-5 h-5" />, label: 'Sticky Note', shortcut: 'N' },
   { type: 'text', icon: <Type className="w-5 h-5" />, label: 'Text', shortcut: 'T' },
   { type: 'rectangle', icon: <Square className="w-5 h-5" />, label: 'Rectangle', shortcut: 'R' },
-  { type: 'circle', icon: <Circle className="w-5 h-5" />, label: 'Circle', shortcut: 'C' },
-  { type: 'line', icon: <Minus className="w-5 h-5 rotate-45" />, label: 'Line', shortcut: 'L' },
-  { type: 'arrow', icon: <ArrowUp className="w-5 h-5 rotate-45" />, label: 'Arrow', shortcut: 'A' },
-  { type: 'image', icon: <ImageIcon className="w-5 h-5" />, label: 'Image', shortcut: 'I' },
   { type: 'connector', icon: <Link2 className="w-5 h-5" />, label: 'Connector' },
 ];
 
@@ -51,8 +46,6 @@ export function WhiteboardToolbar() {
   } = useWhiteboardStore();
 
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
-  const stickyButtonRef = useRef<HTMLButtonElement>(null);
 
   const canUndo = history.past.length > 0;
   const canRedo = history.future.length > 0;
@@ -96,26 +89,21 @@ export function WhiteboardToolbar() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 p-3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto max-h-screen">
+    <div className="flex flex-col items-center gap-2 p-3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto max-h-screen overflow-x-visible">
       {/* Tools */}
-      <div className="flex flex-col gap-1 relative">
+      <div className="flex flex-col gap-1 relative overflow-visible">
         {tools.map((toolOption) => (
           <div key={toolOption.type} className="relative">
             <button
-              ref={toolOption.type === 'sticky' ? stickyButtonRef : undefined}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (toolOption.type === 'connector' && connectorStartId) {
                   // Cancel connector mode if already started
                   setConnectorStartId(null);
                 }
-                if (toolOption.type === 'sticky') {
-                  setIsColorPickerOpen(!isColorPickerOpen);
-                } else {
-                  setIsColorPickerOpen(false);
-                }
                 setTool(toolOption.type);
               }}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-2.5 rounded-lg transition-colors ${
                 tool === toolOption.type
                   ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
@@ -124,14 +112,6 @@ export function WhiteboardToolbar() {
             >
               {toolOption.icon}
             </button>
-            {toolOption.type === 'sticky' && (
-              <ColorPicker
-                selectedColor={selectedStickyColor}
-                onColorChange={setSelectedStickyColor}
-                isOpen={isColorPickerOpen && tool === 'sticky'}
-                onClose={() => setIsColorPickerOpen(false)}
-              />
-            )}
           </div>
         ))}
       </div>
@@ -144,7 +124,7 @@ export function WhiteboardToolbar() {
         <button
           onClick={undo}
           disabled={!canUndo}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2.5 rounded-lg transition-colors ${
             canUndo
               ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
               : 'opacity-50 cursor-not-allowed text-gray-400'
@@ -156,7 +136,7 @@ export function WhiteboardToolbar() {
         <button
           onClick={redo}
           disabled={!canRedo}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2.5 rounded-lg transition-colors ${
             canRedo
               ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
               : 'opacity-50 cursor-not-allowed text-gray-400'
@@ -174,24 +154,17 @@ export function WhiteboardToolbar() {
       <div className="flex flex-col gap-1">
         <button
           onClick={zoomIn}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+          className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
           title="Zoom In (Ctrl+Wheel)"
         >
           <ZoomIn className="w-5 h-5" />
         </button>
         <button
           onClick={zoomOut}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+          className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
           title="Zoom Out (Ctrl+Wheel)"
         >
           <ZoomOut className="w-5 h-5" />
-        </button>
-        <button
-          onClick={resetZoom}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-          title="Reset Zoom"
-        >
-          <RotateCcw className="w-5 h-5" />
         </button>
       </div>
 
@@ -201,7 +174,7 @@ export function WhiteboardToolbar() {
       {/* Grid toggle */}
       <button
         onClick={() => setShowGrid(!showGrid)}
-        className={`p-2 rounded-lg transition-colors ${
+        className={`p-2.5 rounded-lg transition-colors ${
           showGrid
             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
             : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'

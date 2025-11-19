@@ -34,6 +34,14 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
   const defaultTextColor = isDarkMode ? '#1f2937' : '#000';
   const textColor = object.style.color || defaultTextColor;
 
+  // Calculate adaptive font size based on sticky note dimensions
+  // Base dimensions: 200x150 (default size)
+  const sizeScale = Math.sqrt((object.width * object.height) / (200 * 150));
+  const baseTitleSize = 14;
+  const baseContentSize = 12;
+  const adaptiveTitleSize = Math.max(10, Math.min(28, baseTitleSize * sizeScale));
+  const adaptiveContentSize = Math.max(8, Math.min(24, baseContentSize * sizeScale));
+
   return (
     <Group
       ref={nodeRef}
@@ -98,7 +106,7 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
           width={screenWidth - 20}
           height={screenHeight - 20}
           text={object.data.title || 'Untitled Note'}
-          fontSize={14 * canvasState.zoom}
+          fontSize={adaptiveTitleSize * canvasState.zoom}
           fontFamily="Arial"
           fill={textColor}
           align="left"
@@ -124,7 +132,7 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
           width={screenWidth - 20}
           height={screenHeight - 40}
           text={object.data.content}
-          fontSize={12 * canvasState.zoom}
+          fontSize={adaptiveContentSize * canvasState.zoom}
           fontFamily="Arial"
           fill={textColor}
           align="left"

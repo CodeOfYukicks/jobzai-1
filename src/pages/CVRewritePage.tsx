@@ -11,7 +11,6 @@ import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { loadThemeFromStorage, applyTheme } from '../lib/theme';
 import { CVRewrite, PremiumATSAnalysis } from '../types/premiumATS';
 import { generateCVRewrite, translateCV } from '../lib/cvRewriteService';
 import { rewriteSection, parseCVData } from '../lib/cvSectionAI';
@@ -413,7 +412,7 @@ const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('consulti
   const [isTranslating, setIsTranslating] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(70); // Zoom percentage - optimized for readability
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [editorWidth, setEditorWidth] = useState(750); // Editor width in px - 50/50 split
+  const [editorWidth, setEditorWidth] = useState(600); // Editor width in px - 30/70 split (will be calculated on mount)
   const [isResizing, setIsResizing] = useState(false);
   
   // Font management
@@ -470,12 +469,6 @@ const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('consulti
 
   // Global show skills on CV toggle
   const [showSkillsOnCV, setShowSkillsOnCV] = useState(true);
-
-  // Ensure theme is applied on mount (fix dark mode persistence)
-  useEffect(() => {
-    const theme = userData?.theme || loadThemeFromStorage();
-    applyTheme(theme);
-  }, [userData]);
 
   // Fetch analysis
   useEffect(() => {
@@ -1323,6 +1316,31 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
   const previewScale = previewZoom / 100;
   const scaledWidth = A4_WIDTH_PX * previewScale;
   const scaledHeight = A4_HEIGHT_PX * previewScale;
+
+  // Calculate initial editor width to 30% of container on mount
+  useEffect(() => {
+    const calculateInitialWidth = () => {
+      const container = document.getElementById('cv-rewrite-container');
+      if (container) {
+        const containerWidth = container.offsetWidth;
+        // 30% of container width, accounting for gap (gap-4 = 16px)
+        const calculatedWidth = (containerWidth - 16) * 0.3;
+        // Constrain between 480px (min) and 900px (max)
+        const constrainedWidth = Math.max(480, Math.min(900, calculatedWidth));
+        setEditorWidth(constrainedWidth);
+      }
+    };
+
+    // Calculate on mount - use setTimeout to ensure container is rendered
+    const timeoutId = setTimeout(calculateInitialWidth, 0);
+
+    // Recalculate on window resize
+    window.addEventListener('resize', calculateInitialWidth);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', calculateInitialWidth);
+    };
+  }, []);
 
   // Setup resize listeners
   useEffect(() => {

@@ -4,9 +4,106 @@ import type { JobSummary } from '../../types/premiumATS';
 
 interface JobSummaryPanelProps {
   jobSummary: JobSummary;
+  compact?: boolean;
 }
 
-export default function JobSummaryPanel({ jobSummary }: JobSummaryPanelProps) {
+export default function JobSummaryPanel({ jobSummary, compact = false }: JobSummaryPanelProps) {
+  // Compact version for sidebar - Ultra Sleek
+  if (compact) {
+    return (
+      <div className="space-y-6">
+        {/* Role & Mission - Sleek Card */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10 border border-purple-100 dark:border-purple-900/30 p-4">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 dark:bg-purple-500/10 rounded-full blur-2xl"></div>
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <Target className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h4 className="text-xs font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wider">
+                Role
+              </h4>
+            </div>
+            <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed font-semibold mb-3">
+              {jobSummary.role}
+            </p>
+            <p className="text-xs text-gray-700 dark:text-gray-400 leading-relaxed">
+              {jobSummary.mission}
+            </p>
+          </div>
+        </div>
+
+        {/* Key Responsibilities - Sleek */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full"></div>
+            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
+              Key Responsibilities
+            </h4>
+          </div>
+          <ul className="space-y-2">
+            {jobSummary.key_responsibilities.map((resp, index) => (
+              <li key={index} className="flex items-start gap-2.5 group">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-1.5 group-hover:scale-125 transition-transform"></div>
+                <span className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {resp}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Core Requirements - Sleek */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 bg-gradient-to-b from-emerald-500 to-green-500 rounded-full"></div>
+            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
+              Core Requirements
+            </h4>
+          </div>
+          <ul className="space-y-2">
+            {jobSummary.core_requirements.map((req, index) => (
+              <li key={index} className="flex items-start gap-2.5 group">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0 mt-1.5 group-hover:scale-125 transition-transform"></div>
+                <span className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {req}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Hidden Expectations - Sleek */}
+        {jobSummary.hidden_expectations.length > 0 && (
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-900/30 p-4">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-2xl"></div>
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <Eye className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h4 className="text-xs font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
+                  Hidden Expectations
+                </h4>
+              </div>
+              <ul className="space-y-2">
+                {jobSummary.hidden_expectations.map((expectation, index) => (
+                  <li key={index} className="flex items-start gap-2.5 group">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400 flex-shrink-0 mt-1.5 group-hover:scale-125 transition-transform"></div>
+                    <span className="text-xs text-amber-900 dark:text-amber-300 leading-relaxed">
+                      {expectation}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Full version for main content
   return (
     <div className="space-y-6">
       {/* Role & Mission */}

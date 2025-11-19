@@ -21,6 +21,33 @@ export interface StatusChange {
   notes?: string;
 }
 
+export interface GeneratedEmail {
+  id: string;
+  type: 'cover_letter' | 'follow_up';
+  content: string;
+  createdAt: string;
+}
+
+export interface StickyNote {
+  id: string;
+  content: string;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+export interface FocusModeState {
+  content: string;
+  chatHistory: ChatMessage[];
+  isOpen: boolean;
+}
+
 export interface JobApplication {
   id: string;
   companyName: string;
@@ -39,12 +66,23 @@ export interface JobApplication {
   contactEmail?: string;
   contactPhone?: string;
   salary?: string;
-  description?: string;  // Job description (from AI extraction or job posting)
-  notes?: string;         // Personal notes from the user
+  description?: string;  // AI-powered summary (short, 3 bullet points)
+  fullJobDescription?: string;  // Complete job description from the posting
+  notes?: string;         // Personal notes from the user (deprecated - use stickyNotes instead)
   createdAt: string;
   updatedAt: string;
   interviews?: Interview[];
   statusHistory?: StatusChange[];
+  generatedEmails?: GeneratedEmail[];  // History of AI-generated emails
+  stickyNotes?: StickyNote[];  // User's sticky notes for this application
+  jobInsights?: {  // Enhanced AI-extracted insights for premium summary display
+    keyResponsibilities?: string;
+    requiredSkills?: string;
+    experienceLevel?: string;
+    compensationBenefits?: string;
+    companyCulture?: string;
+    growthOpportunities?: string;
+  };
 }
 
 

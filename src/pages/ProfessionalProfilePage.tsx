@@ -591,11 +591,18 @@ const ProfessionalProfilePage = () => {
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.3 }
               } : { duration: 0 }}
-              className="min-h-screen bg-gray-50 dark:bg-gray-900"
-              style={{ margin: '-1.5rem', padding: '1.5rem' }}
+              className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/20 to-indigo-50/20 dark:from-gray-900 dark:via-purple-900/10 dark:to-indigo-900/10 relative overflow-hidden"
+              style={{ margin: '-1.5rem', padding: '1rem' }}
             >
-              {/* Main Content - LinkedIn Style */}
-              <div className="max-w-5xl mx-auto space-y-6 pt-6">
+              {/* Ambient Background Effects */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-20 left-10 w-96 h-96 bg-purple-300/10 dark:bg-purple-600/5 rounded-full blur-3xl animate-float-slow"></div>
+                <div className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-300/10 dark:bg-indigo-600/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-400/5 dark:bg-purple-500/5 rounded-full blur-3xl animate-pulse-glow"></div>
+              </div>
+
+              {/* Main Content - Premium Layout */}
+              <div className="relative w-full max-w-[1400px] mx-auto space-y-4 pt-4 px-4">
               {/* Profile Header */}
               <ProfileHeader onUpdate={updateFormData} />
 
@@ -611,7 +618,7 @@ const ProfessionalProfilePage = () => {
               {/* Experience Section */}
               <ProfileSectionCard
                 title="Experience"
-                icon={<Briefcase className="w-6 h-6" />}
+                icon={<Briefcase className="w-5 h-5" />}
                 completion={formData.professionalHistory?.length > 0 ? 100 : 0}
                 isCollapsible={true}
               >
@@ -621,7 +628,7 @@ const ProfessionalProfilePage = () => {
               {/* Education & Languages */}
               <ProfileSectionCard
                 title="Education & Languages"
-                icon={<GraduationCap className="w-6 h-6" />}
+                icon={<GraduationCap className="w-5 h-5" />}
                 completion={formData.educationLevel ? 100 : 0}
                 isCollapsible={true}
               >
@@ -631,7 +638,7 @@ const ProfessionalProfilePage = () => {
               {/* Skills & Expertise */}
               <ProfileSectionCard
                 title="Skills & Expertise"
-                icon={<Briefcase className="w-6 h-6" />}
+                icon={<Briefcase className="w-5 h-5" />}
                 completion={formData.skills?.length > 0 ? 100 : 0}
                 isCollapsible={true}
               >
@@ -641,7 +648,7 @@ const ProfessionalProfilePage = () => {
               {/* Career Objectives */}
               <ProfileSectionCard
                 title="Career Objectives"
-                icon={<Target className="w-6 h-6" />}
+                icon={<Target className="w-5 h-5" />}
                 completion={formData.targetPosition ? 100 : 0}
                 isCollapsible={true}
               >
@@ -651,7 +658,7 @@ const ProfessionalProfilePage = () => {
               {/* Location & Mobility */}
               <ProfileSectionCard
                 title="Location & Mobility"
-                icon={<MapPin className="w-6 h-6" />}
+                icon={<MapPin className="w-5 h-5" />}
                 completion={formData.city && formData.country ? 100 : 0}
                 isCollapsible={true}
               >
@@ -661,7 +668,7 @@ const ProfessionalProfilePage = () => {
               {/* Career Drivers */}
               <ProfileSectionCard
                 title="Career Drivers"
-                icon={<TrendingUp className="w-6 h-6" />}
+                icon={<TrendingUp className="w-5 h-5" />}
                 completion={formData.careerPriorities?.length > 0 ? 100 : 0}
                 isCollapsible={true}
               >
@@ -671,7 +678,7 @@ const ProfessionalProfilePage = () => {
               {/* Role Preferences */}
               <ProfileSectionCard
                 title="Role Preferences"
-                icon={<Building2 className="w-6 h-6" />}
+                icon={<Building2 className="w-5 h-5" />}
                 completion={formData.roleType ? 100 : 0}
                 isCollapsible={true}
               >
@@ -681,7 +688,7 @@ const ProfessionalProfilePage = () => {
               {/* Documents & Links */}
               <ProfileSectionCard
                 title="Documents & Links"
-                icon={<FileText className="w-6 h-6" />}
+                icon={<FileText className="w-5 h-5" />}
                 completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
                 isCollapsible={true}
               >

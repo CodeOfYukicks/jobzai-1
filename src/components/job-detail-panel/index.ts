@@ -5,4 +5,9 @@ export { SectionCard } from './SectionCard';
 export { TimelineItem } from './TimelineItem';
 export { InterviewCard } from './InterviewCard';
 export { AddInterviewForm } from './AddInterviewForm';
-
+export { AIChat } from './AIChat';
+export { FocusModeEditor } from './FocusModeEditor';
+export { AIToolsTab } from './AIToolsTab';
+export { EmailGenerator } from './EmailGenerator';
+export { AIToolCard } from './AIToolCard';
+export { CompactHistoryList } from './CompactHistoryList';

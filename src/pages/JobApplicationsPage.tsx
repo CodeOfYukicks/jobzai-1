@@ -11,7 +11,6 @@ import {
   Clock,
   Download,
   Edit2,
-  Edit3,
   ExternalLink,
   FileIcon,
   FileText,
@@ -66,6 +65,7 @@ export default function JobApplicationsPage() {
     status: 'applied',
     appliedDate: new Date().toISOString().split('T')[0],
     description: '',
+    fullJobDescription: '',
     notes: '',
     interviewType: 'technical',
     interviewTime: '09:00',
@@ -402,6 +402,17 @@ EXTRACTION REQUIREMENTS FOR EACH FIELD:
    - Do NOT write long paragraphs - keep it concise and actionable
    - Total length: maximum 100 words across all 3 points
 
+5. "fullJobDescription" - COMPLETE JOB DESCRIPTION:
+   - Extract the COMPLETE and FULL text from the job posting
+   - Include ALL sections: Overview, Responsibilities, Requirements, Qualifications, Skills, Experience, Education, Benefits, Company Culture, Team Info, Application Process, etc.
+   - Include EVERY paragraph, EVERY bullet point, EVERY list - nothing should be omitted
+   - Maintain the original structure and formatting as much as possible
+   - Use \\n\\n for paragraph breaks
+   - Use • for bullet points
+   - This should be the FULL, UNABRIDGED content of the job posting (typically 1000-5000+ characters)
+   - Do NOT summarize, shorten, or paraphrase - extract the COMPLETE text
+   - If the description is very long, that's correct - completeness is critical
+
 VALIDATION CHECKLIST - Before returning, verify EACH point:
 ✓ The company name matches EXACTLY what's displayed on the page
 ✓ The position/job title matches EXACTLY what's displayed on the page
@@ -430,8 +441,19 @@ Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, n
   "companyName": "exact company name from page",
   "position": "exact job title from page",
   "location": "exact location for this specific job posting from page",
-  "summary": "• First key point about responsibilities (15-30 words)\n• Second key point about qualifications (15-30 words)\n• Third key point about notable aspects (15-30 words)"
+  "summary": "• First key point about responsibilities (15-30 words)\\n• Second key point about qualifications (15-30 words)\\n• Third key point about notable aspects (15-30 words)",
+  "fullJobDescription": "Complete, full, unabridged job description with all sections, paragraphs, and bullet points from the posting",
+  "jobInsights": {
+    "keyResponsibilities": "2-3 main duties and responsibilities in a concise, readable format (50-100 words)",
+    "requiredSkills": "Top 5-7 critical technical and soft skills required, comma-separated or bulleted (50-80 words)",
+    "experienceLevel": "Years of experience required, seniority level, and any specific domain expertise needed (30-50 words)",
+    "compensationBenefits": "Salary range (if mentioned), benefits, perks, work arrangement (remote/hybrid/onsite) (40-70 words)",
+    "companyCulture": "Work environment, company values, team structure, and culture highlights (50-80 words)",
+    "growthOpportunities": "Career development opportunities, learning paths, advancement potential, and professional growth aspects (40-70 words)"
+  }
 }
+
+IMPORTANT: Extract ALL fields including the new jobInsights object with all 6 sub-fields. If information for a jobInsights field is not available on the page, provide a brief, generic statement like "Details not specified in posting" rather than leaving it empty.
 
 URL to visit: ${jobUrl}
 `;
@@ -653,7 +675,16 @@ URL to visit: ${jobUrl}
         companyName: extractedData.companyName.trim(),
         position: extractedData.position.trim(),
         location: extractedData.location?.trim() || '',
-        summary: extractedData.summary?.trim() || ''
+        summary: extractedData.summary?.trim() || '',
+        fullJobDescription: extractedData.fullJobDescription?.trim() || '',
+        jobInsights: extractedData.jobInsights ? {
+          keyResponsibilities: extractedData.jobInsights.keyResponsibilities?.trim() || '',
+          requiredSkills: extractedData.jobInsights.requiredSkills?.trim() || '',
+          experienceLevel: extractedData.jobInsights.experienceLevel?.trim() || '',
+          compensationBenefits: extractedData.jobInsights.compensationBenefits?.trim() || '',
+          companyCulture: extractedData.jobInsights.companyCulture?.trim() || '',
+          growthOpportunities: extractedData.jobInsights.growthOpportunities?.trim() || ''
+        } : undefined
       };
 
       // Formater le summary pour la description - format structuré avec 3 points
@@ -696,7 +727,9 @@ URL to visit: ${jobUrl}
         companyName: cleanedData.companyName || prev.companyName,
         position: cleanedData.position || prev.position,
         location: cleanedData.location || prev.location,
-        description: formattedDescription || prev.description || ''
+        description: formattedDescription || prev.description || '',
+        fullJobDescription: cleanedData.fullJobDescription || prev.fullJobDescription || '',
+        jobInsights: cleanedData.jobInsights || prev.jobInsights
       }));
 
       toast.success('Job information extracted successfully!');
@@ -730,7 +763,8 @@ URL to visit: ${jobUrl}
           status: formData.status || 'applied',
           appliedDate: formData.appliedDate,
           url: formData.url || '',
-          description: formData.description || '',  // Job description from AI
+          description: formData.description || '',  // AI-powered summary (3 bullet points)
+          fullJobDescription: formData.fullJobDescription || '',  // Complete job description from posting
           notes: formData.notes || '',              // User's personal notes
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -738,7 +772,12 @@ URL to visit: ${jobUrl}
           contactName: formData.contactName || '',
           contactEmail: formData.contactEmail || '',
           contactPhone: formData.contactPhone || '',
-          salary: formData.salary || ''
+          salary: formData.salary || '',
+          // Initialize arrays for new features
+          generatedEmails: [],
+          stickyNotes: [],
+          // Initialize jobInsights if extracted by AI
+          ...(formData.jobInsights && { jobInsights: formData.jobInsights })
         };
 
         // Vérification des champs requis
@@ -768,6 +807,7 @@ URL to visit: ${jobUrl}
           appliedDate: new Date().toISOString().split('T')[0],
           url: '',
           description: '',
+          fullJobDescription: '',
           notes: '',
           interviewType: 'technical',
           interviewTime: '09:00',
@@ -893,6 +933,7 @@ URL to visit: ${jobUrl}
           appliedDate: new Date().toISOString().split('T')[0],
           url: '',
           description: '',
+          fullJobDescription: '',
           notes: '',
           interviewType: 'technical',
           interviewTime: '09:00',
@@ -1490,18 +1531,23 @@ END:VCALENDAR`;
       {/* CSS Variables pour les animations */}
       <style>{cssVariables}</style>
       
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
-        {/* Hero Section avec statistiques */}
+      <div className="h-full flex flex-col px-4 pt-3 pb-0">
+        {/* Compact Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-4 sm:mb-8">
-          <PageHeader 
-            title="Job Applications"
-            subtitle="Track and manage your job applications"
-          />
-          <div className="flex justify-center mt-6">
+          className="mb-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            {/* Titre à gauche */}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Applications</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                Track and manage your job applications
+              </p>
+            </div>
+            
+            {/* Bouton Add à droite */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -1513,19 +1559,49 @@ END:VCALENDAR`;
                 setShowLookupDropdown(false);
                 setNewApplicationModal(true);
               }}
-              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium hover:opacity-90 transition-all duration-200"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium hover:opacity-90 transition-all duration-200"
             >
               <PlusCircle className="w-4 h-4 mr-2" />
               Add Application
             </motion.button>
           </div>
 
-          {/* View Toggle Tabs */}
-          <div className="flex justify-center sm:justify-start mb-6">
+          {/* Stats en ligne horizontale + View Toggle */}
+          <div className="flex items-center justify-between mb-3">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="flex items-center gap-3">
+              {[
+                { label: 'Applied', count: applications.filter(a => a.status === 'applied').length, color: 'blue' },
+                { label: 'Interview', count: applications.filter(a => a.status === 'interview').length, color: 'purple' },
+                { label: 'Pending', count: applications.filter(a => a.status === 'pending_decision').length, color: 'amber' },
+                { label: 'Offer', count: applications.filter(a => a.status === 'offer').length, color: 'green' },
+                { label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length, color: 'red' }
+              ].map((stat, index) => (
+                <motion.div 
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 * index }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                >
+                  <div className={`text-lg font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}>
+                    {stat.count}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    {stat.label}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* View Toggle intégré */}
             <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex">
               <button
                 onClick={() => setView('kanban')}
-                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
                   view === 'kanban' 
                     ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm' 
                     : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
@@ -1536,7 +1612,7 @@ END:VCALENDAR`;
               </button>
               <button
                 onClick={() => setView('analytics')}
-                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
                   view === 'analytics' 
                     ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm' 
                     : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
@@ -1547,37 +1623,6 @@ END:VCALENDAR`;
               </button>
             </div>
           </div>
-
-          {/* Statistiques en grille responsive */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
-            {[
-              { label: 'Applied', count: applications.filter(a => a.status === 'applied').length, color: 'blue' },
-              { label: 'Interview', count: applications.filter(a => a.status === 'interview').length, color: 'purple' },
-              { label: 'Pending', count: applications.filter(a => a.status === 'pending_decision').length, color: 'amber' },
-              { label: 'Offer', count: applications.filter(a => a.status === 'offer').length, color: 'green' },
-              { label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length, color: 'red' }
-            ].map((stat, index) => (
-              <motion.div 
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 * index }}
-                whileHover={{ scale: 1.03, boxShadow: "0 10px 30px -15px rgba(0,0,0,0.2)" }}
-                className={`bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-gray-200 dark:border-gray-700`}
-              >
-                <div className={`text-${stat.color}-600 dark:text-${stat.color}-400 text-lg sm:text-xl lg:text-2xl font-bold`}>
-                  {stat.count}
-                </div>
-                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
         </motion.div>
 
         {/* Barre de recherche et filtres - only show for kanban view */}
@@ -1586,22 +1631,23 @@ END:VCALENDAR`;
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mb-4 sm:mb-6 space-y-4">
-            {/* Search bar */}
-            <div className="relative w-full">
-              <input
-                type="text"
-                placeholder="Search by company or position..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 sm:pl-10 pr-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500"
-              />
-              <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </div>
+            className="mb-3 flex-shrink-0">
+            {/* Search bar + Filters en une ligne */}
+            <div className="flex items-center gap-3">
+              {/* Search bar plus compact */}
+              <div className="relative flex-1 max-w-md">
+                <input
+                  type="text"
+                  placeholder="Search by company or position..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              </div>
 
-            {/* Filters bar */}
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              <div className="flex flex-wrap gap-2 flex-1">
+              {/* Filters en ligne */}
+              <div className="flex items-center gap-2">
                 {/* Date Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'date' ? null : 'date')}
@@ -1687,7 +1733,7 @@ END:VCALENDAR`;
               )}
 
               {/* Results count */}
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
                 {filteredApplications.length} {filteredApplications.length === 1 ? 'result' : 'results'}
                 {getActiveFilterCount() > 0 && (
                   <span className="ml-1 text-purple-600 dark:text-purple-400">
@@ -1770,16 +1816,22 @@ END:VCALENDAR`;
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col min-h-0"
             >
-              {/* Kanban Board */}
+              {/* Kanban Board - Optimisé pleine hauteur */}
               <DragDropContext onDragEnd={handleDragEnd}>
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
-                  className="flex overflow-x-auto pb-4 sm:pb-6 -mx-2 px-2 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4 hide-scrollbar"
+                  className="flex-1 overflow-x-auto min-h-0"
                 >
-                  {['applied', 'interview', 'pending_decision', 'offer', 'rejected'].map((status, columnIndex) => (
+                  <div className="flex gap-3 h-full min-w-min">
+                  {['applied', 'interview', 'pending_decision', 'offer', 'rejected'].map((status, columnIndex) => {
+                    const statusCount = filteredApplications.filter(a => a.status === status).length;
+                    const isLastColumn = columnIndex === ['applied', 'interview', 'pending_decision', 'offer', 'rejected'].length - 1;
+                    
+                    return (
                     <Droppable key={status} droppableId={status}>
                       {(provided, snapshot) => (
                         <motion.div
@@ -1788,27 +1840,55 @@ END:VCALENDAR`;
                           transition={{ duration: 0.4, delay: 0.1 * columnIndex }}
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`flex-shrink-0 w-[80vw] sm:w-auto bg-gray-50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 lg:p-4 transition-colors duration-200 ${snapshot.isDraggingOver ? 'droppable-hover' : ''}`}
+                          className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'droppable-hover' : ''} ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700 pr-3' : ''}`}
                         >
-                          <div className="flex items-center justify-between mb-2 sm:mb-3">
-                            <h3 className="font-semibold text-gray-900 dark:text-white capitalize text-xs sm:text-sm">
-                              {status === 'pending_decision' ? 'Pending Decision' : status}
-                            </h3>
-                            <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                              {filteredApplications.filter(a => a.status === status).length}
-                            </span>
+                          <div className="mb-2 sm:mb-3 text-center">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                              <h3 className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm">
+                                {status === 'pending_decision' ? 'PENDING DECISION' : status.toUpperCase()}
+                              </h3>
+                              <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                {statusCount} {statusCount === 1 ? 'JOB' : 'JOBS'}
+                              </span>
+                            </div>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                setEventType('application');
+                                setLookupSelectedApplication(null);
+                                setLinkedApplicationId(null);
+                                setLookupSearchQuery('');
+                                setShowLookupDropdown(false);
+                                setFormData({
+                                  companyName: '',
+                                  position: '',
+                                  location: '',
+                                  status: status as 'applied' | 'interview' | 'pending_decision' | 'offer' | 'rejected',
+                                  appliedDate: new Date().toISOString().split('T')[0],
+                                  url: '',
+                                  description: '',
+                                  fullJobDescription: '',
+                                  notes: '',
+                                  interviewType: 'technical',
+                                  interviewTime: '09:00',
+                                  interviewDate: new Date().toISOString().split('T')[0],
+                                });
+                                setNewApplicationModal(true);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 transition-colors border border-purple-200 dark:border-purple-800"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span className="text-xs font-medium">Add</span>
+                            </motion.button>
                           </div>
 
-                          <div className="space-y-2 sm:space-y-3">
+                          <div className="flex-1 overflow-y-auto space-y-2 sm:space-y-3">
                             <ApplicationList
                               applications={filteredApplications.filter(a => a.status === status)}
                               onCardClick={(app) => {
                                 setSelectedApplication(app);
                                 setTimelineModal(true);
-                              }}
-                              onCardEdit={(app) => {
-                                setFormData(app);
-                                setEditModal({ show: true, application: app });
                               }}
                               onCardDelete={(app) => {
                                 setDeleteModal({ show: true, application: app });
@@ -1819,7 +1899,9 @@ END:VCALENDAR`;
                         </motion.div>
                       )}
                     </Droppable>
-                  ))}
+                    );
+                  })}
+                  </div>
                 </motion.div>
               </DragDropContext>
             </motion.div>
@@ -2562,6 +2644,7 @@ END:VCALENDAR`;
                   appliedDate: new Date().toISOString().split('T')[0],
                   url: '',
                   description: '',
+                  fullJobDescription: '',
                   notes: '',
                   interviewType: 'technical',
                   interviewTime: '09:00',

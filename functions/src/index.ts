@@ -2457,6 +2457,7 @@ export const downloadCV = onRequest({
   region: 'us-central1',
   cors: true,
   maxInstances: 10,
+  invoker: 'public',
 }, async (req, res) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {

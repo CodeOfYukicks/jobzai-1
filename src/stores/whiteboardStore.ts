@@ -232,7 +232,7 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
     set((state) => ({
       canvasState: {
         ...state.canvasState,
-        zoom: Math.min(state.canvasState.zoom * 1.2, 5),
+        zoom: Math.min(state.canvasState.zoom * 1.1, 3),
       },
     }));
   },
@@ -241,7 +241,7 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
     set((state) => ({
       canvasState: {
         ...state.canvasState,
-        zoom: Math.max(state.canvasState.zoom / 1.2, 0.1),
+        zoom: Math.max(state.canvasState.zoom / 1.1, 0.25),
       },
     }));
   },

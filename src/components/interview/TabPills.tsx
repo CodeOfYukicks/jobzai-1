@@ -1,5 +1,4 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
 
 export interface TabItem {
 	id: string;
@@ -17,27 +16,28 @@ export interface TabPillsProps {
 export function TabPills({ items, activeId, onChange, className = '' }: TabPillsProps) {
 	const activeIndex = items.findIndex(item => item.id === activeId);
 	const tabWidth = 100 / items.length;
+	const indicatorRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (indicatorRef.current) {
+			indicatorRef.current.style.left = `${activeIndex * tabWidth}%`;
+			indicatorRef.current.style.width = `calc(${tabWidth}% - 4px)`;
+		}
+	}, [activeIndex, tabWidth]);
 
 	return (
 		<div className={['w-full', className].join(' ')}>
-			{/* Container avec background subtil type Notion */}
-			<div className="relative bg-gray-50/50 dark:bg-gray-900/30 rounded-lg p-1 border border-gray-200/60 dark:border-gray-800/60 backdrop-blur-sm">
-				{/* Indicateur de sélection animé avec framer-motion */}
-				<motion.div 
-					className="absolute top-1 bottom-1 bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-200/80 dark:border-gray-700/60"
-					initial={false}
-					animate={{
-						left: `${activeIndex * tabWidth}%`,
-						width: `calc(${tabWidth}% - 4px)`,
-					}}
-					transition={{
-						type: "spring",
-						stiffness: 300,
-						damping: 30,
-					}}
+			{/* Container avec background subtil type Notion/Apple */}
+			<div className="relative rounded-lg border border-purple-200/40 bg-purple-50/30 p-1 dark:border-purple-500/20 dark:bg-purple-500/5">
+				{/* Indicateur de sélection animé avec CSS transitions */}
+				<div 
+					ref={indicatorRef}
+					className="absolute top-1 bottom-1 rounded-md border border-purple-200/60 bg-white shadow-sm shadow-purple-600/5 transition-all duration-300 ease-out dark:border-purple-500/30 dark:bg-[#1c1c1e]"
 					style={{
 						marginLeft: '2px',
 						marginRight: '2px',
+						left: `${activeIndex * tabWidth}%`,
+						width: `calc(${tabWidth}% - 4px)`,
 					}}
 				/>
 				
@@ -50,31 +50,24 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 								key={item.id}
 								onClick={() => onChange(item.id)}
 								className={[
-									'relative flex-1 flex items-center justify-center gap-2',
-									'px-4 py-2.5 text-sm font-medium transition-all duration-200',
-									'rounded-md z-10',
+									'relative z-10 flex flex-1 items-center justify-center gap-2',
+									'rounded-md px-4 py-2.5 text-[13px] font-medium transition-all duration-200',
 									isActive
-										? 'text-gray-900 dark:text-gray-100'
-										: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+										? 'text-purple-700 dark:text-purple-300'
+										: 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
 								].join(' ')}
 							>
 								{item.icon && (
-									<motion.span 
+									<span 
 										className={[
-											'transition-colors duration-200',
+											'transition-all duration-200',
 											isActive 
-												? 'text-gray-700 dark:text-gray-200' 
-												: 'text-gray-500 dark:text-gray-500'
+												? 'scale-105 text-purple-600 dark:text-purple-400' 
+												: 'scale-100 text-neutral-500 dark:text-neutral-500'
 										].join(' ')}
-										animate={{
-											scale: isActive ? 1.05 : 1,
-										}}
-										transition={{
-											duration: 0.2,
-										}}
 									>
 										{item.icon}
-									</motion.span>
+									</span>
 								)}
 								<span className="whitespace-nowrap">{item.label}</span>
 							</button>

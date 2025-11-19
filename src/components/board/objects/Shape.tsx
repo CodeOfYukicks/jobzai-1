@@ -14,6 +14,7 @@ interface ShapeProps {
   onDragEnd?: () => void;
   onResize: (width: number, height: number) => void;
   nodeRef?: (node: any) => void;
+  shouldDisableDrag?: boolean;
 }
 
 export function Shape({ object, isSelected, onSelect, onDrag, onDragMove, onDragEnd, nodeRef, shouldDisableDrag }: ShapeProps) {

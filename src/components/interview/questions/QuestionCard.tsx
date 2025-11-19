@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { memo } from 'react';
 import { Bookmark, Maximize2, StickyNote } from 'lucide-react';
 import { ReactNode } from 'react';
 import { Tag } from './Tag';
@@ -19,12 +19,7 @@ export interface QuestionCardProps {
   onFocus?: () => void;
 }
 
-const containerVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0 },
-};
-
-export function QuestionCard({
+export const QuestionCard = memo(function QuestionCard({
   index,
   question,
   tags,
@@ -39,70 +34,71 @@ export function QuestionCard({
   const numberLabel = String(index + 1).padStart(2, '0');
 
   return (
-    <motion.article
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      whileHover={{ y: -2 }}
-      className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-5 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
+    <article
+      className="group relative overflow-hidden rounded-xl border border-black/[0.06] bg-white px-6 py-5 transition-all duration-300 hover:border-purple-200 dark:border-white/[0.08] dark:bg-[#1c1c1e] dark:hover:border-purple-500/30"
     >
-      <div className="flex gap-4">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#f5f5f7] text-sm font-semibold text-neutral-600 shadow-inner shadow-white/40 dark:bg-white/10 dark:text-white/80">
+      <div className="flex gap-5">
+        {/* Number Badge - Style Notion/Apple */}
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-[13px] font-semibold text-neutral-600 dark:bg-white/[0.06] dark:text-neutral-400">
           {numberLabel}
         </div>
+
         <div className="flex-1 space-y-4">
-          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-            <div className="flex-1 space-y-1.5">
-              <p className="text-[13px] uppercase tracking-[0.2em] text-neutral-400">Question {numberLabel}</p>
-              <h3 className="text-lg font-semibold leading-snug text-neutral-900 dark:text-white">{question}</h3>
+          {/* Header Section */}
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex-1 space-y-2">
+              <h3 className="text-[15px] font-medium leading-relaxed text-neutral-900 dark:text-white">
+                {question}
+              </h3>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <Tag key={tag} label={formatTagLabel(tag)} />
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-2 self-start text-neutral-500">
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1 self-start">
               <GhostIconButton
                 ariaLabel={isSaved ? 'Remove from saved questions' : 'Save question'}
                 isActive={isSaved}
                 onClick={onToggleSave}
               >
-                <Bookmark className={isSaved ? 'h-4 w-4 fill-current' : 'h-4 w-4'} />
+                <Bookmark className={isSaved ? 'h-[18px] w-[18px] fill-current' : 'h-[18px] w-[18px]'} />
               </GhostIconButton>
               <GhostIconButton ariaLabel="Create note from question" onClick={onCreateNote}>
-                <StickyNote className="h-4 w-4" />
+                <StickyNote className="h-[18px] w-[18px]" />
               </GhostIconButton>
               {onFocus && (
                 <GhostIconButton ariaLabel="Focus on this question" onClick={onFocus}>
-                  <Maximize2 className="h-4 w-4" />
+                  <Maximize2 className="h-[18px] w-[18px]" />
                 </GhostIconButton>
               )}
             </div>
           </header>
 
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <Tag key={tag} label={formatTagLabel(tag)} />
-              ))}
-            </div>
-          )}
-
+          {/* Suggested Approach */}
           {suggestedApproach && (
             <Toggle
               isOpen={isSuggestionOpen}
               onToggle={onToggleSuggestion}
               icon="💡"
               label="Suggested approach"
-              description="Tap to reveal how to tackle this question"
             >
-              <div className="mt-3 rounded-[12px] border border-black/[0.04] bg-white/80 p-4 text-[15px] leading-relaxed text-neutral-700 shadow-[0_1px_2px_rgba(15,23,42,0.05)] dark:border-white/5 dark:bg-white/5 dark:text-neutral-200">
+              <div className="mt-3 rounded-lg border border-black/[0.06] bg-neutral-50/50 px-4 py-3.5 text-[14px] leading-relaxed text-neutral-700 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-neutral-300">
                 {suggestedApproach}
               </div>
             </Toggle>
           )}
         </div>
       </div>
-    </motion.article>
+    </article>
   );
-}
+});
 
-function GhostIconButton({
+const GhostIconButton = memo(function GhostIconButton({
   children,
   ariaLabel,
   onClick,
@@ -119,16 +115,17 @@ function GhostIconButton({
       onClick={onClick}
       aria-label={ariaLabel}
       className={[
-        'rounded-full border border-transparent p-2 transition-all duration-150',
-        'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white',
-        'hover:bg-black/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10',
-        isActive ? 'text-neutral-900 dark:text-white' : 'opacity-70 hover:opacity-100',
+        'rounded-md p-1.5 transition-all duration-200',
+        isActive
+          ? 'bg-purple-600 text-white dark:bg-purple-500'
+          : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/[0.08] dark:hover:text-white',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-[#1c1c1e]',
       ].join(' ')}
     >
       {children}
     </button>
   );
-}
+});
 
 function formatTagLabel(tag: QuestionTag) {
   switch (tag) {

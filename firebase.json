@@ -54,6 +54,10 @@
         "function": "searchJobs"
       },
       {
+        "source": "/api/download-cv",
+        "function": "downloadCV"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

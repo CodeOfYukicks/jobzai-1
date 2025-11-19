@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import {
   X,
@@ -22,6 +22,9 @@ import {
   AlertCircle,
   XCircle,
   Archive,
+  Sparkles,
+  FileText,
+  StickyNote,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid } from 'date-fns';
@@ -32,6 +35,9 @@ import { SectionCard } from './SectionCard';
 import { TimelineItem } from './TimelineItem';
 import { InterviewCard } from './InterviewCard';
 import { AddInterviewForm } from './AddInterviewForm';
+import { AIToolsTab } from './AIToolsTab';
+import { NotesTab } from './NotesTab';
+import { EnhancedJobSummary } from './EnhancedJobSummary';
 import { toast } from 'sonner';
 
 // Helper function to safely parse dates from Firestore
@@ -118,12 +124,93 @@ const statusConfig = {
   },
 };
 
+// Helper function to get domain from company name
+function getDomainFromCompanyName(name?: string | null): string | null {
+  if (!name) return null;
+  try {
+    const slug = name
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    if (!slug) return null;
+    return `${slug}.com`;
+  } catch {
+    return null;
+  }
+}
+
+// Helper function to check if logo exists via API proxy or direct check
+async function checkLogoExists(domain: string): Promise<string | null> {
+  try {
+    // Try using the API proxy first (for development)
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment 
+      ? `http://localhost:3000/api/company-logo?domain=${encodeURIComponent(domain)}`
+      : `/api/company-logo?domain=${encodeURIComponent(domain)}`;
+    
+    try {
+      const response = await fetch(apiUrl);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.logoUrl) {
+          return data.logoUrl;
+        }
+      }
+    } catch (apiError) {
+      // API proxy not available, fall back to direct check
+      console.debug('API proxy not available, using direct check');
+    }
+    
+    // Fallback: Direct check using image element
+    const logoUrl = `https://logo.clearbit.com/${domain}`;
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(logoUrl);
+      img.onerror = () => resolve(null);
+      img.src = logoUrl;
+      // Timeout after 2 seconds
+      setTimeout(() => resolve(null), 2000);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDetailPanelProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedJob, setEditedJob] = useState<Partial<JobApplication>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity' | 'ai-tools' | 'notes'>('overview');
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [logoLoading, setLogoLoading] = useState(false);
+
+  // Fetch company logo when job changes
+  useEffect(() => {
+    if (!job?.companyName) {
+      setCompanyLogoUrl(null);
+      return;
+    }
+
+    const fetchLogo = async () => {
+      setLogoLoading(true);
+      const domain = getDomainFromCompanyName(job.companyName);
+      
+      if (!domain) {
+        setCompanyLogoUrl(null);
+        setLogoLoading(false);
+        return;
+      }
+
+      // Check if logo exists and get URL
+      const logoUrl = await checkLogoExists(domain);
+      setCompanyLogoUrl(logoUrl);
+      setLogoLoading(false);
+    };
+
+    fetchLogo();
+  }, [job?.companyName]);
 
   if (!job) return null;
 
@@ -238,8 +325,20 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0 pr-8">
                             <div className="flex items-center gap-3 mb-3">
-                              <div className={`p-2.5 rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}>
-                                <Building2 className={`w-5 h-5 ${currentStatus.color}`} />
+                              {/* Company Logo */}
+                              <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${currentStatus.bg} ${currentStatus.border} border flex items-center justify-center overflow-hidden`}>
+                                {logoLoading ? (
+                                  <div className="w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-purple-600 dark:border-t-purple-400 rounded-full animate-spin" />
+                                ) : companyLogoUrl ? (
+                                  <img 
+                                    src={companyLogoUrl} 
+                                    alt={job.companyName}
+                                    className="w-full h-full object-contain p-1.5"
+                                    onError={() => setCompanyLogoUrl(null)}
+                                  />
+                                ) : (
+                                  <Building2 className={`w-5 h-5 ${currentStatus.color}`} />
+                                )}
                               </div>
                               <Dialog.Title className="text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
                                 {job.position}
@@ -325,21 +424,44 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                       </div>
 
                       {/* Tabs */}
-                      <div className="px-8 flex gap-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-                        {(['overview', 'interviews', 'activity'] as const).map((tab) => (
+                      <div className="px-8 flex gap-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-x-auto">
+                        {([
+                          { id: 'overview', label: 'Overview', icon: null, badge: null },
+                          { id: 'interviews', label: 'Interviews', icon: null, badge: null },
+                          { id: 'activity', label: 'Activity', icon: null, badge: null },
+                          { id: 'ai-tools', label: 'AI Tools', icon: Sparkles, badge: 'New' },
+                          { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
+                        ] as const).map((tab) => (
                           <button
-                            key={tab}
+                            key={tab.id}
                             onClick={() => {
-                              setActiveTab(tab);
+                              setActiveTab(tab.id);
                               setShowAddInterviewForm(false);
                             }}
-                            className={`py-3 text-sm font-medium border-b-2 transition-all duration-200 capitalize ${
-                              activeTab === tab
+                            className={`py-3 px-1 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                              activeTab === tab.id
                                 ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                             }`}
                           >
-                            {tab}
+                            {tab.icon && <tab.icon className="w-4 h-4" />}
+                            <span>{tab.label}</span>
+                            {tab.badge && (
+                              <motion.span 
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                  tab.badge === 'New'
+                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm'
+                                    : tab.badge > 0
+                                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
+                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                }`}
+                              >
+                                {tab.badge}
+                              </motion.span>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -347,26 +469,46 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
 
                     {/* Two-Column Layout */}
                     <div className="flex-1 px-8 py-6">
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
                         {/* Left Column - Main Content */}
-                        <div className="lg:col-span-2 space-y-6">
+                        <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
                           {activeTab === 'overview' && (
                             <>
-                              {/* Description Section */}
-                              <SectionCard title="Job Description" icon={Building2}>
+                              {/* AI Powered Summary Section */}
+                              <SectionCard 
+                                title={
+                                  <div className="flex items-center gap-2">
+                                    <span>AI Powered Summary</span>
+                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-medium">
+                                      <Sparkles className="w-3 h-3" />
+                                      <span>AI</span>
+                                    </div>
+                                  </div>
+                                } 
+                                icon={Sparkles}
+                              >
                                 {isEditing ? (
                                   <textarea
                                     value={editedJob.description !== undefined ? editedJob.description : job.description || ''}
                                     onChange={(e) => setEditedJob({ ...editedJob, description: e.target.value })}
-                                    className="w-full min-h-[200px] p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
-                                    placeholder="Add job description, responsibilities, requirements, and company info..."
+                                    className="w-full min-h-[150px] p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
+                                    placeholder="• Key responsibilities and main duties...&#10;• Required qualifications and experience...&#10;• Notable aspects and unique selling points..."
                                   />
                                 ) : (
-                                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                    {job.description || 'No description available. Add details about the role, responsibilities, requirements, and company culture.'}
-                                  </p>
+                                  <EnhancedJobSummary job={job} />
                                 )}
                               </SectionCard>
+
+                              {/* Full Job Description Section */}
+                              {job.fullJobDescription && (
+                                <SectionCard title="Full Job Description" icon={FileText}>
+                                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                      {job.fullJobDescription}
+                                    </p>
+                                  </div>
+                                </SectionCard>
+                              )}
 
                               {/* Notes Section */}
                               <SectionCard title="Notes & Observations" icon={Edit3}>
@@ -444,7 +586,11 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                 {job.interviews && job.interviews.length > 0 ? (
                                   <div className="space-y-4">
                                     {job.interviews.map((interview) => (
-                                      <InterviewCard key={interview.id} interview={interview} />
+                                      <InterviewCard 
+                                        key={interview.id} 
+                                        interview={interview}
+                                        jobApplication={job}
+                                      />
                                     ))}
                                   </div>
                                 ) : (
@@ -484,9 +630,18 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                               )}
                             </SectionCard>
                           )}
+
+                          {activeTab === 'ai-tools' && (
+                            <AIToolsTab job={job} onUpdate={onUpdate} />
+                          )}
+
+                          {activeTab === 'notes' && (
+                            <NotesTab job={job} onUpdate={onUpdate} />
+                          )}
                         </div>
 
-                        {/* Right Column - Sidebar */}
+                        {/* Right Column - Sidebar (hidden for AI Tools and Notes tabs) */}
+                        {activeTab !== 'ai-tools' && activeTab !== 'notes' && (
                         <div className="lg:col-span-1 space-y-4">
                           {/* Status Card */}
                           <SectionCard title="Application Status">
@@ -558,6 +713,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                             <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">ID: {job.id}</div>
                           </div>
                         </div>
+                        )}
                       </div>
                     </div>
                   </div>

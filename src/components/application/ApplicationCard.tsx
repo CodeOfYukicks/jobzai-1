@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Edit3, Trash2, Calendar, MapPin, Users } from 'lucide-react';
+import { Trash2, Calendar, MapPin, Users } from 'lucide-react';
 import { JobApplication } from '../../types/job';
 import { StepChip } from './StepChip';
 import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl } from '../../utils/logo';
@@ -32,10 +32,9 @@ function formatDate(dateString: string): string {
 }
 
 export function ApplicationCard({
-  app, onEdit, onDelete, onClick, isDragging = false,
+  app, onDelete, onClick, isDragging = false,
 }: {
   app: JobApplication;
-  onEdit: () => void;
   onDelete: () => void;
   onClick: () => void;
   isDragging?: boolean;
@@ -168,16 +167,6 @@ export function ApplicationCard({
         <div className="flex items-center justify-end pt-3 border-t border-gray-200 dark:border-gray-800">
           {/* Actions visibles au hover */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-              aria-label="Edit application"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();

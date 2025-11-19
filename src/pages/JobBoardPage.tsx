@@ -433,20 +433,20 @@ export default function JobBoardPage() {
 	return (
 		<AuthLayout>
 			{/* Premium Container with Maximum Breathing Room - Dark Mode Friendly */}
-			<div className="min-h-screen bg-gradient-to-br from-[#FAFAFB] via-white to-[#F8F9FA] dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-4 sm:px-6 lg:px-8 py-6">
+			<div className="min-h-screen bg-gradient-to-br from-[#FAFAFB] via-white to-[#F8F9FA] dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-3 py-3">
 				
 				{/* LINKEDIN-STYLE SEARCH & FILTER SECTION */}
 				<motion.div 
 					initial={{ opacity: 0, y: -10 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-					className="mx-auto max-w-[1800px] mb-6"
+					className="w-full mb-4"
 				>
 					{/* Main Search Bar Container */}
-					<div className="bg-white dark:bg-gray-900/60 rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] border border-[#E5E7EB]/50 dark:border-gray-800/80 backdrop-blur-sm p-6">
+					<div className="bg-white dark:bg-gray-900/60 rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] border border-[#E5E7EB]/50 dark:border-gray-800/80 backdrop-blur-sm p-4">
 						
 						{/* Mode Selector + Search Inputs Row */}
-						<div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 mb-5">
+						<div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 mb-4">
 							
 							{/* Segmented Control - Browse / For You */}
 							<div className="inline-flex items-center rounded-[12px] bg-[#F3F4F6] dark:bg-gray-800/60 p-1 text-sm font-medium">
@@ -844,7 +844,7 @@ export default function JobBoardPage() {
 				</motion.div>
 
 				{/* Premium Split Layout Container */}
-				<div className="mx-auto max-w-[1800px] flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)] min-h-[600px]">
+				<div className="w-full flex flex-col lg:flex-row gap-4 h-[calc(100vh-160px)] min-h-[600px]">
 					
 					{/* LEFT PANEL - Job List (38% width) */}
 					<motion.section
@@ -855,7 +855,7 @@ export default function JobBoardPage() {
 						className="lg:w-[38%] flex flex-col bg-white dark:bg-gray-900/60 rounded-[16px] shadow-[0_2px_6px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_6px_rgba(0,0,0,0.3)] border border-[#E5E7EB]/50 dark:border-gray-800/80 backdrop-blur-sm"
 					>
 						{/* Job Cards List - Scrollable */}
-						<div className="flex-1 overflow-y-auto px-6 py-6 space-y-3">
+						<div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
 							{initialLoading ? (
 								// Premium Skeleton Loading
 								<div className="space-y-3">
@@ -1087,7 +1087,7 @@ export default function JobBoardPage() {
 									className="flex flex-col h-full"
 								>
 									{/* Sticky Header with Apply Button */}
-									<div className="sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-[#F3F4F6] dark:border-gray-800 px-12 py-8">
+									<div className="sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-[#F3F4F6] dark:border-gray-800 px-8 py-6">
 										<div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
 											<div className="flex-1">
 											<p className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-600 dark:text-indigo-400 mb-3">
@@ -1154,7 +1154,7 @@ export default function JobBoardPage() {
 									</div>
 
 									{/* Scrollable Content */}
-									<div className="flex-1 overflow-y-auto px-12 py-10 space-y-12">
+									<div className="flex-1 overflow-y-auto px-8 py-8 space-y-10">
 										{/* Job Metadata Grid */}
 										{(selectedJob.type || selectedJob.seniority || selectedJob.salaryRange || selectedJob.remote) && (
 											<div className="grid grid-cols-2 lg:grid-cols-4 gap-6 p-8 rounded-[14px] bg-gradient-to-br from-[#FAFAFB] to-[#F3F4F6] dark:from-gray-800/60 dark:to-gray-900/60 border border-[#E5E7EB]/50 dark:border-gray-800">

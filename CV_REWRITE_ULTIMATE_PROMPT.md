@@ -309,3 +309,5 @@ Quand l'utilisateur clique sur "CV Rewrite", il obtient maintenant :
 **Status** : ✅ IMPLÉMENTÉ  
 **Version** : 1.0  
 
+
+

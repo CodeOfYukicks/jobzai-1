@@ -31,7 +31,7 @@ export default function SidebarLink({
 
   const baseClasses = `group flex items-center ${
     isCollapsed ? 'justify-center px-2' : isSubmenuItem ? 'px-3' : 'px-3'
-  } py-2.5 text-sm font-medium rounded-xl 
+  } py-2 text-[13px] font-medium rounded-xl 
     transition-all duration-200 relative overflow-hidden
     ${isActive
       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
@@ -60,7 +60,7 @@ export default function SidebarLink({
 
       <div
         className={`relative flex items-center ${
-          isCollapsed ? 'justify-center' : 'gap-3 flex-1'
+          isCollapsed ? 'justify-center' : 'gap-2.5 flex-1'
         }`}
       >
         <Icon

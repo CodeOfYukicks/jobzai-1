@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { collection, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,6 +33,9 @@ import { InterviewQuestionsHeader } from '../components/interview/questions/Inte
 import { QuestionCard, QuestionTag } from '../components/interview/questions/QuestionCard';
 import { FocusQuestionModal } from '../components/interview/questions/FocusQuestionModal';
 import { InterviewWhiteboard } from '../components/board/InterviewWhiteboard';
+import { Suspense } from 'react';
+import { OverviewTab, QuestionsTab, SkillsTab, ResourcesTab, ChatTab } from '../components/interview/tabs';
+import { LazySection } from '../components/interview/utils/LazySection';
 
 // Interface for the job application data
 interface Note {
@@ -297,10 +300,17 @@ const getQuestionTags = (question: string): ('technical' | 'behavioral' | 'compa
   return tags;
 };
 
+// Canvas limits
+const CANVAS_MAX_X = 10000;
+const CANVAS_MAX_Y = 10000;
+const CANVAS_MIN_X = -1000;
+const CANVAS_MIN_Y = -1000;
+
 export default function InterviewPrepPage() {
   const { applicationId, interviewId } = useParams<{ applicationId: string, interviewId: string }>();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [application, setApplication] = useState<JobApplication | null>(null);
   const [interview, setInterview] = useState<Interview | null>(null);
@@ -647,6 +657,17 @@ Key points to mention:
         return;
       }
 
+      // Get navigation state if available
+      const navigationState = location.state as {
+        interviewId?: string;
+        companyName?: string;
+        position?: string;
+        interviewDate?: string;
+        interviewTime?: string;
+        jobUrl?: string;
+        jobDescription?: string;
+      } | null;
+
       try {
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
         const applicationSnapshot = await getDoc(applicationRef);
@@ -658,7 +679,10 @@ Key points to mention:
           const interviewData = appData.interviews?.find(interview => interview.id === interviewId);
           if (interviewData) {
             setInterview(interviewData);
-            setJobUrl(interviewData.jobPostUrl || appData.url || '');
+            
+            // Use navigation state URL if available, otherwise use stored URL
+            const urlToUse = navigationState?.jobUrl || interviewData.jobPostUrl || appData.url || '';
+            setJobUrl(urlToUse);
           } else {
             toast.error('Interview not found');
             navigate('/applications');
@@ -676,13 +700,40 @@ Key points to mention:
     };
 
     fetchData();
-  }, [currentUser, applicationId, interviewId, navigate]);
+  }, [currentUser, applicationId, interviewId, navigate, location.state]);
 
   useEffect(() => {
     if (interview?.skillRatings) {
       setSkillRatings(interview.skillRatings);
     }
   }, [interview]);
+
+  // Update drawingColor when theme changes
+  useEffect(() => {
+    const updateDrawingColor = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setDrawingColor(isDarkMode ? '#ffffff' : '#ef4444');
+    };
+
+    // Initial check
+    updateDrawingColor();
+
+    // Listen for theme changes
+    const observer = new MutationObserver(updateDrawingColor);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    // Also listen to custom theme change events
+    const handleThemeChange = () => updateDrawingColor();
+    window.addEventListener('themechange', handleThemeChange);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('themechange', handleThemeChange);
+    };
+  }, []);
 
   // Remove undefined fields recursively for Firestore
   const sanitizeForFirestore = (value: any): any => {
@@ -1363,6 +1414,29 @@ Key points to mention:
     setIsNoteModalOpen(true);
   };
 
+  // Handle double-click to edit note
+  const [lastClickTime, setLastClickTime] = useState<{ noteId: string; time: number } | null>(null);
+  const [showCanvasLimitWarning, setShowCanvasLimitWarning] = useState(false);
+  
+  const handleNoteClick = (noteId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const now = Date.now();
+    const note = stickyNotes.find(n => n.id === noteId);
+    
+    if (!note) return;
+    
+    // Check if this is a double-click (within 300ms)
+    if (lastClickTime && lastClickTime.noteId === noteId && now - lastClickTime.time < 300) {
+      // Double-click detected - open note for editing
+      openNote(note);
+      setLastClickTime(null);
+    } else {
+      // Single click - just record the time
+      setLastClickTime({ noteId, time: now });
+    }
+  };
+
   const saveNote = async () => {
     if (!currentUser || !application || !interview || !applicationId) return;
     
@@ -1429,30 +1503,31 @@ Key points to mention:
     }
   };
 
-  const deleteNote = async (noteId: string) => {
+  // OPTIMIZATION: Memoized deleteNote handler
+  const deleteNote = useCallback(async (noteId: string) => {
     if (!currentUser || !application || !interview || !applicationId) return;
     
     try {
       // Filter out the deleted note
-      const updatedNotes = stickyNotes.filter(note => note.id !== noteId);
-      
-      // Update the sticky notes state
-      setStickyNotes(updatedNotes);
-      
-      // Use our helper function to update the interview
-      updateInterviewNotes(updatedNotes);
+      setStickyNotes(prevNotes => {
+        const updatedNotes = prevNotes.filter(note => note.id !== noteId);
+        // Use our helper function to update the interview
+        updateInterviewNotes(updatedNotes);
+        return updatedNotes;
+      });
       
       toast.success('Note deleted successfully');
       
       // If the note modal is open and this note is being edited, close it
       if (isNoteModalOpen && activeNote && activeNote.id === noteId) {
         setIsNoteModalOpen(false);
+        setActiveNote(null);
       }
     } catch (error) {
       console.error('Error deleting note:', error);
       toast.error('Failed to delete note');
     }
-  };
+  }, [currentUser, application, interview, applicationId, isNoteModalOpen, activeNote]);
 
   const regenerateQuestions = async () => {
     if (!currentUser || !application || !interview || !interview.jobPostUrl || !applicationId) {
@@ -2133,10 +2208,22 @@ Make sure each answer is completely unique and specific to its question - no gen
       return;
     }
 
-    // Update position
+    // Apply canvas limits
+    const noteWidth = noteSizes[noteId]?.width || 250;
+    const noteHeight = noteSizes[noteId]?.height || 200;
+    const clampedX = Math.max(CANVAS_MIN_X, Math.min(CANVAS_MAX_X - noteWidth, data.x));
+    const clampedY = Math.max(CANVAS_MIN_Y, Math.min(CANVAS_MAX_Y - noteHeight, data.y));
+
+    // Show warning if limits were reached
+    if (clampedX !== data.x || clampedY !== data.y) {
+      setShowCanvasLimitWarning(true);
+      setTimeout(() => setShowCanvasLimitWarning(false), 2000);
+    }
+
+    // Update position with clamped values
     setNotePositions(prev => ({
       ...prev,
-      [noteId]: { x: data.x, y: data.y }
+      [noteId]: { x: clampedX, y: clampedY }
     }));
 
     // Save positions to Firestore
@@ -2147,7 +2234,7 @@ Make sure each answer is completely unique and specific to its question - no gen
         const updatedInterviews = [...(application.interviews || [])];
         const updatedNotes = stickyNotes.map(note => ({
           ...note,
-          position: note.id === noteId ? { x: data.x, y: data.y } : notePositions[note.id]
+          position: note.id === noteId ? { x: clampedX, y: clampedY } : notePositions[note.id]
         }));
         
         updatedInterviews[interviewIndex] = {
@@ -2166,6 +2253,94 @@ Make sure each answer is completely unique and specific to its question - no gen
       }
     }
   };
+
+  // Note resizing handlers
+  const handleResizeStart = useCallback((noteId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const currentSize = noteSizes[noteId] || { 
+      width: stickyNotes.find(n => n.id === noteId)?.width || 250, 
+      height: stickyNotes.find(n => n.id === noteId)?.height || 200 
+    };
+    
+    setIsResizing(true);
+    setResizingNoteId(noteId);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: currentSize.width,
+      height: currentSize.height
+    });
+  }, [noteSizes, stickyNotes]);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !resizingNoteId || !resizeStart) return;
+
+    const deltaX = e.clientX - resizeStart.x;
+    const deltaY = e.clientY - resizeStart.y;
+    
+    const newWidth = Math.max(150, resizeStart.width + deltaX);
+    const newHeight = Math.max(100, resizeStart.height + deltaY);
+
+    setNoteSizes(prev => ({
+      ...prev,
+      [resizingNoteId]: {
+        width: newWidth,
+        height: newHeight
+      }
+    }));
+  }, [isResizing, resizingNoteId, resizeStart]);
+
+  const handleResizeEnd = useCallback(() => {
+    if (!isResizing || !resizingNoteId) return;
+
+    setIsResizing(false);
+    
+    // Save to Firestore
+    if (currentUser && application && interview && applicationId) {
+      const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+      
+      if (interviewIndex !== -1) {
+        const updatedInterviews = [...(application.interviews || [])];
+        const updatedNotes = stickyNotes.map(note => ({
+          ...note,
+          width: noteSizes[note.id]?.width || note.width || 250,
+          height: noteSizes[note.id]?.height || note.height || 200,
+          position: notePositions[note.id] || note.position
+        }));
+        
+        updatedInterviews[interviewIndex] = {
+          ...interview,
+          stickyNotes: updatedNotes
+        };
+        
+        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+        updateDoc(applicationRef, {
+          interviews: updatedInterviews,
+          updatedAt: serverTimestamp()
+        }).catch(error => {
+          console.error('Error saving note sizes:', error);
+        });
+      }
+    }
+    
+    setResizingNoteId(null);
+    setResizeStart(null);
+  }, [isResizing, resizingNoteId, currentUser, application, interview, applicationId, stickyNotes, noteSizes, notePositions]);
+
+  // Add event listeners for resize
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleResizeMove);
+        document.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   const handleToolDragStart = (tool: 'arrow' | 'line' | 'rectangle' | 'circle', e: React.DragEvent) => {
     e.dataTransfer.setData('tool', tool);
@@ -2231,14 +2406,23 @@ Make sure each answer is completely unique and specific to its question - no gen
       return;
     }
 
-    // Handle other tools
+    // Handle other tools - use dynamic color based on current dark mode state
+    // Always check dark mode and use appropriate default color
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    // If user hasn't explicitly chosen a color (still using default), use white in dark mode, red in light mode
+    // Otherwise, use the color the user selected
+    const isDefaultColor = drawingColor === '#ef4444' || drawingColor === '#ffffff';
+    const shapeColor = isDefaultColor 
+      ? (isDarkMode ? '#ffffff' : '#ef4444')
+      : drawingColor;
+
     setIsDrawingShape(true);
     const newShape: Shape = {
       id: uuidv4(),
       type: selectedTool,
       startX: x,
       startY: y,
-      color: drawingColor
+      color: shapeColor
     };
 
     setDrawingShape(newShape);
@@ -2273,9 +2457,19 @@ Make sure each answer is completely unique and specific to its question - no gen
     }
   };
 
-  const handleCanvasMouseUp = () => {
+  // OPTIMIZATION: Memoized canvas mouse up handler
+  const handleCanvasMouseUp = useCallback(() => {
     // Handle pen tool (free drawing)
     if (isDrawingPath && selectedTool === 'pen' && pathPoints.length > 1) {
+      // Use dynamic color based on current dark mode state
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      // If user hasn't explicitly chosen a color (still using default), use white in dark mode, red in light mode
+      // Otherwise, use the color the user selected
+      const isDefaultColor = drawingColor === '#ef4444' || drawingColor === '#ffffff';
+      const pathColor = isDefaultColor 
+        ? (isDarkMode ? '#ffffff' : '#ef4444')
+        : drawingColor;
+      
       const pathShape: Shape = {
         id: uuidv4(),
         type: 'pen',
@@ -2283,7 +2477,7 @@ Make sure each answer is completely unique and specific to its question - no gen
         startY: pathPoints[0].y,
         endX: pathPoints[pathPoints.length - 1].x,
         endY: pathPoints[pathPoints.length - 1].y,
-        color: drawingColor,
+        color: pathColor,
         path: drawingPath
       };
       setShapes(prev => [...prev, pathShape]);
@@ -2300,112 +2494,9 @@ Make sure each answer is completely unique and specific to its question - no gen
       setSelectedTool('select');
     }
     setIsResizingShape(false);
-  };
+  }, [isDrawingPath, selectedTool, pathPoints, drawingColor, drawingPath, isDrawingShape, drawingShape]);
 
-  const handleNoteClick = (noteId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isDragging || isResizing) return;
-    
-    const note = stickyNotes.find(note => note.id === noteId);
-    if (note) {
-      openNote(note);
-    }
-  };
-
-  // Resize handlers
-  const handleResizeStart = (noteId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setIsResizing(true);
-    setResizingNoteId(noteId);
-    
-    const size = noteSizes[noteId] || { width: 250, height: 200 };
-    
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: size.width,
-      height: size.height
-    });
-  };
-
-  const handleResizeMove = (e: MouseEvent) => {
-    if (!isResizing || !resizingNoteId || !resizeStart) return;
-    
-    const deltaX = e.clientX - resizeStart.x;
-    const deltaY = e.clientY - resizeStart.y;
-    
-    const minWidth = 200;
-    const minHeight = 150;
-    const maxWidth = 600;
-    const maxHeight = 500;
-    
-    const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStart.width + deltaX));
-    const newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStart.height + deltaY));
-    
-    setNoteSizes(prev => ({
-      ...prev,
-      [resizingNoteId]: { width: newWidth, height: newHeight }
-    }));
-  };
-
-  const handleResizeEnd = () => {
-    if (!isResizing || !resizingNoteId || !currentUser || !application || !interview || !applicationId) {
-      setIsResizing(false);
-      setResizingNoteId(null);
-      setResizeStart(null);
-      return;
-    }
-    
-    // Save sizes to Firestore
-    const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
-    if (interviewIndex !== -1) {
-      const updatedInterviews = [...(application.interviews || [])];
-      const updatedNotes = stickyNotes.map(note => ({
-        ...note,
-        width: noteSizes[note.id]?.width || note.width || 250,
-        height: noteSizes[note.id]?.height || note.height || 200,
-        position: notePositions[note.id] || note.position
-      }));
-      
-      updatedInterviews[interviewIndex] = {
-        ...interview,
-        stickyNotes: updatedNotes
-      };
-      
-      const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-      updateDoc(applicationRef, {
-        interviews: updatedInterviews,
-        updatedAt: serverTimestamp()
-      }).catch(error => {
-        console.error('Error saving note sizes:', error);
-      });
-      
-      setInterview({
-        ...interview,
-        stickyNotes: updatedNotes
-      });
-    }
-    
-    setIsResizing(false);
-    setResizingNoteId(null);
-    setResizeStart(null);
-  };
-
-  // Add event listeners for resize
-  useEffect(() => {
-    if (isResizing) {
-      const handleMouseMove = (e: MouseEvent) => handleResizeMove(e);
-      const handleMouseUp = () => handleResizeEnd();
-      
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isResizing, resizingNoteId, resizeStart, stickyNotes, noteSizes, currentUser, application, interview, applicationId]);
+  // Resize handlers are already optimized above with useCallback
 
   // Close tool submenu when clicking outside
   useEffect(() => {
@@ -2733,7 +2824,7 @@ Make sure each answer is completely unique and specific to its question - no gen
   if (isLoading) {
     return (
       <AuthLayout>
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="h-full px-4 py-3">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-6"></div>
@@ -2751,7 +2842,7 @@ Make sure each answer is completely unique and specific to its question - no gen
   if (!application || !interview) {
     return (
       <AuthLayout>
-        <div className="max-w-6xl mx-auto px-4 py-8 text-center">
+        <div className="h-full px-4 py-3 text-center">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Interview not found</h1>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
             The interview you're looking for doesn't exist or you don't have access to it.
@@ -2769,12 +2860,13 @@ Make sure each answer is completely unique and specific to its question - no gen
 
   return (
     <AuthLayout>
-      <MotionConfig transition={{ duration: 0.3 }}>
-        <div className="max-w-6xl mx-auto pb-12 px-4 sm:px-6 md:px-8">
+      <MotionConfig transition={{ duration: 0.2 }}>
+        <div className="h-full px-4 py-3">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 mb-6"
+            transition={{ duration: 0.15 }}
+            className="mb-4"
           >
             <HeaderCard
               companyName={application?.companyName || ''}
@@ -3048,6 +3140,42 @@ Make sure each answer is completely unique and specific to its question - no gen
                 {tab === 'overview' && (
                   <motion.div
                     key="overview"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-5"
+                  >
+                    <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>}>
+                      <OverviewTab
+                        application={application!}
+                        interview={interview!}
+                        preparationProgress={preparationProgress}
+                        checklist={checklist}
+                        newsItems={newsItems}
+                        isNewsLoading={isNewsLoading}
+                        newsError={newsError}
+                        showAllChecklistItems={showAllChecklistItems}
+                        showAllNewsItems={showAllNewsItems}
+                        newTaskText={newTaskText}
+                        getProgressMilestones={getProgressMilestones}
+                        setTab={setTab}
+                        setShowAllChecklistItems={setShowAllChecklistItems}
+                        setShowAllNewsItems={setShowAllNewsItems}
+                        setNewTaskText={setNewTaskText}
+                        toggleChecklistItem={toggleChecklistItem}
+                        addChecklistItem={addChecklistItem}
+                        deleteChecklistItem={deleteChecklistItem}
+                        updateChecklistItemText={updateChecklistItemText}
+                        fetchCompanyNews={fetchCompanyNews}
+                        createNoteFromNews={createNoteFromNews}
+                      />
+                    </Suspense>
+                  </motion.div>
+                )}
+                {false && tab === 'overview_old' && (
+                  <motion.div
+                    key="overview_old"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
@@ -3612,6 +3740,37 @@ Make sure each answer is completely unique and specific to its question - no gen
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-6 relative"
+                  >
+                    <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>}>
+                      <QuestionsTab
+                        questionEntries={questionEntries}
+                        filteredQuestions={filteredQuestions}
+                        activeQuestionFilter={activeQuestionFilter}
+                        isRegeneratingQuestions={isRegeneratingQuestions}
+                        regeneratingProgress={regeneratingProgress}
+                        regeneratingMessage={regeneratingMessage}
+                        savedQuestionsState={savedQuestionsState}
+                        collapsedQuestions={collapsedQuestions}
+                        focusedQuestion={focusedQuestion}
+                        application={application!}
+                        setActiveQuestionFilter={setActiveQuestionFilter}
+                        regenerateQuestions={regenerateQuestions}
+                        handleToggleSuggestionVisibility={handleToggleSuggestionVisibility}
+                        handleToggleSaveQuestion={handleToggleSaveQuestion}
+                        handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
+                        setFocusedQuestion={setFocusedQuestion}
+                      />
+                    </Suspense>
+                  </motion.div>
+                )}
+                {false && tab === 'questions_old' && (
+                  <motion.div
+                    key="questions_old"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
                     className="space-y-6 relative"
                   >
                     {/* Loading Overlay - Bird animation for question regeneration */}
@@ -3848,6 +4007,33 @@ Make sure each answer is completely unique and specific to its question - no gen
                 {tab === 'skills' && (
                   <motion.div
                     key="skills"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>}>
+                      <SkillsTab
+                        interview={interview!}
+                        skillRatings={skillRatings}
+                        skillCoach={skillCoach}
+                        skillGaps={skillGaps}
+                        application={application!}
+                        handleRateSkill={handleRateSkill}
+                        toggleMicroTask={toggleMicroTask}
+                        ensureDefaultTasks={ensureDefaultTasks}
+                        addStarStory={addStarStory}
+                        updateStarField={updateStarField}
+                        deleteStarStory={deleteStarStory}
+                        exportStoryToNotes={exportStoryToNotes}
+                        practiceInChat={practiceInChat}
+                      />
+                    </Suspense>
+                  </motion.div>
+                )}
+                {false && tab === 'skills_old' && (
+                  <motion.div
+                    key="skills_old"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
@@ -4109,6 +4295,29 @@ Make sure each answer is completely unique and specific to its question - no gen
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>}>
+                      <ResourcesTab
+                        application={application!}
+                        resourcesData={resourcesData}
+                        newResourceTitle={newResourceTitle}
+                        newResourceUrl={newResourceUrl}
+                        setNewResourceTitle={setNewResourceTitle}
+                        setNewResourceUrl={setNewResourceUrl}
+                        setResourcesData={setResourcesData}
+                        saveResourcesData={saveResourcesData}
+                        shortenText={shortenText}
+                      />
+                    </Suspense>
+                  </motion.div>
+                )}
+                {false && tab === 'resources_old' && (
+                  <motion.div
+                    key="resources_old"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
                     className="grid grid-cols-1 md:grid-cols-3 gap-6"
                   >
                     <div className="md:col-span-3 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -4232,6 +4441,36 @@ Make sure each answer is completely unique and specific to its question - no gen
                 {tab === 'chat' && (
                   <motion.div
                     key="chat"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm"
+                  >
+                    <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>}>
+                      <ChatTab
+                        application={application!}
+                        interview={interview!}
+                        chatMessages={chatMessages}
+                        message={message}
+                        isSending={isSending}
+                        typingMessages={typingMessages}
+                        isUserNearBottom={isUserNearBottom}
+                        chatEndRef={chatEndRef}
+                        chatContainerRef={chatContainerRef}
+                        currentUser={currentUser}
+                        applicationId={applicationId!}
+                        setMessage={setMessage}
+                        sendMessage={sendMessage}
+                        saveChatHistory={saveChatHistory}
+                        setIsUserNearBottom={setIsUserNearBottom}
+                      />
+                    </Suspense>
+                  </motion.div>
+                )}
+                {false && tab === 'chat_old' && (
+                  <motion.div
+                    key="chat_old"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
@@ -4651,43 +4890,45 @@ Make sure each answer is completely unique and specific to its question - no gen
             )}
           </div>
 
-          {/* Interview Whiteboard - Miro-like board */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mb-8 overflow-hidden"
-          >
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <StickyNote className="w-5 h-5 text-amber-500" />
-                Interview Notes
-              </h3>
-              <button
-                onClick={() => {
-                  const whiteboardElement = document.querySelector('[data-whiteboard-toggle]') as HTMLElement;
-                  if (whiteboardElement) {
-                    whiteboardElement.click();
-                  }
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                title="Agrandir le tableau"
-              >
-                <Maximize2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Agrandir</span>
-              </button>
-            </div>
-            <div className="h-[600px]">
-              {applicationId && interviewId && (
-                <InterviewWhiteboard
-                  applicationId={applicationId}
-                  interviewId={interviewId}
-                  initialNotes={stickyNotes}
-                  initialConnections={connections}
-                />
-              )}
-            </div>
-          </motion.div>
+          {/* Interview Whiteboard - Miro-like board - Lazy loaded */}
+          <LazySection minHeight="600px" rootMargin="50px">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mb-8 overflow-hidden"
+            >
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <StickyNote className="w-5 h-5 text-amber-500" />
+                  Interview Notes
+                </h3>
+                <button
+                  onClick={() => {
+                    const whiteboardElement = document.querySelector('[data-whiteboard-toggle]') as HTMLElement;
+                    if (whiteboardElement) {
+                      whiteboardElement.click();
+                    }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                  title="Agrandir le tableau"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                  <span className="text-sm font-medium">Agrandir</span>
+                </button>
+              </div>
+              <div className="h-[600px]">
+                {applicationId && interviewId && (
+                  <InterviewWhiteboard
+                    applicationId={applicationId}
+                    interviewId={interviewId}
+                    initialNotes={stickyNotes}
+                    initialConnections={connections}
+                  />
+                )}
+              </div>
+            </motion.div>
+          </LazySection>
 
           {/* Old sticky notes section - commented out for reference */}
           {false && (
@@ -4765,29 +5006,48 @@ Make sure each answer is completely unique and specific to its question - no gen
                 >
                   {/* Tools Menu - Left Side */}
                   <div className="relative z-20">
-                    <div className="tool-menu h-full bg-white dark:bg-gray-800 rounded-l-2xl shadow-lg border-r border-gray-200 dark:border-gray-700 p-2 flex flex-col items-center gap-2">
+                    <div 
+                      className="tool-menu h-full bg-white dark:bg-gray-800 rounded-l-2xl shadow-lg border-r border-gray-200 dark:border-gray-700 flex flex-col items-center overflow-y-auto"
+                      style={{ padding: '8px', gap: '4px' }}
+                    >
                       {/* Close button */}
                       <button
                         onClick={() => setIsNotesExpanded(false)}
-                        className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors mb-2"
+                        className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors mb-1"
                       >
-                        <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                        <X className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                       </button>
                       
-                      {/* Tool buttons */}
+                      {/* Essential tools only - most used */}
                       <button
                         onClick={() => {
                           setSelectedTool('select');
                           setShowToolSubmenu(false);
                         }}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                        className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
                           selectedTool === 'select'
                             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
                             : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
                         }`}
                         title="Select"
                       >
-                        <MousePointer className="w-5 h-5" />
+                        <MousePointer className="w-3.5 h-3.5" />
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedTool('sticky');
+                          setShowToolSubmenu(false);
+                          createNewNote();
+                        }}
+                        className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
+                          selectedTool === 'sticky'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                        title="New Sticky Note"
+                      >
+                        <StickyNote className="w-3.5 h-3.5" />
                       </button>
                       
                       <button
@@ -4795,14 +5055,14 @@ Make sure each answer is completely unique and specific to its question - no gen
                           setSelectedTool('pen');
                           setShowToolSubmenu(true);
                         }}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                        className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
                           selectedTool === 'pen'
                             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
                             : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
                         }`}
-                        title="Pen"
+                        title="Draw"
                       >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M12 19l7-7 3 3-7 7-3-3z" />
                           <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
                           <path d="M2 2l7.586 7.586" />
@@ -4812,93 +5072,17 @@ Make sure each answer is completely unique and specific to its question - no gen
                       
                       <button
                         onClick={() => {
-                          setSelectedTool('rectangle');
-                          setShowToolSubmenu(false);
-                        }}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                          selectedTool === 'rectangle'
-                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}
-                        title="Rectangle"
-                      >
-                        <Square className="w-5 h-5" />
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          setSelectedTool('circle');
-                          setShowToolSubmenu(false);
-                        }}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                          selectedTool === 'circle'
-                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}
-                        title="Circle"
-                      >
-                        <Circle className="w-5 h-5" />
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          setSelectedTool('line');
-                          setShowToolSubmenu(false);
-                        }}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                          selectedTool === 'line'
-                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}
-                        title="Line"
-                      >
-                        <Minus className="w-5 h-5 rotate-45" />
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          setSelectedTool('arrow');
-                          setShowToolSubmenu(false);
-                        }}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                          selectedTool === 'arrow'
-                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}
-                        title="Arrow"
-                      >
-                        <ArrowUp className="w-5 h-5 rotate-45" />
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          setSelectedTool('sticky');
-                          setShowToolSubmenu(false);
-                          createNewNote();
-                        }}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                          selectedTool === 'sticky'
-                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}
-                        title="Sticky Note"
-                      >
-                        <StickyNote className="w-5 h-5" />
-                      </button>
-                      
-                      <button
-                        onClick={() => {
                           setSelectedTool('text');
                           setShowToolSubmenu(false);
                         }}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                        className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
                           selectedTool === 'text'
                             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
                             : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
                         }`}
                         title="Text"
                       >
-                        <span className="text-lg font-bold">T</span>
+                        <span className="text-sm font-bold">T</span>
                       </button>
                     </div>
                     
@@ -4907,58 +5091,46 @@ Make sure each answer is completely unique and specific to its question - no gen
                       <motion.div
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="tool-submenu absolute left-full ml-2 top-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-3 min-w-[120px]"
+                        className="tool-submenu absolute left-full ml-2 top-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 min-w-[100px]"
                       >
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           {/* Color options */}
-                          <div className="space-y-1.5">
-                            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Colors</div>
+                          <div className="space-y-1">
+                            <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1">Colors</div>
                             {[
                               { color: '#3b82f6', name: 'Blue' },
                               { color: '#ef4444', name: 'Red' },
                               { color: '#fbbf24', name: 'Yellow' },
                               { color: '#ec4899', name: 'Pink' },
-                              { color: '#ef4444', name: 'Red Circle' },
                             ].map((colorOption, idx) => (
                               <button
                                 key={idx}
-                                onClick={() => {
-                                  if (idx === 4) {
-                                    // Red circle option
-                                    setDrawingColor('#ef4444');
-                                  } else {
-                                    setDrawingColor(colorOption.color);
-                                  }
-                                }}
-                                className={`w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                onClick={() => setDrawingColor(colorOption.color)}
+                                className={`w-full flex items-center gap-1.5 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
                                   drawingColor === colorOption.color ? 'bg-purple-50 dark:bg-purple-900/20' : ''
                                 }`}
                               >
-                                {idx === 4 ? (
-                                  <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-gray-300"></div>
-                                ) : (
-                                  <div className="w-4 h-4 rounded" style={{ backgroundColor: colorOption.color }}></div>
-                                )}
-                                <span className="text-xs text-gray-700 dark:text-gray-300">{colorOption.name}</span>
+                                <div className="w-3 h-3 rounded" style={{ backgroundColor: colorOption.color }}></div>
+                                <span className="text-[10px] text-gray-700 dark:text-gray-300">{colorOption.name}</span>
                               </button>
                             ))}
                           </div>
                           
                           {/* Stroke width */}
-                          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Thickness</div>
-                            <div className="space-y-1">
+                          <div className="pt-1.5 border-t border-gray-200 dark:border-gray-700">
+                            <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1">Size</div>
+                            <div className="space-y-0.5">
                               {[1, 2, 3].map((width) => (
                                 <button
                                   key={width}
                                   onClick={() => setDrawingStrokeWidth(width)}
-                                  className={`w-full flex items-center gap-2 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                                  className={`w-full flex items-center gap-1.5 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
                                     drawingStrokeWidth === width ? 'bg-purple-50 dark:bg-purple-900/20' : ''
                                   }`}
                                 >
                                   <div className="flex gap-0.5">
                                     {Array(width).fill(0).map((_, i) => (
-                                      <div key={i} className="w-1 h-4 bg-gray-400 rounded"></div>
+                                      <div key={i} className="w-0.5 h-3 bg-gray-400 rounded"></div>
                                     ))}
                                   </div>
                                 </button>
@@ -4984,6 +5156,53 @@ Make sure each answer is completely unique and specific to its question - no gen
                     onMouseUp={handleCanvasMouseUp}
                     onMouseLeave={handleCanvasMouseUp}
                   >
+                    {/* Visual grid background to show canvas area */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        backgroundImage: `
+                          linear-gradient(to right, rgba(156, 163, 175, 0.1) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(156, 163, 175, 0.1) 1px, transparent 1px)
+                        `,
+                        backgroundSize: '100px 100px'
+                      }}
+                    />
+
+                    {/* Canvas info overlay */}
+                    <div className="absolute top-4 right-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2.5 z-50 text-xs border border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                          <div className="text-gray-700 dark:text-gray-300 font-medium">
+                            Canvas Active
+                          </div>
+                        </div>
+                        <div className="text-gray-600 dark:text-gray-400 text-[11px]">
+                          {CANVAS_MAX_X}×{CANVAS_MAX_Y}px
+                        </div>
+                        <div className="text-purple-600 dark:text-purple-400 text-[10px] font-medium">
+                          {stickyNotes.length} note{stickyNotes.length !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Canvas limit warning */}
+                    <AnimatePresence>
+                      {showCanvasLimitWarning && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute top-16 right-4 bg-amber-500/90 text-white backdrop-blur-sm rounded-lg shadow-lg px-4 py-2 z-50 text-sm font-medium"
+                        >
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            Canvas limit reached
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     {/* SVG overlay for drawing */}
                     <svg
                       className="absolute inset-0 w-full h-full pointer-events-none"
@@ -5116,16 +5335,24 @@ Make sure each answer is completely unique and specific to its question - no gen
                       )}
                       
                       {/* Render current pen path */}
-                      {isDrawingPath && drawingPath && (
-                        <path
-                          d={drawingPath}
-                          stroke={drawingColor}
-                          strokeWidth={drawingStrokeWidth}
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      )}
+                      {isDrawingPath && drawingPath && (() => {
+                        // Use dynamic color based on current dark mode state for preview
+                        const isDarkMode = document.documentElement.classList.contains('dark');
+                        const isDefaultColor = drawingColor === '#ef4444' || drawingColor === '#ffffff';
+                        const previewColor = isDefaultColor 
+                          ? (isDarkMode ? '#ffffff' : '#ef4444')
+                          : drawingColor;
+                        return (
+                          <path
+                            d={drawingPath}
+                            stroke={previewColor}
+                            strokeWidth={drawingStrokeWidth}
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        );
+                      })()}
                     </svg>
                     
                     {/* Notes overlay */}
@@ -5156,46 +5383,77 @@ Make sure each answer is completely unique and specific to its question - no gen
                             disabled={selectedTool !== 'select'}
                           >
                           <div 
-                            className="absolute rounded-lg shadow-lg cursor-move z-20"
+                            className={`absolute rounded-lg shadow-lg z-20 transition-all duration-200 ${
+                              isDragging 
+                                ? 'cursor-grabbing shadow-2xl scale-105 rotate-2' 
+                                : 'cursor-grab hover:shadow-xl'
+                            } ${
+                              isResizing && resizingNoteId === note.id
+                                ? 'ring-2 ring-purple-400 ring-offset-2'
+                                : !isDragging && 'hover:scale-[1.02]'
+                            }`}
                             style={{ 
                               backgroundColor: note.color,
                               width: `${noteSizes[note.id]?.width || note.width || 250}px`,
-                              height: `${noteSizes[note.id]?.height || note.height || 200}px`
+                              height: `${noteSizes[note.id]?.height || note.height || 200}px`,
+                              transition: (isResizing && resizingNoteId === note.id) || isDragging
+                                ? 'none' 
+                                : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                             }}
                           >
-                            <div className="p-4 h-full flex flex-col">
-                              <div className="flex justify-between items-start mb-2 flex-shrink-0">
-                                <h4 className="font-medium text-gray-800 truncate flex-1">
-                                  {note.title || 'Untitled Note'}
-                                </h4>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteNote(note.id);
-                                  }}
-                                  className="p-1 hover:bg-black/10 rounded-full flex-shrink-0 ml-2"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              <div 
-                                className="text-sm text-gray-700 flex-1 overflow-y-auto"
-                                onClick={(e) => {
-                                  if (!isDragging && !isResizing && selectedTool === 'select') {
-                                    handleNoteClick(note.id, e);
-                                  }
-                                }}
-                              >
-                                {note.content}
-                              </div>
-                              {/* Resize handle */}
-                              <div
-                                className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize bg-black/10 hover:bg-black/20 rounded-tl-lg transition-colors"
-                                onMouseDown={(e) => handleResizeStart(note.id, e)}
-                                style={{ cursor: isResizing && resizingNoteId === note.id ? 'se-resize' : 'se-resize' }}
-                              >
-                                <div className="absolute bottom-0.5 right-0.5 w-2 h-2 border-r-2 border-b-2 border-gray-600"></div>
-                              </div>
+                            {/* Calculate adaptive font sizes */}
+                            {useMemo(() => {
+                              const currentWidth = noteSizes[note.id]?.width || note.width || 250;
+                              const currentHeight = noteSizes[note.id]?.height || note.height || 200;
+                              // Calculate adaptive font size based on note dimensions - larger text
+                              const baseFontSize = Math.max(13, Math.min(28, currentWidth / 11));
+                              const titleFontSize = Math.max(15, Math.min(32, currentWidth / 9));
+                              const scaledPadding = Math.max(12, Math.min(24, currentWidth / 12));
+                              
+                              return (
+                                <div className="h-full flex flex-col" style={{ padding: `${scaledPadding}px` }}>
+                                  <div className="flex justify-between items-start mb-2 flex-shrink-0">
+                                    <h4 
+                                      className="font-medium text-gray-800 truncate flex-1"
+                                      style={{ fontSize: `${titleFontSize}px` }}
+                                    >
+                                      {note.title || 'Untitled Note'}
+                                    </h4>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteNote(note.id);
+                                      }}
+                                      className="p-1 hover:bg-black/10 rounded-full flex-shrink-0 ml-2"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  <div 
+                                    className="text-gray-700 flex-1 overflow-y-auto cursor-pointer hover:bg-black/5 rounded p-1 -m-1 transition-colors"
+                                    style={{ fontSize: `${baseFontSize}px`, lineHeight: '1.5' }}
+                                    onClick={(e) => {
+                                      if (!isDragging && !isResizing && selectedTool === 'select') {
+                                        handleNoteClick(note.id, e);
+                                      }
+                                    }}
+                                    title="Double-click to edit"
+                                  >
+                                    {note.content}
+                                  </div>
+                                </div>
+                              );
+                            }, [noteSizes[note.id]?.width, noteSizes[note.id]?.height, note.width, note.height, note.title, note.content, note.id, isDragging, isResizing, selectedTool])}
+                            {/* Resize handle */}
+                            <div
+                              className={`absolute bottom-0 right-0 w-4 h-4 cursor-se-resize rounded-tl-lg transition-all duration-200 ${
+                                isResizing && resizingNoteId === note.id
+                                  ? 'bg-purple-400/40 scale-125'
+                                  : 'bg-black/10 hover:bg-black/20 hover:scale-110'
+                              }`}
+                              onMouseDown={(e) => handleResizeStart(note.id, e)}
+                            >
+                              <div className="absolute bottom-0.5 right-0.5 w-2 h-2 border-r-2 border-b-2 border-gray-600 transition-colors"></div>
                             </div>
                           </div>
                         </Draggable>

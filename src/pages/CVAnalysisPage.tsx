@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -11,13 +12,14 @@ import {
   Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
   SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound,
   Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2,
-  Eye, Zap, MoreHorizontal, Copy
+  Eye, Zap, MoreHorizontal, Copy, MapPin
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { JobApplication } from '../types/job';
 import { getDownloadURL, ref, getStorage, uploadBytes, getBytes } from 'firebase/storage';
 import { toast } from 'sonner';
 import { db, storage, auth } from '../lib/firebase';
@@ -88,6 +90,7 @@ interface ATSAnalysis {
     priority: 'high' | 'medium' | 'low';
     examples?: string;
   }[];
+  _isLoading?: boolean; // Flag pour identifier les analyses en cours
   marketPositioning?: {
     competitiveAdvantages: string[];
     competitiveDisadvantages: string[];
@@ -2472,18 +2475,23 @@ export default function CVAnalysisPage() {
     jobDescription: '',
     jobUrl: '',
   });
-  const [jobInputMode, setJobInputMode] = useState<'ai' | 'manual'>('ai');
+  const [jobInputMode, setJobInputMode] = useState<'ai' | 'manual' | 'saved'>('ai');
+  const [savedJobs, setSavedJobs] = useState<JobApplication[]>([]);
+  const [jobSearchQuery, setJobSearchQuery] = useState('');
+  const [selectedSavedJob, setSelectedSavedJob] = useState<JobApplication | null>(null);
+  const [showJobDropdown, setShowJobDropdown] = useState(false);
+  const [isLoadingSavedJobs, setIsLoadingSavedJobs] = useState(false);
   const [isExtractingJob, setIsExtractingJob] = useState(false);
   const [analyses, setAnalyses] = useState<ATSAnalysis[]>([]);
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLLabelElement>(null);
+  const jobSelectorRef = useRef<HTMLDivElement>(null);
+  const jobDropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [validationEnabled, setValidationEnabled] = useState(true);
-  const [loadingStep, setLoadingStep] = useState<string>('preparing');
-  const [loadingMessage, setLoadingMessage] = useState<string>('Preparing to analyze your resume...');
-  const [loadingProgress, setLoadingProgress] = useState<number>(0);
   
   // Add these state variables for CV selection modal
   const [cvModalOpen, setCvModalOpen] = useState(false);
@@ -2543,6 +2551,84 @@ export default function CVAnalysisPage() {
     }
   }, [isModalOpen, currentUser, fetchUserCV]);
 
+  // Charger les job applications depuis Firestore
+  useEffect(() => {
+    const fetchSavedJobs = async () => {
+      if (!currentUser || !isModalOpen) return;
+      
+      setIsLoadingSavedJobs(true);
+      try {
+        const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+        const q = query(applicationsRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        const jobs: JobApplication[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = { id: doc.id, ...doc.data() } as JobApplication;
+          // Inclure tous les jobs, même ceux sans fullJobDescription
+          // L'utilisateur pourra toujours utiliser description si disponible
+          if (data.position && data.companyName) {
+            jobs.push(data);
+          }
+        });
+        
+        setSavedJobs(jobs);
+      } catch (error) {
+        console.error('Error fetching saved jobs:', error);
+        toast.error('Failed to load saved jobs');
+      } finally {
+        setIsLoadingSavedJobs(false);
+      }
+    };
+
+    fetchSavedJobs();
+  }, [currentUser, isModalOpen]);
+
+  // Calculer la position du dropdown pour éviter qu'il soit coupé
+  useEffect(() => {
+    if (showJobDropdown && jobSelectorRef.current) {
+      const updatePosition = () => {
+        if (jobSelectorRef.current) {
+          const rect = jobSelectorRef.current.getBoundingClientRect();
+          setDropdownPosition({
+            top: rect.bottom + 8,
+            left: rect.left,
+            width: rect.width
+          });
+        }
+      };
+
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    } else {
+      setDropdownPosition(null);
+    }
+  }, [showJobDropdown, jobSearchQuery, savedJobs.length]);
+
+  // Fermer le dropdown quand on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (jobSelectorRef.current && !jobSelectorRef.current.contains(target) &&
+          jobDropdownRef.current && !jobDropdownRef.current.contains(target)) {
+        setShowJobDropdown(false);
+      }
+    };
+
+    if (showJobDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showJobDropdown]);
+
   // Charger les analyses sauvegardées
   useEffect(() => {
     const fetchSavedAnalyses = async () => {
@@ -2558,7 +2644,8 @@ export default function CVAnalysisPage() {
         const savedAnalyses: ATSAnalysis[] = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          if (!data.deleted && data.matchScore !== undefined) { // Don't load analyses marked as deleted or incomplete
+          // Include loading analyses (_isLoading: true) and completed analyses
+          if (!data.deleted && (data.matchScore !== undefined || data._isLoading === true)) {
             // Support both old (timestamp) and new (date) formats
             const analysisDate = data.date || data.timestamp;
             
@@ -2622,7 +2709,7 @@ export default function CVAnalysisPage() {
               date: analysisDate,
               jobTitle: data.jobTitle || 'Untitled Position',
               company: data.company || 'Unknown Company',
-              matchScore: data.matchScore,
+              matchScore: data.matchScore || 0,
               userId: currentUser.uid,
               keyFindings: data.keyFindings || (Array.isArray(data.executive_summary) ? data.executive_summary : [data.executive_summary || '']),
               skillsMatch: skillsMatch,
@@ -2636,7 +2723,8 @@ export default function CVAnalysisPage() {
               },
               executiveSummary: data.executiveSummary || data.executive_summary || '',
               jobSummary: data.jobSummary || undefined,
-              // Preserve premium analysis data if present
+              // Preserve loading state and premium analysis data
+              _isLoading: data._isLoading || false,
               _premiumAnalysis: data._premiumAnalysis,
             });
           }
@@ -2797,6 +2885,8 @@ export default function CVAnalysisPage() {
         throw new Error('User must be authenticated to download CV');
       }
       
+      // Use Firebase Storage SDK directly (no CORS issues!)
+      // This works because Firebase Storage SDK handles authentication automatically
       let storagePath = '';
       
       // Determine the storage path from the URL
@@ -2825,50 +2915,42 @@ export default function CVAnalysisPage() {
         throw new Error('Could not determine storage path');
       }
       
-      // Use Cloud Function to download the file (avoids CORS completely)
-      console.log('📥 Calling Cloud Function to download CV...');
+      console.log('📥 Downloading CV using authenticated request...');
       
-      // Get the function URL
-      const functionUrl = `https://us-central1-${auth.app.options.projectId}.cloudfunctions.net/downloadCV`;
-      
-      // Get the auth token
+      // Get authentication token
       const token = await currentUser.getIdToken();
       
-      // Call the function using fetch with proper CORS headers
-      const response = await fetch(functionUrl, {
-        method: 'POST',
+      // Use Firebase Storage REST API with authentication (bypasses CORS)
+      // Format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media
+      const bucket = 'jobzai.firebasestorage.app';
+      const encodedPath = encodeURIComponent(storagePath);
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media`;
+      
+      console.log('📥 Downloading from:', downloadUrl);
+      
+      // Make authenticated request
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ storagePath }),
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Download failed:', response.status, errorText);
+        throw new Error(`Failed to download CV: ${response.statusText} (${response.status})`);
       }
       
-      const data = await response.json() as { success: boolean; data: string; contentType: string; size: number };
+      const blob = await response.blob();
       
-      if (!data.success || !data.data) {
-        throw new Error(data.message || 'Failed to download CV from server');
-      }
-      
-      console.log('✅ CV downloaded via Cloud Function:', {
-        size: data.size,
-        contentType: data.contentType
+      console.log('✅ CV downloaded successfully:', {
+        size: blob.size,
+        type: blob.type
       });
       
-      // Convert base64 to blob, then to File object
-      const binaryString = atob(data.data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const blob = new Blob([bytes], { type: data.contentType || 'application/pdf' });
-      const file = new File([blob], cvName, { type: data.contentType || 'application/pdf' });
+      // Convert blob to File object
+      const file = new File([blob], cvName, { type: blob.type || 'application/pdf' });
       
       setIsDownloadingCV(false);
       toast.success('CV loaded successfully');
@@ -3410,97 +3492,7 @@ Return ONLY a structured JSON object with the following schema:
     }
   };
 
-  const loadingMessages = {
-    preparing: [
-      "Preparing your resume analysis...",
-      "Initializing AI analysis engine...",
-      "Loading analysis tools...",
-      "Setting up the analysis framework...",
-      "Preparing to analyze your resume..."
-    ],
-    analyzing: [
-      "Analyzing your resume content...",
-      "Reading and processing your CV...",
-      "Extracting key information...",
-      "Analyzing your professional profile...",
-      "Processing your qualifications..."
-    ],
-    matching: [
-      "Matching your profile with job requirements...",
-      "Calculating compatibility score...",
-      "Analyzing skills alignment...",
-      "Evaluating experience match...",
-      "Assessing your qualifications..."
-    ],
-    finalizing: [
-      "Generating personalized recommendations...",
-      "Preparing your analysis report...",
-      "Finalizing insights and suggestions...",
-      "Compiling your results...",
-      "Almost done..."
-    ]
-  };
-
-
-  // Modifier l'effet pour les messages sans clignotement
-  useEffect(() => {
-    if (!isLoading) return;
-    
-    // Initialiser le message pour l'étape actuelle
-    const messages = loadingMessages[loadingStep as keyof typeof loadingMessages];
-    if (messages && messages.length > 0) {
-      setLoadingMessage(messages[0]);
-    }
-    
-    // Change message every 8 seconds (plus long pour éviter le clignotement)
-    const messageInterval = setInterval(() => {
-      const messages = loadingMessages[loadingStep as keyof typeof loadingMessages];
-      
-      if (messages && messages.length > 0) {
-      setLoadingMessage(prev => {
-        // Sélectionner un nouveau message différent de l'actuel
-          const currentMessage = prev;
-        let newMessage;
-          let attempts = 0;
-        do {
-          const idx = Math.floor(Math.random() * messages.length);
-          newMessage = messages[idx];
-            attempts++;
-            // Éviter une boucle infinie
-            if (attempts > 10) break;
-        } while (newMessage === currentMessage && messages.length > 1);
-        
-          return newMessage || messages[0];
-      });
-      }
-    }, 8000); // Intervalle plus long pour réduire le clignotement
-    
-    // Simulate progress plus fluide et progressif
-    const progressInterval = setInterval(() => {
-      setLoadingProgress(prev => {
-        // Cap progress based on current step
-        const caps = {
-          'preparing': 25,
-          'analyzing': 65,
-          'matching': 85,
-          'finalizing': 95
-        };
-        const cap = caps[loadingStep as keyof typeof caps] || 95;
-        
-        if (prev >= cap) return prev;
-        
-        // Increment plus petit et plus progressif
-        const remainingProgress = cap - prev;
-        const increment = Math.max(0.1, remainingProgress * 0.01);
-        return Math.min(prev + increment, cap);
-      });
-    }, 500); // Plus lent pour éviter les sauts
-    
-    return () => {
-      clearInterval(messageInterval);
-      clearInterval(progressInterval);
-    };
-  }, [isLoading, loadingStep]);
+  // Loading messages removed - background analysis now
 
   // Fonction pour extraire les informations du job depuis l'URL
   const handleExtractJobInfo = async () => {
@@ -3785,7 +3777,7 @@ URL to visit: ${jobUrl}
     }
   };
 
-  // Modifier la fonction handleAnalysis pour fermer le modal avant d'activer le chargement
+  // Fonction pour effectuer l'analyse en arrière-plan
   const handleAnalysis = async () => {
     try {
       // Force disable validation to ensure we use the real API
@@ -3796,22 +3788,62 @@ URL to visit: ${jobUrl}
       
       console.log("🚀 STARTING ANALYSIS - Using GPT-4o Vision for PDF analysis");
       
-      // Fermer le modal avant d'afficher l'écran de chargement
+      // Fermer le modal immédiatement
       setIsModalOpen(false);
-      
-      // Petit délai pour permettre à l'animation de fermeture du modal de se terminer
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Maintenant activer l'écran de chargement
-      setIsLoading(true);
-      setLoadingStep('preparing');
-      setLoadingProgress(0);
       
       if (!cvFile && !selectedCV) {
         toast.error('Please select a resume');
-        setIsLoading(false);
         return;
       }
+
+      // Créer une carte placeholder immédiatement pour une expérience non-bloquante
+      const placeholderId = crypto.randomUUID();
+      const placeholderAnalysis: ATSAnalysis = {
+        id: placeholderId,
+        date: new Date().toISOString(),
+        userId: auth.currentUser?.uid || 'anonymous',
+        jobTitle: formData.jobTitle || 'Analyzing...',
+        company: formData.company || 'Processing...',
+        matchScore: 0,
+        keyFindings: [],
+        skillsMatch: {
+          matching: [],
+          missing: [],
+          alternative: []
+        },
+        categoryScores: {
+          skills: 0,
+          experience: 0,
+          education: 0,
+          industryFit: 0
+        },
+        executiveSummary: '',
+        experienceAnalysis: [],
+        recommendations: [],
+        _isLoading: true, // Flag pour identifier les analyses en cours
+      };
+      
+      // Sauvegarder immédiatement le placeholder dans Firestore pour persister l'état
+      try {
+        const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
+        await setDoc(doc(analysesRef, placeholderId), {
+          ...placeholderAnalysis,
+          timestamp: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        });
+        console.log('✅ Placeholder saved to Firestore:', placeholderId);
+      } catch (error) {
+        console.error('❌ Error saving placeholder:', error);
+      }
+      
+      // Ajouter le placeholder à la liste
+      setAnalyses(prev => [placeholderAnalysis, ...prev]);
+      
+      // Afficher un toast informatif
+      toast.info('Analysis started in background. You can continue browsing.', {
+        duration: 4000,
+        icon: '🚀'
+      });
 
       // Use PDF file for PREMIUM ATS Analysis
       if (cvFile && cvFile.type === 'application/pdf') {
@@ -3832,22 +3864,18 @@ URL to visit: ${jobUrl}
           if (!jobTitle || !company || jobTitle === 'Untitled Position' || company === 'Unknown Company') {
             toast.error('Job title and company are required. Please extract or enter them first.');
             console.error('❌ Missing job information:', { jobTitle, company });
-            setIsLoading(false);
+            // Supprimer le placeholder de Firestore et de l'état local
+            try {
+              const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
+              await deleteDoc(doc(analysesRef, placeholderId));
+            } catch (deleteError) {
+              console.error('❌ Error deleting placeholder:', deleteError);
+            }
+            setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
             return;
           }
           
-          // Update loading states
-          setLoadingStep('preparing');
-          setLoadingProgress(10);
-          
           console.log('📸 Converting PDF to images for premium analysis...');
-          
-          // Generate unique analysis ID
-          const analysisId = crypto.randomUUID();
-          
-          // Call premium analysis function
-          setLoadingStep('analyzing');
-          setLoadingProgress(30);
           
           const result = await analyzePDFWithPremiumATS(
             cvFile,
@@ -3859,7 +3887,7 @@ URL to visit: ${jobUrl}
               jobUrl: formData.jobUrl,
             },
             auth.currentUser?.uid || 'anonymous',
-            analysisId
+            placeholderId // Utiliser le placeholder ID
           );
           
           if (result.status === 'error') {
@@ -3868,25 +3896,14 @@ URL to visit: ${jobUrl}
           
           console.log('✅ Premium ATS analysis successful!', result.analysis);
           
-          // Update loading step
-          setLoadingStep('matching');
-          setLoadingProgress(70);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
           // Generate job summary in parallel
-          setLoadingProgress(80);
           const jobSummary = await generateJobSummary(jobTitle, company, jobDescription);
           console.log('✅ Job summary generated:', jobSummary ? `Yes (${jobSummary.length} chars)` : 'No');
           
-          // Update loading step
-          setLoadingStep('finalizing');
-          setLoadingProgress(90);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
           // The premium analysis already saved to Firestore in the Cloud Function
-          // Just fetch it and add to local state
+          // Update the placeholder with real data
           const fullAnalysis = {
-            id: analysisId,
+            id: placeholderId,
             date: new Date().toISOString(),
             userId: auth.currentUser?.uid || 'anonymous',
             jobTitle: jobTitle,
@@ -3931,35 +3948,78 @@ URL to visit: ${jobUrl}
             hasJobSummary: !!fullAnalysis.jobSummary,
           });
           
-          // Update UI
-          setAnalyses(prev => [fullAnalysis as any, ...prev]);
+          // Mettre à jour Firestore avec les vraies données
+          try {
+            const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
+            await setDoc(doc(analysesRef, placeholderId), {
+              ...fullAnalysis,
+              _isLoading: false, // Enlever le flag de chargement
+              timestamp: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            }, { merge: true });
+            console.log('✅ Analysis updated in Firestore:', placeholderId);
+          } catch (error) {
+            console.error('❌ Error updating analysis in Firestore:', error);
+          }
+          
+          // Remplacer le placeholder par l'analyse complète dans l'état local
+          setAnalyses(prev => prev.map(a => 
+            a.id === placeholderId ? { ...fullAnalysis as any, _isLoading: false } : a
+          ));
+          
+          // Reset form
           setCurrentStep(1);
           setCvFile(null);
           setUsingSavedCV(false);
           setSelectedCV('');
-          setLoadingProgress(100);
+          setSelectedSavedJob(null);
+          setJobSearchQuery('');
+          setShowJobDropdown(false);
           
-          // Short delay before hiding loading screen
-          await new Promise(resolve => setTimeout(resolve, 500));
-          setIsLoading(false);
-          
-          toast.dismiss();
-          toast.success('🎉 Premium ATS analysis completed!');
+          // Notification de succès
+          toast.success(`Analysis complete! Match score: ${fullAnalysis.matchScore}%`, {
+            duration: 5000,
+            icon: '🎉'
+          });
         } catch (error: any) {
           console.error('❌ Premium ATS analysis failed:', error);
-          setIsLoading(false);
-          toast.error(`Analysis failed: ${error.message || 'Unknown error'}`);
-          throw error;
+          // Supprimer le placeholder de Firestore et de l'état local
+          try {
+            const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
+            await deleteDoc(doc(analysesRef, placeholderId));
+            console.log('✅ Placeholder removed from Firestore');
+          } catch (deleteError) {
+            console.error('❌ Error deleting placeholder from Firestore:', deleteError);
+          }
+          setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
+          toast.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
+            duration: 5000
+          });
         }
       } else {
         toast.error('Please upload a PDF file for analysis');
-        setIsLoading(false);
+        // Supprimer le placeholder de Firestore et de l'état local
+        try {
+          const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
+          await deleteDoc(doc(analysesRef, placeholderId));
+        } catch (deleteError) {
+          console.error('❌ Error deleting placeholder:', deleteError);
+        }
+        setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
       }
     } catch (error: any) {
       console.error('Analysis failed:', error);
-      toast.dismiss();
-      toast.error(`Analysis failed: ${error.message || 'Unknown error'}`);
-      setIsLoading(false);
+      // Supprimer le placeholder de Firestore et de l'état local
+      try {
+        const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
+        await deleteDoc(doc(analysesRef, placeholderId));
+      } catch (deleteError) {
+        console.error('❌ Error deleting placeholder:', deleteError);
+      }
+      setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
+      toast.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
+        duration: 5000
+      });
     }
   };
 
@@ -4103,21 +4163,22 @@ URL to visit: ${jobUrl}
     analysis, 
     onDelete, 
     viewMode = 'list',
-    onSelect,
-    isLoading = false
+    onSelect
   }: { 
     analysis: ATSAnalysis, 
     onDelete: (id: string) => void,
     viewMode?: 'grid' | 'list',
-    onSelect?: () => void,
-    isLoading?: boolean
+    onSelect?: () => void
   }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+    const isAnalysisLoading = analysis._isLoading || false;
     
     const toggleExpand = () => {
+      // Ne pas permettre l'expansion si l'analyse est en cours
+      if (isAnalysisLoading) return;
       setIsExpanded(!isExpanded);
       if (!isExpanded) {
         setExpandedSection(null);
@@ -4144,17 +4205,79 @@ URL to visit: ${jobUrl}
 
     const isGrid = viewMode === 'grid';
     
+    // Si l'analyse est en cours de chargement, afficher une carte skeleton
+    if (isAnalysisLoading) {
+      return (
+        <motion.div
+          key={analysis.id}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative group rounded-xl p-5 border-2 border-dashed shadow-sm bg-gradient-to-br from-purple-50/50 to-indigo-50/50 dark:from-purple-900/10 dark:to-indigo-900/10 border-purple-300 dark:border-purple-700 overflow-hidden"
+        >
+          {/* Animated gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent animate-shimmer" 
+            style={{
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 2s infinite'
+            }}
+          />
+          
+          <div className="relative z-10 space-y-4">
+            {/* Header avec animation pulse */}
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-lg bg-purple-200 dark:bg-purple-800/30 animate-pulse flex items-center justify-center">
+                <Loader2 className="w-6 h-6 text-purple-600 dark:text-purple-400 animate-spin" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="h-5 bg-purple-200 dark:bg-purple-800/30 rounded-md animate-pulse" style={{ width: '60%' }} />
+                <div className="h-4 bg-purple-100 dark:bg-purple-900/20 rounded-md animate-pulse" style={{ width: '40%' }} />
+              </div>
+              <div className="px-3 py-1 bg-purple-200 dark:bg-purple-800/30 rounded-full animate-pulse h-6" style={{ width: '80px' }} />
+            </div>
+            
+            {/* Status message */}
+            <div className="flex items-center gap-2 px-4 py-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg border border-purple-200 dark:border-purple-800/30">
+              <Zap className="w-4 h-4 text-purple-600 dark:text-purple-400 animate-pulse" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                  Analyzing resume with AI...
+                </p>
+                <p className="text-xs text-purple-700 dark:text-purple-300 mt-0.5">
+                  This usually takes 1-2 minutes. You can navigate away!
+                </p>
+              </div>
+            </div>
+            
+            {/* Progress bars skeleton */}
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-16 bg-purple-100 dark:bg-purple-900/20 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          </div>
+          
+          <style jsx>{`
+            @keyframes shimmer {
+              0% { background-position: -200% 0; }
+              100% { background-position: 200% 0; }
+            }
+            .animate-shimmer {
+              animation: shimmer 2s infinite;
+            }
+          `}</style>
+        </motion.div>
+      );
+    }
+    
     return (
       <motion.div
         key={analysis.id}
-        initial={isLoading ? false : { opacity: 0, y: 20 }}
-        animate={isLoading ? false : { opacity: 1, y: 0 }}
-        whileHover={isLoading ? {} : { y: -4, scale: 1.02 }}
-        transition={isLoading ? { duration: 0 } : { duration: 0.2 }}
-        className={`relative group rounded-xl p-5 border shadow-sm bg-white dark:bg-[#1E1F22] dark:border-[#2A2A2E] dark:text-gray-100 dark:shadow-none cursor-pointer dark:hover:bg-[#26262B] ${isLoading ? '' : 'hover:shadow-md transition-all'}`}
-        style={isLoading ? { willChange: 'auto', transform: 'translateZ(0)', transition: 'none' } : {}}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -4, scale: 1.02 }}
+        transition={{ duration: 0.2 }}
+        className="relative group rounded-xl p-5 border shadow-sm bg-white dark:bg-[#1E1F22] dark:border-[#2A2A2E] dark:text-gray-100 dark:shadow-none cursor-pointer dark:hover:bg-[#26262B] hover:shadow-md transition-all"
         onClick={() => {
-          if (isLoading) return;
           if (onSelect) {
             onSelect();
           } else {
@@ -6108,26 +6231,53 @@ URL to visit: ${jobUrl}
           {/* Mode Toggle */}
           <div className="flex items-center gap-2 p-1 bg-gray-100/50 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
             <button
-              onClick={() => setJobInputMode('ai')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
+              onClick={() => {
+                setJobInputMode('ai');
+                setSelectedSavedJob(null);
+                setJobSearchQuery('');
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
                 jobInputMode === 'ai'
                   ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
               }`}
             >
               <Wand2 className="w-3.5 h-3.5" />
-              AI Extraction
+              <span className="hidden sm:inline">AI Extraction</span>
+              <span className="sm:hidden">AI</span>
             </button>
             <button
-              onClick={() => setJobInputMode('manual')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
+              onClick={() => {
+                setJobInputMode('manual');
+                setSelectedSavedJob(null);
+                setJobSearchQuery('');
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
                 jobInputMode === 'manual'
                   ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
               }`}
             >
               <AlignLeft className="w-3.5 h-3.5" />
-              Manual Entry
+              <span className="hidden sm:inline">Manual Entry</span>
+              <span className="sm:hidden">Manual</span>
+            </button>
+            <button
+              onClick={() => {
+                setJobInputMode('saved');
+                if (savedJobs.length > 0 && !selectedSavedJob) {
+                  setShowJobDropdown(true);
+                }
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
+                jobInputMode === 'saved'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Saved Jobs</span>
+              <span className="sm:hidden">Saved</span>
             </button>
           </div>
 
@@ -6300,6 +6450,223 @@ URL to visit: ${jobUrl}
         </div>
             </motion.div>
           )}
+
+          {/* Saved Jobs Mode */}
+          {jobInputMode === 'saved' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3"
+            >
+              <div className="relative job-selector-container" ref={jobSelectorRef}>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  Select a Saved Job
+                </label>
+                
+                {/* Search Input */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={selectedSavedJob ? `${selectedSavedJob.companyName} - ${selectedSavedJob.position}` : jobSearchQuery}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setJobSearchQuery(value);
+                      // Si on efface la sélection, réinitialiser
+                      if (selectedSavedJob && !value.includes(selectedSavedJob.companyName)) {
+                        setSelectedSavedJob(null);
+                        setFormData({
+                          jobTitle: '',
+                          company: '',
+                          jobDescription: '',
+                          jobUrl: '',
+                        });
+                      }
+                      setShowJobDropdown(true);
+                    }}
+                    onFocus={() => {
+                      if (savedJobs.length > 0) {
+                        setShowJobDropdown(true);
+                      }
+                    }}
+                    onClick={() => {
+                      if (savedJobs.length > 0) {
+                        setShowJobDropdown(true);
+                      }
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
+                      focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
+                      dark:bg-gray-800/30 dark:text-white text-xs
+                      bg-gray-50/50 backdrop-blur-sm
+                      transition-all duration-200"
+                    placeholder="Search by company or position..."
+                  />
+                  {selectedSavedJob && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSavedJob(null);
+                        setJobSearchQuery('');
+                        setFormData({
+                          jobTitle: '',
+                          company: '',
+                          jobDescription: '',
+                          jobUrl: '',
+                        });
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 text-gray-400" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Dropdown avec les jobs */}
+                <AnimatePresence>
+                  {showJobDropdown && savedJobs.length > 0 && (
+                    <motion.div
+                      ref={jobDropdownRef}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200/60 dark:border-gray-700/50 rounded-xl shadow-xl max-h-80 overflow-y-auto"
+                      style={dropdownPosition ? {
+                        position: 'fixed',
+                        top: `${dropdownPosition.top}px`,
+                        left: `${dropdownPosition.left}px`,
+                        width: `${dropdownPosition.width}px`,
+                        zIndex: 100
+                      } : {
+                        position: 'fixed',
+                        zIndex: 100
+                      }}
+                    >
+                      {isLoadingSavedJobs ? (
+                        <div className="p-4 text-center">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto text-gray-400" />
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Loading jobs...</p>
+                        </div>
+                      ) : (
+                        <>
+                          {savedJobs
+                            .filter(job => 
+                              !jobSearchQuery || 
+                              job.companyName.toLowerCase().includes(jobSearchQuery.toLowerCase()) ||
+                              job.position.toLowerCase().includes(jobSearchQuery.toLowerCase())
+                            )
+                            .slice(0, 10)
+                            .map((job) => (
+                              <button
+                                key={job.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedSavedJob(job);
+                                  setJobSearchQuery(`${job.companyName} - ${job.position}`);
+                                  setShowJobDropdown(false);
+                                  
+                                  // Pré-remplir les champs
+                                  setFormData({
+                                    jobTitle: job.position,
+                                    company: job.companyName,
+                                    jobDescription: job.fullJobDescription || job.description || '',
+                                    jobUrl: job.url || '',
+                                  });
+                                  
+                                  toast.success('Job selected successfully');
+                                }}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-b-0"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+                                    <Building className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                      {job.companyName}
+                                    </p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
+                                      {job.position}
+                                    </p>
+                                    {job.location && (
+                                      <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                        <MapPin className="w-3 h-3" />
+                                        {job.location}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                    {job.fullJobDescription ? (
+                                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                        Complete
+                                      </span>
+                                    ) : job.description ? (
+                                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                        Summary
+                                      </span>
+                                    ) : null}
+                                    {job.appliedDate && (
+                                      <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                        {new Date(job.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          {savedJobs.filter(job => 
+                            !jobSearchQuery || 
+                            job.companyName.toLowerCase().includes(jobSearchQuery.toLowerCase()) ||
+                            job.position.toLowerCase().includes(jobSearchQuery.toLowerCase())
+                          ).length === 0 && (
+                            <div className="p-4 text-center">
+                              <Briefcase className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No jobs found</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                {jobSearchQuery ? 'Try a different search term' : 'Start tracking jobs in Applications to use them here'}
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Job sélectionné - Affichage de confirmation compact */}
+                {selectedSavedJob && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-3 p-2.5 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
+                          {selectedSavedJob.companyName} - {selectedSavedJob.position}
+                        </p>
+                        {selectedSavedJob.fullJobDescription && (
+                          <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5">
+                            Full job description loaded
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Message d'aide - seulement si aucun job sélectionné */}
+                {!selectedSavedJob && (
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
+                    <Info className="w-3 h-3 flex-shrink-0" />
+                    <span>Select a job you've already tracked to quickly fill in the details</span>
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       )
     }
@@ -6359,9 +6726,7 @@ URL to visit: ${jobUrl}
 
   return (
     <AuthLayout>
-        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isLoading ? 'overflow-hidden' : ''}`}
-        style={isLoading ? { willChange: 'auto' } : {}}
-        >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="mb-8">
           <PageHeader 
@@ -6381,6 +6746,9 @@ URL to visit: ${jobUrl}
                 setCvFile(null);
                 setCurrentStep(1);
                 setJobInputMode('ai');
+                setSelectedSavedJob(null);
+                setJobSearchQuery('');
+                setShowJobDropdown(false);
                 setIsModalOpen(true);
               }}
               className="group px-4 py-2.5 rounded-xl 
@@ -6532,12 +6900,10 @@ URL to visit: ${jobUrl}
 
         {/* Analyses List/Grid */}
         {filteredAnalyses.length > 0 ? (
-          <div className={`${viewMode === 'grid' 
+          <div className={viewMode === 'grid' 
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' 
             : 'space-y-3'
-          } ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
-          style={isLoading ? { willChange: 'auto', transform: 'translateZ(0)' } : {}}
-          >
+          }>
             {filteredAnalyses.map((analysis) => (
               <AnalysisCard 
                 key={analysis.id} 
@@ -6545,7 +6911,6 @@ URL to visit: ${jobUrl}
                 onDelete={deleteAnalysis}
                 viewMode={viewMode}
                 onSelect={() => navigate(`/ats-analysis/${analysis.id}`)}
-                isLoading={isLoading}
               />
             ))}
           </div>
@@ -6573,6 +6938,9 @@ URL to visit: ${jobUrl}
                     setUsingSavedCV(false);
                     setCurrentStep(1);
                     setJobInputMode('ai');
+                    setSelectedSavedJob(null);
+                    setJobSearchQuery('');
+                    setShowJobDropdown(false);
                     setIsModalOpen(true);
                   }}
                   className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto whitespace-nowrap"
@@ -6612,16 +6980,22 @@ URL to visit: ${jobUrl}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false);
+                // Reset states when closing modal
+                setSelectedSavedJob(null);
+                setJobSearchQuery('');
+                setShowJobDropdown(false);
+              }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
             >
               <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: "100%" }}
+                initial={{ opacity: 0, scale: 0.98, y: "100%" }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: "100%" }}
+                exit={{ opacity: 0, scale: 0.98, y: "100%" }}
                 onClick={(e) => e.stopPropagation()}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="bg-white dark:bg-gray-800 w-full rounded-2xl max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                className="bg-white dark:bg-gray-900 w-full rounded-xl max-w-2xl max-h-[90vh] flex flex-col shadow-lg border border-gray-200/50 dark:border-gray-800 overflow-visible"
               >
                 {/* Drag handle for mobile */}
                 <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
@@ -6629,125 +7003,57 @@ URL to visit: ${jobUrl}
                 </div>
                 
                 {/* Header */}
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
-                  {/* Step Progress Indicator */}
-                  <div className="mb-6">
-                    <div className="flex justify-between items-center w-full relative px-2">
-                      {/* Progress Bar Background */}
-                      <div className="absolute h-0.5 bg-gray-200 dark:bg-gray-700 left-8 right-8 top-1/2 -translate-y-1/2 z-0 rounded-full"></div>
-                      {/* Progress Bar Fill */}
-                      <div 
-                        className="absolute h-0.5 bg-gradient-to-r from-purple-500 to-indigo-600 left-8 top-1/2 -translate-y-1/2 z-10 transition-all duration-500 ease-out rounded-full"
-                        style={{ 
-                          width: currentStep === 1 
-                            ? '0%' 
-                            : `${((currentStep - 1) / (steps.length - 1)) * 100}%`,
-                          maxWidth: 'calc(100% - 4rem)'
-                        }}
-                      ></div>
-                      
-                      {/* Step Circles */}
-                      {steps.map((step, index) => {
-                        const stepNumber = index + 1;
-                        const isActive = currentStep === stepNumber;
-                        const isCompleted = currentStep > stepNumber;
-                        
-                        return (
-                          <div 
-                            key={step.title} 
-                            className="z-20 flex flex-col items-center flex-1 relative"
-                          >
-                            <div 
-                              className={`
-                                w-10 h-10 rounded-full flex items-center justify-center mb-2
-                                transition-all duration-300 ease-out
-                                ${isActive 
-                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white ring-4 ring-purple-100 dark:ring-purple-900/30 shadow-lg shadow-purple-500/20 scale-110' 
-                                  : isCompleted 
-                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md shadow-purple-500/10' 
-                                    : 'bg-white dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-2 border-gray-200 dark:border-gray-600'
-                                }
-                              `}
-                            >
-                              {isCompleted ? (
-                                <Check className="w-5 h-5" />
-                              ) : (
-                                <span className="text-sm font-semibold">
-                                  {stepNumber}
-                                </span>
-                              )}
-                            </div>
-                            <span className={`
-                              text-xs font-medium text-center transition-colors duration-300
-                              ${isActive 
-                                ? 'text-purple-600 dark:text-purple-400 font-semibold'
-                                : isCompleted
-                                  ? 'text-gray-700 dark:text-gray-300'
-                                  : 'text-gray-400 dark:text-gray-500'
-                              }
-                            `}>
-                              {step.title}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  
-                  {/* Title Section */}
+                <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700/50">
                   <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h2 className="font-semibold text-xl text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                        <span className="inline-flex p-2.5 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-900/20 text-purple-600 dark:text-purple-400">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2.5">
+                      <span className="text-gray-600 dark:text-gray-400">
                           {steps[currentStep - 1].icon}
                         </span>
                         {steps[currentStep - 1].title}
                       </h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 ml-14">
-                        {steps[currentStep - 1].description}
-                      </p>
-                    </div>
-                    <motion.button 
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setIsModalOpen(false)}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95 ml-4 flex-shrink-0"
+                    <button 
+                      onClick={() => {
+                        setIsModalOpen(false);
+                        // Reset states when closing modal
+                        setSelectedSavedJob(null);
+                        setJobSearchQuery('');
+                        setShowJobDropdown(false);
+                      }}
+                      className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       aria-label="Close modal"
                     >
-                      <X className="w-5 h-5" />
-                    </motion.button>
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 
                 {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
-                  {steps[currentStep - 1].content}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 overflow-x-visible">
+                  <div className="relative">
+                    {steps[currentStep - 1].content}
+                  </div>
                 </div>
                 
                 {/* Footer */}
-                <div className="flex justify-between items-center p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 dark:border-gray-700/50">
+                  <button
                     onClick={() => {
                       if (currentStep > 1) {
                         setCurrentStep(currentStep - 1);
                       }
                     }}
                     disabled={currentStep === 1}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 ${
+                    className={`px-4 py-2 text-sm font-medium flex items-center text-gray-600 dark:text-gray-400 transition-colors ${
                       currentStep === 1 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700' 
+                        ? 'opacity-40 cursor-not-allowed' 
+                        : 'hover:text-gray-900 dark:hover:text-gray-200' 
                     }`}
                   >
                     <ChevronRight className="h-4 w-4 mr-1 rotate-180" />
                     Back
-                  </motion.button>
+                  </button>
                   
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     onClick={() => {
                       if (currentStep < steps.length) {
                         // Validate step 2 before proceeding
@@ -6766,24 +7072,14 @@ URL to visit: ${jobUrl}
                     disabled={
                       (currentStep === 1 && !cvFile && !usingSavedCV) || 
                       (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
-                      isLoading ||
                       isDownloadingCV
                     }
-                    className={`px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
-                      hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
-                      text-white rounded-lg text-sm font-semibold flex items-center 
-                      transition-all duration-200 ease-out
-                      disabled:cursor-not-allowed 
-                      shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
-                      hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
-                      disabled:shadow-none disabled:hover:shadow-none`}
+                    className={`px-5 py-2 bg-gray-900 dark:bg-gray-100 
+                      hover:bg-gray-800 dark:hover:bg-gray-200 disabled:bg-gray-300 disabled:dark:bg-gray-700
+                      text-white dark:text-gray-900 rounded-lg text-sm font-medium flex items-center 
+                      transition-colors
+                      disabled:cursor-not-allowed disabled:opacity-50`}
                   >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                        <span>Analysis in progress...</span>
-                      </>
-                    ) :
                       <>
                         {currentStep === steps.length ? (
                           <>
@@ -6797,98 +7093,14 @@ URL to visit: ${jobUrl}
                           </>
                         )}
                       </>
-                    }
-                  </motion.button>
+                  </button>
                 </div>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Loading Overlay - Simple loader animation */}
-        {isLoading && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style={{ willChange: 'auto' }}>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center text-center px-6"
-            >
-              <div className="loader-container mb-8" aria-label="Loading">
-                <div className="loader-dot" />
-                <div className="loader-dot" />
-                <div className="loader-dot" />
-                <div className="loader-dot" />
-              </div>
-              <div className="w-[min(60vw,520px)] h-2 rounded-full bg-white/20 dark:bg-white/15 overflow-hidden mb-4">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 transition-all duration-300"
-                  style={{ width: `${Math.min(100, Math.max(0, loadingProgress))}%` }}
-                />
-              </div>
-              <p className="text-base font-semibold text-white">
-                {loadingMessage}
-              </p>
-              <p className="mt-2 text-sm text-white/80">
-                This may take up to 2 minutes.
-              </p>
-            </motion.div>
-            <style>
-              {`
-                .loader-container {
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  width: 3.75em; /* 60px */
-                }
-
-                .loader-dot {
-                  height: 0.8125em; /* 13px */
-                  width: 1.25em; /* 20px */
-                  margin-right: 0.625em; /* 10px */
-                  border-radius: 0.625em; /* 10px */
-                  background-color: #721a8f;
-                  animation: loaderpulse 1.5s infinite ease-in-out;
-                }
-
-                .loader-dot:last-child {
-                  margin-right: 0;
-                }
-
-                .loader-dot:nth-child(1) {
-                  animation-delay: -0.1875s; /* -0.3s */
-                }
-
-                .loader-dot:nth-child(2) {
-                  animation-delay: -0.0625s; /* -0.1s */
-                }
-
-                .loader-dot:nth-child(3) {
-                  animation-delay: 0.0625s; /* 0.1s */
-                }
-
-                @keyframes loaderpulse {
-                  0% {
-                    transform: scale(0.8);
-                    background-color: #d7b3fc;
-                    box-shadow: 0 0 0 0 rgb(196 178 252 / 70%);
-                  }
-
-                  50% {
-                    transform: scale(1.2);
-                    background-color: #70198e;
-                    box-shadow: 0 0 0 0.625em rgba(178, 212, 252, 0); /* 10px */
-                  }
-
-                  100% {
-                    transform: scale(0.8);
-                    background-color: #d7b3fc;
-                    box-shadow: 0 0 0 0 rgb(196 178 252 / 70%);
-                  }
-                }
-              `}
-            </style>
-          </div>
-        )}
+        {/* Loading Overlay removed - analyses now load in background */}
 
       
       {/* CV Selection Modal */}

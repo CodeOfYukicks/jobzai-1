@@ -133,3 +133,5 @@ Each action has a comprehensive, context-aware prompt that includes:
 - Response format is standardized across all endpoints
 - Works in both development (server.cjs) and production (Firebase Functions)
 
+
+

@@ -111,3 +111,5 @@ npm run dev
 
 **Une fois configuré, tous les 6 boutons AI marcheront parfaitement!** ⚡
 
+
+

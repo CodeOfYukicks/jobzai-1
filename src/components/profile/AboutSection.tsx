@@ -182,15 +182,15 @@ Return only the improved text, nothing else.`
   return (
     <ProfileSectionCard
       title="About"
-      icon={<FileText className="w-6 h-6" />}
+      icon={<FileText className="w-5 h-5" />}
       completion={completion}
       onEdit={() => setIsEditing(true)}
       isCollapsible={true}
     >
       {isEditing ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1.5">
               Professional Summary
             </label>
             <div className="relative">
@@ -204,37 +204,35 @@ Return only the improved text, nothing else.`
                 }}
                 placeholder="Write a brief summary of your professional background, skills, and career goals..."
                 rows={5}
-                className="w-full px-4 py-3 pr-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none transition-all duration-200"
+                className="glass-input w-full px-4 py-3 pr-32 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 resize-none text-sm leading-relaxed"
               />
               
-              {/* AI Improve Button - Centered vertically on the right */}
+              {/* AI Improve Button - Premium glass style */}
               {summary.trim() && !showImproved && (
-                <button
+                <motion.button
                   onClick={improveWithAI}
                   disabled={isImproving}
-                  className="absolute top-1/2 -translate-y-1/2 right-3 group flex items-center gap-1.5 px-3 py-1.5 
-                    bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm
-                    border border-gray-200 dark:border-gray-700
-                    text-gray-600 dark:text-gray-400 rounded-lg 
-                    text-xs font-medium transition-all duration-200
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="absolute top-3 right-3 group flex items-center gap-1.5 px-3 py-1.5 
+                    bg-gradient-to-r from-purple-600 to-indigo-600 text-white
+                    rounded-lg text-xs font-bold transition-all duration-300
                     disabled:opacity-50 disabled:cursor-not-allowed
-                    hover:bg-purple-50 dark:hover:bg-purple-900/20
-                    hover:border-purple-300 dark:hover:border-purple-600
-                    hover:text-purple-600 dark:hover:text-purple-400
-                    hover:shadow-md active:scale-[0.98]"
+                    shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40
+                    active:scale-[0.98]"
                 >
                   {isImproving ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-purple-600 dark:text-purple-400" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       <span>Improving...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                      <Sparkles className="h-3.5 w-3.5 transition-transform group-hover:rotate-12 group-hover:scale-110" />
                       <span>Improve with AI</span>
                     </>
                   )}
-                </button>
+                </motion.button>
               )}
             </div>
 
@@ -242,52 +240,59 @@ Return only the improved text, nothing else.`
             <AnimatePresence>
               {showImproved && improvedText && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mt-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 
-                    border-2 border-purple-200 dark:border-purple-700 rounded-xl p-4 space-y-3
-                    shadow-md"
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                  className="mt-3 glass-panel rounded-xl p-4 space-y-3 shadow-glow-sm relative overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      <h3 className="font-semibold text-gray-900 dark:text-white">AI Improved Version</h3>
+                  {/* Sparkle effect background */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-400/10 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse-glow"></div>
+                  
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className="p-1.5 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-lg">
+                        <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 animate-pulse" />
+                      </div>
+                      <h3 className="font-bold text-sm text-gray-900 dark:text-white">AI Improved Version</h3>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
+                    <div className="flex items-center gap-1.5">
+                      <motion.button
                         onClick={acceptImproved}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg 
-                          text-sm font-medium hover:bg-purple-700 transition-all duration-200
-                          shadow-sm hover:shadow-md"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="btn-premium flex items-center gap-1 text-sm px-3 py-1.5"
                       >
-                        <Check className="h-4 w-4" />
+                        <Check className="h-3.5 w-3.5" />
                         Accept
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
                         onClick={rejectImproved}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 
-                          rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 
+                          rounded-lg text-xs font-semibold hover:bg-gray-200/80 dark:hover:bg-gray-600/80 transition-all duration-300"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
                         Reject
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  <div className="glass-input p-3 rounded-lg">
+                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                       {improvedText}
                     </p>
                   </div>
                   {summary !== originalText && (
-                    <button
+                    <motion.button
                       onClick={revertToOriginal}
-                      className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 
-                        hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                      whileHover={{ x: -2 }}
+                      className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 
+                        hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"
                     >
-                      <RotateCcw className="h-3 w-3" />
+                      <RotateCcw className="h-3.5 w-3.5" />
                       Revert to original
-                    </button>
+                    </motion.button>
                   )}
                 </motion.div>
               )}
@@ -295,79 +300,92 @@ Return only the improved text, nothing else.`
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
               Key Highlights
             </label>
             <div className="space-y-2">
               {highlights.map((highlight, index) => (
-                <div key={index} className="flex items-center gap-2">
+                <motion.div 
+                  key={index} 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-center gap-2 group"
+                >
                   <div className="flex-1 flex items-center gap-2">
-                    <span className="text-purple-600 dark:text-purple-400">•</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex-shrink-0"></div>
                     <input
                       type="text"
                       value={highlight}
                       onChange={(e) => updateHighlight(index, e.target.value)}
                       placeholder="Add a key highlight or achievement"
-                      className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      className="glass-input flex-1 px-3 py-2 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400"
                     />
                   </div>
                   {highlights.length > 1 && (
-                    <button
+                    <motion.button
                       onClick={() => removeHighlight(index)}
-                      className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50/80 dark:hover:bg-red-900/20 backdrop-blur-sm rounded-lg transition-all duration-300"
                     >
-                      <X className="w-4 h-4" />
-                    </button>
+                      <X className="w-3.5 h-3.5" />
+                    </motion.button>
                   )}
-                </div>
+                </motion.div>
               ))}
-              <button
+              <motion.button
                 onClick={addHighlight}
-                className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+                whileHover={{ x: 5 }}
+                className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold flex items-center gap-1.5"
               >
-                + Add Highlight
-              </button>
+                <span className="text-base">+</span> Add Highlight
+              </motion.button>
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
+          <div className="flex gap-2 pt-3">
+            <motion.button
               onClick={handleSave}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-premium text-sm px-4 py-2"
             >
               Save
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setIsEditing(false)}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="px-4 py-2 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200/80 dark:hover:bg-gray-600/80 transition-all duration-300 font-semibold text-sm"
             >
               Cancel
-            </button>
+            </motion.button>
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {summary ? (
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
               {summary}
             </p>
           ) : (
-            <p className="text-gray-400 dark:text-gray-500 italic">
+            <p className="text-xs text-gray-400 dark:text-gray-500 italic">
               No summary added yet. Click edit to add your professional summary.
             </p>
           )}
 
           {highlights.filter(h => h.trim() !== '').length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <div className="mt-3">
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                 Key Highlights
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-1.5">
                 {highlights
                   .filter(h => h.trim() !== '')
                   .map((highlight, index) => (
-                    <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
-                      <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                    <li key={index} className="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-purple-600 dark:text-purple-400 mt-0.5">•</span>
                       <span>{highlight}</span>
                     </li>
                   ))}

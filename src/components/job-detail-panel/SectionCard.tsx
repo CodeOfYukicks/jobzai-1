@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { LucideIcon } from 'lucide-react';
 
 interface SectionCardProps {
-  title: string;
+  title: string | ReactNode;
   icon?: LucideIcon;
   children: ReactNode;
   action?: ReactNode;
@@ -18,7 +18,11 @@ export const SectionCard = ({ title, icon: Icon, children, action }: SectionCard
               <Icon className="w-4 h-4 text-gray-700 dark:text-gray-300" />
             </div>
           )}
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+          {typeof title === 'string' ? (
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+          ) : (
+            <div className="font-semibold text-gray-900 dark:text-gray-100">{title}</div>
+          )}
         </div>
         {action}
       </div>

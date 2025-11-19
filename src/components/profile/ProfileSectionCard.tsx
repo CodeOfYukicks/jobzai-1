@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { ChevronDown, ChevronUp, Edit2, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProfileSectionCardProps {
   title: string;
@@ -27,65 +28,97 @@ const ProfileSectionCard = ({
   const isComplete = completion !== undefined && completion === 100;
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden ${className}`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+      className={`glass-card rounded-xl shadow-premium overflow-hidden relative group ${className}`}
+    >
+      {/* Gradient accent border on hover */}
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-5 py-3.5 border-b border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {icon && <div className="text-purple-600 dark:text-purple-400">{icon}</div>}
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            {icon && (
+              <motion.div 
+                className="text-purple-600 dark:text-purple-400 p-1.5 rounded-lg bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 400 }}
+              >
+                {icon}
+              </motion.div>
+            )}
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight" style={{ letterSpacing: '-0.01em' }}>
               {title}
             </h2>
             {completion !== undefined && (
-              <div className="flex items-center gap-2">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="flex items-center gap-1.5"
+              >
                 {isComplete ? (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-full">
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <span className="text-xs font-medium text-green-700 dark:text-green-300">Complete</span>
+                  <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-sm shimmer-effect">
+                    <Check className="w-3.5 h-3.5" />
+                    <span className="text-xs font-bold">Complete</span>
                   </div>
                 ) : (
-                  <div className="px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded-full">
-                    <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                  <div className="px-2 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-sm rounded-full border border-amber-400/30">
+                    <span className="text-xs font-bold gradient-text">
                       {completion}%
                     </span>
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {onEdit && (
-              <button
+              <motion.button
                 onClick={onEdit}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50/80 dark:hover:bg-purple-900/30 backdrop-blur-sm rounded-lg transition-all duration-300"
                 title="Edit section"
               >
-                <Edit2 className="w-5 h-5" />
-              </button>
+                <Edit2 className="w-4 h-4" />
+              </motion.button>
             )}
             {isCollapsible && (
-              <button
+              <motion.button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                animate={{ rotate: isCollapsed ? 0 : 180 }}
+                transition={{ duration: 0.3 }}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50/80 dark:hover:bg-purple-900/30 backdrop-blur-sm rounded-lg transition-all duration-300"
               >
-                {isCollapsed ? (
-                  <ChevronDown className="w-5 h-5" />
-                ) : (
-                  <ChevronUp className="w-5 h-5" />
-                )}
-              </button>
+                <ChevronDown className="w-4 h-4" />
+              </motion.button>
             )}
           </div>
         </div>
       </div>
 
       {/* Content */}
-      {!isCollapsed && (
-        <div className="px-6 py-6">
-          {children}
-        </div>
-      )}
-    </div>
+      <AnimatePresence>
+        {!isCollapsed && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 py-4">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

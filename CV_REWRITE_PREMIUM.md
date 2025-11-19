@@ -512,3 +512,5 @@ The CV Rewrite feature is now a **premium, production-ready experience** that ri
 
 Creates a truly **world-class CV rewriting experience**! ✨
 
+
+

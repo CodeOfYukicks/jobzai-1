@@ -8,7 +8,7 @@ interface ColorPickerProps {
   onClose: () => void;
 }
 
-const COLOR_PALETTE = [
+export const COLOR_PALETTE = [
   { name: 'Jaune', value: '#ffeb3b', class: 'bg-yellow-400' },
   { name: 'Rose', value: '#f48fb1', class: 'bg-pink-400' },
   { name: 'Bleu', value: '#90caf9', class: 'bg-blue-400' },
@@ -46,7 +46,17 @@ export function ColorPicker({ selectedColor, onColorChange, isOpen, onClose }: C
   return (
     <div
       ref={pickerRef}
-      className="absolute left-12 top-0 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4 min-w-[180px]"
+      className="absolute left-full ml-2 top-0 z-[100] bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-purple-500 dark:border-purple-400 p-4 min-w-[180px]"
+      style={{
+        position: 'absolute',
+        left: '100%',
+        marginLeft: '8px',
+        top: 0,
+        zIndex: 1000,
+        display: 'block',
+        visibility: 'visible',
+        opacity: 1
+      }}
     >
       <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 px-1">
         Couleur du post-it

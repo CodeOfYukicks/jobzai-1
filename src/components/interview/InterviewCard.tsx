@@ -67,17 +67,18 @@ export function InterviewCard({
   return (
     <div
       className={[
-        'group relative w-full cursor-pointer select-none',
+        'group relative w-full h-full cursor-pointer select-none',
         'rounded-[20px] md:rounded-[16px] border',
         'bg-white dark:bg-[#1E1F22] hover:bg-white dark:hover:bg-[#232428] transition-all duration-200',
         'shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.06)]',
         'dark:shadow-none',
+        'flex flex-col',
       ].join(' ')}
       style={{ borderColor: isDark ? '#2A2A2E' : '#E5E7EB' }}
       role="region"
       aria-label="Interview card"
     >
-      <div className="p-5">
+      <div className="p-5 flex flex-col flex-1">
         {/* Header */}
         <div className="flex items-start gap-3">
           <div className="flex items-start gap-3 min-w-0">
@@ -171,7 +172,7 @@ export function InterviewCard({
         </div>
 
         {/* Body: date/time/location */}
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 space-y-3 flex-1">
           <div className="text-[13px] text-gray-600 dark:text-gray-400">
             <span className="font-medium">Date: </span>
             {new Date(interview.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -189,7 +190,7 @@ export function InterviewCard({
         </div>
 
         {/* Footer */}
-        <div className="h-px bg-gray-200 dark:bg-[#2A2A2E] my-3" />
+        <div className="h-px bg-gray-200 dark:bg-[#2A2A2E] my-3 mt-auto" />
         {linkToPrepare ? (
           <Link
             to={linkToPrepare}

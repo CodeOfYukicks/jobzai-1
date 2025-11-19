@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { Stage, Layer, Line as KonvaLine, Rect, Circle, Arrow, Transformer } from 'react-konva';
 import { useWhiteboardStore } from '../../stores/whiteboardStore';
 import { usePanZoom } from './hooks/usePanZoom';
@@ -11,6 +11,8 @@ import { Connector } from './objects/Connector';
 import { WhiteboardOverlays } from './WhiteboardOverlays';
 import { BoardObject } from '../../types/whiteboard';
 import { screenToWorld, worldToScreen } from './utils/canvasUtils';
+import { ColorCirclePicker } from './ColorCirclePicker';
+import { getVisibleObjects } from './utils/viewportCulling';
 
 interface WhiteboardCanvasProps {
   width: number;
@@ -35,6 +37,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
     saveToHistory,
     connectorStartId,
     setConnectorStartId,
+    setSelectedStickyColor,
   } = useWhiteboardStore();
 
   usePanZoom(canvasRef);
@@ -43,6 +46,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
   const [isDrawingShape, setIsDrawingShape] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
   const [drawCurrent, setDrawCurrent] = useState<{ x: number; y: number } | null>(null);
+  const [colorPickerPosition, setColorPickerPosition] = useState<{ x: number; y: number; worldX: number; worldY: number } | null>(null);
   const isDraggingRef = useRef(false);
   const transformerRef = useRef<any>(null);
   const selectedNodeRef = useRef<any>(null);
@@ -162,20 +166,19 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
     const worldPos = screenToWorld(pointerPos.x, pointerPos.y, canvasState);
 
     if (tool === 'sticky') {
-      // Use selectedStickyColor from store (will be applied in addObject if not provided)
-      addObject({
-        type: 'sticky',
-        x: worldPos.x,
-        y: worldPos.y,
-        width: 250,
-        height: 200,
-        // backgroundColor will be set from selectedStickyColor in addObject
-        data: {
-          title: '',
-          content: '',
-        },
-      });
-      // Tool will be reset to pointer in addObject
+      // Show color picker at click position
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const screenX = rect.left + pointerPos.x;
+        const screenY = rect.top + pointerPos.y;
+        setColorPickerPosition({ 
+          x: screenX, 
+          y: screenY,
+          worldX: worldPos.x,
+          worldY: worldPos.y
+        });
+      }
+      return;
     } else if (tool === 'text') {
       addObject({
         type: 'text',
@@ -244,9 +247,9 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
     }
   };
 
-  // Render grid background
-  const renderGrid = () => {
-    if (!showGrid) return null;
+  // Memoize grid rendering to avoid recalculating on every render
+  const gridLines = useMemo(() => {
+    if (!showGrid) return [];
 
     const gridSize = 20;
     const startX = -canvasState.panX % (gridSize * canvasState.zoom);
@@ -280,7 +283,16 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
     }
 
     return lines;
-  };
+  }, [showGrid, canvasState.panX, canvasState.panY, canvasState.zoom, width, height]);
+
+  // Memoize visible objects to avoid recalculating on every render
+  const visibleObjects = useMemo(() => {
+    // Only apply viewport culling if we have many objects (performance optimization)
+    if (objects.length < 50) {
+      return objects;
+    }
+    return getVisibleObjects(objects, width, height, canvasState, 200);
+  }, [objects, width, height, canvasState]);
 
   // Render preview shape while drawing
   const renderPreviewShape = () => {
@@ -393,6 +405,27 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
     }
   }, [selectedIds]);
 
+  // Debounced update function for drag operations
+  const dragUpdateTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  
+  const debouncedUpdateObject = useCallback((id: string, updates: Partial<BoardObject>) => {
+    // Clear existing timeout for this object
+    const existingTimeout = dragUpdateTimeoutRef.current.get(id);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+    
+    // Update immediately for visual feedback
+    updateObject(id, updates);
+    
+    // Set a new timeout to batch rapid updates
+    const timeout = setTimeout(() => {
+      dragUpdateTimeoutRef.current.delete(id);
+    }, 16); // ~60fps
+    
+    dragUpdateTimeoutRef.current.set(id, timeout);
+  }, [updateObject]);
+
   const renderObject = (obj: BoardObject) => {
     const isSelected = selectedIds.includes(obj.id);
 
@@ -428,15 +461,22 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
       })(),
       onDrag: (x: number, y: number) => {
         isDraggingRef.current = true;
+        // Use immediate update for final position
         updateObject(obj.id, { x, y });
         // History will be saved in onDragEnd callback
       },
       onDragMove: (x: number, y: number) => {
         isDraggingRef.current = true;
-        updateObject(obj.id, { x, y });
-        // Update position in real-time during drag
+        // Use debounced update during drag for better performance
+        debouncedUpdateObject(obj.id, { x, y });
       },
       onDragEnd: () => {
+        // Clear any pending debounced updates
+        const timeout = dragUpdateTimeoutRef.current.get(obj.id);
+        if (timeout) {
+          clearTimeout(timeout);
+          dragUpdateTimeoutRef.current.delete(obj.id);
+        }
         // Save history after drag ends
         if (isDraggingRef.current) {
           saveToHistory();
@@ -492,15 +532,15 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
       >
         <Layer>
           {/* Render grid first so it appears behind all objects */}
-          {renderGrid()}
+          {gridLines}
           
           {/* Render connectors so they appear behind other objects */}
-          {objects
+          {visibleObjects
             .filter((obj) => obj.type === 'connector')
             .map((obj) => renderObject(obj))}
           
           {/* Render other objects */}
-          {objects
+          {visibleObjects
             .filter((obj) => obj.type !== 'connector')
             .sort((a, b) => a.zIndex - b.zIndex)
             .map((obj) => renderObject(obj))}
@@ -616,6 +656,37 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
       </Stage>
       {/* Render HTML overlays outside of Konva Stage */}
       <WhiteboardOverlays container={overlayRef.current} />
+      {/* Color Circle Picker for sticky notes */}
+      {colorPickerPosition && (
+        <ColorCirclePicker
+          x={colorPickerPosition.x}
+          y={colorPickerPosition.y}
+          onColorSelect={(color) => {
+            // Update selected color in store
+            setSelectedStickyColor(color);
+            // Create sticky note at the world position
+            addObject({
+              type: 'sticky',
+              x: colorPickerPosition.worldX,
+              y: colorPickerPosition.worldY,
+              width: 250,
+              height: 200,
+              style: {
+                backgroundColor: color,
+              },
+              data: {
+                title: '',
+                content: '',
+              },
+            });
+            // Close color picker
+            setColorPickerPosition(null);
+          }}
+          onClose={() => {
+            setColorPickerPosition(null);
+          }}
+        />
+      )}
     </div>
   );
 }

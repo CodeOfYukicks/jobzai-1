@@ -1,4 +1,5 @@
 import { format, parseISO, isValid } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
   Clock,
@@ -9,8 +10,10 @@ import {
   Circle,
   Video,
   MessageSquare,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
-import { Interview } from '../../types/job';
+import { Interview, JobApplication } from '../../types/job';
 
 // Helper function to safely parse dates from Firestore
 const parseDate = (dateValue: any): Date => {
@@ -65,12 +68,33 @@ const statusConfig = {
 
 interface InterviewCardProps {
   interview: Interview;
+  jobApplication?: JobApplication;
 }
 
-export const InterviewCard = ({ interview }: InterviewCardProps) => {
+export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps) => {
+  const navigate = useNavigate();
   const typeConfig = interviewTypeConfig[interview.type];
   const statusConf = statusConfig[interview.status];
   const StatusIcon = statusConf.icon;
+
+  const handlePrepareInterview = () => {
+    if (!jobApplication?.id) {
+      console.error('Missing job application ID');
+      return;
+    }
+    
+    navigate(`/interview-prep/${jobApplication.id}/${interview.id}`, {
+      state: {
+        interviewId: interview.id,
+        companyName: jobApplication?.companyName || '',
+        position: jobApplication?.position || '',
+        interviewDate: interview.date,
+        interviewTime: interview.time,
+        jobUrl: jobApplication?.url,
+        jobDescription: jobApplication?.fullJobDescription || jobApplication?.description,
+      }
+    });
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 group">
@@ -139,6 +163,47 @@ export const InterviewCard = ({ interview }: InterviewCardProps) => {
             <MessageSquare className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{interview.notes}</p>
           </div>
+        </div>
+      )}
+
+      {/* AI-Powered Prep Button */}
+      {interview.status === 'scheduled' && (
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            onClick={handlePrepareInterview}
+            className="relative w-full group overflow-hidden rounded-xl transition-all duration-300"
+          >
+            {/* Gradient border effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 rounded-xl opacity-100 group-hover:opacity-90 transition-opacity" />
+            
+            {/* Shine effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+            
+            {/* Button content */}
+            <div className="relative bg-gradient-to-r from-purple-600 to-indigo-600 m-[1px] rounded-[11px] px-4 py-3 flex items-center justify-between shadow-lg group-hover:shadow-2xl group-hover:shadow-purple-500/40 dark:group-hover:shadow-purple-500/30 transition-all duration-300">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/15 backdrop-blur-sm border border-white/20">
+                  <Sparkles className="w-3.5 h-3.5 text-white animate-pulse" />
+                  <span className="text-xs font-bold text-white tracking-wider">AI</span>
+                </div>
+                <span className="text-white font-semibold">Prepare Interview</span>
+              </div>
+              <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform duration-300" />
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* View Prep Notes for Completed Interviews */}
+      {interview.status === 'completed' && (
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            onClick={handlePrepareInterview}
+            className="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>View Prep Notes</span>
+          </button>
         </div>
       )}
     </div>

@@ -81,3 +81,5 @@ npm run dev
 
 Les boutons AI sont un **bonus** pour améliorer encore après. Le CV rewrite principal vient de l'analyse!
 
+
+

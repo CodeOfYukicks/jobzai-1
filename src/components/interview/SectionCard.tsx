@@ -1,6 +1,5 @@
 import React, { ReactNode, useState } from 'react';
 import { ChevronDown, MoreHorizontal, Sparkles } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 
 export interface SectionCardProps {
   title: string;
@@ -42,11 +41,9 @@ export function SectionCard({
   return (
     <section
       className={[
-        'bg-white dark:bg-[#111827]',
-        'border border-neutral-200/80 dark:border-neutral-800/70',
-        'rounded-xl p-6',
-        'transition-shadow duration-200',
-        'shadow-xs hover:shadow-sm',
+        'rounded-xl border border-black/[0.06] bg-white p-6',
+        'transition-colors duration-200',
+        'dark:border-white/[0.08] dark:bg-[#1c1c1e]',
         className,
       ].join(' ')}
     >
@@ -54,13 +51,13 @@ export function SectionCard({
         type={collapsible ? 'button' : undefined}
         onClick={collapsible ? () => setOpen((prev) => !prev) : undefined}
         className={[
-          'w-full flex items-start justify-between gap-3',
+          'flex w-full items-start justify-between gap-3',
           collapsible ? 'cursor-pointer select-none' : '',
         ].join(' ')}
       >
         <div className="flex items-start gap-3">
           {icon && (
-            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-900/70 text-neutral-700 dark:text-neutral-200">
+            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700 dark:bg-white/[0.06] dark:text-neutral-200">
               {icon}
             </div>
           )}
@@ -82,7 +79,7 @@ export function SectionCard({
           {actions ?? (
             <button
               type="button"
-              className="inline-flex h-7 items-center gap-1 rounded-full border border-neutral-200/80 dark:border-neutral-800/80 bg-white/60 dark:bg-neutral-900/70 px-2 text-[11px] font-medium text-neutral-500 hover:text-neutral-800 hover:border-neutral-300 dark:hover:text-neutral-200 dark:hover:border-neutral-700 transition-colors"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-black/[0.08] bg-neutral-50 px-2.5 text-[11px] font-medium text-neutral-600 transition-colors hover:border-black/[0.12] hover:bg-neutral-100 hover:text-neutral-800 dark:border-white/[0.12] dark:bg-white/[0.06] dark:text-neutral-400 dark:hover:border-white/[0.16] dark:hover:bg-white/[0.08] dark:hover:text-neutral-200"
             >
               <Sparkles className="h-3 w-3 text-purple-500" />
               <span>AI</span>
@@ -99,21 +96,23 @@ export function SectionCard({
         </div>
       </HeaderTag>
 
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={collapsible ? { opacity: 0, height: 0 } : { opacity: 0 }}
-            animate={collapsible ? { opacity: 1, height: 'auto' } : { opacity: 1 }}
-            exit={collapsible ? { opacity: 0, height: 0 } : { opacity: 0 }}
-            transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
-            className={collapsible ? 'overflow-hidden' : ''}
-          >
-            <div className="mt-4 space-y-3 text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-300">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isOpen && (
+        <div
+          className={[
+            collapsible ? 'overflow-hidden transition-all duration-200 ease-out' : '',
+            'mt-4 space-y-3 text-[14px] leading-relaxed text-neutral-700 dark:text-neutral-300',
+          ].join(' ')}
+          style={
+            collapsible
+              ? {
+                  animation: 'fadeIn 0.2s ease-out',
+                }
+              : {}
+          }
+        >
+          {children}
+        </div>
+      )}
     </section>
   );
 }

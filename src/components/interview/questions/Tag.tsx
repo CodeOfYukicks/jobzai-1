@@ -1,12 +1,16 @@
+import { memo } from 'react';
+
 interface TagProps {
   label: string;
 }
 
-export function Tag({ label }: TagProps) {
+export const Tag = memo(function Tag({ label }: TagProps) {
   return (
-    <span className="inline-flex items-center rounded-[6px] bg-black/[0.04] px-3 py-1 text-[12px] font-medium tracking-wide text-neutral-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:bg-white/10 dark:text-neutral-200">
+    <span className="inline-flex items-center rounded-md border border-purple-200/60 bg-purple-50 px-2.5 py-0.5 text-[11px] font-medium text-purple-700 dark:border-purple-500/20 dark:bg-purple-500/10 dark:text-purple-300">
       {label}
     </span>
   );
-}
+});
+
+
 

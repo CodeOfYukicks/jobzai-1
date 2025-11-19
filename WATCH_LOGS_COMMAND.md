@@ -34,3 +34,5 @@ gcloud functions logs read analyzeCVVision \
 Si `cvTextLength: 0` → Le prompt ne génère pas le cv_rewrite correctement.
 Si `hasCVRewrite: false` → Le prompt ne retourne pas cv_rewrite.
 
+
+

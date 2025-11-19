@@ -6,12 +6,10 @@ import { ApplicationCard } from './ApplicationCard';
 export function ApplicationList({
   applications,
   onCardClick,
-  onCardEdit,
   onCardDelete,
 }: {
   applications: JobApplication[];
   onCardClick: (app: JobApplication) => void;
-  onCardEdit: (app: JobApplication) => void;
   onCardDelete: (app: JobApplication) => void;
 }) {
   return (
@@ -29,7 +27,6 @@ export function ApplicationList({
               <ApplicationCard
                 app={app}
                 onClick={() => onCardClick(app)}
-                onEdit={() => onCardEdit(app)}
                 onDelete={() => onCardDelete(app)}
                 isDragging={snapshot.isDragging}
               />

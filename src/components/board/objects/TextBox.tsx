@@ -12,6 +12,7 @@ interface TextBoxProps {
   onDragEnd?: () => void;
   onResize: (width: number, height: number) => void;
   nodeRef?: (node: any) => void;
+  shouldDisableDrag?: boolean;
 }
 
 export function TextBox({ object, isSelected, onSelect, onDrag, onDragMove, onDragEnd, onResize, nodeRef, shouldDisableDrag }: TextBoxProps) {

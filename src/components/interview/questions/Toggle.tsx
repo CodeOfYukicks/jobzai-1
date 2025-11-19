@@ -1,6 +1,5 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
-import { ReactNode } from 'react';
+import { memo, useMemo, ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
 
 interface ToggleProps {
   label: string;
@@ -11,50 +10,41 @@ interface ToggleProps {
   children: ReactNode;
 }
 
-export function Toggle({ label, description, icon = '▸', isOpen, onToggle, children }: ToggleProps) {
-  const renderIcon = () => {
+export const Toggle = memo(function Toggle({ label, description, icon = '▸', isOpen, onToggle, children }: ToggleProps) {
+  const renderIcon = useMemo(() => {
     if (typeof icon === 'string') {
       return (
-        <span className="text-lg leading-none" aria-hidden>
+        <span className="text-base leading-none" aria-hidden>
           {icon}
         </span>
       );
     }
     return icon;
-  };
+  }, [icon]);
 
   return (
-    <div className="rounded-[12px] border border-transparent bg-black/[0.012] p-3 transition hover:border-black/[0.05] dark:bg-white/5 dark:hover:border-white/10">
+    <div className="rounded-lg border border-purple-200/40 bg-purple-50/30 transition-colors hover:bg-purple-50/50 dark:border-purple-500/20 dark:bg-purple-500/5 dark:hover:bg-purple-500/10">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10 dark:focus-visible:ring-white/20"
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-[#1c1c1e]"
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl shadow-sm shadow-black/5 dark:bg-white/10">
-          <span className="text-lg">{renderIcon()}</span>
-        </div>
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white text-base dark:bg-white/[0.08]">
+          {renderIcon}
+        </span>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-white">{label}</p>
-          {description && <p className="text-xs text-neutral-500">{description}</p>}
+          <p className="text-[13px] font-medium text-neutral-900 dark:text-white">{label}</p>
+          {description && <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-400">{description}</p>}
         </div>
-        <ChevronDown
-          className={`h-4 w-4 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        <ChevronRight
+          className={`h-4 w-4 flex-shrink-0 text-purple-400 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
         />
       </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="overflow-hidden"
-          >
-            <div className="mt-3 text-sm text-neutral-600 dark:text-neutral-200">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isOpen && (
+        <div className="overflow-hidden transition-all duration-200 ease-out">
+          <div className="px-3.5 pb-3 pt-1 text-sm text-neutral-600 dark:text-neutral-300">{children}</div>
+        </div>
+      )}
     </div>
   );
-}
-
+});
