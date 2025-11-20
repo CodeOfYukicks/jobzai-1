@@ -23,22 +23,24 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<any>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const {
-    objects,
-    selectedIds,
-    tool,
-    canvasState,
-    showGrid,
-    addObject,
-    updateObject,
-    selectObject,
-    clearSelection,
-    setIsDrawing,
-    saveToHistory,
-    connectorStartId,
-    setConnectorStartId,
-    setSelectedStickyColor,
-  } = useWhiteboardStore();
+
+  // Use individual selectors for better performance
+  const objects = useWhiteboardStore((state) => state.objects);
+  const selectedIds = useWhiteboardStore((state) => state.selectedIds);
+  const tool = useWhiteboardStore((state) => state.tool);
+  const canvasState = useWhiteboardStore((state) => state.canvasState);
+  const showGrid = useWhiteboardStore((state) => state.showGrid);
+  const connectorStartId = useWhiteboardStore((state) => state.connectorStartId);
+
+  // Get actions (these don't cause re-renders)
+  const addObject = useWhiteboardStore((state) => state.addObject);
+  const updateObject = useWhiteboardStore((state) => state.updateObject);
+  const selectObject = useWhiteboardStore((state) => state.selectObject);
+  const clearSelection = useWhiteboardStore((state) => state.clearSelection);
+  const setIsDrawing = useWhiteboardStore((state) => state.setIsDrawing);
+  const saveToHistory = useWhiteboardStore((state) => state.saveToHistory);
+  const setConnectorStartId = useWhiteboardStore((state) => state.setConnectorStartId);
+  const setSelectedStickyColor = useWhiteboardStore((state) => state.setSelectedStickyColor);
 
   usePanZoom(canvasRef);
   const { handleCanvasClick, startSelectionBox, updateSelectionBox, endSelectionBox } = useSelection(canvasRef);
@@ -116,7 +118,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
     // In Konva, if target is the stage itself or a Layer, it means we clicked on empty space
     const targetType = e.target.getType ? e.target.getType() : '';
     const clickedOnStage = e.target === stage || targetType === 'Stage' || targetType === 'Layer';
-    
+
     // Handle connector tool on canvas click (cancel connector mode)
     if (tool === 'connector' && connectorStartId) {
       if (clickedOnStage) {
@@ -162,7 +164,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
 
     const pointerPos = stage.getPointerPosition();
     if (!pointerPos) return;
-    
+
     const worldPos = screenToWorld(pointerPos.x, pointerPos.y, canvasState);
 
     if (tool === 'sticky') {
@@ -171,8 +173,8 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
         const rect = canvasRef.current.getBoundingClientRect();
         const screenX = rect.left + pointerPos.x;
         const screenY = rect.top + pointerPos.y;
-        setColorPickerPosition({ 
-          x: screenX, 
+        setColorPickerPosition({
+          x: screenX,
           y: screenY,
           worldX: worldPos.x,
           worldY: worldPos.y
@@ -258,7 +260,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
 
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark');
-    const gridColor = isDarkMode ? '#374151' : '#e5e7eb'; // gray-700 for dark, gray-200 for light
+    const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
 
     const lines = [];
     for (let x = startX; x < width; x += scaledGridSize) {
@@ -268,6 +270,8 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
           points={[x, 0, x, height]}
           stroke={gridColor}
           strokeWidth={0.5}
+          perfectDrawEnabled={false}
+          listening={false}
         />
       );
     }
@@ -278,6 +282,8 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
           points={[0, y, width, y]}
           stroke={gridColor}
           strokeWidth={0.5}
+          perfectDrawEnabled={false}
+          listening={false}
         />
       );
     }
@@ -288,7 +294,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
   // Memoize visible objects to avoid recalculating on every render
   const visibleObjects = useMemo(() => {
     // Only apply viewport culling if we have many objects (performance optimization)
-    if (objects.length < 50) {
+    if (objects.length < 20) {
       return objects;
     }
     return getVisibleObjects(objects, width, height, canvasState, 200);
@@ -300,7 +306,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
 
     const startScreen = worldToScreen(drawStart.x, drawStart.y, canvasState);
     const currentScreen = worldToScreen(drawCurrent.x, drawCurrent.y, canvasState);
-    
+
     const screenWidth = Math.abs(currentScreen.x - startScreen.x);
     const screenHeight = Math.abs(currentScreen.y - startScreen.y);
     const minX = Math.min(startScreen.x, currentScreen.x);
@@ -323,7 +329,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
             dash={[5, 5]}
           />
         );
-      
+
       case 'circle':
         const radius = Math.min(screenWidth, screenHeight) / 2;
         return (
@@ -337,7 +343,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
             dash={[5, 5]}
           />
         );
-      
+
       case 'line':
         return (
           <KonvaLine
@@ -348,7 +354,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
             dash={[5, 5]}
           />
         );
-      
+
       case 'arrow':
         return (
           <Arrow
@@ -361,7 +367,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
             dash={[5, 5]}
           />
         );
-      
+
       default:
         return null;
     }
@@ -405,27 +411,6 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
     }
   }, [selectedIds]);
 
-  // Debounced update function for drag operations
-  const dragUpdateTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  
-  const debouncedUpdateObject = useCallback((id: string, updates: Partial<BoardObject>) => {
-    // Clear existing timeout for this object
-    const existingTimeout = dragUpdateTimeoutRef.current.get(id);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-    }
-    
-    // Update immediately for visual feedback
-    updateObject(id, updates);
-    
-    // Set a new timeout to batch rapid updates
-    const timeout = setTimeout(() => {
-      dragUpdateTimeoutRef.current.delete(id);
-    }, 16); // ~60fps
-    
-    dragUpdateTimeoutRef.current.set(id, timeout);
-  }, [updateObject]);
-
   const renderObject = (obj: BoardObject) => {
     const isSelected = selectedIds.includes(obj.id);
 
@@ -443,42 +428,30 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
         if (tool === 'connector') {
           handleObjectClick(obj.id, { cancelBubble: true });
         } else {
-          // Enregistrer le moment de la sélection pour empêcher le drag immédiat
-          justSelectedRef.current.set(obj.id, Date.now());
-          setDragEnabledTime(Date.now()); // Force re-render pour désactiver le drag
           selectObject(obj.id, false);
         }
       },
-      // Passer une prop pour indiquer si le drag doit être désactivé
-      shouldDisableDrag: (() => {
-        const selectionTime = justSelectedRef.current.get(obj.id);
-        if (selectionTime) {
-          const timeSinceSelection = Date.now() - selectionTime;
-          // Désactiver le drag pendant 300ms après la sélection
-          return timeSinceSelection < 300;
-        }
-        return false;
-      })(),
-      onDrag: (x: number, y: number) => {
+      onDrag: () => {
+        // Don't update store during drag - Konva handles visual updates
+        // This prevents re-renders and makes dragging ultra smooth
         isDraggingRef.current = true;
-        // Use immediate update for final position
-        updateObject(obj.id, { x, y });
-        // History will be saved in onDragEnd callback
       },
-      onDragMove: (x: number, y: number) => {
+      onDragMove: () => {
+        // Don't update store during drag movement
         isDraggingRef.current = true;
-        // Use debounced update during drag for better performance
-        debouncedUpdateObject(obj.id, { x, y });
       },
       onDragEnd: () => {
-        // Clear any pending debounced updates
-        const timeout = dragUpdateTimeoutRef.current.get(obj.id);
-        if (timeout) {
-          clearTimeout(timeout);
-          dragUpdateTimeoutRef.current.delete(obj.id);
-        }
-        // Save history after drag ends
+        // Only update store at the end of drag
         if (isDraggingRef.current) {
+          // Get the final position from the node
+          const node = nodeRefsMap.current.get(obj.id);
+          if (node) {
+            const worldPos = {
+              x: (node.x() - canvasState.panX) / canvasState.zoom,
+              y: (node.y() - canvasState.panY) / canvasState.zoom,
+            };
+            updateObject(obj.id, { x: worldPos.x, y: worldPos.y });
+          }
           saveToHistory();
           isDraggingRef.current = false;
         }
@@ -513,12 +486,12 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
     <div
       ref={canvasRef}
       className="relative w-full h-full overflow-hidden bg-gray-50 dark:bg-gray-900"
-      style={{ 
-        cursor: tool === 'pointer' 
-          ? 'default' 
-          : tool === 'connector' 
-            ? 'crosshair' 
-            : 'crosshair' 
+      style={{
+        cursor: tool === 'pointer'
+          ? 'default'
+          : tool === 'connector'
+            ? 'crosshair'
+            : 'crosshair'
       }}
     >
       <Stage
@@ -530,24 +503,28 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
         onMouseUp={handleStageMouseUp}
         onMouseLeave={handleStageMouseUp}
       >
-        <Layer>
+        <Layer
+          listening={true}
+          perfectDrawEnabled={false}
+          imageSmoothingEnabled={false}
+        >
           {/* Render grid first so it appears behind all objects */}
           {gridLines}
-          
+
           {/* Render connectors so they appear behind other objects */}
           {visibleObjects
             .filter((obj) => obj.type === 'connector')
             .map((obj) => renderObject(obj))}
-          
+
           {/* Render other objects */}
           {visibleObjects
             .filter((obj) => obj.type !== 'connector')
             .sort((a, b) => a.zIndex - b.zIndex)
             .map((obj) => renderObject(obj))}
-          
+
           {/* Render preview shape while drawing */}
           {renderPreviewShape()}
-          
+
           {/* Transformer for resizing selected objects */}
           {selectedIds.length === 1 && tool === 'pointer' && (
             <Transformer
@@ -561,10 +538,10 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
               }}
               onTransformEnd={() => {
                 if (!transformerRef.current) return;
-                
+
                 const nodes = transformerRef.current.nodes();
                 if (!nodes || nodes.length === 0) return;
-                
+
                 const node = nodes[0];
                 if (!node) return;
 
@@ -581,44 +558,44 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
                 try {
                   const scaleX = node.scaleX();
                   const scaleY = node.scaleY();
-                  
+
                   // Reset scale
                   node.scaleX(1);
                   node.scaleY(1);
-                  
+
                   // Convertir la position en coordonnées monde
                   const worldPos = {
                     x: (node.x() - canvasState.panX) / canvasState.zoom,
                     y: (node.y() - canvasState.panY) / canvasState.zoom,
                   };
-                  
+
                   // Utiliser les dimensions originales de l'objet et les multiplier par le scale
                   const worldWidth = currentObject.width * scaleX;
                   const worldHeight = currentObject.height * scaleY;
-                  
+
                   // Valider que les dimensions sont valides
                   if (worldWidth <= 0 || worldHeight <= 0 || !isFinite(worldWidth) || !isFinite(worldHeight)) {
                     console.error('[TRANSFORMER] Invalid dimensions:', { worldWidth, worldHeight, scaleX, scaleY });
                     return;
                   }
-                  
+
                   // Pour les TextBox, mettre à jour fontSize proportionnellement
                   let updatedStyle = currentObject.style;
                   if (currentObject.type === 'text') {
                     const initialWidth = currentObject.data.initialWidth || currentObject.width;
                     const initialHeight = currentObject.data.initialHeight || currentObject.height;
                     const initialFontSize = currentObject.data.initialFontSize || (currentObject.style.fontSize || 16);
-                    
+
                     const widthRatio = worldWidth / initialWidth;
                     const heightRatio = worldHeight / initialHeight;
                     const averageRatio = (widthRatio + heightRatio) / 2;
                     const newFontSize = initialFontSize * averageRatio;
-                    
+
                     updatedStyle = {
                       ...currentObject.style,
                       fontSize: newFontSize,
                     };
-                    
+
                     // S'assurer que les dimensions initiales sont stockées
                     const updatedData = {
                       ...currentObject.data,
@@ -626,7 +603,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
                       initialHeight: currentObject.data.initialHeight || currentObject.height,
                       initialFontSize: currentObject.data.initialFontSize || initialFontSize,
                     };
-                    
+
                     updateObject(selectedId, {
                       x: worldPos.x,
                       y: worldPos.y,
@@ -643,7 +620,7 @@ export function WhiteboardCanvas({ width, height }: WhiteboardCanvasProps) {
                       height: worldHeight,
                     });
                   }
-                  
+
                   // Save history after resize
                   saveToHistory();
                 } catch (error) {

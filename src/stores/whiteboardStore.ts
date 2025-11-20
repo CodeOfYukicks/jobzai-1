@@ -23,42 +23,42 @@ interface WhiteboardStore extends WhiteboardState {
   deleteObject: (id: string) => void;
   deleteSelected: () => void;
   duplicateObject: (id: string) => void;
-  
+
   // Selection actions
   selectObject: (id: string, multiSelect?: boolean) => void;
   selectMultiple: (ids: string[]) => void;
   clearSelection: () => void;
   selectAll: () => void;
-  
+
   // Tool actions
   setTool: (tool: ToolType) => void;
-  
+
   // Canvas actions
   setCanvasState: (state: Partial<CanvasState>) => void;
   resetZoom: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
-  
+
   // History actions
   undo: () => void;
   redo: () => void;
   saveToHistory: () => void;
-  
+
   // UI state
   setShowGrid: (show: boolean) => void;
   setIsDrawing: (isDrawing: boolean) => void;
   setEditingObjectId: (id: string | null) => void;
   setConnectorStartId: (id: string | null) => void;
   setSelectedStickyColor: (color: string) => void;
-  
+
   // Clipboard
   copySelected: () => void;
   paste: () => void;
-  
+
   // Layer management
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
-  
+
   // Bulk operations
   loadObjects: (objects: BoardObject[]) => void;
   clearAll: () => void;
@@ -68,7 +68,11 @@ const saveToHistoryHelper = (
   history: HistoryState,
   newState: BoardObject[]
 ): HistoryState => {
-  const newPast = [...history.past, history.present].slice(-MAX_HISTORY);
+  // Only add to past if present is not empty (avoid adding initial empty state)
+  const newPast = history.present.length > 0
+    ? [...history.past, history.present].slice(-MAX_HISTORY)
+    : history.past;
+
   return {
     past: newPast,
     present: newState,
@@ -94,7 +98,7 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
     const defaultStyle = object.type === 'sticky' && !object.style?.backgroundColor
       ? { backgroundColor: get().selectedStickyColor }
       : {};
-    
+
     const newObject: BoardObject = {
       id: uuidv4(),
       type: object.type || 'sticky',
@@ -112,10 +116,10 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
     set((state) => {
       const newObjects = [...state.objects, newObject];
       const newHistory = saveToHistoryHelper(state.history, newObjects);
-      
+
       // Auto-edit for sticky and text objects
       const shouldAutoEdit = (object.type === 'sticky' || object.type === 'text');
-      
+
       return {
         objects: newObjects,
         history: newHistory,
@@ -254,7 +258,7 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
         futureLength: state.history.future.length,
         currentObjectsLength: state.objects.length,
       });
-      
+
       if (state.history.past.length === 0) {
         console.log('[UNDO] Nothing to undo - past is empty');
         return state;
@@ -288,7 +292,7 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
         futureLength: state.history.future.length,
         currentObjectsLength: state.objects.length,
       });
-      
+
       if (state.history.future.length === 0) {
         console.log('[REDO] Nothing to redo - future is empty');
         return state;
@@ -322,6 +326,8 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
         presentLength: newHistory.present.length,
         futureLength: newHistory.future.length,
         objectsLength: state.objects.length,
+        currentPastLength: state.history.past.length,
+        currentPresentLength: state.history.present.length,
       });
       return {
         history: newHistory,
@@ -362,7 +368,7 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
 
       const pastedIds: string[] = [];
       let newObjects = [...state.objects];
-      
+
       clipboard.forEach((obj) => {
         const newObject: BoardObject = {
           ...obj,
@@ -413,20 +419,42 @@ export const useWhiteboardStore = create<WhiteboardStore>((set, get) => ({
 
   loadObjects: (objects) => {
     console.log('[LOAD] Loading objects:', objects.length);
-    set({
-      objects,
-      history: {
-        past: [],
-        present: objects, // Initialize present with loaded objects
-        future: [],
-      },
-      editingObjectId: null,
-      selectedIds: [],
+
+    set((state) => {
+      // Check if we're loading the same objects (by comparing IDs)
+      const currentIds = state.objects.map(obj => obj.id).sort().join(',');
+      const newIds = objects.map(obj => obj.id).sort().join(',');
+      const isSameObjects = currentIds === newIds && state.objects.length === objects.length;
+
+      // Only reset history if we're loading different objects (e.g., switching interviews)
+      // Otherwise, preserve the existing history
+      if (isSameObjects) {
+        console.log('[LOAD] Same objects, preserving history');
+        return {
+          objects,
+          editingObjectId: null,
+          selectedIds: [],
+        };
+      } else {
+        console.log('[LOAD] Different objects, resetting history');
+        return {
+          objects,
+          history: {
+            past: [],
+            present: objects,
+            future: [],
+          },
+          editingObjectId: null,
+          selectedIds: [],
+        };
+      }
     });
-    console.log('[LOAD] History initialized:', {
-      pastLength: 0,
-      presentLength: objects.length,
-      futureLength: 0,
+
+    const state = get();
+    console.log('[LOAD] History state:', {
+      pastLength: state.history.past.length,
+      presentLength: state.history.present.length,
+      futureLength: state.history.future.length,
     });
   },
 

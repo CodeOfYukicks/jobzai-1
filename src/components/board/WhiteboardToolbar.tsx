@@ -1,20 +1,15 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import {
   MousePointer,
   StickyNote,
   Type,
   Square,
-  Circle,
-  Minus,
-  ArrowUp,
-  Image as ImageIcon,
   Link2,
   Undo2,
   Redo2,
   Grid,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
 } from 'lucide-react';
 import { useWhiteboardStore } from '../../stores/whiteboardStore';
 import { ToolType } from '../../types/whiteboard';
@@ -28,27 +23,22 @@ const tools: Array<{ type: ToolType; icon: React.ReactNode; label: string; short
 ];
 
 export function WhiteboardToolbar() {
-  const {
-    tool,
-    setTool,
-    undo,
-    redo,
-    resetZoom,
-    zoomIn,
-    zoomOut,
-    showGrid,
-    setShowGrid,
-    history,
-    connectorStartId,
-    setConnectorStartId,
-    selectedStickyColor,
-    setSelectedStickyColor,
-  } = useWhiteboardStore();
+  const tool = useWhiteboardStore((state) => state.tool);
+  const setTool = useWhiteboardStore((state) => state.setTool);
+  const undo = useWhiteboardStore((state) => state.undo);
+  const redo = useWhiteboardStore((state) => state.redo);
+  const zoomIn = useWhiteboardStore((state) => state.zoomIn);
+  const zoomOut = useWhiteboardStore((state) => state.zoomOut);
+  const showGrid = useWhiteboardStore((state) => state.showGrid);
+  const setShowGrid = useWhiteboardStore((state) => state.setShowGrid);
+  const connectorStartId = useWhiteboardStore((state) => state.connectorStartId);
+  const setConnectorStartId = useWhiteboardStore((state) => state.setConnectorStartId);
+
+  // Subscribe to history lengths directly for better reactivity
+  const canUndo = useWhiteboardStore((state) => state.history.past.length > 0);
+  const canRedo = useWhiteboardStore((state) => state.history.future.length > 0);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
-
-  const canUndo = history.past.length > 0;
-  const canRedo = history.future.length > 0;
 
   // Auto-trigger file picker when image tool is selected
   useEffect(() => {
@@ -89,100 +79,156 @@ export function WhiteboardToolbar() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 p-3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto max-h-screen overflow-x-visible">
-      {/* Tools */}
-      <div className="flex flex-col gap-1 relative overflow-visible">
+    <div className="flex flex-col gap-3 bg-white p-4 shadow-sm ring-1 ring-black/[0.03] dark:bg-neutral-900/50 dark:ring-white/[0.05] overflow-y-auto max-h-screen w-[200px]">
+      {/* Tools Section */}
+      <div className="space-y-1">
+        <div className="mb-2 px-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Tools
+          </span>
+        </div>
         {tools.map((toolOption) => (
           <div key={toolOption.type} className="relative">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 if (toolOption.type === 'connector' && connectorStartId) {
-                  // Cancel connector mode if already started
                   setConnectorStartId(null);
                 }
                 setTool(toolOption.type);
               }}
-              className={`p-2.5 rounded-lg transition-colors ${
-                tool === toolOption.type
-                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-              } ${toolOption.type === 'connector' && connectorStartId ? 'ring-2 ring-purple-500' : ''}`}
+              className={`group w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-200 ${tool === toolOption.type
+                ? 'bg-purple-50 text-purple-700 ring-1 ring-purple-200/60 dark:bg-purple-950/30 dark:text-purple-300 dark:ring-purple-800/40'
+                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]'
+                } ${toolOption.type === 'connector' && connectorStartId ? 'ring-2 ring-purple-500' : ''}`}
               title={`${toolOption.label}${toolOption.shortcut ? ` (${toolOption.shortcut})` : ''}${toolOption.type === 'connector' && connectorStartId ? ' - Click second object' : ''}`}
             >
-              {toolOption.icon}
+              <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-all ${tool === toolOption.type
+                ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400'
+                : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200 dark:bg-white/[0.05] dark:text-gray-400 dark:group-hover:bg-white/[0.08]'
+                }`}>
+                {toolOption.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium truncate">
+                  {toolOption.label}
+                </div>
+                {toolOption.shortcut && (
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                    {toolOption.shortcut}
+                  </div>
+                )}
+              </div>
             </button>
           </div>
         ))}
       </div>
 
       {/* Divider */}
-      <div className="w-8 h-px bg-gray-200 dark:bg-gray-700 my-2" />
+      <div className="h-px bg-gray-200 dark:bg-gray-700" />
 
-      {/* History */}
-      <div className="flex flex-col gap-1">
+      {/* History Section */}
+      <div className="space-y-1">
+        <div className="mb-2 px-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            History
+          </span>
+        </div>
         <button
           onClick={undo}
           disabled={!canUndo}
-          className={`p-2.5 rounded-lg transition-colors ${
-            canUndo
-              ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-              : 'opacity-50 cursor-not-allowed text-gray-400'
-          }`}
+          className={`group w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-200 ${canUndo
+            ? 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]'
+            : 'cursor-not-allowed opacity-50 text-gray-400'
+            }`}
           title="Undo (Ctrl+Z)"
         >
-          <Undo2 className="w-5 h-5" />
+          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-all ${canUndo
+            ? 'bg-gray-100 text-gray-600 group-hover:bg-gray-200 dark:bg-white/[0.05] dark:text-gray-400 dark:group-hover:bg-white/[0.08]'
+            : 'bg-gray-50 text-gray-400 dark:bg-white/[0.02]'
+            }`}>
+            <Undo2 className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium truncate">Undo</div>
+            <div className="text-[10px] text-gray-500 dark:text-gray-400">Ctrl+Z</div>
+          </div>
         </button>
         <button
           onClick={redo}
           disabled={!canRedo}
-          className={`p-2.5 rounded-lg transition-colors ${
-            canRedo
-              ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-              : 'opacity-50 cursor-not-allowed text-gray-400'
-          }`}
+          className={`group w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-200 ${canRedo
+            ? 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]'
+            : 'cursor-not-allowed opacity-50 text-gray-400'
+            }`}
           title="Redo (Ctrl+Shift+Z)"
         >
-          <Redo2 className="w-5 h-5" />
+          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-all ${canRedo
+            ? 'bg-gray-100 text-gray-600 group-hover:bg-gray-200 dark:bg-white/[0.05] dark:text-gray-400 dark:group-hover:bg-white/[0.08]'
+            : 'bg-gray-50 text-gray-400 dark:bg-white/[0.02]'
+            }`}>
+            <Redo2 className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium truncate">Redo</div>
+            <div className="text-[10px] text-gray-500 dark:text-gray-400">Ctrl+⇧+Z</div>
+          </div>
         </button>
       </div>
 
       {/* Divider */}
-      <div className="w-8 h-px bg-gray-200 dark:bg-gray-700 my-2" />
+      <div className="h-px bg-gray-200 dark:bg-gray-700" />
 
-      {/* Zoom */}
-      <div className="flex flex-col gap-1">
+      {/* View Section */}
+      <div className="space-y-1">
+        <div className="mb-2 px-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            View
+          </span>
+        </div>
         <button
           onClick={zoomIn}
-          className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+          className="group w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-gray-700 transition-all duration-200 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]"
           title="Zoom In (Ctrl+Wheel)"
         >
-          <ZoomIn className="w-5 h-5" />
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600 transition-all group-hover:bg-gray-200 dark:bg-white/[0.05] dark:text-gray-400 dark:group-hover:bg-white/[0.08]">
+            <ZoomIn className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium truncate">Zoom In</div>
+          </div>
         </button>
         <button
           onClick={zoomOut}
-          className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+          className="group w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-gray-700 transition-all duration-200 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]"
           title="Zoom Out (Ctrl+Wheel)"
         >
-          <ZoomOut className="w-5 h-5" />
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600 transition-all group-hover:bg-gray-200 dark:bg-white/[0.05] dark:text-gray-400 dark:group-hover:bg-white/[0.08]">
+            <ZoomOut className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium truncate">Zoom Out</div>
+          </div>
+        </button>
+        <button
+          onClick={() => setShowGrid(!showGrid)}
+          className={`group w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-200 ${showGrid
+            ? 'bg-purple-50 text-purple-700 ring-1 ring-purple-200/60 dark:bg-purple-950/30 dark:text-purple-300 dark:ring-purple-800/40'
+            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]'
+            }`}
+          title="Toggle Grid"
+        >
+          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-all ${showGrid
+            ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400'
+            : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200 dark:bg-white/[0.05] dark:text-gray-400 dark:group-hover:bg-white/[0.08]'
+            }`}>
+            <Grid className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium truncate">Show Grid</div>
+          </div>
         </button>
       </div>
-
-      {/* Divider */}
-      <div className="w-8 h-px bg-gray-200 dark:bg-gray-700 my-2" />
-
-      {/* Grid toggle */}
-      <button
-        onClick={() => setShowGrid(!showGrid)}
-        className={`p-2.5 rounded-lg transition-colors ${
-          showGrid
-            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-        }`}
-        title="Toggle Grid"
-      >
-        <Grid className="w-5 h-5" />
-      </button>
 
       {/* Image upload (hidden input) */}
       <input

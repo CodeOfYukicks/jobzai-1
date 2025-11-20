@@ -5,12 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
-import { 
-  User, 
-  MapPin, 
-  Briefcase, 
-  FileText, 
-  Target, 
+import {
+  User,
+  MapPin,
+  Briefcase,
+  FileText,
+  Target,
   Settings,
   Search,
   GraduationCap,
@@ -65,13 +65,13 @@ const ProfessionalProfilePage = () => {
     lastName: '',
     email: '',
     gender: '',
-    
+
     // Job Search Context (Phase 1)
     currentSituation: '',
     searchUrgency: '',
     searchReason: '',
     searchIntensity: '',
-    
+
     // Education & Languages (Phase 1)
     educationLevel: '',
     educationField: '',
@@ -79,7 +79,7 @@ const ProfessionalProfilePage = () => {
     graduationYear: '',
     educationMajor: '',
     languages: [] as Array<{ language: string; level: string }>,
-    
+
     // Professional History (Phase 2)
     professionalHistory: [] as Array<{
       title: string;
@@ -93,24 +93,24 @@ const ProfessionalProfilePage = () => {
       responsibilities: string[];
       achievements: string[];
     }>,
-    
+
     // Career Drivers (Phase 2)
     careerPriorities: [] as string[],
     primaryMotivator: '',
     dealBreakers: [] as string[],
     niceToHaves: [] as string[],
-    
+
     // Role Preferences (Phase 2)
     roleType: '',
     preferredEnvironment: [] as string[],
     productType: [] as string[],
     functionalDomain: [] as string[],
-    
+
     // Salary Flexibility (Phase 3)
     salaryFlexibility: '',
     compensationPriorities: [] as string[],
     willingToTrade: [] as string[],
-    
+
     // Soft Skills & Leadership (Phase 3)
     softSkills: [] as string[],
     managementExperience: {
@@ -120,32 +120,32 @@ const ProfessionalProfilePage = () => {
     },
     mentoringExperience: false,
     recruitingExperience: false,
-    
+
     // Detailed Location (Phase 3)
     preferredCities: [] as string[],
     preferredCountries: [] as string[],
     geographicFlexibility: '',
-    
+
     // Location & Mobility
     city: '',
     country: '',
     willingToRelocate: false,
     workPreference: '',
     travelPreference: '',
-    
+
     // Experience & Expertise
     yearsOfExperience: '',
     skills: [] as string[],
     tools: [] as string[],
     certifications: [] as Array<{ name: string; issuer: string; year: string }>,
-    
+
     // Documents & Links
     cvUrl: '',
     cvName: '',
     linkedinUrl: '',
     portfolioUrl: '',
     githubUrl: '',
-    
+
     // Professional Objectives
     targetPosition: '',
     targetSectors: [] as string[],
@@ -155,7 +155,7 @@ const ProfessionalProfilePage = () => {
       currency: 'EUR'
     },
     availabilityDate: '',
-    
+
     // Preferences & Priorities
     workLifeBalance: 0,
     companyCulture: '',
@@ -170,20 +170,20 @@ const ProfessionalProfilePage = () => {
     current: boolean;
   }>): number => {
     if (!history || history.length === 0) return 0;
-    
+
     let totalMonths = 0;
     const now = new Date();
-    
+
     history.forEach(exp => {
       if (!exp.startDate) return;
-      
+
       // Parse date in YYYY-MM format
       const startParts = exp.startDate.split('-');
       if (startParts.length !== 2) return;
-      
+
       const start = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, 1);
       let end: Date;
-      
+
       if (exp.current || !exp.endDate) {
         end = now;
       } else {
@@ -191,14 +191,14 @@ const ProfessionalProfilePage = () => {
         if (endParts.length !== 2) return;
         end = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, 1);
       }
-      
+
       if (end >= start) {
-        const months = (end.getFullYear() - start.getFullYear()) * 12 + 
-                      (end.getMonth() - start.getMonth());
+        const months = (end.getFullYear() - start.getFullYear()) * 12 +
+          (end.getMonth() - start.getMonth());
         totalMonths += Math.max(0, months);
       }
     });
-    
+
     return Math.round(totalMonths / 12);
   };
 
@@ -210,47 +210,47 @@ const ProfessionalProfilePage = () => {
       'lastName',
       'email',
       'gender',
-      
+
       // Job Search Context (Phase 1)
       'currentSituation',
       'searchUrgency',
-      
+
       // Education & Languages (Phase 1)
       'educationLevel',
       'languages',
-      
+
       // Professional History (Phase 2)
       'professionalHistory',
-      
+
       // Career Drivers (Phase 2)
       'careerPriorities',
       'primaryMotivator',
-      
+
       // Role Preferences (Phase 2)
       'roleType',
       'preferredEnvironment',
-      
+
       // Location & Mobility
       'city',
       'country',
       'willingToRelocate',
       'workPreference',
       'travelPreference',
-      
+
       // Experience & Expertise
       'yearsOfExperience',
       'skills',
       'tools',
-      
+
       // Documents & Links
       'cvUrl',
       'linkedinUrl',
-      
+
       // Professional Objectives
       'targetPosition',
       'targetSectors',
       'salaryExpectations',
-      
+
       // Preferences & Priorities
       'workLifeBalance',
       'companyCulture'
@@ -325,12 +325,12 @@ const ProfessionalProfilePage = () => {
       extractedFirstName = nameParts[0] || '';
       extractedLastName = nameParts.slice(1).join(' ') || '';
     }
-    
+
     setFormData(prevData => {
       const newFirstName = userData?.firstName || firestoreData.firstName || extractedFirstName || prevData.firstName || '';
       const newLastName = userData?.lastName || firestoreData.lastName || extractedLastName || prevData.lastName || '';
       const newEmail = currentUser?.email || userData?.email || firestoreData.email || prevData.email || '';
-      
+
       // Calculer yearsOfExperience depuis professionalHistory si disponible
       let calculatedYears = prevData.yearsOfExperience || '';
       if (firestoreData.professionalHistory && firestoreData.professionalHistory.length > 0) {
@@ -338,17 +338,17 @@ const ProfessionalProfilePage = () => {
       } else if (firestoreData.yearsOfExperience) {
         calculatedYears = firestoreData.yearsOfExperience.toString();
       }
-      
+
       // Support both salaryRange (old) and salaryExpectations (new) for backward compatibility
       const salaryData = firestoreData.salaryExpectations || firestoreData.salaryRange || prevData.salaryExpectations || {
         min: '',
         max: '',
         currency: 'EUR'
       };
-      
+
       // Remove salaryRange from firestoreData to avoid conflicts
       const { salaryRange, ...cleanFirestoreData } = firestoreData;
-      
+
       return {
         ...prevData,
         // Autres données depuis Firestore
@@ -422,7 +422,7 @@ const ProfessionalProfilePage = () => {
   useEffect(() => {
     // Attendre que l'authentification soit chargée
     if (authLoading || !currentUser?.uid) return;
-    
+
     // Charger les données initiales
     const loadInitialData = async () => {
       try {
@@ -458,7 +458,7 @@ const ProfessionalProfilePage = () => {
   const saveToFirebase = useCallback(
     debounce(async (data: any) => {
       if (!currentUser?.uid) return;
-      
+
       try {
         const userRef = doc(db, 'users', currentUser.uid);
         await updateDoc(userRef, {
@@ -481,7 +481,7 @@ const ProfessionalProfilePage = () => {
       cleanedData.salaryExpectations = cleanedData.salaryRange;
       delete cleanedData.salaryRange;
     }
-    
+
     setFormData(prev => ({
       ...prev,
       ...cleanedData
@@ -512,12 +512,12 @@ const ProfessionalProfilePage = () => {
     // Vérifier si les valeurs ont réellement changé (pas juste au premier rendu)
     const wizardChanged = prevUseWizard.current !== useWizard;
     const landingChanged = prevShowLanding.current !== showLanding;
-    
+
     if ((wizardChanged || landingChanged) && !isInitialMount.current) {
       // Activer l'animation seulement si les valeurs ont changé ET ce n'est pas le premier rendu
       setShouldAnimate(true);
     }
-    
+
     // Mettre à jour les refs
     prevUseWizard.current = useWizard;
     prevShowLanding.current = showLanding;
@@ -562,8 +562,8 @@ const ProfessionalProfilePage = () => {
               initial={shouldAnimate ? { opacity: 0, x: 100, scale: 0.95 } : false}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={shouldAnimate ? { opacity: 0, x: -100, scale: 0.95 } : false}
-              transition={shouldAnimate ? { 
-                duration: 0.5, 
+              transition={shouldAnimate ? {
+                duration: 0.5,
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.3 }
               } : { duration: 0 }}
@@ -586,116 +586,110 @@ const ProfessionalProfilePage = () => {
               initial={shouldAnimate ? { opacity: 0, x: -100, scale: 0.95 } : false}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={shouldAnimate ? { opacity: 0, x: 100, scale: 0.95 } : false}
-              transition={shouldAnimate ? { 
-                duration: 0.5, 
+              transition={shouldAnimate ? {
+                duration: 0.5,
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.3 }
               } : { duration: 0 }}
-              className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/20 to-indigo-50/20 dark:from-gray-900 dark:via-purple-900/10 dark:to-indigo-900/10 relative overflow-hidden"
+              className="min-h-screen bg-gray-50 dark:bg-gray-900 relative"
               style={{ margin: '-1.5rem', padding: '1rem' }}
             >
-              {/* Ambient Background Effects */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-20 left-10 w-96 h-96 bg-purple-300/10 dark:bg-purple-600/5 rounded-full blur-3xl animate-float-slow"></div>
-                <div className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-300/10 dark:bg-indigo-600/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-400/5 dark:bg-purple-500/5 rounded-full blur-3xl animate-pulse-glow"></div>
-              </div>
 
               {/* Main Content - Premium Layout */}
               <div className="relative w-full max-w-[1400px] mx-auto space-y-4 pt-4 px-4">
-              {/* Profile Header */}
-              <ProfileHeader onUpdate={updateFormData} />
+                {/* Profile Header */}
+                <ProfileHeader onUpdate={updateFormData} />
 
-              {/* Completion Banner */}
-              <ProfileCompletionBanner
-                completionPercentage={completionPercentage}
-                onStartStepMode={() => setUseWizard(true)}
-              />
+                {/* Completion Banner */}
+                <ProfileCompletionBanner
+                  completionPercentage={completionPercentage}
+                  onStartStepMode={() => setUseWizard(true)}
+                />
 
-              {/* About Section */}
-              <AboutSection onUpdate={updateFormData} />
+                {/* About Section */}
+                <AboutSection onUpdate={updateFormData} />
 
-              {/* Experience Section */}
-              <ProfileSectionCard
-                title="Experience"
-                icon={<Briefcase className="w-5 h-5" />}
-                completion={formData.professionalHistory?.length > 0 ? 100 : 0}
-                isCollapsible={true}
-              >
-                <ProfessionalHistorySection onUpdate={updateFormData} />
-              </ProfileSectionCard>
+                {/* Experience Section */}
+                <ProfileSectionCard
+                  title="Experience"
+                  icon={<Briefcase className="w-5 h-5" />}
+                  completion={formData.professionalHistory?.length > 0 ? 100 : 0}
+                  isCollapsible={true}
+                >
+                  <ProfessionalHistorySection onUpdate={updateFormData} />
+                </ProfileSectionCard>
 
-              {/* Education & Languages */}
-              <ProfileSectionCard
-                title="Education & Languages"
-                icon={<GraduationCap className="w-5 h-5" />}
-                completion={formData.educationLevel ? 100 : 0}
-                isCollapsible={true}
-              >
-                <EducationLanguagesSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
+                {/* Education & Languages */}
+                <ProfileSectionCard
+                  title="Education & Languages"
+                  icon={<GraduationCap className="w-5 h-5" />}
+                  completion={formData.educationLevel ? 100 : 0}
+                  isCollapsible={true}
+                >
+                  <EducationLanguagesSection onUpdate={updateFormData} />
+                </ProfileSectionCard>
 
-              {/* Skills & Expertise */}
-              <ProfileSectionCard
-                title="Skills & Expertise"
-                icon={<Briefcase className="w-5 h-5" />}
-                completion={formData.skills?.length > 0 ? 100 : 0}
-                isCollapsible={true}
-              >
-                <ExperienceExpertiseSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
+                {/* Skills & Expertise */}
+                <ProfileSectionCard
+                  title="Skills & Expertise"
+                  icon={<Briefcase className="w-5 h-5" />}
+                  completion={formData.skills?.length > 0 ? 100 : 0}
+                  isCollapsible={true}
+                >
+                  <ExperienceExpertiseSection onUpdate={updateFormData} />
+                </ProfileSectionCard>
 
-              {/* Career Objectives */}
-              <ProfileSectionCard
-                title="Career Objectives"
-                icon={<Target className="w-5 h-5" />}
-                completion={formData.targetPosition ? 100 : 0}
-                isCollapsible={true}
-              >
-                <ProfessionalObjectivesSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
+                {/* Career Objectives */}
+                <ProfileSectionCard
+                  title="Career Objectives"
+                  icon={<Target className="w-5 h-5" />}
+                  completion={formData.targetPosition ? 100 : 0}
+                  isCollapsible={true}
+                >
+                  <ProfessionalObjectivesSection onUpdate={updateFormData} />
+                </ProfileSectionCard>
 
-              {/* Location & Mobility */}
-              <ProfileSectionCard
-                title="Location & Mobility"
-                icon={<MapPin className="w-5 h-5" />}
-                completion={formData.city && formData.country ? 100 : 0}
-                isCollapsible={true}
-              >
-                <LocationMobilitySection onUpdate={updateFormData} />
-              </ProfileSectionCard>
+                {/* Location & Mobility */}
+                <ProfileSectionCard
+                  title="Location & Mobility"
+                  icon={<MapPin className="w-5 h-5" />}
+                  completion={formData.city && formData.country ? 100 : 0}
+                  isCollapsible={true}
+                >
+                  <LocationMobilitySection onUpdate={updateFormData} />
+                </ProfileSectionCard>
 
-              {/* Career Drivers */}
-              <ProfileSectionCard
-                title="Career Drivers"
-                icon={<TrendingUp className="w-5 h-5" />}
-                completion={formData.careerPriorities?.length > 0 ? 100 : 0}
-                isCollapsible={true}
-              >
-                <CareerDriversSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
+                {/* Career Drivers */}
+                <ProfileSectionCard
+                  title="Career Drivers"
+                  icon={<TrendingUp className="w-5 h-5" />}
+                  completion={formData.careerPriorities?.length > 0 ? 100 : 0}
+                  isCollapsible={true}
+                >
+                  <CareerDriversSection onUpdate={updateFormData} />
+                </ProfileSectionCard>
 
-              {/* Role Preferences */}
-              <ProfileSectionCard
-                title="Role Preferences"
-                icon={<Building2 className="w-5 h-5" />}
-                completion={formData.roleType ? 100 : 0}
-                isCollapsible={true}
-              >
-                <RolePreferencesSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
+                {/* Role Preferences */}
+                <ProfileSectionCard
+                  title="Role Preferences"
+                  icon={<Building2 className="w-5 h-5" />}
+                  completion={formData.roleType ? 100 : 0}
+                  isCollapsible={true}
+                >
+                  <RolePreferencesSection onUpdate={updateFormData} />
+                </ProfileSectionCard>
 
-              {/* Documents & Links */}
-              <ProfileSectionCard
-                title="Documents & Links"
-                icon={<FileText className="w-5 h-5" />}
-                completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
-                isCollapsible={true}
-              >
-                <DocumentsLinksSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
-          </motion.div>
+                {/* Documents & Links */}
+                <ProfileSectionCard
+                  title="Documents & Links"
+                  icon={<FileText className="w-5 h-5" />}
+                  completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
+                  isCollapsible={true}
+                >
+                  <DocumentsLinksSection onUpdate={updateFormData} />
+                </ProfileSectionCard>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </AuthLayout>

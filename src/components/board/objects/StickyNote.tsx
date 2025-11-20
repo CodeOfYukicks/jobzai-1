@@ -51,6 +51,7 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
       onClick={(e) => {
         e.cancelBubble = true;
         if (e.evt) e.evt.stopPropagation();
+        // Selection is handled by onDragStart if dragging, or here if just clicking
         onSelect();
       }}
       onTap={(e) => {
@@ -58,11 +59,12 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
         if (e.evt) e.evt.stopPropagation();
         onSelect();
       }}
-      draggable={!isEditing && !shouldDisableDrag}
-      dragDistance={20}
-      onDragStart={() => {
-        // Prevent text selection while dragging
+      draggable={!isEditing}
+      perfectDrawEnabled={false}
+      onDragStart={(e) => {
         document.body.style.userSelect = 'none';
+        // Select the object when starting to drag
+        onSelect();
       }}
       onDragMove={(e) => {
         const worldPos = {
@@ -80,7 +82,6 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
           y: (e.target.y() - canvasState.panY) / canvasState.zoom,
         };
         onDrag(worldPos.x, worldPos.y);
-        // Call onDragEnd callback if provided
         if (onDragEnd) {
           onDragEnd();
         }
@@ -93,9 +94,9 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
         fill={backgroundColor}
         stroke={isConnectorStart ? '#10b981' : isSelected ? '#6366f1' : 'rgba(0,0,0,0.1)'}
         strokeWidth={isConnectorStart ? 3 : isSelected ? 2 : 1}
-        shadowBlur={isConnectorStart ? 15 : isSelected ? 10 : 5}
-        shadowColor={isConnectorStart ? 'rgba(16, 185, 129, 0.4)' : 'rgba(0,0,0,0.2)'}
         cornerRadius={4}
+        perfectDrawEnabled={false}
+        shadowForStrokeEnabled={false}
       />
 
       {/* Title text */}
@@ -111,6 +112,8 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
           fill={textColor}
           align="left"
           verticalAlign="top"
+          perfectDrawEnabled={false}
+          listening={false}
           onDblClick={(e) => {
             e.cancelBubble = true;
             if (e.evt) e.evt.stopPropagation();
@@ -138,6 +141,8 @@ export function StickyNote({ object, isSelected, onSelect, onDrag, onDragMove, o
           align="left"
           verticalAlign="top"
           wrap="word"
+          perfectDrawEnabled={false}
+          listening={false}
         />
       )}
     </Group>

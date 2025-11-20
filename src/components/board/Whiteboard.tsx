@@ -16,9 +16,9 @@ interface WhiteboardProps {
   onToggleFullscreen?: () => void;
 }
 
-export function Whiteboard({ 
-  width, 
-  height, 
+export function Whiteboard({
+  width,
+  height,
   onSave,
   initialObjects,
   isFullscreen = false,
@@ -37,7 +37,7 @@ export function Whiteboard({
     }
   }, [initialObjects, loadObjects]);
 
-  // Update dimensions on resize
+  // Update dimensions on resize (including when sidebar expands/collapses)
   useEffect(() => {
     if (!containerRef.current || width || height) return;
 
@@ -51,8 +51,21 @@ export function Whiteboard({
     };
 
     updateDimensions();
+
+    // Use ResizeObserver to detect container size changes (e.g., sidebar expand/collapse)
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions();
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    // Also listen to window resize as fallback
     window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateDimensions);
+    };
   }, [width, height]);
 
   // Auto-save callback - save even if objects.length === 0
@@ -121,7 +134,7 @@ export function Whiteboard({
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           onClick={onToggleFullscreen}
         />
-        
+
         {/* Whiteboard panel - slides down from top */}
         <motion.div
           initial={{ y: -window.innerHeight, opacity: 0 }}
@@ -141,11 +154,11 @@ export function Whiteboard({
               <Minimize2 className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
           </div>
-          
+
           <div className="flex w-full h-full bg-gray-50 dark:bg-gray-900">
             <WhiteboardToolbar />
             <div className="flex-1 relative">
-              <WhiteboardCanvas width={fullscreenWidth - 60} height={fullscreenHeight} />
+              <WhiteboardCanvas width={fullscreenWidth - 200} height={fullscreenHeight} />
             </div>
           </div>
         </motion.div>
@@ -161,7 +174,7 @@ export function Whiteboard({
     >
       <WhiteboardToolbar />
       <div className="flex-1 relative">
-        <WhiteboardCanvas width={dimensions.width} height={dimensions.height} />
+        <WhiteboardCanvas width={dimensions.width - 200} height={dimensions.height} />
         {/* Maximize button */}
         {onToggleFullscreen && (
           <button

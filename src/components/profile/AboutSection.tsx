@@ -30,10 +30,10 @@ const AboutSection = ({ onUpdate }: AboutSectionProps) => {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          
+
           // Charger professionalSummary, about, ou motivation (depuis l'inscription)
           let loadedSummary = userData.professionalSummary || userData.about || '';
-          
+
           // Si pas de summary mais qu'il y a une motivation depuis l'inscription, l'utiliser
           if (!loadedSummary && userData.motivation) {
             loadedSummary = userData.motivation;
@@ -46,7 +46,7 @@ const AboutSection = ({ onUpdate }: AboutSectionProps) => {
               console.error('Error migrating motivation to professionalSummary:', error);
             }
           }
-          
+
           setSummary(loadedSummary);
           setOriginalText(loadedSummary);
           setHighlights(
@@ -71,10 +71,10 @@ const AboutSection = ({ onUpdate }: AboutSectionProps) => {
 
     setIsImproving(true);
     setShowImproved(false);
-    
+
     try {
       const openai = await getOpenAIInstance();
-      
+
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
@@ -103,7 +103,7 @@ Return only the improved text, nothing else.`
       });
 
       const improved = completion.choices[0]?.message?.content?.trim() || '';
-      
+
       if (improved) {
         setImprovedText(improved);
         setShowImproved(true);
@@ -204,9 +204,9 @@ Return only the improved text, nothing else.`
                 }}
                 placeholder="Write a brief summary of your professional background, skills, and career goals..."
                 rows={5}
-                className="glass-input w-full px-4 py-3 pr-32 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 resize-none text-sm leading-relaxed"
+                className="w-full px-4 py-3 pr-32 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 resize-none text-sm leading-relaxed focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
               />
-              
+
               {/* AI Improve Button - Premium glass style */}
               {summary.trim() && !showImproved && (
                 <motion.button
@@ -215,10 +215,10 @@ Return only the improved text, nothing else.`
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="absolute top-3 right-3 group flex items-center gap-1.5 px-3 py-1.5 
-                    bg-gradient-to-r from-purple-600 to-indigo-600 text-white
-                    rounded-lg text-xs font-bold transition-all duration-300
+                    bg-gray-900 text-white
+                    rounded-lg text-xs font-medium transition-all duration-300
                     disabled:opacity-50 disabled:cursor-not-allowed
-                    shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40
+                    hover:bg-gray-800
                     active:scale-[0.98]"
                 >
                   {isImproving ? (
@@ -247,12 +247,12 @@ Return only the improved text, nothing else.`
                   className="mt-3 glass-panel rounded-xl p-4 space-y-3 shadow-glow-sm relative overflow-hidden"
                 >
                   {/* Sparkle effect background */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-400/10 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse-glow"></div>
-                  
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gray-100/50 dark:bg-gray-700/20 rounded-full blur-3xl"></div>
+
                   <div className="relative flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <div className="p-1.5 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-lg">
-                        <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 animate-pulse" />
+                      <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        <Sparkles className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                       </div>
                       <h3 className="font-bold text-sm text-gray-900 dark:text-white">AI Improved Version</h3>
                     </div>
@@ -261,7 +261,7 @@ Return only the improved text, nothing else.`
                         onClick={acceptImproved}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="btn-premium flex items-center gap-1 text-sm px-3 py-1.5"
+                        className="flex items-center gap-1 text-sm px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
                       >
                         <Check className="h-3.5 w-3.5" />
                         Accept
@@ -271,14 +271,14 @@ Return only the improved text, nothing else.`
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         className="flex items-center gap-1 px-3 py-1.5 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 
-                          rounded-lg text-xs font-semibold hover:bg-gray-200/80 dark:hover:bg-gray-600/80 transition-all duration-300"
+                          rounded-lg text-xs font-medium hover:bg-gray-200/80 dark:hover:bg-gray-600/80 transition-all duration-300"
                       >
                         <X className="h-3.5 w-3.5" />
                         Reject
                       </motion.button>
                     </div>
                   </div>
-                  <div className="glass-input p-3 rounded-lg">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg">
                     <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                       {improvedText}
                     </p>
@@ -288,7 +288,7 @@ Return only the improved text, nothing else.`
                       onClick={revertToOriginal}
                       whileHover={{ x: -2 }}
                       className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 
-                        hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-medium"
+                        hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-medium"
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
                       Revert to original
@@ -305,21 +305,21 @@ Return only the improved text, nothing else.`
             </label>
             <div className="space-y-2">
               {highlights.map((highlight, index) => (
-                <motion.div 
-                  key={index} 
+                <motion.div
+                  key={index}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className="flex items-center gap-2 group"
                 >
                   <div className="flex-1 flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex-shrink-0"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0"></div>
                     <input
                       type="text"
                       value={highlight}
                       onChange={(e) => updateHighlight(index, e.target.value)}
                       placeholder="Add a key highlight or achievement"
-                      className="glass-input flex-1 px-3 py-2 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                      className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
                     />
                   </div>
                   {highlights.length > 1 && (
@@ -337,7 +337,7 @@ Return only the improved text, nothing else.`
               <motion.button
                 onClick={addHighlight}
                 whileHover={{ x: 5 }}
-                className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold flex items-center gap-1.5"
+                className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium flex items-center gap-1.5"
               >
                 <span className="text-base">+</span> Add Highlight
               </motion.button>
@@ -349,7 +349,7 @@ Return only the improved text, nothing else.`
               onClick={handleSave}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="btn-premium text-sm px-4 py-2"
+              className="text-sm px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
             >
               Save
             </motion.button>
@@ -357,7 +357,7 @@ Return only the improved text, nothing else.`
               onClick={() => setIsEditing(false)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-4 py-2 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200/80 dark:hover:bg-gray-600/80 transition-all duration-300 font-semibold text-sm"
+              className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
             </motion.button>
@@ -385,7 +385,7 @@ Return only the improved text, nothing else.`
                   .filter(h => h.trim() !== '')
                   .map((highlight, index) => (
                     <li key={index} className="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-                      <span className="text-purple-600 dark:text-purple-400 mt-0.5">•</span>
+                      <span className="text-gray-400 mt-0.5">•</span>
                       <span>{highlight}</span>
                     </li>
                   ))}

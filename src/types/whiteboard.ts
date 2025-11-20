@@ -1,22 +1,22 @@
-export type BoardObjectType = 
-  | 'sticky' 
-  | 'text' 
-  | 'rectangle' 
-  | 'circle' 
-  | 'line' 
-  | 'arrow' 
-  | 'image' 
+export type BoardObjectType =
+  | 'sticky'
+  | 'text'
+  | 'rectangle'
+  | 'circle'
+  | 'line'
+  | 'arrow'
+  | 'image'
   | 'connector';
 
-export type ToolType = 
-  | 'pointer' 
-  | 'sticky' 
-  | 'text' 
-  | 'rectangle' 
-  | 'circle' 
-  | 'line' 
-  | 'arrow' 
-  | 'image' 
+export type ToolType =
+  | 'pointer'
+  | 'sticky'
+  | 'text'
+  | 'rectangle'
+  | 'circle'
+  | 'line'
+  | 'arrow'
+  | 'image'
   | 'connector';
 
 export interface BoardObjectStyle {
@@ -73,5 +73,8 @@ export interface WhiteboardState {
   showGrid: boolean;
   isDrawing: boolean;
   clipboard: BoardObject[] | null;
+  editingObjectId: string | null;
+  connectorStartId: string | null;
+  selectedStickyColor: string;
 }
 

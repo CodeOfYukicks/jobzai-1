@@ -8,13 +8,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
 import { generateCVRewrite } from '../lib/cvRewriteService';
 import { CompanyLogo } from '../components/common/CompanyLogo';
-import CVScoreComparison from '../components/ats-premium/CVScoreComparison';
+import TailoredResumePanel from '../components/ats-premium/TailoredResumePanel';
 import { analyzeOptimizedCV } from '../lib/optimizedCVAnalyzer';
 import { analyzePremiumScore, type PremiumScoreAnalysis } from '../lib/premiumScoreAnalyzer';
 import {
   ExternalLink, Building2, MapPin, FileText, List,
   Target, TrendingUp, AlertCircle, Lightbulb, Activity, BookOpen,
-  Zap, Sparkles, ChevronRight, Eye, Check, Loader2, Wand2
+  Zap, ChevronRight, Check, Wand2
 } from 'lucide-react';
 
 // Import premium components
@@ -69,40 +69,28 @@ function Section({ id, title, description, children }: SectionProps) {
 }
 
 // Full-height Right Sidebar Panel - Ultra Sleek Design
-function RightSidebarPanel({ 
-  analysis, 
-  activeSection, 
+function RightSidebarPanel({
+  analysis,
+  activeSection,
   onNavigate,
   onGenerateCVRewrite,
   isGeneratingCV,
-  generationProgress,
-  generationStep,
-  cvRewrite,
-  sidebarTab,
-  setSidebarTab,
   navigate,
   optimizedScore,
-  isCalculatingScore,
-  premiumAnalysis
-}: { 
+  premiumAnalysis,
+  cvRewrite,
+  sidebarTab,
+  setSidebarTab
+}: {
   analysis: PremiumATSAnalysis;
   activeSection: string;
   onNavigate: (section: string) => void;
   onGenerateCVRewrite: () => void;
   isGeneratingCV: boolean;
-  generationProgress: number;
-  generationStep: number;
-  cvRewrite: any;
-  sidebarTab: 'summary' | 'navigation' | 'cv';
-  setSidebarTab: (tab: 'summary' | 'navigation' | 'cv') => void;
   navigate: (path: string) => void;
   optimizedScore: { overall: number; skills: number; experience: number } | null;
-  isCalculatingScore: boolean;
   premiumAnalysis: PremiumScoreAnalysis | null;
 }) {
-  // REMOVED: Auto-switch logic moved to main component to prevent race conditions
-  // Tab switching is now handled exclusively in the main component's fetchAnalysis effect
-
   const sections = [
     { id: 'overview', label: 'Overview', icon: <Target className="w-4 h-4" /> },
     { id: 'breakdown', label: 'Match Breakdown', icon: <Activity className="w-4 h-4" /> },
@@ -121,11 +109,10 @@ function RightSidebarPanel({
         <div className="relative flex border-b border-gray-200 dark:border-[#2A2A2E] flex-shrink-0">
           <button
             onClick={() => setSidebarTab('summary')}
-            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${
-              sidebarTab === 'summary'
-                ? 'text-purple-600 dark:text-purple-400'
-                : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
+            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${sidebarTab === 'summary'
+              ? 'text-purple-600 dark:text-purple-400'
+              : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
           >
             <div className="flex items-center justify-center gap-2">
               <FileText className="w-3.5 h-3.5" />
@@ -141,11 +128,10 @@ function RightSidebarPanel({
           </button>
           <button
             onClick={() => setSidebarTab('navigation')}
-            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${
-              sidebarTab === 'navigation'
-                ? 'text-purple-600 dark:text-purple-400'
-                : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
+            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${sidebarTab === 'navigation'
+              ? 'text-purple-600 dark:text-purple-400'
+              : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
           >
             <div className="flex items-center justify-center gap-2">
               <List className="w-3.5 h-3.5" />
@@ -161,11 +147,10 @@ function RightSidebarPanel({
           </button>
           <button
             onClick={() => setSidebarTab('cv')}
-            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${
-              sidebarTab === 'cv'
-                ? 'text-purple-600 dark:text-purple-400'
-                : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
+            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${sidebarTab === 'cv'
+              ? 'text-purple-600 dark:text-purple-400'
+              : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
           >
             <div className="flex items-center justify-center gap-2">
               <Wand2 className="w-3.5 h-3.5" />
@@ -217,11 +202,10 @@ function RightSidebarPanel({
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
                       onClick={() => onNavigate(section.id)}
-                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left transition-all group ${
-                        activeSection === section.id
-                          ? 'bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-700 dark:text-purple-300 font-semibold shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#26262B] hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
+                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left transition-all group ${activeSection === section.id
+                        ? 'bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-700 dark:text-purple-300 font-semibold shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#26262B] hover:text-gray-900 dark:hover:text-gray-200'
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <span className={`transition-colors ${activeSection === section.id ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
@@ -229,9 +213,8 @@ function RightSidebarPanel({
                         </span>
                         <span className="text-sm">{section.label}</span>
                       </div>
-                      <ChevronRight className={`w-4 h-4 transition-all ${
-                        activeSection === section.id ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0'
-                      }`} />
+                      <ChevronRight className={`w-4 h-4 transition-all ${activeSection === section.id ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0'
+                        }`} />
                     </motion.button>
                   ))}
                 </nav>
@@ -245,337 +228,17 @@ function RightSidebarPanel({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-4"
+                className="h-full"
               >
-                {!cvRewrite ? (
-                  // Not generated yet
-                  <div className="space-y-4">
-                    {isGeneratingCV ? (
-                      // Inline Premium Loading State
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="space-y-6 py-8"
-                      >
-                        {/* Animated Icon */}
-                        <div className="flex justify-center">
-                          <motion.div
-                            animate={{ 
-                              scale: [1, 1.05, 1],
-                            }}
-                            transition={{ 
-                              duration: 2,
-                              repeat: Infinity,
-                              ease: "easeInOut"
-                            }}
-                            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center relative overflow-hidden"
-                          >
-                            <motion.div
-                              animate={{
-                                rotate: 360
-                              }}
-                              transition={{
-                                duration: 3,
-                                repeat: Infinity,
-                                ease: "linear"
-                              }}
-                            >
-                              <Sparkles className="w-9 h-9 text-purple-600 dark:text-purple-400" />
-                            </motion.div>
-                            
-                            {/* Pulse effect */}
-                            <motion.div
-                              className="absolute inset-0 bg-gradient-to-br from-purple-400 to-indigo-400 opacity-20 rounded-2xl"
-                              animate={{
-                                scale: [1, 1.2, 1],
-                                opacity: [0.2, 0.1, 0.2]
-                              }}
-                              transition={{
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                              }}
-                            />
-                          </motion.div>
-                        </div>
-
-                        {/* Generation Message */}
-                        <div className="text-center space-y-2">
-                          <motion.h3 
-                            key={generationStep}
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="text-sm font-semibold text-gray-900 dark:text-white"
-                          >
-                            {generationStep === 0 && 'Analyzing your resume...'}
-                            {generationStep === 1 && 'Extracting key strengths...'}
-                            {generationStep === 2 && 'Optimizing content...'}
-                            {generationStep === 3 && 'Integrating keywords...'}
-                            {generationStep === 4 && 'Finalizing your tailored resume...'}
-                          </motion.h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Please wait while AI tailors your resume
-                          </p>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="space-y-2 px-4">
-                          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${generationProgress}%` }}
-                              transition={{ duration: 0.3, ease: "easeOut" }}
-                              className="h-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 rounded-full relative overflow-hidden"
-                            >
-                              {/* Shimmer effect */}
-                              <motion.div
-                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                                animate={{
-                                  x: ['-100%', '200%']
-                                }}
-                                transition={{
-                                  duration: 1.5,
-                                  repeat: Infinity,
-                                  ease: 'linear'
-                                }}
-                              />
-                            </motion.div>
-                          </div>
-                          
-                          {/* Progress percentage */}
-                          <div className="flex justify-end">
-                            <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                              {Math.round(generationProgress)}%
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Step Indicators */}
-                        <div className="flex items-center justify-center gap-2">
-                          {[0, 1, 2, 3, 4].map((step) => (
-                            <motion.div
-                              key={step}
-                              initial={{ scale: 0.8 }}
-                              animate={{ 
-                                scale: step === generationStep ? 1.2 : 1,
-                                width: step <= generationStep ? '24px' : '6px'
-                              }}
-                              transition={{ duration: 0.3 }}
-                              className={`h-1.5 rounded-full transition-colors ${
-                                step <= generationStep
-                                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600'
-                                  : 'bg-gray-200 dark:bg-gray-700'
-                              }`}
-                            />
-                          ))}
-                        </div>
-
-                        {/* Info Card */}
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.3 }}
-                          className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl p-4"
-                        >
-                          <p className="text-xs text-gray-600 dark:text-gray-400 text-center leading-relaxed">
-                            Our AI is crafting a personalized resume that highlights your strengths and aligns perfectly with the job requirements.
-                          </p>
-                        </motion.div>
-                      </motion.div>
-                    ) : (
-                      // Initial state - not generating
-                      <>
-                        <div className="text-center py-8">
-                          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center">
-                            <Wand2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
-                            Generate Tailored Resume
-                          </h3>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
-                            Create a tailored version of your resume optimized for this specific job position using AI.
-                          </p>
-                        </div>
-                        
-                        <button
-                          onClick={onGenerateCVRewrite}
-                          disabled={isGeneratingCV}
-                          className="w-full px-4 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm flex items-center justify-center gap-2 relative overflow-hidden group"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <Sparkles className="w-4 h-4 relative z-10" />
-                          <span className="relative z-10">Generate Tailored Resume</span>
-                        </button>
-                      </>
-                    )}
-
-                    {/* Encouraging message with score improvement promise */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2, duration: 0.4 }}
-                      className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-                            <TrendingUp className="w-4 h-4 text-white" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold text-purple-900 dark:text-purple-200 mb-1">
-                            Expected Improvement
-                          </p>
-                          <p className="text-xs text-purple-700 dark:text-purple-300 leading-relaxed">
-                            You can expect at least <span className="font-bold">+10 points</span> improvement on your match score after our AI system optimizes your resume with targeted keywords and strategic enhancements.
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-                      <p className="text-xs text-blue-900 dark:text-blue-300 leading-relaxed">
-                        <span className="font-semibold">AI-Powered:</span> We'll analyze your resume and the job requirements to create an optimized version that maximizes your ATS score.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  // CV Generated - with premium animation
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ 
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 25,
-                      duration: 0.5
-                    }}
-                    className="space-y-4"
-                  >
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1, duration: 0.4 }}
-                      className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 border border-green-200 dark:border-green-800 rounded-xl p-4"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ 
-                            type: "spring",
-                            stiffness: 200,
-                            damping: 15,
-                            delay: 0.2
-                          }}
-                          className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center"
-                        >
-                          <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-                        </motion.div>
-                        <div>
-                          <h3 className="text-sm font-semibold text-green-900 dark:text-green-300">
-                            Tailored Resume Generated
-                          </h3>
-                          <p className="text-xs text-green-700 dark:text-green-400">
-                            Ready to view and download
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2, duration: 0.4 }}
-                      className="space-y-2"
-                    >
-                      <button
-                        onClick={() => navigate(`/ats-analysis/${analysis.id}/cv-rewrite`)}
-                        className="w-full px-4 py-3 bg-white dark:bg-[#26262B] border border-gray-200 dark:border-[#2A2A2E] hover:border-purple-300 dark:hover:border-purple-700 rounded-xl transition-all flex items-center justify-between group hover:shadow-md"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Eye className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">View Full Resume</span>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" />
-                      </button>
-                    </motion.div>
-
-                    {/* Score Comparison - Smooth transition to prevent blinking */}
-                    <AnimatePresence mode="wait">
-                      {cvRewrite && (
-                        <>
-                          {isCalculatingScore && !optimizedScore && (
-                            <motion.div
-                              key="calculating"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2A2A2E]"
-                            >
-                              <div className="flex items-center justify-center gap-2 py-2">
-                                <Loader2 className="w-3 h-3 animate-spin text-purple-600 dark:text-purple-400" />
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  Calculating score...
-                                </span>
-                              </div>
-                            </motion.div>
-                          )}
-                          
-                          {optimizedScore && analysis && (
-                            <motion.div
-                              key="comparison"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <CVScoreComparison
-                                original={{
-                                  overall: analysis.match_scores.overall_score,
-                                  skills: analysis.match_scores.skills_score,
-                                  experience: analysis.match_scores.experience_score
-                                }}
-                                optimized={optimizedScore}
-                                premiumAnalysis={premiumAnalysis || undefined}
-                              />
-                            </motion.div>
-                          )}
-                        </>
-                      )}
-                    </AnimatePresence>
-
-                    {cvRewrite?.sections && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3, duration: 0.4 }}
-                        className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2A2A2E]"
-                      >
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                          Resume Sections
-                        </p>
-                        <div className="space-y-2">
-                          {Object.keys(cvRewrite.sections).slice(0, 5).map((section, idx) => (
-                            <motion.div
-                              key={idx}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.35 + idx * 0.05, duration: 0.3 }}
-                              className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"
-                            >
-                              <Check className="w-3 h-3 text-green-500" />
-                              <span className="capitalize">{section.replace('_', ' ')}</span>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
+                <TailoredResumePanel
+                  analysis={analysis}
+                  cvRewrite={cvRewrite}
+                  isGenerating={isGeneratingCV}
+                  onGenerate={onGenerateCVRewrite}
+                  onViewFull={() => navigate(`/ats-analysis/${analysis.id}/cv-rewrite`)}
+                  optimizedScore={optimizedScore || undefined}
+                  premiumAnalysis={premiumAnalysis}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -612,7 +275,7 @@ export default function ATSAnalysisPagePremium() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  
+
   const [analysis, setAnalysis] = useState<PremiumATSAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
@@ -628,7 +291,7 @@ export default function ATSAnalysisPagePremium() {
   } | null>(null);
   const [isCalculatingScore, setIsCalculatingScore] = useState(false);
   const [premiumAnalysis, setPremiumAnalysis] = useState<PremiumScoreAnalysis | null>(null);
-  
+
   const sectionsRef = useRef<{ [key: string]: HTMLElement | null }>({});
 
   // Fetch analysis from Firestore
@@ -641,36 +304,36 @@ export default function ATSAnalysisPagePremium() {
 
       try {
         const analysisDoc = await getDoc(doc(db, 'users', currentUser.uid, 'analyses', id));
-        
+
         if (analysisDoc.exists()) {
           const data = analysisDoc.data() as PremiumATSAnalysis;
-          
+
           // Check if CV rewrite exists and was generated manually by user
           // CRITICAL: Only load CV if cv_rewrite_generated_at exists (manual generation)
           const cvRewriteData = data.cv_rewrite;
           const cvRewriteGeneratedAt = data.cv_rewrite_generated_at;
-          
+
           // CV is only valid if:
           // 1. cv_rewrite exists
           // 2. cv_rewrite_generated_at exists (proves it was generated manually, not automatically)
           // 3. Has actual content
           let hasValidCV = false;
-          
+
           if (cvRewriteData && cvRewriteGeneratedAt) {
             // Check if it has initial_cv with actual content
-            const hasInitialCV = cvRewriteData.initial_cv && 
-                                typeof cvRewriteData.initial_cv === 'string' && 
-                                cvRewriteData.initial_cv.trim().length > 50; // At least 50 chars
-            
+            const hasInitialCV = cvRewriteData.initial_cv &&
+              typeof cvRewriteData.initial_cv === 'string' &&
+              cvRewriteData.initial_cv.trim().length > 50; // At least 50 chars
+
             // Check if it has structured_data with actual content
             const hasStructuredData = cvRewriteData.structured_data && (
               (cvRewriteData.structured_data.experiences && cvRewriteData.structured_data.experiences.length > 0) ||
               (cvRewriteData.structured_data.summary && cvRewriteData.structured_data.summary.trim().length > 0) ||
               (cvRewriteData.structured_data.personalInfo && Object.keys(cvRewriteData.structured_data.personalInfo).length > 0)
             );
-            
+
             hasValidCV = hasInitialCV || hasStructuredData;
-            
+
             if (!hasValidCV) {
               console.log('⚠️ CV rewrite exists but is invalid/empty:', {
                 hasInitialCV,
@@ -691,7 +354,7 @@ export default function ATSAnalysisPagePremium() {
               console.log('ℹ️ No CV rewrite found for this analysis');
             }
           }
-          
+
           // BATCH ALL STATE UPDATES TOGETHER to prevent multiple re-renders
           // This prevents the blinking issue by updating everything at once
           setAnalysis({ ...data, id: analysisDoc.id });
@@ -718,7 +381,7 @@ export default function ATSAnalysisPagePremium() {
   // Calculate optimized CV score when CV rewrite is available
   // Use a ref to prevent calculation on initial mount when score might already exist
   const hasCalculatedScoreRef = useRef(false);
-  
+
   useEffect(() => {
     const calculateScore = async () => {
       // Only calculate if cvRewrite exists and has valid content
@@ -734,9 +397,9 @@ export default function ATSAnalysisPagePremium() {
       }
 
       // Validate that cvRewrite has actual content
-      const hasContent = cvRewrite.initial_cv || 
-                        (cvRewrite.structured_data && Object.keys(cvRewrite.structured_data).length > 0);
-      
+      const hasContent = cvRewrite.initial_cv ||
+        (cvRewrite.structured_data && Object.keys(cvRewrite.structured_data).length > 0);
+
       if (!hasContent) {
         console.log('⚠️ CV rewrite exists but has no valid content');
         if (optimizedScore !== null || premiumAnalysis !== null || isCalculatingScore) {
@@ -756,9 +419,9 @@ export default function ATSAnalysisPagePremium() {
       setIsCalculatingScore(true);
       try {
         // Get CV text from rewrite (prefer initial_cv markdown)
-        const optimizedCVText = cvRewrite.initial_cv || 
-                      (cvRewrite.structured_data ? JSON.stringify(cvRewrite.structured_data) : '');
-        
+        const optimizedCVText = cvRewrite.initial_cv ||
+          (cvRewrite.structured_data ? JSON.stringify(cvRewrite.structured_data) : '');
+
         if (!optimizedCVText || optimizedCVText.trim().length === 0) {
           setOptimizedScore(null);
           setPremiumAnalysis(null);
@@ -781,7 +444,7 @@ export default function ATSAnalysisPagePremium() {
         );
 
         // Get original CV text (if available)
-        const originalCVText = analysis.resume_text || '';
+        const originalCVText = analysis.cvText || '';
 
         // Calculate premium analysis
         const premiumAnalysisResult = analyzePremiumScore(
@@ -826,18 +489,18 @@ export default function ATSAnalysisPagePremium() {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;
     let lastActiveSection = activeSection;
-    
+
     const handleScroll = () => {
       // Throttle scroll events to reduce re-renders and improve performance
       if (timeoutId !== null) {
         return; // Skip if already scheduled
       }
-      
+
       timeoutId = setTimeout(() => {
         timeoutId = null;
-        
+
         const sectionIds = ['overview', 'breakdown', 'strengths', 'gaps', 'cv-fixes', 'action-plan', 'learning', 'fit'];
-        
+
         for (const sectionId of sectionIds) {
           const element = sectionsRef.current[sectionId];
           if (element) {
@@ -857,7 +520,7 @@ export default function ATSAnalysisPagePremium() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Initial check
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       if (timeoutId !== null) {
@@ -905,7 +568,7 @@ export default function ATSAnalysisPagePremium() {
     setIsGeneratingCV(true);
     setGenerationProgress(0);
     setGenerationStep(0);
-    
+
     // Auto-switch to CV tab to show inline progress
     setSidebarTab('cv');
 
@@ -915,7 +578,7 @@ export default function ATSAnalysisPagePremium() {
         if (prev >= 90) return prev;
         const increment = Math.random() * 5 + 2;
         const newProgress = Math.min(prev + increment, 90);
-        
+
         // Update step based on progress
         setGenerationStep(() => {
           if (newProgress < 25) return 0;
@@ -924,7 +587,7 @@ export default function ATSAnalysisPagePremium() {
           if (newProgress < 90) return 3;
           return 4;
         });
-        
+
         return newProgress;
       });
     }, 500);
@@ -933,7 +596,7 @@ export default function ATSAnalysisPagePremium() {
       // Step 1: Analyzing
       setGenerationStep(0);
       setGenerationProgress(10);
-      
+
       // Extract data from analysis
       const cvText = analysis.cvText || '';
       const topStrengths = analysis.top_strengths?.map((s: any) => s.name) || [];
@@ -978,22 +641,22 @@ export default function ATSAnalysisPagePremium() {
 
       // Update state immediately - this will trigger UI update
       setCvRewrite(result);
-      
+
       // Switch to CV tab to show the result
       setSidebarTab('cv');
 
       // Clear progress interval
       clearInterval(progressInterval);
-      
+
       toast.success('🎉 Tailored resume generated successfully!', {
         duration: 3000
       });
 
     } catch (error: any) {
       console.error('❌ Error generating CV Rewrite:', error);
-      
+
       clearInterval(progressInterval);
-      
+
       let errorMessage = 'Failed to generate CV';
       if (error.message?.includes('API key')) {
         errorMessage = 'OpenAI API key is missing. Please configure your environment.';
@@ -1058,8 +721,8 @@ export default function ATSAnalysisPagePremium() {
   return (
     <AuthLayout>
       {/* Full-height Right Sidebar */}
-      <RightSidebarPanel 
-        analysis={analysis} 
+      <RightSidebarPanel
+        analysis={analysis}
         activeSection={activeSection}
         onNavigate={handleNavigate}
         onGenerateCVRewrite={handleGenerateCVRewrite}
@@ -1080,7 +743,7 @@ export default function ATSAnalysisPagePremium() {
         <div className="relative overflow-hidden">
           {/* Gradient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 dark:from-purple-950/20 dark:via-indigo-950/20 dark:to-pink-950/20" />
-          
+
           {/* Static gradient overlay - animation removed to prevent conflicts */}
           <div className="absolute inset-0 opacity-30 bg-gradient-radial from-purple-100/20 via-transparent to-transparent" />
 
@@ -1092,10 +755,10 @@ export default function ATSAnalysisPagePremium() {
                 <div className="flex items-start gap-5 flex-1 min-w-0">
                   {/* Company Logo - Animations removed to prevent blinking */}
                   <div className="flex-shrink-0">
-                    <CompanyLogo 
-                      companyName={analysis.company} 
-                      size="xl" 
-                      className="w-20 h-20 rounded-2xl border-2 border-white dark:border-gray-800 shadow-xl bg-white dark:bg-gray-900 p-3" 
+                    <CompanyLogo
+                      companyName={analysis.company}
+                      size="xl"
+                      className="w-20 h-20 rounded-2xl border-2 border-white dark:border-gray-800 shadow-xl bg-white dark:bg-gray-900 p-3"
                     />
                   </div>
 
@@ -1138,31 +801,28 @@ export default function ATSAnalysisPagePremium() {
 
                 {/* Right: Overall Match Score - Animations removed */}
                 <div className="flex-shrink-0">
-                  <div className={`relative px-8 py-6 rounded-3xl shadow-2xl border-2 ${
-                    analysis.match_scores.overall_score >= 80 
-                      ? 'bg-gradient-to-br from-purple-600 to-indigo-600 border-purple-500 dark:border-purple-400' 
-                      : analysis.match_scores.overall_score >= 60
+                  <div className={`relative px-8 py-6 rounded-3xl shadow-2xl border-2 ${analysis.match_scores.overall_score >= 80
+                    ? 'bg-gradient-to-br from-purple-600 to-indigo-600 border-purple-500 dark:border-purple-400'
+                    : analysis.match_scores.overall_score >= 60
                       ? 'bg-gradient-to-br from-blue-600 to-cyan-600 border-blue-500 dark:border-blue-400'
                       : 'bg-gradient-to-br from-pink-600 to-rose-600 border-pink-500 dark:border-pink-400'
-                  }`}>
+                    }`}>
                     {/* Shine effect */}
                     <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
-                    
+
                     <div className="relative text-center">
                       <div className="text-xs font-bold text-white/80 uppercase tracking-widest mb-1">
                         Match Score
                       </div>
-                      <div className={`text-7xl sm:text-8xl font-black text-white leading-none mb-2 ${
-                        analysis.match_scores.overall_score >= 80 ? 'drop-shadow-2xl' : ''
-                      }`}>
+                      <div className={`text-7xl sm:text-8xl font-black text-white leading-none mb-2 ${analysis.match_scores.overall_score >= 80 ? 'drop-shadow-2xl' : ''
+                        }`}>
                         {analysis.match_scores.overall_score}
                         <span className="text-4xl sm:text-5xl">%</span>
                       </div>
-                      <div className={`text-xs font-semibold text-white/90 uppercase tracking-wide ${
-                        analysis.match_scores.overall_score >= 80 ? 'text-purple-100' :
+                      <div className={`text-xs font-semibold text-white/90 uppercase tracking-wide ${analysis.match_scores.overall_score >= 80 ? 'text-purple-100' :
                         analysis.match_scores.overall_score >= 60 ? 'text-blue-100' :
-                        'text-pink-100'
-                      }`}>
+                          'text-pink-100'
+                        }`}>
                         {analysis.match_scores.category}
                       </div>
                     </div>
@@ -1173,30 +833,30 @@ export default function ATSAnalysisPagePremium() {
               {/* Stats Row - Animations removed to prevent blinking */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { 
-                    label: 'Skills', 
-                    value: `${analysis.match_scores.skills_score}%`, 
+                  {
+                    label: 'Skills',
+                    value: `${analysis.match_scores.skills_score}%`,
                     iconColor: analysis.match_scores.skills_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.skills_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
                     valueColor: analysis.match_scores.skills_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.skills_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
                     icon: <Zap className="w-5 h-5" />
                   },
-                  { 
-                    label: 'Experience', 
-                    value: `${analysis.match_scores.experience_score}%`, 
+                  {
+                    label: 'Experience',
+                    value: `${analysis.match_scores.experience_score}%`,
                     iconColor: analysis.match_scores.experience_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.experience_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
                     valueColor: analysis.match_scores.experience_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.experience_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
                     icon: <TrendingUp className="w-5 h-5" />
                   },
-                  { 
-                    label: 'Strengths', 
-                    value: analysis.top_strengths.length, 
+                  {
+                    label: 'Strengths',
+                    value: analysis.top_strengths.length,
                     iconColor: 'text-green-600 dark:text-green-400',
                     valueColor: 'text-green-600 dark:text-green-400',
                     icon: <Check className="w-5 h-5" />
                   },
-                  { 
-                    label: 'Gaps', 
-                    value: analysis.top_gaps.length, 
+                  {
+                    label: 'Gaps',
+                    value: analysis.top_gaps.length,
                     iconColor: 'text-red-600 dark:text-red-400',
                     valueColor: 'text-red-600 dark:text-red-400',
                     icon: <AlertCircle className="w-5 h-5" />
@@ -1267,94 +927,94 @@ export default function ATSAnalysisPagePremium() {
                 </div>
               </div>
 
-            {/* Match Breakdown */}
-            <div ref={(el) => { sectionsRef.current['breakdown'] = el; }}>
-              <Section
-                id="breakdown"
-                title="Match Breakdown"
-                description="Detailed analysis of how your profile aligns with each category"
-              >
-                <MatchBreakdownPanel
-                  matchBreakdown={analysis.match_breakdown}
-                  matchScores={analysis.match_scores}
-                />
-              </Section>
-            </div>
+              {/* Match Breakdown */}
+              <div ref={(el) => { sectionsRef.current['breakdown'] = el; }}>
+                <Section
+                  id="breakdown"
+                  title="Match Breakdown"
+                  description="Detailed analysis of how your profile aligns with each category"
+                >
+                  <MatchBreakdownPanel
+                    matchBreakdown={analysis.match_breakdown}
+                    matchScores={analysis.match_scores}
+                  />
+                </Section>
+              </div>
 
-            {/* Top Strengths */}
-            <div ref={(el) => { sectionsRef.current['strengths'] = el; }}>
-              <Section
-                id="strengths"
-                title="Top Strengths"
-                description="Your strongest assets for this role with evidence from your resume"
-              >
-                <div className="grid gap-6 lg:grid-cols-2">
-                  {analysis.top_strengths.map((strength, index) => (
-                    <StrengthCard key={index} strength={strength} index={index} />
-                  ))}
-                </div>
-              </Section>
-            </div>
+              {/* Top Strengths */}
+              <div ref={(el) => { sectionsRef.current['strengths'] = el; }}>
+                <Section
+                  id="strengths"
+                  title="Top Strengths"
+                  description="Your strongest assets for this role with evidence from your resume"
+                >
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {analysis.top_strengths.map((strength, index) => (
+                      <StrengthCard key={index} strength={strength} index={index} />
+                    ))}
+                  </div>
+                </Section>
+              </div>
 
-            {/* Top Gaps */}
-            <div ref={(el) => { sectionsRef.current['gaps'] = el; }}>
-              <Section
-                id="gaps"
-                title="Gaps to Address"
-                description="Areas where your profile doesn't fully match requirements, with actionable fixes"
-              >
-                <div className="grid gap-6 lg:grid-cols-2">
-                  {analysis.top_gaps.map((gap, index) => (
-                    <GapCard key={index} gap={gap} index={index} />
-                  ))}
-                </div>
-              </Section>
-            </div>
+              {/* Top Gaps */}
+              <div ref={(el) => { sectionsRef.current['gaps'] = el; }}>
+                <Section
+                  id="gaps"
+                  title="Gaps to Address"
+                  description="Areas where your profile doesn't fully match requirements, with actionable fixes"
+                >
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {analysis.top_gaps.map((gap, index) => (
+                      <GapCard key={index} gap={gap} index={index} />
+                    ))}
+                  </div>
+                </Section>
+              </div>
 
-            {/* CV Fixes */}
-            <div ref={(el) => { sectionsRef.current['cv-fixes'] = el; }}>
-              <Section
-                id="cv-fixes"
-                title="CV Optimization"
-                description={`Make these changes to potentially gain +${analysis.cv_fixes.estimated_score_gain} points`}
-              >
-                <CVFixesPanel cvFixes={analysis.cv_fixes} />
-              </Section>
-            </div>
+              {/* CV Fixes */}
+              <div ref={(el) => { sectionsRef.current['cv-fixes'] = el; }}>
+                <Section
+                  id="cv-fixes"
+                  title="CV Optimization"
+                  description={`Make these changes to potentially gain +${analysis.cv_fixes.estimated_score_gain} points`}
+                >
+                  <CVFixesPanel cvFixes={analysis.cv_fixes} />
+                </Section>
+              </div>
 
-            {/* 48H Action Plan */}
-            <div ref={(el) => { sectionsRef.current['action-plan'] = el; }}>
-              <Section
-                id="action-plan"
-                title="48-Hour Action Plan"
-                description="Immediate steps to maximize your chances of landing an interview"
-              >
-                <ActionPlan48H actionPlan={analysis.action_plan_48h} />
-              </Section>
-            </div>
+              {/* 48H Action Plan */}
+              <div ref={(el) => { sectionsRef.current['action-plan'] = el; }}>
+                <Section
+                  id="action-plan"
+                  title="48-Hour Action Plan"
+                  description="Immediate steps to maximize your chances of landing an interview"
+                >
+                  <ActionPlan48H actionPlan={analysis.action_plan_48h} />
+                </Section>
+              </div>
 
-            {/* Learning Path */}
-            <div ref={(el) => { sectionsRef.current['learning'] = el; }}>
-              <Section
-                id="learning"
-                title="Learning Path"
-                description="Curated resources to close skill gaps and strengthen your candidacy"
-              >
-                <LearningPathPanel learningPath={analysis.learning_path} />
-              </Section>
-            </div>
+              {/* Learning Path */}
+              <div ref={(el) => { sectionsRef.current['learning'] = el; }}>
+                <Section
+                  id="learning"
+                  title="Learning Path"
+                  description="Curated resources to close skill gaps and strengthen your candidacy"
+                >
+                  <LearningPathPanel learningPath={analysis.learning_path} />
+                </Section>
+              </div>
 
-            {/* Opportunity Fit */}
-            <div ref={(el) => { sectionsRef.current['fit'] = el; }}>
-              <Section
-                id="fit"
-                title="Opportunity Fit"
-                description="Balanced perspective on why you'll succeed and potential challenges"
-              >
-                <OpportunityFitPanel opportunityFit={analysis.opportunity_fit} />
-              </Section>
-            </div>
-          </main>
+              {/* Opportunity Fit */}
+              <div ref={(el) => { sectionsRef.current['fit'] = el; }}>
+                <Section
+                  id="fit"
+                  title="Opportunity Fit"
+                  description="Balanced perspective on why you'll succeed and potential challenges"
+                >
+                  <OpportunityFitPanel opportunityFit={analysis.opportunity_fit} />
+                </Section>
+              </div>
+            </main>
           </div>
         </div>
       </div>

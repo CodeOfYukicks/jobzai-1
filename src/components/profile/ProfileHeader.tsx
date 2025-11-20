@@ -46,8 +46,8 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
             headline: userData.headline || userData.targetPosition || '',
-            location: userData.city && userData.country 
-              ? `${userData.city}, ${userData.country}` 
+            location: userData.city && userData.country
+              ? `${userData.city}, ${userData.country}`
               : userData.city || userData.country || '',
             profilePhoto: userData.profilePhoto || '',
             coverPhoto: userData.coverPhoto || '',
@@ -167,36 +167,26 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
   const fullName = `${formData.firstName} ${formData.lastName}`.trim() || 'Your Name';
 
   return (
-    <div className="glass-card rounded-xl shadow-premium overflow-hidden relative">
-      {/* Cover Photo Area - Premium gradient mesh */}
-      <div className="relative h-32 overflow-hidden group">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden relative">
+      {/* Cover Photo Area */}
+      <div className="relative h-32 overflow-hidden group bg-gray-100 dark:bg-gray-900">
         {/* Cover Photo or Animated Gradient Background */}
         {formData.coverPhoto ? (
           <>
-            <img 
-              src={formData.coverPhoto} 
-              alt="Cover" 
+            <img
+              src={formData.coverPhoto}
+              alt="Cover"
               className="w-full h-full object-cover"
             />
             {/* Gradient overlay for better text contrast */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-900/10 to-purple-900/30"></div>
           </>
         ) : (
-          <>
-            {/* Animated Mesh Gradient Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-purple-500 to-indigo-600 animate-gradient-shift bg-[length:200%_200%]"></div>
-            {/* Additional gradient layers for depth */}
-            <div className="absolute inset-0 bg-gradient-mesh opacity-50"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-600/20 to-purple-900/40"></div>
-            {/* Floating orbs */}
-            <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl animate-float"></div>
-            <div className="absolute bottom-10 right-10 w-40 h-40 bg-indigo-300/20 rounded-full blur-3xl animate-float-slow"></div>
-          </>
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900"></div>
         )}
-        
-        {/* Upload Cover Photo Button - Glass style, visible on hover */}
+
         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-2">
-          <label className="btn-glass px-4 py-2.5 rounded-xl cursor-pointer flex items-center gap-2 text-sm font-semibold text-white shadow-lg backdrop-blur-xl">
+          <label className="cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg backdrop-blur-sm transition-colors">
             <input
               type="file"
               accept="image/*"
@@ -215,7 +205,7 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
           </label>
           <button
             onClick={() => setIsCoverGalleryOpen(true)}
-            className="btn-glass px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg backdrop-blur-xl"
+            className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg backdrop-blur-sm transition-colors"
           >
             Cover options
           </button>
@@ -227,26 +217,24 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           {/* Photo and Basic Info */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3">
-            {/* Profile Photo - Premium with glow effect */}
+            {/* Profile Photo */}
             <div className="relative -mt-14 z-10 group/photo">
-              <div className="w-28 h-28 rounded-full bg-white dark:bg-gray-800 p-1.5 shadow-premium flex items-center justify-center overflow-hidden relative">
-                {/* Animated glow ring */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500 animate-gradient-shift bg-[length:200%_200%] opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800">
+              <div className="w-28 h-28 rounded-full bg-white dark:bg-gray-800 p-1 shadow-sm flex items-center justify-center overflow-hidden relative">
+                <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
                   {formData.profilePhoto ? (
-                    <img 
-                      src={formData.profilePhoto} 
+                    <img
+                      src={formData.profilePhoto}
                       alt={fullName}
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-600 via-purple-500 to-indigo-600 flex items-center justify-center">
-                      <User className="w-14 h-14 text-white" />
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <User className="w-12 h-12" />
                     </div>
                   )}
                 </div>
               </div>
-              <label className="absolute bottom-1 right-1 bg-gradient-to-br from-purple-600 to-indigo-600 text-white p-2 rounded-full cursor-pointer hover:scale-110 active:scale-95 transition-all shadow-glow hover:shadow-glow-lg border-2 border-white dark:border-gray-800">
+              <label className="absolute bottom-1 right-1 bg-gray-900 text-white p-1.5 rounded-full cursor-pointer hover:bg-gray-800 transition-colors shadow-sm border-2 border-white dark:border-gray-800">
                 <input
                   type="file"
                   accept="image/*"
@@ -257,7 +245,7 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
                 {isUploading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
-                  <Camera className="w-4 h-4" />
+                  <Camera className="w-3 h-3" />
                 )}
               </label>
             </div>
@@ -272,7 +260,7 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
                       value={formData.firstName}
                       onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
                       placeholder="First Name"
-                      className="glass-input w-full sm:w-auto px-3.5 py-2 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full sm:w-auto px-3.5 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
                     />
                   </div>
                   <div>
@@ -281,7 +269,7 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
                       value={formData.lastName}
                       onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
                       placeholder="Last Name"
-                      className="glass-input w-full sm:w-auto px-3.5 py-2 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full sm:w-auto px-3.5 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
                     />
                   </div>
                   <div>
@@ -290,7 +278,7 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
                       value={formData.headline}
                       onChange={(e) => setFormData(prev => ({ ...prev, headline: e.target.value }))}
                       placeholder="Professional headline (e.g., Senior Product Manager)"
-                      className="glass-input w-full px-3.5 py-2 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full px-3.5 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
                     />
                   </div>
                   <div>
@@ -299,19 +287,19 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
                       value={formData.location}
                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                       placeholder="Location (e.g., Paris, France)"
-                      className="glass-input w-full px-3.5 py-2 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full px-3.5 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
                     />
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={handleSave}
-                      className="btn-premium text-sm px-4 py-2"
+                      className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
                     >
                       Save
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200/80 dark:hover:bg-gray-600/80 transition-all duration-300 font-semibold text-sm"
+                      className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       Cancel
                     </button>
@@ -327,17 +315,17 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
                       {formData.headline}
                     </p>
                   )}
-                  <div className="flex flex-wrap items-center gap-2.5 text-xs text-gray-600 dark:text-gray-400 justify-center sm:justify-start">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400 justify-center sm:justify-start">
                     {formData.location && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100/60 dark:bg-gray-700/60 backdrop-blur-sm rounded-full">
-                        <MapPin className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">{formData.location}</span>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>{formData.location}</span>
                       </div>
                     )}
                     {formData.email && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100/60 dark:bg-gray-700/60 backdrop-blur-sm rounded-full">
-                        <Mail className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-                        <span className="font-medium text-gray-700 dark:text-gray-300">{formData.email}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>{formData.email}</span>
                       </div>
                     )}
                   </div>
@@ -351,7 +339,7 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
             <div className="flex gap-2 pt-1 sm:pt-0">
               <button
                 onClick={() => setIsEditing(true)}
-                className="btn-premium flex items-center gap-1.5 text-sm px-4 py-2"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 Edit Profile
@@ -397,4 +385,3 @@ const ProfileHeader = ({ onUpdate }: ProfileHeaderProps) => {
 };
 
 export default ProfileHeader;
-
