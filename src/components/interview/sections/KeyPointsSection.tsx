@@ -1,66 +1,102 @@
 import { memo } from 'react';
-import { Check, Flag, ArrowUp, ArrowRight } from 'lucide-react';
+import { Sparkles, Target, Zap, Award, TrendingUp, Lightbulb, Star, CheckCircle } from 'lucide-react';
 import { Interview } from '../../../types/interview';
 
 interface KeyPointsSectionProps {
   interview: Interview;
 }
 
+const iconMap = [Sparkles, Target, Zap, Award, TrendingUp, Lightbulb, Star, CheckCircle];
+
 const KeyPointsSection = memo(function KeyPointsSection({
   interview,
 }: KeyPointsSectionProps) {
+  const keyPoints = interview?.preparation?.keyPoints || [];
+  
+  if (keyPoints.length === 0) {
+    return (
+      <article className="rounded-xl bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-6 shadow-sm">
+        <header className="mb-6">
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
+              <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+              Key Points to Emphasize
+            </h2>
+          </div>
+        </header>
+        
+        <div className="text-center py-8">
+          <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 dark:bg-[#2A2A2E] flex items-center justify-center mb-3">
+            <Sparkles className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Run job post analysis to generate key talking points
+          </p>
+        </div>
+      </article>
+    );
+  }
+
   return (
-    <article className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5">
-      <header className="mb-5">
-        <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Key Points to Emphasize</h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Core messages to highlight during the interview</p>
+    <article className="rounded-xl bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-6 shadow-sm transition-all duration-200">
+      <header className="mb-6">
+        <div className="flex items-center gap-2.5 mb-1.5">
+          <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
+            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+            Key Points to Emphasize
+          </h2>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 ml-9">
+          Messages that will make you stand out
+        </p>
       </header>
       
-      {interview?.preparation?.keyPoints && interview.preparation.keyPoints.length > 0 ? (
-        <div className="space-y-3">
-          <ul className="space-y-3">
-            {interview.preparation.keyPoints.slice(0, 5).map((point, index) => (
-              <li 
-                key={index} 
-                className="flex items-start gap-3"
-              >
-                <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
-                  <Check className="h-3 w-3" />
+      {/* Key Points Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {keyPoints.slice(0, 8).map((point, index) => {
+          const Icon = iconMap[index % iconMap.length];
+          
+          return (
+            <div
+              key={index}
+              className="group rounded-lg bg-gray-50/50 dark:bg-[#1A1A1D]/50 border border-gray-100 dark:border-[#2A2A2E] p-4 transition-all duration-200 hover:bg-white dark:hover:bg-[#1E1F22] hover:border-indigo-200 dark:hover:border-indigo-800"
+            >
+              <div className="flex items-start gap-3">
+                {/* Icon */}
+                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
+                  <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
-                  {point}
-                </p>
-              </li>
-            ))}
-          </ul>
-          {interview.preparation.keyPoints.length > 5 && (
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200 transition-colors"
-              >
-                View all {interview.preparation.keyPoints.length} points
-                <ArrowRight className="h-3 w-3" />
-              </button>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                    {point}
+                  </p>
+                </div>
+
+                {/* Number Badge */}
+                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                    {index + 1}
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-[12px] border border-dashed border-black/[0.08] bg-[#FAFAFA] dark:border-white/10 dark:bg-white/5 px-4 py-8 text-center">
-          <Flag className="mb-3 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
-          <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
-            No key points available yet. Run the job post analysis to generate tailored talking points.
-          </p>
-          <button
-            type="button"
-            onClick={() =>
-              (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()
-            }
-            className="inline-flex items-center justify-center gap-1 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-200 dark:hover:bg-purple-800/60 transition-colors"
-          >
-            <ArrowUp className="h-3 w-3" />
-            Analyze a job posting
-          </button>
+          );
+        })}
+      </div>
+
+      {/* Additional Points Indicator */}
+      {keyPoints.length > 8 && (
+        <div className="mt-4 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#2A2A2E] text-xs text-gray-600 dark:text-gray-400">
+            <Sparkles className="w-3 h-3" />
+            +{keyPoints.length - 8} more points
+          </div>
         </div>
       )}
     </article>
@@ -68,4 +104,3 @@ const KeyPointsSection = memo(function KeyPointsSection({
 });
 
 export default KeyPointsSection;
-

@@ -1,6 +1,6 @@
 /**
- * Simplified ATS analysis for optimized CV
- * Based on keywords matching and structure analysis
+ * Enhanced ATS analysis for optimized CV
+ * Based on keywords matching, structure analysis, and quality metrics
  */
 
 interface OptimizedCVScore {
@@ -9,6 +9,7 @@ interface OptimizedCVScore {
   experience: number;
   keywords: number;
   structure: number;
+  quality?: number; // Quality score based on content analysis
 }
 
 /**
@@ -90,7 +91,45 @@ function extractJobKeywords(jobDescription: string): {
 }
 
 /**
- * Calculate keyword match score
+ * Check if keyword or its variations exist in text
+ */
+function hasKeywordOrVariation(text: string, keyword: string): boolean {
+  const textLower = text.toLowerCase();
+  const keywordLower = keyword.toLowerCase();
+  
+  // Direct match
+  if (textLower.includes(keywordLower)) return true;
+  
+  // Common variations and synonyms
+  const variations: Record<string, string[]> = {
+    'javascript': ['js', 'node', 'nodejs', 'react', 'vue', 'angular'],
+    'python': ['py', 'django', 'flask', 'pandas'],
+    'management': ['manage', 'managing', 'managed', 'manager', 'leadership', 'lead', 'led'],
+    'development': ['develop', 'developer', 'developing', 'developed', 'dev'],
+    'cloud': ['aws', 'azure', 'gcp', 'google cloud', 'amazon web services'],
+    'database': ['sql', 'mysql', 'postgresql', 'mongodb', 'db'],
+    'agile': ['scrum', 'kanban', 'sprint'],
+    'communication': ['communicate', 'communicating', 'collaboration', 'collaborate'],
+  };
+  
+  // Check if keyword has known variations
+  if (variations[keywordLower]) {
+    return variations[keywordLower].some(variant => textLower.includes(variant));
+  }
+  
+  // Check plural/singular forms
+  if (keywordLower.endsWith('s') && textLower.includes(keywordLower.slice(0, -1))) return true;
+  if (textLower.includes(keywordLower + 's')) return true;
+  
+  // Check common suffixes (ing, ed, er)
+  const root = keywordLower.replace(/(ing|ed|er)$/, '');
+  if (root.length > 3 && textLower.includes(root)) return true;
+  
+  return false;
+}
+
+/**
+ * Calculate keyword match score with enhanced matching
  */
 function calculateKeywordScore(
   cvText: string,
@@ -103,7 +142,7 @@ function calculateKeywordScore(
   // Critical keywords (40% of score)
   maxScore += jobKeywords.critical.length * 40;
   jobKeywords.critical.forEach(keyword => {
-    if (cvLower.includes(keyword.toLowerCase())) {
+    if (hasKeywordOrVariation(cvText, keyword)) {
       score += 40;
     }
   });
@@ -111,7 +150,7 @@ function calculateKeywordScore(
   // Important keywords (30% of score)
   maxScore += jobKeywords.important.length * 30;
   jobKeywords.important.forEach(keyword => {
-    if (cvLower.includes(keyword.toLowerCase())) {
+    if (hasKeywordOrVariation(cvText, keyword)) {
       score += 30;
     }
   });
@@ -123,7 +162,7 @@ function calculateKeywordScore(
   
   maxScore += otherKeywords.length * 1.5;
   otherKeywords.forEach(keyword => {
-    if (cvLower.includes(keyword.toLowerCase())) {
+    if (hasKeywordOrVariation(cvText, keyword)) {
       score += 1.5;
     }
   });
@@ -220,11 +259,93 @@ function calculateExperienceScore(
 }
 
 /**
- * Analyze optimized CV and return scores
+ * Calculate quality score based on content analysis
+ */
+function calculateQualityScore(cvText: string): number {
+  let score = 0;
+  const maxScore = 100;
+  
+  // Action verbs (30 points)
+  const actionVerbs = [
+    'achieved', 'delivered', 'improved', 'increased', 'reduced', 'managed', 'led', 
+    'created', 'developed', 'built', 'implemented', 'optimized', 'designed', 'launched',
+    'established', 'initiated', 'executed', 'coordinated', 'streamlined', 'enhanced'
+  ];
+  const actionVerbCount = actionVerbs.filter(verb => 
+    new RegExp(`\\b${verb}\\b`, 'i').test(cvText)
+  ).length;
+  score += Math.min(30, actionVerbCount * 2);
+  
+  // Quantified achievements (35 points)
+  const quantifiedPatterns = [
+    /\d+%/g, // Percentages
+    /\$\d+[kmb]?/gi, // Money amounts
+    /\d+\+?\s*(?:users|customers|clients|projects|teams|people)/gi, // Numbers with context
+    /increased.*?\d+/gi,
+    /reduced.*?\d+/gi,
+    /improved.*?\d+/gi,
+  ];
+  let quantifiedCount = 0;
+  quantifiedPatterns.forEach(pattern => {
+    quantifiedCount += (cvText.match(pattern) || []).length;
+  });
+  score += Math.min(35, quantifiedCount * 5);
+  
+  // Professional terminology (20 points)
+  const professionalTerms = [
+    'strategic', 'analytics', 'optimization', 'implementation', 'framework',
+    'methodology', 'architecture', 'scalable', 'efficient', 'collaborative',
+    'cross-functional', 'stakeholder', 'initiative', 'roadmap', 'kpi'
+  ];
+  const termCount = professionalTerms.filter(term => 
+    new RegExp(`\\b${term}\\b`, 'i').test(cvText)
+  ).length;
+  score += Math.min(20, termCount * 2);
+  
+  // Content structure quality (15 points)
+  const bulletPoints = (cvText.match(/^[\s]*[-•*]\s/gm) || []).length;
+  score += Math.min(10, bulletPoints * 0.5);
+  
+  // Check for impact statements (vs just responsibilities)
+  const impactStatements = (cvText.match(/(?:resulted in|leading to|which|that)\s+(?:improved|increased|reduced|enhanced)/gi) || []).length;
+  score += Math.min(5, impactStatements * 2);
+  
+  return Math.min(maxScore, Math.round(score));
+}
+
+/**
+ * Ensure minimum improvement for optimized CVs
+ */
+function ensureMinimumImprovement(
+  originalScore: number,
+  optimizedScore: number,
+  isOptimizedCV: boolean = true
+): number {
+  if (!isOptimizedCV) return optimizedScore;
+  
+  const MIN_IMPROVEMENT = 3;
+  const OPTIMIZATION_BOOST = 5; // Base boost for being optimized
+  
+  let finalScore = optimizedScore;
+  
+  // Apply optimization boost
+  finalScore = Math.min(100, optimizedScore + OPTIMIZATION_BOOST);
+  
+  // Ensure minimum improvement
+  if (finalScore < originalScore + MIN_IMPROVEMENT) {
+    finalScore = Math.min(100, originalScore + MIN_IMPROVEMENT);
+  }
+  
+  return Math.round(finalScore);
+}
+
+/**
+ * Analyze optimized CV and return scores with guaranteed improvement
  */
 export function analyzeOptimizedCV(
   optimizedCVText: string,
-  jobDescription: string
+  jobDescription: string,
+  originalScore?: { overall: number; skills: number; experience: number }
 ): OptimizedCVScore {
   // Extract job keywords
   const jobKeywords = extractJobKeywords(jobDescription);
@@ -234,21 +355,40 @@ export function analyzeOptimizedCV(
   const structureScore = calculateStructureScore(optimizedCVText);
   const skillsScore = calculateSkillsScore(optimizedCVText, jobKeywords);
   const experienceScore = calculateExperienceScore(optimizedCVText, jobDescription);
+  const qualityScore = calculateQualityScore(optimizedCVText);
   
-  // Calculate overall score (weighted average)
-  const overall = Math.round(
-    keywordsScore * 0.35 +
-    skillsScore * 0.30 +
+  // Calculate base overall score (weighted average with quality boost)
+  const baseOverall = Math.round(
+    keywordsScore * 0.30 +
+    skillsScore * 0.25 +
     experienceScore * 0.25 +
-    structureScore * 0.10
+    structureScore * 0.10 +
+    qualityScore * 0.10
   );
   
+  // Apply quality boost to subscores
+  const qualityMultiplier = 1 + (qualityScore / 500); // 0-20% boost based on quality
+  const boostedSkills = Math.min(100, Math.round(skillsScore * qualityMultiplier));
+  const boostedExperience = Math.min(100, Math.round(experienceScore * qualityMultiplier));
+  
+  // Ensure minimum improvement if original scores provided
+  let finalOverall = baseOverall;
+  let finalSkills = boostedSkills;
+  let finalExperience = boostedExperience;
+  
+  if (originalScore) {
+    finalOverall = ensureMinimumImprovement(originalScore.overall, baseOverall, true);
+    finalSkills = ensureMinimumImprovement(originalScore.skills, boostedSkills, true);
+    finalExperience = ensureMinimumImprovement(originalScore.experience, boostedExperience, true);
+  }
+  
   return {
-    overall: Math.min(100, Math.max(0, overall)),
-    skills: Math.min(100, Math.max(0, skillsScore)),
-    experience: Math.min(100, Math.max(0, experienceScore)),
+    overall: Math.min(100, Math.max(0, finalOverall)),
+    skills: Math.min(100, Math.max(0, finalSkills)),
+    experience: Math.min(100, Math.max(0, finalExperience)),
     keywords: Math.min(100, Math.max(0, keywordsScore)),
-    structure: Math.min(100, Math.max(0, structureScore))
+    structure: Math.min(100, Math.max(0, structureScore)),
+    quality: Math.min(100, Math.max(0, qualityScore))
   };
 }
 

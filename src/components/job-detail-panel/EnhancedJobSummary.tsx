@@ -261,3 +261,4 @@ export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
   );
 };
 
+

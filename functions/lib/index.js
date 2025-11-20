@@ -1,4 +1,15 @@
 "use strict";
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.testNewFunction = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
 const admin = require("firebase-admin");
@@ -306,7 +317,7 @@ exports.updateCampaignEmails = (0, https_1.onRequest)({
  * Handle premium ATS analysis (shared logic)
  */
 async function handlePremiumAnalysis(req, res, resumeImages, jobContext, userId, analysisId) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c;
     try {
         // Validate request
         if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
@@ -374,37 +385,31 @@ async function handlePremiumAnalysis(req, res, resumeImages, jobContext, userId,
         // Debug: Log the structure of parsed analysis
         console.log('📊 Parsed analysis structure:', {
             hasAnalysis: !!parsedAnalysis.analysis,
-            hasCVRewrite: !!parsedAnalysis.cv_rewrite,
-            cvRewriteKeys: parsedAnalysis.cv_rewrite ? Object.keys(parsedAnalysis.cv_rewrite) : [],
-            analysisKeys: Object.keys(parsedAnalysis)
+            analysisKeys: Object.keys(parsedAnalysis.analysis || {})
         });
         // Save to Firestore if userId and analysisId provided
         if (userId && analysisId) {
-            // Extract CV text and CV rewrite from the analysis (cv_rewrite is inside analysis object)
-            const cvRewrite = ((_c = parsedAnalysis.analysis) === null || _c === void 0 ? void 0 : _c.cv_rewrite) || null;
-            const cvText = (cvRewrite === null || cvRewrite === void 0 ? void 0 : cvRewrite.extracted_text) ||
-                (cvRewrite === null || cvRewrite === void 0 ? void 0 : cvRewrite.initial_cv) ||
-                ((_d = cvRewrite === null || cvRewrite === void 0 ? void 0 : cvRewrite.analysis) === null || _d === void 0 ? void 0 : _d.extracted_text) ||
-                '';
+            // Extract cv_rewrite from analysis if it exists (should not exist anymore after prompt update)
+            const _d = parsedAnalysis.analysis || {}, { cv_rewrite, cvText } = _d, analysisWithoutCVRewrite = __rest(_d, ["cv_rewrite", "cvText"]);
+            // Extract cvText from analysis (should be extracted by AI during analysis)
+            const extractedCvText = cvText || '';
             console.log('💾 Preparing to save to Firestore:', {
                 userId,
                 analysisId,
-                hasCVRewrite: !!cvRewrite,
-                cvTextLength: cvText.length,
+                hasCVRewrite: !!cv_rewrite,
+                hasCvText: !!extractedCvText,
+                cvTextLength: extractedCvText.length,
                 hasJobDescription: !!jobContext.jobDescription,
-                jobDescriptionLength: ((_e = jobContext.jobDescription) === null || _e === void 0 ? void 0 : _e.length) || 0,
-                cvRewriteKeys: cvRewrite ? Object.keys(cvRewrite) : []
+                jobDescriptionLength: ((_c = jobContext.jobDescription) === null || _c === void 0 ? void 0 : _c.length) || 0,
+                willExcludeCVRewrite: !!cv_rewrite
             });
             await admin.firestore()
                 .collection('users')
                 .doc(userId)
                 .collection('analyses')
                 .doc(analysisId)
-                .set(Object.assign(Object.assign({}, parsedAnalysis.analysis), { id: analysisId, userId, jobTitle: jobContext.jobTitle, company: jobContext.company, jobDescription: jobContext.jobDescription, cvText: cvText, extractedText: cvText, date: admin.firestore.FieldValue.serverTimestamp(), status: 'completed', type: 'premium', matchScore: parsedAnalysis.analysis.match_scores.overall_score }), { merge: true });
-            console.log('✅ Successfully saved to Firestore', {
-                savedCVTextLength: cvText.length,
-                savedCVRewrite: !!cvRewrite
-            });
+                .set(Object.assign(Object.assign({}, analysisWithoutCVRewrite), { id: analysisId, userId, jobTitle: jobContext.jobTitle, company: jobContext.company, jobDescription: jobContext.jobDescription, cvText: extractedCvText, extractedText: extractedCvText, date: admin.firestore.FieldValue.serverTimestamp(), status: 'completed', type: 'premium', matchScore: parsedAnalysis.analysis.match_scores.overall_score }), { merge: true });
+            console.log('✅ Successfully saved to Firestore (cv_rewrite excluded, cvText saved)');
         }
         res.status(200).json({
             status: 'success',
@@ -689,12 +694,16 @@ exports.analyzeResumePremium = (0, https_1.onRequest)({
         // Save analysis to Firestore if userId and analysisId provided
         if (userId && analysisId) {
             console.log(`💾 Saving premium analysis to Firestore: users/${userId}/analyses/${analysisId}`);
+            // Extract cv_rewrite from analysis if it exists (should not exist anymore after prompt update)
+            const _f = parsedAnalysis.analysis || {}, { cv_rewrite, cvText } = _f, analysisWithoutCVRewrite = __rest(_f, ["cv_rewrite", "cvText"]);
+            // Extract cvText from analysis (should be extracted by AI during analysis)
+            const extractedCvText = cvText || '';
             await admin.firestore()
                 .collection('users')
                 .doc(userId)
                 .collection('analyses')
                 .doc(analysisId)
-                .set(Object.assign(Object.assign({}, parsedAnalysis.analysis), { id: analysisId, userId, jobTitle: jobContext.jobTitle, company: jobContext.company, location: jobContext.location || null, jobUrl: jobContext.jobUrl || null, date: admin.firestore.FieldValue.serverTimestamp(), status: 'completed', type: 'premium', 
+                .set(Object.assign(Object.assign({}, analysisWithoutCVRewrite), { id: analysisId, userId, jobTitle: jobContext.jobTitle, company: jobContext.company, location: jobContext.location || null, jobUrl: jobContext.jobUrl || null, jobDescription: jobContext.jobDescription, cvText: extractedCvText, extractedText: extractedCvText, date: admin.firestore.FieldValue.serverTimestamp(), status: 'completed', type: 'premium', _isLoading: false, 
                 // Store match score at top level for easy querying
                 matchScore: parsedAnalysis.analysis.match_scores.overall_score, category: parsedAnalysis.analysis.match_scores.category, 
                 // Store key data for list views
@@ -704,7 +713,7 @@ exports.analyzeResumePremium = (0, https_1.onRequest)({
                     education: parsedAnalysis.analysis.match_scores.education_score,
                     industryFit: parsedAnalysis.analysis.match_scores.industry_fit_score,
                 } }), { merge: true });
-            console.log('✅ Premium analysis saved to Firestore');
+            console.log('✅ Premium analysis saved to Firestore (cv_rewrite excluded, cvText saved)');
         }
         console.log('✅ Premium analysis completed successfully');
         // Return success response

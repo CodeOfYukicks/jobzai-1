@@ -69,3 +69,4 @@ If you get permission errors accessing the Google Cloud Console:
 
 **Note**: The CORS configuration file has already been created at `storage-cors.json` in your project root.
 
+

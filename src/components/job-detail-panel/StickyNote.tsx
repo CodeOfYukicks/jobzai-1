@@ -143,3 +143,4 @@ export const StickyNote = ({ note, onEdit, onDelete }: StickyNoteProps) => {
   );
 };
 
+

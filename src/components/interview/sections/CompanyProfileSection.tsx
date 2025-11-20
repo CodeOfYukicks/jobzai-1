@@ -1,6 +1,6 @@
 import { memo } from 'react';
-import { Interview } from '../../../types/interview';
-import { JobApplication } from '../../../types/job';
+import { Building2, MapPin, Briefcase } from 'lucide-react';
+import { JobApplication, Interview } from '../../../types/interview';
 
 interface CompanyProfileSectionProps {
   application: JobApplication;
@@ -11,50 +11,79 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
   application,
   interview,
 }: CompanyProfileSectionProps) {
+  const companyInfo = interview?.preparation?.companyInfo;
+  
+  // Extract first sentence as headline
+  const headline = companyInfo?.split('.')[0] || `${application.companyName} is a leading company in its industry`;
+  const details = companyInfo?.split('.').slice(1).join('.').trim();
+
   return (
-    <article className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5">
-      <header className="mb-5">
-        <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Company Profile</h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">How to describe the company and its context</p>
-      </header>
-      
-      <div className="space-y-4">
-        <p className="text-sm leading-relaxed text-neutral-900 dark:text-white">
-          <span className="mr-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
-            KEY
-          </span>
-          {interview?.preparation?.companyInfo?.split('.')[0] ||
-            `${application.companyName} is a leading company in its industry.`}
+    <article className="rounded-xl bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-6 shadow-sm transition-all duration-200">
+      <header className="mb-6">
+        <div className="flex items-center gap-2.5 mb-1.5">
+          <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
+            <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+            Company Profile
+          </h2>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 ml-9">
+          {application.companyName}
         </p>
-        
-        {interview?.preparation?.companyInfo ? (
-          <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
-            {interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}
+      </header>
+
+      {/* Company Headline */}
+      <div className="mb-5 p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white dark:from-[#1A1A1D] dark:to-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E]">
+        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-relaxed">
+          {headline}.
+        </p>
+      </div>
+
+      {/* Company Info */}
+      {details && (
+        <div className="mb-5 p-4 rounded-lg bg-gray-50/50 dark:bg-[#1A1A1D]/50 border border-gray-100 dark:border-[#2A2A2E]">
+          <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+            {details}
           </p>
-        ) : (
-          <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-            No additional company information available yet. Run the job post analysis to generate richer company context.
-          </p>
+        </div>
+      )}
+
+      {/* Quick Facts */}
+      <div className="grid grid-cols-3 gap-3">
+        {/* Location */}
+        {application.location && (
+          <div className="rounded-lg bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-3 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
+            <div className="flex items-center gap-2 mb-1.5">
+              <MapPin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Location</div>
+            </div>
+            <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
+              {application.location}
+            </div>
+          </div>
         )}
 
-        <div className="rounded-[12px] border border-blue-200/50 bg-blue-50/60 p-4 dark:border-blue-900/60 dark:bg-blue-900/10">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-900 dark:text-neutral-50">
-            Focus points
+        {/* Company */}
+        <div className="rounded-lg bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-3 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Company</div>
           </div>
-          <ul className="space-y-2.5 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
-            <li className="flex gap-2.5">
-              <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
-              <span>Research their mission, values, and long-term vision.</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
-              <span>Review recent company achievements, projects, or announcements.</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
-              <span>Understand their market position, competitors, and key challenges.</span>
-            </li>
-          </ul>
+          <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
+            {application.companyName}
+          </div>
+        </div>
+
+        {/* Position */}
+        <div className="rounded-lg bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-3 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Briefcase className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Role</div>
+          </div>
+          <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
+            {application.position}
+          </div>
         </div>
       </div>
     </article>
@@ -62,4 +91,3 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
 });
 
 export default CompanyProfileSection;
-

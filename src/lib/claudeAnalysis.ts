@@ -229,10 +229,12 @@ function buildATSAnalysisPrompt(jobDetails: {
   jobDescription: string; 
 }): string {
   return `
-# ATS Resume Analysis Task
+# ATS Resume Analysis Task - RUTHLESS & PRECISE
 
 ## Instructions
-Analyze the provided resume PDF against the job description below. Provide a detailed, accurate and genuinely helpful analysis of how well the resume matches the job requirements.
+Analyze the provided resume PDF against the job description below. Your goal is to provide a brutally honest assessment.
+**CORE DIRECTIVE**: You must distinguish between a candidate who "knows about" a topic and one who "does" the job. 
+**EXAMPLE**: A "Functional Consultant" is NOT a "Technical Developer" even if they know Salesforce. A "Project Manager" is NOT a "Software Engineer".
 
 ## Job Details
 - Position: ${jobDetails.jobTitle}
@@ -242,48 +244,54 @@ Analyze the provided resume PDF against the job description below. Provide a det
 ${jobDetails.jobDescription}
 \`\`\`
 
-## Analysis Requirements
-1. THOROUGHLY examine both the resume and job description
-2. Provide an HONEST and PRECISE match analysis with NO artificial inflation of scores
-3. **CRITICAL: Vary your scores DRAMATICALLY based on actual match quality - use the FULL range (0-100)**
-4. **DO NOT cluster scores around 75-78% - this is a common mistake that makes the analysis useless**
-5. **CRITICAL: Detect SPECIFIC experience requirements (e.g., "5 years experience with Python", "5 years building ML models")**
-6. **If specific experience requirements are MISSING, scores MUST be LOW (20-40% maximum)**
-7. Identify SPECIFIC strengths and gaps, not generic advice
+## SCORING ALGORITHM: ZERO-BASED SCORING
+Do NOT start at 100 and deduct. Start at **0** and ADD points only for proven matches.
 
-## SCORING PHILOSOPHY - STRICT ENFORCEMENT
+### PHASE 1: THE ROLE ALIGNMENT GATE (CRITICAL)
+Before checking keywords, you MUST validate the ROLE TYPE.
+1. **Title/Level Check**: Does the candidate's recent history match the target role's level (e.g., Junior vs Senior, Lead vs Manager)?
+2. **Nature of Work**: Is there a functional vs. technical mismatch?
+   - *Example*: Functional Salesforce Consultant applying for Salesforce Developer role -> MISMATCH.
+   - *Example*: Project Manager applying for Coding role -> MISMATCH.
 
-**YOU MUST USE THE FULL SCORE RANGE (0-100) AND BE POLARIZED:**
+**GATE RULE**: If there is a fundamental Role/Nature mismatch, **STOP SCORING HIGHER THAN 45%**. 
+- The match score MUST be between 0-45%.
+- Do NOT look at keyword matches to inflate this. Wrong role = Fail.
 
-- **0-30%**: Poor match - Missing multiple critical requirements, fundamental misalignment
-- **31-50%**: Weak match - Missing critical requirements or major gaps
-- **51-65%**: Moderate match - Meets basic requirements but missing important ones
-- **66-75%**: Good match - Meets critical requirements, missing some important ones
-- **76-85%**: Strong match - Meets all critical requirements, most important ones
-- **86-95%**: Excellent match - Exceeds requirements, very competitive
-- **96-100%**: Exceptional match - RARE, truly outstanding alignment
+### PHASE 2: CALCULATE SCORE (Only if Phase 1 passes)
+Start at 0. Add points as follows:
 
-**CRITICAL REQUIREMENT ENFORCEMENT:**
-- Missing 1 critical must-have requirement → Maximum score: 60
-- Missing 2+ critical must-have requirements → Maximum score: 40
-- Missing 3+ critical must-have requirements → Maximum score: 30
-- **Missing SPECIFIC experience requirements (e.g., "5 years Python") → Maximum score: 30-40**
-- **Missing ALL specific experience requirements → Maximum score: 20-30**
-- This is NON-NEGOTIABLE. Be SEVERE and HONEST.
+1. **Role Alignment (Max 20 pts)**: 
+   - Perfect title/level match: +20
+   - Adjacent role but same domain: +10
+   - Mismatch: +0
 
-**SPECIFIC EXPERIENCE REQUIREMENT DETECTION:**
-- Look for patterns like "5 years experience with Python", "Over 5 years building ML models", "5+ years Python, R, SQL"
-- These are DEAL-BREAKERS if missing from the resume
-- If job requires "5 years Python" and resume has NO Python experience → Score MUST be 20-40% maximum
-- If job requires "5 years ML" and resume has NO ML experience → Score MUST be 20-40% maximum
-- Do NOT give 60-70% scores when critical experience requirements are completely missing
+2. **Hard Skills & Tools (Max 30 pts)**:
+   - Meets ALL critical technical skills with required depth: +30
+   - Meets most critical skills: +20
+   - Missing key tools (e.g., Python for ML role): +0
 
-**SCORE VARIATION REQUIREMENTS:**
-- If you always give scores around 75-78%, you are FAILING at your job
-- Each analysis should produce DIFFERENT scores based on actual match quality
-- A poorly matched resume MUST get a low score (30-50%)
-- A well-matched resume CAN get a high score (80-95%)
-- Do NOT default to mid-range scores - analyze and score accurately
+3. **Experience Depth (Max 20 pts)**:
+   - Meets/Exceeds years of experience in RELEVANT tasks: +20
+   - Slightly under experienced: +10
+   - Significantly junior/senior misalignment: +0
+
+4. **Education & Certifications (Max 15 pts)**:
+   - Degree/Certs match requirements: +15
+   - Partial match: +5 to +10
+   - Missing required degree/certs: +0
+
+5. **Soft Skills & Culture (Max 15 pts)**:
+   - Communication, leadership, etc. as evidenced by achievements: +15
+
+**TOTAL SCORE = Sum of above.**
+
+## SCORING TIERS (STRICT ENFORCEMENT)
+- **0-45% (Mismatch)**: Fundamental role mismatch (e.g., Functional vs Technical) OR missing >50% critical skills.
+- **46-60% (Weak)**: Right role type, but significantly underqualified or missing critical "Must-Haves".
+- **61-75% (Potential)**: Good role alignment, has core skills, but missing some specific requirements or years of exp.
+- **76-89% (Strong)**: Strong role alignment, meets ALL critical requirements, good experience depth.
+- **90-100% (Perfect)**: Unicorn candidate. Exact role match, exceeds years, has all nice-to-haves.
 
 ## Output Format
 Return ONLY a JSON object with the following structure:
@@ -320,16 +328,10 @@ Return ONLY a JSON object with the following structure:
 }
 \`\`\`
 
-## Important Guidelines
-- **NEVER cluster scores in the 70-80% range** - this makes your analysis useless
-- **Vary scores dramatically** - use 0-100 range based on actual match quality
-- Assign lower scores (20-50%) when appropriate for poor matches - DO NOT be afraid of low scores
-- Assign higher scores (80-95%) only for exceptionally strong matches
-- **NEVER automatically inflate scores** - be brutally honest and precise
-- If critical requirements are missing, scores MUST be low (30-60%)
-- If all critical requirements are met, scores CAN be high (70-95%)
-- Include specific job-relevant KEYWORDS found/missing in the resume
-- Provide detailed, actionable recommendations specific to this resume and job
-- Give real examples and fixes in your recommendations
+## Final Check
+- Did you check for Functional vs Technical mismatch?
+- If the candidate is a "Consultant" applying for a "Developer" role, did you cap the score at 45?
+- Did you start at 0 and add points?
+- **AVOID CLUSTERING**: Do not default to 75%. If they are a 40% match, say 40%.
 `;
 } 

@@ -50,6 +50,9 @@ export interface Interview {
     reviewedTips?: string[];
     savedLinks?: { id: string; title: string; url: string }[];
   };
+  freeFormNotes?: string;
+  noteDocuments?: NoteDocument[];
+  activeNoteDocumentId?: string | null;
 }
 
 export interface ChatMessage {
@@ -75,6 +78,15 @@ export interface NewsItem {
   url?: string;
 }
 
+export interface NoteDocument {
+  id: string;
+  title: string;
+  content: string; // HTML from rich text editor
+  createdAt: number;
+  updatedAt: number;
+  preview?: string; // First 100 chars for library view
+}
+
 export interface QuestionEntry {
   id: number;
   rawValue: string;
@@ -82,4 +94,5 @@ export interface QuestionEntry {
   tags: ('technical' | 'behavioral' | 'company-specific' | 'role-specific')[];
   suggestedApproach?: string | null;
 }
+
 

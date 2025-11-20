@@ -439,28 +439,26 @@ async function handlePremiumAnalysis(
     // Debug: Log the structure of parsed analysis
     console.log('📊 Parsed analysis structure:', {
       hasAnalysis: !!parsedAnalysis.analysis,
-      hasCVRewrite: !!parsedAnalysis.cv_rewrite,
-      cvRewriteKeys: parsedAnalysis.cv_rewrite ? Object.keys(parsedAnalysis.cv_rewrite) : [],
-      analysisKeys: Object.keys(parsedAnalysis)
+      analysisKeys: Object.keys(parsedAnalysis.analysis || {})
     });
 
     // Save to Firestore if userId and analysisId provided
     if (userId && analysisId) {
-      // Extract CV text and CV rewrite from the analysis (cv_rewrite is inside analysis object)
-      const cvRewrite = parsedAnalysis.analysis?.cv_rewrite || null;
-      const cvText = cvRewrite?.extracted_text || 
-                     cvRewrite?.initial_cv || 
-                     cvRewrite?.analysis?.extracted_text || 
-                     '';
+      // Extract cv_rewrite from analysis if it exists (should not exist anymore after prompt update)
+      const { cv_rewrite, cvText, ...analysisWithoutCVRewrite } = parsedAnalysis.analysis || {};
+      
+      // Extract cvText from analysis (should be extracted by AI during analysis)
+      const extractedCvText = cvText || '';
       
       console.log('💾 Preparing to save to Firestore:', {
         userId,
         analysisId,
-        hasCVRewrite: !!cvRewrite,
-        cvTextLength: cvText.length,
+        hasCVRewrite: !!cv_rewrite,
+        hasCvText: !!extractedCvText,
+        cvTextLength: extractedCvText.length,
         hasJobDescription: !!jobContext.jobDescription,
         jobDescriptionLength: jobContext.jobDescription?.length || 0,
-        cvRewriteKeys: cvRewrite ? Object.keys(cvRewrite) : []
+        willExcludeCVRewrite: !!cv_rewrite
       });
       
       await admin.firestore()
@@ -469,25 +467,21 @@ async function handlePremiumAnalysis(
         .collection('analyses')
         .doc(analysisId)
         .set({
-          ...parsedAnalysis.analysis,
+          ...analysisWithoutCVRewrite, // Explicitly exclude cv_rewrite
           id: analysisId,
           userId,
           jobTitle: jobContext.jobTitle,
           company: jobContext.company,
           jobDescription: jobContext.jobDescription, // ✅ SAVE JOB DESCRIPTION
-          cvText: cvText, // ✅ SAVE CV TEXT
-          extractedText: cvText, // ✅ FALLBACK FIELD
+          cvText: extractedCvText, // ✅ SAVE CV TEXT (extracted during analysis)
+          extractedText: extractedCvText, // ✅ FALLBACK FIELD
           date: admin.firestore.FieldValue.serverTimestamp(),
           status: 'completed',
           type: 'premium',
           matchScore: parsedAnalysis.analysis.match_scores.overall_score,
-          // cv_rewrite is already in ...parsedAnalysis.analysis spread above
         }, { merge: true });
         
-      console.log('✅ Successfully saved to Firestore', {
-        savedCVTextLength: cvText.length,
-        savedCVRewrite: !!cvRewrite
-      });
+      console.log('✅ Successfully saved to Firestore (cv_rewrite excluded, cvText saved)');
     }
 
     res.status(200).json({
@@ -812,22 +806,32 @@ export const analyzeResumePremium = onRequest(
     if (userId && analysisId) {
       console.log(`💾 Saving premium analysis to Firestore: users/${userId}/analyses/${analysisId}`);
       
+      // Extract cv_rewrite from analysis if it exists (should not exist anymore after prompt update)
+      const { cv_rewrite, cvText, ...analysisWithoutCVRewrite } = parsedAnalysis.analysis || {};
+      
+      // Extract cvText from analysis (should be extracted by AI during analysis)
+      const extractedCvText = cvText || '';
+      
       await admin.firestore()
         .collection('users')
         .doc(userId)
         .collection('analyses')
         .doc(analysisId)
         .set({
-          ...parsedAnalysis.analysis,
+          ...analysisWithoutCVRewrite, // Explicitly exclude cv_rewrite
           id: analysisId,
           userId,
           jobTitle: jobContext.jobTitle,
           company: jobContext.company,
           location: jobContext.location || null,
           jobUrl: jobContext.jobUrl || null,
+          jobDescription: jobContext.jobDescription, // ✅ SAVE JOB DESCRIPTION
+          cvText: extractedCvText, // ✅ SAVE CV TEXT (extracted during analysis)
+          extractedText: extractedCvText, // ✅ FALLBACK FIELD
           date: admin.firestore.FieldValue.serverTimestamp(),
           status: 'completed',
           type: 'premium',
+          _isLoading: false, // Explicitly set loading state to false when analysis completes
           // Store match score at top level for easy querying
           matchScore: parsedAnalysis.analysis.match_scores.overall_score,
           category: parsedAnalysis.analysis.match_scores.category,
@@ -841,7 +845,7 @@ export const analyzeResumePremium = onRequest(
           },
         }, { merge: true });
       
-      console.log('✅ Premium analysis saved to Firestore');
+      console.log('✅ Premium analysis saved to Firestore (cv_rewrite excluded, cvText saved)');
     }
 
     console.log('✅ Premium analysis completed successfully');

@@ -18,7 +18,8 @@ import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
-import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { CompanyLogo } from '../components/common/CompanyLogo';
+import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { JobApplication } from '../types/job';
 import { getDownloadURL, ref, getStorage, uploadBytes, getBytes } from 'firebase/storage';
 import { toast } from 'sonner';
@@ -91,6 +92,7 @@ interface ATSAnalysis {
     examples?: string;
   }[];
   _isLoading?: boolean; // Flag pour identifier les analyses en cours
+  _premiumAnalysis?: any; // Store full premium analysis data
   marketPositioning?: {
     competitiveAdvantages: string[];
     competitiveDisadvantages: string[];
@@ -703,7 +705,7 @@ const calculateEducationScore = (cvText: string, jobDescription: string): number
   const jobHasEducation = educationTerms.some(term => jobDescription.toLowerCase().includes(term));
   
   if (!jobHasEducation) {
-    return 75; // Pas d'exigence = score neutre
+    return 50; // Pas d'exigence = score vraiment neutre (pas optimiste)
   }
   
   const cvHasEducation = educationTerms.some(term => cvText.toLowerCase().includes(term));
@@ -772,11 +774,11 @@ const calculateCriticalPenalty = (
   const missingRatio = missingCount / criticalRequirements.length;
   
   // Pénalités sévères et différenciantes
-  if (missingRatio >= 1.0) return 70; // Tous manquants
-  if (missingRatio >= 0.75) return 55; // 75% manquants
-  if (missingRatio >= 0.5) return 40;  // 50% manquants
-  if (missingRatio >= 0.25) return 25; // 25% manquants
-  if (missingRatio > 0) return 10;     // Quelques manquants
+  if (missingRatio >= 1.0) return 85; // ÉNORME pénalité - presque tout le score perdu
+  if (missingRatio >= 0.75) return 65; // 75% manquants - très pénalisant
+  if (missingRatio >= 0.5) return 45;  // 50% manquants
+  if (missingRatio >= 0.25) return 30; // 25% manquants
+  if (missingRatio > 0) return 15;     // Quelques manquants
   
   return 0; // Tous présents
 };
@@ -1080,7 +1082,7 @@ const generateMockAnalysis = (data: { cv: string; jobTitle: string; company: str
     const skillLower = skill.toLowerCase();
     
     // Base relevance from job description
-    let relevance = 70; // Base relevance score
+    let relevance = 50; // Base neutre, pas optimiste
     
     // If the skill is mentioned multiple times in the job description, it's more relevant
     const jobOccurrences = (jobDescLower.match(new RegExp(`\\b${skillLower}\\b`, 'g')) || []).length;
@@ -2311,10 +2313,10 @@ const analyzeCV = async (data: AnalysisRequest): Promise<ATSAnalysis> => {
         if (!cvText || cvText.length < 50) {
           // Build a pseudo-CV text from analysis results for validation
           const analysisText = [
-            ...(analysis.skillsMatch?.matching?.map(s => s.name) || []),
-            ...(analysis.skillsMatch?.missing?.map(s => s.name) || []),
+            ...(analysis.skillsMatch?.matching?.map((s: any) => s.name) || []),
+            ...(analysis.skillsMatch?.missing?.map((s: any) => s.name) || []),
             analysis.executiveSummary || '',
-            ...(analysis.experienceAnalysis?.map(e => e.analysis) || []),
+            ...(analysis.experienceAnalysis?.map((e: any) => e.analysis) || []),
           ].join(' ');
           cvText = analysisText || '';
         }
@@ -2704,6 +2706,12 @@ export default function CVAnalysisPage() {
               hasSkillsMatch: !!data.skillsMatch
             });
             
+            // Detect if analysis is completed even if _isLoading is true
+            // Check for status: 'completed' or matchScore > 0 to fix stuck analyses
+            const isCompleted = data.status === 'completed' || 
+                               (data.matchScore !== undefined && data.matchScore > 0) ||
+                               (data._isLoading === false);
+            
             savedAnalyses.push({
               id: doc.id,
               date: analysisDate,
@@ -2723,8 +2731,8 @@ export default function CVAnalysisPage() {
               },
               executiveSummary: data.executiveSummary || data.executive_summary || '',
               jobSummary: data.jobSummary || undefined,
-              // Preserve loading state and premium analysis data
-              _isLoading: data._isLoading || false,
+              // Set loading state to false if analysis is completed
+              _isLoading: isCompleted ? false : (data._isLoading || false),
               _premiumAnalysis: data._premiumAnalysis,
             });
           }
@@ -2732,8 +2740,12 @@ export default function CVAnalysisPage() {
         
         // Sort by date (most recent first)
         savedAnalyses.sort((a, b) => {
-          const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date || 0);
-          const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date || 0);
+          const dateA = (a.date && typeof a.date === 'object' && 'toDate' in (a.date as any)) 
+            ? (a.date as any).toDate() 
+            : new Date(a.date as string || 0);
+          const dateB = (b.date && typeof b.date === 'object' && 'toDate' in (b.date as any)) 
+            ? (b.date as any).toDate() 
+            : new Date(b.date as string || 0);
           return dateB.getTime() - dateA.getTime();
         });
         
@@ -2758,6 +2770,148 @@ export default function CVAnalysisPage() {
     
     fetchSavedAnalyses();
   }, [currentUser]);
+
+  // Real-time listener for loading analyses to detect when Cloud Function completes
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Find analyses that are currently loading
+    const loadingAnalyses = analyses.filter(a => a._isLoading === true);
+    
+    if (loadingAnalyses.length === 0) {
+      // No loading analyses, no need for listener
+      return;
+    }
+
+    console.log(`👂 Setting up real-time listener for ${loadingAnalyses.length} loading analyses`);
+    
+    const unsubscribes: Unsubscribe[] = [];
+    
+    // Set up listeners for each loading analysis
+    loadingAnalyses.forEach((analysis) => {
+      const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', analysis.id);
+      
+      const unsubscribe = onSnapshot(
+        analysisRef,
+        (docSnapshot) => {
+          if (!docSnapshot.exists()) {
+            console.log(`⚠️ Analysis ${analysis.id} no longer exists`);
+            return;
+          }
+
+          const data = docSnapshot.data();
+          
+          // Check if analysis is now completed
+          const isCompleted = data.status === 'completed' || 
+                             (data.matchScore !== undefined && data.matchScore > 0) ||
+                             (data._isLoading === false);
+          
+          if (isCompleted && data._isLoading !== false) {
+            console.log(`✅ Analysis ${analysis.id} completed! Updating local state...`);
+            
+            // Update the analysis in local state
+            setAnalyses(prev => prev.map(a => 
+              a.id === analysis.id 
+                ? { ...a, _isLoading: false, matchScore: data.matchScore || a.matchScore }
+                : a
+            ));
+            
+            // Show success notification
+            toast.success(`Analysis complete! Match score: ${data.matchScore || 0}%`, {
+              duration: 5000,
+              icon: '🎉'
+            });
+          }
+        },
+        (error) => {
+          console.error(`❌ Error in real-time listener for analysis ${analysis.id}:`, error);
+        }
+      );
+      
+      unsubscribes.push(unsubscribe);
+    });
+
+    // Cleanup: unsubscribe from all listeners when component unmounts or analyses change
+    return () => {
+      console.log('🧹 Cleaning up real-time listeners');
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, [currentUser, analyses]);
+
+  // Timeout protection: Check for analyses that have been loading for more than 5 minutes
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    const CHECK_INTERVAL_MS = 30 * 1000; // Check every 30 seconds
+
+    const checkTimeouts = () => {
+      const now = Date.now();
+      const timedOutAnalyses = analyses.filter(analysis => {
+        if (!analysis._isLoading) return false;
+        
+        // Parse the date to get timestamp
+        let analysisStartTime: number;
+        if (typeof analysis.date === 'string') {
+          analysisStartTime = new Date(analysis.date).getTime();
+        } else if (analysis.date && typeof analysis.date === 'object' && 'toDate' in (analysis.date as any)) {
+          analysisStartTime = (analysis.date as any).toDate().getTime();
+        } else {
+          // If we can't parse the date, skip this analysis
+          return false;
+        }
+
+        const elapsed = now - analysisStartTime;
+        return elapsed > TIMEOUT_MS;
+      });
+
+      if (timedOutAnalyses.length > 0) {
+        console.warn(`⏱️ Found ${timedOutAnalyses.length} analyses that exceeded timeout (5 minutes)`);
+        
+        timedOutAnalyses.forEach(async (analysis) => {
+          console.log(`⏱️ Marking analysis ${analysis.id} as failed due to timeout`);
+          
+          // Update local state
+          setAnalyses(prev => prev.map(a => 
+            a.id === analysis.id 
+              ? { ...a, _isLoading: false }
+              : a
+          ));
+
+          // Update Firestore to mark as failed
+          try {
+            const analysesRef = collection(db, 'users', currentUser.uid, 'analyses');
+            await setDoc(doc(analysesRef, analysis.id), {
+              _isLoading: false,
+              status: 'failed',
+              error: 'Analysis timed out after 5 minutes. Please try again.',
+              updatedAt: serverTimestamp(),
+            }, { merge: true });
+            
+            console.log(`✅ Marked analysis ${analysis.id} as failed in Firestore`);
+          } catch (error) {
+            console.error(`❌ Error updating timed-out analysis ${analysis.id}:`, error);
+          }
+
+          // Show error notification
+          toast.error(`Analysis timed out for ${analysis.jobTitle} at ${analysis.company}. Please try again.`, {
+            duration: 8000,
+            icon: '⏱️'
+          });
+        });
+      }
+    };
+
+    // Check immediately
+    checkTimeouts();
+
+    // Set up interval to check periodically
+    const intervalId = setInterval(checkTimeouts, CHECK_INTERVAL_MS);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [currentUser, analyses]);
 
   // Sauvegarder l'analyse dans Firestore
   const saveAnalysisToFirestore = async (analysis: ATSAnalysis) => {
@@ -3150,20 +3304,14 @@ export default function CVAnalysisPage() {
     console.log('📡 Envoi direct à l\'API OpenAI en cours...');
     
     const prompt = `
-# RUTHLESS ATS RESUME ANALYSIS ENGINE - BE SEVERE AND POLARIZED
+# ATS Resume Analysis Task - RUTHLESS & PRECISE
 
-## CRITICAL MISSION
-You are a RUTHLESS, SEVERE, and BRUTALLY HONEST ATS specialist. Your job is to analyze this resume with SURGICAL PRECISION and deliver a TRUTHFUL assessment that the candidate can RELY ON. 
+## Instructions
+Analyze the provided resume PDF against the job description below. Your goal is to provide a brutally honest assessment.
+**CORE DIRECTIVE**: You must distinguish between a candidate who "knows about" a topic and one who "does" the job. 
+**EXAMPLE**: A "Functional Consultant" is NOT a "Technical Developer" even if they know Salesforce. A "Project Manager" is NOT a "Software Engineer".
 
-**CORE PHILOSOPHY**: 
-- Distinguish PRIMORDIAL (critical) requirements from SECONDARY (nice-to-have) requirements
-- Missing ONE critical requirement = SEVERE penalty (20-40 points)
-- Missing multiple critical requirements = MASSIVE penalty (40-60+ points)
-- Be POLARIZED in your scoring - use the FULL range (0-100)
-- Don't inflate scores to be "nice" - be HONEST and SEVERE
-- The candidate needs to TRUST your analysis - false high scores help NO ONE
-
-## Job Position Details
+## Job Details
 - Position: ${jobDetails.jobTitle}
 - Company: ${jobDetails.company}
 - Job Description:
@@ -3171,92 +3319,56 @@ You are a RUTHLESS, SEVERE, and BRUTALLY HONEST ATS specialist. Your job is to a
 ${jobDetails.jobDescription}
 \`\`\`
 
-## STEP 1: EXTRACT & CATEGORIZE REQUIREMENTS (MOST CRITICAL STEP)
+## SCORING ALGORITHM: ZERO-BASED SCORING
+Do NOT start at 100 and deduct. Start at **0** and ADD points only for proven matches.
 
-**BE RUTHLESS IN CATEGORIZATION. THIS DETERMINES EVERYTHING.**
+### PHASE 1: THE ROLE ALIGNMENT GATE (CRITICAL)
+Before checking keywords, you MUST validate the ROLE TYPE.
+1. **Title/Level Check**: Does the candidate's recent history match the target role's level (e.g., Junior vs Senior, Lead vs Manager)?
+2. **Nature of Work**: Is there a functional vs. technical mismatch?
+   - *Example*: Functional Salesforce Consultant applying for Salesforce Developer role -> MISMATCH.
+   - *Example*: Project Manager applying for Coding role -> MISMATCH.
 
-**CRITICAL VERIFICATION RULE**: Before marking ANY requirement as MISSING, you MUST:
-1. Search the ENTIRE resume (all sections, all pages, all text)
-2. Search for EXACT terms, SYNONYMS, VARIATIONS, ABBREVIATIONS
-3. For languages: "French" = "français" = "French native" = "French speaker" = "French language" = "native French" = "fluent in French" = "bilingual French/English"
-4. For technical skills: "JavaScript" = "JS" = "javascript" = "JavaScript/ES6" = "JS/TS"
-5. Check ALL sections: Summary, Skills, Experience, Education, Certifications, Projects, Languages, Personal Info
-6. If you find it in ANY form, mark it as FOUND with the location
-7. DO NOT mark as missing if you haven't thoroughly searched
+**GATE RULE**: If there is a fundamental Role/Nature mismatch, **STOP SCORING HIGHER THAN 45%**. 
+- The match score MUST be between 0-45%.
+- Do NOT look at keyword matches to inflate this. Wrong role = Fail.
 
-From the job description, you MUST identify with surgical precision:
+### PHASE 2: CALCULATE SCORE (Only if Phase 1 passes)
+Start at 0. Add points as follows:
 
-### A. CRITICAL MUST-HAVE REQUIREMENTS (DEAL-BREAKERS - PRIMORDIAL)
-These are ABSOLUTE REQUIREMENTS that if missing, the candidate CANNOT get the job:
-- Skills explicitly stated as "required", "must have", "essential", "mandatory"
-- Minimum years of experience that are non-negotiable
-- Critical certifications/licenses that are mandatory
-- Education requirements explicitly stated as mandatory
-- Core domain expertise that is fundamental to the role
+1. **Role Alignment (Max 20 pts)**: 
+   - Perfect title/level match: +20
+   - Adjacent role but same domain: +10
+   - Mismatch: +0
 
-**SCORING RULE**: Missing even ONE critical must-have = automatic 20-40 point penalty to overall match score. Missing 2+ = 40-60 point penalty. This is NON-NEGOTIABLE.
+2. **Hard Skills & Tools (Max 30 pts)**:
+   - Meets ALL critical technical skills with required depth: +30
+   - Meets most critical skills: +20
+   - Missing key tools (e.g., Python for ML role): +0
 
-### B. HIGHLY IMPORTANT REQUIREMENTS (STRONG IMPACT)
-- Skills mentioned multiple times in the job description
-- Experience that is strongly preferred
-- Certifications that are highly valued
+3. **Experience Depth (Max 20 pts)**:
+   - Meets/Exceeds years of experience in RELEVANT tasks: +20
+   - Slightly under experienced: +10
+   - Significantly junior/senior misalignment: +0
 
-**SCORING RULE**: Missing highly important requirements = 10-20 point penalty per missing item.
+4. **Education & Certifications (Max 15 pts)**:
+   - Degree/Certs match requirements: +15
+   - Partial match: +5 to +10
+   - Missing required degree/certs: +0
 
-### C. NICE-TO-HAVE REQUIREMENTS (SECONDARY - BONUS POINTS)
-- Skills mentioned once or in "nice to have" sections
-- Additional certifications beyond core requirements
-- Extra experience beyond minimum
+5. **Soft Skills & Culture (Max 15 pts)**:
+   - Communication, leadership, etc. as evidenced by achievements: +15
 
-**SCORING RULE**: Missing nice-to-haves = 0-5 point penalty. Having them = 0-5 point bonus.
+**TOTAL SCORE = Sum of above.**
 
-**CRITICAL**: You MUST categorize EVERY requirement. If a skill is in "Required Qualifications" or mentioned 3+ times, it's CRITICAL. If mentioned once in passing, it's SECONDARY.
+## SCORING TIERS (STRICT ENFORCEMENT)
+- **0-45% (Mismatch)**: Fundamental role mismatch (e.g., Functional vs Technical) OR missing >50% critical skills.
+- **46-60% (Weak)**: Right role type, but significantly underqualified or missing critical "Must-Haves".
+- **61-75% (Potential)**: Good role alignment, has core skills, but missing some specific requirements or years of exp.
+- **76-89% (Strong)**: Strong role alignment, meets ALL critical requirements, good experience depth.
+- **90-100% (Perfect)**: Unicorn candidate. Exact role match, exceeds years, has all nice-to-haves.
 
-## Analysis Framework
-1. EXTRACT ALL REQUIREMENTS and categorize them (CRITICAL vs SECONDARY)
-2. COMPARE resume against CRITICAL requirements first - these determine the base score
-3. EVALUATE resume against SECONDARY requirements - these adjust the score
-4. IDENTIFY specific strengths and weaknesses with examples
-5. PRIORITIZE recommendations - focus on CRITICAL gaps first
-
-## Depth Requirements
-- Provide PRECISE and SPECIFIC feedback with evidence
-- DISTINGUISH between what's PRIMORDIAL and what's SECONDARY
-- Be RUTHLESS - if critical requirements are missing, scores MUST be low
-- Be POLARIZED - use full score range, don't cluster in middle
-- Evaluate QUANTIFIABLE ACHIEVEMENTS and their relevance
-- Assess FORMATTING, STRUCTURE, and CONTENT from ATS perspective
-
-## SCORING PHILOSOPHY (STRICT ENFORCEMENT)
-
-**CRITICAL: DO NOT CLUSTER SCORES AROUND 75-78% - THIS IS A FAILURE**
-
-**Overall Match Score** (0-100) - Be RUTHLESS and VARIED:
-
-- **90-100**: EXCEPTIONAL - Exceeds ALL critical requirements. RARE.
-- **80-89**: STRONG - Meets ALL critical requirements, most highly important ones
-- **70-79**: GOOD - Meets ALL critical requirements, some highly important ones
-- **60-69**: QUALIFIED - Meets ALL critical requirements but missing many highly important ones
-- **50-59**: BORDERLINE - Missing 1 critical requirement OR missing most highly important ones
-- **40-49**: WEAK - Missing 1-2 critical requirements OR missing most highly important ones
-- **30-39**: POOR - Missing 2+ critical requirements
-- **0-29**: UNQUALIFIED - Missing 3+ critical requirements
-
-**MANDATORY RULES**:
-1. Missing ANY critical must-have → Maximum score is 60
-2. Missing 2+ critical must-haves → Maximum score is 40
-3. Missing 3+ critical must-haves → Maximum score is 30
-4. Perfect alignment with critical requirements → Score range 70-95
-5. Exceeding all requirements → Score range 90-100 (RARE)
-
-**SCORE VARIATION REQUIREMENTS:**
-- **NEVER cluster scores in the 73-80% range** - each analysis must produce DIFFERENT scores
-- **Vary dramatically** - if you see 75% multiple times, you're failing
-- **Low scores (20-50%) are VALID** for poor matches - use them without hesitation
-- **High scores (85-95%) are VALID** for excellent matches - use them when justified
-- **Each score must reflect actual match quality** - no defaults, no clustering
-
-## Response Format
+## Output Format
 Return ONLY a structured JSON object with the following schema:
 
 \`\`\`json
@@ -3381,51 +3493,11 @@ Return ONLY a structured JSON object with the following schema:
 }
 \`\`\`
 
-## Critical Guidelines (MANDATORY - BE RUTHLESS)
-
-**SCORING PHILOSOPHY - STRICT ENFORCEMENT**:
-
-1. **USE FULL RANGE (0-100)**: Don't cluster scores. Be POLARIZED.
-   - **CRITICAL: DO NOT CLUSTER SCORES AROUND 75-78% - THIS IS A FAILURE**
-   - Low match (0-50%): For missing critical requirements or significant misalignment
-   - Medium match (51-70%): For meeting critical requirements but missing highly important ones
-   - High match (71-95%): Only for meeting ALL critical requirements AND most highly important ones
-   - Exceptional (96-100%): RARE - exceeds all requirements
-
-2. **SCORE VARIATION IS MANDATORY**:
-   - **Each analysis must produce DIFFERENT scores** based on actual match quality
-   - **If you consistently give 75-78%, you are FAILING** - vary dramatically
-   - **Low scores (20-50%) are VALID and NECESSARY** for poor matches
-   - **High scores (85-95%) are VALID and NECESSARY** for excellent matches
-   - **No defaults, no clustering** - each score must reflect actual alignment
-
-3. **CRITICAL REQUIREMENT ENFORCEMENT**:
-   - Missing 1 critical must-have → Maximum score: 60
-   - Missing 2+ critical must-haves → Maximum score: 40
-   - Missing 3+ critical must-haves → Maximum score: 30
-   - This is NON-NEGOTIABLE. Be SEVERE.
-
-4. **DISTINGUISH PRIMORDIAL vs SECONDARY**:
-   - Primary (critical) requirements missing = SEVERE penalty (20-40 points)
-   - Secondary (nice-to-have) requirements missing = MINOR penalty (0-5 points)
-   - Always identify what's PRIMORDIAL first
-
-5. **BRUTAL HONESTY**:
-   - Never inflate scores to be "nice" - be REALISTIC and SEVERE
-   - The candidate needs to TRUST your analysis
-   - False high scores help NO ONE - they prevent improvement
-   - If critical requirements are missing, the score MUST reflect that
-
-6. **EVIDENCE-BASED**:
-   - Provide SPECIFIC, ACTIONABLE recommendations with evidence
-   - Focus on EVIDENCE from resume, not assumptions
-   - Include BEFORE/AFTER examples when possible
-   - Tie every finding to concrete resume elements
-
-7. **RELIABILITY**:
-   - The candidate must be able to DEPEND ON your analysis
-   - Be the assessment they can TRUST
-   - If you're not severe and honest, they can't rely on you
+## Final Check
+- Did you check for Functional vs Technical mismatch?
+- If the candidate is a "Consultant" applying for a "Developer" role, did you cap the score at 45?
+- Did you start at 0 and add points?
+- **AVOID CLUSTERING**: Do not default to 75%. If they are a 40% match, say 40%.
 `;
 
     try {
@@ -3779,6 +3851,8 @@ URL to visit: ${jobUrl}
 
   // Fonction pour effectuer l'analyse en arrière-plan
   const handleAnalysis = async () => {
+    let placeholderId: string | null = null;
+    
     try {
       // Force disable validation to ensure we use the real API
       setValidationOptions({
@@ -3797,7 +3871,7 @@ URL to visit: ${jobUrl}
       }
 
       // Créer une carte placeholder immédiatement pour une expérience non-bloquante
-      const placeholderId = crypto.randomUUID();
+      placeholderId = crypto.randomUUID();
       const placeholderAnalysis: ATSAnalysis = {
         id: placeholderId,
         date: new Date().toISOString(),
@@ -3883,7 +3957,7 @@ URL to visit: ${jobUrl}
               jobTitle,
               company,
               jobDescription: jobDescription || 'Not provided',
-              location: formData.location,
+              location: (formData as any).location || undefined,
               jobUrl: formData.jobUrl,
             },
             auth.currentUser?.uid || 'anonymous',
@@ -3901,24 +3975,29 @@ URL to visit: ${jobUrl}
           console.log('✅ Job summary generated:', jobSummary ? `Yes (${jobSummary.length} chars)` : 'No');
           
           // The premium analysis already saved to Firestore in the Cloud Function
-          // Update the placeholder with real data
-          const fullAnalysis = {
+          // Extract cvText from the analysis (should be extracted by AI during analysis)
+          const cvText = result.analysis?.analysis?.cvText || '';
+          
+          // CRITICAL: Validate and enforce strict scoring rules LOCALLY
+          // This ensures that even if the Cloud Function returns an inflated score,
+          // our local "Role Gate" and "Strict Scoring" logic will override it.
+          // We need to construct a temporary analysis object to pass to validation
+          const tempAnalysis: ATSAnalysis = {
             id: placeholderId,
             date: new Date().toISOString(),
             userId: auth.currentUser?.uid || 'anonymous',
             jobTitle: jobTitle,
             company: company,
             matchScore: result.analysis?.analysis?.match_scores?.overall_score || 0,
-            // Map premium analysis to existing interface
             keyFindings: result.analysis?.analysis?.top_strengths?.map((s: any) => s.name) || [],
             skillsMatch: {
               matching: result.analysis?.analysis?.match_breakdown?.skills?.matched?.map((skill: string) => ({
                 name: skill,
-                relevance: 80
+                relevance: 65
               })) || [],
               missing: result.analysis?.analysis?.match_breakdown?.skills?.missing?.map((skill: string) => ({
                 name: skill,
-                relevance: 60
+                relevance: 45
               })) || [],
               alternative: []
             },
@@ -3936,6 +4015,25 @@ URL to visit: ${jobUrl}
               priority: gap.severity === 'High' ? 'high' : gap.severity === 'Medium' ? 'medium' : 'low',
               examples: gap.how_to_fix
             })) || [],
+            marketPositioning: {
+              competitiveAdvantages: [],
+              competitiveDisadvantages: [],
+              industryTrends: ''
+            }
+          };
+
+          // Apply validation
+          const validatedTempAnalysis = validateAndEnforceStrictScoring(
+            tempAnalysis,
+            cvText || 'CV content unavailable',
+            jobDescription
+          );
+
+          console.log(`✅ Premium Analysis Validated: ${tempAnalysis.matchScore}% -> ${validatedTempAnalysis.matchScore}%`);
+
+          // Update the placeholder with real data (using validated scores)
+          const fullAnalysis = {
+            ...validatedTempAnalysis,
             jobSummary: jobSummary || undefined,
             // Store full premium analysis for future use
             _premiumAnalysis: result.analysis?.analysis,
@@ -3946,13 +4044,19 @@ URL to visit: ${jobUrl}
             company: fullAnalysis.company,
             matchScore: fullAnalysis.matchScore,
             hasJobSummary: !!fullAnalysis.jobSummary,
+            hasCvText: !!cvText,
+            cvTextLength: cvText.length,
           });
           
           // Mettre à jour Firestore avec les vraies données
+          // Note: cvText is already saved by Cloud Function, but we ensure it's included here too
           try {
             const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
             await setDoc(doc(analysesRef, placeholderId), {
               ...fullAnalysis,
+              cvText: cvText, // ✅ Ensure cvText is saved (already saved by Cloud Function, but ensure it's here too)
+              extractedText: cvText, // ✅ Fallback field
+              jobDescription: jobDescription, // ✅ Ensure jobDescription is saved
               _isLoading: false, // Enlever le flag de chargement
               timestamp: serverTimestamp(),
               updatedAt: serverTimestamp(),
@@ -4009,14 +4113,16 @@ URL to visit: ${jobUrl}
       }
     } catch (error: any) {
       console.error('Analysis failed:', error);
-      // Supprimer le placeholder de Firestore et de l'état local
-      try {
-        const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
-        await deleteDoc(doc(analysesRef, placeholderId));
-      } catch (deleteError) {
-        console.error('❌ Error deleting placeholder:', deleteError);
+      // Supprimer le placeholder de Firestore et de l'état local si il existe
+      if (placeholderId) {
+        try {
+          const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
+          await deleteDoc(doc(analysesRef, placeholderId));
+        } catch (deleteError) {
+          console.error('❌ Error deleting placeholder:', deleteError);
+        }
+        setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
       }
-      setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
       toast.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
         duration: 5000
       });
@@ -4135,29 +4241,7 @@ URL to visit: ${jobUrl}
   };
 
   // Helpers: logo from company name (best-effort) with placeholder fallback
-  const getDomainFromCompanyName = (name?: string | null) => {
-    if (!name) return null;
-    try {
-      const slug = name
-        .toLowerCase()
-        .replace(/&/g, 'and')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      if (!slug) return null;
-      return `${slug}.com`;
-    } catch {
-      return null;
-    }
-  };
-
-  const getCompanyLogoUrl = (company?: string | null) => {
-    const placeholder = '/images/logo-placeholder.svg';
-    const domain = getDomainFromCompanyName(company || '');
-    if (domain) {
-      return `https://logo.clearbit.com/${domain}`;
-    }
-    return placeholder;
-  };
+  // Functions removed - now using CompanyLogo component
 
   const AnalysisCard = ({ 
     analysis, 
@@ -4288,14 +4372,11 @@ URL to visit: ${jobUrl}
         <div className="relative z-10 space-y-3">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center items-start gap-4">
-            <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-[#2A2A2E] bg-gray-50 dark:bg-[#26262B] flex items-center justify-center">
-              <img
-                src={getCompanyLogoUrl(analysis.company)}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/logo-placeholder.svg'; }}
-                alt={`${analysis.company} logo`}
-                className="w-10 h-10 object-contain"
-              />
-            </div>
+            <CompanyLogo 
+              companyName={analysis.company} 
+              size="lg" 
+              className="rounded-lg border border-gray-200 dark:border-[#2A2A2E]" 
+            />
             <div className="flex-1 min-w-0">
               <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {analysis.jobTitle}
@@ -5874,7 +5955,7 @@ URL to visit: ${jobUrl}
     const skillLower = skill.toLowerCase();
     
     // Base relevance from job description
-    let relevance = 70; // Base relevance score
+    let relevance = 50; // Base neutre, pas optimiste
     
     // If the skill is mentioned multiple times in the job description, it's more relevant
     const jobOccurrences = (jobDescLower.match(new RegExp(`\\b${skillLower}\\b`, 'g')) || []).length;

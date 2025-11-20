@@ -102,14 +102,15 @@ function CategoryCard({ title, score, matched, missing, icon, explanations }: Ca
         </div>
       )}
 
-      {/* Explanations */}
-      {explanations && (
-        <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-            {explanations}
-          </p>
-        </div>
-      )}
+      {/* Explanations - Always shown for transparency */}
+      <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+          📊 Analysis
+        </p>
+        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+          {explanations || 'Detailed analysis not available.'}
+        </p>
+      </div>
     </div>
   );
 }

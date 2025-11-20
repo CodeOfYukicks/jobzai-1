@@ -27,33 +27,46 @@ export function MiniInfoCard({ date, time, type, className = '' }: MiniInfoCardP
 	return (
 		<div
 			className={[
-				'rounded-xl p-6',
+				'rounded-2xl p-8',
 				'bg-white dark:bg-[#1E1F22]',
 				'shadow-sm dark:shadow-none',
-				'border border-gray-200 dark:border-[#2A2A2E]',
-				'flex flex-col justify-between',
+				'border border-gray-100 dark:border-[#2A2A2E]',
+				'flex flex-col justify-between gap-6',
+				'transition-all duration-200',
+				'hover:shadow-md dark:hover:border-[#353539]',
 				className
 			].join(' ')}
 		>
-			<div className="flex flex-col gap-1.5">
-				<div className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{label}</div>
-				<div className="flex items-center gap-2">
-					<div className="h-7 w-7 rounded-lg flex items-center justify-center bg-[#F3F4F6] dark:bg-[#26262B]">
-						<Timer className="w-3.5 h-3.5 text-[#4F46E5]" />
+			<div className="flex flex-col gap-4">
+				<div className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+					{label}
+				</div>
+				<div className="flex items-center gap-3">
+					<div className="h-11 w-11 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 ring-1 ring-indigo-100 dark:ring-indigo-900/50">
+						<Timer className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
 					</div>
-					<div className="text-[14px] font-semibold text-gray-900 dark:text-gray-100">
-						{days} days {hours} hours
+					<div className="text-2xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
+						{days}d {hours}h
 					</div>
 				</div>
 			</div>
-			<div className="flex flex-col gap-1.5">
-				<div className="h-px bg-gray-200 dark:bg-[#2A2A2E]" />
-				<div className="flex items-center gap-2 text-[12px] text-gray-600 dark:text-gray-400">
-					<Calendar className="w-3.5 h-3.5" />
-					<div className="truncate">
-						{type ? `${type.charAt(0).toUpperCase() + type.slice(1)}` : 'Interview'} •{' '}
-						{date ? new Date(date).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
-						{time ? ` at ${time}` : ''}
+			<div className="flex flex-col gap-3">
+				<div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-[#2A2A2E] to-transparent" />
+				<div className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
+					<Calendar className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500 dark:text-gray-500" />
+					<div className="leading-relaxed">
+						<div className="font-medium text-gray-700 dark:text-gray-300">
+							{type ? `${type.charAt(0).toUpperCase() + type.slice(1)} Interview` : 'Interview'}
+						</div>
+						<div className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+							{date ? new Date(date).toLocaleDateString(undefined, { 
+								weekday: 'short',
+								day: 'numeric', 
+								month: 'short', 
+								year: 'numeric' 
+							}) : '—'}
+							{time ? ` • ${time}` : ''}
+						</div>
 					</div>
 				</div>
 			</div>

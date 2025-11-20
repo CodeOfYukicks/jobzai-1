@@ -39,6 +39,7 @@ import { AIToolsTab } from './AIToolsTab';
 import { NotesTab } from './NotesTab';
 import { EnhancedJobSummary } from './EnhancedJobSummary';
 import { toast } from 'sonner';
+import { CompanyLogo } from '../common/CompanyLogo';
 
 // Helper function to safely parse dates from Firestore
 const parseDate = (dateValue: any): Date => {
@@ -140,42 +141,7 @@ function getDomainFromCompanyName(name?: string | null): string | null {
   }
 }
 
-// Helper function to check if logo exists via API proxy or direct check
-async function checkLogoExists(domain: string): Promise<string | null> {
-  try {
-    // Try using the API proxy first (for development)
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment 
-      ? `http://localhost:3000/api/company-logo?domain=${encodeURIComponent(domain)}`
-      : `/api/company-logo?domain=${encodeURIComponent(domain)}`;
-    
-    try {
-      const response = await fetch(apiUrl);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.logoUrl) {
-          return data.logoUrl;
-        }
-      }
-    } catch (apiError) {
-      // API proxy not available, fall back to direct check
-      console.debug('API proxy not available, using direct check');
-    }
-    
-    // Fallback: Direct check using image element
-    const logoUrl = `https://logo.clearbit.com/${domain}`;
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(logoUrl);
-      img.onerror = () => resolve(null);
-      img.src = logoUrl;
-      // Timeout after 2 seconds
-      setTimeout(() => resolve(null), 2000);
-    });
-  } catch {
-    return null;
-  }
-}
+// Function removed - now using CompanyLogo component
 
 export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDetailPanelProps) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -183,34 +149,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity' | 'ai-tools' | 'notes'>('overview');
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
-  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
-  const [logoLoading, setLogoLoading] = useState(false);
-
-  // Fetch company logo when job changes
-  useEffect(() => {
-    if (!job?.companyName) {
-      setCompanyLogoUrl(null);
-      return;
-    }
-
-    const fetchLogo = async () => {
-      setLogoLoading(true);
-      const domain = getDomainFromCompanyName(job.companyName);
-      
-      if (!domain) {
-        setCompanyLogoUrl(null);
-        setLogoLoading(false);
-        return;
-      }
-
-      // Check if logo exists and get URL
-      const logoUrl = await checkLogoExists(domain);
-      setCompanyLogoUrl(logoUrl);
-      setLogoLoading(false);
-    };
-
-    fetchLogo();
-  }, [job?.companyName]);
+  // Logo states removed - now using CompanyLogo component
 
   if (!job) return null;
 
@@ -326,20 +265,12 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                           <div className="flex-1 min-w-0 pr-8">
                             <div className="flex items-center gap-3 mb-3">
                               {/* Company Logo */}
-                              <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${currentStatus.bg} ${currentStatus.border} border flex items-center justify-center overflow-hidden`}>
-                                {logoLoading ? (
-                                  <div className="w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-purple-600 dark:border-t-purple-400 rounded-full animate-spin" />
-                                ) : companyLogoUrl ? (
-                                  <img 
-                                    src={companyLogoUrl} 
-                                    alt={job.companyName}
-                                    className="w-full h-full object-contain p-1.5"
-                                    onError={() => setCompanyLogoUrl(null)}
-                                  />
-                                ) : (
-                                  <Building2 className={`w-5 h-5 ${currentStatus.color}`} />
-                                )}
-                              </div>
+                              <CompanyLogo 
+                                companyName={job.companyName} 
+                                size="lg" 
+                                className={`rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}
+                                showInitials={true}
+                              />
                               <Dialog.Title className="text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
                                 {job.position}
                               </Dialog.Title>

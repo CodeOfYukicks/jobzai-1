@@ -105,3 +105,4 @@ export const CompactHistoryList = ({ emails, onLoad, onDelete }: CompactHistoryL
   );
 };
 
+

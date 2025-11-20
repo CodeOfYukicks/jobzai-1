@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import AuthLayout from '../components/AuthLayout';
 import type { Job } from '../../components/JobCard';
+import { CompanyLogo } from '../components/common/CompanyLogo';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, startAfter } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -396,39 +397,7 @@ export default function JobBoardPage() {
 	const hasActiveSearch = titleQuery.trim() !== '' || locationQuery.trim() !== '' || activeFilters.length > 0;
 
 	// Helper functions for company logos (same as CVAnalysisPage)
-	const getDomainFromCompanyName = (name?: string | null) => {
-		if (!name) return null;
-		try {
-			const slug = name
-				.toLowerCase()
-				.replace(/&/g, 'and')
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '');
-			if (!slug) return null;
-			return `${slug}.com`;
-		} catch {
-			return null;
-		}
-	};
-
-	const getCompanyLogoUrl = (company?: string | null) => {
-		const placeholder = '/images/logo-placeholder.svg';
-		const domain = getDomainFromCompanyName(company || '');
-		if (domain) {
-			return `https://logo.clearbit.com/${domain}`;
-		}
-		return placeholder;
-	};
-
-	const getCompanyInitials = (company: string) => {
-		return (company || '?')
-			.split(' ')
-			.filter(Boolean)
-			.slice(0, 2)
-			.map((part) => part[0])
-			.join('')
-			.toUpperCase();
-	};
+	// Functions removed - now using CompanyLogo component
 
 	return (
 		<AuthLayout>
@@ -966,24 +935,11 @@ export default function JobBoardPage() {
 										>
 											<div className="flex items-start gap-4">
 												{/* Company Logo/Initial */}
-												<div className="flex-shrink-0 w-14 h-14 rounded-[12px] bg-gradient-to-br from-[#F3F4F6] to-[#E5E7EB] dark:from-gray-700 dark:to-gray-800 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-													<img
-														src={getCompanyLogoUrl(job.company)}
-														onError={(e) => {
-															const target = e.currentTarget as HTMLImageElement;
-															target.style.display = 'none';
-															const parent = target.parentElement;
-															if (parent && !parent.querySelector('.company-initials')) {
-																const initialsDiv = document.createElement('div');
-																initialsDiv.className = 'company-initials text-[15px] font-semibold text-[#111111] dark:text-gray-100';
-																initialsDiv.textContent = getCompanyInitials(job.company);
-																parent.appendChild(initialsDiv);
-															}
-														}}
-														alt={`${job.company} logo`}
-														className="w-12 h-12 object-contain"
-													/>
-												</div>
+												<CompanyLogo 
+													companyName={job.company} 
+													size="lg" 
+													className="w-14 h-14 rounded-[12px] border border-gray-200 dark:border-gray-700 shadow-sm bg-gradient-to-br from-[#F3F4F6] to-[#E5E7EB] dark:from-gray-700 dark:to-gray-800" 
+												/>
 
 												{/* Job Info */}
 												<div className="flex-1 min-w-0">

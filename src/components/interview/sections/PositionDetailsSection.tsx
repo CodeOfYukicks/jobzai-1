@@ -1,69 +1,85 @@
 import { memo } from 'react';
-import { Interview } from '../../../types/interview';
-import { JobApplication } from '../../../types/job';
+import { Target, Code, Users, Lightbulb, Rocket, Shield, Award, Zap } from 'lucide-react';
+import { JobApplication, Interview } from '../../../types/interview';
 
 interface PositionDetailsSectionProps {
   application: JobApplication;
   interview: Interview;
 }
 
+const responsibilityIcons = [Target, Code, Users, Lightbulb, Rocket, Shield, Award, Zap];
+
 const PositionDetailsSection = memo(function PositionDetailsSection({
   application,
   interview,
 }: PositionDetailsSectionProps) {
-  return (
-    <article className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5">
-      <header className="mb-5">
-        <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Position Details</h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">What this role expects and how to position yourself</p>
-      </header>
-      
-      <div className="space-y-4">
-        <p className="text-sm leading-relaxed text-neutral-900 dark:text-white">
-          <span className="mr-2 inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-purple-700 dark:bg-purple-900/40 dark:text-purple-200">
-            KEY
-          </span>
-          {interview?.preparation?.positionDetails?.split('.')[0] ||
-            `The ${application.position} role involves key responsibilities in the organization.`}
-        </p>
-        
-        {interview?.preparation?.positionDetails ? (
-          <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
-            {interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}
-          </p>
-        ) : (
-          <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-            No detailed position information available yet. Run the job post analysis to get a more precise breakdown of responsibilities and expectations.
-          </p>
-        )}
+  const positionDetails = interview?.preparation?.positionDetails;
+  
+  // Extract first sentence as headline
+  const headline = positionDetails?.split('.')[0] || `The ${application.position} role involves key responsibilities in the organization`;
+  
+  // Extract remaining sentences as individual responsibilities
+  const sentences = positionDetails?.split('.').slice(1).filter(s => s.trim().length > 0) || [];
 
-        <div className="space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-900 dark:text-neutral-50">
-            Required skills
+  return (
+    <article className="rounded-xl bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-6 shadow-sm transition-all duration-200">
+      <header className="mb-6">
+        <div className="flex items-center gap-2.5 mb-1.5">
+          <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
+            <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           </div>
-          {interview?.preparation?.requiredSkills &&
-          interview.preparation.requiredSkills.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {interview.preparation.requiredSkills.map((skill, index) => (
-                <div
-                  key={index} 
-                  className="inline-flex items-center rounded-[8px] border border-black/[0.04] bg-white/80 px-3 py-1.5 text-xs text-neutral-800 dark:border-white/5 dark:bg-white/5 dark:text-neutral-100"
-                >
-                  <span className="mr-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-500" />
-                  <span className="truncate">{skill}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              No skills information available yet. Once you run the analysis, key skills will appear here in a structured list.
-            </p>
-          )}
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+            Position Details
+          </h2>
         </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 ml-9">
+          Key responsibilities and expectations
+        </p>
+      </header>
+
+      {/* Position Headline */}
+      <div className="mb-5 p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white dark:from-[#1A1A1D] dark:to-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E]">
+        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-relaxed">
+          {headline}.
+        </p>
       </div>
+
+      {/* Key Responsibilities */}
+      {sentences.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {sentences.slice(0, 6).map((responsibility, index) => {
+            const Icon = responsibilityIcons[index % responsibilityIcons.length];
+            
+            return (
+              <div
+                key={index}
+                className="group rounded-lg bg-gray-50/50 dark:bg-[#1A1A1D]/50 border border-gray-100 dark:border-[#2A2A2E] p-4 transition-all duration-200 hover:bg-white dark:hover:bg-[#1E1F22] hover:border-indigo-200 dark:hover:border-indigo-800"
+              >
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
+                    <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+
+                  {/* Content */}
+                  <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300 pt-1">
+                    {responsibility.trim()}.
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-8 rounded-lg bg-gray-50 dark:bg-[#1A1A1D] border border-dashed border-gray-200 dark:border-[#2A2A2E]">
+          <Rocket className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Run job post analysis to discover detailed responsibilities
+          </p>
+        </div>
+      )}
     </article>
   );
 });
 
 export default PositionDetailsSection;
-

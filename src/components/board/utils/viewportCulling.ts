@@ -64,3 +64,4 @@ export function getVisibleObjects(
   return objects.filter(obj => isObjectVisible(obj, viewportBounds, padding));
 }
 
+

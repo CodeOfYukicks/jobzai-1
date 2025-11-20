@@ -182,3 +182,4 @@ export const NoteEditor = ({ onSave, placeholder = "Take a note..." }: NoteEdito
   );
 };
 
+

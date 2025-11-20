@@ -1,14 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Trash2, Calendar, MapPin, Users } from 'lucide-react';
 import { JobApplication } from '../../types/job';
 import { StepChip } from './StepChip';
-import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl } from '../../utils/logo';
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
+import { CompanyLogo } from '../common/CompanyLogo';
 
 function getStatusBorderColor(status: JobApplication['status']): string {
   switch (status) {
@@ -55,20 +49,6 @@ export function ApplicationCard({
     return () => observer.disconnect();
   }, []);
 
-  const companyDomain = getCompanyDomain(app.companyName);
-  const initialLogo = companyDomain ? getClearbitUrl(companyDomain) : null;
-  const [logoSrc, setLogoSrc] = useState<string | null>(initialLogo);
-  const triedGoogle = useRef(false);
-
-  function handleLogoError() {
-    if (companyDomain && !triedGoogle.current) {
-      triedGoogle.current = true;
-      setLogoSrc(getGoogleFaviconUrl(companyDomain));
-    } else {
-      setLogoSrc(null);
-    }
-  }
-
   const interviewCount = app.interviews?.length || 0;
 
   return (
@@ -87,18 +67,7 @@ export function ApplicationCard({
       <div className="p-4">
         {/* Section 1: Header - Position avec logo */}
         <div className="flex items-start gap-3 mb-3">
-          <div className="h-6 w-6 rounded flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-[#2A2A2E]">
-            {logoSrc ? (
-              <img
-                src={logoSrc}
-                alt={`${app.companyName} logo`}
-                onError={handleLogoError}
-                className="h-5 w-5 rounded object-cover"
-              />
-            ) : (
-              <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400">{getInitials(app.companyName)}</span>
-            )}
-          </div>
+          <CompanyLogo companyName={app.companyName} size="md" />
           <h3
             className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight flex-1 min-w-0"
             style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
@@ -137,16 +106,7 @@ export function ApplicationCard({
         {/* Section 3: Entreprise */}
         <div className="mb-3">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-[#2A2A2E] border border-gray-200 dark:border-gray-800">
-            {logoSrc ? (
-              <img
-                src={logoSrc}
-                alt={`${app.companyName} logo`}
-                onError={handleLogoError}
-                className="h-4 w-4 rounded object-cover"
-              />
-            ) : (
-              <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400">{getInitials(app.companyName)}</span>
-            )}
+            <CompanyLogo companyName={app.companyName} size="sm" />
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{app.companyName}</span>
           </div>
         </div>

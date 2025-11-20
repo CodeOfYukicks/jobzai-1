@@ -23,6 +23,7 @@ import DraggableSection from '../components/cv-rewrite/DraggableSection';
 import SkillEntryCard from '../components/cv-rewrite/SkillEntryCard';
 import jsPDF from 'jspdf';
 import { useA4ContentFitter } from '../hooks/useA4ContentFitter';
+import { CompanyLogo } from '../components/common/CompanyLogo';
 
 interface CVSectionEntry {
   id: string;
@@ -349,53 +350,7 @@ const flattenSectionContent = (sections: CVSectionData) => {
     .join('\n\n');
 };
 
-const LOGO_PLACEHOLDER = '/images/logo-placeholder.svg';
-
-type AnalysisLogoExtensions = {
-  companyLogo?: string | null;
-  jobLogo?: string | null;
-  jobLogoUrl?: string | null;
-  job_summary?: PremiumATSAnalysis['job_summary'] & {
-    companyLogo?: string | null;
-    logo?: string | null;
-    logoUrl?: string | null;
-  };
-};
-
-const getDomainFromCompanyName = (name?: string | null) => {
-  if (!name) return null;
-  try {
-    const slug = name
-      .toLowerCase()
-      .replace(/&/g, 'and')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    if (!slug) return null;
-    return `${slug}.com`;
-  } catch {
-    return null;
-  }
-};
-
-const getCompanyLogoUrl = (company?: string | null) => {
-  const domain = getDomainFromCompanyName(company);
-  if (!domain) return LOGO_PLACEHOLDER;
-  return `https://logo.clearbit.com/${domain}`;
-};
-
-const resolveCompanyLogo = (analysis: PremiumATSAnalysis | null) => {
-  if (!analysis) return LOGO_PLACEHOLDER;
-  const extended = analysis as PremiumATSAnalysis & AnalysisLogoExtensions;
-  return (
-    extended.companyLogo ||
-    extended.jobLogo ||
-    extended.jobLogoUrl ||
-    extended.job_summary?.companyLogo ||
-    extended.job_summary?.logo ||
-    extended.job_summary?.logoUrl ||
-    getCompanyLogoUrl(analysis.company)
-  );
-};
+// Logo functions and types removed - now using CompanyLogo component
 
 export default function CVRewritePage() {
   const { id } = useParams<{ id: string }>();
@@ -1390,23 +1345,16 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
     );
   }
 
-  const companyLogoUrl = resolveCompanyLogo(analysis);
   const jobTitleDisplay = analysis.jobTitle;
   const companyDisplay = analysis.company;
-  const companyAlt = companyDisplay ? `${companyDisplay} logo` : 'Company logo';
 
   const renderHeaderMeta = () => (
     <div className="flex items-center gap-3 min-w-0">
-      <div className="w-11 h-11 rounded-2xl border border-gray-200/70 dark:border-gray-800/70 bg-white dark:bg-[#111113] flex items-center justify-center overflow-hidden shadow-sm">
-        <img
-          src={companyLogoUrl}
-          alt={companyAlt}
-          className="w-full h-full object-cover"
-          onError={(event) => {
-            (event.currentTarget as HTMLImageElement).src = LOGO_PLACEHOLDER;
-          }}
-        />
-      </div>
+      <CompanyLogo 
+        companyName={companyDisplay} 
+        size="lg" 
+        className="w-11 h-11 rounded-2xl border border-gray-200/70 dark:border-gray-800/70 bg-white dark:bg-[#111113] shadow-sm" 
+      />
       <div className="min-w-0">
         <p className="text-base font-semibold text-gray-900 dark:text-white leading-tight truncate">
           {jobTitleDisplay}

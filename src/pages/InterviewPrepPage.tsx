@@ -24,10 +24,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
-import HeaderCard from '../components/interview/HeaderCard';
+import PremiumHeroSection from '../components/interview/PremiumHeroSection';
 import AICard from '../components/interview/AICard';
 import TabPills from '../components/interview/TabPills';
-import MiniInfoCard from '../components/interview/MiniInfoCard';
 import SectionCard from '../components/interview/SectionCard';
 import { InterviewQuestionsHeader } from '../components/interview/questions/InterviewQuestionsHeader';
 import { QuestionCard, QuestionTag } from '../components/interview/questions/QuestionCard';
@@ -36,6 +35,7 @@ import { InterviewWhiteboard } from '../components/board/InterviewWhiteboard';
 import { Suspense } from 'react';
 import { OverviewTab, QuestionsTab, SkillsTab, ResourcesTab, ChatTab } from '../components/interview/tabs';
 import { LazySection } from '../components/interview/utils/LazySection';
+import RightSidebarPanel from '../components/interview/RightSidebarPanel';
 
 // Interface for the job application data
 interface Note {
@@ -88,6 +88,18 @@ interface Interview {
     reviewedTips?: string[];
     savedLinks?: { id: string; title: string; url: string }[];
   };
+  freeFormNotes?: string;
+  noteDocuments?: NoteDocument[];
+  activeNoteDocumentId?: string | null;
+}
+
+interface NoteDocument {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+  preview?: string;
 }
 
 interface JobApplication {
@@ -392,6 +404,11 @@ export default function InterviewPrepPage() {
   const [showAllChecklistItems, setShowAllChecklistItems] = useState(false);
   const [showAllNewsItems, setShowAllNewsItems] = useState(false);
   const [isJobSummaryOpen, setIsJobSummaryOpen] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<'progress' | 'notes'>('progress');
+  const [freeFormNotes, setFreeFormNotes] = useState<string>('');
+  const [noteDocuments, setNoteDocuments] = useState<NoteDocument[]>([]);
+  const [activeNoteDocumentId, setActiveNoteDocumentId] = useState<string | null>(null);
+  const documentsSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const questionEntries = useMemo<QuestionEntry[]>(() => {
     if (!interview?.preparation?.suggestedQuestions) return [];
@@ -705,6 +722,44 @@ Key points to mention:
   useEffect(() => {
     if (interview?.skillRatings) {
       setSkillRatings(interview.skillRatings);
+    }
+  }, [interview]);
+
+  // Initialize free-form notes from interview data
+  useEffect(() => {
+    if (interview?.freeFormNotes) {
+      setFreeFormNotes(interview.freeFormNotes);
+    }
+  }, [interview]);
+
+  // Initialize note documents and handle migration (only once on load)
+  const hasInitializedDocuments = useRef(false);
+  
+  useEffect(() => {
+    if (!interview || hasInitializedDocuments.current) return;
+
+    if (interview.noteDocuments && interview.noteDocuments.length > 0) {
+      // Use existing documents
+      setNoteDocuments(interview.noteDocuments);
+      setActiveNoteDocumentId(interview.activeNoteDocumentId || null);
+      hasInitializedDocuments.current = true;
+    } else if (interview.freeFormNotes && interview.freeFormNotes.trim()) {
+      // Migrate old free-form notes to first document
+      const migratedDoc: NoteDocument = {
+        id: uuidv4(),
+        title: 'My Notes',
+        content: interview.freeFormNotes,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        preview: interview.freeFormNotes.substring(0, 100),
+      };
+      setNoteDocuments([migratedDoc]);
+      setActiveNoteDocumentId(null); // Start in library view
+      hasInitializedDocuments.current = true;
+      // Save migrated structure
+      saveNoteDocuments([migratedDoc], null);
+    } else {
+      hasInitializedDocuments.current = true;
     }
   }, [interview]);
 
@@ -2667,6 +2722,60 @@ Make sure each answer is completely unique and specific to its question - no gen
     setInterview({ ...interview, resourcesData: sanitized });
   };
 
+  const saveFreeFormNotes = async (notes: string) => {
+    if (!currentUser || !application || !interview || !applicationId) return;
+    const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+    if (interviewIndex === -1) return;
+    const updatedInterviews = [...(application.interviews || [])];
+    updatedInterviews[interviewIndex] = { ...interview, freeFormNotes: notes } as Interview;
+    const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+    await updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() });
+    setInterview({ ...interview, freeFormNotes: notes });
+  };
+
+  const saveNoteDocuments = async (documents: NoteDocument[], activeId: string | null) => {
+    if (!currentUser || !application || !interview || !applicationId) return;
+    const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+    if (interviewIndex === -1) return;
+    const updatedInterviews = [...(application.interviews || [])];
+    updatedInterviews[interviewIndex] = {
+      ...interview,
+      noteDocuments: documents,
+      activeNoteDocumentId: activeId,
+    } as Interview;
+    const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+    await updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() });
+    setInterview({ ...interview, noteDocuments: documents, activeNoteDocumentId: activeId });
+  };
+
+  const handleDocumentsChange = useCallback((documents: NoteDocument[], activeId: string | null) => {
+    setNoteDocuments(documents);
+    setActiveNoteDocumentId(activeId);
+    
+    // Clear previous timeout
+    if (documentsSaveTimeoutRef.current) {
+      clearTimeout(documentsSaveTimeoutRef.current);
+    }
+    
+    // Debounced save
+    documentsSaveTimeoutRef.current = setTimeout(() => {
+      saveNoteDocuments(documents, activeId);
+    }, 1000);
+  }, []);
+
+  // Debounce save for free-form notes (auto-save after 1 second of no typing)
+  useEffect(() => {
+    if (!interview) return;
+    // Don't save on initial load
+    if (freeFormNotes === interview.freeFormNotes) return;
+    
+    const timeoutId = setTimeout(() => {
+      saveFreeFormNotes(freeFormNotes);
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [freeFormNotes]);
+
   const toggleMicroTask = async (skill: string, taskId: string) => {
     const current = skillCoach?.microTasks?.[skill] || [];
     const nextTasks = current.map(t => t.id === taskId ? { ...t, done: !t.done } : t);
@@ -2860,52 +2969,73 @@ Make sure each answer is completely unique and specific to its question - no gen
 
   return (
     <AuthLayout>
+      {/* Right Sidebar Panel */}
+      <RightSidebarPanel
+        preparationProgress={preparationProgress}
+        milestones={getProgressMilestones()}
+        sidebarTab={sidebarTab}
+        setSidebarTab={setSidebarTab}
+        noteDocuments={noteDocuments}
+        activeNoteDocumentId={activeNoteDocumentId}
+        onDocumentsChange={handleDocumentsChange}
+      />
+
       <MotionConfig transition={{ duration: 0.2 }}>
-        <div className="h-full px-4 py-3">
+        <div className="h-full lg:pr-[400px]">
+          {/* Premium Hero Section */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.15 }}
-            className="mb-4"
+            transition={{ duration: 0.3 }}
+            className="mb-10"
           >
-            <HeaderCard
+            <PremiumHeroSection
               companyName={application?.companyName || ''}
               position={application?.position || 'Interview Preparation'}
               location={application?.location}
               interviewType={interview?.type as any}
               status={interview?.status as any}
+              date={interview?.date || null}
+              time={interview?.time || null}
             />
           </motion.div>
 
-          {/* Top: AI card + side countdown module aligned */}
-          <div className="mb-8 flex flex-col md:flex-row gap-6 md:items-stretch">
-            <div className="flex-1 min-w-0 flex">
+          <div className="px-4">
+            {/* AI Analysis Card - Full Width */}
+            <div className="mb-10 max-w-7xl mx-auto">
               <AICard
                 jobUrl={jobUrl}
                 onJobUrlChange={setJobUrl}
                 isAnalyzing={isAnalyzing}
                 onAnalyze={handleAnalyzeJobPost}
-                className="w-full h-full"
+                className="w-full"
               />
             </div>
-            <div className="w-full md:w-[320px] shrink-0 flex">
-              <MiniInfoCard
-                date={interview?.date || null}
-                time={interview?.time || null}
-                type={interview?.type || null}
-                className="w-full h-full"
-              />
-            </div>
-          </div>
 
-          {/* Loading Overlay - Bird animation for job post analysis */}
-          {isAnalyzing && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center text-center px-6"
-              >
+            {/* Tab navigation */}
+            <div className="mb-8">
+              <TabPills
+                items={[
+                  { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+                  { id: 'questions', label: 'Questions', icon: <HelpCircle className="w-4 h-4" /> },
+                  { id: 'skills', label: 'Skills', icon: <Briefcase className="w-4 h-4" /> },
+                  { id: 'resources', label: 'Resources', icon: <BookOpen className="w-4 h-4" /> },
+                  { id: 'chat', label: 'Practice', icon: <MessageSquare className="w-4 h-4" /> }
+                ]}
+                activeId={tab as any}
+                onChange={(id) => setTab(id as any)}
+              />
+            </div>
+
+            {/* Tab content */}
+            <div className="mb-8 relative">
+            {isAnalyzing && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center text-center px-6"
+                >
                 <div className="cvopt-walker mb-8" aria-label="Loading">
                   <div className="loader">
                     <svg className="legl" version="1.1" xmlns="http://www.w3.org/2000/svg" width="20.69332" height="68.19944" viewBox="0,0,20.69332,68.19944">
@@ -2980,8 +3110,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                 <p className="mt-2 text-sm text-white/80">
                   This may take up to 2 minutes.
                 </p>
-              </motion.div>
-              <style>
+                <style>
                 {`
                   .cvopt-walker .loader {
                     position: relative;
@@ -3059,45 +3188,12 @@ Make sure each answer is completely unique and specific to its question - no gen
                     100% { transform: translate(-100px, -50px); opacity: 0; }
                   }
                 `}
-              </style>
+                </style>
+              </motion.div>
             </div>
           )}
 
-          {/* Tab navigation */}
-          <div className="mb-8">
-            <TabPills
-              items={[
-                { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
-                { id: 'questions', label: 'Questions', icon: <HelpCircle className="w-4 h-4" /> },
-                { id: 'skills', label: 'Skills', icon: <Briefcase className="w-4 h-4" /> },
-                { id: 'resources', label: 'Resources', icon: <BookOpen className="w-4 h-4" /> },
-                { id: 'chat', label: 'Practice', icon: <MessageSquare className="w-4 h-4" /> }
-              ]}
-              activeId={tab as any}
-              onChange={(id) => setTab(id as any)}
-            />
-          </div>
-
-          {/* Tab content */}
-          <div className="mb-8 relative">
-            {isAnalyzing && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 z-10 backdrop-blur-sm rounded-xl flex items-center justify-center"
-              >
-                <div className="text-center">
-                  <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                    className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full mb-4 mx-auto"
-                  />
-                </div>
-              </motion.div>
-            )}
-
-            {!interview?.preparation ? (
+              {!interview?.preparation ? (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -3150,7 +3246,6 @@ Make sure each answer is completely unique and specific to its question - no gen
                       <OverviewTab
                         application={application!}
                         interview={interview!}
-                        preparationProgress={preparationProgress}
                         checklist={checklist}
                         newsItems={newsItems}
                         isNewsLoading={isNewsLoading}
@@ -3158,7 +3253,6 @@ Make sure each answer is completely unique and specific to its question - no gen
                         showAllChecklistItems={showAllChecklistItems}
                         showAllNewsItems={showAllNewsItems}
                         newTaskText={newTaskText}
-                        getProgressMilestones={getProgressMilestones}
                         setTab={setTab}
                         setShowAllChecklistItems={setShowAllChecklistItems}
                         setShowAllNewsItems={setShowAllNewsItems}
@@ -5527,6 +5621,7 @@ Make sure each answer is completely unique and specific to its question - no gen
             </AnimatePresence>
           </motion.div>
           )}
+          </div>
         
         <FocusQuestionModal
           open={Boolean(focusedQuestion)}

@@ -1,9 +1,7 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { Interview, ChecklistItem, NewsItem } from '../../../types/interview';
 import { JobApplication } from '../../../types/job';
 import {
-  PreparationProgress,
-  ChecklistSection,
   KeyPointsSection,
   CompanyProfileSection,
   PositionDetailsSection,
@@ -14,7 +12,6 @@ import { LazySection } from '../utils/LazySection';
 interface OverviewTabProps {
   application: JobApplication;
   interview: Interview;
-  preparationProgress: number;
   checklist: ChecklistItem[];
   newsItems: NewsItem[];
   isNewsLoading: boolean;
@@ -22,14 +19,6 @@ interface OverviewTabProps {
   showAllChecklistItems: boolean;
   showAllNewsItems: boolean;
   newTaskText: string;
-  getProgressMilestones: () => Array<{
-    id: string;
-    label: string;
-    description: string;
-    completed: boolean;
-    icon: React.ReactNode;
-    action: () => void;
-  }>;
   setTab: (tab: 'overview' | 'questions' | 'skills' | 'resources' | 'chat') => void;
   setShowAllChecklistItems: (show: boolean) => void;
   setShowAllNewsItems: (show: boolean) => void;
@@ -45,7 +34,6 @@ interface OverviewTabProps {
 const OverviewTab = memo(function OverviewTab({
   application,
   interview,
-  preparationProgress,
   checklist,
   newsItems,
   isNewsLoading,
@@ -53,7 +41,6 @@ const OverviewTab = memo(function OverviewTab({
   showAllChecklistItems,
   showAllNewsItems,
   newTaskText,
-  getProgressMilestones,
   setTab,
   setShowAllChecklistItems,
   setShowAllNewsItems,
@@ -65,41 +52,19 @@ const OverviewTab = memo(function OverviewTab({
   fetchCompanyNews,
   createNoteFromNews,
 }: OverviewTabProps) {
-  const milestones = useMemo(() => getProgressMilestones(), [getProgressMilestones]);
-
   return (
     <div className="space-y-5">
-      {/* Always render first section for immediate visibility */}
-      <PreparationProgress
-        preparationProgress={preparationProgress}
-        milestones={milestones}
-      />
-
-      {/* Lazy load sections below the fold */}
+      {/* Company Profile First */}
       <LazySection minHeight="300px">
-        <ChecklistSection
-          checklist={checklist}
-          showAllChecklistItems={showAllChecklistItems}
-          newTaskText={newTaskText}
-          setTab={setTab}
-          setShowAllChecklistItems={setShowAllChecklistItems}
-          setNewTaskText={setNewTaskText}
-          toggleChecklistItem={toggleChecklistItem}
-          addChecklistItem={addChecklistItem}
-          deleteChecklistItem={deleteChecklistItem}
-          updateChecklistItemText={updateChecklistItemText}
-        />
+        <CompanyProfileSection application={application} interview={interview} />
+      </LazySection>
+
+      <LazySection minHeight="300px">
+        <PositionDetailsSection application={application} interview={interview} />
       </LazySection>
 
       <LazySection minHeight="200px">
         <KeyPointsSection interview={interview} />
-      </LazySection>
-
-      <LazySection minHeight="400px">
-        <div className="space-y-4">
-          <CompanyProfileSection application={application} interview={interview} />
-          <PositionDetailsSection application={application} interview={interview} />
-        </div>
       </LazySection>
 
       {interview?.preparation && (

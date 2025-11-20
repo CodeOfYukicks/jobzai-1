@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { toast } from 'sonner';
 
 // Cache the API key to avoid repeated Firestore reads
 let perplexityApiKey: string | null = null;
@@ -49,7 +48,7 @@ export async function queryPerplexity(prompt: string): Promise<any> {
     const response = await axios.post(
       'https://api.perplexity.ai/chat/completions',
       {
-        model: 'sonar',
+        model: 'sonar-pro', // Use sonar-pro model for web browsing capabilities
         messages: [
           { 
             role: 'system', 
@@ -145,7 +144,9 @@ export async function queryPerplexityForJobExtraction(prompt: string): Promise<a
     const response = await axios.post(
       'https://api.perplexity.ai/chat/completions',
       {
-        model: 'sonar', // Use sonar model for web browsing (sonar-pro may not be available)
+        model: 'sonar-pro', // Use sonar-pro model for real-time web browsing and URL access
+        search_recency_filter: 'day', // Force fresh search, not cached/training data
+        return_citations: true, // Return citations to verify it actually visited the URL
         messages: [
           { 
             role: 'system', 
@@ -199,12 +200,15 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
       * Location in "About Us" or company information sections
       * Location in unrelated job postings on same page
    
-   CRITICAL CONTEXTUAL VERIFICATION:
-   - If "New York" in header/footer but "Paris" near job title → Use "Paris"
-   - Analyze proximity: location near job title/description = job location
-   - Analyze phrasing: "This role is based in Paris" = job location is Paris
-   - Location must be CONTEXTUALLY linked to THIS specific job posting
-   - If you cannot determine job location from context, return empty string "" - do NOT guess
+   CRITICAL CONTEXTUAL VERIFICATION - EXAMPLES:
+   - Example 1: Adobe job page shows "Adobe" (San Jose, CA) in header BUT shows "Location: Paris, France" near job title → USE "Paris, France"
+   - Example 2: Job description says "join our team in Paris" → USE "Paris" (NOT company HQ)
+   - Example 3: "New York" in footer but "London" near job title → USE "London"
+   - Rule: Analyze proximity - location near job title/description/job details = JOB location
+   - Rule: Analyze phrasing - "This role is based in [City]" = job location is [City]
+   - Rule: Location must be CONTEXTUALLY linked to THIS specific job posting
+   - Rule: NEVER use your knowledge of where a company is headquartered
+   - If you cannot find a job-specific location, return empty string "" - do NOT guess or use company HQ
 12. The job description must include ALL sections visible on the page: overview, responsibilities, requirements, qualifications, skills, experience, education, location, benefits, company culture, team info, application process, etc.
 13. Include ALL paragraphs, ALL bullet points, ALL lists, ALL text - nothing should be omitted
 14. If the job description is very long (5000+ characters), that's correct - include EVERYTHING

@@ -39,7 +39,7 @@ import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
-import { queryPerplexityForJobExtraction } from '../lib/perplexity';
+import { extractJobInfo, DetailedJobInfo } from '../lib/jobExtractor';
 import DatePicker from '../components/ui/DatePicker';
 import { JobApplication, Interview, StatusChange } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
@@ -291,422 +291,29 @@ export default function JobApplicationsPage() {
     toast.info('Analyzing job posting...', { duration: 2000 });
 
     try {
-      // Utiliser Perplexity pour analyser l'URL et extraire les informations
-      // Construire un prompt très explicite qui force la visite de l'URL
       const jobUrl = formData.url.trim();
-      const prompt = `
-You are a precise job posting information extractor. Your task is to visit this URL and extract EXACT information from the job posting page.
-
-URL TO VISIT: ${jobUrl}
-
-CRITICAL INSTRUCTIONS - FOLLOW THESE EXACTLY:
-1. You MUST visit the URL using web browsing/search capabilities
-2. Read the ENTIRE page content carefully - do NOT skim or rush
-3. Understand the STRUCTURE and CONTEXT of the page - analyze how information is organized
-4. Read the ACTUAL HTML content of the page - do NOT use training data or assumptions
-5. Extract ONLY information that is VISIBLY DISPLAYED on the page
-6. Do NOT guess, infer, or use information from similar job postings
-7. Do NOT use information from the URL or domain name to infer details
-8. For location specifically: 
-   - Read the ENTIRE page to understand the context
-   - Identify ALL location mentions on the page
-   - Analyze the CONTEXT around each location to determine which applies to THIS specific job posting
-   - The page may mention multiple locations (headquarters, other offices, general info) - you MUST identify which one is for THIS job
-
-EXTRACTION REQUIREMENTS FOR EACH FIELD:
-
-1. "companyName":
-   - Find the EXACT company name as displayed on the page
-   - Look in: page header, job title area, company information section, "About" section, footer
-   - Copy it EXACTLY as shown (case-sensitive, with exact spelling and punctuation)
-   - Examples: "Boston Consulting Group", "Google LLC", "Microsoft Corporation"
-   - Do NOT abbreviate or modify the company name
-
-2. "position":
-   - Find the EXACT job title/position as displayed on the page
-   - Look for: <h1>, <h2>, title tags, main job title element, job header section
-   - Copy it EXACTLY as shown (case-sensitive, with exact spelling, punctuation, and formatting)
-   - Examples: "Manager, Platinion", "Senior Software Engineer", "Product Manager - EMEA"
-   - Do NOT modify, abbreviate, or generalize the job title
-   - This is CRITICAL - the exact title is essential
-
-3. "location" - THIS IS THE MOST CRITICAL FIELD - CONTEXTUAL ANALYSIS REQUIRED:
-   - STOP: Before extracting location, you MUST read the ENTIRE page content carefully and understand the CONTEXT
-   - CRITICAL: The page may mention MULTIPLE locations (headquarters, other offices, general company info)
-   - You MUST identify which location applies to THIS SPECIFIC job posting by analyzing the CONTEXT
-   
-   CONTEXTUAL ANALYSIS PROCESS:
-   1. Read the ENTIRE page to understand the structure and context
-   2. Identify ALL location mentions on the page
-   3. For EACH location mention, analyze the CONTEXT around it:
-      - Is it in the job details section near the job title? → Likely the job location
-      - Is it in a "Location:" field in the job posting section? → Likely the job location
-      - Is it in the header/footer mentioning company headquarters? → NOT the job location
-      - Is it in a general "About Us" or "Our Offices" section? → NOT the job location
-      - Is it mentioned with phrases like "This role is based in...", "Location for this position:", "Work location:", "This position is located in..."? → Likely the job location
-      - Is it near the job title, job description, or application section? → Likely the job location
-   
-   SEARCH STRATEGY - Look for location in THIS ORDER OF PRIORITY:
-   1. Job-specific location indicators (HIGHEST PRIORITY):
-      * Location field/icon in the job details section (near job title)
-      * "Location:" or "Work Location:" in the job posting section
-      * "This role is based in..." or "This position is located in..."
-      * "Where you'll work:" section within the job posting
-      * Location mentioned in the job description or requirements section
-      * Location in the application information section
-   
-   2. Contextual phrases that indicate job location:
-      * "Based in [location]" near the job title or description
-      * "Location: [location]" in the job details
-      * "Work Location: [location]" in the job posting
-      * "Office Location: [location]" for this specific position
-      * "This position is in [location]"
-      * "The role is located in [location]"
-      * Any location mention that is clearly associated with THIS job posting
-   
-   3. AVOID these locations (they are NOT the job location):
-      * Company headquarters mentioned in header/footer
-      * General "Our Offices" section listing all offices
-      * Location in "About Us" or company information sections
-      * Location mentioned in unrelated job postings on the same page
-      * Location in general company information
-   
-   CRITICAL CONTEXTUAL VERIFICATION:
-   - If you see "New York" in the header/footer but "Paris" near the job title → Use "Paris"
-   - If you see multiple locations, identify which one is associated with THIS job posting
-   - Analyze the proximity: location near job title/description = job location
-   - Analyze the phrasing: "This role is based in Paris" = job location is Paris
-   - If location is mentioned with the job title or in job details section → That's the job location
-   - If location is in general company info → NOT the job location
-   
-   EXTRACTION RULES:
-   - Find the location that is CONTEXTUALLY associated with THIS specific job posting
-   - Read it word-for-word EXACTLY as displayed
-   - Copy it character-by-character - do NOT modify, translate, or interpret
-   - If the context clearly indicates "Paris, France" for this job → return "Paris, France"
-   - If the context clearly indicates "New York, NY, US" for this job → return "New York, NY, US"
-   - DO NOT use a location just because it appears on the page - it must be CONTEXTUALLY linked to THIS job
-   - If multiple locations are listed for this job, use the PRIMARY or FIRST one mentioned
-   - CRITICAL: The location MUST be the one that applies to THIS specific job posting based on context
-   - CRITICAL: If you cannot determine the job location from context, return an empty string "" - do NOT guess
-
-4. "summary":
-   - Extract a concise, structured summary with exactly 3 key points about the job posting
-   - Format: Use bullet points (•) separated by newlines, each point on a single line
-   - Each point should be brief (15-30 words max) and focus on the most important information
-   - Structure the 3 points as follows:
-     1. Key responsibilities/main duties (what the role does)
-     2. Required qualifications/experience (what they're looking for)
-     3. Notable aspects/benefits/unique selling points (what makes this role interesting)
-   - Make it scannable and useful for quick reference on an application card
-   - Do NOT write long paragraphs - keep it concise and actionable
-   - Total length: maximum 100 words across all 3 points
-
-5. "fullJobDescription" - COMPLETE JOB DESCRIPTION:
-   - Extract the COMPLETE and FULL text from the job posting
-   - Include ALL sections: Overview, Responsibilities, Requirements, Qualifications, Skills, Experience, Education, Benefits, Company Culture, Team Info, Application Process, etc.
-   - Include EVERY paragraph, EVERY bullet point, EVERY list - nothing should be omitted
-   - Maintain the original structure and formatting as much as possible
-   - Use \\n\\n for paragraph breaks
-   - Use • for bullet points
-   - This should be the FULL, UNABRIDGED content of the job posting (typically 1000-5000+ characters)
-   - Do NOT summarize, shorten, or paraphrase - extract the COMPLETE text
-   - If the description is very long, that's correct - completeness is critical
-
-VALIDATION CHECKLIST - Before returning, verify EACH point:
-✓ The company name matches EXACTLY what's displayed on the page
-✓ The position/job title matches EXACTLY what's displayed on the page
-✓ LOCATION VERIFICATION (MOST CRITICAL - CONTEXTUAL ANALYSIS REQUIRED):
-  - You read the ENTIRE page to understand the structure and context
-  - You identified ALL location mentions on the page
-  - You analyzed the CONTEXT around each location mention
-  - You determined which location is CONTEXTUALLY associated with THIS specific job posting
-  - The location you selected is in the job details section, near the job title, or in job-specific sections
-  - The location you selected is NOT in header/footer, "About Us", or general company information
-  - You verified the location is mentioned with phrases like "This role is based in...", "Location for this position:", etc.
-  - You analyzed proximity: location near job title/description = job location
-  - You did NOT use a location just because it appears on the page - it must be CONTEXTUALLY linked to THIS job
-  - You did NOT use training data, company knowledge, or assumptions
-  - You did NOT infer location from URL, domain, or any other source
-  - You did NOT use the company's headquarters unless explicitly stated for THIS job
-  - The location text was actually visible on the page and CONTEXTUALLY associated with THIS posting
-  - If you cannot determine the job location from context, you returned empty string ""
-✓ You have NOT used training data or assumptions for ANY field
-✓ You have NOT inferred information from the URL or domain
-✓ All information was actually visible on the page
-✓ You have read the ENTIRE page content carefully and understood the CONTEXT before extracting
-
-Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, no additional text):
-{
-  "companyName": "exact company name from page",
-  "position": "exact job title from page",
-  "location": "exact location for this specific job posting from page",
-  "summary": "• First key point about responsibilities (15-30 words)\\n• Second key point about qualifications (15-30 words)\\n• Third key point about notable aspects (15-30 words)",
-  "fullJobDescription": "Complete, full, unabridged job description with all sections, paragraphs, and bullet points from the posting",
-  "jobInsights": {
-    "keyResponsibilities": "2-3 main duties and responsibilities in a concise, readable format (50-100 words)",
-    "requiredSkills": "Top 5-7 critical technical and soft skills required, comma-separated or bulleted (50-80 words)",
-    "experienceLevel": "Years of experience required, seniority level, and any specific domain expertise needed (30-50 words)",
-    "compensationBenefits": "Salary range (if mentioned), benefits, perks, work arrangement (remote/hybrid/onsite) (40-70 words)",
-    "companyCulture": "Work environment, company values, team structure, and culture highlights (50-80 words)",
-    "growthOpportunities": "Career development opportunities, learning paths, advancement potential, and professional growth aspects (40-70 words)"
-  }
-}
-
-IMPORTANT: Extract ALL fields including the new jobInsights object with all 6 sub-fields. If information for a jobInsights field is not available on the page, provide a brief, generic statement like "Details not specified in posting" rather than leaving it empty.
-
-URL to visit: ${jobUrl}
-`;
-
-      // Utiliser une requête spécialisée pour l'extraction de job posting
-      const response = await queryPerplexityForJobExtraction(prompt);
       
-      if (response.error) {
-        throw new Error(response.errorMessage || 'Failed to analyze job posting');
-      }
-
-      console.log('Perplexity response:', response.text);
-
-      // Parser la réponse JSON avec amélioration
-      let extractedData;
-      try {
-        let jsonString = response.text || '';
-        
-        // Nettoyer la réponse pour extraire le JSON
-        // Enlever les markdown code blocks si présents
-        jsonString = jsonString.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
-        
-        // Trouver le JSON object - chercher le premier { jusqu'au dernier }
-        const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonString = jsonMatch[0];
-        }
-        
-        // Essayer de réparer les erreurs JSON communes
-        const tryParseJSON = (str: string) => {
-          try {
-            return JSON.parse(str);
-          } catch (e) {
-            // Essayer de réparer les erreurs communes
-            let repaired = str
-              .replace(/,\s*\]/g, ']')  // Remove trailing commas before ]
-              .replace(/,\s*\}/g, '}')   // Remove trailing commas before }
-              .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3') // Quote unquoted keys
-              .replace(/:\s*'([^']*)'/g, ': "$1"') // Replace single quotes with double quotes
-              .replace(/:\s*([^",{\[\]}\s]+)(\s*[,}\]])/g, ': "$1"$2') // Quote unquoted string values
-              // Gérer les retours à la ligne non échappés dans les strings
-              .replace(/"([^"]*)"\s*:\s*"([^"]*)\n([^"]*)"/g, '"$1": "$2\\n$3"')
-              // Gérer les guillemets non échappés dans les strings
-              .replace(/"([^"]*)"\s*:\s*"([^"]*)"([^"]*)"/g, (match, key, val1, val2) => {
-                return `"${key}": "${val1}\\"${val2}"`;
-              });
-            
-            try {
-              return JSON.parse(repaired);
-            } catch (e2) {
-              console.error('JSON repair failed:', e2);
-              // Dernier essai : extraire manuellement les champs
-              return null;
-            }
-          }
-        };
-        
-        // Essayer de parser le JSON
-        extractedData = tryParseJSON(jsonString);
-        
-        if (!extractedData) {
-          throw new Error('Failed to parse JSON response');
-        }
-        
-        // Valider que les données sont présentes
-        if (!extractedData.position || extractedData.position.length < 3) {
-          throw new Error('Missing or invalid position field in extracted data');
-        }
-        
-        if (!extractedData.companyName || extractedData.companyName.length < 2) {
-          throw new Error('Missing or invalid companyName field in extracted data');
-        }
+      // Use shared extraction utility with detailed mode
+      const extractedData = await extractJobInfo(jobUrl, { detailed: true }) as DetailedJobInfo;
         
         console.log('Successfully extracted data:', extractedData);
         
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        console.log('Response text:', response.text);
-        
-        // Si le parsing échoue, essayer d'extraire les informations manuellement avec des regex améliorées
-        const text = response.text || '';
-        
-        // Extraire company name - chercher dans différents formats
-        let companyName = '';
-        const companyPatterns = [
-          /"companyName"\s*:\s*"([^"]+)"/i,
-          /companyName["\s]*:["\s]*([^",\n}]+)/i,
-          /company["\s]*:["\s]*([^",\n}]+)/i,
-          /"company"\s*:\s*"([^"]+)"/i
-        ];
-        for (const pattern of companyPatterns) {
-          const match = text.match(pattern);
-          if (match && match[1]) {
-            companyName = match[1].trim();
-            break;
-          }
-        }
-        
-        // Extraire position - chercher dans différents formats et être plus précis
-        let position = '';
-        const positionPatterns = [
-          /"position"\s*:\s*"([^"]+)"/i,
-          /position["\s]*:["\s]*"([^"]+)"/i,
-          /"jobTitle"\s*:\s*"([^"]+)"/i,
-          /"title"\s*:\s*"([^"]+)"/i,
-          /job\s+title["\s]*:["\s]*"([^"]+)"/i,
-          /position["\s]*:["\s]*([^",\n}]+)/i
-        ];
-        for (const pattern of positionPatterns) {
-          const match = text.match(pattern);
-          if (match && match[1]) {
-            position = match[1].trim();
-            // Nettoyer la position des caractères indésirables
-            position = position.replace(/^["']+|["']+$/g, '').trim();
-            if (position.length > 5) { // Au moins 5 caractères pour être valide
-              break;
-            }
-          }
-        }
-        
-        // Extraire location
-        let location = '';
-        const locationPatterns = [
-          /"location"\s*:\s*"([^"]+)"/i,
-          /location["\s]*:["\s]*"([^"]+)"/i,
-          /location["\s]*:["\s]*([^",\n}]+)/i
-        ];
-        for (const pattern of locationPatterns) {
-          const match = text.match(pattern);
-          if (match && match[1]) {
-            location = match[1].trim();
-            location = location.replace(/^["']+|["']+$/g, '').trim();
-            if (location.length > 3) {
-              break;
-            }
-          }
-        }
-        
-        // Extraire summary - chercher dans différents formats et gérer les retours à la ligne
-        let summary = '';
-        // Essayer d'extraire le summary avec gestion des retours à la ligne et caractères spéciaux
-        const summaryPatterns = [
-          /"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/i,
-          /summary["\s]*:["\s]*"((?:[^"\\]|\\.)*)"/i,
-          /"summary"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/i,
-          /summary["\s]*:["\s]*([^,\n}]+)/i
-        ];
-        
-        for (const pattern of summaryPatterns) {
-          const match = text.match(pattern);
-          if (match && match[1]) {
-            summary = match[1]
-              .trim()
-              .replace(/\\n/g, '\n')
-              .replace(/\\"/g, '"')
-              .replace(/\\'/g, "'")
-              .replace(/\\t/g, '\t');
-            if (summary.length > 20) {
-              break;
-            }
-          }
-        }
-        
-        // Si pas de summary trouvé, essayer d'extraire des informations utiles du texte
-        if (!summary || summary.length < 20) {
-          // Chercher des phrases complètes qui pourraient être un résumé
-          const sentences = text
-            .split(/[.!?]\s+/)
-            .filter((s: string) => s.trim().length > 30 && s.trim().length < 300)
-            .slice(0, 5);
-          
-          if (sentences.length > 0) {
-            summary = sentences.join('. ').substring(0, 300);
-        } else {
-            // Dernier recours : prendre les premières lignes utiles
-          const lines = text.split('\n').filter((l: string) => l.trim().length > 20);
-          summary = lines.slice(0, 3).join(' ').substring(0, 200);
-          }
-        }
-        
-        extractedData = {
-          companyName: companyName.trim(),
-          position: position.trim(),
-          location: location.trim(),
-          summary: summary.trim()
-        };
-        
-        console.log('Extracted data (fallback):', extractedData);
-      }
-
-      // Valider les données extraites
-      if (!extractedData.position || extractedData.position.length < 3) {
-        throw new Error('Could not extract valid job position from the posting');
-      }
-      
-      if (!extractedData.companyName || extractedData.companyName.length < 2) {
-        throw new Error('Could not extract valid company name from the posting');
-      }
-
-      // Validation supplémentaire : vérifier que les données semblent cohérentes
-      // Si la position contient des mots très génériques, c'est peut-être une mauvaise extraction
-      const genericTitles = ['engineer', 'developer', 'manager', 'consultant', 'analyst', 'specialist'];
-      const positionLower = extractedData.position.toLowerCase();
-      const isTooGeneric = genericTitles.some(word => positionLower === word || positionLower === `${word} at ${extractedData.companyName.toLowerCase()}`);
-      
-      if (isTooGeneric && extractedData.position.length < 20) {
-        console.warn('Extracted position seems too generic:', extractedData.position);
-        // Ne pas bloquer, mais logger un avertissement
-      }
-
-      // Validation de la localisation - s'assurer qu'elle n'est pas vide
-      if (!extractedData.location || extractedData.location.trim().length < 2) {
-        console.warn('Location extraction may be incomplete:', extractedData.location);
-        // Ne pas bloquer, mais logger un avertissement
-      }
-
-      // Nettoyer les données extraites
-      const cleanedData = {
-        companyName: extractedData.companyName.trim(),
-        position: extractedData.position.trim(),
-        location: extractedData.location?.trim() || '',
-        summary: extractedData.summary?.trim() || '',
-        fullJobDescription: extractedData.fullJobDescription?.trim() || '',
-        jobInsights: extractedData.jobInsights ? {
-          keyResponsibilities: extractedData.jobInsights.keyResponsibilities?.trim() || '',
-          requiredSkills: extractedData.jobInsights.requiredSkills?.trim() || '',
-          experienceLevel: extractedData.jobInsights.experienceLevel?.trim() || '',
-          compensationBenefits: extractedData.jobInsights.compensationBenefits?.trim() || '',
-          companyCulture: extractedData.jobInsights.companyCulture?.trim() || '',
-          growthOpportunities: extractedData.jobInsights.growthOpportunities?.trim() || ''
-        } : undefined
-      };
-
-      // Formater le summary pour la description - format structuré avec 3 points
-      let formattedDescription = cleanedData.summary;
+      // Format the summary for description - structured format with 3 bullet points
+      let formattedDescription = extractedData.summary;
       if (formattedDescription) {
-        // S'assurer que le summary est bien formaté
-        // Enlever les échappements JSON si présents
+        // Ensure proper formatting (unescape JSON escapes)
         formattedDescription = formattedDescription
           .replace(/\\n/g, '\n')
           .replace(/\\"/g, '"')
           .replace(/\\'/g, "'")
           .trim();
         
-        // S'assurer que les puces sont bien formatées (• ou -)
-        // Si le format n'a pas de puces, les ajouter
+        // Ensure bullets are properly formatted (• or -)
           if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
-          // Diviser par lignes et ajouter des puces
           const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
           if (lines.length > 0) {
             formattedDescription = lines.map((line: string) => {
               const trimmed = line.trim();
-              // Si la ligne ne commence pas déjà par une puce, en ajouter une
               if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
                 return `• ${trimmed}`;
               }
@@ -715,25 +322,24 @@ URL to visit: ${jobUrl}
           }
         }
         
-        // Ajouter une séparation visuelle si une description existe déjà
+        // Add visual separation if description already exists
         if (formData.description && formData.description.trim()) {
           formattedDescription = `${formData.description}\n\n---\n\n${formattedDescription}`;
         }
       }
 
-      // Mettre à jour le formulaire avec les données extraites
+      // Update form with extracted data
       setFormData(prev => ({
         ...prev,
-        companyName: cleanedData.companyName || prev.companyName,
-        position: cleanedData.position || prev.position,
-        location: cleanedData.location || prev.location,
+        companyName: extractedData.companyName || prev.companyName,
+        position: extractedData.position || prev.position,
+        location: extractedData.location || prev.location,
         description: formattedDescription || prev.description || '',
-        fullJobDescription: cleanedData.fullJobDescription || prev.fullJobDescription || '',
-        jobInsights: cleanedData.jobInsights || prev.jobInsights
+        fullJobDescription: extractedData.fullJobDescription || prev.fullJobDescription || '',
+        jobInsights: extractedData.jobInsights || prev.jobInsights
       }));
 
       toast.success('Job information extracted successfully!');
-      console.log('Extracted and cleaned data:', cleanedData);
     } catch (error) {
       console.error('Error extracting job info:', error);
       toast.error(`Failed to extract job information: ${error instanceof Error ? error.message : 'Unknown error'}. Please fill in the fields manually.`);

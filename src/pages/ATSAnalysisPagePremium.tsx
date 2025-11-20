@@ -7,9 +7,10 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
 import { generateCVRewrite } from '../lib/cvRewriteService';
-import CVGenerationModal from '../components/cv-generation/CVGenerationModal';
+import { CompanyLogo } from '../components/common/CompanyLogo';
 import CVScoreComparison from '../components/ats-premium/CVScoreComparison';
 import { analyzeOptimizedCV } from '../lib/optimizedCVAnalyzer';
+import { analyzePremiumScore, type PremiumScoreAnalysis } from '../lib/premiumScoreAnalyzer';
 import {
   ExternalLink, Building2, MapPin, FileText, List,
   Target, TrendingUp, AlertCircle, Lightbulb, Activity, BookOpen,
@@ -74,41 +75,33 @@ function RightSidebarPanel({
   onNavigate,
   onGenerateCVRewrite,
   isGeneratingCV,
+  generationProgress,
+  generationStep,
   cvRewrite,
   sidebarTab,
   setSidebarTab,
   navigate,
   optimizedScore,
-  isCalculatingScore
+  isCalculatingScore,
+  premiumAnalysis
 }: { 
   analysis: PremiumATSAnalysis;
   activeSection: string;
   onNavigate: (section: string) => void;
   onGenerateCVRewrite: () => void;
   isGeneratingCV: boolean;
+  generationProgress: number;
+  generationStep: number;
   cvRewrite: any;
   sidebarTab: 'summary' | 'navigation' | 'cv';
   setSidebarTab: (tab: 'summary' | 'navigation' | 'cv') => void;
   navigate: (path: string) => void;
   optimizedScore: { overall: number; skills: number; experience: number } | null;
   isCalculatingScore: boolean;
+  premiumAnalysis: PremiumScoreAnalysis | null;
 }) {
-  // Auto-switch to CV tab when CV is generated (only when cvRewrite becomes available, not on tab changes)
-  const prevCvRewriteRef = useRef<any>(null);
-  useEffect(() => {
-    // Only switch if cvRewrite just became available (was null, now has value)
-    if (cvRewrite && !prevCvRewriteRef.current && sidebarTab !== 'cv') {
-      // Small delay to ensure smooth transition
-      const timer = setTimeout(() => {
-        setSidebarTab('cv');
-      }, 300);
-      prevCvRewriteRef.current = cvRewrite;
-      return () => clearTimeout(timer);
-    } else if (cvRewrite) {
-      // Update ref to track current cvRewrite
-      prevCvRewriteRef.current = cvRewrite;
-    }
-  }, [cvRewrite, sidebarTab, setSidebarTab]);
+  // REMOVED: Auto-switch logic moved to main component to prevent race conditions
+  // Tab switching is now handled exclusively in the main component's fetchAnalysis effect
 
   const sections = [
     { id: 'overview', label: 'Overview', icon: <Target className="w-4 h-4" /> },
@@ -257,36 +250,190 @@ function RightSidebarPanel({
                 {!cvRewrite ? (
                   // Not generated yet
                   <div className="space-y-4">
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center">
-                        <Wand2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
-                        Generate Tailored Resume
-                      </h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
-                        Create a tailored version of your resume optimized for this specific job position using AI.
-                      </p>
-                    </div>
-                    
-                    <button
-                      onClick={onGenerateCVRewrite}
-                      disabled={isGeneratingCV}
-                      className="w-full px-4 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm flex items-center justify-center gap-2 relative overflow-hidden group"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      {isGeneratingCV ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin relative z-10" />
-                          <span className="relative z-10">Generating...</span>
-                        </>
-                      ) : (
-                        <>
+                    {isGeneratingCV ? (
+                      // Inline Premium Loading State
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="space-y-6 py-8"
+                      >
+                        {/* Animated Icon */}
+                        <div className="flex justify-center">
+                          <motion.div
+                            animate={{ 
+                              scale: [1, 1.05, 1],
+                            }}
+                            transition={{ 
+                              duration: 2,
+                              repeat: Infinity,
+                              ease: "easeInOut"
+                            }}
+                            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center relative overflow-hidden"
+                          >
+                            <motion.div
+                              animate={{
+                                rotate: 360
+                              }}
+                              transition={{
+                                duration: 3,
+                                repeat: Infinity,
+                                ease: "linear"
+                              }}
+                            >
+                              <Sparkles className="w-9 h-9 text-purple-600 dark:text-purple-400" />
+                            </motion.div>
+                            
+                            {/* Pulse effect */}
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-br from-purple-400 to-indigo-400 opacity-20 rounded-2xl"
+                              animate={{
+                                scale: [1, 1.2, 1],
+                                opacity: [0.2, 0.1, 0.2]
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                            />
+                          </motion.div>
+                        </div>
+
+                        {/* Generation Message */}
+                        <div className="text-center space-y-2">
+                          <motion.h3 
+                            key={generationStep}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="text-sm font-semibold text-gray-900 dark:text-white"
+                          >
+                            {generationStep === 0 && 'Analyzing your resume...'}
+                            {generationStep === 1 && 'Extracting key strengths...'}
+                            {generationStep === 2 && 'Optimizing content...'}
+                            {generationStep === 3 && 'Integrating keywords...'}
+                            {generationStep === 4 && 'Finalizing your tailored resume...'}
+                          </motion.h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Please wait while AI tailors your resume
+                          </p>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-2 px-4">
+                          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${generationProgress}%` }}
+                              transition={{ duration: 0.3, ease: "easeOut" }}
+                              className="h-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 rounded-full relative overflow-hidden"
+                            >
+                              {/* Shimmer effect */}
+                              <motion.div
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                                animate={{
+                                  x: ['-100%', '200%']
+                                }}
+                                transition={{
+                                  duration: 1.5,
+                                  repeat: Infinity,
+                                  ease: 'linear'
+                                }}
+                              />
+                            </motion.div>
+                          </div>
+                          
+                          {/* Progress percentage */}
+                          <div className="flex justify-end">
+                            <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                              {Math.round(generationProgress)}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Step Indicators */}
+                        <div className="flex items-center justify-center gap-2">
+                          {[0, 1, 2, 3, 4].map((step) => (
+                            <motion.div
+                              key={step}
+                              initial={{ scale: 0.8 }}
+                              animate={{ 
+                                scale: step === generationStep ? 1.2 : 1,
+                                width: step <= generationStep ? '24px' : '6px'
+                              }}
+                              transition={{ duration: 0.3 }}
+                              className={`h-1.5 rounded-full transition-colors ${
+                                step <= generationStep
+                                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600'
+                                  : 'bg-gray-200 dark:bg-gray-700'
+                              }`}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Info Card */}
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.3 }}
+                          className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl p-4"
+                        >
+                          <p className="text-xs text-gray-600 dark:text-gray-400 text-center leading-relaxed">
+                            Our AI is crafting a personalized resume that highlights your strengths and aligns perfectly with the job requirements.
+                          </p>
+                        </motion.div>
+                      </motion.div>
+                    ) : (
+                      // Initial state - not generating
+                      <>
+                        <div className="text-center py-8">
+                          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center">
+                            <Wand2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
+                            Generate Tailored Resume
+                          </h3>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
+                            Create a tailored version of your resume optimized for this specific job position using AI.
+                          </p>
+                        </div>
+                        
+                        <button
+                          onClick={onGenerateCVRewrite}
+                          disabled={isGeneratingCV}
+                          className="w-full px-4 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm flex items-center justify-center gap-2 relative overflow-hidden group"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                           <Sparkles className="w-4 h-4 relative z-10" />
                           <span className="relative z-10">Generate Tailored Resume</span>
-                        </>
-                      )}
-                    </button>
+                        </button>
+                      </>
+                    )}
+
+                    {/* Encouraging message with score improvement promise */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2, duration: 0.4 }}
+                      className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+                            <TrendingUp className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-purple-900 dark:text-purple-200 mb-1">
+                            Expected Improvement
+                          </p>
+                          <p className="text-xs text-purple-700 dark:text-purple-300 leading-relaxed">
+                            You can expect at least <span className="font-bold">+10 points</span> improvement on your match score after our AI system optimizes your resume with targeted keywords and strategic enhancements.
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
 
                     <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
                       <p className="text-xs text-blue-900 dark:text-blue-300 leading-relaxed">
@@ -356,33 +503,50 @@ function RightSidebarPanel({
                       </button>
                     </motion.div>
 
-                    {/* Score Comparison */}
-                    {optimizedScore && analysis && (
-                      <CVScoreComparison
-                        original={{
-                          overall: analysis.match_scores.overall_score,
-                          skills: analysis.match_scores.skills_score,
-                          experience: analysis.match_scores.experience_score
-                        }}
-                        optimized={optimizedScore}
-                      />
-                    )}
-
-                    {/* Loading state for score calculation */}
-                    {isCalculatingScore && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2A2A2E]"
-                      >
-                        <div className="flex items-center justify-center gap-2 py-2">
-                          <Loader2 className="w-3 h-3 animate-spin text-purple-600 dark:text-purple-400" />
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            Calculating score...
-                          </span>
-                        </div>
-                      </motion.div>
-                    )}
+                    {/* Score Comparison - Smooth transition to prevent blinking */}
+                    <AnimatePresence mode="wait">
+                      {cvRewrite && (
+                        <>
+                          {isCalculatingScore && !optimizedScore && (
+                            <motion.div
+                              key="calculating"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2A2A2E]"
+                            >
+                              <div className="flex items-center justify-center gap-2 py-2">
+                                <Loader2 className="w-3 h-3 animate-spin text-purple-600 dark:text-purple-400" />
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  Calculating score...
+                                </span>
+                              </div>
+                            </motion.div>
+                          )}
+                          
+                          {optimizedScore && analysis && (
+                            <motion.div
+                              key="comparison"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <CVScoreComparison
+                                original={{
+                                  overall: analysis.match_scores.overall_score,
+                                  skills: analysis.match_scores.skills_score,
+                                  experience: analysis.match_scores.experience_score
+                                }}
+                                optimized={optimizedScore}
+                                premiumAnalysis={premiumAnalysis || undefined}
+                              />
+                            </motion.div>
+                          )}
+                        </>
+                      )}
+                    </AnimatePresence>
 
                     {cvRewrite?.sections && (
                       <motion.div
@@ -463,6 +627,7 @@ export default function ATSAnalysisPagePremium() {
     experience: number;
   } | null>(null);
   const [isCalculatingScore, setIsCalculatingScore] = useState(false);
+  const [premiumAnalysis, setPremiumAnalysis] = useState<PremiumScoreAnalysis | null>(null);
   
   const sectionsRef = useRef<{ [key: string]: HTMLElement | null }>({});
 
@@ -479,17 +644,61 @@ export default function ATSAnalysisPagePremium() {
         
         if (analysisDoc.exists()) {
           const data = analysisDoc.data() as PremiumATSAnalysis;
-          setAnalysis({ ...data, id: analysisDoc.id });
-          // Check if CV rewrite exists and load it
-          if (data.cv_rewrite) {
-            console.log('✅ CV rewrite found in Firebase, loading...', data.cv_rewrite);
-            setCvRewrite(data.cv_rewrite);
-            // Automatically show CV tab if CV exists
-            setSidebarTab('cv');
+          
+          // Check if CV rewrite exists and was generated manually by user
+          // CRITICAL: Only load CV if cv_rewrite_generated_at exists (manual generation)
+          const cvRewriteData = data.cv_rewrite;
+          const cvRewriteGeneratedAt = data.cv_rewrite_generated_at;
+          
+          // CV is only valid if:
+          // 1. cv_rewrite exists
+          // 2. cv_rewrite_generated_at exists (proves it was generated manually, not automatically)
+          // 3. Has actual content
+          let hasValidCV = false;
+          
+          if (cvRewriteData && cvRewriteGeneratedAt) {
+            // Check if it has initial_cv with actual content
+            const hasInitialCV = cvRewriteData.initial_cv && 
+                                typeof cvRewriteData.initial_cv === 'string' && 
+                                cvRewriteData.initial_cv.trim().length > 50; // At least 50 chars
+            
+            // Check if it has structured_data with actual content
+            const hasStructuredData = cvRewriteData.structured_data && (
+              (cvRewriteData.structured_data.experiences && cvRewriteData.structured_data.experiences.length > 0) ||
+              (cvRewriteData.structured_data.summary && cvRewriteData.structured_data.summary.trim().length > 0) ||
+              (cvRewriteData.structured_data.personalInfo && Object.keys(cvRewriteData.structured_data.personalInfo).length > 0)
+            );
+            
+            hasValidCV = hasInitialCV || hasStructuredData;
+            
+            if (!hasValidCV) {
+              console.log('⚠️ CV rewrite exists but is invalid/empty:', {
+                hasInitialCV,
+                hasStructuredData,
+                initial_cv_length: cvRewriteData.initial_cv?.length || 0,
+                structured_data_keys: cvRewriteData.structured_data ? Object.keys(cvRewriteData.structured_data) : []
+              });
+            } else {
+              console.log('✅ Valid CV rewrite found (manually generated):', {
+                generatedAt: cvRewriteGeneratedAt,
+                hasContent: true
+              });
+            }
           } else {
-            console.log('ℹ️ No CV rewrite found in Firebase');
-            setCvRewrite(null);
+            if (cvRewriteData && !cvRewriteGeneratedAt) {
+              console.log('⚠️ CV rewrite exists but cv_rewrite_generated_at is missing - ignoring (likely auto-generated during analysis)');
+            } else if (!cvRewriteData) {
+              console.log('ℹ️ No CV rewrite found for this analysis');
+            }
           }
+          
+          // BATCH ALL STATE UPDATES TOGETHER to prevent multiple re-renders
+          // This prevents the blinking issue by updating everything at once
+          setAnalysis({ ...data, id: analysisDoc.id });
+          setCvRewrite(hasValidCV ? cvRewriteData : null);
+          setOptimizedScore(null); // Will be calculated by the score effect
+          setIsCalculatingScore(false);
+          setSidebarTab(hasValidCV ? 'cv' : 'summary'); // Set tab once based on CV existence
         } else {
           toast.error('Analysis not found');
           navigate('/cv-analysis');
@@ -507,39 +716,105 @@ export default function ATSAnalysisPagePremium() {
   }, [id, currentUser, navigate]);
 
   // Calculate optimized CV score when CV rewrite is available
+  // Use a ref to prevent calculation on initial mount when score might already exist
+  const hasCalculatedScoreRef = useRef(false);
+  
   useEffect(() => {
     const calculateScore = async () => {
+      // Only calculate if cvRewrite exists and has valid content
       if (!cvRewrite || !analysis || !analysis.jobDescription) {
-        setOptimizedScore(null);
+        // Don't update states if already null (prevents unnecessary re-renders)
+        if (optimizedScore !== null || premiumAnalysis !== null || isCalculatingScore) {
+          setOptimizedScore(null);
+          setPremiumAnalysis(null);
+          setIsCalculatingScore(false);
+        }
+        hasCalculatedScoreRef.current = false;
+        return;
+      }
+
+      // Validate that cvRewrite has actual content
+      const hasContent = cvRewrite.initial_cv || 
+                        (cvRewrite.structured_data && Object.keys(cvRewrite.structured_data).length > 0);
+      
+      if (!hasContent) {
+        console.log('⚠️ CV rewrite exists but has no valid content');
+        if (optimizedScore !== null || premiumAnalysis !== null || isCalculatingScore) {
+          setOptimizedScore(null);
+          setPremiumAnalysis(null);
+          setIsCalculatingScore(false);
+        }
+        hasCalculatedScoreRef.current = false;
+        return;
+      }
+
+      // Skip if already calculated for this CV (prevents re-calculation on re-renders)
+      if (hasCalculatedScoreRef.current && optimizedScore !== null) {
         return;
       }
 
       setIsCalculatingScore(true);
       try {
         // Get CV text from rewrite (prefer initial_cv markdown)
-        const cvText = cvRewrite.initial_cv || 
+        const optimizedCVText = cvRewrite.initial_cv || 
                       (cvRewrite.structured_data ? JSON.stringify(cvRewrite.structured_data) : '');
         
-        if (!cvText) {
+        if (!optimizedCVText || optimizedCVText.trim().length === 0) {
           setOptimizedScore(null);
+          setPremiumAnalysis(null);
+          setIsCalculatingScore(false);
           return;
         }
 
-        // Calculate optimized score
+        // Original scores from the analysis
+        const originalScore = {
+          overall: analysis.match_scores.overall_score,
+          skills: analysis.match_scores.skills_score,
+          experience: analysis.match_scores.experience_score
+        };
+
+        // Calculate optimized score with guarantee of improvement
         const optimized = analyzeOptimizedCV(
-          cvText,
-          analysis.jobDescription
+          optimizedCVText,
+          analysis.jobDescription,
+          originalScore
         );
 
-        setOptimizedScore({
-          overall: optimized.overall,
-          skills: optimized.skills,
-          experience: optimized.experience
+        // Get original CV text (if available)
+        const originalCVText = analysis.resume_text || '';
+
+        // Calculate premium analysis
+        const premiumAnalysisResult = analyzePremiumScore(
+          originalCVText,
+          optimizedCVText,
+          analysis.jobDescription,
+          originalScore,
+          {
+            overall: optimized.overall,
+            skills: optimized.skills,
+            experience: optimized.experience,
+            keywords: optimized.keywords,
+            structure: optimized.structure,
+            quality: optimized.quality
+          }
+        );
+
+        // BATCH STATE UPDATES: Use a micro-task to batch all state updates together
+        // This prevents multiple re-renders and reduces blinking
+        Promise.resolve().then(() => {
+          setOptimizedScore({
+            overall: optimized.overall,
+            skills: optimized.skills,
+            experience: optimized.experience
+          });
+          setPremiumAnalysis(premiumAnalysisResult);
+          setIsCalculatingScore(false);
+          hasCalculatedScoreRef.current = true;
         });
       } catch (error) {
         console.error('Error calculating optimized score:', error);
         setOptimizedScore(null);
-      } finally {
+        setPremiumAnalysis(null);
         setIsCalculatingScore(false);
       }
     };
@@ -547,26 +822,48 @@ export default function ATSAnalysisPagePremium() {
     calculateScore();
   }, [cvRewrite, analysis]);
 
-  // Scroll spy for active section
+  // Scroll spy for active section - Throttled to prevent excessive re-renders
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    let lastActiveSection = activeSection;
+    
     const handleScroll = () => {
-      const sectionIds = ['overview', 'breakdown', 'strengths', 'gaps', 'cv-fixes', 'action-plan', 'learning', 'fit'];
+      // Throttle scroll events to reduce re-renders and improve performance
+      if (timeoutId !== null) {
+        return; // Skip if already scheduled
+      }
       
-      for (const sectionId of sectionIds) {
-        const element = sectionsRef.current[sectionId];
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top >= 0 && rect.top < window.innerHeight / 3) {
-            setActiveSection(sectionId);
-            break;
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        
+        const sectionIds = ['overview', 'breakdown', 'strengths', 'gaps', 'cv-fixes', 'action-plan', 'learning', 'fit'];
+        
+        for (const sectionId of sectionIds) {
+          const element = sectionsRef.current[sectionId];
+          if (element) {
+            const rect = element.getBoundingClientRect();
+            if (rect.top >= 0 && rect.top < window.innerHeight / 3) {
+              // Only update if section actually changed to prevent unnecessary re-renders
+              if (lastActiveSection !== sectionId) {
+                lastActiveSection = sectionId;
+                setActiveSection(sectionId);
+              }
+              break;
+            }
           }
         }
-      }
+      }, 100); // Throttle to 100ms
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Initial check
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [analysis]);
 
   // Navigate to section
@@ -608,6 +905,9 @@ export default function ATSAnalysisPagePremium() {
     setIsGeneratingCV(true);
     setGenerationProgress(0);
     setGenerationStep(0);
+    
+    // Auto-switch to CV tab to show inline progress
+    setSidebarTab('cv');
 
     // Simulate progress updates
     const progressInterval = setInterval(() => {
@@ -757,14 +1057,6 @@ export default function ATSAnalysisPagePremium() {
 
   return (
     <AuthLayout>
-      {/* Premium CV Generation Modal */}
-      <CVGenerationModal
-        isOpen={isGeneratingCV}
-        progress={generationProgress}
-        currentStep={generationStep}
-        totalSteps={5}
-      />
-
       {/* Full-height Right Sidebar */}
       <RightSidebarPanel 
         analysis={analysis} 
@@ -772,42 +1064,25 @@ export default function ATSAnalysisPagePremium() {
         onNavigate={handleNavigate}
         onGenerateCVRewrite={handleGenerateCVRewrite}
         isGeneratingCV={isGeneratingCV}
+        generationProgress={generationProgress}
+        generationStep={generationStep}
         cvRewrite={cvRewrite}
         sidebarTab={sidebarTab}
         setSidebarTab={setSidebarTab}
         navigate={navigate}
         optimizedScore={optimizedScore}
         isCalculatingScore={isCalculatingScore}
+        premiumAnalysis={premiumAnalysis}
       />
 
       <div className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B]">
-        {/* Premium Expansive Header - SaaS Style */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative overflow-hidden"
-        >
+        {/* Premium Expansive Header - SaaS Style - Animations disabled to prevent blinking */}
+        <div className="relative overflow-hidden">
           {/* Gradient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 dark:from-purple-950/20 dark:via-indigo-950/20 dark:to-pink-950/20" />
           
-          {/* Animated gradient overlay */}
-          <motion.div
-            className="absolute inset-0 opacity-30"
-            animate={{
-              background: [
-                'radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1), transparent 50%)',
-                'radial-gradient(circle at 80% 50%, rgba(99, 102, 241, 0.1), transparent 50%)',
-                'radial-gradient(circle at 50% 20%, rgba(236, 72, 153, 0.1), transparent 50%)',
-                'radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1), transparent 50%)',
-              ]
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          />
+          {/* Static gradient overlay - animation removed to prevent conflicts */}
+          <div className="absolute inset-0 opacity-30 bg-gradient-radial from-purple-100/20 via-transparent to-transparent" />
 
           <div className="relative px-6 sm:px-8 lg:px-12 pt-12 pb-8">
             <div className="max-w-7xl mx-auto lg:pr-96">
@@ -815,41 +1090,21 @@ export default function ATSAnalysisPagePremium() {
               <div className="flex items-start justify-between gap-6 mb-8">
                 {/* Left: Logo + Title */}
                 <div className="flex items-start gap-5 flex-1 min-w-0">
-                  {/* Company Logo - Larger */}
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.4, delay: 0.1 }}
-                    className="flex-shrink-0"
-                  >
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-800 shadow-xl bg-white dark:bg-gray-900">
-                      <img
-                        src={`https://logo.clearbit.com/${analysis.company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}.com`}
-                        alt={`${analysis.company} logo`}
-                        className="w-full h-full object-contain p-3"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = '/images/logo-placeholder.svg';
-                        }}
-                      />
-                    </div>
-                  </motion.div>
+                  {/* Company Logo - Animations removed to prevent blinking */}
+                  <div className="flex-shrink-0">
+                    <CompanyLogo 
+                      companyName={analysis.company} 
+                      size="xl" 
+                      className="w-20 h-20 rounded-2xl border-2 border-white dark:border-gray-800 shadow-xl bg-white dark:bg-gray-900 p-3" 
+                    />
+                  </div>
 
                   {/* Title and Info */}
                   <div className="flex-1 min-w-0 pt-1">
-                    <motion.h1
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: 0.2 }}
-                      className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-3 leading-tight tracking-tight"
-                    >
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-3 leading-tight tracking-tight">
                       {analysis.jobTitle}
-                    </motion.h1>
-                    <motion.div
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: 0.3 }}
-                      className="flex flex-wrap items-center gap-4"
-                    >
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-4">
                       <span className="text-base text-gray-700 dark:text-gray-300 flex items-center gap-2 font-medium">
                         <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         {analysis.company}
@@ -877,22 +1132,12 @@ export default function ATSAnalysisPagePremium() {
                           </a>
                         </>
                       )}
-                    </motion.div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Right: Overall Match Score - HUGE & POP */}
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0, rotate: -5 }}
-                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                  transition={{ 
-                    type: "spring",
-                    stiffness: 200,
-                    damping: 15,
-                    delay: 0.4
-                  }}
-                  className="flex-shrink-0"
-                >
+                {/* Right: Overall Match Score - Animations removed */}
+                <div className="flex-shrink-0">
                   <div className={`relative px-8 py-6 rounded-3xl shadow-2xl border-2 ${
                     analysis.match_scores.overall_score >= 80 
                       ? 'bg-gradient-to-br from-purple-600 to-indigo-600 border-purple-500 dark:border-purple-400' 
@@ -907,22 +1152,12 @@ export default function ATSAnalysisPagePremium() {
                       <div className="text-xs font-bold text-white/80 uppercase tracking-widest mb-1">
                         Match Score
                       </div>
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ 
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 20,
-                          delay: 0.6
-                        }}
-                        className={`text-7xl sm:text-8xl font-black text-white leading-none mb-2 ${
-                          analysis.match_scores.overall_score >= 80 ? 'drop-shadow-2xl' : ''
-                        }`}
-                      >
+                      <div className={`text-7xl sm:text-8xl font-black text-white leading-none mb-2 ${
+                        analysis.match_scores.overall_score >= 80 ? 'drop-shadow-2xl' : ''
+                      }`}>
                         {analysis.match_scores.overall_score}
                         <span className="text-4xl sm:text-5xl">%</span>
-                      </motion.div>
+                      </div>
                       <div className={`text-xs font-semibold text-white/90 uppercase tracking-wide ${
                         analysis.match_scores.overall_score >= 80 ? 'text-purple-100' :
                         analysis.match_scores.overall_score >= 60 ? 'text-blue-100' :
@@ -932,16 +1167,11 @@ export default function ATSAnalysisPagePremium() {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               </div>
 
-              {/* Stats Row - Premium Cards */}
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
-                className="grid grid-cols-2 sm:grid-cols-4 gap-4"
-              >
+              {/* Stats Row - Animations removed to prevent blinking */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
                   { 
                     label: 'Skills', 
@@ -971,12 +1201,9 @@ export default function ATSAnalysisPagePremium() {
                     valueColor: 'text-red-600 dark:text-red-400',
                     icon: <AlertCircle className="w-5 h-5" />
                   }
-                ].map((stat, index) => (
-                  <motion.div
+                ].map((stat) => (
+                  <div
                     key={stat.label}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
                     className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-200/50 dark:border-gray-800/50 shadow-lg hover:shadow-xl transition-all hover:scale-105"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -990,23 +1217,23 @@ export default function ATSAnalysisPagePremium() {
                     <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
                       {stat.label}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
-              </motion.div>
+              </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Main Content - With right margin for fixed sidebar */}
         <div className="px-4 pb-8 lg:pr-[400px]">
           <div className="max-w-7xl mx-auto">
             <main className="space-y-12">
               {/* Overview - Executive Summary */}
-              <motion.div
+              <div
                 ref={(el) => { sectionsRef.current['overview'] = el; }}
                 className="scroll-mt-24"
               >
-                <div className="p-8">
+                <div className="p-8 space-y-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center shadow-sm">
                       <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -1018,8 +1245,27 @@ export default function ATSAnalysisPagePremium() {
                   <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                     {analysis.executive_summary}
                   </p>
+
+                  {/* Scoring Rationale - How This Score Was Calculated */}
+                  {analysis.scoring_rationale && (
+                    <div className="mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-900/30 rounded-xl p-6">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                            How This Score Was Calculated
+                          </h3>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {analysis.scoring_rationale}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </motion.div>
+              </div>
 
             {/* Match Breakdown */}
             <div ref={(el) => { sectionsRef.current['breakdown'] = el; }}>

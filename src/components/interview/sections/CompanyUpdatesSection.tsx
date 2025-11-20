@@ -156,3 +156,4 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
 
 export default CompanyUpdatesSection;
 
+
