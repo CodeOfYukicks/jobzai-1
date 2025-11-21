@@ -1,3 +1,4 @@
+// Version 2.0 - Worker-based architecture
 import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {
@@ -16,7 +17,7 @@ export { fetchJobsWorker } from './workers/fetchJobsWorker';
 export { enrichSkillsWorker } from './workers/enrichSkillsWorker';
 
 // 🧪 TEST: Manual HTTP endpoint for testing Workday fetcher
-export { testFetchWorkday } from './test/testFetchWorkday';
+// export { testFetchWorkday } from './test/testFetchWorkday';
 
 
 /**

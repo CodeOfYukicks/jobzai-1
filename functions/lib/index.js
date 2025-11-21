@@ -11,7 +11,8 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.testNewFunction = exports.testFetchWorkday = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
+exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.testNewFunction = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
+// Version 2.0 - Worker-based architecture
 const admin = require("firebase-admin");
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -33,8 +34,7 @@ Object.defineProperty(exports, "fetchJobsWorker", { enumerable: true, get: funct
 var enrichSkillsWorker_1 = require("./workers/enrichSkillsWorker");
 Object.defineProperty(exports, "enrichSkillsWorker", { enumerable: true, get: function () { return enrichSkillsWorker_1.enrichSkillsWorker; } });
 // 🧪 TEST: Manual HTTP endpoint for testing Workday fetcher
-var testFetchWorkday_1 = require("./test/testFetchWorkday");
-Object.defineProperty(exports, "testFetchWorkday", { enumerable: true, get: function () { return testFetchWorkday_1.testFetchWorkday; } });
+// export { testFetchWorkday } from './test/testFetchWorkday';
 /**
  * Import function triggers from their respective submodules:
  *

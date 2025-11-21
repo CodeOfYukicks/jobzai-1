@@ -240,7 +240,11 @@ export async function fetchWorkday(companySlug: string, domain: string = 'wd5', 
 		const postings = firstPage.jobPostings || [];
 
 		// Process first page
-		const firstJobs = await Promise.all(postings.map((j: any) => normalizeWorkdayJob(j, companySlug, domain, site)));
+		const firstJobs: NormalizedATSJob[] = [];
+		for (const j of postings) {
+			firstJobs.push(await normalizeWorkdayJob(j, companySlug, domain, site));
+			await new Promise(resolve => setTimeout(resolve, 100)); // 100ms to avoid rate limits
+		}
 		allJobs.push(...firstJobs);
 
 		if (total <= limit) {
@@ -248,16 +252,18 @@ export async function fetchWorkday(companySlug: string, domain: string = 'wd5', 
 			return allJobs;
 		}
 
-		// 2. Calculate remaining offsets
+		// 2. Calculate remaining offsets (limit to 2000 total jobs for performance)
 		const offsets: number[] = [];
-		for (let offset = limit; offset < total; offset += limit) {
-			if (offset > 2000) break; // Safety limit
+		const MAX_JOBS = 2000; // Optimized with timeouts to avoid hanging
+		for (let offset = limit; offset < Math.min(total, MAX_JOBS); offset += limit) {
 			offsets.push(offset);
 		}
+		console.log(`[ATS][Workday] Will fetch ${Math.min(total, MAX_JOBS)} of ${total} total jobs`);
 
-		// 3. Fetch remaining pages in parallel chunks (concurrency 5)
+
+		// 3. Fetch remaining pages in parallel chunks (concurrency 2)
 		const chunkedOffsets = [];
-		const chunkSize = 5;
+		const chunkSize = 2;
 		for (let i = 0; i < offsets.length; i += chunkSize) {
 			chunkedOffsets.push(offsets.slice(i, i + chunkSize));
 		}
@@ -270,7 +276,14 @@ export async function fetchWorkday(companySlug: string, domain: string = 'wd5', 
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ appliedFacets: {}, limit, offset, searchText: "" }),
 					});
-					const jobs = await Promise.all((json.jobPostings || []).map((j: any) => normalizeWorkdayJob(j, companySlug, domain, site)));
+
+					// Process jobs sequentially to avoid rate limits
+					const jobs: NormalizedATSJob[] = [];
+					for (const j of (json.jobPostings || [])) {
+						jobs.push(await normalizeWorkdayJob(j, companySlug, domain, site));
+						// Small delay between details fetches (100ms to avoid rate limiting)
+						await new Promise(resolve => setTimeout(resolve, 100));
+					}
 					return jobs;
 				} catch (e) {
 					console.error(`[ATS][Workday] Error fetching page offset=${offset} for ${companySlug}`, e);
@@ -290,16 +303,65 @@ export async function fetchWorkday(companySlug: string, domain: string = 'wd5', 
 	return allJobs;
 }
 
-// Helper to fetch raw HTML description for a Workday job when JSON description is missing
-async function fetchWorkdayJobHtml(url: string): Promise<string> {
+// Helper function to add timeout to fetch requests
+async function fetchWithTimeout(url: string, options: any = {}, timeoutMs: number = 5000): Promise<Response> {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
 	try {
-		const resp = await fetch(url);
+		const response = await fetch(url, { ...options, signal: controller.signal });
+		clearTimeout(timeoutId);
+		return response;
+	} catch (error) {
+		clearTimeout(timeoutId);
+		throw error;
+	}
+}
+
+// Helper to fetch raw HTML description for a Workday job when JSON description is missing
+// DISABLED: Causes rate limiting - keeping function for future use
+// @ts-ignore - Function kept for future use
+async function _fetchWorkdayJobHtml(url: string): Promise<string> {
+	try {
+		const resp = await fetchWithTimeout(url, {}, 5000);
 		if (!resp.ok) {
 			console.warn(`[ATS][Workday] Failed to fetch HTML description from ${url}: ${resp.status}`);
 			return '';
 		}
 		const html = await resp.text();
-		// Strip HTML tags, collapse whitespace
+
+		// Try to find the job description in the HTML using common Workday patterns
+		const patterns = [
+			/<div[^>]*data-automation-id="jobPostingDescription"[^>]*>([\s\S]*?)<\/div>/i,
+			/<div[^>]*class="[^"]*job-description[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
+			/<div[^>]*id="job-description"[^>]*>([\s\S]*?)<\/div>/i,
+		];
+
+		for (const pattern of patterns) {
+			const match = html.match(pattern);
+			if (match && match[1]) {
+				// Extract the HTML content and clean it
+				const htmlContent = match[1];
+				const text = htmlContent
+					.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove scripts
+					.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove styles
+					.replace(/<[^>]+>/g, ' ') // Strip HTML tags
+					.replace(/&nbsp;/g, ' ')
+					.replace(/&amp;/g, '&')
+					.replace(/&lt;/g, '<')
+					.replace(/&gt;/g, '>')
+					.replace(/&quot;/g, '"')
+					.replace(/&#39;/g, "'")
+					.replace(/\s+/g, ' ') // Collapse whitespace
+					.trim();
+
+				if (text.length > 50) { // Only return if we got substantial content
+					return text;
+				}
+			}
+		}
+
+		// Fallback: strip all HTML tags (but this is less reliable)
 		const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 		return text;
 	} catch (e) {
@@ -322,16 +384,44 @@ async function normalizeWorkdayJob(j: any, companySlug: string, domain: string, 
 		applyUrl = `${baseUrl}/${locale}/${site}${j.externalPath}`;
 	}
 
-	// Description: prefer jobPostingInfo, fallback to bulletFields, then postingDescription, then HTML fetch
-	let description = j.jobPostingInfo?.jobDescription
-		|| (Array.isArray(j.bulletFields) ? j.bulletFields.join('\n') : '')
-		|| j.postingDescription
-		|| '';
-	if (!description && applyUrl) {
-		description = await fetchWorkdayJobHtml(applyUrl);
+	// Try to fetch full details from the JSON API with timeout
+	// API URL: https://COMPANY.DOMAIN.myworkdayjobs.com/wday/cxs/COMPANY/SITEID/job/SLUG
+	let description = '';
+	if (j.externalPath) {
+		try {
+			const site = siteId || companySlug;
+			// externalPath is like /job/Slug... we need to strip /job/ or just append it correctly
+			// The API expects /wday/cxs/{company}/{site}/job/{slug}
+			// j.externalPath usually starts with /job/
+			const slug = j.externalPath.replace(/^\/job\//, '');
+			const detailsUrl = `https://${companySlug}.${domain}.myworkdayjobs.com/wday/cxs/${companySlug}/${site}/job/${slug}`;
+
+			// Add timeout to prevent hanging
+			const resp = await fetchWithTimeout(detailsUrl, {}, 5000);
+			if (resp.ok) {
+				const details = await resp.json();
+				description = details.jobPostingInfo?.jobDescription || '';
+			}
+		} catch (e) {
+			// Silently fail and use fallback - don't log every failure to reduce noise
+			// console.warn(`[ATS][Workday] Failed to fetch details for ${j.externalPath}`, e);
+		}
 	}
+
+	// Fallback to existing logic if API fetch failed or returned empty
+	// NOTE: bulletFields contains metadata like job IDs, NOT the description, so we skip it
 	if (!description) {
-		console.warn(`[ATS][Workday] No description found for job ${j.id || j.externalPath}`);
+		description = j.jobPostingInfo?.jobDescription
+			|| j.postingDescription
+			|| '';
+	}
+
+	// DISABLED: HTML scraping causes rate limiting (429 errors)
+	// if (!description && applyUrl) {
+	// 	description = await fetchWorkdayJobHtml(applyUrl);
+	// }
+	if (!description) {
+		console.warn(`[ATS][Workday] No description from JSON API for job ${j.id || j.externalPath} - using basic info only`);
 	}
 
 	// Location: use locationsText if present, otherwise fallback to locations array or empty
