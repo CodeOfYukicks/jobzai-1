@@ -115,11 +115,15 @@ export async function fetchSmartRecruiters(companySlug: string): Promise<Normali
 			if (Array.isArray(sections)) {
 				description = sections.map((s: any) => (typeof s.text === "string" ? s.text : "")).join("\n");
 			} else if (sections && typeof sections === "object") {
-				description =
-					sections.jobDescription ||
-					sections.companyDescription ||
-					sections.qualifications ||
-					"";
+				// Handle case where sections is an object with keys like jobDescription, qualifications, etc.
+				// Each value is an object { title: string, text: string }
+				const parts = [];
+				if (sections.companyDescription?.text) parts.push(sections.companyDescription.text);
+				if (sections.jobDescription?.text) parts.push(sections.jobDescription.text);
+				if (sections.qualifications?.text) parts.push(sections.qualifications.text);
+				if (sections.additionalInformation?.text) parts.push(sections.additionalInformation.text);
+
+				description = parts.join("\n\n");
 			}
 			const applyUrl =
 				d.applyUrl ||
@@ -172,42 +176,180 @@ export async function fetchSmartRecruiters(companySlug: string): Promise<Normali
 }
 
 /* --------------------------------------------------------- */
-/*                          WORKDAY                          */
+/*                          ASHBY                            */
 /* --------------------------------------------------------- */
 
-export async function fetchWorkday(companySlug: string): Promise<NormalizedATSJob[]> {
-	const url = `https://${companySlug}.wd5.myworkdayjobs.com/wday/cxs/${companySlug}/${companySlug}/jobs`;
+export async function fetchAshby(companySlug: string): Promise<NormalizedATSJob[]> {
+	// Ashby API: https://api.ashbyhq.com/posting-api-reference
+	// Ashby API: https://api.ashbyhq.com/posting-api-reference
+	// const url = `https://api.ashbyhq.com/posting-api-reference/job_board/${companySlug}`;
 
-	const json = await fetchJson<any>(url, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			appliedFacets: {},
-			limit: 100,
-			offset: 0,
-			searchText: "",
-		}),
+	// Note: Ashby's public API structure might vary, but typically it's a POST to get listings or a simple GET if they have a public JSON feed.
+	// Actually, most Ashby boards are at https://jobs.ashbyhq.com/{company}/api/content
+	// Let's try the common public endpoint used by many react-ashby integrations.
+	const publicUrl = `https://api.ashbyhq.com/posting-api/job-board/${companySlug}?includeCompensation=true`;
+
+	const json = await fetchJson<any>(publicUrl, {
+		method: 'GET',
+		headers: { 'Content-Type': 'application/json' }
 	});
 
-	const list = (json?.jobPostings || []).map((j: any) =>
+	const jobs = json.jobs || [];
+
+	const list = jobs.map((j: any) =>
 		normalizeATSJob(
 			{
 				title: j.title,
-				description:
-					j.jobPostingInfo?.jobDescription || j.postingDescription || "",
-				companyName: titleCaseCompany(j.company, companySlug),
-				companyLogo: j.companyLogo || clearbitFromUrl(j.externalUrl || (j.externalPath ? `https://${companySlug}.wd5.myworkdayjobs.com${j.externalPath}` : "")),
-				location: j.location || (j.locations ? j.locations.join(", ") : "") || "",
-				applyUrl: j.externalUrl || (j.externalPath ? `https://${companySlug}.wd5.myworkdayjobs.com${j.externalPath}` : ""),
-				postedAt: j.postedOn || j.postingDate,
-				externalId: j.id || j.jobPostingId || j.externalPath,
+				description: j.descriptionHtml || j.description || "",
+				companyName: titleCaseCompany(companySlug),
+				companyLogo: `https://logo.clearbit.com/${companySlug}.com`, // Ashby doesn't always provide logo in this endpoint
+				location: j.location || (j.address ? [j.address.city, j.address.country].filter(Boolean).join(', ') : "") || "",
+				applyUrl: j.applyUrl || j.jobUrl,
+				postedAt: j.publishedAt,
+				externalId: j.id,
 			},
-			"workday"
+			"ashby"
 		)
 	);
 
-	console.log(`[ATS][Workday] company=${companySlug} jobs=${list.length}`);
+	console.log(`[ATS][Ashby] company=${companySlug} jobs=${list.length}`);
 	return list;
+}
+
+/* --------------------------------------------------------- */
+/*                          WORKDAY                          */
+/* --------------------------------------------------------- */
+
+export async function fetchWorkday(companySlug: string, domain: string = 'wd5', siteId?: string): Promise<NormalizedATSJob[]> {
+	const site = siteId || companySlug;
+	const url = `https://${companySlug}.${domain}.myworkdayjobs.com/wday/cxs/${companySlug}/${site}/jobs`;
+	const allJobs: NormalizedATSJob[] = [];
+	const limit = 20;
+
+	console.log(`[ATS][Workday] Starting fetch for ${companySlug} (site=${site}, domain=${domain})`);
+
+	try {
+		// 1. Fetch first page to get total count
+		const firstPage = await fetchJson<any>(url, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ appliedFacets: {}, limit, offset: 0, searchText: "" }),
+		});
+
+		const total = firstPage.total || 0;
+		const postings = firstPage.jobPostings || [];
+
+		// Process first page
+		const firstJobs = await Promise.all(postings.map((j: any) => normalizeWorkdayJob(j, companySlug, domain, site)));
+		allJobs.push(...firstJobs);
+
+		if (total <= limit) {
+			console.log(`[ATS][Workday] company=${companySlug} jobs=${allJobs.length}`);
+			return allJobs;
+		}
+
+		// 2. Calculate remaining offsets
+		const offsets: number[] = [];
+		for (let offset = limit; offset < total; offset += limit) {
+			if (offset > 2000) break; // Safety limit
+			offsets.push(offset);
+		}
+
+		// 3. Fetch remaining pages in parallel chunks (concurrency 5)
+		const chunkedOffsets = [];
+		const chunkSize = 5;
+		for (let i = 0; i < offsets.length; i += chunkSize) {
+			chunkedOffsets.push(offsets.slice(i, i + chunkSize));
+		}
+
+		for (const chunk of chunkedOffsets) {
+			const promises = chunk.map(async (offset) => {
+				try {
+					const json = await fetchJson<any>(url, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ appliedFacets: {}, limit, offset, searchText: "" }),
+					});
+					const jobs = await Promise.all((json.jobPostings || []).map((j: any) => normalizeWorkdayJob(j, companySlug, domain, site)));
+					return jobs;
+				} catch (e) {
+					console.error(`[ATS][Workday] Error fetching page offset=${offset} for ${companySlug}`, e);
+					return [];
+				}
+			});
+
+			const results = await Promise.all(promises);
+			results.forEach(jobs => allJobs.push(...jobs));
+		}
+
+	} catch (e) {
+		console.error(`[ATS][Workday] Error fetching initial page for ${companySlug}`, e);
+	}
+
+	console.log(`[ATS][Workday] company=${companySlug} jobs=${allJobs.length}`);
+	return allJobs;
+}
+
+// Helper to fetch raw HTML description for a Workday job when JSON description is missing
+async function fetchWorkdayJobHtml(url: string): Promise<string> {
+	try {
+		const resp = await fetch(url);
+		if (!resp.ok) {
+			console.warn(`[ATS][Workday] Failed to fetch HTML description from ${url}: ${resp.status}`);
+			return '';
+		}
+		const html = await resp.text();
+		// Strip HTML tags, collapse whitespace
+		const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+		return text;
+	} catch (e) {
+		console.warn(`[ATS][Workday] Error fetching HTML description from ${url}:`, e);
+		return '';
+	}
+}
+
+// Updated to async to allow HTML fallback for description
+async function normalizeWorkdayJob(j: any, companySlug: string, domain: string, siteId?: string): Promise<NormalizedATSJob> {
+	// Construct proper Workday URL: https://COMPANY.DOMAIN.myworkdayjobs.com/en-US/SITEID/job/LOCATION/TITLE_JOBID
+	const baseUrl = `https://${companySlug}.${domain}.myworkdayjobs.com`;
+	let applyUrl = j.externalUrl;
+
+	if (!applyUrl && j.externalPath) {
+		// externalPath format: /job/LOCATION/TITLE_JOBID
+		// We need: /en-US/SITEID/job/LOCATION/TITLE_JOBID
+		const locale = 'en-US';
+		const site = siteId || 'External';
+		applyUrl = `${baseUrl}/${locale}/${site}${j.externalPath}`;
+	}
+
+	// Description: prefer jobPostingInfo, fallback to bulletFields, then postingDescription, then HTML fetch
+	let description = j.jobPostingInfo?.jobDescription
+		|| (Array.isArray(j.bulletFields) ? j.bulletFields.join('\n') : '')
+		|| j.postingDescription
+		|| '';
+	if (!description && applyUrl) {
+		description = await fetchWorkdayJobHtml(applyUrl);
+	}
+	if (!description) {
+		console.warn(`[ATS][Workday] No description found for job ${j.id || j.externalPath}`);
+	}
+
+	// Location: use locationsText if present, otherwise fallback to locations array or empty
+	const location = j.locationsText || (Array.isArray(j.locations) ? j.locations.join(', ') : '');
+
+	return normalizeATSJob(
+		{
+			title: j.title,
+			description,
+			companyName: titleCaseCompany(j.company, companySlug),
+			companyLogo: j.companyLogo || clearbitFromUrl(applyUrl || baseUrl),
+			location,
+			applyUrl: applyUrl || baseUrl,
+			postedAt: j.postedOn || j.postingDate,
+			externalId: j.id || j.jobPostingId || j.externalPath,
+		},
+		"workday"
+	);
 }
 
 /* --------------------------------------------------------- */
@@ -217,7 +359,7 @@ export async function fetchWorkday(companySlug: string): Promise<NormalizedATSJo
 export async function fetchFromATS(configs: ATSProviderConfig[]): Promise<NormalizedATSJob[]> {
 	const results: NormalizedATSJob[] = [];
 
-	for (const src of configs) {
+	const promises = configs.map(async (src) => {
 		try {
 			let jobs: NormalizedATSJob[] = [];
 
@@ -231,13 +373,20 @@ export async function fetchFromATS(configs: ATSProviderConfig[]): Promise<Normal
 				jobs = await fetchSmartRecruiters(src.company);
 
 			if (src.provider === "workday" && src.company)
-				jobs = await fetchWorkday(src.company);
+				jobs = await fetchWorkday(src.company, src.workdayDomain, src.workdaySiteId);
 
-			results.push(...jobs);
+			if (src.provider === "ashby" && src.company)
+				jobs = await fetchAshby(src.company);
+
+			return jobs;
 		} catch (e) {
 			console.error(`🔥 ATS fetch error → ${src.provider} (${src.company})`, e);
+			return [];
 		}
-	}
+	});
+
+	const allJobs = await Promise.all(promises);
+	allJobs.forEach(jobs => results.push(...jobs));
 
 	console.log(`[ATS] Aggregated results count=${results.length}`);
 	return results;

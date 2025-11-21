@@ -70,6 +70,18 @@ service cloud.firestore {
       }
     }
 
+    // Jobs collection
+    match /jobs/{jobId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Matches collection
+    match /matches/{matchId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     // Settings collection (for API keys)
     match /settings/{settingId} {
       allow read: if isSignedIn();

@@ -8,6 +8,8 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import MatchExplanationModal from '../components/MatchExplanationModal';
 import { AnimatePresence, motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 
 function timeAgo(date: Date): string {
 	const diffMs = Date.now() - date.getTime();
@@ -48,7 +50,7 @@ export default function JobBoardPage() {
 	const [explainOpen, setExplainOpen] = useState<boolean>(false);
 	const [selectedJob, setSelectedJob] = useState<ExtendedJob | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	
+
 	// Filter states
 	const [activeFilters, setActiveFilters] = useState<string[]>([]);
 	const [showMoreFilters, setShowMoreFilters] = useState<boolean>(false);
@@ -88,7 +90,7 @@ export default function JobBoardPage() {
 			if (!selectedJob && items.length > 0) {
 				setSelectedJob(items[0]);
 			}
-			
+
 			// Check if Firestore is empty (only if no active search/filters)
 			if (items.length === 0 && titleQuery.trim() === '' && locationQuery.trim() === '' && activeFilters.length === 0) {
 				setError('empty');
@@ -144,7 +146,7 @@ export default function JobBoardPage() {
 	}, []);
 
 	const toggleFilter = (filter: string) => {
-		setActiveFilters(prev => 
+		setActiveFilters(prev =>
 			prev.includes(filter) ? prev.filter(f => f !== filter) : [...prev, filter]
 		);
 	};
@@ -253,11 +255,11 @@ export default function JobBoardPage() {
 		try {
 			// Build query parameters
 			const params = new URLSearchParams();
-			
+
 			if (titleQuery.trim()) {
 				params.append('keyword', titleQuery.trim());
 			}
-			
+
 			if (locationQuery.trim()) {
 				params.append('location', locationQuery.trim());
 			}
@@ -266,15 +268,15 @@ export default function JobBoardPage() {
 			if (activeFilters.includes('remote')) {
 				params.append('remote', 'true');
 			}
-			
+
 			if (activeFilters.includes('full-time')) {
 				params.append('fullTime', 'true');
 			}
-			
+
 			if (activeFilters.includes('senior')) {
 				params.append('senior', 'true');
 			}
-			
+
 			if (activeFilters.includes('last-24h')) {
 				params.append('last24h', 'true');
 			}
@@ -305,7 +307,7 @@ export default function JobBoardPage() {
 
 			// Determine API URL based on environment
 			const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-			const apiUrl = isDev 
+			const apiUrl = isDev
 				? `http://localhost:5001/jobzai-39f7e/us-central1/searchJobs?${params.toString()}`
 				: `/api/jobs?${params.toString()}`;
 
@@ -326,15 +328,15 @@ export default function JobBoardPage() {
 
 			if (data.success && Array.isArray(data.jobs)) {
 				console.log(`✅ Found ${data.jobs.length} jobs`);
-				
+
 				// Map the response to ExtendedJob format
 				const searchResults: ExtendedJob[] = data.jobs.map((job: any) => {
-					const postedAt = job.postedAt?.toDate 
-						? job.postedAt.toDate() 
-						: job.postedAt 
-							? new Date(job.postedAt._seconds * 1000) 
+					const postedAt = job.postedAt?.toDate
+						? job.postedAt.toDate()
+						: job.postedAt
+							? new Date(job.postedAt._seconds * 1000)
 							: new Date();
-					
+
 					return {
 						id: job.id,
 						title: job.title || '',
@@ -356,7 +358,7 @@ export default function JobBoardPage() {
 				// Replace current jobs with search results
 				setJobs(searchResults);
 				setLastDoc(null); // Disable pagination for search results
-				
+
 				// Select first job if available
 				if (searchResults.length > 0) {
 					setSelectedJob(searchResults[0]);
@@ -403,9 +405,9 @@ export default function JobBoardPage() {
 		<AuthLayout>
 			{/* Premium Container with Maximum Breathing Room - Dark Mode Friendly */}
 			<div className="min-h-screen bg-gradient-to-br from-[#FAFAFB] via-white to-[#F8F9FA] dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-3 py-3">
-				
+
 				{/* LINKEDIN-STYLE SEARCH & FILTER SECTION */}
-				<motion.div 
+				<motion.div
 					initial={{ opacity: 0, y: -10 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -413,48 +415,48 @@ export default function JobBoardPage() {
 				>
 					{/* Main Search Bar Container */}
 					<div className="bg-white dark:bg-gray-900/60 rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] border border-[#E5E7EB]/50 dark:border-gray-800/80 backdrop-blur-sm p-4">
-						
+
 						{/* Mode Selector + Search Inputs Row */}
 						<div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 mb-4">
-							
+
 							{/* Segmented Control - Browse / For You */}
 							<div className="inline-flex items-center rounded-[12px] bg-[#F3F4F6] dark:bg-gray-800/60 p-1 text-sm font-medium">
-						<button
-							type="button"
-							onClick={() => {
-								setMode('explore');
-								// If coming from matches mode and no search is active, reload initial jobs
-								if (mode === 'matches' && !hasActiveSearch) {
-									loadInitial();
-								}
-							}}
+								<button
+									type="button"
+									onClick={() => {
+										setMode('explore');
+										// If coming from matches mode and no search is active, reload initial jobs
+										if (mode === 'matches' && !hasActiveSearch) {
+											loadInitial();
+										}
+									}}
 									className={`
 										relative rounded-[10px] px-5 py-2.5 transition-all duration-200
-										${mode === 'explore' 
-											? 'bg-white dark:bg-gray-700 text-[#111111] dark:text-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.4)]' 
+										${mode === 'explore'
+											? 'bg-white dark:bg-gray-700 text-[#111111] dark:text-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.4)]'
 											: 'text-[#6B6B6F] dark:text-gray-400 hover:text-[#111111] dark:hover:text-gray-200'
 										}
 									`}
-						>
-										Browse
-						</button>
-						<button
-							type="button"
-							onClick={() => {
-								setMode('matches');
-								void ensureMatchesLoaded();
-							}}
+								>
+									Browse
+								</button>
+								<button
+									type="button"
+									onClick={() => {
+										setMode('matches');
+										void ensureMatchesLoaded();
+									}}
 									className={`
 										relative rounded-[10px] px-5 py-2.5 transition-all duration-200
-										${mode === 'matches' 
-											? 'bg-white dark:bg-gray-700 text-[#111111] dark:text-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.4)]' 
+										${mode === 'matches'
+											? 'bg-white dark:bg-gray-700 text-[#111111] dark:text-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.4)]'
 											: 'text-[#6B6B6F] dark:text-gray-400 hover:text-[#111111] dark:hover:text-gray-200'
 										}
 									`}
-						>
-										For you
-						</button>
-					</div>
+								>
+									For you
+								</button>
+							</div>
 
 							{/* Divider */}
 							<div className="hidden lg:block h-10 w-px bg-[#E5E7EB] dark:bg-gray-700" />
@@ -467,7 +469,7 @@ export default function JobBoardPage() {
 										<svg className="h-5 w-5 text-[#6B6B6F] dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 										</svg>
-								</div>
+									</div>
 									<input
 										type="text"
 										placeholder="Job title, keywords, or company"
@@ -484,7 +486,7 @@ export default function JobBoardPage() {
 											focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-800
 										"
 									/>
-				</div>
+								</div>
 
 								{/* Location Input */}
 								<div className="relative flex-1">
@@ -493,7 +495,7 @@ export default function JobBoardPage() {
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
 										</svg>
-				</div>
+									</div>
 									<input
 										type="text"
 										placeholder="City, state, or remote"
@@ -509,15 +511,15 @@ export default function JobBoardPage() {
 											hover:border-[#D1D1D6] dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-800
 											focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-800
 										"
-					/>
-				</div>
+									/>
+								</div>
 
-							{/* Search Button */}
-							<button
-								type="button"
-								onClick={handleSearch}
-								disabled={loading || mode === 'matches'}
-								className="
+								{/* Search Button */}
+								<button
+									type="button"
+									onClick={handleSearch}
+									disabled={loading || mode === 'matches'}
+									className="
 									px-8 py-3 
 									bg-gradient-to-r from-indigo-600 to-violet-600 text-white 
 									rounded-[12px] 
@@ -530,9 +532,9 @@ export default function JobBoardPage() {
 									disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
 									whitespace-nowrap
 								"
-							>
-								{loading ? 'Searching...' : 'Search'}
-							</button>
+								>
+									{loading ? 'Searching...' : 'Search'}
+								</button>
 							</div>
 
 							{/* Results Count & Clear Search */}
@@ -543,8 +545,8 @@ export default function JobBoardPage() {
 								{hasActiveSearch && mode === 'explore' && !initialLoading && (
 									<button
 										type="button"
-									onClick={handleClearSearch}
-									className="
+										onClick={handleClearSearch}
+										className="
 										text-sm font-medium text-indigo-600 dark:text-indigo-400
 										hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors duration-150
 										whitespace-nowrap
@@ -657,10 +659,10 @@ export default function JobBoardPage() {
 									"
 								>
 									More filters
-									<svg 
-										className={`w-4 h-4 transition-transform duration-200 ${showMoreFilters ? 'rotate-180' : ''}`} 
-										fill="none" 
-										viewBox="0 0 24 24" 
+									<svg
+										className={`w-4 h-4 transition-transform duration-200 ${showMoreFilters ? 'rotate-180' : ''}`}
+										fill="none"
+										viewBox="0 0 24 24"
 										stroke="currentColor"
 									>
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -769,19 +771,19 @@ export default function JobBoardPage() {
 												>
 													Clear all
 												</button>
-											<button
-												type="button"
-												onClick={() => setShowMoreFilters(false)}
-												className="
+												<button
+													type="button"
+													onClick={() => setShowMoreFilters(false)}
+													className="
 													px-6 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white 
 													rounded-[10px] text-sm font-semibold
 													shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
 													hover:from-indigo-700 hover:to-violet-700
 													transition-all duration-150
 												"
-											>
-												Apply
-											</button>
+												>
+													Apply
+												</button>
 											</div>
 										</motion.div>
 									)}
@@ -814,7 +816,7 @@ export default function JobBoardPage() {
 
 				{/* Premium Split Layout Container */}
 				<div className="w-full flex flex-col lg:flex-row gap-4 h-[calc(100vh-160px)] min-h-[600px]">
-					
+
 					{/* LEFT PANEL - Job List (38% width) */}
 					<motion.section
 						initial={{ opacity: 0, x: -20 }}
@@ -859,11 +861,11 @@ export default function JobBoardPage() {
 										{error === 'empty' ? 'No jobs available' : error === 'connection' ? 'Connection error' : 'No roles found'}
 									</h3>
 									<p className="mt-2 text-sm text-[#6B6B6F] dark:text-gray-400 max-w-xs mx-auto">
-										{error === 'empty' 
+										{error === 'empty'
 											? 'The job database is currently empty. Jobs are fetched daily from ATS sources. For local development, you can seed test data.'
 											: error === 'connection'
-											? 'Unable to connect to Firestore. Please check your connection and try again.'
-											: 'Try adjusting your search criteria or browse all available opportunities.'
+												? 'Unable to connect to Firestore. Please check your connection and try again.'
+												: 'Try adjusting your search criteria or browse all available opportunities.'
 										}
 									</p>
 									{(error === 'empty' || error === 'connection') && (
@@ -918,7 +920,7 @@ export default function JobBoardPage() {
 
 									return (
 										<motion.button
-										key={job.id}
+											key={job.id}
 											type="button"
 											onClick={() => handleSelectJob(job)}
 											initial={false}
@@ -927,18 +929,18 @@ export default function JobBoardPage() {
 											className={`
 												group relative w-full rounded-[14px] border p-6 text-left
 												transition-all duration-200
-												${isSelected 
-													? 'border-indigo-600 bg-gradient-to-br from-indigo-50/50 to-violet-50/50 dark:from-indigo-950/30 dark:to-violet-950/30 shadow-[0_0_0_3px_rgba(99,102,241,0.12)] dark:shadow-[0_0_0_3px_rgba(139,92,246,0.25)]' 
+												${isSelected
+													? 'border-indigo-600 bg-gradient-to-br from-indigo-50/50 to-violet-50/50 dark:from-indigo-950/30 dark:to-violet-950/30 shadow-[0_0_0_3px_rgba(99,102,241,0.12)] dark:shadow-[0_0_0_3px_rgba(139,92,246,0.25)]'
 													: 'border-[#E5E7EB] dark:border-gray-800 bg-white dark:bg-gray-800/60 hover:border-[#D1D1D6] dark:hover:border-gray-700 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]'
 												}
 											`}
 										>
 											<div className="flex items-start gap-4">
 												{/* Company Logo/Initial */}
-												<CompanyLogo 
-													companyName={job.company} 
-													size="lg" 
-													className="w-14 h-14 rounded-[12px] border border-gray-200 dark:border-gray-700 shadow-sm bg-gradient-to-br from-[#F3F4F6] to-[#E5E7EB] dark:from-gray-700 dark:to-gray-800" 
+												<CompanyLogo
+													companyName={job.company}
+													size="lg"
+													className="w-14 h-14 rounded-[12px] border border-gray-200 dark:border-gray-700 shadow-sm bg-gradient-to-br from-[#F3F4F6] to-[#E5E7EB] dark:from-gray-700 dark:to-gray-800"
 												/>
 
 												{/* Job Info */}
@@ -953,13 +955,13 @@ export default function JobBoardPage() {
 															</p>
 														</div>
 
-													{/* Match Score Badge */}
-															{matchScore !== undefined && (
-														<span className="flex-shrink-0 inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-3 py-1 text-xs font-medium text-indigo-700 dark:text-indigo-300">
-															{Math.round(matchScore)}% match
-																</span>
-															)}
-														</div>
+														{/* Match Score Badge */}
+														{matchScore !== undefined && (
+															<span className="flex-shrink-0 inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-3 py-1 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+																{Math.round(matchScore)}% match
+															</span>
+														)}
+													</div>
 
 													{/* Location & Time */}
 													<div className="flex items-center gap-2 text-sm text-[#6B6B6F] dark:text-gray-400 mb-3">
@@ -1046,9 +1048,9 @@ export default function JobBoardPage() {
 									<div className="sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-[#F3F4F6] dark:border-gray-800 px-8 py-6">
 										<div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
 											<div className="flex-1">
-											<p className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-600 dark:text-indigo-400 mb-3">
-												{mode === 'matches' ? '✨ Recommended for you' : 'Position Details'}
-											</p>
+												<p className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-600 dark:text-indigo-400 mb-3">
+													{mode === 'matches' ? '✨ Recommended for you' : 'Position Details'}
+												</p>
 												<h2 className="text-[32px] font-semibold tracking-[-0.02em] text-[#111111] dark:text-gray-100 leading-tight mb-3">
 													{selectedJob.title}
 												</h2>
@@ -1061,7 +1063,7 @@ export default function JobBoardPage() {
 															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
 														</svg>
 														<span>{selectedJob.location || 'Remote'}</span>
-											</div>
+													</div>
 													<span className="text-[#D1D1D6] dark:text-gray-600">•</span>
 													<span>{selectedJob.published}</span>
 												</div>
@@ -1090,7 +1092,7 @@ export default function JobBoardPage() {
 												<button
 													type="button"
 													onClick={() => handleApply(selectedJob)}
-												className="
+													className="
 													inline-flex items-center gap-2 rounded-[12px] 
 													bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-3 text-[15px] font-semibold text-white
 													shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
@@ -1101,9 +1103,9 @@ export default function JobBoardPage() {
 												"
 												>
 													Apply now
-												<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-												</svg>
+													<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+													</svg>
 												</button>
 											</div>
 										</div>
@@ -1154,12 +1156,27 @@ export default function JobBoardPage() {
 											<h3 className="text-[20px] font-semibold text-[#111111] dark:text-gray-100 mb-4">
 												About the Role
 											</h3>
-											<div className="prose prose-lg max-w-none">
-												<p className="text-[17px] leading-[1.7] text-[#444448] dark:text-gray-300">
-												{selectedJob.description
-													? selectedJob.description
-														: 'This role offers an exciting opportunity to contribute to meaningful work in a collaborative environment. While detailed information is limited, the position aligns with the skills and experience outlined above.'}
-											</p>
+											<div className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400">
+												<ReactMarkdown
+													rehypePlugins={[rehypeRaw]}
+													components={{
+														h1: ({ children }) => <h3 className="text-xl font-bold text-[#111111] dark:text-gray-100 mt-8 mb-4 first:mt-0">{children}</h3>,
+														h2: ({ children }) => <h3 className="text-lg font-bold text-[#111111] dark:text-gray-100 mt-8 mb-3">{children}</h3>,
+														h3: ({ children }) => <h3 className="text-[17px] font-bold text-[#111111] dark:text-gray-100 mt-6 mb-2 uppercase tracking-wide">{children}</h3>,
+														ul: ({ children }) => <ul className="space-y-2 my-4 list-disc list-outside ml-5 text-[#444448] dark:text-gray-300 marker:text-indigo-500 dark:marker:text-indigo-400">{children}</ul>,
+														ol: ({ children }) => <ol className="space-y-2 my-4 list-decimal list-outside ml-5 text-[#444448] dark:text-gray-300 marker:text-indigo-500 dark:marker:text-indigo-400">{children}</ol>,
+														li: ({ children }) => <li className="pl-1 leading-relaxed">{children}</li>,
+														p: ({ children }) => <p className="text-[16px] leading-[1.7] text-[#444448] dark:text-gray-300 mb-4 last:mb-0">{children}</p>,
+														strong: ({ children }) => <strong className="font-bold text-[#111111] dark:text-gray-100">{children}</strong>,
+														a: ({ href, children }) => (
+															<a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+																{children}
+															</a>
+														),
+													}}
+												>
+													{selectedJob.description || 'This role offers an exciting opportunity to contribute to meaningful work in a collaborative environment. While detailed information is limited, the position aligns with the skills and experience outlined above.'}
+												</ReactMarkdown>
 											</div>
 										</div>
 
@@ -1199,7 +1216,7 @@ export default function JobBoardPage() {
 												</div>
 												<div className="flex-1">
 													<p className="text-[15px] leading-relaxed text-[#6B6B6F] dark:text-gray-400">
-														Recommendations are personalized based on your profile, experience, and career preferences. 
+														Recommendations are personalized based on your profile, experience, and career preferences.
 														Keep your profile updated to receive the most relevant opportunities.
 													</p>
 												</div>
@@ -1255,29 +1272,29 @@ export default function JobBoardPage() {
 						)}
 					</motion.section>
 				</div>
-				</div>
+			</div>
 
 			{/* Match Explanation Modal */}
-				<MatchExplanationModal
-					open={explainOpen}
-					onClose={() => setExplainOpen(false)}
-					user={userProfile}
-					job={
-						selectedJob
-							? {
-									title: selectedJob.title,
-									company: selectedJob.company,
-									location: selectedJob.location,
-									description: selectedJob.description || '',
-									skills: selectedJob.tags || [],
-									applyUrl: selectedJob.applyUrl || '',
-									ats:
-										(selectedJob.ats as 'workday' | 'greenhouse' | 'lever' | 'smartrecruiters') ||
-										'workday',
-							  }
-							: null
-					}
-				/>
+			<MatchExplanationModal
+				open={explainOpen}
+				onClose={() => setExplainOpen(false)}
+				user={userProfile}
+				job={
+					selectedJob
+						? {
+							title: selectedJob.title,
+							company: selectedJob.company,
+							location: selectedJob.location,
+							description: selectedJob.description || '',
+							skills: selectedJob.tags || [],
+							applyUrl: selectedJob.applyUrl || '',
+							ats:
+								(selectedJob.ats as 'workday' | 'greenhouse' | 'lever' | 'smartrecruiters') ||
+								'workday',
+						}
+						: null
+				}
+			/>
 		</AuthLayout>
 	);
 }

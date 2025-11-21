@@ -16,7 +16,7 @@
 import * as admin from 'firebase-admin';
 import { fetchFromATS } from '../src/utils/atsFetchers';
 import { ATS_SOURCES } from '../src/config';
-import { ATSProviderConfig, NormalizedATSJob, JobDocument } from '../src/types';
+import { NormalizedATSJob, JobDocument } from '../src/types';
 import { extractSkillsWithLLM } from '../src/utils/embeddings';
 
 const USE_EMULATOR = process.env.USE_EMULATOR === 'true';
@@ -45,8 +45,8 @@ function hashString(input: string): string {
 }
 
 function normalizeJob(n: NormalizedATSJob): JobDocument {
-	const postedAt = n.postedAt 
-		? admin.firestore.Timestamp.fromDate(new Date(n.postedAt)) 
+	const postedAt = n.postedAt
+		? admin.firestore.Timestamp.fromDate(new Date(n.postedAt))
 		: admin.firestore.FieldValue.serverTimestamp();
 	return {
 		title: n.title || '',
@@ -64,37 +64,37 @@ function normalizeJob(n: NormalizedATSJob): JobDocument {
 
 async function fetchJobsLocal() {
 	const db = admin.firestore();
-	
+
 	console.log('🚀 Manually Triggering fetchJobsFromATS\n');
 	console.log('='.repeat(60));
-	
+
 	if (USE_EMULATOR) {
 		console.log('⚠️  Using EMULATOR - Make sure emulators are running!');
 		console.log('   Run: firebase emulators:start\n');
 	} else {
 		console.log('⚠️  Using PRODUCTION - Jobs will be written to production database!\n');
 	}
-	
+
 	try {
 		// Test connection
 		console.log('1️⃣  Testing database connection...');
 		await db.collection('_test').doc('ping').set({ ping: true });
 		await db.collection('_test').doc('ping').delete();
 		console.log('   ✅ Connection successful');
-		
+
 		// Fetch jobs from ATS
 		console.log('\n2️⃣  Fetching jobs from ATS sources...');
 		console.log(`   Sources configured: ${ATS_SOURCES.length}`);
 		ATS_SOURCES.forEach((src, idx) => {
 			console.log(`   ${idx + 1}. ${src.provider} - ${src.company || 'N/A'}`);
 		});
-		
+
 		const startTime = Date.now();
 		const jobs = await fetchFromATS(ATS_SOURCES);
 		const fetchTime = Date.now() - startTime;
-		
+
 		console.log(`\n   ✅ Fetched ${jobs.length} jobs in ${fetchTime}ms`);
-		
+
 		if (jobs.length === 0) {
 			console.log('\n   ⚠️  No jobs fetched. This could mean:');
 			console.log('   → ATS APIs are down or rate-limited');
@@ -102,7 +102,7 @@ async function fetchJobsLocal() {
 			console.log('   → Network connectivity issues');
 			return;
 		}
-		
+
 		// Show sample of fetched jobs
 		console.log('\n   Sample of fetched jobs:');
 		jobs.slice(0, 5).forEach((job, idx) => {
@@ -111,22 +111,22 @@ async function fetchJobsLocal() {
 			console.log(`      ATS: ${job.ats}`);
 			console.log('');
 		});
-		
+
 		// Write to Firestore
 		console.log('3️⃣  Writing jobs to Firestore...');
 		const batch = db.bulkWriter();
 		let success = 0;
 		let failed = 0;
 		let enriched = 0;
-		
+
 		for (const j of jobs) {
-			const baseId = j.externalId && j.externalId.length > 0 
-				? `${j.ats}_${j.externalId}` 
+			const baseId = j.externalId && j.externalId.length > 0
+				? `${j.ats}_${j.externalId}`
 				: `${j.ats}_${hashString([j.title, j.company, j.applyUrl].join('|'))}`;
 			const docId = baseId;
 			const ref = db.collection('jobs').doc(docId);
 			const normalized = normalizeJob(j);
-			
+
 			// Attempt to enrich skills if missing
 			if (!normalized.skills?.length && normalized.description) {
 				try {
@@ -138,7 +138,7 @@ async function fetchJobsLocal() {
 					console.warn(`   ⚠️  Failed to enrich skills for: ${normalized.title}`);
 				}
 			}
-			
+
 			try {
 				batch.set(ref, normalized, { merge: true });
 				success++;
@@ -147,9 +147,9 @@ async function fetchJobsLocal() {
 				console.error(`   ✗ Write error for job: ${docId}`, e);
 			}
 		}
-		
+
 		await batch.close();
-		
+
 		console.log(`\n   ✅ Successfully wrote ${success} jobs`);
 		if (enriched > 0) {
 			console.log(`   ✅ Enriched ${enriched} jobs with skills`);
@@ -157,16 +157,16 @@ async function fetchJobsLocal() {
 		if (failed > 0) {
 			console.log(`   ⚠️  Failed to write ${failed} jobs`);
 		}
-		
+
 		// Verify
 		console.log('\n4️⃣  Verifying written data...');
 		const verifySnapshot = await db.collection('jobs')
 			.orderBy('postedAt', 'desc')
 			.limit(10)
 			.get();
-		
+
 		console.log(`   ✅ Total jobs in database: ${verifySnapshot.size} (showing recent 10)`);
-		
+
 		if (verifySnapshot.size > 0) {
 			console.log('\n   Recent jobs:');
 			verifySnapshot.docs.slice(0, 5).forEach((doc, idx) => {
@@ -177,7 +177,7 @@ async function fetchJobsLocal() {
 				console.log('');
 			});
 		}
-		
+
 		console.log('\n' + '='.repeat(60));
 		console.log('✅ Fetch complete!');
 		if (USE_EMULATOR) {
@@ -187,7 +187,7 @@ async function fetchJobsLocal() {
 			console.log('   → Jobs are now available in production');
 			console.log('   → They will appear on JobBoardPage');
 		}
-		
+
 	} catch (error: any) {
 		console.error('\n❌ Error fetching jobs:', error);
 		if (USE_EMULATOR) {

@@ -1,4 +1,4 @@
-export type ATSProvider = 'greenhouse' | 'lever' | 'smartrecruiters' | 'workday';
+export type ATSProvider = 'greenhouse' | 'lever' | 'smartrecruiters' | 'workday' | 'ashby';
 
 export interface UserProfile {
 	name: string;
@@ -27,6 +27,9 @@ export interface JobDocument {
 	externalId: string;
 	postedAt: FirebaseFirestore.Timestamp | FirebaseFirestore.FieldValue;
 	embedding?: number[];
+	// Enrichment tracking
+	enrichmentStatus?: 'pending' | 'completed' | 'failed' | null;
+	enrichedAt?: FirebaseFirestore.Timestamp | null;
 }
 
 export interface MatchDocument {
@@ -54,6 +57,9 @@ export interface ATSProviderConfig {
 	// Sources use company slug across all providers
 	company?: string;
 	url?: string; // optional legacy support
+	// Workday specific config
+	workdayDomain?: string; // e.g. 'wd5', 'wd1' (default: 'wd5')
+	workdaySiteId?: string; // e.g. 'External_Career_Site', 'puma_external' (default: same as company)
 }
 
 

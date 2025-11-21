@@ -1,3 +1,5 @@
+import { cleanDescription } from "./cleanDescription";
+
 export function normalizeATSJob(raw: any, ats: string) {
   const company =
     raw.company ||
@@ -32,7 +34,7 @@ export function normalizeATSJob(raw: any, ats: string) {
     company,
     companyLogo: companyLogo || null,
     location,
-    description: raw.description || "",
+    description: cleanDescription(raw.description || ""),
     applyUrl: raw.applyUrl || raw.url || "",
     postedAt: raw.postedAt || raw.updatedAt || null,
     skills: raw.skills || [],

@@ -1,13 +1,23 @@
 import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {
-	admin.initializeApp();
+  admin.initializeApp();
 }
 
 export { fetchJobsFromATS } from './fetchJobs';
 export { generateJobEmbedding } from './generateJobEmbedding';
 export { generateUserEmbedding } from './generateUserEmbedding';
 export { matchJobsForUsers } from './matchJobsForUsers';
+
+// 🚀 NEW: Queue-based ATS job fetching architecture
+// Scalable, fault-tolerant system for fetching jobs from multiple ATS sources
+export { scheduleFetchJobs } from './schedulers/fetchJobsScheduler';
+export { fetchJobsWorker } from './workers/fetchJobsWorker';
+export { enrichSkillsWorker } from './workers/enrichSkillsWorker';
+
+// 🧪 TEST: Manual HTTP endpoint for testing Workday fetcher
+export { testFetchWorkday } from './test/testFetchWorkday';
+
 
 /**
  * Import function triggers from their respective submodules:
@@ -18,14 +28,14 @@ export { matchJobsForUsers } from './matchJobsForUsers';
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {onCall, onRequest} from "firebase-functions/v2/https";
+import { onCall, onRequest } from "firebase-functions/v2/https";
 // admin already imported and initialized above
 
 // Test function to verify deployment works
-export const testNewFunction = onRequest({ 
-  region: 'us-central1', 
-  cors: true, 
-  invoker: 'public' 
+export const testNewFunction = onRequest({
+  region: 'us-central1',
+  cors: true,
+  invoker: 'public'
 }, async (req, res) => {
   res.status(200).json({ message: 'Test function works!', timestamp: new Date().toISOString() });
 });
@@ -44,14 +54,14 @@ const handleCORS = (req: any, res: any, next: () => void) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Access-Control-Max-Age', '3600');
-  
+
   // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
     console.log('✅ Handling OPTIONS preflight request from origin:', origin);
     res.status(204).end();
     return;
   }
-  
+
   next();
 };
 
@@ -63,7 +73,7 @@ const getOpenAIApiKey = async (): Promise<string> => {
     // Get API key from Firestore (settings/openai)
     console.log('🔑 Attempting to retrieve OpenAI API key from Firestore...');
     const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
-    
+
     if (settingsDoc.exists) {
       const data = settingsDoc.data();
       console.log('   Document exists, fields:', Object.keys(data || {}));
@@ -82,13 +92,13 @@ const getOpenAIApiKey = async (): Promise<string> => {
     console.error('   Error message:', error?.message);
     console.error('   Error code:', error?.code);
   }
-  
+
   // Fallback to environment variable
   if (process.env.OPENAI_API_KEY) {
     console.log('Using OpenAI API key from environment variable');
     return process.env.OPENAI_API_KEY;
   }
-  
+
   // Fallback to Firebase config
   try {
     const config = functions.config();
@@ -101,7 +111,7 @@ const getOpenAIApiKey = async (): Promise<string> => {
   } catch (e) {
     console.warn('Could not access Firebase config:', e);
   }
-  
+
   throw new Error('OpenAI API key not found in Firestore (settings/openai), environment, or Firebase config');
 };
 
@@ -255,7 +265,7 @@ export const updateCampaignEmails = onRequest({
     // 2. Validation initiale de la structure
     const data = req.body.data || {};
     console.log("Extracted data object:", data);
-    
+
     // 3. Extraction sécurisée avec valeurs par défaut
     const campaignId = data.campaignId;
     const userId = data.userId;
@@ -264,7 +274,7 @@ export const updateCampaignEmails = onRequest({
 
     // 4. Validation des champs requis
     if (!data || !campaignId || !userId || !Array.isArray(data.emailDetails)) {
-      console.error("Invalid data structure:", { 
+      console.error("Invalid data structure:", {
         hasData: !!data,
         hasCampaignId: !!campaignId,
         hasUserId: !!userId,
@@ -331,9 +341,9 @@ export const updateCampaignEmails = onRequest({
     });
 
     await batch.commit();
-    console.log("Successfully updated campaign:", { 
-      campaignId, 
-      emailsProcessed: emailDetails.length 
+    console.log("Successfully updated campaign:", {
+      campaignId,
+      emailsProcessed: emailDetails.length
     });
 
     res.status(200).json({
@@ -370,7 +380,7 @@ async function handlePremiumAnalysis(
       });
       return;
     }
-    
+
     if (!jobContext || !jobContext.jobTitle || !jobContext.company || !jobContext.jobDescription) {
       res.status(400).json({
         status: 'error',
@@ -384,7 +394,7 @@ async function handlePremiumAnalysis(
 
     // Import premium prompt builder
     const { buildPremiumATSPrompt } = await import('./utils/premiumATSPrompt.js');
-    
+
     // Build premium prompt
     const promptText = buildPremiumATSPrompt({
       jobTitle: jobContext.jobTitle,
@@ -395,13 +405,13 @@ async function handlePremiumAnalysis(
     });
 
     console.log('📡 Sending premium analysis request to GPT-4o...');
-    
+
     // Prepare messages with resume images
     const imageContents = resumeImages.map((base64Image: string) => ({
       type: 'image_url' as const,
       image_url: {
-        url: base64Image.startsWith('data:') 
-          ? base64Image 
+        url: base64Image.startsWith('data:')
+          ? base64Image
           : `data:image/jpeg;base64,${base64Image}`
       }
     }));
@@ -428,14 +438,14 @@ async function handlePremiumAnalysis(
     });
 
     console.log('✅ Premium analysis received from GPT-4o');
-    
+
     const content = completion.choices[0]?.message?.content;
     if (!content) {
       throw new Error('Empty response from GPT-4o');
     }
 
     let parsedAnalysis = JSON.parse(content);
-    
+
     // Debug: Log the structure of parsed analysis
     console.log('📊 Parsed analysis structure:', {
       hasAnalysis: !!parsedAnalysis.analysis,
@@ -446,10 +456,10 @@ async function handlePremiumAnalysis(
     if (userId && analysisId) {
       // Extract cv_rewrite from analysis if it exists (should not exist anymore after prompt update)
       const { cv_rewrite, cvText, ...analysisWithoutCVRewrite } = parsedAnalysis.analysis || {};
-      
+
       // Extract cvText from analysis (should be extracted by AI during analysis)
       const extractedCvText = cvText || '';
-      
+
       console.log('💾 Preparing to save to Firestore:', {
         userId,
         analysisId,
@@ -460,7 +470,7 @@ async function handlePremiumAnalysis(
         jobDescriptionLength: jobContext.jobDescription?.length || 0,
         willExcludeCVRewrite: !!cv_rewrite
       });
-      
+
       await admin.firestore()
         .collection('users')
         .doc(userId)
@@ -480,7 +490,7 @@ async function handlePremiumAnalysis(
           type: 'premium',
           matchScore: parsedAnalysis.analysis.match_scores.overall_score,
         }, { merge: true });
-        
+
       console.log('✅ Successfully saved to Firestore (cv_rewrite excluded, cvText saved)');
     }
 
@@ -514,7 +524,7 @@ export const analyzeCVVision = onRequest({
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   // Handle preflight
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
@@ -535,7 +545,7 @@ export const analyzeCVVision = onRequest({
     console.log('   Request method:', req.method);
     console.log('   Request headers:', JSON.stringify(req.headers));
     console.log('   Request body keys:', Object.keys(req.body || {}));
-    
+
     // Check if this is a premium analysis request
     const { resumeImages, jobContext, userId, analysisId } = req.body;
     if (resumeImages && jobContext) {
@@ -543,9 +553,9 @@ export const analyzeCVVision = onRequest({
       // Handle premium analysis inline
       return await handlePremiumAnalysis(req, res, resumeImages, jobContext, userId, analysisId);
     }
-    
+
     const { model, messages, response_format, max_tokens, temperature } = req.body;
-    
+
     // Validate request for regular vision analysis
     if (!model || !messages || !Array.isArray(messages)) {
       console.error('Invalid request format:', { model, hasMessages: !!messages });
@@ -564,7 +574,7 @@ export const analyzeCVVision = onRequest({
       console.error('❌ Failed to get OpenAI client:', error);
       console.error('   Error message:', error?.message);
       console.error('   Error stack:', error?.stack);
-      
+
       // Return detailed error for debugging
       const errorMessage = error?.message || 'Unknown error';
       res.status(500).json({
@@ -586,7 +596,7 @@ export const analyzeCVVision = onRequest({
       }
     });
     console.log(`   Images: ${imageCount}`);
-    
+
     // Call OpenAI API
     const completion = await openaiClient.chat.completions.create({
       model: model || 'gpt-4o',
@@ -597,10 +607,10 @@ export const analyzeCVVision = onRequest({
     });
 
     console.log('✅ GPT-4o Vision API response received');
-    
+
     // Extract content
     const content = completion.choices[0]?.message?.content;
-    
+
     if (!content) {
       throw new Error('Empty response from GPT-4o Vision API');
     }
@@ -611,8 +621,8 @@ export const analyzeCVVision = onRequest({
       parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
     } catch (e) {
       // If parsing fails, try to extract JSON from markdown
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
-                        content.match(/{[\s\S]*}/);
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) ||
+        content.match(/{[\s\S]*}/);
       if (jsonMatch) {
         parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
       } else {
@@ -621,7 +631,7 @@ export const analyzeCVVision = onRequest({
     }
 
     console.log('✅ Analysis completed successfully');
-    
+
     // Return success response
     res.status(200).json({
       status: 'success',
@@ -635,14 +645,14 @@ export const analyzeCVVision = onRequest({
     console.error('   Error message:', error?.message);
     console.error('   Error stack:', error?.stack);
     console.error('   Error response:', JSON.stringify(error?.response?.data || {}));
-    
+
     // Handle OpenAI API errors
     if (error.response) {
       const statusCode = error.response.status || 500;
       const errorMessage = error.response.data?.error?.message || error.message || 'Unknown error';
-      
+
       console.error(`   OpenAI API error ${statusCode}: ${errorMessage}`);
-      
+
       res.status(statusCode).json({
         status: 'error',
         message: `OpenAI API error: ${errorMessage}`,
@@ -659,9 +669,9 @@ export const analyzeCVVision = onRequest({
       errorType: error.constructor.name,
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     };
-    
+
     console.error('   Returning error response:', JSON.stringify(errorDetails));
-    
+
     res.status(500).json(errorDetails);
   }
 });
@@ -694,193 +704,193 @@ export const analyzeResumePremium = onRequest(
       return;
     }
 
-  try {
-    console.log('🎯 Premium ATS analysis request received');
-    
-    const { resumeImages, jobContext, userId, analysisId } = req.body;
-    
-    // Validate request
-    if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
-      res.status(400).json({
-        status: 'error',
-        message: 'Resume images are required (array of base64 strings)'
-      });
-      return;
-    }
-    
-    if (!jobContext || !jobContext.jobTitle || !jobContext.company || !jobContext.jobDescription) {
-      res.status(400).json({
-        status: 'error',
-        message: 'Job context is required (jobTitle, company, jobDescription)'
-      });
-      return;
-    }
-
-    // Get OpenAI client
-    let openaiClient: OpenAI;
     try {
-      openaiClient = await getOpenAIClient();
+      console.log('🎯 Premium ATS analysis request received');
+
+      const { resumeImages, jobContext, userId, analysisId } = req.body;
+
+      // Validate request
+      if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
+        res.status(400).json({
+          status: 'error',
+          message: 'Resume images are required (array of base64 strings)'
+        });
+        return;
+      }
+
+      if (!jobContext || !jobContext.jobTitle || !jobContext.company || !jobContext.jobDescription) {
+        res.status(400).json({
+          status: 'error',
+          message: 'Job context is required (jobTitle, company, jobDescription)'
+        });
+        return;
+      }
+
+      // Get OpenAI client
+      let openaiClient: OpenAI;
+      try {
+        openaiClient = await getOpenAIClient();
+      } catch (error: any) {
+        console.error('❌ Failed to get OpenAI client:', error);
+        res.status(500).json({
+          status: 'error',
+          message: `OpenAI API key configuration error: ${error?.message || 'Unknown error'}`
+        });
+        return;
+      }
+
+      // Import premium prompt builder
+      const { buildPremiumATSPrompt } = await import('./utils/premiumATSPrompt.js');
+
+      // Build premium prompt
+      const promptText = buildPremiumATSPrompt({
+        jobTitle: jobContext.jobTitle,
+        company: jobContext.company,
+        jobDescription: jobContext.jobDescription,
+        seniority: jobContext.seniority,
+        targetRoles: jobContext.targetRoles,
+      });
+
+      console.log('📡 Sending premium analysis request to GPT-4o...');
+      console.log(`   Resume images: ${resumeImages.length}`);
+      console.log(`   Job: ${jobContext.jobTitle} at ${jobContext.company}`);
+
+      // Prepare messages with resume images
+      const imageContents = resumeImages.map((base64Image: string) => ({
+        type: 'image_url' as const,
+        image_url: {
+          url: base64Image.startsWith('data:')
+            ? base64Image
+            : `data:image/jpeg;base64,${base64Image}`
+        }
+      }));
+
+      // Call OpenAI API with premium prompt
+      const completion = await openaiClient.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an elite ATS specialist with 25+ years of experience. You combine senior hiring manager expertise, Apple-grade UX writing, and McKinsey-level strategic thinking. Return ONLY valid JSON, no markdown.'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: promptText
+              },
+              ...imageContents
+            ]
+          }
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 8000, // Increased for comprehensive analysis
+        temperature: 0.2, // Low for consistency and precision
+      });
+
+      console.log('✅ Premium analysis received from GPT-4o');
+
+      // Extract and parse content
+      const content = completion.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('Empty response from GPT-4o');
+      }
+
+      let parsedAnalysis;
+      try {
+        parsedAnalysis = typeof content === 'string' ? JSON.parse(content) : content;
+      } catch (e) {
+        // Try to extract JSON from markdown if parsing fails
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) ||
+          content.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          parsedAnalysis = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          throw new Error('Could not parse JSON from response');
+        }
+      }
+
+      // Save analysis to Firestore if userId and analysisId provided
+      if (userId && analysisId) {
+        console.log(`💾 Saving premium analysis to Firestore: users/${userId}/analyses/${analysisId}`);
+
+        // Extract cv_rewrite from analysis if it exists (should not exist anymore after prompt update)
+        const { cv_rewrite, cvText, ...analysisWithoutCVRewrite } = parsedAnalysis.analysis || {};
+
+        // Extract cvText from analysis (should be extracted by AI during analysis)
+        const extractedCvText = cvText || '';
+
+        await admin.firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('analyses')
+          .doc(analysisId)
+          .set({
+            ...analysisWithoutCVRewrite, // Explicitly exclude cv_rewrite
+            id: analysisId,
+            userId,
+            jobTitle: jobContext.jobTitle,
+            company: jobContext.company,
+            location: jobContext.location || null,
+            jobUrl: jobContext.jobUrl || null,
+            jobDescription: jobContext.jobDescription, // ✅ SAVE JOB DESCRIPTION
+            cvText: extractedCvText, // ✅ SAVE CV TEXT (extracted during analysis)
+            extractedText: extractedCvText, // ✅ FALLBACK FIELD
+            date: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'completed',
+            type: 'premium',
+            _isLoading: false, // Explicitly set loading state to false when analysis completes
+            // Store match score at top level for easy querying
+            matchScore: parsedAnalysis.analysis.match_scores.overall_score,
+            category: parsedAnalysis.analysis.match_scores.category,
+            // Store key data for list views
+            keyFindings: parsedAnalysis.analysis.executive_summary,
+            categoryScores: {
+              skills: parsedAnalysis.analysis.match_scores.skills_score,
+              experience: parsedAnalysis.analysis.match_scores.experience_score,
+              education: parsedAnalysis.analysis.match_scores.education_score,
+              industryFit: parsedAnalysis.analysis.match_scores.industry_fit_score,
+            },
+          }, { merge: true });
+
+        console.log('✅ Premium analysis saved to Firestore (cv_rewrite excluded, cvText saved)');
+      }
+
+      console.log('✅ Premium analysis completed successfully');
+
+      // Return success response
+      res.status(200).json({
+        status: 'success',
+        analysis: parsedAnalysis,
+        usage: completion.usage,
+        analysisId: analysisId || null,
+      });
+
     } catch (error: any) {
-      console.error('❌ Failed to get OpenAI client:', error);
+      console.error('❌ Error in analyzeCVPremium:', error);
+
+      // Handle OpenAI API errors
+      if (error.response) {
+        const statusCode = error.response.status || 500;
+        const errorMessage = error.response.data?.error?.message || error.message || 'Unknown error';
+
+        res.status(statusCode).json({
+          status: 'error',
+          message: `OpenAI API error: ${errorMessage}`,
+          error: error.response.data?.error
+        });
+        return;
+      }
+
+      // Handle other errors
       res.status(500).json({
         status: 'error',
-        message: `OpenAI API key configuration error: ${error?.message || 'Unknown error'}`
+        message: error.message || 'Internal server error'
       });
-      return;
     }
-
-    // Import premium prompt builder
-    const { buildPremiumATSPrompt } = await import('./utils/premiumATSPrompt.js');
-    
-    // Build premium prompt
-    const promptText = buildPremiumATSPrompt({
-      jobTitle: jobContext.jobTitle,
-      company: jobContext.company,
-      jobDescription: jobContext.jobDescription,
-      seniority: jobContext.seniority,
-      targetRoles: jobContext.targetRoles,
-    });
-
-    console.log('📡 Sending premium analysis request to GPT-4o...');
-    console.log(`   Resume images: ${resumeImages.length}`);
-    console.log(`   Job: ${jobContext.jobTitle} at ${jobContext.company}`);
-    
-    // Prepare messages with resume images
-    const imageContents = resumeImages.map((base64Image: string) => ({
-      type: 'image_url' as const,
-      image_url: {
-        url: base64Image.startsWith('data:') 
-          ? base64Image 
-          : `data:image/jpeg;base64,${base64Image}`
-      }
-    }));
-
-    // Call OpenAI API with premium prompt
-    const completion = await openaiClient.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an elite ATS specialist with 25+ years of experience. You combine senior hiring manager expertise, Apple-grade UX writing, and McKinsey-level strategic thinking. Return ONLY valid JSON, no markdown.'
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: promptText
-            },
-            ...imageContents
-          ]
-        }
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: 8000, // Increased for comprehensive analysis
-      temperature: 0.2, // Low for consistency and precision
-    });
-
-    console.log('✅ Premium analysis received from GPT-4o');
-    
-    // Extract and parse content
-    const content = completion.choices[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('Empty response from GPT-4o');
-    }
-
-    let parsedAnalysis;
-    try {
-      parsedAnalysis = typeof content === 'string' ? JSON.parse(content) : content;
-    } catch (e) {
-      // Try to extract JSON from markdown if parsing fails
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
-                        content.match(/{[\s\S]*}/);
-      if (jsonMatch) {
-        parsedAnalysis = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-      } else {
-        throw new Error('Could not parse JSON from response');
-      }
-    }
-
-    // Save analysis to Firestore if userId and analysisId provided
-    if (userId && analysisId) {
-      console.log(`💾 Saving premium analysis to Firestore: users/${userId}/analyses/${analysisId}`);
-      
-      // Extract cv_rewrite from analysis if it exists (should not exist anymore after prompt update)
-      const { cv_rewrite, cvText, ...analysisWithoutCVRewrite } = parsedAnalysis.analysis || {};
-      
-      // Extract cvText from analysis (should be extracted by AI during analysis)
-      const extractedCvText = cvText || '';
-      
-      await admin.firestore()
-        .collection('users')
-        .doc(userId)
-        .collection('analyses')
-        .doc(analysisId)
-        .set({
-          ...analysisWithoutCVRewrite, // Explicitly exclude cv_rewrite
-          id: analysisId,
-          userId,
-          jobTitle: jobContext.jobTitle,
-          company: jobContext.company,
-          location: jobContext.location || null,
-          jobUrl: jobContext.jobUrl || null,
-          jobDescription: jobContext.jobDescription, // ✅ SAVE JOB DESCRIPTION
-          cvText: extractedCvText, // ✅ SAVE CV TEXT (extracted during analysis)
-          extractedText: extractedCvText, // ✅ FALLBACK FIELD
-          date: admin.firestore.FieldValue.serverTimestamp(),
-          status: 'completed',
-          type: 'premium',
-          _isLoading: false, // Explicitly set loading state to false when analysis completes
-          // Store match score at top level for easy querying
-          matchScore: parsedAnalysis.analysis.match_scores.overall_score,
-          category: parsedAnalysis.analysis.match_scores.category,
-          // Store key data for list views
-          keyFindings: parsedAnalysis.analysis.executive_summary,
-          categoryScores: {
-            skills: parsedAnalysis.analysis.match_scores.skills_score,
-            experience: parsedAnalysis.analysis.match_scores.experience_score,
-            education: parsedAnalysis.analysis.match_scores.education_score,
-            industryFit: parsedAnalysis.analysis.match_scores.industry_fit_score,
-          },
-        }, { merge: true });
-      
-      console.log('✅ Premium analysis saved to Firestore (cv_rewrite excluded, cvText saved)');
-    }
-
-    console.log('✅ Premium analysis completed successfully');
-    
-    // Return success response
-    res.status(200).json({
-      status: 'success',
-      analysis: parsedAnalysis,
-      usage: completion.usage,
-      analysisId: analysisId || null,
-    });
-
-  } catch (error: any) {
-    console.error('❌ Error in analyzeCVPremium:', error);
-    
-    // Handle OpenAI API errors
-    if (error.response) {
-      const statusCode = error.response.status || 500;
-      const errorMessage = error.response.data?.error?.message || error.message || 'Unknown error';
-      
-      res.status(statusCode).json({
-        status: 'error',
-        message: `OpenAI API error: ${errorMessage}`,
-        error: error.response.data?.error
-      });
-      return;
-    }
-
-    // Handle other errors
-    res.status(500).json({
-      status: 'error',
-      message: error.message || 'Internal server error'
-    });
-  }
-});
+  });
 
 // ==================== Brevo Integration ====================
 
@@ -891,7 +901,7 @@ const getBrevoApiKey = async (): Promise<string | null> => {
   try {
     // Try Firestore first
     const settingsDoc = await admin.firestore().collection('settings').doc('brevo').get();
-    
+
     if (settingsDoc.exists) {
       const data = settingsDoc.data();
       const apiKey = data?.apiKey || data?.api_key;
@@ -905,13 +915,13 @@ const getBrevoApiKey = async (): Promise<string | null> => {
   } catch (error: any) {
     console.warn('⚠️  Failed to retrieve Brevo API key from Firestore:', error?.message);
   }
-  
+
   // Fallback to environment variable
   if (process.env.BREVO_API_KEY) {
     console.log('Using Brevo API key from environment variable');
     return process.env.BREVO_API_KEY;
   }
-  
+
   // Fallback to Firebase config
   try {
     const config = functions.config();
@@ -922,7 +932,7 @@ const getBrevoApiKey = async (): Promise<string | null> => {
   } catch (e) {
     console.warn('Could not access Firebase config:', e);
   }
-  
+
   console.warn('⚠️  Brevo API key not found. Brevo integration will be disabled.');
   return null;
 };
@@ -948,11 +958,11 @@ const createOrUpdateBrevoContact = async (
 ): Promise<string | null> => {
   try {
     const brevoUrl = `https://api.brevo.com/v3/contacts`;
-    
+
     // Prepare attributes for Brevo
     // Note: Brevo uses PRENOM and NOM (French) instead of FIRSTNAME and LASTNAME
     const attributes: Record<string, any> = {};
-    
+
     if (contact.firstName) attributes.PRENOM = contact.firstName;
     if (contact.lastName) attributes.NOM = contact.lastName;
     if (contact.phone) attributes.SMS = contact.phone;
@@ -962,7 +972,7 @@ const createOrUpdateBrevoContact = async (
     if (contact.city) attributes.CITY = contact.city;
     if (contact.state) attributes.STATE = contact.state;
     if (contact.country) attributes.COUNTRY = contact.country;
-    
+
     // Add custom properties if any (Brevo uses uppercase for standard attributes)
     Object.keys(contact).forEach(key => {
       if (!['email', 'firstName', 'lastName', 'phone', 'company', 'jobtitle', 'website', 'city', 'state', 'country'].includes(key)) {
@@ -970,10 +980,10 @@ const createOrUpdateBrevoContact = async (
         attributes[key.toUpperCase()] = contact[key];
       }
     });
-    
+
     console.log('📤 Sending request to Brevo API:', brevoUrl);
     console.log('📦 Attributes to send:', JSON.stringify(attributes));
-    
+
     // Brevo uses POST for create/update (upsert by email)
     // Brevo API requires 'api-key' header (not 'X-API-KEY')
     const response = await fetch(brevoUrl, {
@@ -988,21 +998,21 @@ const createOrUpdateBrevoContact = async (
         updateEnabled: true, // Update if contact exists
       }),
     });
-    
+
     console.log('📥 Brevo API response status:', response.status, response.statusText);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Brevo API error:', response.status, errorText);
       throw new Error(`Brevo API error: ${response.status} - ${errorText}`);
     }
-    
+
     // Brevo returns 204 No Content for successful updates, 201 Created for new contacts
     if (response.status === 204) {
       console.log('✅ Contact updated in Brevo (204 No Content):', contact.email);
       return contact.email;
     }
-    
+
     // For 201 Created, parse the JSON response
     const data = await response.json();
     console.log('✅ Contact created/updated in Brevo:', data.id || contact.email);
@@ -1031,16 +1041,16 @@ export const syncUserToBrevo = onRequest({
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  
+
   // Handle preflight OPTIONS request FIRST
   if (req.method === 'OPTIONS') {
     console.log('✅ Handling OPTIONS preflight request from origin:', req.headers.origin);
     res.status(204).send('');
     return;
   }
-  
+
   console.log('🔄 syncUserToBrevo called with method:', req.method, 'from origin:', req.headers.origin);
-  
+
   // Only allow POST
   if (req.method !== 'POST') {
     console.warn('⚠️  Method not allowed:', req.method);
@@ -1050,9 +1060,9 @@ export const syncUserToBrevo = onRequest({
     });
     return;
   }
-  
+
   console.log('🔄 syncUserToBrevo called with data:', JSON.stringify(req.body));
-  
+
   try {
     // Get API key
     console.log('🔑 Retrieving Brevo API key...');
@@ -1063,27 +1073,27 @@ export const syncUserToBrevo = onRequest({
       return;
     }
     console.log('✅ Brevo API key retrieved (first 10 chars):', apiKey.substring(0, 10) + '...');
-    
+
     const { contact, eventName, eventProperties } = req.body;
-    
+
     if (!contact || !contact.email) {
       console.error('❌ Contact email is required');
       res.status(400).json({ success: false, message: 'Contact email is required' });
       return;
     }
-    
+
     console.log('📧 Syncing contact:', contact.email);
-    
+
     // Create or update contact
     const contactId = await createOrUpdateBrevoContact(apiKey, contact);
     console.log('✅ Contact synced to Brevo with ID:', contactId);
-    
+
     // Note: Brevo events are handled differently (via webhooks or email events)
     // For now, we'll just log the event
     if (eventName) {
       console.log('📅 Event logged for Brevo:', eventName, eventProperties);
     }
-    
+
     res.status(200).json({
       success: true,
       contactId,
@@ -1110,7 +1120,7 @@ const getHubSpotApiKey = async (): Promise<string | null> => {
   try {
     // Try Firestore first
     const settingsDoc = await admin.firestore().collection('settings').doc('hubspot').get();
-    
+
     if (settingsDoc.exists) {
       const data = settingsDoc.data();
       const apiKey = data?.apiKey || data?.api_key;
@@ -1122,13 +1132,13 @@ const getHubSpotApiKey = async (): Promise<string | null> => {
   } catch (error: any) {
     console.warn('⚠️  Failed to retrieve HubSpot API key from Firestore:', error?.message);
   }
-  
+
   // Fallback to environment variable
   if (process.env.HUBSPOT_API_KEY) {
     console.log('Using HubSpot API key from environment variable');
     return process.env.HUBSPOT_API_KEY;
   }
-  
+
   // Fallback to Firebase config
   try {
     const config = functions.config();
@@ -1139,7 +1149,7 @@ const getHubSpotApiKey = async (): Promise<string | null> => {
   } catch (e) {
     console.warn('Could not access Firebase config:', e);
   }
-  
+
   console.warn('⚠️  HubSpot API key not found. HubSpot integration will be disabled.');
   return null;
 };
@@ -1165,12 +1175,12 @@ const createOrUpdateHubSpotContact = async (
 ): Promise<string | null> => {
   try {
     const hubspotUrl = `https://api.hubapi.com/crm/v3/objects/contacts`;
-    
+
     // Prepare properties
     const properties: Record<string, any> = {
       email: contact.email,
     };
-    
+
     if (contact.firstName) properties.firstname = contact.firstName;
     if (contact.lastName) properties.lastname = contact.lastName;
     if (contact.phone) properties.phone = contact.phone;
@@ -1180,17 +1190,17 @@ const createOrUpdateHubSpotContact = async (
     if (contact.city) properties.city = contact.city;
     if (contact.state) properties.state = contact.state;
     if (contact.country) properties.country = contact.country;
-    
+
     // Add custom properties if any
     Object.keys(contact).forEach(key => {
       if (!['email', 'firstName', 'lastName', 'phone', 'company', 'jobtitle', 'website', 'city', 'state', 'country'].includes(key)) {
         properties[key] = contact[key];
       }
     });
-    
+
     console.log('📤 Sending request to HubSpot API:', hubspotUrl);
     console.log('📦 Properties to send:', JSON.stringify(properties));
-    
+
     const response = await fetch(hubspotUrl, {
       method: 'POST',
       headers: {
@@ -1201,21 +1211,21 @@ const createOrUpdateHubSpotContact = async (
         properties,
       }),
     });
-    
+
     console.log('📥 HubSpot API response status:', response.status, response.statusText);
-    
+
     if (!response.ok) {
       // If contact already exists, try to update it
       if (response.status === 409) {
         console.log('⚠️  Contact already exists (409), updating...');
         return await updateHubSpotContact(apiKey, contact);
       }
-      
+
       const errorText = await response.text();
       console.error('❌ HubSpot API error:', response.status, errorText);
       throw new Error(`HubSpot API error: ${response.status} - ${errorText}`);
     }
-    
+
     const data = await response.json();
     console.log('✅ Contact created/updated in HubSpot:', data.id);
     return data.id || null;
@@ -1257,24 +1267,24 @@ const updateHubSpotContact = async (
         properties: ['id', 'email'],
       }),
     });
-    
+
     if (!searchResponse.ok) {
       throw new Error(`Failed to search contact: ${searchResponse.status}`);
     }
-    
+
     const searchData = await searchResponse.json();
-    
+
     if (!searchData.results || searchData.results.length === 0) {
       // Contact doesn't exist, create it
       return await createOrUpdateHubSpotContact(apiKey, contact);
     }
-    
+
     const contactId = searchData.results[0].id;
-    
+
     // Update the contact
     const updateUrl = `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`;
     const properties: Record<string, any> = {};
-    
+
     if (contact.firstName) properties.firstname = contact.firstName;
     if (contact.lastName) properties.lastname = contact.lastName;
     if (contact.phone) properties.phone = contact.phone;
@@ -1284,14 +1294,14 @@ const updateHubSpotContact = async (
     if (contact.city) properties.city = contact.city;
     if (contact.state) properties.state = contact.state;
     if (contact.country) properties.country = contact.country;
-    
+
     // Add custom properties
     Object.keys(contact).forEach(key => {
       if (!['email', 'firstName', 'lastName', 'phone', 'company', 'jobtitle', 'website', 'city', 'state', 'country'].includes(key)) {
         properties[key] = contact[key];
       }
     });
-    
+
     const updateResponse = await fetch(updateUrl, {
       method: 'PATCH',
       headers: {
@@ -1302,12 +1312,12 @@ const updateHubSpotContact = async (
         properties,
       }),
     });
-    
+
     if (!updateResponse.ok) {
       const errorText = await updateResponse.text();
       throw new Error(`HubSpot update error: ${updateResponse.status} - ${errorText}`);
     }
-    
+
     // Response is ok, contact updated successfully
     console.log('✅ Contact updated in HubSpot:', contactId);
     return contactId;
@@ -1346,21 +1356,21 @@ const sendHubSpotEvent = async (
         properties: ['id'],
       }),
     });
-    
+
     if (!searchResponse.ok) {
       console.warn('⚠️  Could not find contact for event:', email);
       return;
     }
-    
+
     const searchData = await searchResponse.json();
-    
+
     if (!searchData.results || searchData.results.length === 0) {
       console.warn('⚠️  Contact not found for event:', email);
       return;
     }
-    
+
     const contactId = searchData.results[0].id;
-    
+
     // Send timeline event
     const eventUrl = `https://api.hubapi.com/integrations/v1/${contactId}/timeline/events`;
     const eventData: any = {
@@ -1368,7 +1378,7 @@ const sendHubSpotEvent = async (
       email,
       extraData: properties || {},
     };
-    
+
     const eventResponse = await fetch(eventUrl, {
       method: 'POST',
       headers: {
@@ -1377,13 +1387,13 @@ const sendHubSpotEvent = async (
       },
       body: JSON.stringify(eventData),
     });
-    
+
     if (!eventResponse.ok) {
       const errorText = await eventResponse.text();
       console.warn('⚠️  Could not send HubSpot event:', errorText);
       return;
     }
-    
+
     console.log('✅ Event sent to HubSpot:', eventName);
   } catch (error: any) {
     console.error('❌ Error sending HubSpot event:', error);
@@ -1406,16 +1416,16 @@ export const syncUserToHubSpot = onRequest({
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  
+
   // Handle preflight OPTIONS request FIRST
   if (req.method === 'OPTIONS') {
     console.log('✅ Handling OPTIONS preflight request from origin:', req.headers.origin);
     res.status(204).send('');
     return;
   }
-  
+
   console.log('🔄 syncUserToHubSpot called with method:', req.method, 'from origin:', req.headers.origin);
-  
+
   // Only allow POST
   if (req.method !== 'POST') {
     console.warn('⚠️  Method not allowed:', req.method);
@@ -1425,9 +1435,9 @@ export const syncUserToHubSpot = onRequest({
     });
     return;
   }
-  
+
   console.log('🔄 syncUserToHubSpot called with data:', JSON.stringify(req.body));
-  
+
   try {
     // Get API key
     console.log('🔑 Retrieving HubSpot API key...');
@@ -1439,45 +1449,45 @@ export const syncUserToHubSpot = onRequest({
     }
     console.log('✅ HubSpot API key retrieved (first 10 chars):', apiKey.substring(0, 10) + '...');
     console.log('📏 HubSpot API key length:', apiKey.length);
-    
+
     // Validate token format
     if (apiKey.startsWith('eu1-') || apiKey.startsWith('na1-')) {
       console.error('❌ ERROR: Developer API Keys (eu1-* or na1-*) are deprecated and no longer work with HubSpot API v3!');
       console.error('   You MUST use a Private App Access Token (pat-*) instead.');
       console.error('   Please create a Private App in HubSpot Settings → Integrations → Private Apps');
-      res.status(200).json({ 
-        success: false, 
-        message: 'Invalid API key format: Developer API Keys are deprecated. Please use a Private App Access Token (pat-*)' 
+      res.status(200).json({
+        success: false,
+        message: 'Invalid API key format: Developer API Keys are deprecated. Please use a Private App Access Token (pat-*)'
       });
       return;
     }
-    
+
     if (!apiKey.startsWith('pat-')) {
       console.warn('⚠️  WARNING: API key does not start with "pat-". This may not be a valid Private App Access Token.');
     } else {
       console.log('✅ HubSpot API key format: Private App Access Token (pat-*) - Valid format');
     }
-    
+
     const { contact, eventName, eventProperties } = req.body;
-    
+
     if (!contact || !contact.email) {
       console.error('❌ Contact email is required');
       res.status(400).json({ success: false, message: 'Contact email is required' });
       return;
     }
-    
+
     console.log('📧 Syncing contact:', contact.email);
-    
+
     // Create or update contact
     const contactId = await createOrUpdateHubSpotContact(apiKey, contact);
     console.log('✅ Contact synced to HubSpot with ID:', contactId);
-    
+
     // Send event if provided
     if (eventName) {
       console.log('📅 Sending event to HubSpot:', eventName);
       await sendHubSpotEvent(apiKey, contact.email, eventName, eventProperties);
     }
-    
+
     res.status(200).json({
       success: true,
       contactId,
@@ -1505,17 +1515,17 @@ export const sendHubSpotEventFunction = onRequest({
   invoker: 'public',
 }, async (req, res) => {
   // Handle CORS FIRST
-  handleCORS(req, res, () => {});
-  
+  handleCORS(req, res, () => { });
+
   if (req.method === 'OPTIONS') {
     return;
   }
-  
+
   if (req.method !== 'POST') {
     res.status(405).json({ success: false, message: 'Method not allowed' });
     return;
   }
-  
+
   try {
     const apiKey = await getHubSpotApiKey();
     if (!apiKey) {
@@ -1523,16 +1533,16 @@ export const sendHubSpotEventFunction = onRequest({
       res.status(200).json({ success: false, message: 'HubSpot API key not configured' });
       return;
     }
-    
+
     const { email, eventName, properties } = req.body;
-    
+
     if (!email || !eventName) {
       res.status(400).json({ success: false, message: 'Email and eventName are required' });
       return;
     }
-    
+
     await sendHubSpotEvent(apiKey, email, eventName, properties);
-    
+
     res.status(200).json({
       success: true,
       message: 'Event sent to HubSpot successfully',
@@ -1555,7 +1565,7 @@ const getStripeApiKey = async (): Promise<string> => {
   try {
     // Try Firestore first
     const settingsDoc = await admin.firestore().collection('settings').doc('stripe').get();
-    
+
     if (settingsDoc.exists) {
       const data = settingsDoc.data();
       const apiKey = data?.secretKey || data?.secret_key || data?.apiKey || data?.api_key;
@@ -1567,13 +1577,13 @@ const getStripeApiKey = async (): Promise<string> => {
   } catch (error: any) {
     console.warn('⚠️  Failed to retrieve Stripe API key from Firestore:', error?.message);
   }
-  
+
   // Fallback to environment variable
   if (process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY) {
     console.log('Using Stripe API key from environment variable');
     return process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || '';
   }
-  
+
   // Fallback to Firebase config
   try {
     const config = functions.config();
@@ -1584,7 +1594,7 @@ const getStripeApiKey = async (): Promise<string> => {
   } catch (e) {
     console.warn('Could not access Firebase config:', e);
   }
-  
+
   throw new Error('Stripe API key not found. Please configure it in Firestore (settings/stripe) or environment variables.');
 };
 
@@ -1610,7 +1620,7 @@ export const createCheckoutSession = onRequest({
 }, async (req, res) => {
   // Get origin from request
   const origin = req.headers.origin;
-  
+
   // Set CORS headers - MUST be set before any response
   // Firebase Functions v2 with cors: true should handle this, but we set it explicitly
   if (origin) {
@@ -1622,47 +1632,47 @@ export const createCheckoutSession = onRequest({
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '3600');
-  
+
   // Handle preflight OPTIONS request FIRST
   if (req.method === 'OPTIONS') {
     console.log('✅ Handling OPTIONS preflight request from origin:', origin || 'no origin');
     res.status(204).end();
     return;
   }
-  
+
   if (req.method !== 'POST') {
     res.status(405).json({ success: false, message: 'Method not allowed' });
     return;
   }
-  
+
   try {
     const { userId, planId, planName, price, credits, type, successUrl, cancelUrl } = req.body;
-    
+
     // Validation
     if (!userId || !planId || !price) {
-      res.status(400).json({ 
-        success: false, 
-        message: 'userId, planId, and price are required' 
+      res.status(400).json({
+        success: false,
+        message: 'userId, planId, and price are required'
       });
       return;
     }
-    
+
     // Get Stripe client
     const stripe = await getStripeClient();
-    
+
     // Determine if it's a subscription or one-time payment
     const isSubscription = type === 'plan' && planId !== 'free';
     const priceInCents = Math.round(parseFloat(price) * 100); // Convert to cents
-    
+
     // Create or retrieve Stripe Price
     let priceId: string;
-    
+
     if (isSubscription) {
       // For subscriptions, create a recurring price
       // First, check if a product already exists for this plan
       const products = await stripe.products.list({ limit: 100 });
       let product = products.data.find(p => p.metadata?.planId === planId);
-      
+
       if (!product) {
         // Create product if it doesn't exist
         product = await stripe.products.create({
@@ -1674,17 +1684,17 @@ export const createCheckoutSession = onRequest({
           },
         });
       }
-      
+
       // Create or retrieve price
-      const prices = await stripe.prices.list({ 
+      const prices = await stripe.prices.list({
         product: product.id,
         limit: 100,
       });
-      
+
       let existingPrice = prices.data.find(
         p => p.unit_amount === priceInCents && p.recurring?.interval === 'month'
       );
-      
+
       if (!existingPrice) {
         existingPrice = await stripe.prices.create({
           product: product.id,
@@ -1699,13 +1709,13 @@ export const createCheckoutSession = onRequest({
           },
         });
       }
-      
+
       priceId = existingPrice.id;
     } else {
       // For one-time payments (credit packages), create a one-time price
       const products = await stripe.products.list({ limit: 100 });
       let product = products.data.find(p => p.metadata?.type === 'credit_package' && p.metadata?.packageId === planId);
-      
+
       if (!product) {
         product = await stripe.products.create({
           name: `${credits} Credits`,
@@ -1717,17 +1727,17 @@ export const createCheckoutSession = onRequest({
           },
         });
       }
-      
+
       // Create or retrieve one-time price
-      const prices = await stripe.prices.list({ 
+      const prices = await stripe.prices.list({
         product: product.id,
         limit: 100,
       });
-      
+
       let existingPrice = prices.data.find(
         p => p.unit_amount === priceInCents && !p.recurring
       );
-      
+
       if (!existingPrice) {
         existingPrice = await stripe.prices.create({
           product: product.id,
@@ -1740,10 +1750,10 @@ export const createCheckoutSession = onRequest({
           },
         });
       }
-      
+
       priceId = existingPrice.id;
     }
-    
+
     // Create Checkout Session
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: isSubscription ? 'subscription' : 'payment',
@@ -1765,7 +1775,7 @@ export const createCheckoutSession = onRequest({
       success_url: successUrl || `${req.headers.origin || 'https://jobzai.firebaseapp.com'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${req.headers.origin || 'https://jobzai.firebaseapp.com'}/payment/cancel`,
     };
-    
+
     // For subscriptions, add subscription metadata
     if (isSubscription) {
       sessionParams.subscription_data = {
@@ -1777,11 +1787,11 @@ export const createCheckoutSession = onRequest({
         },
       };
     }
-    
+
     const session = await stripe.checkout.sessions.create(sessionParams);
-    
+
     console.log('✅ Stripe Checkout Session created:', session.id);
-    
+
     res.status(200).json({
       success: true,
       sessionId: session.id,
@@ -1808,33 +1818,33 @@ export const stripeWebhook = onRequest({
 }, async (req, res) => {
   // Stripe webhook signature verification
   const sig = req.headers['stripe-signature'] as string;
-  
+
   if (!sig) {
     console.error('❌ Missing Stripe signature');
     res.status(400).send('Missing Stripe signature');
     return;
   }
-  
+
   try {
     const stripe = await getStripeClient();
     const webhookSecret = await getStripeWebhookSecret();
-    
+
     // Get raw body for signature verification
     // Note: Firebase Functions v2 parses JSON automatically, so we need to stringify it back
     // For production, you might need to use express.raw() middleware or similar
-    const rawBody = typeof req.body === 'string' 
-      ? req.body 
+    const rawBody = typeof req.body === 'string'
+      ? req.body
       : JSON.stringify(req.body);
-    
+
     // Verify webhook signature
     const event = stripe.webhooks.constructEvent(
       rawBody,
       sig,
       webhookSecret
     );
-    
+
     console.log('✅ Stripe webhook event received:', event.type);
-    
+
     // Handle different event types
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -1842,36 +1852,36 @@ export const stripeWebhook = onRequest({
         await handleCheckoutCompleted(session);
         break;
       }
-      
+
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
         await handleSubscriptionUpdate(subscription);
         break;
       }
-      
+
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         await handleSubscriptionCancelled(subscription);
         break;
       }
-      
+
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         await handleInvoicePaymentSucceeded(invoice);
         break;
       }
-      
+
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         await handleInvoicePaymentFailed(invoice);
         break;
       }
-      
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
-    
+
     res.status(200).json({ received: true });
   } catch (error: any) {
     console.error('❌ Error processing Stripe webhook:', error);
@@ -1885,7 +1895,7 @@ export const stripeWebhook = onRequest({
 const getStripeWebhookSecret = async (): Promise<string> => {
   try {
     const settingsDoc = await admin.firestore().collection('settings').doc('stripe').get();
-    
+
     if (settingsDoc.exists) {
       const data = settingsDoc.data();
       const webhookSecret = data?.webhookSecret || data?.webhook_secret;
@@ -1896,11 +1906,11 @@ const getStripeWebhookSecret = async (): Promise<string> => {
   } catch (error: any) {
     console.warn('⚠️  Failed to retrieve Stripe webhook secret from Firestore:', error?.message);
   }
-  
+
   if (process.env.STRIPE_WEBHOOK_SECRET) {
     return process.env.STRIPE_WEBHOOK_SECRET;
   }
-  
+
   try {
     const config = functions.config();
     if (config.stripe?.webhook_secret) {
@@ -1909,7 +1919,7 @@ const getStripeWebhookSecret = async (): Promise<string> => {
   } catch (e) {
     console.warn('Could not access Firebase config:', e);
   }
-  
+
   throw new Error('Stripe webhook secret not found');
 };
 
@@ -1919,25 +1929,25 @@ const getStripeWebhookSecret = async (): Promise<string> => {
 const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
   try {
     const { userId, planId, planName, credits, type } = session.metadata || {};
-    
+
     if (!userId) {
       console.error('❌ Missing userId in session metadata');
       return;
     }
-    
+
     const userRef = admin.firestore().collection('users').doc(userId);
     const userDoc = await userRef.get();
-    
+
     if (!userDoc.exists) {
       console.error('❌ User not found:', userId);
       return;
     }
-    
+
     // Update user based on payment type
     if (type === 'plan' && planId !== 'free') {
       // Subscription plan
       const creditsToAdd = parseInt(credits || '0', 10);
-      
+
       await userRef.update({
         plan: planId,
         credits: creditsToAdd,
@@ -1947,7 +1957,7 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
         paymentStatus: 'active',
         lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
       });
-      
+
       // Record credit history
       await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
         balance: creditsToAdd,
@@ -1957,18 +1967,18 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         stripeSessionId: session.id,
       });
-      
+
       console.log(`✅ User ${userId} subscription activated: ${planName} (${credits} credits)`);
     } else if (type === 'credits') {
       // One-time credit purchase
       const creditsToAdd = parseInt(credits || '0', 10);
       const currentCredits = userDoc.data()?.credits || 0;
-      
+
       await userRef.update({
         credits: currentCredits + creditsToAdd,
         lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
       });
-      
+
       // Record credit history
       await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
         balance: currentCredits + creditsToAdd,
@@ -1978,10 +1988,10 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         stripeSessionId: session.id,
       });
-      
+
       console.log(`✅ User ${userId} purchased ${creditsToAdd} credits`);
     }
-    
+
     // Create invoice record
     await admin.firestore().collection('users').doc(userId).collection('invoices').add({
       stripeSessionId: session.id,
@@ -2005,20 +2015,20 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
 const handleSubscriptionUpdate = async (subscription: Stripe.Subscription) => {
   try {
     const { userId } = subscription.metadata || {};
-    
+
     if (!userId) {
       console.error('❌ Missing userId in subscription metadata');
       return;
     }
-    
+
     const userRef = admin.firestore().collection('users').doc(userId);
-    
+
     await userRef.update({
       stripeSubscriptionId: subscription.id,
       paymentStatus: subscription.status === 'active' ? 'active' : 'inactive',
       subscriptionStatus: subscription.status,
     });
-    
+
     console.log(`✅ Subscription updated for user ${userId}: ${subscription.status}`);
   } catch (error: any) {
     console.error('❌ Error handling subscription update:', error);
@@ -2031,14 +2041,14 @@ const handleSubscriptionUpdate = async (subscription: Stripe.Subscription) => {
 const handleSubscriptionCancelled = async (subscription: Stripe.Subscription) => {
   try {
     const { userId } = subscription.metadata || {};
-    
+
     if (!userId) {
       console.error('❌ Missing userId in subscription metadata');
       return;
     }
-    
+
     const userRef = admin.firestore().collection('users').doc(userId);
-    
+
     // Downgrade to free plan
     await userRef.update({
       plan: 'free',
@@ -2047,7 +2057,7 @@ const handleSubscriptionCancelled = async (subscription: Stripe.Subscription) =>
       subscriptionStatus: 'cancelled',
       planSelectedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    
+
     console.log(`✅ Subscription cancelled for user ${userId}, downgraded to free plan`);
   } catch (error: any) {
     console.error('❌ Error handling subscription cancellation:', error);
@@ -2060,34 +2070,34 @@ const handleSubscriptionCancelled = async (subscription: Stripe.Subscription) =>
 const handleInvoicePaymentSucceeded = async (invoice: Stripe.Invoice) => {
   try {
     // Invoice.subscription can be a string (ID) or a Subscription object
-    const subscriptionId = typeof (invoice as any).subscription === 'string' 
-      ? (invoice as any).subscription 
+    const subscriptionId = typeof (invoice as any).subscription === 'string'
+      ? (invoice as any).subscription
       : (invoice as any).subscription?.id;
-    
+
     if (!subscriptionId) {
       // One-time payment, already handled in checkout.session.completed
       return;
     }
-    
+
     // Get subscription to find userId
     const stripe = await getStripeClient();
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const { userId, planId, credits } = subscription.metadata || {};
-    
+
     if (!userId) {
       console.error('❌ Missing userId in subscription metadata');
       return;
     }
-    
+
     const userRef = admin.firestore().collection('users').doc(userId);
-    
+
     // Renew credits for subscription
     const creditsToAdd = parseInt(credits || '0', 10);
     await userRef.update({
       credits: creditsToAdd,
       lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
     });
-    
+
     // Record credit history
     await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
       balance: creditsToAdd,
@@ -2097,7 +2107,7 @@ const handleInvoicePaymentSucceeded = async (invoice: Stripe.Invoice) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       stripeInvoiceId: invoice.id,
     });
-    
+
     console.log(`✅ Subscription renewed for user ${userId}: ${creditsToAdd} credits added`);
   } catch (error: any) {
     console.error('❌ Error handling invoice payment succeeded:', error);
@@ -2123,48 +2133,48 @@ export const processStripeSession = onRequest({
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).end();
     return;
   }
-  
+
   if (req.method !== 'POST') {
     res.status(405).json({ success: false, message: 'Method not allowed' });
     return;
   }
-  
+
   try {
     const { sessionId } = req.body;
-    
+
     if (!sessionId) {
-      res.status(400).json({ 
-        success: false, 
-        message: 'sessionId is required' 
+      res.status(400).json({
+        success: false,
+        message: 'sessionId is required'
       });
       return;
     }
-    
+
     // Get Stripe client
     const stripe = await getStripeClient();
-    
+
     // Retrieve the session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['line_items', 'subscription'],
     });
-    
+
     // Check if payment was successful
     if (session.payment_status !== 'paid') {
-      res.status(400).json({ 
-        success: false, 
-        message: `Payment status is ${session.payment_status}, not paid` 
+      res.status(400).json({
+        success: false,
+        message: `Payment status is ${session.payment_status}, not paid`
       });
       return;
     }
-    
+
     // Process the session (same logic as webhook)
     await handleCheckoutCompleted(session);
-    
+
     res.status(200).json({
       success: true,
       message: 'Session processed successfully',
@@ -2185,31 +2195,31 @@ export const processStripeSession = onRequest({
 const handleInvoicePaymentFailed = async (invoice: Stripe.Invoice) => {
   try {
     // Invoice.subscription can be a string (ID) or a Subscription object
-    const subscriptionId = typeof (invoice as any).subscription === 'string' 
-      ? (invoice as any).subscription 
+    const subscriptionId = typeof (invoice as any).subscription === 'string'
+      ? (invoice as any).subscription
       : (invoice as any).subscription?.id;
-    
+
     if (!subscriptionId) {
       return;
     }
-    
+
     // Get subscription to find userId
     const stripe = await getStripeClient();
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const { userId } = subscription.metadata || {};
-    
+
     if (!userId) {
       console.error('❌ Missing userId in subscription metadata');
       return;
     }
-    
+
     const userRef = admin.firestore().collection('users').doc(userId);
-    
+
     await userRef.update({
       paymentStatus: 'failed',
       lastPaymentFailure: admin.firestore.FieldValue.serverTimestamp(),
     });
-    
+
     console.log(`⚠️  Payment failed for user ${userId}`);
   } catch (error: any) {
     console.error('❌ Error handling invoice payment failed:', error);
@@ -2233,7 +2243,7 @@ export const searchJobs = onRequest({
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
+
   // Handle preflight
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
@@ -2272,7 +2282,7 @@ export const searchJobs = onRequest({
     // Optimize: Use Firestore where() for filters that can be indexed
     // Note: We can only use one range filter (postedAt) with orderBy
     // So we prioritize last24h filter if present, otherwise use default limit
-    
+
     if (last24h) {
       // Optimize: Filter by date at database level
       const oneDayAgo = admin.firestore.Timestamp.fromDate(
@@ -2292,7 +2302,7 @@ export const searchJobs = onRequest({
 
     // Execute the optimized query
     const snapshot = await jobsQuery.get();
-    
+
     console.log(`   Found ${snapshot.size} jobs in database (after Firestore filters)`);
 
     // Filter results in memory for text search
@@ -2327,31 +2337,31 @@ export const searchJobs = onRequest({
       const keywordLower = keyword.toLowerCase();
       console.log(`   Filtering by keyword: "${keyword}" (lowercase: "${keywordLower}")`);
       console.log(`   Total jobs before filter: ${jobs.length}`);
-      
+
       // Log first 3 companies for debugging
       console.log(`   Sample companies:`, jobs.slice(0, 3).map(j => j.company || 'N/A'));
-      
+
       jobs = jobs.filter(job => {
         const title = (job.title || '').toLowerCase();
         const description = (job.description || job.summary || '').toLowerCase();
         const company = (job.company || '').toLowerCase();
-        const skills = Array.isArray(job.skills) 
-          ? job.skills.join(' ').toLowerCase() 
+        const skills = Array.isArray(job.skills)
+          ? job.skills.join(' ').toLowerCase()
           : '';
-        
+
         const matches = title.includes(keywordLower) ||
-               description.includes(keywordLower) ||
-               company.includes(keywordLower) ||
-               skills.includes(keywordLower);
-               
+          description.includes(keywordLower) ||
+          company.includes(keywordLower) ||
+          skills.includes(keywordLower);
+
         // Log when we find a match with company name
         if (matches && company.includes(keywordLower)) {
           console.log(`   ✓ Match found in company: "${job.company}"`);
         }
-        
+
         return matches;
       });
-      
+
       console.log(`   Jobs after keyword filter: ${jobs.length}`);
     }
 
@@ -2368,9 +2378,9 @@ export const searchJobs = onRequest({
     if (remote) {
       jobs = jobs.filter(job => {
         const remotePolicy = (job.remote || job.remotePolicy || '').toLowerCase();
-        return remotePolicy.includes('remote') || 
-               remotePolicy.includes('fully remote') ||
-               remotePolicy.includes('work from home');
+        return remotePolicy.includes('remote') ||
+          remotePolicy.includes('fully remote') ||
+          remotePolicy.includes('work from home');
       });
     }
 
@@ -2378,9 +2388,9 @@ export const searchJobs = onRequest({
     if (fullTime) {
       jobs = jobs.filter(job => {
         const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
-        return jobTypeStr.includes('full') || 
-               jobTypeStr.includes('full-time') ||
-               jobTypeStr.includes('fulltime');
+        return jobTypeStr.includes('full') ||
+          jobTypeStr.includes('full-time') ||
+          jobTypeStr.includes('fulltime');
       });
     }
 
@@ -2388,10 +2398,10 @@ export const searchJobs = onRequest({
     if (senior) {
       jobs = jobs.filter(job => {
         const seniorityLevel = (job.seniority || job.level || '').toLowerCase();
-        return seniorityLevel.includes('senior') || 
-               seniorityLevel.includes('sr') ||
-               seniorityLevel.includes('lead') ||
-               seniorityLevel.includes('principal');
+        return seniorityLevel.includes('senior') ||
+          seniorityLevel.includes('sr') ||
+          seniorityLevel.includes('lead') ||
+          seniorityLevel.includes('principal');
       });
     }
 
@@ -2481,10 +2491,10 @@ export const downloadCV = onRequest({
     // Verify authentication via Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ 
-        success: false, 
-        error: 'unauthenticated', 
-        message: 'User must be authenticated' 
+      res.status(401).json({
+        success: false,
+        error: 'unauthenticated',
+        message: 'User must be authenticated'
       });
       return;
     }
@@ -2494,21 +2504,21 @@ export const downloadCV = onRequest({
     try {
       decodedToken = await admin.auth().verifyIdToken(token);
     } catch (authError) {
-      res.status(401).json({ 
-        success: false, 
-        error: 'unauthenticated', 
-        message: 'Invalid authentication token' 
+      res.status(401).json({
+        success: false,
+        error: 'unauthenticated',
+        message: 'Invalid authentication token'
       });
       return;
     }
 
     const { storagePath } = req.body;
-    
+
     if (!storagePath) {
-      res.status(400).json({ 
-        success: false, 
-        error: 'invalid-argument', 
-        message: 'Storage path is required' 
+      res.status(400).json({
+        success: false,
+        error: 'invalid-argument',
+        message: 'Storage path is required'
       });
       return;
     }
@@ -2523,10 +2533,10 @@ export const downloadCV = onRequest({
     // Check if file exists and user has permission
     const [exists] = await file.exists();
     if (!exists) {
-      res.status(404).json({ 
-        success: false, 
-        error: 'not-found', 
-        message: 'CV file not found' 
+      res.status(404).json({
+        success: false,
+        error: 'not-found',
+        message: 'CV file not found'
       });
       return;
     }
@@ -2534,17 +2544,17 @@ export const downloadCV = onRequest({
     // Verify the file belongs to the user (security check)
     const pathParts = storagePath.split('/');
     if (pathParts[0] === 'cvs' && pathParts[1] !== decodedToken.uid) {
-      res.status(403).json({ 
-        success: false, 
-        error: 'permission-denied', 
-        message: 'Access denied to this CV file' 
+      res.status(403).json({
+        success: false,
+        error: 'permission-denied',
+        message: 'Access denied to this CV file'
       });
       return;
     }
 
     // Download the file
     const [fileBuffer] = await file.download();
-    
+
     // Convert to base64 for transmission
     const base64 = fileBuffer.toString('base64');
     const [metadata] = await file.getMetadata();
@@ -2563,10 +2573,10 @@ export const downloadCV = onRequest({
     });
   } catch (error: any) {
     console.error('❌ Error downloading CV:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'internal', 
-      message: `Failed to download CV: ${error.message}` 
+    res.status(500).json({
+      success: false,
+      error: 'internal',
+      message: `Failed to download CV: ${error.message}`
     });
   }
 });

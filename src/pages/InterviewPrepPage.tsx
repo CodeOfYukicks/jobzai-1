@@ -2249,19 +2249,84 @@ Make sure each answer is completely unique and specific to its question - no gen
     }
   };
 
-  const handleDragStart = (_e: DraggableEvent, _data: DraggableData) => {
-    setIsDragging(true);
+  // Ref for drag start position to calculate distance
+  const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  // Ref for double click detection
+  const lastClickTimeRef = useRef<number>(0);
+  const lastClickNoteIdRef = useRef<string | null>(null);
+
+  const handleDragStart = (e: DraggableEvent, data: DraggableData) => {
+    // Store start position
+    dragStartPosRef.current = { x: data.x, y: data.y };
     setDragStartTime(Date.now());
+    // Do NOT set isDragging(true) here
+  };
+
+  const handleDrag = (e: DraggableEvent, data: DraggableData) => {
+    if (!dragStartPosRef.current) return;
+
+    // Calculate distance moved
+    const dx = Math.abs(data.x - dragStartPosRef.current.x);
+    const dy = Math.abs(data.y - dragStartPosRef.current.y);
+
+    // Only start "dragging" state if moved more than 5 pixels
+    // This prevents jitter and accidental drags on clicks
+    if (!isDragging && (dx > 5 || dy > 5)) {
+      setIsDragging(true);
+    }
+
+    // CRITICAL: Update position state during drag to keep controlled component in sync
+    // This prevents "snap back" issues when re-renders occur
+    if (isDragging) {
+      // We need to find the note ID. Since we don't have it in arguments, 
+      // we'll rely on the fact that this handler is attached to specific notes.
+      // However, react-draggable's onDrag doesn't pass the note ID directly.
+      // We need to wrap the handler in the render loop.
+      // See the change in the render loop below.
+    }
+
+    // CRITICAL: Only update position state if we are actually dragging
+    // This prevents the note from "jumping" or moving during a simple click
+    if (isDragging) {
+      // We don't update state here to avoid excessive re-renders, 
+      // react-draggable handles the visual movement via DOM
+    }
   };
 
   const handleDragStop = (noteId: string, e: DraggableEvent, data: DraggableData) => {
     const dragDuration = Date.now() - dragStartTime;
-    setIsDragging(false);
+
+    if (isDragging) {
+      setIsDragging(false);
+    }
 
     // Si le drag a duré moins de 200ms, c'est considéré comme un clic
     if (dragDuration < 200) {
+      // Manual Double Click Detection
+      const now = Date.now();
+      const timeSinceLastClick = now - lastClickTimeRef.current;
+
+      if (lastClickNoteIdRef.current === noteId && timeSinceLastClick < 300) {
+        // Double click detected!
+        openNote(stickyNotes.find(n => n.id === noteId)!);
+        // Reset
+        lastClickTimeRef.current = 0;
+        lastClickNoteIdRef.current = null;
+      } else {
+        // First click
+        lastClickTimeRef.current = now;
+        lastClickNoteIdRef.current = noteId;
+      }
       return;
     }
+
+    // If we were not dragging (isDragging was false), it means it was a click or very short drag
+    // But if dragDuration >= 200, we treat it as a drag even if isDragging wasn't set (edge case)
+
+    // Reset drag start ref
+    dragStartPosRef.current = null;
+
+    // Apply canvas limits
 
     // Apply canvas limits
     const noteWidth = noteSizes[noteId]?.width || 250;
@@ -5546,6 +5611,16 @@ Make sure each answer is completely unique and specific to its question - no gen
                                 key={note.id}
                                 position={notePositions[note.id] || { x: 0, y: 0 }}
                                 onStart={handleDragStart}
+                                onDrag={(e, data) => {
+                                  // Update local state immediately for smooth controlled dragging
+                                  if (isDragging) {
+                                    setNotePositions(prev => ({
+                                      ...prev,
+                                      [note.id]: { x: data.x, y: data.y }
+                                    }));
+                                  }
+                                  handleDrag(e, data);
+                                }}
                                 onStop={(e, data) => handleDragStop(note.id, e, data)}
                                 bounds="parent"
                                 disabled={selectedTool !== 'select'}
@@ -5598,11 +5673,6 @@ Make sure each answer is completely unique and specific to its question - no gen
                                         <div
                                           className="text-gray-700 flex-1 overflow-y-auto cursor-pointer hover:bg-black/5 rounded p-1 -m-1 transition-colors"
                                           style={{ fontSize: `${baseFontSize}px`, lineHeight: '1.5' }}
-                                          onClick={(e) => {
-                                            if (!isDragging && !isResizing && selectedTool === 'select') {
-                                              handleNoteClick(note.id, e);
-                                            }
-                                          }}
                                           title="Double-click to edit"
                                         >
                                           {note.content}

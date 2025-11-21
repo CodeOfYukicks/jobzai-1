@@ -1,9 +1,40 @@
+/**
+ * ⚠️ DEPRECATED - Legacy ATS Job Fetcher
+ * 
+ * This function is deprecated and will be removed in a future version.
+ * 
+ * **Please use the new queue-based architecture instead:**
+ * - scheduleFetchJobs (CRON scheduler)
+ * - fetchJobsWorker (task queue worker)
+ * - enrichSkillsWorker (enrichment worker)
+ * 
+ * **Why?**
+ * - Old: Single 540s timeout for ALL sources = timeout risk with 100k+ jobs
+ * - New: Each source has its own 540s timeout = no global timeout
+ * - Old: Blocking LLM enrichment = very slow
+ * - New: Async enrichment in background = fast fetch, async enrich
+ * - Old: No retry mechanism = entire batch fails if one source fails
+ * - New: Automatic retry per source = fault tolerant
+ * - Old: Poor observability = hard to debug
+ * - New: Per-source metrics = easy monitoring
+ * 
+ * **Migration:**
+ * The new system is deployed alongside this one. To switch:
+ * 1. Disable this CRON (comment out or delete the export)
+ * 2. The new scheduler will take over automatically
+ * 
+ * **Kept for:**
+ * - Backward compatibility
+ * - Emergency fallback
+ */
+
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { fetchFromATS } from './utils/atsFetchers';
+// import { fetchFromATS } from './utils/atsFetchers';
 import { ATSProviderConfig, JobDocument, NormalizedATSJob } from './types';
 import { extractSkillsWithLLM } from './utils/embeddings';
 import { ATS_SOURCES } from './config';
+
 
 function hashString(input: string): string {
 	let hash = 0;
@@ -15,7 +46,26 @@ function hashString(input: string): string {
 }
 
 function normalizeJob(n: NormalizedATSJob): JobDocument {
-	const postedAt = n.postedAt ? admin.firestore.Timestamp.fromDate(new Date(n.postedAt)) : admin.firestore.FieldValue.serverTimestamp();
+	// Validate postedAt date - some ATS (like Workday) may return invalid dates
+	let postedAt: admin.firestore.Timestamp | admin.firestore.FieldValue;
+	if (n.postedAt) {
+		try {
+			const date = new Date(n.postedAt);
+			// Check if date is valid
+			if (!isNaN(date.getTime())) {
+				postedAt = admin.firestore.Timestamp.fromDate(date);
+			} else {
+				console.warn(`[NORMALIZE] Invalid postedAt date: ${n.postedAt}, using server timestamp`);
+				postedAt = admin.firestore.FieldValue.serverTimestamp();
+			}
+		} catch (e) {
+			console.warn(`[NORMALIZE] Error parsing postedAt: ${n.postedAt}`, e);
+			postedAt = admin.firestore.FieldValue.serverTimestamp();
+		}
+	} else {
+		postedAt = admin.firestore.FieldValue.serverTimestamp();
+	}
+
 	return {
 		title: n.title || '',
 		company: n.company || '',
@@ -70,7 +120,7 @@ async function storeMetrics(
 			errors: metrics.errors,
 			status: metrics.status,
 		};
-		
+
 		await db.collection('jobFetchMetrics').doc(executionId).set(metricsDoc);
 		console.log(`[CRON] Metrics stored: execution=${executionId}`);
 	} catch (e: any) {
@@ -86,181 +136,144 @@ export const fetchJobsFromATS = onSchedule(
 		timeZone: 'UTC',
 		retryCount: 3,
 		maxInstances: 1,
+		timeoutSeconds: 540,
+		memory: '1GiB',
 	},
 	async () => {
 		const db = admin.firestore();
 		const startTime = Date.now();
 		const executionId = `fetch_${Date.now()}`;
-		
+
 		console.log(`[CRON] fetchJobsFromATS start execution=${executionId} sources=${SOURCES.length} timestamp=${new Date().toISOString()}`);
-		
-		// Track metrics per provider
+
+		// Track metrics
 		const providerMetrics: Record<string, { fetched: number; written: number; errors: number }> = {};
 		const errors: Array<{ provider: string; company: string; error: string }> = [];
-		
-		try {
-			// Fetch jobs from all ATS sources
-			const fetchStartTime = Date.now();
-			const jobs = await fetchFromATS(SOURCES);
-			const fetchDuration = Date.now() - fetchStartTime;
-			
-			console.log(`[CRON] fetchJobsFromATS fetched total=${jobs.length} duration=${fetchDuration}ms`);
-			
-			// Initialize provider metrics
-			SOURCES.forEach(src => {
-				const key = `${src.provider}_${src.company || 'unknown'}`;
-				providerMetrics[key] = { fetched: 0, written: 0, errors: 0 };
-			});
-			
-			// Count jobs per provider
-			jobs.forEach(job => {
-				const key = `${job.ats}_${job.company || 'unknown'}`;
-				if (providerMetrics[key]) {
-					providerMetrics[key].fetched++;
-				} else {
-					// Handle case where job doesn't match a configured source
-					const fallbackKey = `${job.ats}_unknown`;
-					if (!providerMetrics[fallbackKey]) {
-						providerMetrics[fallbackKey] = { fetched: 0, written: 0, errors: 0 };
+		let totalFetched = 0;
+		let totalWritten = 0;
+		let totalFailed = 0;
+		let totalEnriched = 0;
+
+		// Helper to process a single source
+		const processSource = async (src: ATSProviderConfig) => {
+			const providerKey = `${src.provider}_${src.company || 'unknown'}`;
+			providerMetrics[providerKey] = { fetched: 0, written: 0, errors: 0 };
+
+			try {
+				let jobs: NormalizedATSJob[] = [];
+
+				// Fetch based on provider
+				if (src.provider === "greenhouse" && src.company) {
+					const { fetchGreenhouse } = require('./utils/atsFetchers');
+					jobs = await fetchGreenhouse(src.company);
+				} else if (src.provider === "lever" && src.company) {
+					const { fetchLever } = require('./utils/atsFetchers');
+					jobs = await fetchLever(src.company);
+				} else if (src.provider === "smartrecruiters" && src.company) {
+					const { fetchSmartRecruiters } = require('./utils/atsFetchers');
+					jobs = await fetchSmartRecruiters(src.company);
+				} else if (src.provider === "workday" && src.company) {
+					const { fetchWorkday } = require('./utils/atsFetchers');
+					jobs = await fetchWorkday(src.company, src.workdayDomain, src.workdaySiteId);
+				} else if (src.provider === "ashby" && src.company) {
+					const { fetchAshby } = require('./utils/atsFetchers');
+					jobs = await fetchAshby(src.company);
+				}
+
+				providerMetrics[providerKey].fetched = jobs.length;
+				totalFetched += jobs.length;
+
+				if (jobs.length === 0) return;
+
+				// Write batch
+				const batch = db.bulkWriter();
+
+				for (const j of jobs) {
+					// Sanitize externalId: remove slashes that break Firestore document paths
+					// Also ensure it's actually a string before calling replace()
+					const cleanExternalId = (j.externalId && typeof j.externalId === 'string')
+						? j.externalId.replace(/\//g, '_')
+						: '';
+					const baseId = cleanExternalId.length > 0
+						? `${j.ats}_${cleanExternalId}`
+						: `${j.ats}_${hashString([j.title, j.company, j.applyUrl].join('|'))}`;
+					const docId = baseId;
+					const ref = db.collection('jobs').doc(docId);
+					const normalized = normalizeJob(j);
+
+					// Attempt to enrich skills if missing
+					if (!normalized.skills?.length && normalized.description) {
+						try {
+							const skills = await extractSkillsWithLLM(`${normalized.title}\n${normalized.description}`);
+							normalized.skills = skills;
+							totalEnriched++;
+						} catch (e: any) {
+							// console.warn(`[CRON] Skill enrichment failed for ${docId}:`, e.message);
+						}
 					}
-					providerMetrics[fallbackKey].fetched++;
-				}
-			});
-			
-			// Log metrics per provider
-			console.log(`[CRON] Jobs fetched by provider:`);
-			Object.entries(providerMetrics).forEach(([key, metrics]) => {
-				if (metrics.fetched > 0) {
-					console.log(`   ${key}: ${metrics.fetched} jobs`);
-				}
-			});
-			
-			if (!jobs.length) {
-				console.warn(`[CRON] ⚠️  No jobs fetched from any ATS source`);
-				// Store metrics even if no jobs
-				await storeMetrics(db, executionId, {
-					startTime: new Date(startTime),
-					duration: Date.now() - startTime,
-					totalFetched: 0,
-					totalWritten: 0,
-					totalFailed: 0,
-					providerMetrics,
-					errors,
-					status: 'completed_empty'
-				});
-				return;
-			}
 
-			// Write jobs to Firestore
-			const writeStartTime = Date.now();
-			const batch = db.bulkWriter();
-			let success = 0;
-			let failed = 0;
-			let enriched = 0;
-			
-			for (const j of jobs) {
-				const baseId = j.externalId && j.externalId.length > 0 ? `${j.ats}_${j.externalId}` : `${j.ats}_${hashString([j.title, j.company, j.applyUrl].join('|'))}`;
-				const docId = baseId;
-				const ref = db.collection('jobs').doc(docId);
-				const normalized = normalizeJob(j);
-				const providerKey = `${j.ats}_${j.company || 'unknown'}`;
-
-				// Attempt to enrich skills if missing
-				if (!normalized.skills?.length && normalized.description) {
 					try {
-						const skills = await extractSkillsWithLLM(`${normalized.title}\n${normalized.description}`);
-						normalized.skills = skills;
-						enriched++;
+						batch.set(ref, normalized, { merge: true });
+						providerMetrics[providerKey].written++;
+						totalWritten++;
 					} catch (e: any) {
-						console.warn(`[CRON] Skill enrichment failed for ${docId}:`, e.message);
-						// Don't fail the job write if enrichment fails
+						providerMetrics[providerKey].errors++;
+						totalFailed++;
+						errors.push({ provider: src.provider, company: src.company || 'unknown', error: e.message });
 					}
 				}
 
-				try {
-					batch.set(ref, normalized, { merge: true });
-					success++;
-					if (providerMetrics[providerKey]) {
-						providerMetrics[providerKey].written++;
-					}
-				} catch (e: any) {
-					failed++;
-					const errorMsg = e.message || String(e);
-					console.error(`[CRON] write error id=${docId}`, errorMsg);
-					
-					if (providerMetrics[providerKey]) {
-						providerMetrics[providerKey].errors++;
-					}
-					
-					errors.push({
-						provider: j.ats,
-						company: j.company || 'unknown',
-						error: errorMsg
-					});
-				}
+				await batch.close();
+				console.log(`[CRON] Finished ${providerKey}: ${jobs.length} jobs`);
+
+			} catch (e: any) {
+				console.error(`[CRON] Failed source ${providerKey}:`, e);
+				errors.push({ provider: src.provider, company: src.company || 'unknown', error: e.message });
 			}
-			
-			await batch.close();
-			const writeDuration = Date.now() - writeStartTime;
+		};
+
+		try {
+			// Process sources in parallel chunks to control concurrency
+			const chunkSize = 3; // Process 3 providers at a time
+			for (let i = 0; i < SOURCES.length; i += chunkSize) {
+				const chunk = SOURCES.slice(i, i + chunkSize);
+				await Promise.all(chunk.map(src => processSource(src)));
+			}
+
 			const totalDuration = Date.now() - startTime;
-			
+
 			console.log(`[CRON] fetchJobsFromATS completed:`);
-			console.log(`   ✅ Success: ${success} jobs written`);
-			console.log(`   ❌ Failed: ${failed} jobs`);
-			console.log(`   🎨 Enriched: ${enriched} jobs with skills`);
-			console.log(`   ⏱️  Total duration: ${totalDuration}ms (fetch: ${fetchDuration}ms, write: ${writeDuration}ms)`);
-			
-			// Log provider-level success rates
-			console.log(`[CRON] Provider-level metrics:`);
-			Object.entries(providerMetrics).forEach(([key, metrics]) => {
-				if (metrics.fetched > 0) {
-					const successRate = metrics.fetched > 0 
-						? ((metrics.written / metrics.fetched) * 100).toFixed(1)
-						: '0.0';
-					console.log(`   ${key}: ${metrics.written}/${metrics.fetched} written (${successRate}% success)`);
-					if (metrics.errors > 0) {
-						console.log(`      ⚠️  ${metrics.errors} errors`);
-					}
-				}
-			});
-			
-			// Store metrics in Firestore for monitoring dashboard
+			console.log(`   ✅ Success: ${totalWritten} jobs written`);
+			console.log(`   ❌ Failed: ${totalFailed} jobs`);
+			console.log(`   ⏱️  Total duration: ${totalDuration}ms`);
+
+			// Store metrics
 			await storeMetrics(db, executionId, {
 				startTime: new Date(startTime),
 				duration: totalDuration,
-				fetchDuration,
-				writeDuration,
-				totalFetched: jobs.length,
-				totalWritten: success,
-				totalFailed: failed,
-				totalEnriched: enriched,
+				totalFetched,
+				totalWritten,
+				totalFailed,
+				totalEnriched,
 				providerMetrics,
-				errors: errors.slice(0, 50), // Limit to 50 errors to avoid document size limits
-				status: failed > 0 ? 'completed_with_errors' : 'completed_success'
+				errors: errors.slice(0, 50),
+				status: totalFailed > 0 ? 'completed_with_errors' : 'completed_success'
 			});
-			
+
 		} catch (error: any) {
-			const totalDuration = Date.now() - startTime;
 			console.error(`[CRON] ❌ fetchJobsFromATS fatal error:`, error);
-			console.error(`   Error message: ${error.message || String(error)}`);
-			console.error(`   Duration before failure: ${totalDuration}ms`);
-			
-			// Store error metrics
+			// Try to store metrics even on fatal error
 			await storeMetrics(db, executionId, {
 				startTime: new Date(startTime),
-				duration: totalDuration,
-				totalFetched: 0,
-				totalWritten: 0,
-				totalFailed: 0,
+				duration: Date.now() - startTime,
+				totalFetched,
+				totalWritten,
+				totalFailed,
 				providerMetrics,
 				errors: [{ provider: 'system', company: 'all', error: error.message || String(error) }],
 				status: 'failed'
 			});
-			
-			// Re-throw to trigger retry mechanism
 			throw error;
 		}
 	}
 );
-
-
