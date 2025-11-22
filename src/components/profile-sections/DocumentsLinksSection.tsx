@@ -4,8 +4,10 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { pdfToImages } from '../../lib/pdfToImages';
+import { extractCVTextAndTags } from '../../lib/cvTextExtraction';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 interface SectionProps {
   onUpdate: (data: any) => void;
@@ -27,7 +29,7 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
   useEffect(() => {
     const loadData = async () => {
       if (!currentUser?.uid) return;
-      
+
       try {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
@@ -81,10 +83,40 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
       await uploadBytes(fileRef, file);
       const downloadUrl = await getDownloadURL(fileRef);
 
+      // Extract text and tags
+      let extractedData = {};
+      try {
+        toast.info('Analyzing your CV...');
+        const images = await pdfToImages(file, 2, 1.5);
+        const { text, technologies, skills } = await extractCVTextAndTags(images);
+
+        extractedData = {
+          cvText: text,
+          cvTechnologies: technologies,
+          cvSkills: skills
+        };
+
+        // Update Firestore with extracted data
+        if (currentUser?.uid) {
+          await updateDoc(doc(db, 'users', currentUser.uid), {
+            cvUrl: downloadUrl,
+            cvName: file.name,
+            ...extractedData,
+            updatedAt: serverTimestamp()
+          });
+        }
+
+        toast.success(`CV analyzed! Found ${technologies.length} technologies and ${skills.length} skills`);
+      } catch (extractionError) {
+        console.error('CV extraction failed:', extractionError);
+        toast.warning('CV uploaded but analysis failed');
+      }
+
       const newFormData = {
         ...formData,
         cvUrl: downloadUrl,
-        cvName: file.name
+        cvName: file.name,
+        ...extractedData
       };
       setFormData(newFormData);
       onUpdate(newFormData);
@@ -179,11 +211,10 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`flex-1 flex items-center justify-center p-6 border-2 border-dashed rounded-lg transition-all cursor-pointer bg-white dark:bg-gray-700 ${
-                  isDragging
+                className={`flex-1 flex items-center justify-center p-6 border-2 border-dashed rounded-lg transition-all cursor-pointer bg-white dark:bg-gray-700 ${isDragging
                     ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
                     : 'border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-400'
-                }`}
+                  }`}
               >
                 <div className="flex flex-col items-center gap-2">
                   <Upload className={`w-8 h-8 ${isUploading ? 'animate-bounce text-purple-600' : isDragging ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`} />

@@ -50,8 +50,8 @@ export default function JobApplicationsPage() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editModal, setEditModal] = useState<{show: boolean; application?: JobApplication}>({ show: false });
-  const [deleteModal, setDeleteModal] = useState<{show: boolean; application?: JobApplication}>({ show: false });
+  const [editModal, setEditModal] = useState<{ show: boolean; application?: JobApplication }>({ show: false });
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; application?: JobApplication }>({ show: false });
   const [newApplicationModal, setNewApplicationModal] = useState(false);
   const [eventType, setEventType] = useState<'application' | 'interview' | null>(null);
   const [formData, setFormData] = useState<Partial<JobApplication> & {
@@ -93,7 +93,7 @@ export default function JobApplicationsPage() {
   // Filter states
   // Temporal filters
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '3m' | '6m' | 'custom'>('all');
-  const [customDateRange, setCustomDateRange] = useState<{start: string, end: string} | null>(null);
+  const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string } | null>(null);
   const [updateDateFilter, setUpdateDateFilter] = useState<'all' | '24h' | '7d' | '30d'>('all');
   const [upcomingInterviewsDays, setUpcomingInterviewsDays] = useState<number | null>(null);
 
@@ -222,55 +222,55 @@ export default function JobApplicationsPage() {
     if (!result.destination || !currentUser) return;
 
     const { source, destination, draggableId } = result;
-    
+
     // Si l'application est déplacée vers la même colonne, ne rien faire
     if (source.droppableId === destination.droppableId) return;
-    
-    const newStatus = destination.droppableId as 'applied' | 'interview' | 'offer' | 'rejected';
-    
+
+    const newStatus = destination.droppableId as 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected' | 'pending_decision' | 'archived';
+
     try {
       // Get the application we're updating
       const app = applications.find(a => a.id === draggableId);
       if (!app) return;
-      
+
       // Create a new status history entry
       const newStatusChange: StatusChange = {
         status: newStatus,
         date: new Date().toISOString().split('T')[0],
       };
-      
+
       // Update history - make sure it exists first
       const statusHistory = app.statusHistory || [{
         status: app.status,
         date: app.appliedDate,
         notes: 'Initial application'
       }];
-      
+
       // Add new status change to history
       statusHistory.push(newStatusChange);
-      
+
       // Mise à jour optimiste de l'UI
-      setApplications(prev => prev.map(app => 
-        app.id === draggableId ? { 
-          ...app, 
+      setApplications(prev => prev.map(app =>
+        app.id === draggableId ? {
+          ...app,
           status: newStatus,
           statusHistory
         } : app
       ));
-      
+
       // Mise à jour dans Firestore
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', draggableId);
-      await updateDoc(applicationRef, { 
+      await updateDoc(applicationRef, {
         status: newStatus,
         updatedAt: serverTimestamp(),
         statusHistory
       });
-      
+
       // Lancer les confettis si déplacé vers "offer"
       if (newStatus === 'offer') {
         fireConfetti();
       }
-      
+
       toast.success(`Application moved to ${newStatus}`);
     } catch (error) {
       console.error('Error updating application status:', error);
@@ -292,12 +292,12 @@ export default function JobApplicationsPage() {
 
     try {
       const jobUrl = formData.url.trim();
-      
+
       // Use shared extraction utility with detailed mode
       const extractedData = await extractJobInfo(jobUrl, { detailed: true }) as DetailedJobInfo;
-        
-        console.log('Successfully extracted data:', extractedData);
-        
+
+      console.log('Successfully extracted data:', extractedData);
+
       // Format the summary for description - structured format with 3 bullet points
       let formattedDescription = extractedData.summary;
       if (formattedDescription) {
@@ -307,9 +307,9 @@ export default function JobApplicationsPage() {
           .replace(/\\"/g, '"')
           .replace(/\\'/g, "'")
           .trim();
-        
+
         // Ensure bullets are properly formatted (• or -)
-          if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
+        if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
           const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
           if (lines.length > 0) {
             formattedDescription = lines.map((line: string) => {
@@ -321,7 +321,7 @@ export default function JobApplicationsPage() {
             }).join('\n');
           }
         }
-        
+
         // Add visual separation if description already exists
         if (formData.description && formData.description.trim()) {
           formattedDescription = `${formData.description}\n\n---\n\n${formattedDescription}`;
@@ -358,7 +358,7 @@ export default function JobApplicationsPage() {
       toast.error('Please select an event type first');
       return;
     }
-    
+
     try {
       if (eventType === 'application') {
         // Formatage des données avant envoi
@@ -394,7 +394,7 @@ export default function JobApplicationsPage() {
 
         // Création du document dans Firestore
         const docRef = await addDoc(
-          collection(db, 'users', currentUser.uid, 'jobApplications'), 
+          collection(db, 'users', currentUser.uid, 'jobApplications'),
           newApplication
         );
 
@@ -419,13 +419,13 @@ export default function JobApplicationsPage() {
           interviewTime: '09:00',
           interviewDate: new Date().toISOString().split('T')[0],
         });
-        
+
         toast.success('Application created successfully');
       } else {
         // Pour un entretien, vérifier si une candidature existe déjà
         let existingApplication: any = null;
         let applicationId: string;
-        
+
         // Si un ID de candidature est fourni (lié depuis le modal), l'utiliser directement
         if (linkedApplicationId) {
           applicationId = linkedApplicationId;
@@ -438,7 +438,7 @@ export default function JobApplicationsPage() {
           // Sinon, chercher par nom d'entreprise et poste
           const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
           const applicationsSnapshot = await getDocs(query(applicationsRef));
-          
+
           applicationsSnapshot.forEach(doc => {
             const app = doc.data() as any;
             if (
@@ -448,7 +448,7 @@ export default function JobApplicationsPage() {
               existingApplication = { id: doc.id, ...app };
             }
           });
-          
+
           if (existingApplication) {
             applicationId = existingApplication.id;
           } else {
@@ -472,22 +472,22 @@ export default function JobApplicationsPage() {
                 notes: 'Interview scheduled from job applications page'
               }]
             };
-            
+
             const docRef = await addDoc(
-              collection(db, 'users', currentUser.uid, 'jobApplications'), 
+              collection(db, 'users', currentUser.uid, 'jobApplications'),
               applicationData
             );
-            
+
             applicationId = docRef.id;
           }
         }
-        
+
         // Vérification des champs requis pour l'interview
         if (!formData.companyName || !formData.position || !formData.interviewDate) {
           toast.error('Please fill in all required fields');
           return;
         }
-        
+
         // Ajouter l'entretien
         const interviewData = {
           id: crypto.randomUUID(),
@@ -500,19 +500,19 @@ export default function JobApplicationsPage() {
           contactName: formData.contactName || '',
           contactEmail: formData.contactEmail || ''
         };
-        
+
         // Mise à jour de la candidature avec le nouvel entretien
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
         await updateDoc(applicationRef, {
           interviews: existingApplication?.interviews ? [...existingApplication.interviews, interviewData] : [interviewData],
           status: 'interview',
           updatedAt: serverTimestamp(),
-          statusHistory: existingApplication?.statusHistory ? 
+          statusHistory: existingApplication?.statusHistory ?
             [...existingApplication.statusHistory, {
               status: 'interview',
               date: formData.interviewDate,
               notes: 'Interview added from job applications page'
-            }] : 
+            }] :
             [{
               status: 'applied',
               date: formData.interviewDate || new Date().toISOString().split('T')[0],
@@ -545,7 +545,7 @@ export default function JobApplicationsPage() {
           interviewTime: '09:00',
           interviewDate: new Date().toISOString().split('T')[0],
         });
-        
+
         toast.success('Interview added successfully');
       }
     } catch (error) {
@@ -556,15 +556,15 @@ export default function JobApplicationsPage() {
 
   const handleUpdateApplication = async () => {
     if (!currentUser || !editModal.application) return;
-    
+
     try {
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', editModal.application.id);
-      
+
       await updateDoc(applicationRef, {
         ...formData,
         updatedAt: serverTimestamp()
       });
-      
+
       setEditModal({ show: false });
       toast.success('Application updated successfully');
     } catch (error) {
@@ -575,24 +575,24 @@ export default function JobApplicationsPage() {
 
   const handleDeleteApplication = async () => {
     if (!currentUser || !deleteModal.application) return;
-    
+
     try {
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', deleteModal.application.id);
-      
+
       // Optimistically update the UI first
-      setApplications(prevApplications => 
+      setApplications(prevApplications =>
         prevApplications.filter(app => app.id !== deleteModal.application?.id)
       );
-      
+
       // Then delete from Firestore
       await deleteDoc(applicationRef);
-      
+
       // Close the modal
       setDeleteModal({ show: false });
-      
+
       // Show success toast
       toast.success('Application deleted successfully');
-      
+
       // Close timeline modal if it's open for the deleted application
       if (timelineModal && selectedApplication?.id === deleteModal.application.id) {
         setTimelineModal(false);
@@ -601,12 +601,12 @@ export default function JobApplicationsPage() {
     } catch (error) {
       console.error('Error deleting application:', error);
       toast.error('Failed to delete application');
-      
+
       // If there was an error, revert the optimistic update
       // by refreshing the applications from Firestore
       const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
       const q = query(applicationsRef, orderBy('createdAt', 'desc'));
-      
+
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const applicationsData: JobApplication[] = [];
         snapshot.forEach((doc) => {
@@ -614,7 +614,7 @@ export default function JobApplicationsPage() {
         });
         setApplications(applicationsData);
       });
-      
+
       // Cleanup the temporary listener
       setTimeout(() => unsubscribe(), 2000);
     }
@@ -623,7 +623,7 @@ export default function JobApplicationsPage() {
   // Fonction pour ajouter un interview directement depuis la modal Timeline
   const handleAddInterview = async () => {
     if (!currentUser || !selectedApplication) return;
-    
+
     try {
       // Valider les champs requis
       if (!newInterview.date || !newInterview.time) {
@@ -645,12 +645,12 @@ export default function JobApplicationsPage() {
       // Mettre à jour l'application avec le nouvel interview
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', selectedApplication.id);
       const updatedInterviews = [...(selectedApplication.interviews || []), interview];
-      
+
       // Mettre à jour le statut si nécessaire
       let updatedStatus = selectedApplication.status;
       if (selectedApplication.status === 'applied' && interview.status === 'scheduled') {
         updatedStatus = 'interview';
-        
+
         // Ajouter une entrée dans l'historique de statut
         const statusHistory = selectedApplication.statusHistory || [{
           status: selectedApplication.status,
@@ -662,7 +662,7 @@ export default function JobApplicationsPage() {
           date: new Date().toISOString().split('T')[0],
           notes: 'Interview scheduled'
         });
-        
+
         await updateDoc(applicationRef, {
           interviews: updatedInterviews,
           status: updatedStatus,
@@ -683,9 +683,9 @@ export default function JobApplicationsPage() {
         status: updatedStatus
       };
       setSelectedApplication(updatedApplication);
-      
+
       // Mettre à jour la liste des applications
-      setApplications(prev => prev.map(app => 
+      setApplications(prev => prev.map(app =>
         app.id === selectedApplication.id ? updatedApplication : app
       ));
 
@@ -731,7 +731,7 @@ export default function JobApplicationsPage() {
     if (dateFilter !== 'all') {
       const now = new Date();
       const filterDate = new Date();
-      
+
       switch (dateFilter) {
         case '7d':
           filterDate.setDate(now.getDate() - 7);
@@ -757,7 +757,7 @@ export default function JobApplicationsPage() {
           }
           break;
       }
-      
+
       if (dateFilter !== 'custom' || !customDateRange) {
         filtered = filtered.filter(app => {
           const appDate = new Date(app.appliedDate);
@@ -770,7 +770,7 @@ export default function JobApplicationsPage() {
     if (updateDateFilter !== 'all') {
       const now = new Date();
       const filterDate = new Date();
-      
+
       switch (updateDateFilter) {
         case '24h':
           filterDate.setHours(now.getHours() - 24);
@@ -782,7 +782,7 @@ export default function JobApplicationsPage() {
           filterDate.setDate(now.getDate() - 30);
           break;
       }
-      
+
       filtered = filtered.filter(app => {
         const updatedAt = app.updatedAt ? new Date(app.updatedAt) : new Date(app.createdAt);
         return updatedAt >= filterDate;
@@ -831,7 +831,7 @@ export default function JobApplicationsPage() {
       today.setHours(0, 0, 0, 0);
       const futureDate = new Date(today);
       futureDate.setDate(today.getDate() + upcomingInterviewsDays);
-      
+
       filtered = filtered.filter(app => {
         if (!app.interviews || app.interviews.length === 0) return false;
         return app.interviews.some(interview => {
@@ -845,7 +845,7 @@ export default function JobApplicationsPage() {
     // Sorting
     filtered.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'appliedDate':
           comparison = new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
@@ -867,7 +867,7 @@ export default function JobApplicationsPage() {
           comparison = aCount - bCount;
           break;
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
@@ -906,6 +906,7 @@ export default function JobApplicationsPage() {
   };
 
   const applicationsByStatus = {
+    wishlist: filteredApplications.filter(app => app.status === 'wishlist'),
     applied: filteredApplications.filter(app => app.status === 'applied'),
     interview: filteredApplications.filter(app => app.status === 'interview'),
     pending_decision: filteredApplications.filter(app => app.status === 'pending_decision'),
@@ -914,20 +915,20 @@ export default function JobApplicationsPage() {
     archived: filteredApplications.filter(app => app.status === 'archived')
   };
 
-  const columnOrder = ['applied', 'interview', 'pending_decision', 'offer', 'rejected', 'archived'];
-  
+  const columnOrder = ['wishlist', 'applied', 'interview', 'pending_decision', 'offer', 'rejected', 'archived'];
+
   // Analytics helper functions
   const getMonthlyApplicationData = () => {
-    const monthData: { [key: string]: { applied: number, interviews: number, pending: number, offers: number, rejected: number }} = {};
-    
+    const monthData: { [key: string]: { applied: number, interviews: number, pending: number, offers: number, rejected: number } } = {};
+
     applications.forEach(app => {
       const date = new Date(app.appliedDate);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
+
       if (!monthData[monthKey]) {
         monthData[monthKey] = { applied: 0, interviews: 0, pending: 0, offers: 0, rejected: 0 };
       }
-      
+
       // Count applications by current status
       if (app.status === 'applied') monthData[monthKey].applied++;
       else if (app.status === 'interview') monthData[monthKey].interviews++;
@@ -935,13 +936,13 @@ export default function JobApplicationsPage() {
       else if (app.status === 'offer') monthData[monthKey].offers++;
       else if (app.status === 'rejected') monthData[monthKey].rejected++;
     });
-    
+
     // Sort by month
     return Object.entries(monthData)
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-6); // Last 6 months
   };
-  
+
   const getApplicationSourceData = () => {
     // In a real app, you would track the source of each application
     // Here we'll simulate some sample data
@@ -953,49 +954,49 @@ export default function JobApplicationsPage() {
       { source: 'Other', count: applications.length - Math.floor(applications.length * 0.95) }
     ].filter(item => item.count > 0);
   };
-  
+
   const getResponseRateData = () => {
     const total = applications.length;
     const responses = applications.filter(app => app.status !== 'applied').length;
-    const interviews = applications.filter(app => app.status === 'interview' || app.status === 'offer' || 
+    const interviews = applications.filter(app => app.status === 'interview' || app.status === 'offer' ||
       (app.interviews && app.interviews.length > 0)).length;
     const offers = applications.filter(app => app.status === 'offer').length;
-    
+
     return {
       responseRate: total ? (responses / total) * 100 : 0,
       interviewRate: total ? (interviews / total) * 100 : 0,
       offerRate: total ? (offers / total) * 100 : 0
     };
   };
-  
+
   const getAverageTimeData = () => {
     let totalApplicationToInterview = 0;
     let totalInterviewToOffer = 0;
     let applicationsWithInterviews = 0;
     let interviewsWithOffers = 0;
-    
+
     applications.forEach(app => {
       if (app.statusHistory && app.statusHistory.length > 1) {
         const appliedEntry = app.statusHistory.find(h => h.status === 'applied');
         const interviewEntry = app.statusHistory.find(h => h.status === 'interview');
         const offerEntry = app.statusHistory.find(h => h.status === 'offer');
-        
+
         if (appliedEntry && interviewEntry) {
           const appliedDate = new Date(appliedEntry.date);
           const interviewDate = new Date(interviewEntry.date);
           const daysDiff = Math.round((interviewDate.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24));
-          
+
           if (daysDiff >= 0) {
             totalApplicationToInterview += daysDiff;
             applicationsWithInterviews++;
           }
         }
-        
+
         if (interviewEntry && offerEntry) {
           const interviewDate = new Date(interviewEntry.date);
           const offerDate = new Date(offerEntry.date);
           const daysDiff = Math.round((offerDate.getTime() - interviewDate.getTime()) / (1000 * 60 * 60 * 24));
-          
+
           if (daysDiff >= 0) {
             totalInterviewToOffer += daysDiff;
             interviewsWithOffers++;
@@ -1003,7 +1004,7 @@ export default function JobApplicationsPage() {
         }
       }
     });
-    
+
     return {
       avgDaysToInterview: applicationsWithInterviews ? Math.round(totalApplicationToInterview / applicationsWithInterviews) : 0,
       avgDaysToOffer: interviewsWithOffers ? Math.round(totalInterviewToOffer / interviewsWithOffers) : 0
@@ -1017,17 +1018,17 @@ export default function JobApplicationsPage() {
       const date = new Date(`${dateStr}T${timeStr}`);
       return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     };
-    
+
     const startTime = formatDate(interview.date, interview.time || '09:00');
-    
+
     // Calculate end time (default to 1 hour later)
     const endDate = new Date(`${interview.date}T${interview.time || '09:00'}`);
     endDate.setHours(endDate.getHours() + 1);
     const endTime = formatDate(interview.date, endDate.toTimeString().split(' ')[0].substring(0, 5));
-    
+
     // Create the .ics content
-    const icsContent = 
-  `BEGIN:VCALENDAR
+    const icsContent =
+      `BEGIN:VCALENDAR
 VERSION:2.0
 CALSCALE:GREGORIAN
 BEGIN:VEVENT
@@ -1047,7 +1048,7 @@ END:VCALENDAR`;
   const downloadICS = (interview: Interview, company: string, position: string) => {
     const icsContent = generateICSFile(interview, company, position);
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    
+
     // Create a download link and trigger it
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -1061,9 +1062,9 @@ END:VCALENDAR`;
   const cardVariants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: { opacity: 1, scale: 1, transition: { duration: 0.2 } },
-    dragging: { 
-      scale: 1.05, 
-      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", 
+    dragging: {
+      scale: 1.05,
+      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
       zIndex: 50,
       background: "var(--card-dragging-bg)",
       borderColor: "var(--card-dragging-border)",
@@ -1136,10 +1137,10 @@ END:VCALENDAR`;
     <AuthLayout>
       {/* CSS Variables pour les animations */}
       <style>{cssVariables}</style>
-      
+
       <div className="h-full flex flex-col px-4 pt-3 pb-0">
         {/* Compact Header Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -1152,7 +1153,7 @@ END:VCALENDAR`;
                 Track and manage your job applications
               </p>
             </div>
-            
+
             {/* Bouton Add à droite */}
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -1174,7 +1175,7 @@ END:VCALENDAR`;
 
           {/* Stats en ligne horizontale + View Toggle */}
           <div className="flex items-center justify-between mb-3">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -1186,7 +1187,7 @@ END:VCALENDAR`;
                 { label: 'Offer', count: applications.filter(a => a.status === 'offer').length, color: 'green' },
                 { label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length, color: 'red' }
               ].map((stat, index) => (
-                <motion.div 
+                <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1207,22 +1208,20 @@ END:VCALENDAR`;
             <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex">
               <button
                 onClick={() => setView('kanban')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
-                  view === 'kanban' 
-                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm' 
+                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${view === 'kanban'
+                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
-                }`}
+                  }`}
               >
                 <PieChart className="w-4 h-4" />
                 <span>Kanban</span>
               </button>
               <button
                 onClick={() => setView('analytics')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
-                  view === 'analytics' 
-                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm' 
+                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${view === 'analytics'
+                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
-                }`}
+                  }`}
               >
                 <LineChart className="w-4 h-4" />
                 <span>Analytics</span>
@@ -1233,7 +1232,7 @@ END:VCALENDAR`;
 
         {/* Barre de recherche et filtres - only show for kanban view */}
         {view === 'kanban' && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -1257,11 +1256,10 @@ END:VCALENDAR`;
                 {/* Date Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'date' ? null : 'date')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    dateFilter !== 'all' || customDateRange
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilter !== 'all' || customDateRange
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   <Calendar className="w-4 h-4" />
                   <span>Date</span>
@@ -1275,11 +1273,10 @@ END:VCALENDAR`;
                 {/* Interview Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'interview' ? null : 'interview')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   <Users className="w-4 h-4" />
                   <span>Interviews</span>
@@ -1293,11 +1290,10 @@ END:VCALENDAR`;
                 {/* Company Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'company' ? null : 'company')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedCompanies.length > 0
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCompanies.length > 0
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   <Building className="w-4 h-4" />
                   <span>Company</span>
@@ -1311,11 +1307,10 @@ END:VCALENDAR`;
                 {/* Sort Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'sort' ? null : 'sort')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    sortBy !== 'appliedDate' || sortOrder !== 'desc'
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sortBy !== 'appliedDate' || sortOrder !== 'desc'
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   <Filter className="w-4 h-4" />
                   <span>Sort</span>
@@ -1354,13 +1349,13 @@ END:VCALENDAR`;
               <div className="flex flex-wrap gap-2">
                 {dateFilter !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    Date: {dateFilter === 'custom' && customDateRange 
+                    Date: {dateFilter === 'custom' && customDateRange
                       ? `${new Date(customDateRange.start).toLocaleDateString()} - ${new Date(customDateRange.end).toLocaleDateString()}`
                       : dateFilter === '7d' ? 'Last 7 days'
-                      : dateFilter === '30d' ? 'Last 30 days'
-                      : dateFilter === '3m' ? 'Last 3 months'
-                      : dateFilter === '6m' ? 'Last 6 months'
-                      : 'All'}
+                        : dateFilter === '30d' ? 'Last 30 days'
+                          : dateFilter === '3m' ? 'Last 3 months'
+                            : dateFilter === '6m' ? 'Last 6 months'
+                              : 'All'}
                     <button
                       onClick={() => {
                         setDateFilter('all');
@@ -1426,87 +1421,87 @@ END:VCALENDAR`;
             >
               {/* Kanban Board - Optimisé pleine hauteur */}
               <DragDropContext onDragEnd={handleDragEnd}>
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                   className="flex-1 overflow-x-auto min-h-0"
                 >
                   <div className="flex gap-3 h-full min-w-min">
-                  {['applied', 'interview', 'pending_decision', 'offer', 'rejected'].map((status, columnIndex) => {
-                    const statusCount = filteredApplications.filter(a => a.status === status).length;
-                    const isLastColumn = columnIndex === ['applied', 'interview', 'pending_decision', 'offer', 'rejected'].length - 1;
-                    
-                    return (
-                    <Droppable key={status} droppableId={status}>
-                      {(provided, snapshot) => (
-                        <motion.div
-                          initial={{ opacity: 0, y: 30 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.4, delay: 0.1 * columnIndex }}
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'droppable-hover' : ''} ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700 pr-3' : ''}`}
-                        >
-                          <div className="mb-2 sm:mb-3 text-center">
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                              <h3 className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm">
-                                {status === 'pending_decision' ? 'PENDING DECISION' : status.toUpperCase()}
-                              </h3>
-                              <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                {statusCount} {statusCount === 1 ? 'JOB' : 'JOBS'}
-                              </span>
-                            </div>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                setEventType('application');
-                                setLookupSelectedApplication(null);
-                                setLinkedApplicationId(null);
-                                setLookupSearchQuery('');
-                                setShowLookupDropdown(false);
-                                setFormData({
-                                  companyName: '',
-                                  position: '',
-                                  location: '',
-                                  status: status as 'applied' | 'interview' | 'pending_decision' | 'offer' | 'rejected',
-                                  appliedDate: new Date().toISOString().split('T')[0],
-                                  url: '',
-                                  description: '',
-                                  fullJobDescription: '',
-                                  notes: '',
-                                  interviewType: 'technical',
-                                  interviewTime: '09:00',
-                                  interviewDate: new Date().toISOString().split('T')[0],
-                                });
-                                setNewApplicationModal(true);
-                              }}
-                              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 transition-colors border border-purple-200 dark:border-purple-800"
-                            >
-                              <Plus className="w-4 h-4" />
-                              <span className="text-xs font-medium">Add</span>
-                            </motion.button>
-                          </div>
+                    {['wishlist', 'applied', 'interview', 'pending_decision', 'offer', 'rejected'].map((status, columnIndex) => {
+                      const statusCount = filteredApplications.filter(a => a.status === status).length;
+                      const isLastColumn = columnIndex === ['wishlist', 'applied', 'interview', 'pending_decision', 'offer', 'rejected'].length - 1;
 
-                          <div className="flex-1 overflow-y-auto space-y-2 sm:space-y-3">
-                            <ApplicationList
-                              applications={filteredApplications.filter(a => a.status === status)}
-                              onCardClick={(app) => {
-                                setSelectedApplication(app);
-                                setTimelineModal(true);
-                              }}
-                              onCardDelete={(app) => {
-                                setDeleteModal({ show: true, application: app });
-                              }}
-                            />
-                            {provided.placeholder}
-                          </div>
-                        </motion.div>
-                      )}
-                    </Droppable>
-                    );
-                  })}
+                      return (
+                        <Droppable key={status} droppableId={status}>
+                          {(provided, snapshot) => (
+                            <motion.div
+                              initial={{ opacity: 0, y: 30 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.4, delay: 0.1 * columnIndex }}
+                              ref={provided.innerRef}
+                              {...provided.droppableProps}
+                              className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'droppable-hover' : ''} ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700 pr-3' : ''}`}
+                            >
+                              <div className="mb-2 sm:mb-3 text-center">
+                                <div className="flex items-center justify-center gap-2 mb-2">
+                                  <h3 className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm">
+                                    {status === 'pending_decision' ? 'PENDING DECISION' : status.toUpperCase()}
+                                  </h3>
+                                  <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                    {statusCount} {statusCount === 1 ? 'JOB' : 'JOBS'}
+                                  </span>
+                                </div>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => {
+                                    setEventType('application');
+                                    setLookupSelectedApplication(null);
+                                    setLinkedApplicationId(null);
+                                    setLookupSearchQuery('');
+                                    setShowLookupDropdown(false);
+                                    setFormData({
+                                      companyName: '',
+                                      position: '',
+                                      location: '',
+                                      status: status as 'wishlist' | 'applied' | 'interview' | 'pending_decision' | 'offer' | 'rejected',
+                                      appliedDate: new Date().toISOString().split('T')[0],
+                                      url: '',
+                                      description: '',
+                                      fullJobDescription: '',
+                                      notes: '',
+                                      interviewType: 'technical',
+                                      interviewTime: '09:00',
+                                      interviewDate: new Date().toISOString().split('T')[0],
+                                    });
+                                    setNewApplicationModal(true);
+                                  }}
+                                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 transition-colors border border-purple-200 dark:border-purple-800"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  <span className="text-xs font-medium">Add</span>
+                                </motion.button>
+                              </div>
+
+                              <div className="flex-1 overflow-y-auto space-y-2 sm:space-y-3">
+                                <ApplicationList
+                                  applications={filteredApplications.filter(a => a.status === status)}
+                                  onCardClick={(app) => {
+                                    setSelectedApplication(app);
+                                    setTimelineModal(true);
+                                  }}
+                                  onCardDelete={(app) => {
+                                    setDeleteModal({ show: true, application: app });
+                                  }}
+                                />
+                                {provided.placeholder}
+                              </div>
+                            </motion.div>
+                          )}
+                        </Droppable>
+                      );
+                    })}
                   </div>
                 </motion.div>
               </DragDropContext>
@@ -1530,13 +1525,13 @@ END:VCALENDAR`;
                   </p>
                   <button
                     onClick={() => {
-                setEventType(null);
-                setLookupSelectedApplication(null);
-                setLinkedApplicationId(null);
-                setLookupSearchQuery('');
-                setShowLookupDropdown(false);
-                setNewApplicationModal(true);
-              }}
+                      setEventType(null);
+                      setLookupSelectedApplication(null);
+                      setLinkedApplicationId(null);
+                      setLookupSearchQuery('');
+                      setShowLookupDropdown(false);
+                      setNewApplicationModal(true);
+                    }}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
                   >
                     <PlusCircle className="h-4 w-4" />
@@ -1548,29 +1543,29 @@ END:VCALENDAR`;
                   {/* Top row - Response rate metrics */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
-                      { 
-                        label: 'Response Rate', 
+                      {
+                        label: 'Response Rate',
                         value: `${getResponseRateData().responseRate.toFixed(0)}%`,
                         desc: 'Applications that received any response',
                         icon: <MessageSquare className="text-purple-500" />,
                         trend: '+5% vs last month'
                       },
-                      { 
-                        label: 'Interview Rate', 
+                      {
+                        label: 'Interview Rate',
                         value: `${getResponseRateData().interviewRate.toFixed(0)}%`,
                         desc: 'Applications that led to interviews',
                         icon: <Users className="text-blue-500" />,
                         trend: '+2% vs last month'
                       },
-                      { 
-                        label: 'Offer Rate', 
+                      {
+                        label: 'Offer Rate',
                         value: `${getResponseRateData().offerRate.toFixed(0)}%`,
                         desc: 'Applications that resulted in offers',
                         icon: <Check className="text-green-500" />,
                         trend: getResponseRateData().offerRate > 0 ? '+3% vs last month' : 'No change'
                       }
                     ].map((metric, i) => (
-                      <motion.div 
+                      <motion.div
                         key={metric.label}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -1594,11 +1589,11 @@ END:VCALENDAR`;
                       </motion.div>
                     ))}
                   </div>
-                  
+
                   {/* Middle row - Charts */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* Monthly Applications Chart */}
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.3 }}
@@ -1608,12 +1603,12 @@ END:VCALENDAR`;
                         <h3 className="font-medium">Applications Over Time</h3>
                         <div className="text-xs text-gray-500">Last 6 months</div>
                       </div>
-                      
+
                       <div className="h-60 flex items-end justify-between px-2">
                         {getMonthlyApplicationData().map(([month, data], i) => {
                           const total = data.applied + data.interviews + data.pending + data.offers + data.rejected;
                           const maxHeight = 200; // max height in pixels
-                          
+
                           return (
                             <div key={month} className="flex flex-col items-center gap-2 w-1/6">
                               {/* Stacked bars */}
@@ -1626,7 +1621,7 @@ END:VCALENDAR`;
                                   { type: 'applied', count: data.applied, color: 'bg-blue-500' }
                                 ].map((segment, j) => {
                                   const height = total > 0 ? (segment.count / total) * maxHeight : 0;
-                                  
+
                                   return (
                                     <motion.div
                                       key={segment.type}
@@ -1639,7 +1634,7 @@ END:VCALENDAR`;
                                   );
                                 })}
                               </div>
-                              
+
                               {/* Month label */}
                               <div className="text-xs text-gray-500">
                                 {new Date(month).toLocaleDateString(undefined, { month: 'short' })}
@@ -1648,7 +1643,7 @@ END:VCALENDAR`;
                           );
                         })}
                       </div>
-                      
+
                       {/* Legend */}
                       <div className="flex justify-center mt-4 gap-4 text-xs">
                         {[
@@ -1665,9 +1660,9 @@ END:VCALENDAR`;
                         ))}
                       </div>
                     </motion.div>
-                    
+
                     {/* Application Sources */}
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.4 }}
@@ -1676,7 +1671,7 @@ END:VCALENDAR`;
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="font-medium">Application Sources</h3>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         {/* Placeholder for Pie Chart - In a real app you would use a chart library */}
                         <div className="flex items-center justify-center">
@@ -1687,11 +1682,11 @@ END:VCALENDAR`;
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Legend / List */}
                         <div className="flex flex-col justify-center space-y-2">
                           {getApplicationSourceData().map((source, i) => (
-                            <motion.div 
+                            <motion.div
                               key={source.source}
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -1699,9 +1694,8 @@ END:VCALENDAR`;
                               className="flex items-center justify-between"
                             >
                               <div className="flex items-center gap-2">
-                                <div className={`w-3 h-3 rounded-full bg-${
-                                  ['blue', 'purple', 'green', 'yellow', 'pink'][i % 5]
-                                }-500`}></div>
+                                <div className={`w-3 h-3 rounded-full bg-${['blue', 'purple', 'green', 'yellow', 'pink'][i % 5]
+                                  }-500`}></div>
                                 <span className="text-sm">{source.source}</span>
                               </div>
                               <span className="text-sm font-medium">{source.count}</span>
@@ -1711,7 +1705,7 @@ END:VCALENDAR`;
                       </div>
                     </motion.div>
                   </div>
-                  
+
                   {/* Bottom row - Time metrics */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
@@ -1803,11 +1797,11 @@ END:VCALENDAR`;
                           />
                           <span className="text-sm text-gray-700 dark:text-gray-300">
                             {option === 'all' ? 'All dates' :
-                             option === '7d' ? 'Last 7 days' :
-                             option === '30d' ? 'Last 30 days' :
-                             option === '3m' ? 'Last 3 months' :
-                             option === '6m' ? 'Last 6 months' :
-                             'Custom range'}
+                              option === '7d' ? 'Last 7 days' :
+                                option === '30d' ? 'Last 30 days' :
+                                  option === '3m' ? 'Last 3 months' :
+                                    option === '6m' ? 'Last 6 months' :
+                                      'Custom range'}
                           </span>
                         </label>
                       ))}
@@ -1851,9 +1845,9 @@ END:VCALENDAR`;
                           />
                           <span className="text-sm text-gray-700 dark:text-gray-300">
                             {option === 'all' ? 'All time' :
-                             option === '24h' ? 'Last 24 hours' :
-                             option === '7d' ? 'Last 7 days' :
-                             'Last 30 days'}
+                              option === '24h' ? 'Last 24 hours' :
+                                option === '7d' ? 'Last 7 days' :
+                                  'Last 30 days'}
                           </span>
                         </label>
                       ))}
@@ -1925,9 +1919,9 @@ END:VCALENDAR`;
                           />
                           <span className="text-sm text-gray-700 dark:text-gray-300">
                             {option === 'all' ? 'All applications' :
-                             option === 'with' ? 'With interviews' :
-                             option === 'without' ? 'Without interviews' :
-                             'Upcoming interviews only'}
+                              option === 'with' ? 'With interviews' :
+                                option === 'without' ? 'Without interviews' :
+                                  'Upcoming interviews only'}
                           </span>
                         </label>
                       ))}
@@ -2232,7 +2226,7 @@ END:VCALENDAR`;
         {/* Existing modals */}
         <AnimatePresence>
           {newApplicationModal && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -2260,7 +2254,7 @@ END:VCALENDAR`;
               }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
             >
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: "100%" }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: "100%" }}
@@ -2272,7 +2266,7 @@ END:VCALENDAR`;
                 <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
                   <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
                 </div>
-                
+
                 {/* Header */}
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
                   <div>
@@ -2283,7 +2277,7 @@ END:VCALENDAR`;
                       {eventType ? (eventType === 'application' ? 'Track a new job application' : 'Schedule or log an interview') : 'Select an event type to continue'}
                     </p>
                   </div>
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
@@ -2310,7 +2304,7 @@ END:VCALENDAR`;
                     <X className="w-5 h-5" />
                   </motion.button>
                 </div>
-                
+
                 {/* Scrollable content */}
                 <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
                   <form onSubmit={(e) => { e.preventDefault(); handleCreateApplication(); }} className="space-y-5">
@@ -2345,7 +2339,7 @@ END:VCALENDAR`;
                               <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                             </div>
                           </motion.button>
-                          
+
                           <motion.button
                             type="button"
                             whileHover={{ scale: 1.02, y: -2 }}
@@ -2530,7 +2524,7 @@ END:VCALENDAR`;
                                   </button>
                                 )}
                               </div>
-                              
+
                               {/* Dropdown avec les résultats de recherche */}
                               <AnimatePresence>
                                 {showLookupDropdown && lookupSearchQuery && !lookupSelectedApplication && (
@@ -2541,7 +2535,7 @@ END:VCALENDAR`;
                                     className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto"
                                   >
                                     {lookupApplications
-                                      .filter(app => 
+                                      .filter(app =>
                                         app.companyName.toLowerCase().includes(lookupSearchQuery.toLowerCase()) ||
                                         app.position.toLowerCase().includes(lookupSearchQuery.toLowerCase())
                                       )
@@ -2586,14 +2580,14 @@ END:VCALENDAR`;
                                           </div>
                                         </button>
                                       ))}
-                                    {lookupApplications.filter(app => 
+                                    {lookupApplications.filter(app =>
                                       app.companyName.toLowerCase().includes(lookupSearchQuery.toLowerCase()) ||
                                       app.position.toLowerCase().includes(lookupSearchQuery.toLowerCase())
                                     ).length === 0 && (
-                                      <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
-                                        No applications found
-                                      </div>
-                                    )}
+                                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                                          No applications found
+                                        </div>
+                                      )}
                                   </motion.div>
                                 )}
                               </AnimatePresence>
@@ -2618,7 +2612,7 @@ END:VCALENDAR`;
                             </p>
                           </div>
                         )}
-                        
+
                         {/* Company Name */}
                         <div>
                           <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
@@ -2633,7 +2627,7 @@ END:VCALENDAR`;
                             placeholder="Enter company name"
                           />
                         </div>
-                        
+
                         {/* Position */}
                         <div>
                           <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
@@ -2648,7 +2642,7 @@ END:VCALENDAR`;
                             placeholder="Enter position"
                           />
                         </div>
-                        
+
                         {/* Location */}
                         <div>
                           <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
@@ -2691,7 +2685,7 @@ END:VCALENDAR`;
                                 required
                               />
                             </div>
-                            
+
                             <div>
                               <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Interview Type</label>
                               <select
@@ -2706,7 +2700,7 @@ END:VCALENDAR`;
                                 <option value="other">Other</option>
                               </select>
                             </div>
-                            
+
                             <div>
                               <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Time</label>
                               <input
@@ -2716,7 +2710,7 @@ END:VCALENDAR`;
                                 className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                               />
                             </div>
-                            
+
                             <div>
                               <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Contact Name</label>
                               <input
@@ -2727,7 +2721,7 @@ END:VCALENDAR`;
                                 placeholder="Enter contact name"
                               />
                             </div>
-                            
+
                             <div>
                               <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Contact Email</label>
                               <input
@@ -2740,7 +2734,7 @@ END:VCALENDAR`;
                             </div>
                           </>
                         )}
-                        
+
                         {/* Notes */}
                         <div>
                           <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
@@ -2758,7 +2752,7 @@ END:VCALENDAR`;
                     )}
                   </form>
                 </div>
-                
+
                 {/* Footer with action buttons */}
                 <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
                   <button
@@ -2823,12 +2817,12 @@ END:VCALENDAR`;
               <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
                 <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
               </div>
-              
+
               {/* Header fixe */}
               <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-semibold">Edit Application</h2>
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
@@ -2842,7 +2836,7 @@ END:VCALENDAR`;
                         location: '',
                         notes: ''
                       });
-                    }} 
+                    }}
                     className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                     aria-label="Close modal"
                   >
@@ -2964,7 +2958,7 @@ END:VCALENDAR`;
                             </button>
                           </div>
 
-                <div className="space-y-3">
+                          <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
@@ -3040,8 +3034,8 @@ END:VCALENDAR`;
                             </div>
 
                             <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => {
+                              <button
+                                onClick={() => {
                                   setShowAddInterviewForm(false);
                                   setNewInterview({
                                     date: new Date().toISOString().split('T')[0],
@@ -3071,15 +3065,15 @@ END:VCALENDAR`;
                                     location: newInterview.location || '',
                                     notes: newInterview.notes || ''
                                   };
-                        setFormData(prev => ({
-                          ...prev,
+                                  setFormData(prev => ({
+                                    ...prev,
                                     interviews: [...(prev.interviews || []), interview]
                                   }));
                                   setShowAddInterviewForm(false);
                                   setNewInterview({
-                            date: new Date().toISOString().split('T')[0],
-                            time: '09:00',
-                            type: 'technical',
+                                    date: new Date().toISOString().split('T')[0],
+                                    time: '09:00',
+                                    type: 'technical',
                                     status: 'scheduled',
                                     location: '',
                                     notes: ''
@@ -3088,9 +3082,9 @@ END:VCALENDAR`;
                                 }}
                                 className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-lg transition-all shadow-sm hover:shadow-md"
                               >
-                      Add Interview
-                    </button>
-                  </div>
+                                Add Interview
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </motion.div>
@@ -3101,15 +3095,14 @@ END:VCALENDAR`;
                   {formData.interviews && formData.interviews.length > 0 ? (
                     <div className="space-y-4">
                       {formData.interviews.map((interview, index) => (
-                        <div 
-                          key={interview.id} 
-                          className={`p-4 rounded-lg border ${
-                            interview.status === 'completed' 
-                              ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/50' 
+                        <div
+                          key={interview.id}
+                          className={`p-4 rounded-lg border ${interview.status === 'completed'
+                              ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/50'
                               : interview.status === 'cancelled'
-                              ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50'
-                              : 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50'
-                          }`}
+                                ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50'
+                                : 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50'
+                            }`}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3">
                             <div className="flex items-center gap-2 mb-2 sm:mb-0 flex-wrap">
@@ -3141,13 +3134,12 @@ END:VCALENDAR`;
                                   };
                                   setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                 }}
-                                className={`text-xs px-2 py-1 rounded-full border ${
-                                  interview.status === 'completed' 
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-300 dark:border-green-800' 
+                                className={`text-xs px-2 py-1 rounded-full border ${interview.status === 'completed'
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-300 dark:border-green-800'
                                     : interview.status === 'cancelled'
-                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-300 dark:border-red-800'
-                                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border-purple-300 dark:border-purple-800'
-                                }`}
+                                      ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-300 dark:border-red-800'
+                                      : 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border-purple-300 dark:border-purple-800'
+                                  }`}
                               >
                                 <option value="scheduled">Scheduled</option>
                                 <option value="completed">Completed</option>
@@ -3241,7 +3233,7 @@ END:VCALENDAR`;
                                 <Download className="w-3.5 h-3.5" />
                                 Add to Calendar
                               </button>
-                              
+
                               <a
                                 href={`/interview-prep/${editModal.application.id}/${interview.id}`}
                                 target="_blank"
@@ -3316,33 +3308,33 @@ END:VCALENDAR`;
           }}
           onUpdate={async (updates) => {
             if (!currentUser || !selectedApplication) return;
-            
+
             try {
               const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', selectedApplication.id);
               await updateDoc(applicationRef, {
                 ...updates,
                 updatedAt: serverTimestamp()
               });
-              
+
               // Create the updated application object
               const updatedApplication = {
                 ...selectedApplication,
                 ...updates,
                 updatedAt: new Date().toISOString()
               };
-              
+
               // Update local state
-              setApplications(prev => 
-                prev.map(app => 
-                  app.id === selectedApplication.id 
+              setApplications(prev =>
+                prev.map(app =>
+                  app.id === selectedApplication.id
                     ? updatedApplication
                     : app
                 )
               );
-              
+
               // Update selected application to reflect changes immediately
               setSelectedApplication(updatedApplication);
-              
+
               // Don't show toast for every update (only for user-initiated saves)
               if (!updates.interviews) {
                 toast.success('Application updated successfully');
@@ -3354,11 +3346,11 @@ END:VCALENDAR`;
           }}
           onDelete={async () => {
             if (!currentUser || !selectedApplication) return;
-            
+
             try {
               const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', selectedApplication.id);
               await deleteDoc(applicationRef);
-              
+
               setApplications(prev => prev.filter(app => app.id !== selectedApplication.id));
               toast.success('Application deleted successfully');
               setTimelineModal(false);
@@ -3406,45 +3398,45 @@ END:VCALENDAR`;
             >
               {/* Subtle accent line - Apple style */}
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400/60 to-indigo-500/40" />
-              
+
               {/* Drag handle for mobile */}
               <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
                 <div className="w-12 h-1 bg-gray-300/60 dark:bg-gray-600/60 rounded-full"></div>
               </div>
-              
+
               {/* Header with title and close/edit buttons - Apple style */}
               <div className="px-5 sm:px-6 py-4 border-b border-gray-200/60 dark:border-gray-800/50 sticky top-0 bg-white dark:bg-gray-900/80 backdrop-blur-xl z-10">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">Application Timeline</h2>
                   <div className="flex items-center gap-1">
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         setFormData(selectedApplication);
                         setTimelineModal(false);
                         setEditModal({ show: true, application: selectedApplication });
-                      }} 
+                      }}
                       className="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 
                         hover:bg-purple-50/60 dark:hover:bg-purple-900/30 rounded-lg transition-all duration-200 backdrop-blur-sm"
                       aria-label="Edit application"
                     >
                       <Edit2 className="w-4 h-4" />
                     </motion.button>
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         setTimelineModal(false);
                         setDeleteModal({ show: true, application: selectedApplication });
-                      }} 
+                      }}
                       className="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 
                         hover:bg-red-50/60 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200 backdrop-blur-sm"
                       aria-label="Delete application"
                     >
                       <Trash2 className="w-4 h-4" />
                     </motion.button>
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
@@ -3458,7 +3450,7 @@ END:VCALENDAR`;
                           location: '',
                           notes: ''
                         });
-                      }} 
+                      }}
                       className="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 
                         hover:bg-gray-100/60 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200 backdrop-blur-sm"
                       aria-label="Close modal"
@@ -3472,7 +3464,7 @@ END:VCALENDAR`;
               {/* Content with overflow */}
               <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5">
                 {/* Application details - Apple style */}
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
@@ -3480,7 +3472,7 @@ END:VCALENDAR`;
                 >
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1.5 tracking-tight">{selectedApplication.companyName}</h3>
                   <p className="text-purple-600 dark:text-purple-400 font-medium text-base mb-4">{selectedApplication.position}</p>
-                  
+
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm">
@@ -3495,12 +3487,12 @@ END:VCALENDAR`;
                       <span>Applied on {new Date(selectedApplication.appliedDate).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  
+
                   {selectedApplication.url && (
                     <div className="mb-4">
-                      <a 
-                        href={selectedApplication.url} 
-                        target="_blank" 
+                      <a
+                        href={selectedApplication.url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 
                           hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 
@@ -3511,7 +3503,7 @@ END:VCALENDAR`;
                       </a>
                     </div>
                   )}
-                  
+
                   {selectedApplication.notes && (
                     <div className="mt-4 p-4 bg-gray-50/80 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-800/50">
                       <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 mb-2.5 uppercase tracking-wide">
@@ -3522,9 +3514,9 @@ END:VCALENDAR`;
                     </div>
                   )}
                 </motion.div>
-                
+
                 {/* Status History - Apple style */}
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
@@ -3536,36 +3528,34 @@ END:VCALENDAR`;
                   </h4>
                   <div className="relative pl-6 border-l-2 border-gray-200/50 dark:border-gray-700/50 space-y-4">
                     {selectedApplication.statusHistory?.slice().reverse().map((status, index) => (
-                      <motion.div 
-                        key={index} 
+                      <motion.div
+                        key={index}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 + index * 0.05, duration: 0.3 }}
                         className="relative"
                       >
                         {/* Status dot - Apple style - positioned on top of the card */}
-                        <div className={`absolute -left-[17px] top-0 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-sm border-2 z-10 shadow-sm ${
-                          status.status === 'applied' ? 'bg-blue-50/60 text-blue-600 border-blue-200/50 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/30' :
-                          status.status === 'interview' ? 'bg-purple-50/60 text-purple-600 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30' :
-                          status.status === 'offer' ? 'bg-green-50/60 text-green-600 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30' :
-                          status.status === 'pending_decision' ? 'bg-amber-50/60 text-amber-600 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30' :
-                          status.status === 'archived' ? 'bg-gray-50/60 text-gray-600 border-gray-200/50 dark:bg-gray-950/30 dark:text-gray-400 dark:border-gray-800/30' :
-                          'bg-red-50/60 text-red-600 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
-                        }`}>
+                        <div className={`absolute -left-[17px] top-0 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-sm border-2 z-10 shadow-sm ${status.status === 'applied' ? 'bg-blue-50/60 text-blue-600 border-blue-200/50 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/30' :
+                            status.status === 'interview' ? 'bg-purple-50/60 text-purple-600 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30' :
+                              status.status === 'offer' ? 'bg-green-50/60 text-green-600 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30' :
+                                status.status === 'pending_decision' ? 'bg-amber-50/60 text-amber-600 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30' :
+                                  status.status === 'archived' ? 'bg-gray-50/60 text-gray-600 border-gray-200/50 dark:bg-gray-950/30 dark:text-gray-400 dark:border-gray-800/30' :
+                                    'bg-red-50/60 text-red-600 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
+                          }`}>
                           <span className="text-xs font-semibold capitalize">{status.status.slice(0, 1)}</span>
                         </div>
-                        
+
                         {/* Status details - Apple style */}
                         <div className="bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-800/50 pl-4 py-3 px-4 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800/50 relative z-0">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <p className={`font-medium text-sm capitalize ${
-                              status.status === 'applied' ? 'text-blue-600 dark:text-blue-400' :
-                              status.status === 'interview' ? 'text-purple-600 dark:text-purple-400' :
-                              status.status === 'offer' ? 'text-green-600 dark:text-green-400' :
-                              status.status === 'pending_decision' ? 'text-amber-600 dark:text-amber-400' :
-                              status.status === 'archived' ? 'text-gray-600 dark:text-gray-400' :
-                              'text-red-600 dark:text-red-400'
-                            }`}>
+                            <p className={`font-medium text-sm capitalize ${status.status === 'applied' ? 'text-blue-600 dark:text-blue-400' :
+                                status.status === 'interview' ? 'text-purple-600 dark:text-purple-400' :
+                                  status.status === 'offer' ? 'text-green-600 dark:text-green-400' :
+                                    status.status === 'pending_decision' ? 'text-amber-600 dark:text-amber-400' :
+                                      status.status === 'archived' ? 'text-gray-600 dark:text-gray-400' :
+                                        'text-red-600 dark:text-red-400'
+                              }`}>
                               {status.status === 'pending_decision' ? 'Pending Decision' : status.status}
                             </p>
                             <time className="text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -3582,9 +3572,9 @@ END:VCALENDAR`;
                     ))}
                   </div>
                 </motion.div>
-                
+
                 {/* Interviews Section - Apple style */}
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
@@ -3620,7 +3610,7 @@ END:VCALENDAR`;
                         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                         className="mb-4 overflow-hidden"
                       >
-                    <div className="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 dark:from-purple-900/20 dark:to-indigo-900/20 
+                        <div className="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 dark:from-purple-900/20 dark:to-indigo-900/20 
                       border border-purple-200/60 dark:border-purple-800/30 rounded-xl p-4 shadow-sm backdrop-blur-sm">
                           <div className="flex items-center justify-between mb-4">
                             <h5 className="text-sm font-semibold text-purple-900 dark:text-purple-300 tracking-tight">New Interview</h5>
@@ -3654,7 +3644,7 @@ END:VCALENDAR`;
                                   type="date"
                                   value={newInterview.date}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, date: e.target.value }))}
-                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
                                 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
@@ -3667,7 +3657,7 @@ END:VCALENDAR`;
                                   type="time"
                                   value={newInterview.time}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, time: e.target.value }))}
-                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
                                 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
@@ -3682,7 +3672,7 @@ END:VCALENDAR`;
                                 <select
                                   value={newInterview.type}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, type: e.target.value as Interview['type'] }))}
-                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
                                 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
@@ -3699,7 +3689,7 @@ END:VCALENDAR`;
                                 <select
                                   value={newInterview.status}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, status: e.target.value as Interview['status'] }))}
-                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
                                 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
@@ -3718,7 +3708,7 @@ END:VCALENDAR`;
                                 value={newInterview.location || ''}
                                 onChange={(e) => setNewInterview(prev => ({ ...prev, location: e.target.value }))}
                                 placeholder="e.g., Zoom, Office, Remote"
-                              className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
                                 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
@@ -3732,7 +3722,7 @@ END:VCALENDAR`;
                                 onChange={(e) => setNewInterview(prev => ({ ...prev, notes: e.target.value }))}
                                 placeholder="Add any notes or preparation tips..."
                                 rows={2}
-                            className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+                                className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
                               bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
                               focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                               transition-all duration-200 resize-none"
@@ -3754,7 +3744,7 @@ END:VCALENDAR`;
                                     notes: ''
                                   });
                                 }}
-                            className="flex-1 px-3 py-2.5 text-xs font-medium text-gray-700 dark:text-gray-300 
+                                className="flex-1 px-3 py-2.5 text-xs font-medium text-gray-700 dark:text-gray-300 
                               bg-gray-100/90 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-600/60 
                               rounded-lg transition-all duration-200 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/50"
                               >
@@ -3781,50 +3771,48 @@ END:VCALENDAR`;
                   {selectedApplication.interviews && selectedApplication.interviews.length > 0 ? (
                     <div className="space-y-3">
                       {selectedApplication.interviews.map((interview, index) => (
-                        <motion.div 
+                        <motion.div
                           key={interview.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.25 + index * 0.05, duration: 0.3 }}
-                          className={`group relative p-4 rounded-xl border backdrop-blur-sm transition-all duration-200 hover:shadow-md ${
-                            interview.status === 'completed' 
-                              ? 'bg-green-50/90 dark:bg-green-900/20 border-green-200/60 dark:border-green-900/50 hover:bg-green-50 dark:hover:bg-green-900/30' 
+                          className={`group relative p-4 rounded-xl border backdrop-blur-sm transition-all duration-200 hover:shadow-md ${interview.status === 'completed'
+                              ? 'bg-green-50/90 dark:bg-green-900/20 border-green-200/60 dark:border-green-900/50 hover:bg-green-50 dark:hover:bg-green-900/30'
                               : interview.status === 'cancelled'
-                              ? 'bg-red-50/90 dark:bg-red-900/20 border-red-200/60 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30'
-                              : 'bg-purple-50/90 dark:bg-purple-900/20 border-purple-200/60 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-900/30'
-                          }`}
+                                ? 'bg-red-50/90 dark:bg-red-900/20 border-red-200/60 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30'
+                                : 'bg-purple-50/90 dark:bg-purple-900/20 border-purple-200/60 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-900/30'
+                            }`}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                             <div className="flex items-center gap-2">
                               <span className="capitalize font-medium text-sm text-gray-900 dark:text-white">{interview.type} Interview</span>
-                              <span className={`px-2.5 py-1 text-[10px] font-medium rounded-full backdrop-blur-sm border ${
-                                interview.status === 'completed' 
-                                  ? 'bg-green-100/60 text-green-700 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30' 
+                              <span className={`px-2.5 py-1 text-[10px] font-medium rounded-full backdrop-blur-sm border ${interview.status === 'completed'
+                                  ? 'bg-green-100/60 text-green-700 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30'
                                   : interview.status === 'cancelled'
-                                  ? 'bg-red-100/60 text-red-700 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
-                                  : 'bg-purple-100/60 text-purple-700 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30'
-                              }`}>
+                                    ? 'bg-red-100/60 text-red-700 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
+                                    : 'bg-purple-100/60 text-purple-700 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30'
+                                }`}>
                                 {interview.status}
                               </span>
                             </div>
                             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{interview.date} {interview.time}</span>
                           </div>
-                          
-                      {interview.location && (
-                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-3">
-                          <div className="p-1 rounded-lg bg-white/80 dark:bg-gray-800/50 backdrop-blur-sm">
-                            <MapPin className="w-3 h-3" />
-                          </div>
-                          <span>{interview.location}</span>
-                        </div>
-                      )}
-                      
-                      {interview.notes && (
-                        <div className="mb-3 p-3 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-gray-200/60 dark:border-gray-800/50">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{interview.notes}</p>
-                        </div>
-                      )}
-                          
+
+                          {interview.location && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-3">
+                              <div className="p-1 rounded-lg bg-white/80 dark:bg-gray-800/50 backdrop-blur-sm">
+                                <MapPin className="w-3 h-3" />
+                              </div>
+                              <span>{interview.location}</span>
+                            </div>
+                          )}
+
+                          {interview.notes && (
+                            <div className="mb-3 p-3 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-gray-200/60 dark:border-gray-800/50">
+                              <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{interview.notes}</p>
+                            </div>
+                          )}
+
                           {interview.status === 'scheduled' && (
                             <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
                               <motion.button
@@ -3838,7 +3826,7 @@ END:VCALENDAR`;
                                 <Download className="w-3.5 h-3.5" />
                                 Add to Calendar
                               </motion.button>
-                              
+
                               <a
                                 href={`/interview-prep/${selectedApplication.id}/${interview.id}`}
                                 target="_blank"
@@ -3860,13 +3848,13 @@ END:VCALENDAR`;
                       <Calendar className="w-8 h-8 mx-auto text-gray-400 dark:text-gray-600 mb-2" />
                       <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No interviews scheduled yet</p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click "Add Interview" to schedule one</p>
-                  </div>
-                )}
+                    </div>
+                  )}
                 </motion.div>
               </div>
 
-          {/* Footer with Close button - Apple style */}
-          <div className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-gray-800/50 flex justify-end sticky bottom-0 
+              {/* Footer with Close button - Apple style */}
+              <div className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-gray-800/50 flex justify-end sticky bottom-0 
             bg-white dark:bg-gray-900/80 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -3911,11 +3899,11 @@ END:VCALENDAR`;
                   <X className="w-4 h-4" />
                 </motion.button>
               </div>
-              
+
               <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Are you sure you want to delete your application for <strong>{deleteModal.application.position}</strong> at <strong>{deleteModal.application.companyName}</strong>? This action cannot be undone.
               </p>
-              
+
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setDeleteModal({ show: false })}
@@ -3944,7 +3932,7 @@ END:VCALENDAR`;
             display: none;
           }
         `}</style>
-        
+
         {/* Floating action button to view all scheduled interviews */}
         <button
           onClick={() => {

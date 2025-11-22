@@ -5,11 +5,19 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'sonner';
+import { pdfToImages } from '../../../lib/pdfToImages';
+import { extractCVTextAndTags } from '../../../lib/cvTextExtraction';
 
 interface CVUploadStepProps {
   cvUrl?: string;
   cvName?: string;
-  onNext: (data: { cvUrl: string; cvName: string }) => void;
+  onNext: (data: {
+    cvUrl: string;
+    cvName: string;
+    cvText?: string;
+    cvTechnologies?: string[];
+    cvSkills?: string[];
+  }) => void;
   onBack: () => void;
 }
 
@@ -20,6 +28,9 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
   const [file, setFile] = useState<File | null>(null);
   const [uploadedCvUrl, setUploadedCvUrl] = useState<string>(cvUrl || '');
   const [uploadedCvName, setUploadedCvName] = useState<string>(cvName || '');
+  const [uploadedCvText, setUploadedCvText] = useState<string>('');
+  const [uploadedCvTechnologies, setUploadedCvTechnologies] = useState<string[]>([]);
+  const [uploadedCvSkills, setUploadedCvSkills] = useState<string[]>([]);
 
   // Update local state when props change
   useEffect(() => {
@@ -52,11 +63,26 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
       await uploadBytes(cvRef, selectedFile);
       const downloadUrl = await getDownloadURL(cvRef);
 
-      // Store in local state instead of calling onNext immediately
+      // Store in local state
       setUploadedCvUrl(downloadUrl);
       setUploadedCvName(selectedFile.name);
-      
-      toast.success('CV uploaded successfully! Click Continue to proceed.');
+
+      // Extract text and tags
+      try {
+        toast.info('Analyzing your CV...');
+        const images = await pdfToImages(selectedFile, 2, 1.5);
+        const { text, technologies, skills } = await extractCVTextAndTags(images);
+
+        setUploadedCvText(text);
+        setUploadedCvTechnologies(technologies);
+        setUploadedCvSkills(skills);
+
+        toast.success(`CV analyzed! Found ${technologies.length} technologies and ${skills.length} skills`);
+      } catch (extractionError) {
+        console.error('CV extraction failed:', extractionError);
+        toast.warning('CV uploaded but analysis failed');
+      }
+
     } catch (error) {
       console.error('Error uploading CV:', error);
       toast.error('Failed to upload CV');
@@ -116,7 +142,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
                 <p className="text-sm text-gray-500 dark:text-gray-400">CV uploaded successfully</p>
               </div>
             </div>
-            
+
             <label className="flex items-center px-4 py-2 text-sm font-medium text-[hsl(var(--primary))] 
               bg-[hsl(var(--primary))]/10 dark:bg-[hsl(var(--primary))]/20 rounded-lg cursor-pointer 
               hover:bg-[hsl(var(--primary))]/20 dark:hover:bg-[hsl(var(--primary))]/30 
@@ -155,16 +181,15 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
         </div>
       ) : (
         <div className="flex items-center justify-center w-full">
-          <label 
+          <label
             className={`flex flex-col w-full h-32 border-2 border-dashed 
             rounded-lg cursor-pointer 
             transition-all duration-200 bg-white dark:bg-gray-800
             shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
-            ${
-              isDragging
+            ${isDragging
                 ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))]/10 dark:bg-[hsl(var(--primary))]/20 shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]'
                 : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-[hsl(var(--primary))]/50 dark:hover:border-[hsl(var(--primary))]/50 hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
-            }`}
+              }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -220,7 +245,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
         >
           Back
         </button>
-        
+
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNext({ cvUrl: '', cvName: '' })}
@@ -231,7 +256,13 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
             Do it later
           </button>
           <button
-            onClick={() => uploadedCvUrl && uploadedCvName && onNext({ cvUrl: uploadedCvUrl, cvName: uploadedCvName })}
+            onClick={() => uploadedCvUrl && uploadedCvName && onNext({
+              cvUrl: uploadedCvUrl,
+              cvName: uploadedCvName,
+              cvText: uploadedCvText,
+              cvTechnologies: uploadedCvTechnologies,
+              cvSkills: uploadedCvSkills
+            })}
             disabled={!uploadedCvUrl || !uploadedCvName}
             className="px-8 py-2 bg-[hsl(var(--primary))] text-white rounded-lg font-medium
               disabled:opacity-50 disabled:cursor-not-allowed

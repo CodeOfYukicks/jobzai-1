@@ -40,6 +40,10 @@ export const testNewFunction = onRequest({
 }, async (req, res) => {
   res.status(200).json({ message: 'Test function works!', timestamp: new Date().toISOString() });
 });
+
+// ==================== Job Enrichment Functions ====================
+
+export { enrichJobsManual, enrichSingleJob } from './enrichJobFunctions';
 import { emailService } from './lib/mailgun.js';
 import OpenAI from 'openai';
 import * as functions from 'firebase-functions';
@@ -2265,52 +2269,71 @@ export const searchJobs = onRequest({
     console.log('   Query params:', req.query);
 
     // Extract query parameters
-    const keyword = (req.query.keyword as string) || '';
-    const location = (req.query.location as string) || '';
+    const keyword = req.query.keyword as string | undefined;
+    const location = req.query.location as string | undefined;
     const remote = req.query.remote === 'true';
     const fullTime = req.query.fullTime === 'true';
     const senior = req.query.senior === 'true';
     const last24h = req.query.last24h === 'true';
-    const experienceLevel = (req.query.experienceLevel as string) || '';
-    const jobType = (req.query.jobType as string) || '';
+    const experienceLevel = req.query.experienceLevel as string | undefined;
+    const jobType = req.query.jobType as string | undefined;
+
+    // NEW: Support for enriched tags
+    const industries = req.query.industries ? (req.query.industries as string).split(',') : [];
+    const technologies = req.query.technologies ? (req.query.technologies as string).split(',') : [];
+    const skills = req.query.skills ? (req.query.skills as string).split(',') : [];
+
+    console.log('=== Search Jobs Request ===');
+    console.log(`   Keyword: ${keyword || 'none'}`);
+    console.log(`   Location: ${location || 'none'}`);
+    console.log(`   Remote: ${remote}`);
+    console.log(`   Full-time: ${fullTime}`);
+    console.log(`   Senior: ${senior}`);
+    console.log(`   Experience Level: ${experienceLevel || 'none'}`);
+    console.log(`   Job Type: ${jobType || 'none'}`);
+    console.log(`   Industries: ${industries.length > 0 ? industries.join(', ') : 'none'}`);
+    console.log(`   Technologies: ${technologies.length > 0 ? technologies.join(', ') : 'none'}`);
+    console.log(`   Skills: ${skills.length > 0 ? skills.join(', ') : 'none'}`);
     const limit = parseInt((req.query.limit as string) || '200', 10);
 
     // Build optimized Firestore query
-    // Start with base query - always order by postedAt
-    let jobsQuery: admin.firestore.Query = admin.firestore()
-      .collection('jobs');
+    let jobsQuery: admin.firestore.Query = admin.firestore().collection('jobs');
 
-    // Optimize: Use Firestore where() for filters that can be indexed
-    // Note: We can only use one range filter (postedAt) with orderBy
-    // So we prioritize last24h filter if present, otherwise use default limit
+    // --- 1. Apply Database-Level Filters (Global Filtering) ---
 
+    // Date Posted Filter
     if (last24h) {
-      // Optimize: Filter by date at database level
       const oneDayAgo = admin.firestore.Timestamp.fromDate(
         new Date(Date.now() - 24 * 60 * 60 * 1000)
       );
-      jobsQuery = jobsQuery
-        .where('postedAt', '>=', oneDayAgo)
-        .orderBy('postedAt', 'desc')
-        .limit(Math.min(limit, 1000));
-      console.log(`   Using optimized query: last24h filter at database level`);
-    } else {
-      // Default: Get most recent jobs
-      jobsQuery = jobsQuery
-        .orderBy('postedAt', 'desc')
-        .limit(Math.min(limit, 1000));
+      jobsQuery = jobsQuery.where('postedAt', '>=', oneDayAgo);
     }
 
-    // Execute the optimized query
+    // Always order by postedAt desc
+    jobsQuery = jobsQuery.orderBy('postedAt', 'desc');
+
+    // Limit results
+    // If any filter is active, we need to search deeper to find matches in older jobs
+    const isFiltering = keyword || location || remote || fullTime || senior || experienceLevel || jobType || industries.length > 0 || technologies.length > 0 || skills.length > 0;
+    const effectiveLimit = isFiltering ? 4000 : Math.min(limit, 1000);
+    jobsQuery = jobsQuery.limit(effectiveLimit);
+
+    // Execute the query
     const snapshot = await jobsQuery.get();
 
     console.log(`   Found ${snapshot.size} jobs in database (after Firestore filters)`);
 
-    // Filter results in memory for text search
-    let jobs = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Array<{
+    // --- 2. In-Memory Filtering (Keyword & Complex Logic) ---
+
+    let jobs = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Ensure logoUrl is mapped correctly from either companyLogo or logoUrl
+        logoUrl: data.companyLogo || data.logoUrl || '',
+      };
+    }) as Array<{
       id: string;
       title?: string;
       description?: string;
@@ -2326,21 +2349,21 @@ export const searchJobs = onRequest({
       level?: string;
       type?: string;
       employmentType?: string;
+      employmentTypes?: string[]; // New tag field
       salaryRange?: string;
       compensation?: string;
       remote?: string;
       remotePolicy?: string;
+      workLocations?: string[]; // New tag field
+      experienceLevels?: string[]; // New tag field
+      industries?: string[]; // NEW: Enriched industries tags
+      technologies?: string[]; // NEW: Enriched  technologies tags
       ats?: string;
     }>;
 
-    // Apply keyword filter (search in title, description, and company)
+    // Apply keyword filter (search in title, description, company, and location)
     if (keyword) {
       const keywordLower = keyword.toLowerCase();
-      console.log(`   Filtering by keyword: "${keyword}" (lowercase: "${keywordLower}")`);
-      console.log(`   Total jobs before filter: ${jobs.length}`);
-
-      // Log first 3 companies for debugging
-      console.log(`   Sample companies:`, jobs.slice(0, 3).map(j => j.company || 'N/A'));
 
       jobs = jobs.filter(job => {
         const title = (job.title || '').toLowerCase();
@@ -2375,59 +2398,143 @@ export const searchJobs = onRequest({
       });
     }
 
-    // Apply remote filter
+    // Apply remote filter - check both old 'remote' field and new 'workLocations' array
     if (remote) {
       jobs = jobs.filter(job => {
         const remotePolicy = (job.remote || job.remotePolicy || '').toLowerCase();
+        const workLocations = job.workLocations || [];
+
         return remotePolicy.includes('remote') ||
           remotePolicy.includes('fully remote') ||
-          remotePolicy.includes('work from home');
+          remotePolicy.includes('work from home') ||
+          workLocations.includes('remote');
       });
     }
 
-    // Apply full-time filter
+    // Apply full-time filter - check both old 'type' field and new 'employmentTypes' array
     if (fullTime) {
       jobs = jobs.filter(job => {
         const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
+        const employmentTypes = job.employmentTypes || [];
+
         return jobTypeStr.includes('full') ||
           jobTypeStr.includes('full-time') ||
-          jobTypeStr.includes('fulltime');
+          jobTypeStr.includes('fulltime') ||
+          employmentTypes.includes('full-time');
       });
     }
 
-    // Apply seniority filter (senior)
+    // Apply seniority filter (senior) - check both old 'seniority' field and new 'experienceLevels' array
     if (senior) {
       jobs = jobs.filter(job => {
         const seniorityLevel = (job.seniority || job.level || '').toLowerCase();
+        const experienceLevels = job.experienceLevels || [];
+
         return seniorityLevel.includes('senior') ||
           seniorityLevel.includes('sr') ||
           seniorityLevel.includes('lead') ||
-          seniorityLevel.includes('principal');
+          seniorityLevel.includes('principal') ||
+          experienceLevels.includes('senior') ||
+          experienceLevels.includes('lead');
       });
     }
 
-    // Apply experience level filter (from dropdown)
+    // Apply experience level filter (from dropdown) - check both old and new fields
     if (experienceLevel) {
       const levelLower = experienceLevel.toLowerCase();
       jobs = jobs.filter(job => {
         const jobLevel = (job.seniority || job.level || '').toLowerCase();
-        return jobLevel.includes(levelLower);
+        const experienceLevels = job.experienceLevels || [];
+
+        return jobLevel.includes(levelLower) ||
+          experienceLevels.some(level => level.toLowerCase().includes(levelLower));
       });
     }
 
-    // Apply job type filter (from dropdown)
+    // Apply job type filter (from dropdown) - check both old and new fields
     if (jobType) {
       const typeLower = jobType.toLowerCase();
       jobs = jobs.filter(job => {
-        const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
-        return jobTypeStr.includes(typeLower);
+        const jobTypeValue = (job.type || job.employmentType || '').toLowerCase();
+        const employmentTypes = job.employmentTypes || [];
+
+        return jobTypeValue.includes(typeLower) ||
+          employmentTypes.some(type => type.toLowerCase().includes(typeLower));
       });
     }
 
+    // NEW: Apply industries filter
+    if (industries.length > 0) {
+      jobs = jobs.filter(job => {
+        const jobIndustries = job.industries || [];
+        // Check if job has any of the requested industries
+        return industries.some(industry =>
+          jobIndustries.includes(industry.toLowerCase())
+        );
+      });
+      console.log(`   Jobs after industries filter: ${jobs.length}`);
+    }
+
+    // NEW: Apply technologies filter
+    if (technologies.length > 0) {
+      jobs = jobs.filter(job => {
+        const jobTechs = job.technologies || [];
+        // Check if job has any of the requested technologies
+        return technologies.some(tech =>
+          jobTechs.includes(tech.toLowerCase())
+        );
+      });
+      console.log(`   Jobs after technologies filter: ${jobs.length}`);
+    }
+
+    // NEW: Apply skills filter
+    if (skills.length > 0) {
+      jobs = jobs.filter(job => {
+        const jobSkills = Array.isArray(job.skills) ? job.skills.map(s => s.toLowerCase()) : [];
+        return skills.some(skill => jobSkills.includes(skill.toLowerCase()));
+      });
+      console.log(`   Jobs after skills filter: ${jobs.length}`);
+    }
     // Note: last24h filter is already applied at Firestore query level for optimization
     // No need to filter again in memory
 
     console.log(`   Returning ${jobs.length} filtered jobs`);
+
+    // Sort by relevance if keyword is present
+    if (keyword) {
+      const keywordLower = keyword.toLowerCase();
+      jobs.sort((a, b) => {
+        let scoreA = 0;
+        let scoreB = 0;
+
+        const getScore = (job: any) => {
+          let score = 0;
+          const company = (job.company || '').toLowerCase();
+          const title = (job.title || '').toLowerCase();
+          const description = (job.description || job.summary || '').toLowerCase();
+
+          if (company === keywordLower) score += 100;
+          else if (company.includes(keywordLower)) score += 50;
+
+          if (title.includes(keywordLower)) score += 30;
+
+          if (job.technologies && job.technologies.some(t => t.toLowerCase().includes(keywordLower))) score += 20;
+
+          if (description.includes(keywordLower)) score += 10;
+
+          return score;
+        };
+
+        scoreA = getScore(a);
+        scoreB = getScore(b);
+
+        if (scoreA !== scoreB) return scoreB - scoreA;
+
+        const dateA = a.postedAt?._seconds || 0;
+        const dateB = b.postedAt?._seconds || 0;
+        return dateB - dateA;
+      });
+    }
 
     // Format response
     const formattedJobs = jobs.map(job => ({
@@ -2445,6 +2552,8 @@ export const searchJobs = onRequest({
       salaryRange: job.salaryRange || job.compensation || '',
       remote: job.remote || job.remotePolicy || '',
       ats: job.ats || 'workday',
+      industries: job.industries || [],
+      technologies: job.technologies || []
     }));
 
     res.status(200).json({

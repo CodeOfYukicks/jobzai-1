@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import ProfileBreadcrumbs from '../components/ProfileCompletion/ProfileBreadcrumbs';
 import NameStep from '../components/ProfileCompletion/steps/NameStep';
 import GenderStep from '../components/ProfileCompletion/steps/GenderStep';
@@ -39,11 +41,33 @@ export default function CompleteProfilePage() {
     plan: 'free'
   });
 
-  const handleNext = (data: any) => {
-    setFormData(prev => ({ ...prev, ...data }));
+  const handleNext = async (data: any) => {
+    const updatedData = { ...formData, ...data };
+    setFormData(updatedData);
+
+    // Save to Firestore
+    if (currentUser) {
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, {
+          ...data,
+          lastUpdated: new Date()
+        });
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        toast.error('Failed to save progress');
+        return;
+      }
+    }
+
     const currentIndex = STEPS.indexOf(currentStep);
     if (currentIndex < STEPS.length - 1) {
       setCurrentStep(STEPS[currentIndex + 1]);
+    } else {
+      // If it's the last step, navigate to dashboard or trigger final completion
+      // The original code had a separate handleComplete for the last step.
+      // This part might need adjustment based on the intended flow.
+      // For now, let's assume the final step's 'onComplete' handles navigation.
     }
   };
 
@@ -57,6 +81,7 @@ export default function CompleteProfilePage() {
   const handleComplete = async () => {
     try {
       await completeProfile(formData);
+      navigate('/dashboard'); // Navigate after successful completion
     } catch (error) {
       console.error('Error completing profile:', error);
       toast.error('Failed to complete profile');
@@ -67,7 +92,7 @@ export default function CompleteProfilePage() {
     const currentIndex = STEPS.indexOf(currentStep) + 1;
     const totalSteps = STEPS.length;
 
-    switch(currentStep) {
+    switch (currentStep) {
       case 'name':
         return {
           title: "Let's start with your name",

@@ -5,6 +5,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'sonner';
+import { pdfToImages } from '../../../lib/pdfToImages';
+import { extractCVTextAndTags } from '../../../lib/cvTextExtraction';
 
 interface FinalizationStepProps {
   data: any;
@@ -53,15 +55,38 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
 
     try {
       setIsUploading(true);
-      
+
       // Upload to Firebase Storage
       const cvRef = ref(storage, `cvs/${currentUser.uid}/${file.name}`);
       await uploadBytes(cvRef, file);
       const downloadUrl = await getDownloadURL(cvRef);
 
+      // Extract text and tags
+      let extractedData = {};
+      try {
+        toast.info('Analyzing your CV...');
+        const images = await pdfToImages(file, 2, 1.5);
+        const { text, technologies, skills } = await extractCVTextAndTags(images);
+
+        extractedData = {
+          cvText: text,
+          cvTechnologies: technologies,
+          cvSkills: skills
+        };
+
+        toast.success(`CV analyzed! Found ${technologies.length} technologies and ${skills.length} skills`);
+      } catch (extractionError) {
+        console.error('CV extraction failed:', extractionError);
+        toast.warning('CV uploaded but analysis failed');
+      }
+
       setCvUrl(downloadUrl);
       setCvName(file.name);
-      handleUpdate({ cvUrl: downloadUrl, cvName: file.name });
+      handleUpdate({
+        cvUrl: downloadUrl,
+        cvName: file.name,
+        ...extractedData
+      });
       toast.success('CV uploaded successfully');
     } catch (error: any) {
       console.error('Error uploading CV:', error);
@@ -191,7 +216,7 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
               CV
             </label>
-            
+
             {cvUrl ? (
               // CV exists - show current CV with option to change
               <div className="space-y-3">

@@ -6,9 +6,14 @@ export interface UserData {
   industry?: string;
   credits: number;
   cvUrl?: string;
+  cvName?: string;
+  cvText?: string;           // Extracted CV text for personalization
+  cvTechnologies?: string[]; // Extracted technologies for job matching
+  cvSkills?: string[];       // Extracted skills for job matching
   emailVerified?: boolean;
   createdAt?: any;
   lastUpdated?: any;
+  updatedAt?: any;           // Timestamp for CV updates
   isPremium?: boolean;
   email?: string;
   phone?: string;

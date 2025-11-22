@@ -11,6 +11,7 @@ function getStatusBorderColor(status: JobApplication['status']): string {
     case 'pending_decision': return '#F3F4F6';
     case 'offer': return '#E2FBE2';
     case 'rejected': return '#FDE2E4';
+    case 'wishlist': return '#F3E8FF';
     case 'archived':
     default: return '#F3F4F6';
   }

@@ -25,6 +25,7 @@ import {
   Sparkles,
   FileText,
   StickyNote,
+  Target,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid } from 'date-fns';
@@ -38,32 +39,33 @@ import { AddInterviewForm } from './AddInterviewForm';
 import { AIToolsTab } from './AIToolsTab';
 import { NotesTab } from './NotesTab';
 import { EnhancedJobSummary } from './EnhancedJobSummary';
+import { ResumeLab } from './ResumeLab';
 import { toast } from 'sonner';
 import { CompanyLogo } from '../common/CompanyLogo';
 
 // Helper function to safely parse dates from Firestore
 const parseDate = (dateValue: any): Date => {
   if (!dateValue) return new Date();
-  
+
   // If it's already a Date object
   if (dateValue instanceof Date) return dateValue;
-  
+
   // If it's a Firestore Timestamp
   if (dateValue?.toDate && typeof dateValue.toDate === 'function') {
     return dateValue.toDate();
   }
-  
+
   // If it's a timestamp number
   if (typeof dateValue === 'number') {
     return new Date(dateValue);
   }
-  
+
   // If it's an ISO string
   if (typeof dateValue === 'string') {
     const parsed = parseISO(dateValue);
     return isValid(parsed) ? parsed : new Date();
   }
-  
+
   return new Date();
 };
 
@@ -87,41 +89,47 @@ interface JobDetailPanelProps {
 }
 
 const statusConfig = {
-  applied: { 
-    icon: Circle, 
-    color: 'text-blue-500 dark:text-blue-400', 
-    bg: 'bg-blue-50 dark:bg-blue-900/20', 
-    border: 'border-blue-200 dark:border-blue-800/50' 
+  applied: {
+    icon: Circle,
+    color: 'text-blue-500 dark:text-blue-400',
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    border: 'border-blue-200 dark:border-blue-800/50'
   },
-  interview: { 
-    icon: TrendingUp, 
-    color: 'text-purple-500 dark:text-purple-400', 
-    bg: 'bg-purple-50 dark:bg-purple-900/20', 
-    border: 'border-purple-200 dark:border-purple-800/50' 
+  interview: {
+    icon: TrendingUp,
+    color: 'text-purple-500 dark:text-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/20',
+    border: 'border-purple-200 dark:border-purple-800/50'
   },
-  offer: { 
-    icon: CheckCircle2, 
-    color: 'text-green-500 dark:text-green-400', 
-    bg: 'bg-green-50 dark:bg-green-900/20', 
-    border: 'border-green-200 dark:border-green-800/50' 
+  offer: {
+    icon: CheckCircle2,
+    color: 'text-green-500 dark:text-green-400',
+    bg: 'bg-green-50 dark:bg-green-900/20',
+    border: 'border-green-200 dark:border-green-800/50'
   },
-  rejected: { 
-    icon: XCircle, 
-    color: 'text-red-500 dark:text-red-400', 
-    bg: 'bg-red-50 dark:bg-red-900/20', 
-    border: 'border-red-200 dark:border-red-800/50' 
+  rejected: {
+    icon: XCircle,
+    color: 'text-red-500 dark:text-red-400',
+    bg: 'bg-red-50 dark:bg-red-900/20',
+    border: 'border-red-200 dark:border-red-800/50'
   },
-  archived: { 
-    icon: Archive, 
-    color: 'text-gray-500 dark:text-gray-400', 
-    bg: 'bg-gray-50 dark:bg-gray-800/50', 
-    border: 'border-gray-200 dark:border-gray-700' 
+  archived: {
+    icon: Archive,
+    color: 'text-gray-500 dark:text-gray-400',
+    bg: 'bg-gray-50 dark:bg-gray-800/50',
+    border: 'border-gray-200 dark:border-gray-700'
   },
-  pending_decision: { 
-    icon: AlertCircle, 
-    color: 'text-yellow-500 dark:text-yellow-400', 
-    bg: 'bg-yellow-50 dark:bg-yellow-900/20', 
-    border: 'border-yellow-200 dark:border-yellow-800/50' 
+  pending_decision: {
+    icon: AlertCircle,
+    color: 'text-yellow-500 dark:text-yellow-400',
+    bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+    border: 'border-yellow-200 dark:border-yellow-800/50'
+  },
+  wishlist: {
+    icon: Tag,
+    color: 'text-purple-500 dark:text-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/20',
+    border: 'border-purple-200 dark:border-purple-800/50'
   },
 };
 
@@ -147,7 +155,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
   const [isEditing, setIsEditing] = useState(false);
   const [editedJob, setEditedJob] = useState<Partial<JobApplication>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity' | 'ai-tools' | 'notes'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab'>('overview');
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
   // Logo states removed - now using CompanyLogo component
 
@@ -194,7 +202,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
 
       // Update job with new interview
       const updatedInterviews = [...(job.interviews || []), newInterview];
-      
+
       // Also update status to interview if currently applied
       const updates: Partial<JobApplication> = {
         interviews: updatedInterviews,
@@ -202,14 +210,14 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
 
       if (job.status === 'applied') {
         updates.status = 'interview';
-        
+
         // Add to status history
         const newStatusChange: StatusChange = {
           status: 'interview',
           date: new Date().toISOString().split('T')[0],
           notes: 'Interview scheduled',
         };
-        
+
         updates.statusHistory = [
           ...(job.statusHistory || []),
           newStatusChange,
@@ -265,9 +273,9 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                           <div className="flex-1 min-w-0 pr-8">
                             <div className="flex items-center gap-3 mb-3">
                               {/* Company Logo */}
-                              <CompanyLogo 
-                                companyName={job.companyName} 
-                                size="lg" 
+                              <CompanyLogo
+                                companyName={job.companyName}
+                                size="lg"
                                 className={`rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}
                                 showInitials={true}
                               />
@@ -362,6 +370,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                           { id: 'activity', label: 'Activity', icon: null, badge: null },
                           { id: 'ai-tools', label: 'AI Tools', icon: Sparkles, badge: 'New' },
                           { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
+                          { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: job.cvAnalysisId ? null : 'link' },
                         ] as const).map((tab) => (
                           <button
                             key={tab.id}
@@ -369,26 +378,24 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                               setActiveTab(tab.id);
                               setShowAddInterviewForm(false);
                             }}
-                            className={`py-3 px-1 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
-                              activeTab === tab.id
-                                ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                            }`}
+                            className={`py-3 px-1 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id
+                              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                              : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                              }`}
                           >
                             {tab.icon && <tab.icon className="w-4 h-4" />}
                             <span>{tab.label}</span>
                             {tab.badge && (
-                              <motion.span 
+                              <motion.span
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                                className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                  tab.badge === 'New'
-                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm'
-                                    : tab.badge > 0
+                                className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold ${tab.badge === 'New'
+                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm'
+                                  : tab.badge > 0
                                     ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
                                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                }`}
+                                  }`}
                               >
                                 {tab.badge}
                               </motion.span>
@@ -400,13 +407,13 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
 
                     {/* Two-Column Layout */}
                     <div className="flex-1 px-8 py-6">
-                      <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
+                      <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
                         {/* Left Column - Main Content */}
-                        <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
+                        <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
                           {activeTab === 'overview' && (
                             <>
                               {/* AI Powered Summary Section */}
-                              <SectionCard 
+                              <SectionCard
                                 title={
                                   <div className="flex items-center gap-2">
                                     <span>AI Powered Summary</span>
@@ -415,7 +422,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                       <span>AI</span>
                                     </div>
                                   </div>
-                                } 
+                                }
                                 icon={Sparkles}
                               >
                                 {isEditing ? (
@@ -499,8 +506,8 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                               </AnimatePresence>
 
                               {/* Interviews List */}
-                              <SectionCard 
-                                title="Interviews" 
+                              <SectionCard
+                                title="Interviews"
                                 icon={Calendar}
                                 action={
                                   !showAddInterviewForm && (
@@ -517,8 +524,8 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                 {job.interviews && job.interviews.length > 0 ? (
                                   <div className="space-y-4">
                                     {job.interviews.map((interview) => (
-                                      <InterviewCard 
-                                        key={interview.id} 
+                                      <InterviewCard
+                                        key={interview.id}
                                         interview={interview}
                                         jobApplication={job}
                                       />
@@ -528,7 +535,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                   <div className="text-center py-12">
                                     <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                                     <p className="text-gray-500 dark:text-gray-400 mb-4">No interviews scheduled yet</p>
-                                    <button 
+                                    <button
                                       onClick={() => setShowAddInterviewForm(true)}
                                       className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
                                     >
@@ -569,81 +576,104 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                           {activeTab === 'notes' && (
                             <NotesTab job={job} onUpdate={onUpdate} />
                           )}
+
+                          {activeTab === 'resume-lab' && (
+                            job.cvAnalysisId ? (
+                              <ResumeLab cvAnalysisId={job.cvAnalysisId} />
+                            ) : (
+                              <div className="text-center py-16">
+                                <Target className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-6" />
+                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                                  No CV Analysis Linked
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                                  Create a CV analysis for this job to see your match score, skills breakdown, and personalized recommendations.
+                                </p>
+                                <button
+                                  onClick={() => window.location.href = '/cv-analysis'}
+                                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium inline-flex items-center gap-2"
+                                >
+                                  <Sparkles className="w-5 h-5" />
+                                  <span>Create CV Analysis</span>
+                                </button>
+                              </div>
+                            )
+                          )}
                         </div>
 
-                        {/* Right Column - Sidebar (hidden for AI Tools and Notes tabs) */}
-                        {activeTab !== 'ai-tools' && activeTab !== 'notes' && (
-                        <div className="lg:col-span-1 space-y-4">
-                          {/* Status Card */}
-                          <SectionCard title="Application Status">
-                            <div className={`p-4 rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}>
-                              <div className="flex items-center gap-3">
-                                <StatusIcon className={`w-5 h-5 ${currentStatus.color}`} />
-                                <div>
-                                  <div className="font-medium text-gray-900 dark:text-gray-100 capitalize">{job.status.replace('_', ' ')}</div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Current stage</div>
+                        {/* Right Column - Sidebar (hidden for AI Tools, Notes, and Resume Lab tabs) */}
+                        {activeTab !== 'ai-tools' && activeTab !== 'notes' && activeTab !== 'resume-lab' && (
+                          <div className="lg:col-span-1 space-y-4">
+                            {/* Status Card */}
+                            <SectionCard title="Application Status">
+                              <div className={`p-4 rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}>
+                                <div className="flex items-center gap-3">
+                                  <StatusIcon className={`w-5 h-5 ${currentStatus.color}`} />
+                                  <div>
+                                    <div className="font-medium text-gray-900 dark:text-gray-100 capitalize">{job.status.replace('_', ' ')}</div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Current stage</div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </SectionCard>
+                            </SectionCard>
 
-                          {/* Key Details */}
-                          <SectionCard title="Key Details">
-                            <div className="space-y-3">
-                              <PropertyRow
-                                icon={Calendar}
-                                label="Applied"
-                                value={formatDate(job.appliedDate, 'MMM d, yyyy')}
-                              />
-                              <PropertyRow icon={MapPin} label="Location" value={job.location} />
-                              {job.salary && (
-                                <PropertyRow icon={DollarSign} label="Salary" value={job.salary} isEditing={isEditing} />
-                              )}
-                              {job.url && (
+                            {/* Key Details */}
+                            <SectionCard title="Key Details">
+                              <div className="space-y-3">
                                 <PropertyRow
-                                  icon={LinkIcon}
-                                  label="Job Posting"
-                                  value="View Original"
-                                  link={job.url}
+                                  icon={Calendar}
+                                  label="Applied"
+                                  value={formatDate(job.appliedDate, 'MMM d, yyyy')}
                                 />
-                              )}
-                            </div>
-                          </SectionCard>
+                                <PropertyRow icon={MapPin} label="Location" value={job.location} />
+                                {job.salary && (
+                                  <PropertyRow icon={DollarSign} label="Salary" value={job.salary} isEditing={isEditing} />
+                                )}
+                                {job.url && (
+                                  <PropertyRow
+                                    icon={LinkIcon}
+                                    label="Job Posting"
+                                    value="View Original"
+                                    link={job.url}
+                                  />
+                                )}
+                              </div>
+                            </SectionCard>
 
-                          {/* Quick Stats */}
-                          <SectionCard title="Quick Stats">
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">Interviews</span>
-                                <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                  {job.interviews?.length || 0}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">Status Changes</span>
-                                <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                  {job.statusHistory?.length || 0}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">Days Since Applied</span>
-                                <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                  {Math.floor(
-                                    (new Date().getTime() - parseDate(job.appliedDate).getTime()) /
+                            {/* Quick Stats */}
+                            <SectionCard title="Quick Stats">
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <span className="text-sm text-gray-600 dark:text-gray-400">Interviews</span>
+                                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    {job.interviews?.length || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <span className="text-sm text-gray-600 dark:text-gray-400">Status Changes</span>
+                                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    {job.statusHistory?.length || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <span className="text-sm text-gray-600 dark:text-gray-400">Days Since Applied</span>
+                                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    {Math.floor(
+                                      (new Date().getTime() - parseDate(job.appliedDate).getTime()) /
                                       (1000 * 60 * 60 * 24)
-                                  )}
-                                </span>
+                                    )}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          </SectionCard>
+                            </SectionCard>
 
-                          {/* Metadata */}
-                          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                            <div>Created: {formatDate(job.createdAt, 'MMM d, yyyy HH:mm')}</div>
-                            <div>Updated: {formatDate(job.updatedAt, 'MMM d, yyyy HH:mm')}</div>
-                            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">ID: {job.id}</div>
+                            {/* Metadata */}
+                            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                              <div>Created: {formatDate(job.createdAt, 'MMM d, yyyy HH:mm')}</div>
+                              <div>Updated: {formatDate(job.updatedAt, 'MMM d, yyyy HH:mm')}</div>
+                              <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">ID: {job.id}</div>
+                            </div>
                           </div>
-                        </div>
                         )}
                       </div>
                     </div>

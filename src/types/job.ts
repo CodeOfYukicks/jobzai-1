@@ -11,12 +11,13 @@ export interface Interview {
 
 export interface StatusChange {
   status:
-    | 'applied'
-    | 'interview'
-    | 'offer'
-    | 'rejected'
-    | 'archived'
-    | 'pending_decision';
+  | 'applied'
+  | 'interview'
+  | 'offer'
+  | 'rejected'
+  | 'archived'
+  | 'pending_decision'
+  | 'wishlist';
   date: string;
   notes?: string;
 }
@@ -54,12 +55,13 @@ export interface JobApplication {
   position: string;
   location: string;
   status:
-    | 'applied'
-    | 'interview'
-    | 'offer'
-    | 'rejected'
-    | 'archived'
-    | 'pending_decision';
+  | 'applied'
+  | 'interview'
+  | 'offer'
+  | 'rejected'
+  | 'archived'
+  | 'pending_decision'
+  | 'wishlist';
   appliedDate: string;
   url?: string;
   contactName?: string;
@@ -83,6 +85,7 @@ export interface JobApplication {
     companyCulture?: string;
     growthOpportunities?: string;
   };
+  cvAnalysisId?: string;  // ID of linked CV analysis from CV Analysis page
 }
 
 
