@@ -1,7 +1,6 @@
 import { format, parseISO, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
   Clock,
   MapPin,
   User,
@@ -11,59 +10,48 @@ import {
   Video,
   MessageSquare,
   Sparkles,
-  ArrowRight,
 } from 'lucide-react';
 import { Interview, JobApplication } from '../../types/job';
+import { motion } from 'framer-motion';
 
 // Helper function to safely parse dates from Firestore
 const parseDate = (dateValue: any): Date => {
   if (!dateValue) return new Date();
-  
+
   // If it's already a Date object
   if (dateValue instanceof Date) return dateValue;
-  
+
   // If it's a Firestore Timestamp
   if (dateValue?.toDate && typeof dateValue.toDate === 'function') {
     return dateValue.toDate();
   }
-  
+
   // If it's a timestamp number
   if (typeof dateValue === 'number') {
     return new Date(dateValue);
   }
-  
+
   // If it's an ISO string
   if (typeof dateValue === 'string') {
     const parsed = parseISO(dateValue);
     return isValid(parsed) ? parsed : new Date();
   }
-  
+
   return new Date();
 };
 
-// Helper function to format dates safely
-const formatDate = (dateValue: any, formatString: string): string => {
-  try {
-    const date = parseDate(dateValue);
-    return format(date, formatString);
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid date';
-  }
-};
-
 const interviewTypeConfig = {
-  technical: { label: 'Technical', color: 'bg-blue-100 text-blue-700' },
-  hr: { label: 'HR', color: 'bg-green-100 text-green-700' },
-  manager: { label: 'Manager', color: 'bg-purple-100 text-purple-700' },
-  final: { label: 'Final', color: 'bg-orange-100 text-orange-700' },
-  other: { label: 'Other', color: 'bg-gray-100 text-gray-700' },
+  technical: { label: 'Technical', color: 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800' },
+  hr: { label: 'HR', color: 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800' },
+  manager: { label: 'Manager', color: 'bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800' },
+  final: { label: 'Final', color: 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800' },
+  other: { label: 'Other', color: 'bg-gray-50 text-gray-700 border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700' },
 };
 
 const statusConfig = {
-  scheduled: { icon: Circle, color: 'text-blue-500', label: 'Scheduled' },
-  completed: { icon: CheckCircle2, color: 'text-green-500', label: 'Completed' },
-  cancelled: { icon: XCircle, color: 'text-red-500', label: 'Cancelled' },
+  scheduled: { icon: Circle, color: 'text-blue-500', label: 'Scheduled', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+  completed: { icon: CheckCircle2, color: 'text-emerald-500', label: 'Completed', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+  cancelled: { icon: XCircle, color: 'text-red-500', label: 'Cancelled', bg: 'bg-red-50 dark:bg-red-900/20' },
 };
 
 interface InterviewCardProps {
@@ -75,14 +63,11 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
   const navigate = useNavigate();
   const typeConfig = interviewTypeConfig[interview.type];
   const statusConf = statusConfig[interview.status];
-  const StatusIcon = statusConf.icon;
+  const date = parseDate(interview.date);
 
   const handlePrepareInterview = () => {
-    if (!jobApplication?.id) {
-      console.error('Missing job application ID');
-      return;
-    }
-    
+    if (!jobApplication?.id) return;
+
     navigate(`/interview-prep/${jobApplication.id}/${interview.id}`, {
       state: {
         interviewId: interview.id,
@@ -96,117 +81,131 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
     });
   };
 
+  const isVideoCall = interview.location?.toLowerCase().match(/zoom|meet|teams|skype|webex/);
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 group">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 group-hover:from-blue-100 group-hover:to-purple-100 dark:group-hover:from-blue-900/50 dark:group-hover:to-purple-900/50 transition-colors">
-            <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100">{typeConfig.label} Interview</h4>
-            <div className="flex items-center gap-2 mt-1">
-              <StatusIcon className={`w-3.5 h-3.5 ${statusConf.color} dark:${statusConf.color}`} />
-              <span className="text-xs text-gray-600 dark:text-gray-400">{statusConf.label}</span>
-            </div>
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+    >
+      <div className="flex flex-col sm:flex-row">
+        {/* Left Side - Date Visual */}
+        <div className="sm:w-32 bg-gray-50 dark:bg-gray-800/50 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center p-6 gap-1 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors">
+          <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+            {format(date, 'MMM')}
+          </span>
+          <span className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+            {format(date, 'd')}
+          </span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            {format(date, 'EEEE')}
+          </span>
         </div>
-        <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${typeConfig.color}`}>
-          {typeConfig.label}
-        </span>
-      </div>
 
-      {/* Details */}
-      <div className="space-y-2.5">
-        <div className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-          <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-          <span>{formatDate(interview.date, 'EEEE, MMMM d, yyyy')}</span>
-        </div>
-        <div className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-          <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-          <span>{interview.time}</span>
-        </div>
-        {interview.location && (
-          <div className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-            {interview.location.toLowerCase().includes('zoom') ||
-            interview.location.toLowerCase().includes('meet') ||
-            interview.location.toLowerCase().includes('teams') ? (
-              <Video className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            ) : (
-              <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            )}
-            <span>{interview.location}</span>
-          </div>
-        )}
-        {interview.interviewers && interview.interviewers.length > 0 && (
-          <div className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-            <User className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5" />
-            <div className="flex flex-wrap gap-1.5">
-              {interview.interviewers.map((interviewer, idx) => (
-                <span
-                  key={idx}
-                  className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-md text-xs font-medium"
-                >
-                  {interviewer}
+        {/* Right Side - Content */}
+        <div className="flex-1 p-5 sm:p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide border ${typeConfig.color}`}>
+                  {typeConfig.label}
                 </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Notes */}
-      {interview.notes && (
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <div className="flex items-start gap-2">
-            <MessageSquare className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{interview.notes}</p>
-          </div>
-        </div>
-      )}
-
-      {/* AI-Powered Prep Button */}
-      {interview.status === 'scheduled' && (
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <button
-            onClick={handlePrepareInterview}
-            className="relative w-full group overflow-hidden rounded-xl transition-all duration-300"
-          >
-            {/* Gradient border effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 rounded-xl opacity-100 group-hover:opacity-90 transition-opacity" />
-            
-            {/* Shine effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
-            
-            {/* Button content */}
-            <div className="relative bg-gradient-to-r from-purple-600 to-indigo-600 m-[1px] rounded-[11px] px-4 py-3 flex items-center justify-between shadow-lg group-hover:shadow-2xl group-hover:shadow-purple-500/40 dark:group-hover:shadow-purple-500/30 transition-all duration-300">
-              <div className="flex items-center gap-2.5">
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/15 backdrop-blur-sm border border-white/20">
-                  <Sparkles className="w-3.5 h-3.5 text-white animate-pulse" />
-                  <span className="text-xs font-bold text-white tracking-wider">AI</span>
-                </div>
-                <span className="text-white font-semibold">Prepare Interview</span>
+                {interview.status !== 'scheduled' && (
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1 ${statusConf.bg} ${statusConf.color}`}>
+                    {statusConf.label}
+                  </span>
+                )}
               </div>
-              <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform duration-300" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Interview
+              </h3>
             </div>
-          </button>
-        </div>
-      )}
 
-      {/* View Prep Notes for Completed Interviews */}
-      {interview.status === 'completed' && (
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <button
-            onClick={handlePrepareInterview}
-            className="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>View Prep Notes</span>
-          </button>
+            {/* Options / Status Indicator */}
+            <div className="flex items-center gap-2">
+              {interview.status === 'scheduled' && (
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  Upcoming
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 mb-5">
+            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              </div>
+              <span className="font-medium">{interview.time}</span>
+            </div>
+
+            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                {isVideoCall ? (
+                  <Video className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                ) : (
+                  <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                )}
+              </div>
+              <span className="font-medium truncate">{interview.location || 'No location set'}</span>
+            </div>
+
+            {interview.interviewers && interview.interviewers.length > 0 && (
+              <div className="col-span-1 sm:col-span-2 flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {interview.interviewers.map((interviewer, idx) => (
+                    <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300">
+                      {interviewer}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {interview.notes && (
+            <div className="mb-5 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50">
+              <div className="flex items-start gap-2">
+                <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
+                <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">
+                  {interview.notes}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 pt-2">
+            {interview.status === 'scheduled' && (
+              <button
+                onClick={handlePrepareInterview}
+                className="flex-1 relative overflow-hidden group bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2.5 rounded-xl font-medium text-sm transition-all hover:shadow-lg hover:shadow-gray-200 dark:hover:shadow-none flex items-center justify-center gap-2"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="relative z-10 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Prepare with AI
+                </span>
+              </button>
+            )}
+
+            {interview.status === 'completed' && (
+              <button
+                onClick={handlePrepareInterview}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-4 h-4" />
+                View Notes
+              </button>
+            )}
+          </div>
         </div>
-      )}
-    </div>
+      </div>
+    </motion.div>
   );
 };
-

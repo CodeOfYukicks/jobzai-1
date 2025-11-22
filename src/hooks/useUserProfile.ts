@@ -10,19 +10,19 @@ export interface UserProfile {
   email?: string;
   phone?: string;
   location?: string;
-  
+
   // Professional Information
   currentJobTitle?: string;
   currentCompany?: string;
   yearsOfExperience?: number;
   industry?: string;
-  
+
   // Summary
   professionalSummary?: string;
-  
+
   // Skills
   skills?: string[];
-  
+
   // Education
   education?: Array<{
     degree: string;
@@ -30,7 +30,7 @@ export interface UserProfile {
     year: string;
     field?: string;
   }>;
-  
+
   // Work Experience
   workExperience?: Array<{
     title: string;
@@ -40,20 +40,20 @@ export interface UserProfile {
     description?: string;
     current?: boolean;
   }>;
-  
+
   // Languages
   languages?: Array<{
     language: string;
     proficiency: string;
   }>;
-  
+
   // Certifications
   certifications?: Array<{
     name: string;
     issuer: string;
     date: string;
   }>;
-  
+
   // Social Links
   linkedinUrl?: string;
   githubUrl?: string;
@@ -84,25 +84,25 @@ export const useUserProfile = (): UseUserProfileReturn => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Try to fetch from the profile subcollection first
       const profileDocRef = doc(db, 'users', currentUser.uid, 'profile', 'data');
       let profileDoc = await getDoc(profileDocRef);
-      
+
       // If not found in subcollection, try the main user document
       if (!profileDoc.exists()) {
         const userDocRef = doc(db, 'users', currentUser.uid);
         profileDoc = await getDoc(userDocRef);
       }
-      
+
       if (profileDoc.exists()) {
         const data = profileDoc.data() as UserProfile;
-        
+
         // Enrich with auth user data if not present
         if (!data.email && currentUser.email) {
           data.email = currentUser.email;
         }
-        
+
         setProfile(data);
       } else {
         // Create a minimal profile from auth data
@@ -115,7 +115,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
     } catch (err) {
       console.error('Error fetching user profile:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch profile'));
-      
+
       // Fallback to minimal profile from auth
       if (currentUser) {
         setProfile({

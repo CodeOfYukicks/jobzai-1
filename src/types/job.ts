@@ -68,6 +68,8 @@ export interface JobApplication {
   contactEmail?: string;
   contactPhone?: string;
   salary?: string;
+  workType?: string;
+  platform?: string;
   description?: string;  // AI-powered summary (short, 3 bullet points)
   fullJobDescription?: string;  // Complete job description from the posting
   notes?: string;         // Personal notes from the user (deprecated - use stickyNotes instead)

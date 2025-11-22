@@ -1,20 +1,16 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import {
   X,
   ExternalLink,
   Calendar,
   MapPin,
-  Building2,
   Clock,
   Tag,
   Edit3,
   Save,
   Trash2,
   Plus,
-  Link as LinkIcon,
-  Mail,
-  Phone,
   DollarSign,
   TrendingUp,
   CheckCircle2,
@@ -30,7 +26,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid } from 'date-fns';
 import { JobApplication, Interview, StatusChange } from '../../types/job';
-import { StatusBadge } from './StatusBadge';
+import { JobStatusBadge } from './JobStatusBadge';
 import { PropertyRow } from './PropertyRow';
 import { SectionCard } from './SectionCard';
 import { TimelineItem } from './TimelineItem';
@@ -133,24 +129,6 @@ const statusConfig = {
   },
 };
 
-// Helper function to get domain from company name
-function getDomainFromCompanyName(name?: string | null): string | null {
-  if (!name) return null;
-  try {
-    const slug = name
-      .toLowerCase()
-      .replace(/&/g, 'and')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    if (!slug) return null;
-    return `${slug}.com`;
-  } catch {
-    return null;
-  }
-}
-
-// Function removed - now using CompanyLogo component
-
 export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDetailPanelProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedJob, setEditedJob] = useState<Partial<JobApplication>>({});
@@ -172,11 +150,30 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
     if (!onUpdate) return;
     setIsSaving(true);
     try {
-      await onUpdate(editedJob);
+      const updates = { ...editedJob };
+
+      // Check if status changed
+      if (updates.status && updates.status !== job.status) {
+        const newStatusChange: StatusChange = {
+          status: updates.status,
+          date: new Date().toISOString(),
+          notes: 'Status updated',
+        };
+
+        // Append to statusHistory
+        updates.statusHistory = [
+          ...(job.statusHistory || []),
+          newStatusChange
+        ];
+      }
+
+      await onUpdate(updates);
       setIsEditing(false);
       setEditedJob({});
+      toast.success('Changes saved successfully');
     } catch (error) {
       console.error('Error saving:', error);
+      toast.error('Failed to save changes');
     } finally {
       setIsSaving(false);
     }
@@ -354,7 +351,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
 
                         {/* Status Badge */}
                         <div className="mt-4">
-                          <StatusBadge
+                          <JobStatusBadge
                             status={job.status}
                             isEditing={isEditing}
                             onChange={(newStatus) => setEditedJob({ ...editedJob, status: newStatus })}
@@ -392,7 +389,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
                                 className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold ${tab.badge === 'New'
                                   ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm'
-                                  : tab.badge > 0
+                                  : typeof tab.badge === 'number' && tab.badge > 0
                                     ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
                                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                   }`}
@@ -411,20 +408,49 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                         {/* Left Column - Main Content */}
                         <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
                           {activeTab === 'overview' && (
-                            <>
-                              {/* AI Powered Summary Section */}
-                              <SectionCard
-                                title={
-                                  <div className="flex items-center gap-2">
-                                    <span>AI Powered Summary</span>
-                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-medium">
-                                      <Sparkles className="w-3 h-3" />
-                                      <span>AI</span>
-                                    </div>
+                            <div className="space-y-8">
+                              {/* Quick Stats / Highlights */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Applied</div>
+                                  <div className="font-semibold text-gray-900 dark:text-white">
+                                    {format(parseDate(job.appliedDate), 'MMM d, yyyy')}
                                   </div>
-                                }
-                                icon={Sparkles}
-                              >
+                                </div>
+                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Salary</div>
+                                  <div className="font-semibold text-gray-900 dark:text-white">
+                                    {job.salary || 'Not specified'}
+                                  </div>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Work Type</div>
+                                  <div className="font-semibold text-gray-900 dark:text-white capitalize">
+                                    {job.workType || 'Not specified'}
+                                  </div>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Platform</div>
+                                  <div className="font-semibold text-gray-900 dark:text-white capitalize">
+                                    {job.platform || 'Direct'}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* AI Powered Summary Section */}
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-purple-500" />
+                                    AI Summary
+                                  </h3>
+                                  {!isEditing && (
+                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800">
+                                      Auto-generated
+                                    </span>
+                                  )}
+                                </div>
+
                                 {isEditing ? (
                                   <textarea
                                     value={editedJob.description !== undefined ? editedJob.description : job.description || ''}
@@ -433,68 +459,34 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                     placeholder="• Key responsibilities and main duties...&#10;• Required qualifications and experience...&#10;• Notable aspects and unique selling points..."
                                   />
                                 ) : (
-                                  <EnhancedJobSummary job={job} />
+                                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
+                                    <EnhancedJobSummary job={job} />
+                                  </div>
                                 )}
-                              </SectionCard>
+                              </div>
 
                               {/* Full Job Description Section */}
                               {job.fullJobDescription && (
-                                <SectionCard title="Full Job Description" icon={FileText}>
-                                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                      {job.fullJobDescription}
-                                    </p>
+                                <div className="space-y-4">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-gray-400" />
+                                    Full Description
+                                  </h3>
+                                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
+                                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                        {job.fullJobDescription}
+                                      </p>
+                                    </div>
                                   </div>
-                                </SectionCard>
+                                </div>
                               )}
-
-                              {/* Notes Section */}
-                              <SectionCard title="Notes & Observations" icon={Edit3}>
-                                {isEditing ? (
-                                  <textarea
-                                    value={editedJob.notes !== undefined ? editedJob.notes : job.notes || ''}
-                                    onChange={(e) => setEditedJob({ ...editedJob, notes: e.target.value })}
-                                    className="w-full min-h-[200px] p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
-                                    placeholder="Add your personal notes, thoughts, or observations about this application..."
-                                  />
-                                ) : (
-                                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                    {job.notes || 'No notes yet. Click edit to add your thoughts about this application.'}
-                                  </p>
-                                )}
-                              </SectionCard>
-
-                              {/* Contact Information */}
-                              {(job.contactName || job.contactEmail || job.contactPhone) && (
-                                <SectionCard title="Contact Information" icon={Mail}>
-                                  <div className="space-y-3">
-                                    {job.contactName && (
-                                      <PropertyRow icon={Mail} label="Contact Name" value={job.contactName} />
-                                    )}
-                                    {job.contactEmail && (
-                                      <PropertyRow
-                                        icon={Mail}
-                                        label="Email"
-                                        value={job.contactEmail}
-                                        link={`mailto:${job.contactEmail}`}
-                                      />
-                                    )}
-                                    {job.contactPhone && (
-                                      <PropertyRow
-                                        icon={Phone}
-                                        label="Phone"
-                                        value={job.contactPhone}
-                                        link={`tel:${job.contactPhone}`}
-                                      />
-                                    )}
-                                  </div>
-                                </SectionCard>
-                              )}
-                            </>
+                            </div>
                           )}
 
+
                           {activeTab === 'interviews' && (
-                            <>
+                            <div className="space-y-6">
                               {/* Add Interview Form */}
                               <AnimatePresence>
                                 {showAddInterviewForm && (
@@ -506,23 +498,27 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                               </AnimatePresence>
 
                               {/* Interviews List */}
-                              <SectionCard
-                                title="Interviews"
-                                icon={Calendar}
-                                action={
-                                  !showAddInterviewForm && (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between px-1">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    Interview Schedule
+                                    <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                      {job.interviews?.length || 0}
+                                    </span>
+                                  </h3>
+                                  {!showAddInterviewForm && (
                                     <button
                                       onClick={() => setShowAddInterviewForm(true)}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-lg border border-purple-200 dark:border-purple-800/50 transition-colors"
+                                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg shadow-gray-900/20 dark:shadow-none"
                                     >
-                                      <Plus className="w-3.5 h-3.5" />
+                                      <Plus className="w-4 h-4" />
                                       Add Interview
                                     </button>
-                                  )
-                                }
-                              >
+                                  )}
+                                </div>
+
                                 {job.interviews && job.interviews.length > 0 ? (
-                                  <div className="space-y-4">
+                                  <div className="grid gap-4">
                                     {job.interviews.map((interview) => (
                                       <InterviewCard
                                         key={interview.id}
@@ -532,41 +528,67 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="text-center py-12">
-                                    <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                                    <p className="text-gray-500 dark:text-gray-400 mb-4">No interviews scheduled yet</p>
-                                    <button
-                                      onClick={() => setShowAddInterviewForm(true)}
-                                      className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
-                                    >
-                                      <Plus className="w-4 h-4" />
-                                      Schedule Interview
-                                    </button>
-                                  </div>
+                                  !showAddInterviewForm && (
+                                    <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                                      <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                                        <Calendar className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                                      </div>
+                                      <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                                        No interviews scheduled
+                                      </h4>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs mx-auto">
+                                        Keep track of your interview process by adding scheduled interviews here.
+                                      </p>
+                                      <button
+                                        onClick={() => setShowAddInterviewForm(true)}
+                                        className="px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-medium text-sm inline-flex items-center gap-2 shadow-sm"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                        Schedule First Interview
+                                      </button>
+                                    </div>
+                                  )
                                 )}
-                              </SectionCard>
-                            </>
+                              </div>
+                            </div>
                           )}
 
                           {activeTab === 'activity' && (
-                            <SectionCard title="Activity Timeline" icon={Clock}>
+                            <div className="space-y-6">
+                              <div className="flex items-center justify-between px-1">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                  Activity History
+                                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                    {job.statusHistory?.length || 0}
+                                  </span>
+                                </h3>
+                              </div>
+
                               {job.statusHistory && job.statusHistory.length > 0 ? (
-                                <div className="space-y-4">
-                                  {job.statusHistory.map((change, index) => (
+                                <div className="space-y-0 pl-2">
+                                  {[...job.statusHistory].reverse().map((change, index) => (
                                     <TimelineItem
                                       key={index}
                                       change={change}
+                                      index={index}
                                       isLast={index === job.statusHistory!.length - 1}
                                     />
                                   ))}
                                 </div>
                               ) : (
-                                <div className="text-center py-12">
-                                  <Clock className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                                  <p className="text-gray-500 dark:text-gray-400">No activity recorded yet</p>
+                                <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                                  <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <Clock className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                                  </div>
+                                  <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                                    No activity recorded
+                                  </h4>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                                    Status changes and updates will appear here.
+                                  </p>
                                 </div>
                               )}
-                            </SectionCard>
+                            </div>
                           )}
 
                           {activeTab === 'ai-tools' && (
@@ -581,21 +603,31 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                             job.cvAnalysisId ? (
                               <ResumeLab cvAnalysisId={job.cvAnalysisId} />
                             ) : (
-                              <div className="text-center py-16">
-                                <Target className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-6" />
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                                  No CV Analysis Linked
-                                </h3>
-                                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                                  Create a CV analysis for this job to see your match score, skills breakdown, and personalized recommendations.
-                                </p>
-                                <button
-                                  onClick={() => window.location.href = '/cv-analysis'}
-                                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium inline-flex items-center gap-2"
-                                >
-                                  <Sparkles className="w-5 h-5" />
-                                  <span>Create CV Analysis</span>
-                                </button>
+                              <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-8 text-center shadow-sm group">
+                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                                <div className="relative z-10">
+                                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-500">
+                                    <Target className="w-10 h-10 text-purple-600 dark:text-purple-400" />
+                                  </div>
+
+                                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                                    Unlock Your Application Potential
+                                  </h3>
+
+                                  <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
+                                    Get a detailed AI analysis of how well your CV matches this job.
+                                    Identify gaps, optimize keywords, and boost your interview chances.
+                                  </p>
+
+                                  <button
+                                    onClick={() => window.location.href = '/cv-analysis'}
+                                    className="relative inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-purple-500/25 transform hover:-translate-y-0.5"
+                                  >
+                                    <Sparkles className="w-5 h-5" />
+                                    <span>Start CV Analysis</span>
+                                  </button>
+                                </div>
                               </div>
                             )
                           )}
@@ -631,7 +663,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                 )}
                                 {job.url && (
                                   <PropertyRow
-                                    icon={LinkIcon}
+                                    icon={ExternalLink}
                                     label="Job Posting"
                                     value="View Original"
                                     link={job.url}
@@ -680,11 +712,11 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                   </div>
                 </Dialog.Panel>
               </Transition.Child>
-            </div>
-          </div>
-        </div>
-      </Dialog>
-    </Transition>
+            </div >
+          </div >
+        </div >
+      </Dialog >
+    </Transition >
   );
 };
 

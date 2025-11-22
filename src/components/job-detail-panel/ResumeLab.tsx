@@ -2,21 +2,21 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Sparkles,
-    TrendingUp,
     CheckCircle2,
     XCircle,
     ArrowRight,
     Loader2,
     FileText,
-    Target,
     Zap,
-    ExternalLink
+    GraduationCap,
+    Briefcase,
+    Building2,
+    AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { SectionCard } from './SectionCard';
 
 interface ATSAnalysis {
     id: string;
@@ -86,10 +86,10 @@ export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
         return 'text-red-600 dark:text-red-400';
     };
 
-    const getScoreBg = (score: number) => {
-        if (score >= 70) return 'bg-green-100 dark:bg-green-900/20';
-        if (score >= 50) return 'bg-yellow-100 dark:bg-yellow-900/20';
-        return 'bg-red-100 dark:bg-red-900/20';
+    const getScoreGradient = (score: number) => {
+        if (score >= 70) return 'from-green-500 to-emerald-500';
+        if (score >= 50) return 'from-yellow-500 to-amber-500';
+        return 'from-red-500 to-rose-500';
     };
 
     if (isLoading) {
@@ -109,165 +109,200 @@ export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
         );
     }
 
+    const categoryConfig = {
+        skills: { icon: Zap, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500' },
+        experience: { icon: Briefcase, color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500' },
+        education: { icon: GraduationCap, color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500' },
+        industryFit: { icon: Building2, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500' },
+    };
+
     return (
-        <div className="space-y-6">
-            {/* Header with Match Score */}
+        <div className="space-y-8">
+            {/* Match Score Hero Card */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+                className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-sm"
             >
-                <SectionCard
-                    title={
-                        <div className="flex items-center gap-2">
-                            <span>CV Match Analysis</span>
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-medium">
-                                <Sparkles className="w-3 h-3" />
-                                <span>AI</span>
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500" />
+                <div className="p-8">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div className="flex-1 text-center md:text-left">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 text-sm font-medium mb-4">
+                                <Sparkles className="w-4 h-4" />
+                                <span>AI Analysis Result</span>
                             </div>
-                        </div>
-                    }
-                    icon={Target}
-                >
-                    <div className="space-y-4">
-                        {/* Match Score */}
-                        <div className={`p-6 rounded-2xl ${getScoreBg(analysis.matchScore)} border border-gray-200 dark:border-gray-700`}>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                        Overall Match Score
-                                    </div>
-                                    <div className={`text-4xl font-bold ${getScoreColor(analysis.matchScore)}`}>
-                                        {Math.round(analysis.matchScore)}%
-                                    </div>
-                                </div>
-                                <div className={`w-20 h-20 rounded-full border-4 ${analysis.matchScore >= 70
-                                        ? 'border-green-500'
-                                        : analysis.matchScore >= 50
-                                            ? 'border-yellow-500'
-                                            : 'border-red-500'
-                                    } flex items-center justify-center`}>
-                                    {analysis.matchScore >= 70 ? (
-                                        <CheckCircle2 className="w-10 h-10 text-green-500" />
-                                    ) : analysis.matchScore >= 50 ? (
-                                        <TrendingUp className="w-10 h-10 text-yellow-500" />
-                                    ) : (
-                                        <XCircle className="w-10 h-10 text-red-500" />
-                                    )}
-                                </div>
-                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                                Match Score Analysis
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-400 max-w-md">
+                                Based on a detailed comparison of your CV against the job description requirements.
+                            </p>
+
+                            <button
+                                onClick={() => navigate(`/ats-analysis/${cvAnalysisId}`)}
+                                className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all font-medium shadow-lg shadow-gray-900/10"
+                            >
+                                <span>View Full Report</span>
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
                         </div>
 
-                        {/* View Full Analysis Button */}
-                        <button
-                            onClick={() => navigate(`/cv-analysis/${cvAnalysisId}`)}
-                            className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 group"
-                        >
-                            <span>View Full Analysis</span>
-                            <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                        </button>
-                    </div>
-                </SectionCard>
-            </motion.div>
-
-            {/* Category Scores */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-            >
-                <SectionCard title="Category Breakdown" icon={Zap}>
-                    <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(analysis.categoryScores).map(([category, score], index) => (
-                            <div key={category} className="space-y-2">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="font-medium text-gray-700 dark:text-gray-300 capitalize">
-                                        {category === 'industryFit' ? 'Industry Fit' : category}
-                                    </span>
-                                    <span className={`font-semibold ${getScoreColor(score)}`}>
-                                        {Math.round(score)}%
-                                    </span>
-                                </div>
-                                <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${score}%` }}
-                                        transition={{ duration: 0.8, delay: 0.2 + index * 0.1, ease: 'easeOut' }}
-                                        className={`h-full rounded-full ${score >= 70
-                                                ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                                                : score >= 50
-                                                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500'
-                                                    : 'bg-gradient-to-r from-red-500 to-rose-500'
-                                            }`}
+                        <div className="relative">
+                            {/* Circular Progress */}
+                            <div className="w-40 h-40 relative flex items-center justify-center">
+                                <svg className="w-full h-full transform -rotate-90">
+                                    <circle
+                                        cx="80"
+                                        cy="80"
+                                        r="70"
+                                        stroke="currentColor"
+                                        strokeWidth="12"
+                                        fill="transparent"
+                                        className="text-gray-100 dark:text-gray-800"
                                     />
+                                    <circle
+                                        cx="80"
+                                        cy="80"
+                                        r="70"
+                                        stroke="currentColor"
+                                        strokeWidth="12"
+                                        fill="transparent"
+                                        strokeDasharray={440}
+                                        strokeDashoffset={440 - (440 * analysis.matchScore) / 100}
+                                        className={`${getScoreColor(analysis.matchScore)} transition-all duration-1000 ease-out`}
+                                        strokeLinecap="round"
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className={`text-4xl font-bold ${getScoreColor(analysis.matchScore)}`}>
+                                        {Math.round(analysis.matchScore)}%
+                                    </span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mt-1">
+                                        Match
+                                    </span>
                                 </div>
                             </div>
-                        ))}
+                        </div>
                     </div>
-                </SectionCard>
+                </div>
             </motion.div>
+
+            {/* Category Breakdown Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(analysis.categoryScores).map(([category, score], index) => {
+                    const config = categoryConfig[category as keyof typeof categoryConfig];
+                    const Icon = config?.icon || Zap;
+
+                    return (
+                        <motion.div
+                            key={category}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className={`bg-white dark:bg-gray-900 rounded-xl border-t-4 ${config?.border || 'border-gray-500'} border-x border-b border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow`}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${config?.bg || 'bg-gray-100'} ${config?.color || 'text-gray-500'}`}>
+                                        <Icon className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="font-semibold text-gray-900 dark:text-white capitalize">
+                                        {category === 'industryFit' ? 'Industry Fit' : category}
+                                    </h4>
+                                </div>
+                                <span className={`text-lg font-bold ${getScoreColor(score)}`}>
+                                    {Math.round(score)}%
+                                </span>
+                            </div>
+                            <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${score}%` }}
+                                    transition={{ duration: 1, delay: 0.5 }}
+                                    className={`h-full rounded-full bg-gradient-to-r ${getScoreGradient(score)}`}
+                                />
+                            </div>
+                        </motion.div>
+                    );
+                })}
+            </div>
 
             {/* Key Findings */}
             {analysis.keyFindings && analysis.keyFindings.length > 0 && (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.2 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm"
                 >
-                    <SectionCard title="Key Findings" icon={FileText}>
-                        <ul className="space-y-3">
-                            {analysis.keyFindings.slice(0, 5).map((finding, index) => (
-                                <motion.li
-                                    key={index}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
-                                    className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300"
-                                >
-                                    <ArrowRight className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                                    <span>{finding}</span>
-                                </motion.li>
-                            ))}
-                        </ul>
-                    </SectionCard>
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400">
+                            <FileText className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white">Key Findings</h4>
+                    </div>
+                    <div className="space-y-4">
+                        {analysis.keyFindings.slice(0, 5).map((finding, index) => (
+                            <div key={index} className="flex items-start gap-4 group">
+                                <div className="mt-1 w-6 h-6 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40 transition-colors">
+                                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{index + 1}</span>
+                                </div>
+                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm">
+                                    {finding}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
                 </motion.div>
             )}
 
-            {/* Skills Match Summary */}
+            {/* Skills Overview */}
             {analysis.skillsMatch && (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.3 }}
+                    transition={{ delay: 0.5 }}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4"
                 >
-                    <SectionCard title="Skills Overview" icon={CheckCircle2}>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800/50">
-                                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                    {analysis.skillsMatch.matching?.length || 0}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                    Matching
-                                </div>
-                            </div>
-                            <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800/50">
-                                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                                    {analysis.skillsMatch.missing?.length || 0}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                    Missing
-                                </div>
-                            </div>
-                            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800/50">
-                                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                    {analysis.skillsMatch.alternative?.length || 0}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                    Alternatives
-                                </div>
-                            </div>
+                    <div className="bg-green-50/50 dark:bg-green-900/10 rounded-xl border border-green-100 dark:border-green-800/30 p-5">
+                        <div className="flex items-center gap-2 mb-2 text-green-700 dark:text-green-400 font-semibold">
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Matching Skills</span>
                         </div>
-                    </SectionCard>
+                        <div className="text-3xl font-bold text-green-700 dark:text-green-400 mb-1">
+                            {analysis.skillsMatch.matching?.length || 0}
+                        </div>
+                        <div className="text-xs text-green-600/80 dark:text-green-400/80">
+                            Skills found in your CV
+                        </div>
+                    </div>
+
+                    <div className="bg-red-50/50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-800/30 p-5">
+                        <div className="flex items-center gap-2 mb-2 text-red-700 dark:text-red-400 font-semibold">
+                            <XCircle className="w-4 h-4" />
+                            <span>Missing Skills</span>
+                        </div>
+                        <div className="text-3xl font-bold text-red-700 dark:text-red-400 mb-1">
+                            {analysis.skillsMatch.missing?.length || 0}
+                        </div>
+                        <div className="text-xs text-red-600/80 dark:text-red-400/80">
+                            Critical skills to add
+                        </div>
+                    </div>
+
+                    <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/30 p-5">
+                        <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-400 font-semibold">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>Alternatives</span>
+                        </div>
+                        <div className="text-3xl font-bold text-blue-700 dark:text-blue-400 mb-1">
+                            {analysis.skillsMatch.alternative?.length || 0}
+                        </div>
+                        <div className="text-xs text-blue-600/80 dark:text-blue-400/80">
+                            Similar skills found
+                        </div>
+                    </div>
                 </motion.div>
             )}
         </div>

@@ -225,6 +225,15 @@ export async function extractCVTextAndTags(images: string[]): Promise<CVExtracti
 
         if (!response.ok) {
             let errorMessage = `API error: ${response.status} ${response.statusText}`;
+            
+            // Handle missing API key error specifically (503 Service Unavailable)
+            if (response.status === 503) {
+                errorMessage = '⚠️ OpenAI API key is not configured. Please add OPENAI_API_KEY to your .env file and restart the server.';
+                console.error('❌ Configuration Error: OpenAI API key is missing');
+                toast.error(errorMessage, { duration: 8000 });
+                throw new Error(errorMessage);
+            }
+            
             try {
                 const errorData = await response.json();
                 console.error('❌ GPT-4o Vision API error:', errorData);

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FileText, Briefcase, Building2, Sparkles, Upload, Check, X, 
+import {
+  FileText, Briefcase, Building2, Sparkles, Upload, Check, X,
   ChevronRight, Trash2, Loader2,
   Wand2, Calendar, Info, AlignLeft, Search, Filter, XCircle,
   ArrowUpDown, LayoutGrid, List, Globe2, ChevronDown, MoreHorizontal, Copy
@@ -10,13 +10,14 @@ import {
 import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  doc, collection, query, orderBy, 
-  addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc 
+import {
+  doc, collection, query, orderBy,
+  addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc
 } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { db } from '../lib/firebase';
 import { pdfToImages } from '../lib/pdfToImages';
+import { extractCVTextAndTags, CVExtractionResult } from '../lib/cvTextExtraction';
 
 interface OptimizedCV {
   id: string;
@@ -67,6 +68,19 @@ export default function CVOptimizerPage() {
   });
   const [openVersionDropdown, setOpenVersionDropdown] = useState<string | null>(null);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+
+  // CV Processing Status for async background processing
+  const [cvProcessingStatus, setCvProcessingStatus] = useState<{
+    isProcessing: boolean;
+    stage: 'idle' | 'uploading' | 'converting' | 'extracting' | 'complete' | 'error';
+    fileName?: string;
+    extractedData?: CVExtractionResult;
+    progress?: number;
+    error?: string;
+  }>({
+    isProcessing: false,
+    stage: 'idle'
+  });
   useEffect(() => {
     const close = () => {
       setOpenVersionDropdown(null);
@@ -207,7 +221,7 @@ export default function CVOptimizerPage() {
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((cv) => 
+      filtered = filtered.filter((cv) =>
         cv.jobTitle.toLowerCase().includes(query) ||
         cv.company.toLowerCase().includes(query) ||
         (cv.keywordsUsed?.some(kw => kw.toLowerCase().includes(query))) ||
@@ -232,13 +246,13 @@ export default function CVOptimizerPage() {
         try {
           const cvDate = new Date(cv.date);
           if (isNaN(cvDate.getTime())) return true; // If date is invalid, include it
-          
+
           const now = new Date();
           now.setHours(0, 0, 0, 0);
           cvDate.setHours(0, 0, 0, 0);
           const diffTime = now.getTime() - cvDate.getTime();
           const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-          
+
           if (dateFilter === 'week' && diffDays > 7) return false;
           if (dateFilter === 'month' && diffDays > 30) return false;
           if (dateFilter === '3months' && diffDays > 90) return false;
@@ -278,7 +292,7 @@ export default function CVOptimizerPage() {
 
   const groupedCVs = (): GroupedCV[] => {
     const groups = new Map<string, OptimizedCV[]>();
-    
+
     // Group all filtered CVs by jobTitle + company
     filteredCVs.forEach((cv) => {
       const key = `${cv.jobTitle}|||${cv.company}`;
@@ -296,7 +310,7 @@ export default function CVOptimizerPage() {
         if (dateDiff !== 0) return dateDiff;
         return (b.atsScore || 0) - (a.atsScore || 0);
       });
-      
+
       return {
         jobKey,
         versions,
@@ -323,26 +337,85 @@ export default function CVOptimizerPage() {
 
   const groupedCVsList = groupedCVs();
 
+  // Process CV asynchronously in background
+  const processCV = async (file: File) => {
+    try {
+      // Stage 1: Start processing
+      setCvProcessingStatus({
+        isProcessing: true,
+        stage: 'converting',
+        fileName: file.name,
+        progress: 10
+      });
+
+      // Stage 2: Convert PDF to images
+      console.log('📄 Converting PDF to images...');
+      const images = await pdfToImages(file, 2, 1.5);
+      console.log(`✅ PDF converted to ${images.length} image(s)`);
+
+      setCvProcessingStatus(prev => ({
+        ...prev,
+        stage: 'extracting',
+        progress: 40
+      }));
+
+      // Stage 3: Extract text and tags with Vision API
+      console.log('🔍 Extracting CV data with Vision API...');
+      const extractedData = await extractCVTextAndTags(images);
+      console.log('✅ CV data extracted successfully');
+      console.log(`   Text: ${extractedData.text.substring(0, 100)}...`);
+      console.log(`   Technologies: ${extractedData.technologies.length}`);
+      console.log(`   Skills: ${extractedData.skills.length}`);
+
+      // Stage 4: Complete
+      setCvProcessingStatus({
+        isProcessing: false,
+        stage: 'complete',
+        fileName: file.name,
+        extractedData,
+        progress: 100
+      });
+
+      toast.success('✅ CV analyzed successfully!');
+
+    } catch (error: any) {
+      console.error('❌ CV processing failed:', error);
+      setCvProcessingStatus({
+        isProcessing: false,
+        stage: 'error',
+        fileName: file.name,
+        error: error.message || 'Unknown error occurred'
+      });
+
+      toast.error(`Failed to analyze CV: ${error.message || 'Unknown error'}`);
+    }
+  };
+
   // Extract job info from URL using Puppeteer
 
-  // Gestion du fichier CV
+  // Gestion du fichier CV - Now with immediate feedback and async processing
   const handleFileUpload = (file: File | React.ChangeEvent<HTMLInputElement>) => {
     let fileToProcess: File;
-    
+
     if (file instanceof File) {
       fileToProcess = file;
     } else {
       if (!file.target.files?.[0]) return;
       fileToProcess = file.target.files[0];
     }
-    
+
     if (fileToProcess.type !== 'application/pdf') {
       toast.error('Please upload a PDF file');
       return;
     }
-    
+
+    // IMMEDIATE FEEDBACK: Update state right away
     setCvFile(fileToProcess);
-    toast.success('Resume selected successfully');
+    toast.success('📄 Resume uploaded successfully!');
+
+    // BACKGROUND PROCESSING: Start async processing without blocking UI
+    // Fire-and-forget - user can continue interacting with the form
+    processCV(fileToProcess);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -758,7 +831,7 @@ export default function CVOptimizerPage() {
 
     setIsModalOpen(false);
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     setIsLoading(true);
     setLoadingStep('preparing');
     setLoadingProgress(0);
@@ -768,10 +841,10 @@ export default function CVOptimizerPage() {
       setLoadingStep('preparing');
       setLoadingProgress(10);
       setLoadingMessage('Converting resume to images...');
-      
+
       const images = await pdfToImages(cvFile, 2, 1.5);
       console.log(`✅ PDF converted to ${images.length} image(s)`);
-      
+
       setLoadingProgress(30);
       await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -1046,33 +1119,33 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
 
       let structuredCVMarkdown = '';
       let extractionOk = false;
-      
+
       try {
-      const extractionResponse = await fetch('/api/analyze-cv-vision', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'user',
-              content: [
+        const extractionResponse = await fetch('/api/analyze-cv-vision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'user',
+                content: [
                   { type: 'text', text: comprehensiveExtractionPrompt },
-                ...images.map(img => ({
-                  type: 'image_url',
-                    image_url: { 
+                  ...images.map(img => ({
+                    type: 'image_url',
+                    image_url: {
                       url: `data:image/jpeg;base64,${img}`,
                       detail: 'high' // High detail for comprehensive visual analysis
                     }
-                }))
-              ]
-            }
-          ],
-          response_format: { type: 'json_object' },
+                  }))
+                ]
+              }
+            ],
+            response_format: { type: 'json_object' },
             max_tokens: 16000, // Increased for comprehensive extraction with all experiences
-          temperature: 0.1
-        })
-      });
+            temperature: 0.1
+          })
+        });
 
         if (!extractionResponse.ok) {
           const errorData = await extractionResponse.json().catch(() => ({ message: 'Unknown error' }));
@@ -1080,7 +1153,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
         }
 
         const extractionData = await extractionResponse.json();
-        
+
         if (extractionData.status !== 'success') {
           throw new Error(extractionData.message || 'Failed to extract CV content');
         }
@@ -1103,13 +1176,13 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
         const structuredData = parsedExtraction.structured_data;
         structuredCVMarkdown = parsedExtraction.structuredCVMarkdown || parsedExtraction.text || '';
         extractionOk = !!structuredCVMarkdown && structuredCVMarkdown.trim().length > 100;
-        
+
         if (extractionOk) {
           console.log('✅ Comprehensive CV extraction successful');
           console.log('   Extraction summary:', parsedExtraction.extraction_summary || 'N/A');
           console.log('   Extraction notes:', parsedExtraction.extractionNotes || 'N/A');
           console.log('   Structured markdown length:', structuredCVMarkdown.length);
-          
+
           // Log structured data if available
           if (structuredData) {
             console.log('   ✅ Structured data available:', {
@@ -1119,7 +1192,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
               languagesCount: structuredData.languages?.length || 0,
               certificationsCount: structuredData.certifications?.length || 0,
             });
-            
+
             // Validate extraction
             const summary = parsedExtraction.extraction_summary || {};
             if (structuredData.experiences && summary.experiences_found !== structuredData.experiences.length) {
@@ -1130,7 +1203,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
             }
           }
         }
-        
+
         // Store structured_data for later use
         (window as any).__extractedStructuredData = structuredData;
       } catch (e) {
@@ -1153,7 +1226,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
       // Use structured_data if available, otherwise parse markdown
       const extractedStructuredData = (window as any).__extractedStructuredData;
       let originalStructured: any;
-      
+
       if (extractedStructuredData && extractedStructuredData.experiences && extractedStructuredData.experiences.length > 0) {
         // Use structured_data directly - it's more accurate
         console.log('✅ Using extracted structured_data instead of parsing markdown');
@@ -1208,7 +1281,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
       if (jobInputMode === 'ai' && formData.jobUrl && (!jobDescription || jobDescription.trim().length < 100)) {
         try {
           setLoadingMessage('Extracting job posting content...');
-          
+
           // Validate URL before sending
           const urlToExtract = formData.jobUrl.trim();
           if (!urlToExtract || urlToExtract.length < 10) {
@@ -1216,7 +1289,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
           }
 
           console.log('📡 Sending extraction request for URL:', urlToExtract);
-          
+
           const extractResponse = await fetch('/api/extract-job-url', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1232,15 +1305,15 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
             } catch {
               const errorText = await extractResponse.text();
               console.error('❌ Extraction failed:', extractResponse.status, errorText);
-              errorMessage = extractResponse.status === 404 
-                ? 'Endpoint not found. Please restart the server.' 
+              errorMessage = extractResponse.status === 404
+                ? 'Endpoint not found. Please restart the server.'
                 : errorText || extractResponse.statusText;
             }
             throw new Error(errorMessage);
           }
 
           const extractData = await extractResponse.json();
-          
+
           if (extractData.status === 'success') {
             // Validate extracted data
             if (!extractData.content || extractData.content.trim().length < 50) {
@@ -1277,7 +1350,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
             name: extractError.name,
             stack: extractError.stack
           });
-          
+
           // Provide helpful error message
           let errorMessage = `Failed to extract job posting from URL: ${extractError.message || 'Unknown error'}`;
           if (extractError.message?.includes('timeout') || extractError.message?.includes('Navigation')) {
@@ -1287,7 +1360,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
           } else {
             errorMessage += ' Please try manual entry or check the URL.';
           }
-          
+
           throw new Error(errorMessage);
         }
       }
@@ -1345,17 +1418,17 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
         shortSummary?: string;
         structuredCV?: any;
       };
-      
+
       try {
-      if (typeof optimizationData.content === 'string') {
+        if (typeof optimizationData.content === 'string') {
           // Try to parse as JSON string
           let normalized = optimizationData.content.trim();
           // Remove markdown code blocks if present
           normalized = normalized.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-        optimizedResult = JSON.parse(normalized);
+          optimizedResult = JSON.parse(normalized);
         } else if (optimizationData.content && typeof optimizationData.content === 'object') {
           // Already an object
-        optimizedResult = optimizationData.content;
+          optimizedResult = optimizationData.content;
         } else {
           throw new Error('Invalid content format from API');
         }
@@ -1391,9 +1464,9 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
       } catch (parseError: any) {
         console.error('❌ Error parsing optimization result:', parseError);
         console.error('Raw content type:', typeof optimizationData.content);
-        console.error('Raw content preview:', 
-          typeof optimizationData.content === 'string' 
-            ? optimizationData.content.substring(0, 500) 
+        console.error('Raw content preview:',
+          typeof optimizationData.content === 'string'
+            ? optimizationData.content.substring(0, 500)
             : JSON.stringify(optimizationData.content).substring(0, 500)
         );
         throw new Error(`Failed to parse optimization result: ${parseError.message || 'Invalid JSON format'}`);
@@ -1430,7 +1503,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
       if (savedId && currentUser) {
         console.log('🔍 DEBUG: Using merged structured data with completeness checks...');
         const structured = mergedStructured;
-        
+
         // Save structured data to Firestore with original extraction data
         try {
           const extractedStructuredData = (window as any).__extractedStructuredData;
@@ -1447,7 +1520,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
           // Don't throw - navigation should still happen even if save fails
           toast.warning('CV optimized but failed to save structured data. You can still edit the resume.');
         }
-        
+
         navigate(`/cv-optimizer/${savedId}`);
       }
 
@@ -1495,24 +1568,22 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                 transition-all duration-200 ease-out
                 backdrop-blur-sm
                 group
-                ${
-                  isDragging
-                    ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                    : cvFile
+                ${isDragging
+                  ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                  : cvFile
                     ? 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
                     : 'border-gray-200/60 dark:border-gray-700/50 hover:border-purple-400/60 dark:hover:border-purple-600/60 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
                 }`}
             >
               <div className={`w-14 h-14 rounded-xl flex items-center justify-center mr-4 transition-transform duration-200
-                ${
-                  isDragging
-                    ? 'bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/30 scale-105'
-                    : cvFile
+                ${isDragging
+                  ? 'bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/30 scale-105'
+                  : cvFile
                     ? 'bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20'
                     : 'bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 group-hover:scale-105'
                 }`}>
-                {cvFile ? 
-                  <Check className="w-7 h-7 text-green-600 dark:text-green-400" /> : 
+                {cvFile ?
+                  <Check className="w-7 h-7 text-green-600 dark:text-green-400" /> :
                   <Upload className={`w-7 h-7 ${isDragging ? 'text-purple-600 dark:text-purple-400' : 'text-purple-600 dark:text-purple-400'}`} />
                 }
               </div>
@@ -1528,11 +1599,10 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                   </div>
                 ) : (
                   <div>
-                    <p className={`text-sm font-medium mb-1 ${
-                      isDragging
-                        ? 'text-purple-600 dark:text-purple-400'
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}>
+                    <p className={`text-sm font-medium mb-1 ${isDragging
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-700 dark:text-gray-300'
+                      }`}>
                       {isDragging ? "Drop your file here" : "Select or drag and drop a PDF file"}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -1580,22 +1650,20 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
           <div className="flex items-center gap-2 p-1 bg-gray-100/50 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
             <button
               onClick={() => setJobInputMode('ai')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
-                jobInputMode === 'ai'
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'ai'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
+                }`}
             >
               <Wand2 className="w-3.5 h-3.5" />
               AI Extraction
             </button>
             <button
               onClick={() => setJobInputMode('manual')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${
-                jobInputMode === 'manual'
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'manual'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
+                }`}
             >
               <AlignLeft className="w-3.5 h-3.5" />
               Manual Entry
@@ -1642,7 +1710,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
               exit={{ opacity: 0, height: 0 }}
               className="space-y-3"
             >
-        <div>
+              <div>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Job Title
                 </label>
@@ -1674,21 +1742,21 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                   placeholder="e.g., Google"
                 />
               </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Job Description
-          </label>
-          <textarea
-            value={formData.jobDescription}
-            onChange={(e) => setFormData({...formData, jobDescription: e.target.value})}
-            className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Job Description
+                </label>
+                <textarea
+                  value={formData.jobDescription}
+                  onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
               focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
               dark:bg-gray-800/30 dark:text-white h-40 text-sm resize-none
               bg-gray-50/50 backdrop-blur-sm
               transition-all duration-200"
-            placeholder="Paste the complete job description here..."
-          />
-        </div>
+                  placeholder="Paste the complete job description here..."
+                />
+              </div>
             </motion.div>
           )}
         </motion.div>
@@ -1726,12 +1794,12 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
 
   useEffect(() => {
     if (!isLoading) return;
-    
+
     const messages = loadingMessages[loadingStep as keyof typeof loadingMessages];
     if (messages && messages.length > 0) {
       setLoadingMessage(messages[0]);
     }
-    
+
     const messageInterval = setInterval(() => {
       const messages = loadingMessages[loadingStep as keyof typeof loadingMessages];
       if (messages && messages.length > 0) {
@@ -1749,7 +1817,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
         });
       }
     }, 8000);
-    
+
     const progressInterval = setInterval(() => {
       setLoadingProgress(prev => {
         const caps = {
@@ -1765,7 +1833,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
         return Math.min(prev + increment, cap);
       });
     }, 500);
-    
+
     return () => {
       clearInterval(messageInterval);
       clearInterval(progressInterval);
@@ -1777,7 +1845,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
       <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-inter-tight ${isLoading ? 'overflow-hidden' : ''}`}>
         {/* Header */}
         <div className="mb-8">
-          <PageHeader 
+          <PageHeader
             title="Resume Check"
             subtitle="Optimize your resume to perfectly match each job posting with AI"
           />
@@ -1867,7 +1935,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                   text-sm"
               />
             </div>
-            
+
             <div className="flex items-center gap-3">
               {/* Score Filter */}
               <div className="relative">
@@ -1915,27 +1983,25 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                 </select>
                 <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               {/* View Toggle Buttons */}
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 flex">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg flex items-center justify-center ${
-                    viewMode === 'grid' 
-                      ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
-                      : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                  className={`p-2 rounded-lg flex items-center justify-center ${viewMode === 'grid'
+                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
                   aria-label="Grid View"
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg flex items-center justify-center ${
-                    viewMode === 'list' 
-                      ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
-                      : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                  className={`p-2 rounded-lg flex items-center justify-center ${viewMode === 'list'
+                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
                   aria-label="List View"
                 >
                   <List className="h-4 w-4" />
@@ -1947,13 +2013,13 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
 
         {/* Liste des CVs optimisés */}
         {groupedCVsList.length > 0 ? (
-          <div className={`${viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+          <div className={`${viewMode === 'grid'
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
             : 'space-y-4'
-          }`}>
+            }`}>
             {groupedCVsList.map((group) => {
               const hasMultipleVersions = group.versions.length > 1;
-              
+
               return (
                 <motion.div
                   key={group.jobKey}
@@ -2156,14 +2222,14 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
         {/* Modal */}
         <AnimatePresence>
           {isModalOpen && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
             >
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: "100%" }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: "100%" }}
@@ -2175,7 +2241,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                 <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
                   <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
                 </div>
-                
+
                 {/* Header */}
                 <div className="p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
                   {/* Minimal Step Indicator - très discret */}
@@ -2184,26 +2250,26 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                       const stepNumber = index + 1;
                       const isActive = currentStep === stepNumber;
                       const isCompleted = currentStep > stepNumber;
-                      
+
                       return (
                         <div key={step.title} className="flex items-center">
-                          <div 
+                          <div
                             className={`
                               w-1.5 h-1.5 rounded-full transition-all duration-300
-                              ${isActive 
-                                ? 'bg-purple-600 dark:bg-purple-400 w-2 h-2' 
-                                : isCompleted 
-                                  ? 'bg-purple-400 dark:bg-purple-500' 
+                              ${isActive
+                                ? 'bg-purple-600 dark:bg-purple-400 w-2 h-2'
+                                : isCompleted
+                                  ? 'bg-purple-400 dark:bg-purple-500'
                                   : 'bg-gray-300 dark:bg-gray-600'
                               }
                             `}
                           />
                           {index < steps.length - 1 && (
-                            <div 
+                            <div
                               className={`
                                 h-0.5 w-3 mx-0.5 transition-all duration-300
-                                ${isCompleted 
-                                  ? 'bg-purple-400 dark:bg-purple-500' 
+                                ${isCompleted
+                                  ? 'bg-purple-400 dark:bg-purple-500'
                                   : 'bg-gray-200 dark:bg-gray-700'
                                 }
                               `}
@@ -2213,7 +2279,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                       );
                     })}
                   </div>
-                  
+
                   {/* Title Section */}
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -2229,7 +2295,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                         </p>
                       )}
                     </div>
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsModalOpen(false)}
@@ -2240,12 +2306,12 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                     </motion.button>
                   </div>
                 </div>
-                
+
                 {/* Scrollable content */}
                 <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5">
                   {steps[currentStep - 1].content}
                 </div>
-                
+
                 {/* Footer */}
                 <div className="flex justify-between items-center p-5 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                   <motion.button
@@ -2257,16 +2323,15 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                       }
                     }}
                     disabled={currentStep === 1}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 font-geist ${
-                      currentStep === 1 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700' 
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200 font-geist ${currentStep === 1
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
                   >
                     <ChevronRight className="h-4 w-4 mr-1 rotate-180" />
                     Back
                   </motion.button>
-                  
+
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -2295,9 +2360,9 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                       }
                     }}
                     disabled={
-                      (currentStep === 1 && !cvFile) || 
+                      (currentStep === 1 && !cvFile) ||
                       (currentStep === 2 && (
-                        jobInputMode === 'ai' 
+                        jobInputMode === 'ai'
                           ? (!formData.jobUrl || !formData.jobUrl.trim())
                           : (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())
                       )) ||
@@ -2521,11 +2586,11 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                   <X className="w-4 h-4" />
                 </motion.button>
               </div>
-              
+
               <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Are you sure you want to delete your optimized resume for <strong>{deleteConfirmModal.cvTitle}</strong>? This action cannot be undone.
               </p>
-              
+
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setDeleteConfirmModal({ isOpen: false, cvId: null, cvTitle: '' })}
@@ -2547,6 +2612,92 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
             </div>
           </div>
         )}
+
+        {/* CV Processing Status Notification - Bottom Right */}
+        <AnimatePresence>
+          {cvProcessingStatus.isProcessing && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              className="fixed bottom-6 right-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 max-w-sm z-50"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  {cvProcessingStatus.stage === 'converting' && (
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
+                    </div>
+                  )}
+                  {cvProcessingStatus.stage === 'extracting' && (
+                    <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400 animate-pulse" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {cvProcessingStatus.stage === 'converting' && '📄 Converting PDF...'}
+                      {cvProcessingStatus.stage === 'extracting' && '🔍 Analyzing CV with AI...'}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2">
+                    {cvProcessingStatus.fileName}
+                  </p>
+
+                  {/* Progress bar */}
+                  {cvProcessingStatus.progress !== undefined && (
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${cvProcessingStatus.progress}%` }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Success notification */}
+          {cvProcessingStatus.stage === 'complete' && !cvProcessingStatus.isProcessing && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              className="fixed bottom-6 right-6 bg-green-50 dark:bg-green-900/30 rounded-xl shadow-2xl border border-green-200 dark:border-green-700 p-4 max-w-sm z-50"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
+
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">
+                    ✅ CV Analyzed Successfully!
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    {cvProcessingStatus.extractedData?.technologies.length || 0} technologies, {cvProcessingStatus.extractedData?.skills.length || 0} skills extracted
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setCvProcessingStatus(prev => ({ ...prev, stage: 'idle' }))}
+                  className="flex-shrink-0 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </AuthLayout>
   );
