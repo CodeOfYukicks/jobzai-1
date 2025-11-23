@@ -29,6 +29,7 @@ interface QuestionsTabProps {
   handleToggleSaveQuestion: (rawQuestion: string) => void;
   handleCreateNoteFromQuestion: (content: string, displayIndex: number) => void;
   setFocusedQuestion: (question: QuestionEntry | null) => void;
+  onStartLiveSession: () => void;
 }
 
 const QuestionsTab = memo(function QuestionsTab({
@@ -48,6 +49,7 @@ const QuestionsTab = memo(function QuestionsTab({
   handleToggleSaveQuestion,
   handleCreateNoteFromQuestion,
   setFocusedQuestion,
+  onStartLiveSession,
 }: QuestionsTabProps) {
   return (
     <div className="space-y-6 relative">
@@ -70,18 +72,27 @@ const QuestionsTab = memo(function QuestionsTab({
           </div>
         </div>
       )}
-      
+
       <InterviewQuestionsHeader
         totalCount={questionEntries.length}
         filteredCount={filteredQuestions.length}
-        filters={QUESTION_FILTERS}
+        filters={QUESTION_FILTERS as any}
         activeFilter={activeQuestionFilter}
         onFilterChange={setActiveQuestionFilter}
         onRegenerate={regenerateQuestions}
         isRegenerating={isRegeneratingQuestions}
         subtitle={application?.position ? `Tailored questions for your ${application.position} interview` : undefined}
+        actionSlot={
+          <button
+            onClick={onStartLiveSession}
+            className="flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Prepare Live
+          </button>
+        }
       />
-      
+
       {!isRegeneratingQuestions && (
         <div className="mt-8 space-y-5">
           {questionEntries.length === 0 && (
@@ -103,7 +114,7 @@ const QuestionsTab = memo(function QuestionsTab({
               <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-300">
                 Try another filter or show all questions to continue practicing.
               </p>
-              <button 
+              <button
                 type="button"
                 onClick={() => setActiveQuestionFilter('all')}
                 className="mt-4 inline-flex items-center justify-center rounded-full border border-black/10 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"

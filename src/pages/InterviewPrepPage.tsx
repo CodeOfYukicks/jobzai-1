@@ -36,6 +36,7 @@ import { Suspense } from 'react';
 import { OverviewTab, QuestionsTab, SkillsTab, ResourcesTab, ChatTab } from '../components/interview/tabs';
 import { LazySection } from '../components/interview/utils/LazySection';
 import RightSidebarPanel from '../components/interview/RightSidebarPanel';
+import { LiveInterviewSession } from '../components/interview/live/LiveInterviewSession';
 
 // Interface for the job application data
 interface Note {
@@ -409,6 +410,11 @@ export default function InterviewPrepPage() {
   const [noteDocuments, setNoteDocuments] = useState<NoteDocument[]>([]);
   const [activeNoteDocumentId, setActiveNoteDocumentId] = useState<string | null>(null);
   const documentsSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
+
+  const handleStartLiveSession = () => {
+    setIsLiveSessionOpen(true);
+  };
 
   const questionEntries = useMemo<QuestionEntry[]>(() => {
     if (!interview?.preparation?.suggestedQuestions) return [];
@@ -3990,6 +3996,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                           handleToggleSaveQuestion={handleToggleSaveQuestion}
                           handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
                           setFocusedQuestion={setFocusedQuestion}
+                          onStartLiveSession={handleStartLiveSession}
                         />
                       </Suspense>
                     </motion.div>
@@ -5882,6 +5889,20 @@ Make sure each answer is completely unique and specific to its question - no gen
           </AnimatePresence>
         </div>
       </MotionConfig>
+      <LiveInterviewSession
+        isOpen={isLiveSessionOpen}
+        onClose={() => setIsLiveSessionOpen(false)}
+        questions={filteredQuestions}
+        jobContext={{
+          companyName: application?.companyName || '',
+          position: application?.position || '',
+          jobDescription: interview?.jobPostContent || application?.jobDescription || '',
+          requiredSkills: interview?.preparation?.requiredSkills || []
+        }}
+      />
     </AuthLayout>
   );
-} 
+}
+
+
+

@@ -1,0 +1,44 @@
+diff --git a/src/pages/InterviewPrepPage.tsx b/src/pages/InterviewPrepPage.tsx
+index existing..new 100644
+--- a/src/pages/InterviewPrepPage.tsx
++++ b/src/pages/InterviewPrepPage.tsx
+@@ -35,7 +35,8 @@ import { Suspense } from 'react';
+ import { OverviewTab, QuestionsTab, SkillsTab, ResourcesTab, ChatTab } from '../components/interview/tabs';
+ import { LazySection } from '../components/interview/utils/LazySection';
+ import RightSidebarPanel from '../components/interview/RightSidebarPanel';
++import { LiveInterviewSession } from '../components/interview/live/LiveInterviewSession';
+ 
+ // Interface for the job application data
+ interface Note {
+@@ -410,6 +411,11 @@ export default function Inter viewPrepPage() {
+   const [noteDocuments, setNoteDocuments] = useState<NoteDocument[]>([]);
+   const [activeNoteDocumentId, setActiveNoteDocumentId] = useState<string | null>(null);
+   const documentsSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
++  const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
++
++  const handleStartLiveSession = () => {
++    setIsLiveSessionOpen(true);
++  };
+ 
+   const questionEntries = useMemo<QuestionEntry[]>(() => {
+     if (!interview?.preparation?.suggestedQuestions) return [];
+@@ -1260,6 +1266,7 @@ export default function InterviewPrepPage() {
+                 handleToggleSaveQuestion={handleToggleSaveQuestion}
+                 handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
+                 setFocusedQuestion={setFocusedQuestion}
++                onStartLiveSession={handleStartLiveSession}
+               />
+             </Suspense>
+           </motion.div>
+@@ -1348,6 +1355,12 @@ export default function InterviewPrepPage() {
+           </AnimatePresence>
+         </MotionConfig>
+       </div>
++      <LiveInterviewSession
++        isOpen={isLiveSessionOpen}
++        onClose={() => setIsLiveSessionOpen(false)}
++        questions={filteredQuestions}
++      />
+     </AuthLayout>
+   );
+ }

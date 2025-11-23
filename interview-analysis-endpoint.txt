@@ -1,0 +1,288 @@
+// AI Interview Analysis API - Comprehensive feedback with GPT-4o
+// INSERT THIS CODE AT LINE 899 in server.cjs (after the vision API endpoint, before Stripe)
+
+app.post('/api/analyze-interview', async (req, res) => {
+  try {
+    console.log('🎯 AI Interview Analysis API endpoint called');
+    console.log('   Request body keys:', Object.keys(req.body || {}));
+    
+    // Get API key
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+      if (!apiKey) {
+        if (process.env.OPENAI_API_KEY) {
+          apiKey = process.env.OPENAI_API_KEY;
+        } else if (process.env.VITE_OPENAI_API_KEY) {
+          apiKey = process.env.VITE_OPENAI_API_KEY;
+        }
+      }
+    } catch (keyError) {
+      console.error('❌ Error retrieving API key:', keyError);
+      if (process.env.OPENAI_API_KEY) {
+        apiKey = process.env.OPENAI_API_KEY;
+      } else if (process.env.VITE_OPENAI_API_KEY) {
+        apiKey = process.env.VITE_OPENAI_API_KEY;
+      }
+    }
+    
+    if (!apiKey) {
+      console.error('❌ OpenAI API key missing');
+      return res.status(500).json({ 
+        status: 'error', 
+        message: 'OpenAI API key is missing. Please add OPENAI_API_KEY to your .env file.' 
+      });
+    }
+    
+    console.log('✅ API key retrieved successfully');
+    
+    // Extract request data
+    const { questions, answers, jobContext } = req.body;
+    
+    // Validate request
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      console.error('❌ Invalid questions data');
+      return res.status(400).json({
+        status: 'error',
+        message: 'Questions array is required and must not be empty'
+      });
+    }
+    
+    if (!answers || typeof answers !== 'object') {
+      console.error('❌ Invalid answers data');
+      return res.status(400).json({
+        status: 'error',
+        message: 'Answers object is required'
+      });
+    }
+    
+    console.log('✅ Request validation passed');
+    console.log(`   Questions: ${questions.length}`);
+    console.log(`   Answered: ${Object.keys(answers).length}`);
+    console.log(`   Job context:`, jobContext ? 'Provided' : 'Not provided');
+    
+    // Build comprehensive AI prompt
+    const systemMessage = `You are the world's foremost HR expert and interview coach with 25+ years of experience evaluating candidates for Fortune 500 companies, FAANG, and top-tier organizations. You specialize in:
+
+- Behavioral interview analysis using STAR methodology (Situation, Task, Action, Result)
+- Technical competency assessment
+- Communication and presentation skills evaluation
+- Culture fit and soft skills identification
+- Constructive, actionable feedback delivery
+
+You provide honest, detailed feedback that helps candidates improve while highlighting their strengths. Your analysis is thorough, specific, and backed by research in organizational psychology and talent acquisition.
+
+CRITICAL: You MUST return ONLY valid JSON matching the exact structure requested. Do not include markdown code blocks or any other formatting.`;
+
+    // Build the questions and answers context
+    let qaContext = 'INTERVIEW QUESTIONS AND ANSWERS:\n\n';
+    questions.forEach((q, idx) => {
+      qaContext += `Question ${idx + 1} [${q.tags.join(', ')}]:\n`;
+      qaContext += `"${q.text}"\n\n`;
+      
+      if (answers[q.id]) {
+        qaContext += `Candidate's Answer:\n"${answers[q.id]}"\n\n`;
+      } else {
+        qaContext += `Candidate's Answer: [SKIPPED - No answer provided]\n\n`;
+      }
+      qaContext += '---\n\n';
+    });
+    
+    // Build job context if provided
+    let jobContextText = '';
+    if (jobContext && jobContext.companyName && jobContext.position) {
+      jobContextText = `\n\nJOB CONTEXT:\nCompany: ${jobContext.companyName}\nPosition: ${jobContext.position}\n`;
+      if (jobContext.jobDescription) {
+        jobContextText += `Job Description: ${jobContext.jobDescription.substring(0, 1000)}\n`;
+      }
+      if (jobContext.requiredSkills && jobContext.requiredSkills.length > 0) {
+        jobContextText += `Required Skills: ${jobContext.requiredSkills.join(', ')}\n`;
+      }
+    }
+    
+    const userPrompt = `${qaContext}${jobContextText}
+
+Please analyze this interview performance comprehensively. For each answer, identify specific text segments that were strong, could be improved, or were weak. Provide actionable feedback.
+
+Return a JSON object with this EXACT structure:
+{
+  "overallScore": <number 0-100>,
+  "passed": <boolean>,
+  "passReason": "<string explaining pass/fail decision>",
+  "tier": "<'excellent' | 'good' | 'needs-improvement' | 'poor'>",
+  "executiveSummary": "<string: 2-3 sentence overall assessment>",
+  "keyStrengths": ["<strength 1>", "<strength 2>", ...],
+  "areasForImprovement": ["<area 1>", "<area 2>", ...],
+  "recommendation": "<string: overall recommendation and next steps>",
+  "answerAnalyses": [
+    {
+      "questionId": <number>,
+      "score": <number 0-100>,
+      "highlights": [
+        {
+          "text": "<exact quote from answer>",
+          "type": "<'strength' | 'improvement' | 'weakness'>",
+          "comment": "<why this is good/needs work/problematic>"
+        }
+      ],
+      "strengths": ["<what worked well 1>", "<what worked well 2>"],
+      "improvements": ["<what could be better 1>", "<what could be better 2>"],
+      "suggestions": ["<specific improvement suggestion 1>", "<suggestion 2>"],
+      "starEvaluation": {
+        "situation": <number 0-100>,
+        "task": <number 0-100>,
+        "action": <number 0-100>,
+        "result": <number 0-100>
+      }
+    }
+  ],
+  "actionItems": ["<actionable recommendation 1>", "<actionable recommendation 2>", ...]
+}
+
+Guidelines:
+1. Be specific and constructive
+2. Highlight 2-4 text segments per answer for detailed feedback
+3. Consider the job context when evaluating answers
+4. For behavioral questions, evaluate using STAR method
+5. Provide 3-5 key strengths and areas for improvement
+6. Include 5-8 actionable items for improvement
+7. Pass threshold is typically 70+ but consider answer quality
+8. Be encouraging but honest`;
+
+    const messages = [
+      {
+        role: 'system',
+        content: systemMessage
+      },
+      {
+        role: 'user',
+        content: userPrompt
+      }
+    ];
+    
+    console.log('📡 Sending request to GPT-4o...');
+    console.log(`   Total context length: ${userPrompt.length} characters`);
+    
+    // Call OpenAI API
+    let openaiResponse;
+    try {
+      openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: messages,
+          response_format: { type: 'json_object' },
+          max_tokens: 4000,
+          temperature: 0.3
+        })
+      });
+    } catch (fetchError) {
+      console.error("❌ Fetch error:", fetchError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Network error: ${fetchError.message}`,
+        details: process.env.NODE_ENV === 'development' ? fetchError.stack : undefined
+      });
+    }
+    
+    console.log(`📥 OpenAI API response status: ${openaiResponse.status}`);
+    
+    const responseText = await openaiResponse.text();
+    console.log("📄 Response received, length:", responseText.length);
+    
+    if (!openaiResponse.ok) {
+      console.error("❌ Non-200 response:", responseText.substring(0, 500));
+      try {
+        const errorData = JSON.parse(responseText);
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
+          error: errorData.error
+        });
+      } catch (e) {
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${responseText.substring(0, 200)}`
+        });
+      }
+    }
+    
+    // Parse and validate response
+    try {
+      console.log('📝 Parsing response...');
+      const parsedResponse = JSON.parse(responseText);
+      
+      if (!parsedResponse.choices || parsedResponse.choices.length === 0) {
+        throw new Error('No choices in OpenAI API response');
+      }
+      
+      const content = parsedResponse.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('Empty response from GPT-4o');
+      }
+      
+      console.log('✅ Content extracted, length:', content.length);
+      
+      // Parse JSON content
+      let analysis;
+      try {
+        analysis = typeof content === 'string' ? JSON.parse(content) : content;
+        console.log('✅ Successfully parsed analysis JSON');
+      } catch (parseError) {
+        console.warn('⚠️  Failed to parse content as JSON, trying to extract...');
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          analysis = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+          console.log('✅ JSON extracted from markdown');
+        } else {
+          throw new Error('Could not parse JSON from response');
+        }
+      }
+      
+      // Validate analysis structure
+      if (!analysis.overallScore || !analysis.answerAnalyses) {
+        console.error('❌ Invalid analysis structure:', Object.keys(analysis));
+        throw new Error('Analysis missing required fields');
+      }
+      
+      console.log('✅ Interview analysis completed successfully');
+      console.log(`   Overall score: ${analysis.overallScore}`);
+      console.log(`   Passed: ${analysis.passed}`);
+      console.log(`   Tier: ${analysis.tier}`);
+      
+      return res.json({
+        status: 'success',
+        analysis: analysis,
+        usage: parsedResponse.usage
+      });
+      
+    } catch (parseError) {
+      console.error("❌ Parse error:", parseError);
+      console.error("   Response preview:", responseText.substring(0, 500));
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to parse analysis: ${parseError.message}`,
+        rawResponse: responseText.substring(0, 500) + "..."
+      });
+    }
+    
+  } catch (error) {
+    console.error("❌ Error in interview analysis API:", error);
+    
+    if (res.headersSent) {
+      console.error("⚠️  Response already sent");
+      return;
+    }
+    
+    res.status(500).json({
+      status: 'error',
+      message: error.message || "An error occurred analyzing the interview",
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});

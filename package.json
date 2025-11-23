@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run server\" \"vite\"",
     "server": "node server.cjs",
-    "dev:with-server": "concurrently \"npm run server\" \"npm run dev\"",
+    "dev:only": "vite",
     "build": "tsc && vite build",
     "start": "NODE_ENV=production node server.cjs",
     "start:win": "set NODE_ENV=production&& node server.cjs",

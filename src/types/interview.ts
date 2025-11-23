@@ -95,4 +95,49 @@ export interface QuestionEntry {
   suggestedApproach?: string | null;
 }
 
+// AI Interview Analysis Types
+export type QuestionTag = 'technical' | 'behavioral' | 'company-specific' | 'role-specific';
+
+export interface AnswerHighlight {
+  text: string;
+  type: 'strength' | 'improvement' | 'weakness';
+  comment: string;
+}
+
+export interface STAREvaluation {
+  situation: number; // 0-100
+  task: number; // 0-100
+  action: number; // 0-100
+  result: number; // 0-100
+}
+
+export interface AnswerAnalysis {
+  questionId: number;
+  score: number; // 0-100
+  highlights: AnswerHighlight[];
+  strengths: string[];
+  improvements: string[];
+  suggestions: string[];
+  starEvaluation?: STAREvaluation;
+}
+
+export interface InterviewAnalysis {
+  overallScore: number; // 0-100
+  passed: boolean;
+  passReason: string;
+  tier: 'excellent' | 'good' | 'needs-improvement' | 'poor';
+  executiveSummary: string;
+  keyStrengths: string[];
+  areasForImprovement: string[];
+  recommendation: string;
+  answerAnalyses: AnswerAnalysis[];
+  actionItems: string[];
+}
+
+export interface JobContext {
+  companyName: string;
+  position: string;
+  jobDescription?: string;
+  requiredSkills?: string[];
+}
 

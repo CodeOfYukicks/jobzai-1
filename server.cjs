@@ -37,7 +37,7 @@ async function getOpenAIApiKey() {
   try {
     console.log('🔑 Attempting to retrieve OpenAI API key from Firestore...');
     const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
-    
+
     if (settingsDoc.exists) {
       const data = settingsDoc.data();
       const apiKey = data?.apiKey || data?.api_key;
@@ -53,14 +53,14 @@ async function getOpenAIApiKey() {
   } catch (error) {
     console.error('❌ Failed to retrieve API key from Firestore:', error.message);
   }
-  
+
   // Fallback to environment variable
   if (process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY) {
     const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
     console.log('Using OpenAI API key from environment variable');
     return apiKey;
   }
-  
+
   return null;
 }
 
@@ -71,7 +71,7 @@ const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Liste des domaines autorisés
-const allowedOrigins = isProduction 
+const allowedOrigins = isProduction
   ? [process.env.PRODUCTION_DOMAIN, 'https://jobzai.com', 'https://www.jobzai.com', 'https://www.jobzai.web.app'].filter(Boolean) // Domaines de production 
   : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5177', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175']; // Domaines de développement
 
@@ -84,7 +84,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // Permettre les requêtes sans origine (comme les appels API mobiles ou Postman)
     if (!origin) return callback(null, true);
-    
+
     // Vérifier si l'origine est dans la liste des domaines autorisés
     if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
       callback(null, true);
@@ -126,36 +126,36 @@ app.get('/api/test', (req, res) => {
 // Simple health check endpoint for Claude API access
 app.get('/api/claude/test', (req, res) => {
   console.log('Claude API test endpoint called');
-  
+
   // Logs détaillés pour le débogage
   console.log('Environment variables:');
   console.log('- ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? 'définie' : 'non définie');
   console.log('- VITE_ANTHROPIC_API_KEY:', process.env.VITE_ANTHROPIC_API_KEY ? 'définie' : 'non définie');
-  
+
   // IMPORTANT: Ne plus utiliser de clé API hardcodée - Utiliser les variables d'environnement
   const hardcodedApiKey = "REMOVED_API_KEY"; // La clé a été supprimée pour des raisons de sécurité
-  
+
   // Check for API key
-  const apiKey = process.env.ANTHROPIC_API_KEY || 
-                process.env.VITE_ANTHROPIC_API_KEY;
-                // Ne pas utiliser de clé API hardcodée
-  
+  const apiKey = process.env.ANTHROPIC_API_KEY ||
+    process.env.VITE_ANTHROPIC_API_KEY;
+  // Ne pas utiliser de clé API hardcodée
+
   console.log("API Key being used (first 10 chars):", apiKey ? apiKey.substring(0, 10) + "..." : "No key found");
-  
+
   if (!apiKey) {
     console.error('ERREUR: Clé API Claude manquante dans l\'environnement du serveur');
-    return res.status(500).json({ 
-      status: 'error', 
-      message: 'Anthropic API key is missing in server environment' 
+    return res.status(500).json({
+      status: 'error',
+      message: 'Anthropic API key is missing in server environment'
     });
   }
-  
+
   // Essai de faire une requête simple à l'API Claude pour tester la connexion
   console.log('Clé API trouvée, test d\'une requête simple à l\'API Claude...');
-  
-  res.json({ 
-    status: 'success', 
-    message: 'Claude API endpoint is accessible', 
+
+  res.json({
+    status: 'success',
+    message: 'Claude API endpoint is accessible',
     apiKeyPresent: !!apiKey,
     apiKeyLength: apiKey ? apiKey.length : 0,
     environment: isProduction ? 'production' : 'development'
@@ -171,21 +171,21 @@ app.get('/api/fetch-cv', async (req, res) => {
     }
 
     console.log("Fetching CV from URL:", cvUrl);
-    
+
     // Fetch the PDF file
     const response = await fetch(cvUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch CV: ${response.statusText}`);
     }
-    
+
     // Get the PDF as binary data
     const pdfBuffer = await response.arrayBuffer();
-    
+
     // Convert to Base64
     const base64Pdf = Buffer.from(pdfBuffer).toString('base64');
-    
+
     console.log("Successfully downloaded and encoded CV");
-    
+
     // For now, just return a placeholder text extraction
     // In a real implementation, you would use a PDF text extraction library
     return res.json({
@@ -206,23 +206,23 @@ app.get('/api/fetch-cv', async (req, res) => {
 app.post('/api/claude', async (req, res) => {
   try {
     console.log("Claude API endpoint called - USING BYPASS METHOD");
-    
+
     // Logs détaillés pour le débogage
     console.log('Environment variables:');
     console.log('- ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? 'définie' : 'non définie');
     console.log('- VITE_ANTHROPIC_API_KEY:', process.env.VITE_ANTHROPIC_API_KEY ? 'définie' : 'non définie');
-    
+
     // IMPORTANT: Ne plus utiliser de clé API hardcodée - Utiliser les variables d'environnement
     const hardcodedApiKey = "REMOVED_API_KEY"; // La clé a été supprimée pour des raisons de sécurité
-    
+
     // Check for API key
-    const apiKey = process.env.ANTHROPIC_API_KEY || 
-                  process.env.VITE_ANTHROPIC_API_KEY;
-                  // Ne pas utiliser de clé API hardcodée
-    
+    const apiKey = process.env.ANTHROPIC_API_KEY ||
+      process.env.VITE_ANTHROPIC_API_KEY;
+    // Ne pas utiliser de clé API hardcodée
+
     console.log("API Key being used (first 10 chars):", apiKey ? apiKey.substring(0, 10) + "..." : "No key found");
     console.log("API Key length:", apiKey ? apiKey.length : 0);
-    
+
     // Log de débogage - Afficher la structure complète de la requête
     console.log("Request structure:", JSON.stringify({
       body: {
@@ -231,26 +231,26 @@ app.post('/api/claude', async (req, res) => {
         maxTokens: req.body.max_tokens,
         temperature: req.body.temperature,
         hasSystem: !!req.body.system,
-        firstMessageContentTypes: req.body.messages && req.body.messages.length > 0 && req.body.messages[0].content 
-          ? req.body.messages[0].content.map(item => item.type) 
+        firstMessageContentTypes: req.body.messages && req.body.messages.length > 0 && req.body.messages[0].content
+          ? req.body.messages[0].content.map(item => item.type)
           : []
       }
     }, null, 2));
-    
+
     // ===================================================================
     // CONTOURNEMENT COMPLET - UTILISATION DU CODE DU SCRIPT TEST FONCTIONNEL
     // ===================================================================
-    
+
     // Extraire seulement les messages du corps de la requête
     const messages = req.body.messages || [];
-    
+
     // Utiliser exactement la même structure de requête que notre script de test
     const minimalRequest = {
       model: "claude-3-5-sonnet-20241022", // Modèle qui supporte les entrées PDF
       max_tokens: req.body.max_tokens || 4000,
       messages: messages
     };
-    
+
     console.log("BYPASS: Sending request with working code pattern...");
     console.log("Final request structure:", JSON.stringify(minimalRequest, (key, value) => {
       // Ne pas afficher le contenu base64 complet pour éviter de saturer les logs
@@ -259,24 +259,24 @@ app.post('/api/claude', async (req, res) => {
       }
       return value;
     }, 2));
-    
+
     // Envoi à l'API avec exactement la même configuration que notre test fonctionnel
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,  // En minuscules uniquement
-        "anthropic-version": "2023-06-01" 
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify(minimalRequest)
     });
-    
+
     console.log(`Claude API response status: ${claudeResponse.status}`);
-    
+
     // Traitement de la réponse
     const responseText = await claudeResponse.text();
     console.log("Response received, length:", responseText.length);
-    
+
     if (claudeResponse.status !== 200) {
       console.error("Non-200 response:", responseText);
       return res.status(claudeResponse.status).json({
@@ -285,7 +285,7 @@ app.post('/api/claude', async (req, res) => {
         fullError: JSON.parse(responseText)
       });
     }
-    
+
     // Renvoyer la réponse au client
     try {
       const parsedResponse = JSON.parse(responseText);
@@ -301,7 +301,7 @@ app.post('/api/claude', async (req, res) => {
         rawResponse: responseText.substring(0, 500) + "..."
       });
     }
-    
+
   } catch (error) {
     console.error("Error in Claude API handler:", error);
     res.status(500).json({
@@ -316,16 +316,16 @@ app.post('/api/claude', async (req, res) => {
 app.get('/api/claude/auth-test', async (req, res) => {
   try {
     console.log("Claude API auth test endpoint called");
-    
+
     // IMPORTANT: Ne plus utiliser de clé API hardcodée - Utiliser les variables d'environnement
     const hardcodedApiKey = "REMOVED_API_KEY"; // La clé a été supprimée pour des raisons de sécurité
-    
+
     // Check for API key
-    const apiKey = process.env.ANTHROPIC_API_KEY || 
-                  process.env.VITE_ANTHROPIC_API_KEY;
-    
+    const apiKey = process.env.ANTHROPIC_API_KEY ||
+      process.env.VITE_ANTHROPIC_API_KEY;
+
     console.log("Testing API Key (first 10 chars):", apiKey ? apiKey.substring(0, 10) + "..." : "No key found");
-    
+
     // Requête Claude minimaliste pour tester l'authentification
     const minimalRequest = {
       model: "claude-3-5-sonnet-20241022", // Modèle qui supporte les entrées PDF
@@ -342,7 +342,7 @@ app.get('/api/claude/auth-test', async (req, res) => {
         }
       ]
     };
-    
+
     // Essayer plusieurs en-têtes "x-api-key" avec des casses différentes
     const headers = {
       "Content-Type": "application/json",
@@ -350,27 +350,27 @@ app.get('/api/claude/auth-test', async (req, res) => {
       "X-Api-Key": apiKey, // Variation avec majuscules
       "anthropic-version": "2023-06-01"
     };
-    
+
     console.log("Sending minimal test request to Claude API");
-    
+
     // Envoi de la requête à l'API Claude
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: headers,
       body: JSON.stringify(minimalRequest)
     });
-    
+
     console.log(`Claude API test response status: ${response.status}`);
-    
+
     // Traiter la réponse
     const responseBody = await response.text();
     console.log("Raw response:", responseBody);
-    
+
     return res.json({
       status: response.status === 200 ? 'success' : 'error',
       details: responseBody
     });
-    
+
   } catch (error) {
     console.error("Error in Claude auth test:", error);
     return res.status(500).json({
@@ -385,35 +385,35 @@ app.post('/api/chatgpt', async (req, res) => {
   try {
     console.log("ChatGPT API endpoint called for recommendations");
     console.log("Request body keys:", Object.keys(req.body || {}));
-    
+
     // Get API key from Firestore or environment variables
     let apiKey;
     try {
       apiKey = await getOpenAIApiKey();
     } catch (keyError) {
       console.error('❌ Error retrieving API key:', keyError);
-      return res.status(500).json({ 
-        status: 'error', 
+      return res.status(500).json({
+        status: 'error',
         message: `Failed to retrieve API key: ${keyError.message}`,
         details: process.env.NODE_ENV === 'development' ? keyError.stack : undefined
       });
     }
-    
+
     if (!apiKey) {
       console.error('❌ ERREUR: Clé API OpenAI manquante');
       console.error('   Checking environment variables:');
       console.error('   - OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'defined' : 'not defined');
       console.error('   - VITE_OPENAI_API_KEY:', process.env.VITE_OPENAI_API_KEY ? 'defined' : 'not defined');
-      return res.status(500).json({ 
-        status: 'error', 
-        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).' 
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).'
       });
     }
-    
+
     console.log('✅ API key retrieved successfully (first 10 chars):', apiKey.substring(0, 10) + '...');
-    
+
     const { prompt, type, cvContent } = req.body;
-    
+
     if (!prompt) {
       console.error('❌ Prompt is missing in request body');
       return res.status(400).json({
@@ -421,26 +421,26 @@ app.post('/api/chatgpt', async (req, res) => {
         message: 'Prompt is required'
       });
     }
-    
+
     // Build messages for ChatGPT
     // Adapt system message based on request type for better context
     let systemMessage = "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object.";
-    
+
     // Enhanced system message for CV section rewriting
     if (type === 'cv-section-rewrite') {
       systemMessage = "You are an elite CV strategist specializing in ATS optimization and professional content enhancement. You analyze CV sections deeply and provide powerful, achievement-focused rewrites. Always respond with valid JSON in this exact format: {\"content\": \"the improved text\"}. Never include markdown code blocks or extra formatting.";
     }
-    
+
     // Enhanced system message for CV rewrite generation (full CV with 6 templates)
     if (type === 'cv-rewrite') {
       systemMessage = "You are THE WORLD'S BEST CV STRATEGIST with 20+ years placing candidates at FAANG, McKinsey, and Fortune 500 companies. You provide detailed, accurate CV rewrites in JSON format with 6 professional templates. You NEVER fabricate information. Always respond with valid JSON matching the exact structure requested. Never include markdown code blocks.";
     }
-    
+
     // Enhanced system message for translation tasks
     if ((type === 'cv-edit' || type === 'resume-optimizer' || type === 'cv-translation') && (prompt.includes('translate') || prompt.includes('translation') || prompt.includes('localization'))) {
       systemMessage = "You are an elite professional translator and localization expert. You specialize in producing perfect, native-quality translations that read as if originally written in the target language. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object.";
     }
-    
+
     const messages = [
       {
         role: "system",
@@ -451,21 +451,21 @@ app.post('/api/chatgpt', async (req, res) => {
         content: prompt
       }
     ];
-    
+
     console.log('📡 Sending request to ChatGPT API...');
     console.log(`   Type: ${type}`);
     console.log(`   Prompt length: ${prompt.length}`);
-    
+
     // Call OpenAI API
     let openaiResponse;
     let responseText;
-    
+
     // Increase max_tokens for resume-optimizer and cv-rewrite to handle comprehensive CVs
     // cv-rewrite needs even more tokens because it generates 6 complete CV templates
-    const maxTokens = type === 'cv-rewrite' ? 16000 : 
-                      type === 'resume-optimizer' ? 8000 : 
-                      4000;
-    
+    const maxTokens = type === 'cv-rewrite' ? 16000 :
+      type === 'resume-optimizer' ? 8000 :
+        4000;
+
     try {
       openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -481,18 +481,18 @@ app.post('/api/chatgpt', async (req, res) => {
           temperature: 0.3 // Lower temperature for more consistent, structured responses
         })
       });
-      
+
       console.log(`OpenAI API response status: ${openaiResponse.status}`);
-      
+
       // Handle response
       responseText = await openaiResponse.text();
       console.log("Response received, length:", responseText.length);
-      
+
       if (!openaiResponse.ok) {
         console.error("❌ Non-200 response from OpenAI API");
         console.error("Response status:", openaiResponse.status);
         console.error("Response text (first 500 chars):", responseText.substring(0, 500));
-        
+
         try {
           const errorData = JSON.parse(responseText);
           console.error("Parsed error data:", JSON.stringify(errorData, null, 2));
@@ -521,29 +521,29 @@ app.post('/api/chatgpt', async (req, res) => {
         details: process.env.NODE_ENV === 'development' ? fetchError.stack : undefined
       });
     }
-    
+
     // Parse and return response
     try {
       console.log("Parsing OpenAI API response...");
       const parsedResponse = JSON.parse(responseText);
-      
+
       if (!parsedResponse.choices || !Array.isArray(parsedResponse.choices) || parsedResponse.choices.length === 0) {
         console.error("❌ Invalid response structure - no choices found");
         console.error("Response structure:", JSON.stringify(parsedResponse, null, 2));
         throw new Error('Invalid response structure from ChatGPT API - no choices found');
       }
-      
+
       const content = parsedResponse.choices[0]?.message?.content;
-      
+
       if (!content) {
         console.error("❌ Empty content in response");
         console.error("Response structure:", JSON.stringify(parsedResponse, null, 2));
         throw new Error('Empty response from ChatGPT API');
       }
-      
+
       console.log("Content received, length:", content.length);
       console.log("Content preview (first 200 chars):", content.substring(0, 200));
-      
+
       // Parse JSON content
       let parsedContent;
       try {
@@ -553,10 +553,10 @@ app.post('/api/chatgpt', async (req, res) => {
         console.warn("⚠️  Failed to parse content as JSON, trying to extract from markdown...");
         console.warn("Parse error:", parseError.message);
         // If parsing fails, try to extract JSON from markdown
-        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
-                          content.match(/```json\s*([\s\S]*?)\s*```/) ||
-                          content.match(/```\n([\s\S]*?)\n```/) ||
-                          content.match(/{[\s\S]*}/);
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) ||
+          content.match(/```json\s*([\s\S]*?)\s*```/) ||
+          content.match(/```\n([\s\S]*?)\n```/) ||
+          content.match(/{[\s\S]*}/);
         if (jsonMatch) {
           try {
             const jsonString = jsonMatch[1] || jsonMatch[0];
@@ -617,9 +617,9 @@ app.post('/api/chatgpt', async (req, res) => {
           atsScore: parsedContent.atsScore
         });
       }
-      
+
       console.log('✅ ChatGPT recommendation completed successfully');
-      
+
       return res.json({
         status: 'success',
         content: parsedContent,
@@ -636,19 +636,19 @@ app.post('/api/chatgpt', async (req, res) => {
         rawResponse: responseText ? responseText.substring(0, 500) + "..." : "No response text available"
       });
     }
-    
+
   } catch (error) {
     console.error("❌ Unexpected error in ChatGPT API handler:", error);
     console.error("Error name:", error.name);
     console.error("Error message:", error.message);
     console.error("Error stack:", error.stack);
-    
+
     // Check if response was already sent
     if (res.headersSent) {
       console.error("⚠️  Response already sent, cannot send error response");
       return;
     }
-    
+
     res.status(500).json({
       status: 'error',
       message: error.message || "An error occurred processing your request",
@@ -663,14 +663,14 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
   try {
     console.log("🔵 GPT-4o Vision API endpoint called");
     console.log("   Request body keys:", Object.keys(req.body || {}));
-    
+
     // Get API key from Firestore or environment variables
     let apiKey;
     let apiKeySource = 'unknown';
-    
+
     try {
       apiKey = await getOpenAIApiKey();
-      
+
       // Check environment variables directly as fallback
       if (!apiKey) {
         if (process.env.OPENAI_API_KEY) {
@@ -699,7 +699,7 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
         console.log('✅ Using API key from VITE_OPENAI_API_KEY environment variable (fallback)');
       }
     }
-    
+
     if (!apiKey) {
       console.error('❌ ERREUR: Clé API OpenAI manquante');
       console.error('   Sources vérifiées:');
@@ -707,24 +707,24 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
       console.error('   - OPENAI_API_KEY env var:', process.env.OPENAI_API_KEY ? '✅ Found' : '❌ Not found');
       console.error('   - VITE_OPENAI_API_KEY env var:', process.env.VITE_OPENAI_API_KEY ? '✅ Found' : '❌ Not found');
       console.error('   Solution: Ajoutez la clé dans .env (OPENAI_API_KEY=sk-...) ou dans Firestore (settings/openai)');
-      return res.status(500).json({ 
-        status: 'error', 
-        message: 'OpenAI API key is missing. Please add OPENAI_API_KEY to your .env file or settings/openai in Firestore.' 
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing. Please add OPENAI_API_KEY to your .env file or settings/openai in Firestore.'
       });
     }
-    
+
     console.log(`✅ API key retrieved successfully from: ${apiKeySource}`);
     console.log('   Key length:', apiKey.length);
     console.log('   First 10 chars:', apiKey.substring(0, 10) + '...');
-    
+
     // Extract request data
     const { model, messages, response_format, max_tokens, temperature } = req.body;
-    
+
     // Validate request
     if (!model || !messages || !Array.isArray(messages)) {
-      console.error('❌ Invalid request format:', { 
-        model, 
-        hasMessages: !!messages, 
+      console.error('❌ Invalid request format:', {
+        model,
+        hasMessages: !!messages,
         messagesType: typeof messages,
         messagesLength: Array.isArray(messages) ? messages.length : 'N/A'
       });
@@ -733,9 +733,9 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
         message: 'Invalid request format: model and messages array are required'
       });
     }
-    
+
     console.log('✅ Request validation passed');
-    
+
     console.log('📡 Sending request to GPT-4o Vision API...');
     console.log(`   Model: ${model}`);
     console.log(`   Messages: ${messages.length}`);
@@ -747,7 +747,7 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
       }
     });
     console.log(`   Images: ${imageCount}`);
-    
+
     // Prepare request body
     const requestBody = {
       model: model || 'gpt-4o',
@@ -787,13 +787,13 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
         details: process.env.NODE_ENV === 'development' ? fetchError.stack : undefined
       });
     }
-    
+
     console.log(`📥 OpenAI API response status: ${openaiResponse.status}`);
-    
+
     // Handle response
     const responseText = await openaiResponse.text();
     console.log("📄 Response received, length:", responseText.length);
-    
+
     if (!openaiResponse.ok) {
       console.error("❌ Non-200 response:", responseText.substring(0, 500));
       try {
@@ -815,26 +815,26 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
         });
       }
     }
-    
+
     // Parse and return response
     try {
       console.log('📝 Parsing response...');
       const parsedResponse = JSON.parse(responseText);
-      
+
       if (!parsedResponse.choices || !Array.isArray(parsedResponse.choices) || parsedResponse.choices.length === 0) {
         console.error('❌ No choices in response:', parsedResponse);
         throw new Error('No choices in OpenAI API response');
       }
-      
+
       const content = parsedResponse.choices[0]?.message?.content;
-      
+
       if (!content) {
         console.error('❌ Empty content in response:', parsedResponse);
         throw new Error('Empty response from GPT-4o Vision API');
       }
-      
+
       console.log('✅ Content extracted, length:', content.length);
-      
+
       // Parse JSON if needed
       let parsedContent;
       try {
@@ -847,8 +847,8 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
       } catch (e) {
         console.warn('⚠️  Direct JSON parse failed, trying to extract JSON from markdown...');
         // If parsing fails, try to extract JSON from markdown
-        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
-                          content.match(/{[\s\S]*}/);
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) ||
+          content.match(/{[\s\S]*}/);
         if (jsonMatch) {
           parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
           console.log('✅ JSON extracted from markdown');
@@ -857,9 +857,9 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
           throw new Error('Could not parse JSON from response');
         }
       }
-      
+
       console.log('✅ GPT-4o Vision analysis completed successfully');
-      
+
       return res.json({
         status: 'success',
         content: parsedContent,
@@ -875,84 +875,29 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
         rawResponse: responseText.substring(0, 500) + "..."
       });
     }
-    
+
   } catch (error) {
     console.error("❌ Error in GPT-4o Vision API handler:", error);
     console.error("   Error name:", error.name);
     console.error("   Error message:", error.message);
     console.error("   Error stack:", error.stack);
-    
+
     // Check if response was already sent
-    if (res.headersSent) {
-      console.error("⚠️  Response already sent, cannot send error response");
-      return;
-    }
-    
-    res.status(500).json({
-      status: 'error',
-      message: error.message || "An error occurred processing your request",
-      errorType: error.name || 'UnknownError',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-});
 
-// Stripe Checkout Session Proxy - Pour éviter les problèmes CORS en développement
-app.post('/api/stripe/create-checkout-session', async (req, res) => {
-  try {
-    console.log('🔄 Proxying Stripe checkout session request to Firebase Functions');
-    
-    const functionsUrl = 'https://us-central1-jobzai.cloudfunctions.net/createCheckoutSession';
-    
-    const response = await fetch(functionsUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(req.body),
-    });
-    
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('❌ Firebase Functions error:', error);
-      return res.status(response.status).json({
-        success: false,
-        message: error || 'Failed to create checkout session',
-      });
-    }
-    
-    const data = await response.json();
-    console.log('✅ Stripe checkout session created successfully');
-    
-    res.json(data);
-  } catch (error) {
-    console.error('❌ Error proxying Stripe request:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to create checkout session',
-    });
-  }
-});
-
-// Clearbit Logo API Proxy - Pour éviter les problèmes CORS en développement
-app.get('/api/company-logo', async (req, res) => {
-  try {
-    const { domain } = req.query;
-    
     if (!domain || typeof domain !== 'string') {
       return res.status(400).json({
         success: false,
         message: 'Domain parameter is required',
       });
     }
-    
-    console.log(`🔄 Fetching logo for domain: ${domain}`);
-    
+
+    console.log(`🔄 Fetching logo for domain: ${domain} `);
+
     const logoUrl = `https://logo.clearbit.com/${domain}`;
-    
+
     // Faire une requête HEAD pour vérifier si le logo existe
     const response = await fetch(logoUrl, { method: 'HEAD' });
-    
+
     if (response.ok) {
       // Si le logo existe, retourner l'URL
       res.json({
@@ -979,21 +924,21 @@ app.get('/api/company-logo', async (req, res) => {
 // Extract job posting content from URL using Puppeteer
 app.post('/api/extract-job-url', async (req, res) => {
   let browser = null;
-  
+
   try {
     const { url } = req.body;
-    
+
     // Validate URL
     if (!url || typeof url !== 'string') {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'URL is required and must be a string' 
+      return res.status(400).json({
+        status: 'error',
+        message: 'URL is required and must be a string'
       });
     }
 
     // Normalize URL
     let normalizedUrl = url.trim();
-    
+
     // Add protocol if missing
     if (!normalizedUrl.match(/^https?:\/\//i)) {
       normalizedUrl = 'https://' + normalizedUrl;
@@ -1003,9 +948,9 @@ app.post('/api/extract-job-url', async (req, res) => {
     try {
       new URL(normalizedUrl);
     } catch (urlError) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Invalid URL format' 
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid URL format'
       });
     }
 
@@ -1019,9 +964,9 @@ app.post('/api/extract-job-url', async (req, res) => {
     } catch (e) {
       console.error('❌ Puppeteer not available:', e.message);
       console.error('   Stack:', e.stack);
-      return res.status(500).json({ 
-        status: 'error', 
-        message: `Puppeteer is not available on the server: ${e.message}` 
+      return res.status(500).json({
+        status: 'error',
+        message: `Puppeteer is not available on the server: ${e.message}`
       });
     }
 
@@ -1042,27 +987,27 @@ app.post('/api/extract-job-url', async (req, res) => {
       console.log('✅ Browser launched successfully');
 
       const page = await browser.newPage();
-      
+
       // Set a reasonable timeout
       await page.setDefaultNavigationTimeout(45000);
       await page.setDefaultTimeout(45000);
-      
+
       // Set user agent to avoid bot detection
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-      
+
       console.log('📄 Navigating to URL...');
       try {
-        await page.goto(normalizedUrl, { 
+        await page.goto(normalizedUrl, {
           waitUntil: 'networkidle2',
-          timeout: 45000 
+          timeout: 45000
         });
         console.log('✅ Page loaded with networkidle2');
       } catch (navError) {
         console.warn('⚠️  networkidle2 failed, trying domcontentloaded:', navError.message);
         try {
-          await page.goto(normalizedUrl, { 
+          await page.goto(normalizedUrl, {
             waitUntil: 'domcontentloaded',
-            timeout: 45000 
+            timeout: 45000
           });
           console.log('✅ Page loaded with domcontentloaded');
         } catch (fallbackError) {
@@ -1076,7 +1021,7 @@ app.post('/api/extract-job-url', async (req, res) => {
       await new Promise(resolve => setTimeout(resolve, 3000));
 
       console.log('📝 Extracting page content...');
-      
+
       // Extract all text content from the page
       const pageContent = await page.evaluate(() => {
         // Remove script and style elements
@@ -1133,7 +1078,7 @@ app.post('/api/extract-job-url', async (req, res) => {
             break;
           }
         }
-        
+
         // Extract company with multiple selectors
         const companySelectors = [
           '.company-name',
@@ -1154,10 +1099,10 @@ app.post('/api/extract-job-url', async (req, res) => {
         function cleanCompanyNameEarly(name) {
           if (!name) return '';
           let cleaned = name.trim();
-          
+
           // Common words to exclude from company names
           const commonWordsRegex = /^(Now|The|How|What|When|Where|Why|This|That|These|Those|Here|There|From|With|About|Learn|See|View|Read|More|Page|Site|Link|Job|Jobs|Career|Careers)$/i;
-          
+
           // If the text is too long (> 50 chars), it's likely a sentence/description, not just the company name
           // Try to extract the company name from the sentence
           if (cleaned.length > 50) {
@@ -1172,7 +1117,7 @@ app.post('/api/extract-job-url', async (req, res) => {
                 cleaned = extracted1;
               }
             }
-            
+
             // Pattern 1b: Look for company name that appears after "how" and before "uses/works/etc"
             // This handles cases where there's text before "how"
             // Only try if pattern1 didn't find a valid name
@@ -1186,7 +1131,7 @@ app.post('/api/extract-job-url', async (req, res) => {
                 }
               }
             }
-            
+
             // Pattern 2: Look for repeated company names (e.g., "ServiceNow uses ServiceNow")
             const words = cleaned.split(/\s+/);
             const wordCounts = {};
@@ -1210,54 +1155,54 @@ app.post('/api/extract-job-url', async (req, res) => {
             if (mostRepeated && mostRepeated[1] > 1) {
               cleaned = mostRepeated[0];
             } else {
-                // Pattern 3: Extract first capitalized word/phrase (likely company name)
-                const firstCapMatch = cleaned.match(/^[^A-Z]*([A-Z][a-zA-Z0-9&\s-]{2,30}?)(?:\s|$|\.|,)/);
-                if (firstCapMatch && firstCapMatch[1]) {
-                  cleaned = firstCapMatch[1].trim();
-                } else {
-                  // Pattern 4: Take first 3-4 words if they start with capital
-                  const firstWords = words.slice(0, 4).filter(w => /^[A-Z]/.test(w));
-                  if (firstWords.length > 0) {
-                    cleaned = firstWords.join(' ').substring(0, 50);
-                  }
+              // Pattern 3: Extract first capitalized word/phrase (likely company name)
+              const firstCapMatch = cleaned.match(/^[^A-Z]*([A-Z][a-zA-Z0-9&\s-]{2,30}?)(?:\s|$|\.|,)/);
+              if (firstCapMatch && firstCapMatch[1]) {
+                cleaned = firstCapMatch[1].trim();
+              } else {
+                // Pattern 4: Take first 3-4 words if they start with capital
+                const firstWords = words.slice(0, 4).filter(w => /^[A-Z]/.test(w));
+                if (firstWords.length > 0) {
+                  cleaned = firstWords.join(' ').substring(0, 50);
                 }
               }
+            }
           }
-          
+
           // Remove common prefixes
           cleaned = cleaned.replace(/^(at|from|by|with|via|for)\s+/i, '').trim();
-          
-            // Remove common suffixes and navigation text
+
+          // Remove common suffixes and navigation text
           cleaned = cleaned.replace(/\s*(linkedin|linkedin page|page|website|site|careers|jobs|job board|job posting|learn more|see more|view|read more).*$/i, '').trim();
           cleaned = cleaned.replace(/\s*-\s*(linkedin|page|website|site).*$/i, '').trim();
-          
+
           // Remove sentence endings and descriptions
           cleaned = cleaned.replace(/\s*(uses|works|does|is|are|was|were|will|can|may|might|should|could|would|has|have|had|get|got|go|goes|went|come|comes|came|make|makes|made|take|takes|took|see|sees|saw|know|knows|knew|think|thinks|thought|say|says|said|tell|tells|told|give|gives|gave|find|finds|found|use|using|used|work|working|worked|do|doing|done|be|being|been|have|having|had|get|getting|got|go|going|went|come|coming|came|make|making|made|take|taking|took|see|seeing|saw|know|knowing|knew|think|thinking|thought|say|saying|said|tell|telling|told|give|giving|gave|find|finding|found).*$/i, '').trim();
-          
-            // Remove URLs
+
+          // Remove URLs
           cleaned = cleaned.replace(/https?:\/\/[^\s]+/gi, '').trim();
-          
-            // Remove email addresses
+
+          // Remove email addresses
           cleaned = cleaned.replace(/[^\s]+@[^\s]+/gi, '').trim();
-          
+
           // Remove trailing punctuation and common sentence endings
           cleaned = cleaned.replace(/[.,;:!?]+$/g, '').trim();
-          
-            // Remove extra whitespace
+
+          // Remove extra whitespace
           cleaned = cleaned.replace(/\s+/g, ' ').trim();
-          
+
           // Final validation: if still too long or contains too many words, take first 2-3 words
           const finalWords = cleaned.split(/\s+/);
           if (finalWords.length > 4 || cleaned.length > 50) {
             cleaned = finalWords.slice(0, 3).join(' ').trim();
           }
-          
+
           // Remove any remaining trailing punctuation
           cleaned = cleaned.replace(/[.,;:!?]+$/g, '').trim();
-          
+
           return cleaned;
         }
-        
+
         let company = '';
         for (const selector of companySelectors) {
           const element = document.querySelector(selector);
@@ -1268,7 +1213,7 @@ app.post('/api/extract-job-url', async (req, res) => {
             }
           }
         }
-        
+
         // If company not found with selectors, try extracting from links
         if (!company || company.length === 0) {
           const companyLinks = document.querySelectorAll('a[href*="/company/"], a[href*="/employer/"], a[href*="/organizations/"]');
@@ -1283,10 +1228,10 @@ app.post('/api/extract-job-url', async (req, res) => {
             }
           }
         }
-        
+
         // Clean the company name we found (final pass)
         company = cleanCompanyNameEarly(company);
-        
+
         // If company not found, try to extract from meta tags
         if (!company || company.length === 0) {
           const metaCompany = document.querySelector('meta[property="og:site_name"], meta[name="company"], meta[property="company"]');
@@ -1295,7 +1240,7 @@ app.post('/api/extract-job-url', async (req, res) => {
             company = cleanCompanyNameEarly(metaValue);
           }
         }
-        
+
         // If still not found, try to extract from structured data (JSON-LD)
         if (!company || company.length === 0) {
           const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
@@ -1315,10 +1260,10 @@ app.post('/api/extract-job-url', async (req, res) => {
             }
           }
         }
-        
+
         // Final cleanup
         company = cleanCompanyNameEarly(company);
-        
+
         // Extract location
         const locationSelectors = [
           '.location',
@@ -1431,7 +1376,7 @@ app.post('/api/extract-job-url', async (req, res) => {
       console.error('   Error name:', browserError.name);
       console.error('   Error message:', browserError.message);
       console.error('   Error stack:', browserError.stack);
-      
+
       if (browser) {
         try {
           await browser.close();
@@ -1448,22 +1393,22 @@ app.post('/api/extract-job-url', async (req, res) => {
     console.error('   Error name:', error.name);
     console.error('   Error message:', error.message);
     console.error('   Error stack:', error.stack);
-    
+
     // Ensure browser is closed even if error occurred
     if (browser) {
       try {
-        await browser.close().catch(() => {});
+        await browser.close().catch(() => { });
       } catch (closeError) {
         console.error('❌ Error closing browser in catch block:', closeError.message);
       }
     }
-    
+
     // Check if response was already sent
     if (res.headersSent) {
       console.error("⚠️  Response already sent, cannot send error response");
       return;
     }
-    
+
     return res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to extract job posting content',
@@ -1527,43 +1472,228 @@ Job:
     const explanation = json?.choices?.[0]?.message?.content || '';
     return res.json({ explanation });
   } catch (e) {
-    console.error('Error in /api/explainMatch:', e);
-    return res.status(500).json({ error: e?.message || 'Unknown error' });
+    location = element.innerText.trim();
+    break;
   }
+}
+
+        return {
+  fullText: content.trim(),
+  title: title.trim(),
+  company: company.trim(),
+  location: location.trim(),
+  url: window.location.href
+};
+      });
+
+await browser.close();
+browser = null;
+
+// Validate and clean extracted data
+const extractedTitle = (pageContent.title || '').trim();
+const extractedCompany = (pageContent.company || '').trim();
+const extractedContent = (pageContent.fullText || '').trim();
+const extractedLocation = (pageContent.location || '').trim();
+const extractedUrl = (pageContent.url || normalizedUrl).trim();
+
+// Validate that we have sufficient content
+if (!extractedContent || extractedContent.length < 100) {
+  console.warn('⚠️  Extracted content is too short:', extractedContent.length);
+  // Don't fail, but log warning - let client decide
+}
+
+// Clean and normalize title
+let cleanedTitle = extractedTitle;
+if (cleanedTitle) {
+  // Remove common prefixes/suffixes
+  cleanedTitle = cleanedTitle.replace(/^(Job|Position|Role|Opening):\s*/i, '').trim();
+  cleanedTitle = cleanedTitle.replace(/\s*-\s*(Apply|View|See).*$/i, '').trim();
+  // Limit length
+  if (cleanedTitle.length > 200) {
+    cleanedTitle = cleanedTitle.substring(0, 200).trim();
+  }
+}
+
+// Clean and normalize company
+let cleanedCompany = extractedCompany;
+if (cleanedCompany) {
+  // Remove common prefixes
+  cleanedCompany = cleanedCompany.replace(/^(Company|Employer|Organization):\s*/i, '').trim();
+  // Limit length
+  if (cleanedCompany.length > 100) {
+    cleanedCompany = cleanedCompany.substring(0, 100).trim();
+  }
+}
+
+// Clean content - remove excessive whitespace
+let cleanedContent = extractedContent;
+if (cleanedContent) {
+  // Remove excessive newlines and whitespace
+  cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n');
+  cleanedContent = cleanedContent.replace(/[ \t]+/g, ' ');
+  cleanedContent = cleanedContent.trim();
+}
+
+console.log('✅ Successfully extracted and cleaned content:', {
+  title: cleanedTitle || 'NOT FOUND',
+  titleLength: cleanedTitle.length,
+  company: cleanedCompany || 'NOT FOUND',
+  companyLength: cleanedCompany.length,
+  contentLength: cleanedContent.length,
+  location: extractedLocation || 'NOT FOUND',
+  hasContent: cleanedContent.length >= 100
 });
 
-// Render external JSON Resume theme to HTML (client will preview this)
-app.post('/api/render-theme', async (req, res) => {
-  try {
-    const { themeId, resumeJson } = req.body || {};
-    if (!themeId || !resumeJson) {
-      return res.status(400).json({ status: 'error', message: 'themeId and resumeJson are required' });
+// Validate minimum requirements
+if (!cleanedContent || cleanedContent.length < 50) {
+  return res.status(400).json({
+    status: 'error',
+    message: 'Could not extract sufficient job description content from the URL. The page may be protected, require login, or not contain a job posting.',
+    extracted: {
+      title: cleanedTitle,
+      company: cleanedCompany,
+      contentLength: cleanedContent.length
     }
-    // Map ids to npm packages; extend as needed
-    const THEME_PACKAGES = {
-      elegant: 'jsonresume-theme-elegant',
-      stackoverflow: 'jsonresume-theme-stackoverflow'
-    };
-    const pkg = THEME_PACKAGES[themeId];
-    if (!pkg) {
-      return res.status(400).json({ status: 'error', message: `Unknown themeId ${themeId}` });
-    }
-    let theme;
+  });
+}
+
+return res.json({
+  status: 'success',
+  content: cleanedContent,
+  title: cleanedTitle || undefined,
+  company: cleanedCompany || undefined,
+  location: extractedLocation || undefined,
+  url: extractedUrl
+});
+
+    } catch (browserError) {
+  console.error('❌ Browser error:', browserError);
+  console.error('   Error name:', browserError.name);
+  console.error('   Error message:', browserError.message);
+  console.error('   Error stack:', browserError.stack);
+
+  if (browser) {
     try {
-      theme = require(pkg);
-    } catch (e) {
-      console.error('Failed to require theme package:', pkg, e.message);
-      return res.status(500).json({ status: 'error', message: `Theme package ${pkg} not found on server` });
+      await browser.close();
+    } catch (closeError) {
+      console.error('❌ Error closing browser:', closeError.message);
     }
-    if (typeof theme.render !== 'function') {
-      return res.status(500).json({ status: 'error', message: 'Theme does not expose a render() function' });
-    }
-    const html = theme.render(resumeJson);
-    return res.json({ status: 'success', html });
-  } catch (error) {
-    console.error('Error in /api/render-theme:', error);
-    return res.status(500).json({ status: 'error', message: error.message });
+    browser = null;
   }
+  throw browserError;
+}
+
+  } catch (error) {
+  console.error('❌ Error extracting job URL:', error);
+  console.error('   Error name:', error.name);
+  console.error('   Error message:', error.message);
+  console.error('   Error stack:', error.stack);
+
+  // Ensure browser is closed even if error occurred
+  if (browser) {
+    try {
+      await browser.close().catch(() => { });
+    } catch (closeError) {
+      console.error('❌ Error closing browser in catch block:', closeError.message);
+    }
+  }
+
+  // Check if response was already sent
+  if (res.headersSent) {
+    console.error("⚠️  Response already sent, cannot send error response");
+    return;
+  }
+
+  return res.status(500).json({
+    status: 'error',
+    message: error.message || 'Failed to extract job posting content',
+    errorType: error.name || 'UnknownError',
+
+    const userPrompt = `
+Job Context:
+Company: ${jobContext?.companyName || 'Unknown'}
+Position: ${jobContext?.position || 'Unknown'}
+Description: ${jobContext?.jobDescription?.substring(0, 500) || 'N/A'}
+
+Interview Data:
+${questions.map((q, i) => `
+Q${i + 1}: ${q.text}
+Answer: ${answers[q.id] || 'No answer provided'}
+`).join('\n')}
+
+Analyze each answer and the overall performance.
+Return a JSON object with this exact structure:
+{
+  "overallScore": number (0-100),
+  "passed": boolean (score >= 70),
+  "passReason": "string",
+  "tier": "excellent" | "good" | "needs-improvement" | "poor",
+  "executiveSummary": "string",
+  "keyStrengths": ["string"],
+  "areasForImprovement": ["string"],
+  "recommendation": "string",
+  "actionItems": ["string"],
+  "answerAnalyses": [
+    {
+      "questionId": number (match input id),
+      "score": number (0-100),
+      "strengths": ["string"],
+      "suggestions": ["string"],
+      "starEvaluation": {
+        "situation": number (0-100),
+        "task": number (0-100),
+        "action": number (0-100),
+        "result": number (0-100)
+      },
+      "highlights": [
+        {
+          "text": "exact quote from answer",
+          "type": "strength" | "improvement" | "weakness",
+          "comment": "string"
+        }
+      ]
+    }
+  ]
+}`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if(!response.ok) {
+    const errorText = await response.text();
+    console.error('OpenAI API error:', response.status, errorText);
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  let analysis;
+  try {
+    analysis = JSON.parse(data.choices[0].message.content);
+  } catch (e) {
+    console.error('Failed to parse OpenAI response:', data.choices[0].message.content);
+    throw new Error('Failed to parse AI analysis results');
+  }
+
+  res.json({ status: 'success', analysis });
+
+} catch (error) {
+  console.error('Error analyzing interview:', error);
+  res.status(500).json({ status: 'error', message: error.message });
+}
 });
 
 // En production, pour toutes les autres routes, servir index.html
@@ -1580,15 +1710,15 @@ if (isProduction) {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-    console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
-    console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
-    console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
-    console.log(`Job URL extraction available at http://localhost:${PORT}/api/extract-job-url`);
-    console.log(`Stripe Checkout proxy available at http://localhost:${PORT}/api/stripe/create-checkout-session`);
-    console.log(`Company Logo API proxy available at http://localhost:${PORT}/api/company-logo`);
-    console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
-    console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
+  console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
+  console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
+  console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
+  console.log(`Job URL extraction available at http://localhost:${PORT}/api/extract-job-url`);
+  console.log(`Stripe Checkout proxy available at http://localhost:${PORT}/api/stripe/create-checkout-session`);
+  console.log(`Company Logo API proxy available at http://localhost:${PORT}/api/company-logo`);
+  console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);
+  console.log(`Claude API test endpoint available at http://localhost:${PORT}/api/claude/test`);
   if (isProduction) {
     console.log(`Application available at http://localhost:${PORT}`);
   }
-}); 
+});
