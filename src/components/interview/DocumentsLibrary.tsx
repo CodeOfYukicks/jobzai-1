@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, Trash2, Clock } from 'lucide-react';
+import { FileText, Plus, Trash2, Clock, Search, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface NoteDocument {
@@ -27,36 +27,35 @@ interface DeleteModalProps {
 
 function DeleteConfirmationModal({ document, onConfirm, onCancel }: DeleteModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 max-w-sm w-full border border-gray-100 dark:border-gray-800"
       >
-        <div className="flex items-start gap-4 mb-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-            <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4">
+            <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
           </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-              Delete Document
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Are you sure you want to delete "{document.title}"? This action cannot be undone.
-            </p>
-          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+            Delete Document?
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            This will permanently delete "<span className="font-medium text-gray-900 dark:text-gray-300">{document.title}</span>". 
+            This action cannot be undone.
+          </p>
         </div>
-        <div className="flex items-center gap-3 justify-end">
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-sm shadow-red-200 dark:shadow-none"
           >
             Delete
           </button>
@@ -90,52 +89,47 @@ function DocumentCard({ document, onOpen, onDelete }: {
     const div = window.document.createElement('div');
     div.innerHTML = document.content;
     const text = div.textContent || div.innerText || '';
-    return text.substring(0, 100);
+    return text.substring(0, 120);
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      whileHover={{ y: -2 }}
-      className="group relative bg-[#FFCC66] dark:bg-[#D4A947] border border-[#E6B84D] dark:border-[#B8903D] rounded-xl p-5 hover:shadow-lg hover:border-[#D4A947] dark:hover:border-[#E6B84D] transition-all duration-200 cursor-pointer"
+      exit={{ opacity: 0, y: -10 }}
       onClick={onOpen}
+      className="group relative bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-[#2A2A2E] rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-900 cursor-pointer"
     >
-      {/* Document Icon */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#FFD77A] dark:bg-[#B8903D] flex items-center justify-center">
-          <FileText className="w-5 h-5 text-[#8B7332] dark:text-[#FFE699]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-900 truncate mb-1">
-            {document.title}
-          </h3>
-          <div className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-800">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{getTimeAgo(document.updatedAt)}</span>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
+            <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           </div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            {document.title || 'Untitled'}
+          </h3>
         </div>
+        
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+          title="Delete"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Preview */}
-      {getPreview() && (
-        <p className="text-sm text-gray-800 dark:text-gray-900 line-clamp-2 mb-4">
-          {getPreview()}...
-        </p>
-      )}
+      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 mb-3 h-[3.6em]">
+        {getPreview() || <span className="italic opacity-60">No content yet...</span>}
+      </p>
 
-      {/* Delete Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="absolute top-4 right-4 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-200 text-gray-600 hover:text-red-600 dark:hover:text-red-700 transition-all duration-200"
-        title="Delete document"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      <div className="flex items-center gap-1.5 text-[10px] font-medium text-gray-400 dark:text-gray-500">
+        <Clock className="w-3 h-3" />
+        <span>Edited {getTimeAgo(document.updatedAt)}</span>
+      </div>
     </motion.div>
   );
 }
@@ -147,6 +141,7 @@ export default function DocumentsLibrary({
   onDeleteDocument,
 }: DocumentsLibraryProps) {
   const [documentToDelete, setDocumentToDelete] = useState<NoteDocument | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleDeleteConfirm = () => {
     if (documentToDelete) {
@@ -157,28 +152,40 @@ export default function DocumentsLibrary({
   };
 
   // Sort documents by most recently updated
-  const sortedDocuments = [...documents].sort((a, b) => b.updatedAt - a.updatedAt);
+  const sortedDocuments = [...documents]
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .filter(doc => 
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.preview?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50/50 dark:bg-[#1E1F22]">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Documents
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              {documents.length} {documents.length === 1 ? 'document' : 'documents'}
-            </p>
-          </div>
+      <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-white dark:bg-[#1E1F22] border-b border-gray-100 dark:border-[#2A2A2E]">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+            My Notes
+          </h2>
           <button
             onClick={onCreateDocument}
-            className="flex items-center gap-2 px-4 py-2 bg-[#FFCC66] hover:bg-[#FFD77A] text-gray-900 text-sm font-medium rounded-lg transition-colors border border-[#E6B84D]"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:scale-105 transition-transform shadow-sm"
+            title="New Note"
           >
-            <Plus className="w-4 h-4" />
-            <span>New</span>
+            <Plus className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input 
+            type="text"
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#1A1A1D] border-none rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+          />
         </div>
       </div>
 
@@ -186,27 +193,26 @@ export default function DocumentsLibrary({
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         {documents.length === 0 ? (
           /* Empty State */
-          <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            <div className="w-16 h-16 rounded-full bg-[#FFD77A] dark:bg-[#D4A947] flex items-center justify-center mb-4">
-              <FileText className="w-8 h-8 text-[#8B7332] dark:text-[#FFE699]" />
+          <div className="h-full flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4 rotate-3">
+              <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No documents yet
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+              No notes yet
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm">
-              Create your first document to start taking notes with rich text formatting and AI assistance
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 max-w-[200px]">
+              Capture your thoughts, questions, and answers during preparation.
             </p>
             <button
               onClick={onCreateDocument}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#FFCC66] hover:bg-[#FFD77A] text-gray-900 text-sm font-medium rounded-lg transition-colors border border-[#E6B84D]"
+              className="px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
             >
-              <Plus className="w-4 h-4" />
-              <span>Create Document</span>
+              Create First Note
             </button>
           </div>
         ) : (
           /* Documents Grid */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             <AnimatePresence>
               {sortedDocuments.map((doc) => (
                 <DocumentCard
@@ -217,6 +223,11 @@ export default function DocumentsLibrary({
                 />
               ))}
             </AnimatePresence>
+            {sortedDocuments.length === 0 && searchQuery && (
+               <div className="text-center py-8 text-sm text-gray-500">
+                 No notes match your search.
+               </div>
+            )}
           </div>
         )}
       </div>
@@ -234,4 +245,3 @@ export default function DocumentsLibrary({
     </div>
   );
 }
-

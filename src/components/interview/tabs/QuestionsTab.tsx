@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Play, Sparkles } from 'lucide-react';
 import { InterviewQuestionsHeader } from '../questions/InterviewQuestionsHeader';
 import { QuestionEntry } from '../../../types/interview';
 import QuestionsVirtualizedList from './QuestionsVirtualizedList';
@@ -85,10 +85,12 @@ const QuestionsTab = memo(function QuestionsTab({
         actionSlot={
           <button
             onClick={onStartLiveSession}
-            className="flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-neutral-900 px-6 py-2.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-neutral-800 hover:shadow-xl dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
           >
-            <MessageSquare className="h-4 w-4" />
-            Prepare Live
+            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-300 group-hover:opacity-10 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 dark:group-hover:opacity-20" />
+            <Play className="h-4 w-4 fill-current" />
+            <span className="relative">Prepare Live</span>
+            <Sparkles className="h-3.5 w-3.5 text-purple-400 dark:text-purple-600" />
           </button>
         }
       />
@@ -142,4 +144,3 @@ const QuestionsTab = memo(function QuestionsTab({
 });
 
 export default QuestionsTab;
-

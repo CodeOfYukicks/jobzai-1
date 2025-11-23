@@ -882,7 +882,18 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
     console.error("   Error message:", error.message);
     console.error("   Error stack:", error.stack);
 
-    // Check if response was already sent
+    return res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to analyze CV',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Company logo endpoint
+app.get('/api/company-logo', async (req, res) => {
+  try {
+    const { domain } = req.query;
 
     if (!domain || typeof domain !== 'string') {
       return res.status(400).json({
@@ -891,7 +902,7 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
       });
     }
 
-    console.log(`🔄 Fetching logo for domain: ${domain} `);
+    console.log(`🔄 Fetching logo for domain: ${domain}`);
 
     const logoUrl = `https://logo.clearbit.com/${domain}`;
 
@@ -917,6 +928,305 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
       success: false,
       message: error.message || 'Failed to fetch company logo',
       logoUrl: null,
+    });
+  }
+});
+
+// Analyze interview answers using AI
+app.post('/api/analyze-interview', async (req, res) => {
+  try {
+    console.log('🎯 Interview analysis endpoint called');
+    const { questions, answers, jobContext } = req.body;
+
+    // Validate input
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Questions array is required'
+      });
+    }
+
+    if (!answers || typeof answers !== 'object') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Answers object is required'
+      });
+    }
+
+    // Get API key
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+      if (!apiKey) {
+        apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+      }
+    } catch (error) {
+      console.error('Error getting API key:', error);
+      apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    }
+
+    if (!apiKey) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is not configured'
+      });
+    }
+
+    // Build the analysis prompt
+    console.log('📊 Received data:', {
+      questionsCount: questions.length,
+      answersKeys: Object.keys(answers),
+      questionIds: questions.map(q => q.id)
+    });
+
+    const questionAnswerPairs = questions.map((q, idx) => {
+      const answer = answers[q.id] || answers[idx] || 'No answer provided';
+      console.log(`Question ${idx + 1} (ID: ${q.id}):`, {
+        hasAnswerById: !!answers[q.id],
+        hasAnswerByIdx: !!answers[idx],
+        answerLength: answer ? answer.length : 0,
+        answerPreview: answer ? answer.substring(0, 50) : 'N/A'
+      });
+      return `Question ${idx + 1} (Question ID: ${q.id}): ${q.text}\nAnswer: ${answer}`;
+    }).join('\n\n');
+
+    const contextInfo = jobContext ? 
+      `\nJob Context:\n- Company: ${jobContext.companyName}\n- Position: ${jobContext.position}${jobContext.jobDescription ? `\n- Description: ${jobContext.jobDescription}` : ''}${jobContext.requiredSkills ? `\n- Required Skills: ${jobContext.requiredSkills.join(', ')}` : ''}` 
+      : '';
+
+    const prompt = `You are an expert interview coach analyzing a candidate's interview performance. Analyze the following interview answers and provide detailed feedback.
+
+${contextInfo}
+
+Interview Questions and Answers:
+${questionAnswerPairs}
+
+Provide a comprehensive analysis in the following JSON format:
+{
+  "overallScore": <number 0-100>,
+  "passed": <boolean>,
+  "passReason": "<brief explanation of pass/fail decision>",
+  "tier": "<excellent|good|needs-improvement|poor>",
+  "executiveSummary": "<2-3 sentence overview of performance>",
+  "keyStrengths": ["<strength 1>", "<strength 2>", ...],
+  "areasForImprovement": ["<area 1>", "<area 2>", ...],
+  "recommendation": "<overall recommendation for the candidate>",
+  "answerAnalyses": [
+    {
+      "questionId": <number - USE THE EXACT QUESTION ID PROVIDED IN THE QUESTION>,
+      "score": <number 0-100>,
+      "feedback": "<detailed paragraph explaining the quality of the answer, structure, content, and delivery>",
+      "highlights": [
+        {
+          "text": "<exact excerpt from answer - quote directly>",
+          "type": "<strength|improvement|weakness>",
+          "comment": "<specific actionable feedback on this excerpt>"
+        }
+      ],
+      "strengths": ["<specific strength 1>", "<specific strength 2>", ...],
+      "improvements": ["<specific improvement 1>", "<specific improvement 2>", ...],
+      "suggestions": ["<actionable suggestion 1>", "<actionable suggestion 2>", ...],
+      "starEvaluation": {
+        "situation": <boolean - true if situation is clearly described>,
+        "task": <boolean - true if task/challenge is explained>,
+        "action": <boolean - true if actions taken are detailed>,
+        "result": <boolean - true if results/outcomes are mentioned>
+      }
+    }
+  ],
+  "actionItems": ["<action 1>", "<action 2>", ...]
+}
+
+IMPORTANT INSTRUCTIONS:
+1. Use the EXACT Question ID provided in parentheses for each question (e.g., "Question ID: 0" means use questionId: 0)
+2. Provide analysis for ALL questions, even if the answer is "No answer provided" (give score 0 and constructive feedback)
+3. In highlights, quote EXACT excerpts from the candidate's answer
+4. Be specific, constructive, and actionable in your feedback
+5. For STAR evaluation, use boolean true/false (not numbers)
+6. Focus on: communication clarity, structure, content depth, STAR method usage, and job alignment
+7. Provide at least 3-5 highlights per answer with specific quotes and feedback`;
+
+    console.log('📤 Sending analysis request to OpenAI...');
+
+    // Call OpenAI API
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert interview coach providing detailed, constructive feedback on interview performance. Always respond with valid JSON.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error('❌ OpenAI API error:', errorText);
+      return res.status(openaiResponse.status).json({
+        status: 'error',
+        message: 'Failed to analyze interview',
+        details: errorText
+      });
+    }
+
+    const responseData = await openaiResponse.json();
+    const analysisContent = responseData.choices[0]?.message?.content;
+
+    if (!analysisContent) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Empty response from AI'
+      });
+    }
+
+    // Parse the JSON response
+    let analysis;
+    try {
+      analysis = JSON.parse(analysisContent);
+    } catch (parseError) {
+      console.error('❌ Failed to parse AI response:', parseError);
+      return res.status(500).json({
+        status: 'error',
+        message: 'Failed to parse AI response',
+        rawResponse: analysisContent.substring(0, 500)
+      });
+    }
+
+    console.log('✅ Interview analysis completed successfully');
+
+    return res.json({
+      status: 'success',
+      analysis: analysis
+    });
+
+  } catch (error) {
+    console.error('❌ Error in interview analysis:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to analyze interview',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Transcribe audio using Whisper API
+app.post('/api/transcribe-audio', async (req, res) => {
+  try {
+    console.log('🎤 Whisper transcription endpoint called');
+    
+    const { audioData, detectedLanguage } = req.body;
+
+    // Validate input
+    if (!audioData) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Audio data is required'
+      });
+    }
+
+    // Get API key
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+      if (!apiKey) {
+        apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+      }
+    } catch (error) {
+      console.error('Error getting API key:', error);
+      apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    }
+
+    if (!apiKey) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is not configured'
+      });
+    }
+
+    console.log('📤 Sending audio to Whisper API...');
+
+    // Convert base64 to buffer
+    const audioBuffer = Buffer.from(audioData.split(',')[1], 'base64');
+    
+    // Create form data for Whisper API
+    const FormData = require('form-data');
+    const form = new FormData();
+    
+    // Add audio file with proper extension
+    form.append('file', audioBuffer, {
+      filename: 'audio.webm',
+      contentType: 'audio/webm'
+    });
+    form.append('model', 'whisper-1');
+    
+    // Smart language detection:
+    // - If language already detected in session, use it
+    // - Otherwise, let Whisper auto-detect
+    if (detectedLanguage) {
+      console.log('🌍 Using previously detected language:', detectedLanguage);
+      form.append('language', detectedLanguage);
+    } else {
+      console.log('🔍 Auto-detecting language (first question)');
+    }
+    
+    form.append('response_format', 'json');
+
+    // Call Whisper API
+    const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        ...form.getHeaders()
+      },
+      body: form
+    });
+
+    if (!whisperResponse.ok) {
+      const errorText = await whisperResponse.text();
+      console.error('❌ Whisper API error:', whisperResponse.status, errorText);
+      return res.status(whisperResponse.status).json({
+        status: 'error',
+        message: 'Failed to transcribe audio',
+        details: errorText
+      });
+    }
+
+    const transcriptionData = await whisperResponse.json();
+    const transcription = transcriptionData.text || '';
+    const language = transcriptionData.language || 'en';
+
+    console.log('✅ Whisper transcription completed:', {
+      transcription: transcription.substring(0, 100) + '...',
+      detectedLanguage: language,
+      duration: transcriptionData.duration
+    });
+
+    return res.json({
+      status: 'success',
+      transcription: transcription,
+      detectedLanguage: language // Return detected language to frontend
+    });
+
+  } catch (error) {
+    console.error('❌ Error in Whisper transcription:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to transcribe audio',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -1472,229 +1782,12 @@ Job:
     const explanation = json?.choices?.[0]?.message?.content || '';
     return res.json({ explanation });
   } catch (e) {
-    location = element.innerText.trim();
-    break;
+    console.error('Error in explainMatch:', e);
+    return res.status(500).json({ error: 'Failed to generate explanation' });
   }
-}
-
-        return {
-  fullText: content.trim(),
-  title: title.trim(),
-  company: company.trim(),
-  location: location.trim(),
-  url: window.location.href
-};
-      });
-
-await browser.close();
-browser = null;
-
-// Validate and clean extracted data
-const extractedTitle = (pageContent.title || '').trim();
-const extractedCompany = (pageContent.company || '').trim();
-const extractedContent = (pageContent.fullText || '').trim();
-const extractedLocation = (pageContent.location || '').trim();
-const extractedUrl = (pageContent.url || normalizedUrl).trim();
-
-// Validate that we have sufficient content
-if (!extractedContent || extractedContent.length < 100) {
-  console.warn('⚠️  Extracted content is too short:', extractedContent.length);
-  // Don't fail, but log warning - let client decide
-}
-
-// Clean and normalize title
-let cleanedTitle = extractedTitle;
-if (cleanedTitle) {
-  // Remove common prefixes/suffixes
-  cleanedTitle = cleanedTitle.replace(/^(Job|Position|Role|Opening):\s*/i, '').trim();
-  cleanedTitle = cleanedTitle.replace(/\s*-\s*(Apply|View|See).*$/i, '').trim();
-  // Limit length
-  if (cleanedTitle.length > 200) {
-    cleanedTitle = cleanedTitle.substring(0, 200).trim();
-  }
-}
-
-// Clean and normalize company
-let cleanedCompany = extractedCompany;
-if (cleanedCompany) {
-  // Remove common prefixes
-  cleanedCompany = cleanedCompany.replace(/^(Company|Employer|Organization):\s*/i, '').trim();
-  // Limit length
-  if (cleanedCompany.length > 100) {
-    cleanedCompany = cleanedCompany.substring(0, 100).trim();
-  }
-}
-
-// Clean content - remove excessive whitespace
-let cleanedContent = extractedContent;
-if (cleanedContent) {
-  // Remove excessive newlines and whitespace
-  cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n');
-  cleanedContent = cleanedContent.replace(/[ \t]+/g, ' ');
-  cleanedContent = cleanedContent.trim();
-}
-
-console.log('✅ Successfully extracted and cleaned content:', {
-  title: cleanedTitle || 'NOT FOUND',
-  titleLength: cleanedTitle.length,
-  company: cleanedCompany || 'NOT FOUND',
-  companyLength: cleanedCompany.length,
-  contentLength: cleanedContent.length,
-  location: extractedLocation || 'NOT FOUND',
-  hasContent: cleanedContent.length >= 100
 });
 
-// Validate minimum requirements
-if (!cleanedContent || cleanedContent.length < 50) {
-  return res.status(400).json({
-    status: 'error',
-    message: 'Could not extract sufficient job description content from the URL. The page may be protected, require login, or not contain a job posting.',
-    extracted: {
-      title: cleanedTitle,
-      company: cleanedCompany,
-      contentLength: cleanedContent.length
-    }
-  });
-}
-
-return res.json({
-  status: 'success',
-  content: cleanedContent,
-  title: cleanedTitle || undefined,
-  company: cleanedCompany || undefined,
-  location: extractedLocation || undefined,
-  url: extractedUrl
-});
-
-    } catch (browserError) {
-  console.error('❌ Browser error:', browserError);
-  console.error('   Error name:', browserError.name);
-  console.error('   Error message:', browserError.message);
-  console.error('   Error stack:', browserError.stack);
-
-  if (browser) {
-    try {
-      await browser.close();
-    } catch (closeError) {
-      console.error('❌ Error closing browser:', closeError.message);
-    }
-    browser = null;
-  }
-  throw browserError;
-}
-
-  } catch (error) {
-  console.error('❌ Error extracting job URL:', error);
-  console.error('   Error name:', error.name);
-  console.error('   Error message:', error.message);
-  console.error('   Error stack:', error.stack);
-
-  // Ensure browser is closed even if error occurred
-  if (browser) {
-    try {
-      await browser.close().catch(() => { });
-    } catch (closeError) {
-      console.error('❌ Error closing browser in catch block:', closeError.message);
-    }
-  }
-
-  // Check if response was already sent
-  if (res.headersSent) {
-    console.error("⚠️  Response already sent, cannot send error response");
-    return;
-  }
-
-  return res.status(500).json({
-    status: 'error',
-    message: error.message || 'Failed to extract job posting content',
-    errorType: error.name || 'UnknownError',
-
-    const userPrompt = `
-Job Context:
-Company: ${jobContext?.companyName || 'Unknown'}
-Position: ${jobContext?.position || 'Unknown'}
-Description: ${jobContext?.jobDescription?.substring(0, 500) || 'N/A'}
-
-Interview Data:
-${questions.map((q, i) => `
-Q${i + 1}: ${q.text}
-Answer: ${answers[q.id] || 'No answer provided'}
-`).join('\n')}
-
-Analyze each answer and the overall performance.
-Return a JSON object with this exact structure:
-{
-  "overallScore": number (0-100),
-  "passed": boolean (score >= 70),
-  "passReason": "string",
-  "tier": "excellent" | "good" | "needs-improvement" | "poor",
-  "executiveSummary": "string",
-  "keyStrengths": ["string"],
-  "areasForImprovement": ["string"],
-  "recommendation": "string",
-  "actionItems": ["string"],
-  "answerAnalyses": [
-    {
-      "questionId": number (match input id),
-      "score": number (0-100),
-      "strengths": ["string"],
-      "suggestions": ["string"],
-      "starEvaluation": {
-        "situation": number (0-100),
-        "task": number (0-100),
-        "action": number (0-100),
-        "result": number (0-100)
-      },
-      "highlights": [
-        {
-          "text": "exact quote from answer",
-          "type": "strength" | "improvement" | "weakness",
-          "comment": "string"
-        }
-      ]
-    }
-  ]
-}`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        response_format: { type: "json_object" }
-      })
-    });
-
-    if(!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI API error:', response.status, errorText);
-    throw new Error(`OpenAI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  let analysis;
-  try {
-    analysis = JSON.parse(data.choices[0].message.content);
-  } catch (e) {
-    console.error('Failed to parse OpenAI response:', data.choices[0].message.content);
-    throw new Error('Failed to parse AI analysis results');
-  }
-
-  res.json({ status: 'success', analysis });
-
-} catch (error) {
-  console.error('Error analyzing interview:', error);
-  res.status(500).json({ status: 'error', message: error.message });
-}
-});
+// OLD DUPLICATE/CORRUPTED CODE REMOVED - analyze-interview endpoint is defined earlier
 
 // En production, pour toutes les autres routes, servir index.html
 // Cela permet à React Router de gérer les routes côté client
@@ -1714,6 +1807,8 @@ app.listen(PORT, () => {
   console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
   console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
   console.log(`Job URL extraction available at http://localhost:${PORT}/api/extract-job-url`);
+  console.log(`Interview analysis available at http://localhost:${PORT}/api/analyze-interview`);
+  console.log(`Whisper transcription available at http://localhost:${PORT}/api/transcribe-audio`);
   console.log(`Stripe Checkout proxy available at http://localhost:${PORT}/api/stripe/create-checkout-session`);
   console.log(`Company Logo API proxy available at http://localhost:${PORT}/api/company-logo`);
   console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);

@@ -20,7 +20,7 @@ import {
   MousePointer, Square, Circle, Minus, Link2, ArrowUp,
   CheckSquare, ExternalLink, BarChart2, Bookmark, ThumbsUp,
   Newspaper, Users, PieChart, Award, Flag, Edit, Sparkles, Zap, Brain, Target,
-  Info, PanelLeftClose, TrendingUp, Lightbulb, Target as TargetIcon
+  Info, PanelLeftClose, TrendingUp, Lightbulb, Target as TargetIcon, History
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -37,6 +37,7 @@ import { OverviewTab, QuestionsTab, SkillsTab, ResourcesTab, ChatTab } from '../
 import { LazySection } from '../components/interview/utils/LazySection';
 import RightSidebarPanel from '../components/interview/RightSidebarPanel';
 import { LiveInterviewSession } from '../components/interview/live/LiveInterviewSession';
+import { LiveInterviewResults } from '../components/interview/live/LiveInterviewResults';
 
 // Interface for the job application data
 interface Note {
@@ -92,6 +93,20 @@ interface Interview {
   freeFormNotes?: string;
   noteDocuments?: NoteDocument[];
   activeNoteDocumentId?: string | null;
+  liveSessionHistory?: LiveSessionRecord[];
+}
+
+interface LiveSessionRecord {
+  id: string;
+  date: string;
+  timestamp: number;
+  questionsCount: number;
+  answeredCount: number;
+  overallScore: number;
+  passed: boolean;
+  tier: 'excellent' | 'good' | 'needs-improvement' | 'poor';
+  analysis: any; // Full InterviewAnalysis object
+  answers: Record<number, string>;
 }
 
 interface NoteDocument {
@@ -405,15 +420,65 @@ export default function InterviewPrepPage() {
   const [showAllChecklistItems, setShowAllChecklistItems] = useState(false);
   const [showAllNewsItems, setShowAllNewsItems] = useState(false);
   const [isJobSummaryOpen, setIsJobSummaryOpen] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState<'progress' | 'notes'>('progress');
+  const [sidebarTab, setSidebarTab] = useState<'progress' | 'notes' | 'history'>('progress');
   const [freeFormNotes, setFreeFormNotes] = useState<string>('');
   const [noteDocuments, setNoteDocuments] = useState<NoteDocument[]>([]);
   const [activeNoteDocumentId, setActiveNoteDocumentId] = useState<string | null>(null);
   const documentsSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
+  const [liveSessionHistory, setLiveSessionHistory] = useState<LiveSessionRecord[]>([]);
+  const [selectedHistorySession, setSelectedHistorySession] = useState<LiveSessionRecord | null>(null);
 
   const handleStartLiveSession = () => {
     setIsLiveSessionOpen(true);
+  };
+
+  const handleSessionComplete = async (sessionData: {
+    analysis: any;
+    answers: Record<number, string>;
+    questionsCount: number;
+  }) => {
+    if (!currentUser || !applicationId || !interviewId) return;
+
+    const answeredCount = Object.keys(sessionData.answers).filter(
+      key => sessionData.answers[parseInt(key)] && sessionData.answers[parseInt(key)].trim() !== ''
+    ).length;
+
+    const newRecord: LiveSessionRecord = {
+      id: `session-${Date.now()}`,
+      date: new Date().toISOString(),
+      timestamp: Date.now(),
+      questionsCount: sessionData.questionsCount,
+      answeredCount,
+      overallScore: sessionData.analysis.overallScore || 0,
+      passed: sessionData.analysis.passed || false,
+      tier: sessionData.analysis.tier || 'needs-improvement',
+      analysis: sessionData.analysis,
+      answers: sessionData.answers
+    };
+
+    const updatedHistory = [...liveSessionHistory, newRecord];
+    setLiveSessionHistory(updatedHistory);
+
+    // Save to Firestore
+    try {
+      const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+      const applicationDoc = await getDoc(applicationRef);
+      
+      if (applicationDoc.exists()) {
+        const appData = applicationDoc.data();
+        const interviews = appData.interviews || [];
+        const interviewIndex = interviews.findIndex((i: Interview) => i.id === interviewId);
+        
+        if (interviewIndex !== -1) {
+          interviews[interviewIndex].liveSessionHistory = updatedHistory;
+          await updateDoc(applicationRef, { interviews });
+          console.log('✅ Session history saved to Firestore');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error saving session history:', error);
+    }
   };
 
   const questionEntries = useMemo<QuestionEntry[]>(() => {
@@ -702,6 +767,11 @@ Key points to mention:
           const interviewData = appData.interviews?.find(interview => interview.id === interviewId);
           if (interviewData) {
             setInterview(interviewData);
+            
+            // Load live session history
+            if (interviewData.liveSessionHistory) {
+              setLiveSessionHistory(interviewData.liveSessionHistory);
+            }
 
             // Use navigation state URL if available, otherwise use stored URL
             const urlToUse = navigationState?.jobUrl || interviewData.jobPostUrl || appData.url || '';
@@ -3049,6 +3119,8 @@ Make sure each answer is completely unique and specific to its question - no gen
         noteDocuments={noteDocuments}
         activeNoteDocumentId={activeNoteDocumentId}
         onDocumentsChange={handleDocumentsChange}
+        liveSessionHistory={liveSessionHistory}
+        onViewHistorySession={setSelectedHistorySession}
       />
 
       <MotionConfig transition={{ duration: 0.2 }}>
@@ -4703,6 +4775,7 @@ Make sure each answer is completely unique and specific to its question - no gen
                       </Suspense>
                     </motion.div>
                   )}
+
                   {false && tab === 'chat_old' && (
                     <motion.div
                       key="chat_old"
@@ -5899,7 +5972,58 @@ Make sure each answer is completely unique and specific to its question - no gen
           jobDescription: interview?.jobPostContent || application?.jobDescription || '',
           requiredSkills: interview?.preparation?.requiredSkills || []
         }}
+        onSessionComplete={handleSessionComplete}
       />
+
+      {/* History Session Modal */}
+      {selectedHistorySession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="relative h-[90vh] w-[95vw] max-w-7xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-[#0c0c0e]">
+            <div className="flex h-full flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 dark:border-white/10">
+                <div>
+                  <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
+                    Practice Session Results
+                  </h2>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    {new Date(selectedHistorySession.date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedHistorySession(null)}
+                  className="rounded-full p-2 text-neutral-500 transition-colors hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto">
+                <LiveInterviewResults
+                  questions={questionEntries.slice(0, selectedHistorySession.questionsCount)}
+                  answers={selectedHistorySession.answers}
+                  analysis={selectedHistorySession.analysis}
+                  onClose={() => setSelectedHistorySession(null)}
+                  onRetry={() => {
+                    setSelectedHistorySession(null);
+                    setIsLiveSessionOpen(true);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AuthLayout>
   );
 }

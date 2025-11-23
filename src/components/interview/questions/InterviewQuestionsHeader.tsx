@@ -1,5 +1,5 @@
-import { RefreshCw } from 'lucide-react';
 import { ReactNode } from 'react';
+import { RefreshCw, Filter, SlidersHorizontal } from 'lucide-react';
 
 type FilterOption<T extends string> = {
   id: T;
@@ -12,6 +12,7 @@ export interface InterviewQuestionsHeaderProps<T extends string = string> {
   filters: FilterOption<T>[];
   activeFilter: T;
   onFilterChange: (value: T) => void;
+
   onRegenerate?: () => void;
   isRegenerating?: boolean;
   subtitle?: string;
@@ -32,123 +33,69 @@ export function InterviewQuestionsHeader<T extends string = string>({
   const canInteract = Boolean(onRegenerate);
   const countLabel =
     activeFilter === 'all' || filteredCount === totalCount
-      ? `${totalCount} ${totalCount === 1 ? 'question' : 'questions'}`
-      : `${filteredCount} / ${totalCount} questions`;
+      ? `${totalCount}`
+      : `${filteredCount}/${totalCount}`;
 
   return (
-    <section className="rounded-xl border border-black/[0.06] bg-white p-6 transition-colors dark:border-white/[0.08] dark:bg-[#1c1c1e]">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1.5">
-          <h2 className="text-[22px] font-semibold tracking-tight text-neutral-900 dark:text-white">
+    <section className="flex flex-col gap-6">
+      {/* Top Row: Title & Main Actions */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
             Interview Questions
+            <span className="inline-flex items-center justify-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+              {countLabel}
+            </span>
           </h2>
-          <p className="text-[13px] text-neutral-500 dark:text-neutral-400">{subtitle}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed">
+            {subtitle}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-lg border border-purple-200/60 bg-purple-50 px-3 py-1.5 text-[12px] font-medium text-purple-700 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300">
-            {countLabel}
-          </span>
+        
+        <div className="flex items-center gap-3 self-start md:self-auto">
+           {canInteract && (
+            <button
+              onClick={onRegenerate!}
+              disabled={isRegenerating}
+              className="group inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+              aria-label="Regenerate questions"
+            >
+              <RefreshCw 
+                className={`h-4 w-4 text-gray-500 transition-all group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200 ${isRegenerating ? 'animate-spin' : ''}`} 
+              />
+              <span>{isRegenerating ? 'Generating...' : 'Regenerate'}</span>
+            </button>
+          )}
           {actionSlot}
         </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
+      {/* Bottom Row: Filters */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+        <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
+            <SlidersHorizontal className="h-4 w-4" />
+        </div>
+        <div className="h-6 w-px bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
+        <div className="flex items-center gap-2">
           {filters.map((filter) => {
             const isActive = filter.id === activeFilter;
             return (
-              <FilterButton
+              <button
                 key={filter.id}
                 onClick={() => onFilterChange(filter.id)}
-                isActive={isActive}
-                ariaLabel={`Filter by ${filter.label}`}
+                className={[
+                  'relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap',
+                  isActive
+                    ? 'bg-gray-900 text-white shadow-md dark:bg-white dark:text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200',
+                ].join(' ')}
               >
                 {filter.label}
-              </FilterButton>
+              </button>
             );
           })}
         </div>
-
-        {canInteract && (
-          <RegenerateButton
-            onClick={onRegenerate!}
-            ariaLabel="Regenerate interview questions"
-            isLoading={isRegenerating}
-            className="self-start lg:self-auto"
-          >
-            <div className="flex items-center gap-2">
-              <RefreshCw className={`h-[15px] w-[15px] ${isRegenerating ? 'animate-spin' : ''}`} />
-              <span>{isRegenerating ? 'Generating…' : 'Regenerate'}</span>
-            </div>
-          </RegenerateButton>
-        )}
       </div>
     </section>
   );
 }
-
-function FilterButton({
-  children,
-  onClick,
-  isActive,
-  ariaLabel,
-}: {
-  children: ReactNode;
-  onClick: () => void;
-  isActive?: boolean;
-  ariaLabel: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      className={[
-        'rounded-lg border px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-[#1c1c1e]',
-        isActive
-          ? 'border-purple-600 bg-purple-600 text-white shadow-sm shadow-purple-600/20 dark:border-purple-500 dark:bg-purple-500'
-          : 'border-black/[0.08] bg-transparent text-neutral-600 hover:border-purple-200 hover:bg-purple-50 dark:border-white/[0.12] dark:text-neutral-400 dark:hover:border-purple-500/30 dark:hover:bg-purple-500/10',
-      ].join(' ')}
-    >
-      {children}
-    </button>
-  );
-}
-
-function RegenerateButton({
-  children,
-  onClick,
-  ariaLabel,
-  isLoading,
-  className,
-}: {
-  children: ReactNode;
-  onClick: () => void;
-  ariaLabel: string;
-  isLoading?: boolean;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      disabled={isLoading}
-      className={[
-        'rounded-lg border border-purple-200 bg-white px-3.5 py-1.5 text-[13px] font-medium text-purple-700 transition-all duration-200',
-        'hover:border-purple-300 hover:bg-purple-50',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2',
-        'dark:border-purple-500/30 dark:bg-[#1c1c1e] dark:text-purple-300 dark:hover:border-purple-500/50 dark:hover:bg-purple-500/10',
-        'dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-[#1c1c1e]',
-        isLoading ? 'opacity-60' : 'opacity-100',
-        className,
-      ].join(' ')}
-    >
-      {children}
-    </button>
-  );
-}
-
-
-

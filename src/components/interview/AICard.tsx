@@ -19,42 +19,42 @@ export function AICard({
 	return (
 		<div
 			className={[
-				'rounded-2xl p-8',
-				'bg-white dark:bg-[#1E1F22]',
-				'shadow-sm dark:shadow-none',
-				'border border-gray-100 dark:border-[#2A2A2E]',
+				'rounded-2xl p-6 sm:p-8',
+				'bg-white dark:bg-[#1A1B1E]', // Premium dark gray (not too black, not too blue)
+				'shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]', // Soft shadow
+				'border border-gray-200/60 dark:border-[#2E2F33]',
 				'flex flex-col',
-				'transition-all duration-200',
-				'hover:shadow-md dark:hover:border-[#353539]',
+				'transition-all duration-300',
+				'hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] dark:hover:border-[#3E3F45]',
 				className
 			].join(' ')}
 		>
-			<div className="flex items-start gap-5 mb-6">
-				<div className="h-12 w-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 ring-1 ring-indigo-100 dark:ring-indigo-900/50">
+			<div className="flex flex-col sm:flex-row sm:items-start gap-5 mb-6">
+				<div className="h-12 w-12 rounded-xl flex-shrink-0 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-indigo-100 dark:ring-indigo-500/20 transition-colors">
 					<Sparkles className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
 				</div>
-				<div className="min-w-0 flex-1">
-					<div className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-2 tracking-tight">
+				<div className="min-w-0 flex-1 pt-1">
+					<div className="text-lg font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">
 						AI-Powered Job Analysis
 					</div>
-					<div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+					<div className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-2xl">
 						Paste a job posting URL and let our AI extract key requirements, skills, and tailored questions.
 					</div>
 				</div>
 			</div>
 
 			<div className="mt-2">
-				<div className="flex items-stretch gap-3">
-					<div className="flex-1 flex items-center rounded-xl border border-gray-200 dark:border-[#2A2A2E] bg-gray-50/50 dark:bg-[#1A1A1D] px-4 py-1 transition-all focus-within:border-indigo-300 dark:focus-within:border-indigo-700 focus-within:bg-white dark:focus-within:bg-[#1E1F22]">
-						<div className="p-2 rounded-lg bg-white dark:bg-[#26262B] mr-3 shadow-sm">
-							<Link2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+				<div className="flex flex-col sm:flex-row items-stretch gap-3">
+					<div className="flex-1 flex items-center rounded-xl border border-gray-200 dark:border-[#2E2F33] bg-gray-50 dark:bg-[#131416] px-4 py-1.5 transition-all focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/50 focus-within:ring-4 focus-within:ring-indigo-500/10 dark:focus-within:ring-indigo-500/20 focus-within:bg-white dark:focus-within:bg-[#131416]">
+						<div className="p-1.5 rounded-lg bg-white dark:bg-[#1F2023] mr-3 shadow-sm border border-gray-100 dark:border-[#2A2B30]">
+							<Link2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
 						</div>
 						<input
 							type="url"
 							value={jobUrl}
 							onChange={(e) => onJobUrlChange(e.target.value)}
 							placeholder="https://careers.company.com/job/..."
-							className="flex-1 py-3 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+							className="flex-1 py-2.5 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-600"
 						/>
 					</div>
 					<button
@@ -63,11 +63,12 @@ export function AICard({
 						className={[
 							'inline-flex items-center justify-center whitespace-nowrap',
 							'px-6 py-3 rounded-xl text-sm font-semibold',
-							'text-white bg-indigo-600 hover:bg-indigo-700',
-							'disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500',
+							'text-white',
+							'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500',
+							'disabled:opacity-50 disabled:cursor-not-allowed',
 							'transition-all duration-200',
-							'shadow-sm hover:shadow-md',
-							'disabled:cursor-not-allowed disabled:hover:shadow-sm'
+							'shadow-sm hover:shadow-indigo-500/25 dark:hover:shadow-indigo-500/10',
+							'border border-transparent'
 						].join(' ')}
 					>
 						{isAnalyzing ? (
@@ -78,7 +79,7 @@ export function AICard({
 						) : (
 							<>
 								<Sparkles className="w-4 h-4 mr-2" />
-								Analyze with AI
+								Analyze
 							</>
 						)}
 					</button>
@@ -89,5 +90,3 @@ export function AICard({
 }
 
 export default AICard;
-
-

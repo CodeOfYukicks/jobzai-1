@@ -35,23 +35,23 @@ export const QuestionCard = memo(function QuestionCard({
 
   return (
     <article
-      className="group relative overflow-hidden rounded-xl border border-black/[0.06] bg-white px-6 py-5 transition-all duration-300 hover:border-purple-200 dark:border-white/[0.08] dark:bg-[#1c1c1e] dark:hover:border-purple-500/30"
+      className="group relative overflow-visible rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:shadow-none dark:hover:border-gray-700"
     >
-      <div className="flex gap-5">
-        {/* Number Badge - Style Notion/Apple */}
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-[13px] font-semibold text-neutral-600 dark:bg-white/[0.06] dark:text-neutral-400">
+      <div className="flex gap-6">
+        {/* Number Badge - Premium Style */}
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-50 text-sm font-bold text-gray-400 dark:bg-gray-800 dark:text-gray-500">
           {numberLabel}
         </div>
 
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 min-w-0">
           {/* Header Section */}
-          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex-1 space-y-2">
-              <h3 className="text-[15px] font-medium leading-relaxed text-neutral-900 dark:text-white">
+          <header className="flex items-start justify-between gap-4">
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold leading-snug text-gray-900 dark:text-white">
                 {question}
               </h3>
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => (
                     <Tag key={tag} label={formatTagLabel(tag)} />
                   ))}
@@ -60,20 +60,20 @@ export const QuestionCard = memo(function QuestionCard({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-1 self-start">
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-start">
               <GhostIconButton
                 ariaLabel={isSaved ? 'Remove from saved questions' : 'Save question'}
                 isActive={isSaved}
                 onClick={onToggleSave}
               >
-                <Bookmark className={isSaved ? 'h-[18px] w-[18px] fill-current' : 'h-[18px] w-[18px]'} />
+                <Bookmark className={isSaved ? 'h-5 w-5 fill-current' : 'h-5 w-5'} />
               </GhostIconButton>
               <GhostIconButton ariaLabel="Create note from question" onClick={onCreateNote}>
-                <StickyNote className="h-[18px] w-[18px]" />
+                <StickyNote className="h-5 w-5" />
               </GhostIconButton>
               {onFocus && (
                 <GhostIconButton ariaLabel="Focus on this question" onClick={onFocus}>
-                  <Maximize2 className="h-[18px] w-[18px]" />
+                  <Maximize2 className="h-5 w-5" />
                 </GhostIconButton>
               )}
             </div>
@@ -81,16 +81,18 @@ export const QuestionCard = memo(function QuestionCard({
 
           {/* Suggested Approach */}
           {suggestedApproach && (
-            <Toggle
-              isOpen={isSuggestionOpen}
-              onToggle={onToggleSuggestion}
-              icon="💡"
-              label="Suggested approach"
-            >
-              <div className="mt-3 rounded-lg border border-black/[0.06] bg-neutral-50/50 px-4 py-3.5 text-[14px] leading-relaxed text-neutral-700 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-neutral-300">
-                {suggestedApproach}
-              </div>
-            </Toggle>
+            <div className="mt-5">
+              <Toggle
+                isOpen={isSuggestionOpen}
+                onToggle={onToggleSuggestion}
+                icon="💡"
+                label="Suggested approach"
+              >
+                <div className="mt-4 rounded-xl bg-indigo-50/50 p-5 text-base leading-relaxed text-gray-700 dark:bg-indigo-500/10 dark:text-gray-300">
+                  {suggestedApproach}
+                </div>
+              </Toggle>
+            </div>
           )}
         </div>
       </div>
@@ -115,11 +117,11 @@ const GhostIconButton = memo(function GhostIconButton({
       onClick={onClick}
       aria-label={ariaLabel}
       className={[
-        'rounded-md p-1.5 transition-all duration-200',
+        'rounded-lg p-2 transition-all duration-200',
         isActive
-          ? 'bg-purple-600 text-white dark:bg-purple-500'
-          : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/[0.08] dark:hover:text-white',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-[#1c1c1e]',
+          ? 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10'
+          : 'text-gray-400 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-white',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:focus-visible:ring-indigo-400',
       ].join(' ')}
     >
       {children}
@@ -141,4 +143,3 @@ function formatTagLabel(tag: QuestionTag) {
       return tag;
   }
 }
-

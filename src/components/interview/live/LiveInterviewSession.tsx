@@ -11,6 +11,11 @@ interface LiveInterviewSessionProps {
     onClose: () => void;
     questions: QuestionEntry[];
     jobContext?: JobContext;
+    onSessionComplete?: (sessionData: {
+        analysis: InterviewAnalysis;
+        answers: Record<number, string>;
+        questionsCount: number;
+    }) => void;
 }
 
 type SessionState = 'intro' | 'question' | 'results';
@@ -20,12 +25,14 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     onClose,
     questions,
     jobContext,
+    onSessionComplete,
 }) => {
     const [sessionState, setSessionState] = useState<SessionState>('intro');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [analysis, setAnalysis] = useState<InterviewAnalysis | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
 
     // Reset state when session opens/closes
     React.useEffect(() => {
@@ -35,6 +42,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
             setAnswers({});
             setAnalysis(null);
             setIsAnalyzing(false);
+            setDetectedLanguage(null); // Reset language detection
         }
     }, [isOpen]);
 
@@ -45,6 +53,13 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     const analyzeInterview = async (finalAnswers: Record<number, string>) => {
         setIsAnalyzing(true);
         try {
+            console.log('📤 Sending to analyze-interview:', {
+                questionsCount: questions.length,
+                questionIds: questions.map(q => q.id),
+                answersKeys: Object.keys(finalAnswers),
+                answers: finalAnswers
+            });
+
             const response = await fetch('/api/analyze-interview', {
                 method: 'POST',
                 headers: {
@@ -64,6 +79,15 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
             const data = await response.json();
             if (data.status === 'success') {
                 setAnalysis(data.analysis);
+                
+                // Save session to history
+                if (onSessionComplete) {
+                    onSessionComplete({
+                        analysis: data.analysis,
+                        answers: finalAnswers,
+                        questionsCount: questions.length
+                    });
+                }
             } else {
                 console.error('Analysis error:', data.message);
             }
@@ -149,6 +173,8 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                                 totalQuestions={questions.length}
                                 onNext={handleNextQuestion}
                                 onSkip={handleSkipQuestion}
+                                detectedLanguage={detectedLanguage}
+                                onLanguageDetected={setDetectedLanguage}
                             />
                         )}
 

@@ -20,52 +20,52 @@ interface ApplicationData {
 /**
  * Check for upcoming interviews and show notifications for interviews happening soon
  */
-export const checkUpcomingInterviews = async () => {
+export const checkUpcomingInterviews = async (userId?: string) => {
   try {
-    // Get current time and calculate times for different notification thresholds
-    const now = Timestamp.now();
-    const oneDayFromNow = new Timestamp(now.seconds + 86400, 0); // 24 hours
-    const threeHoursFromNow = new Timestamp(now.seconds + 10800, 0); // 3 hours
-    const oneHourFromNow = new Timestamp(now.seconds + 3600, 0); // 1 hour
-
-    // Query interviews happening in the next 24 hours
-    const interviewsRef = collection(db, 'interviews');
-    const q = query(
-      interviewsRef,
-      where('date', '>', now),
-      where('date', '<', oneDayFromNow)
-    );
-
-    const querySnapshot = await getDocs(q);
-    const upcomingInterviews: Interview[] = [];
-
-    // Process interviews and gather additional data
-    for (const docSnapshot of querySnapshot.docs) {
-      const interviewData = docSnapshot.data() as Interview;
-      interviewData.id = docSnapshot.id;
-
-      // If we have an applicationId, get the company and position
-      if (interviewData.applicationId) {
-        try {
-          const applicationRef = doc(db, 'applications', interviewData.applicationId);
-          const applicationSnap = await getDoc(applicationRef);
-          if (applicationSnap.exists()) {
-            const applicationData = applicationSnap.data() as ApplicationData;
-            interviewData.companyName = applicationData.companyName;
-            interviewData.position = applicationData.position;
-          }
-        } catch (error) {
-          console.error('Error fetching application data:', error);
-        }
-      }
-
-      upcomingInterviews.push(interviewData);
+    // Need user ID to access their job applications
+    if (!userId) {
+      console.warn('No user ID provided for checking upcoming interviews');
+      return;
     }
+
+    // Get current time and calculate times for different notification thresholds
+    const now = new Date();
+    const oneDayFromNow = new Date(now.getTime() + 86400000); // 24 hours
+
+    // Query user's job applications
+    const applicationsRef = collection(db, 'users', userId, 'jobApplications');
+    const applicationsSnapshot = await getDocs(applicationsRef);
+    
+    const upcomingInterviews: (Interview & { companyName?: string; position?: string })[] = [];
+
+    // Process each application and check for upcoming interviews
+    applicationsSnapshot.forEach((docSnapshot) => {
+      const applicationData = docSnapshot.data() as ApplicationData;
+      
+      // Check if application has interviews
+      if (applicationData.interviews && Array.isArray(applicationData.interviews)) {
+        applicationData.interviews.forEach((interview: Interview) => {
+          // Check if interview is scheduled and upcoming
+          if (interview.status === 'scheduled' && interview.date) {
+            const interviewDateTime = new Date(`${interview.date}T${interview.time || '00:00'}`);
+            
+            // Only include interviews in the next 24 hours
+            if (interviewDateTime > now && interviewDateTime < oneDayFromNow) {
+              upcomingInterviews.push({
+                ...interview,
+                companyName: applicationData.companyName,
+                position: applicationData.position
+              });
+            }
+          }
+        });
+      }
+    });
 
     // Show notifications based on how soon the interview is
     upcomingInterviews.forEach(interview => {
-      const interviewTime = interview.date.toDate();
-      const timeUntilInterview = interviewTime.getTime() - now.toDate().getTime();
+      const interviewTime = new Date(`${interview.date}T${interview.time || '00:00'}`);
+      const timeUntilInterview = interviewTime.getTime() - now.getTime();
       const hoursUntilInterview = timeUntilInterview / (1000 * 60 * 60);
       
       const companyInfo = interview.companyName 
@@ -79,7 +79,7 @@ export const checkUpcomingInterviews = async () => {
           duration: 10000,
           action: {
             label: 'Prepare',
-            onClick: () => window.location.href = `/interview-prep/${interview.applicationId}/${interview.id}`
+            onClick: () => window.location.href = `/upcoming-interviews`
           }
         });
       } 
@@ -90,7 +90,7 @@ export const checkUpcomingInterviews = async () => {
           duration: 8000,
           action: {
             label: 'Prepare',
-            onClick: () => window.location.href = `/interview-prep/${interview.applicationId}/${interview.id}`
+            onClick: () => window.location.href = `/upcoming-interviews`
           }
         });
       }
@@ -101,7 +101,7 @@ export const checkUpcomingInterviews = async () => {
           duration: 6000,
           action: {
             label: 'Prepare',
-            onClick: () => window.location.href = `/interview-prep/${interview.applicationId}/${interview.id}`
+            onClick: () => window.location.href = `/upcoming-interviews`
           }
         });
       }
@@ -115,10 +115,15 @@ export const checkUpcomingInterviews = async () => {
  * Initialize notification service
  * Checks for upcoming interviews on application load and sets up regular checks
  */
-export const initNotificationService = () => {
+export const initNotificationService = (userId?: string) => {
+  if (!userId) {
+    console.warn('Cannot initialize notification service without user ID');
+    return;
+  }
+  
   // Check on initial load
-  checkUpcomingInterviews();
+  checkUpcomingInterviews(userId);
   
   // Check every 30 minutes
-  setInterval(checkUpcomingInterviews, 30 * 60 * 1000);
+  setInterval(() => checkUpcomingInterviews(userId), 30 * 60 * 1000);
 }; 

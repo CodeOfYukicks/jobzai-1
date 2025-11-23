@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useRecommendationsLoading } from './contexts/RecommendationsLoadingContext';
+import { useAuth } from './contexts/AuthContext';
 import BackgroundLoadingNotification from './components/recommendations/BackgroundLoadingNotification';
 import LoadingStartModal from './components/recommendations/LoadingStartModal';
 import PageLoader from './components/PageLoader';
@@ -82,11 +83,14 @@ console.log('Environment variables loaded into client side', {
 
 function AppContent() {
   const { loadingState, stopLoading, toggleMinimized, setMinimized, closeStartModal } = useRecommendationsLoading();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    // Initialize interview notification service
-    initNotificationService();
-  }, []);
+    // Initialize interview notification service when user is logged in
+    if (currentUser?.uid) {
+      initNotificationService(currentUser.uid);
+    }
+  }, [currentUser]);
   
   return (
     <>

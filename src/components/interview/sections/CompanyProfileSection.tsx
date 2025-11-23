@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Building2, MapPin, Briefcase } from 'lucide-react';
+import { Building2, MapPin, Briefcase, ExternalLink } from 'lucide-react';
 import { JobApplication, Interview } from '../../../types/interview';
 
 interface CompanyProfileSectionProps {
@@ -18,71 +18,79 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
   const details = companyInfo?.split('.').slice(1).join('.').trim();
 
   return (
-    <article className="rounded-xl bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-6 shadow-sm transition-all duration-200">
-      <header className="mb-6">
-        <div className="flex items-center gap-2.5 mb-1.5">
-          <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
-            <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+    <article className="group rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-8">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 ring-1 ring-inset ring-indigo-100 dark:ring-indigo-500/20">
+            <Building2 className="w-6 h-6" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-            Company Profile
-          </h2>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              Company Profile
+            </h2>
+            <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <span className="font-medium text-gray-700 dark:text-gray-300">{application.companyName}</span>
+              {application.url && (
+                <>
+                  <span className="text-gray-300 dark:text-gray-600">•</span>
+                  <a 
+                    href={application.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                  >
+                    Visit website
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 ml-9">
-          {application.companyName}
-        </p>
       </header>
 
-      {/* Company Headline */}
-      <div className="mb-5 p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white dark:from-[#1A1A1D] dark:to-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E]">
-        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-relaxed">
-          {headline}.
-        </p>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Info - 2/3 width */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Headline Quote */}
+          <div className="relative pl-5 border-l-4 border-indigo-500/30 dark:border-indigo-400/30">
+            <p className="text-lg font-medium text-gray-900 dark:text-white leading-relaxed italic">
+              "{headline}."
+            </p>
+          </div>
 
-      {/* Company Info */}
-      {details && (
-        <div className="mb-5 p-4 rounded-lg bg-gray-50/50 dark:bg-[#1A1A1D]/50 border border-gray-100 dark:border-[#2A2A2E]">
-          <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
-            {details}
-          </p>
-        </div>
-      )}
-
-      {/* Quick Facts */}
-      <div className="grid grid-cols-3 gap-3">
-        {/* Location */}
-        {application.location && (
-          <div className="rounded-lg bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-3 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
-            <div className="flex items-center gap-2 mb-1.5">
-              <MapPin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Location</div>
+          {/* Detailed Info */}
+          {details && (
+            <div className="prose prose-sm prose-gray dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed">
+              <p>{details}</p>
             </div>
-            <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
-              {application.location}
-            </div>
-          </div>
-        )}
-
-        {/* Company */}
-        <div className="rounded-lg bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-3 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
-          <div className="flex items-center gap-2 mb-1.5">
-            <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Company</div>
-          </div>
-          <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
-            {application.companyName}
-          </div>
+          )}
         </div>
 
-        {/* Position */}
-        <div className="rounded-lg bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-3 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
-          <div className="flex items-center gap-2 mb-1.5">
-            <Briefcase className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">Role</div>
-          </div>
-          <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
-            {application.position}
+        {/* Sidebar Stats - 1/3 width */}
+        <div className="lg:col-span-1">
+          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-5 space-y-4 border border-gray-100 dark:border-gray-800">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <MapPin className="w-3.5 h-3.5" />
+                Location
+              </div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-white pl-5.5">
+                {application.location || 'Remote / Not specified'}
+              </div>
+            </div>
+
+            <div className="w-full h-px bg-gray-200 dark:bg-gray-700/50" />
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <Briefcase className="w-3.5 h-3.5" />
+                Position
+              </div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-white pl-5.5">
+                {application.position}
+              </div>
+            </div>
           </div>
         </div>
       </div>

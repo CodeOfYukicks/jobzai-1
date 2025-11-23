@@ -105,15 +105,16 @@ export interface AnswerHighlight {
 }
 
 export interface STAREvaluation {
-  situation: number; // 0-100
-  task: number; // 0-100
-  action: number; // 0-100
-  result: number; // 0-100
+  situation: boolean; // true if situation is clearly described
+  task: boolean; // true if task/challenge is explained
+  action: boolean; // true if actions taken are detailed
+  result: boolean; // true if results/outcomes are mentioned
 }
 
 export interface AnswerAnalysis {
   questionId: number;
   score: number; // 0-100
+  feedback?: string; // Detailed paragraph feedback
   highlights: AnswerHighlight[];
   strengths: string[];
   improvements: string[];

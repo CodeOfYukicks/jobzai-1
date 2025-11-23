@@ -22,62 +22,69 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
   const sentences = positionDetails?.split('.').slice(1).filter(s => s.trim().length > 0) || [];
 
   return (
-    <article className="rounded-xl bg-white dark:bg-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E] p-6 shadow-sm transition-all duration-200">
-      <header className="mb-6">
-        <div className="flex items-center gap-2.5 mb-1.5">
-          <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
-            <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+    <article className="group rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-8">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 ring-1 ring-inset ring-purple-100 dark:ring-purple-500/20">
+            <Target className="w-6 h-6" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-            Position Details
-          </h2>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              Position Details
+            </h2>
+            <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <span>Role expectations for</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{application.position}</span>
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 ml-9">
-          Key responsibilities and expectations
-        </p>
       </header>
 
-      {/* Position Headline */}
-      <div className="mb-5 p-4 rounded-lg bg-gradient-to-br from-gray-50 to-white dark:from-[#1A1A1D] dark:to-[#1E1F22] border border-gray-100 dark:border-[#2A2A2E]">
-        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-relaxed">
-          {headline}.
-        </p>
-      </div>
-
-      {/* Key Responsibilities */}
-      {sentences.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {sentences.slice(0, 6).map((responsibility, index) => {
-            const Icon = responsibilityIcons[index % responsibilityIcons.length];
-            
-            return (
-              <div
-                key={index}
-                className="group rounded-lg bg-gray-50/50 dark:bg-[#1A1A1D]/50 border border-gray-100 dark:border-[#2A2A2E] p-4 transition-all duration-200 hover:bg-white dark:hover:bg-[#1E1F22] hover:border-indigo-200 dark:hover:border-indigo-800"
-              >
-                <div className="flex items-start gap-3">
-                  {/* Icon */}
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
-                    <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-
-                  {/* Content */}
-                  <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300 pt-1">
-                    {responsibility.trim()}.
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-8 rounded-lg bg-gray-50 dark:bg-[#1A1A1D] border border-dashed border-gray-200 dark:border-[#2A2A2E]">
-          <Rocket className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Run job post analysis to discover detailed responsibilities
+      <div className="space-y-8">
+        {/* Headline */}
+        <div className="relative pl-5 border-l-4 border-purple-500/30 dark:border-purple-400/30">
+          <p className="text-lg font-medium text-gray-900 dark:text-white leading-relaxed italic">
+            "{headline}."
           </p>
         </div>
-      )}
+
+        {/* Key Responsibilities Grid */}
+        {sentences.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {sentences.slice(0, 6).map((responsibility, index) => {
+              const Icon = responsibilityIcons[index % responsibilityIcons.length];
+              
+              return (
+                <div
+                  key={index}
+                  className="group/card relative overflow-hidden rounded-xl bg-gray-50/50 dark:bg-gray-800/50 p-5 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md hover:shadow-purple-500/5 border border-transparent hover:border-purple-100 dark:hover:border-purple-500/20"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center group-hover/card:scale-110 transition-transform duration-200">
+                      <Icon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300 pt-0.5">
+                      {responsibility.trim()}.
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-dashed border-gray-200 dark:border-gray-700">
+            <div className="h-12 w-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+              <Rocket className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+            </div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+              No detailed responsibilities yet
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Run the job analysis to extract key role expectations
+            </p>
+          </div>
+        )}
+      </div>
     </article>
   );
 });
