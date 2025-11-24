@@ -3472,7 +3472,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#EB7134]" />
       </div>
     );
   }
@@ -3509,7 +3509,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       times: [0, 0.2, 0.4, 0.6, 1],
                       ease: "easeOut"
                     }}
-                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/40 via-indigo-500/40 to-purple-500/40 -z-10"
+                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#EB7134]/40 via-[#5D4D6B]/40 to-[#EB7134]/40 -z-10"
                     style={{
                       filter: 'blur(16px)',
                       transform: 'translateZ(0)',
@@ -3527,7 +3527,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ease: "easeOut",
                       delay: 0.1
                     }}
-                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-400/30 via-purple-400/30 to-indigo-400/30 -z-10"
+                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#5D4D6B]/30 via-[#EB7134]/30 to-[#5D4D6B]/30 -z-10"
                     style={{
                       filter: 'blur(20px)',
                       transform: 'translateZ(0)',
@@ -3605,7 +3605,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
             
             <button
               onClick={handleDownloadPDF}
-              className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#EB7134] to-[#5D4D6B] rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
               Download PDF
@@ -3616,10 +3616,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       </div>
 
       {/* Main Content - Split Layout */}
-      <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900 p-4">
         {/* Left Control Panel */}
         <div 
-          className="bg-white dark:bg-gray-800 border-r border-gray-200/50 dark:border-gray-700/50 overflow-y-auto relative group ml-4 my-4"
+          className="min-h-0 bg-white dark:bg-gray-800 border-r border-gray-200/50 dark:border-gray-700/50 overflow-y-auto relative group mr-4 flex-shrink-0"
           style={{ 
             width: `${panelWidth}px`,
             borderRadius: '20px',
@@ -3636,7 +3636,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
               setIsResizing(true);
             }}
             className={`absolute top-0 right-0 w-2 h-full cursor-col-resize z-20 ${
-              isResizing ? 'bg-purple-500/60' : 'bg-transparent hover:bg-purple-300/30'
+              isResizing ? 'bg-[#EB7134]/60' : 'bg-transparent hover:bg-[#EB7134]/30'
             } transition-colors`}
             style={{ 
               borderRadius: '0 20px 20px 0',
@@ -3645,9 +3645,9 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
           >
             {/* Visual indicator dots */}
             <div className="absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-1/2 flex flex-col gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <div className="w-1 h-1 rounded-full bg-purple-500"></div>
-              <div className="w-1 h-1 rounded-full bg-purple-500"></div>
-              <div className="w-1 h-1 rounded-full bg-purple-500"></div>
+              <div className="w-1 h-1 rounded-full bg-[#EB7134]"></div>
+              <div className="w-1 h-1 rounded-full bg-[#EB7134]"></div>
+              <div className="w-1 h-1 rounded-full bg-[#EB7134]"></div>
             </div>
           </div>
           
@@ -3666,8 +3666,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                 <>
                   <Disclosure.Button className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-left text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm hover:shadow">
                     <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
-                        <Briefcase className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <div className="p-1.5 rounded-lg bg-[#5D4D6B]/10 dark:bg-[#5D4D6B]/20">
+                        <Briefcase className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />
                       </div>
                       <div className="flex flex-col text-left">
                         <span className="font-semibold">Job overview</span>
@@ -3690,7 +3690,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           href={cv.jobUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#EB7134] dark:text-[#EB7134] hover:underline"
                         >
                           <LinkIcon className="w-3.5 h-3.5" />
                           View posting
@@ -3755,7 +3755,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                         {(cv as any).keywordsUsed.slice(0, 12).map((kw: string, idx: number) => (
                           <span
                             key={`${kw}-${idx}`}
-                            className="text-xs px-2.5 py-1 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-700 dark:text-purple-300 rounded-full font-medium border border-purple-200/50 dark:border-purple-700/50"
+                            className="text-xs px-2.5 py-1 bg-gradient-to-r from-[#EB7134]/20 to-[#5D4D6B]/20 dark:from-[#EB7134]/30 dark:to-[#5D4D6B]/30 text-[#EB7134] dark:text-[#EB7134] rounded-full font-medium border border-[#EB7134]/30 dark:border-[#EB7134]/50"
                           >
                             {kw}
                           </span>
@@ -3776,8 +3776,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
             {cvVersions.length > 1 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/20">
-                    <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <div className="p-1.5 rounded-lg bg-[#EB7134]/10 dark:bg-[#EB7134]/20">
+                    <Sparkles className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />
                   </div>
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Versions</span>
                 </div>
@@ -3818,7 +3818,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   onClick={() => { close(); navigate(`/cv-optimizer/${version.id}`); }}
                                   className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between transition-colors ${
                                     isActive
-                                      ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
+                                      ? 'bg-[#EB7134]/10 dark:bg-[#EB7134]/20 text-[#EB7134] dark:text-[#EB7134]'
                                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                                   }`}
                                 >
@@ -3826,7 +3826,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                     <span className="font-medium">{lang.name}</span>
                                     <span className="text-xs text-gray-500 dark:text-gray-400">{lang.shortCode}</span>
                                   </span>
-                                  {isActive && <Check className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+                                  {isActive && <Check className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />}
                                 </button>
                               );
                             })}
@@ -3847,8 +3847,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                   <>
                     <Disclosure.Button className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-left text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm hover:shadow">
                       <div className="flex items-center gap-3">
-                        <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/20">
-                          <CopyIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <div className="p-1.5 rounded-lg bg-[#EB7134]/10 dark:bg-[#EB7134]/20">
+                    <CopyIcon className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />
                         </div>
                         <span>Duplicate and translate</span>
                       </div>
@@ -3878,7 +3878,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                             disabled={isDuplicating || isCurrentVersion}
                             className={`w-full px-3 py-2 text-sm text-left rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                               isCurrentVersion
-                                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                                ? 'bg-[#EB7134]/20 dark:bg-[#EB7134]/30 text-[#EB7134] dark:text-[#EB7134] border border-[#EB7134]/40 dark:border-[#EB7134]/70'
                                 : existingVersion
                                 ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30'
                                 : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -3888,7 +3888,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                               <span className="flex items-center gap-3">
                                 <div className={`flex items-center justify-center w-8 h-8 rounded-md text-xs font-semibold transition-colors ${
                                   isCurrentVersion
-                                    ? 'bg-purple-600 text-white'
+                                    ? 'bg-[#EB7134] text-white'
                                     : existingVersion
                                     ? 'bg-blue-600 text-white'
                                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -3899,8 +3899,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                               </span>
                               {isCurrentVersion && (
                                 <div className="flex items-center gap-1">
-                                  <Check className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                  <span className="text-xs text-purple-600 dark:text-purple-400">Current</span>
+                                  <Check className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />
+                                  <span className="text-xs text-[#EB7134] dark:text-[#EB7134]">Current</span>
                                 </div>
                               )}
                               {existingVersion && !isCurrentVersion && (
@@ -3927,8 +3927,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                 className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-left text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm hover:shadow"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
-                    <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <div className="p-1.5 rounded-lg bg-[#5D4D6B]/10 dark:bg-[#5D4D6B]/20">
+                    <FileText className="w-4 h-4 text-[#5D4D6B] dark:text-[#5D4D6B]" />
                   </div>
                   <span>Choose a model</span>
                 </div>
@@ -4002,7 +4002,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                         setStyling({ ...styling, font: e.target.value });
                         toast.success('Font updated');
                       }}
-                      className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                      className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                       style={{ fontFamily: styling.font }}
                     >
                       {fontOptions.map((font) => (
@@ -4033,7 +4033,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                               generateAtsTips();
                             }
                           }}
-                          className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium transition-colors focus:outline-none cursor-pointer"
+                          className="text-xs text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] font-medium transition-colors focus:outline-none cursor-pointer"
                         >
                           {isLoadingAtsTips ? (
                             <span className="flex items-center gap-1">
@@ -4057,7 +4057,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                             >
                               {isLoadingAtsTips ? (
                                 <div className="flex items-center justify-center py-4">
-                                  <Loader2 className="w-5 h-5 animate-spin text-purple-600 dark:text-purple-400" />
+                                  <Loader2 className="w-5 h-5 animate-spin text-[#EB7134] dark:text-[#EB7134]" />
                                   <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Generating tips...</span>
                                 </div>
                               ) : (
@@ -4077,7 +4077,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                         transition={{ delay: index * 0.1 }}
                                         className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300"
                                       >
-                                        <span className="text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0">•</span>
+                                        <span className="text-[#EB7134] dark:text-[#EB7134] mt-0.5 flex-shrink-0">•</span>
                                         <span>{tip}</span>
                                       </motion.li>
                                     ))}
@@ -4094,8 +4094,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                 <div className="relative h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
                   <div
                     className={`absolute h-full transition-all duration-700 ease-out rounded-full ${
-                      cv.atsScore >= 80 ? 'bg-gradient-to-r from-purple-500 to-indigo-600' :
-                      cv.atsScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-indigo-600' :
+                      cv.atsScore >= 80 ? 'bg-gradient-to-r from-[#EB7134] to-[#5D4D6B]' :
+                      cv.atsScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-[#5D4D6B]' :
                       'bg-gradient-to-r from-pink-500 to-red-600'
                     }`}
                     style={{ width: `${cv.atsScore}%` }}
@@ -4118,7 +4118,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ...cvData,
                       personalInfo: { ...cvData.personalInfo, firstName: e.target.value },
                     })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                     placeholder="First Name"
                   />
                 </div>
@@ -4131,7 +4131,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ...cvData,
                       personalInfo: { ...cvData.personalInfo, lastName: e.target.value },
                     })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                     placeholder="Last Name"
                   />
                 </div>
@@ -4144,7 +4144,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ...cvData,
                       personalInfo: { ...cvData.personalInfo, jobTitle: e.target.value },
                     })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                     placeholder="Job Title"
                   />
                 </div>
@@ -4160,7 +4160,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ...cvData,
                       personalInfo: { ...cvData.personalInfo, email: e.target.value },
                     })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                     placeholder="Email"
                   />
                 </div>
@@ -4176,7 +4176,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ...cvData,
                       personalInfo: { ...cvData.personalInfo, phone: e.target.value },
                     })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                     placeholder="(313) - 867-5309"
                   />
                 </div>
@@ -4192,7 +4192,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ...cvData,
                       personalInfo: { ...cvData.personalInfo, location: e.target.value },
                     })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                     placeholder="Paris"
                   />
                 </div>
@@ -4208,7 +4208,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ...cvData,
                       personalInfo: { ...cvData.personalInfo, linkedin: e.target.value },
                     })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                     placeholder="https://www.linkedin.com/in/..."
                   />
                 </div>
@@ -4224,7 +4224,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       ...cvData,
                       personalInfo: { ...cvData.personalInfo, portfolio: e.target.value },
                     })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                     placeholder="https://myportfolio.com"
                   />
                 </div>
@@ -4279,7 +4279,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                         }
                                       }
                                     }}
-                                    className="text-xs flex items-center gap-1 px-2 py-1 rounded-md transition-all text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                                    className="text-xs flex items-center gap-1 px-2 py-1 rounded-md transition-all text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] hover:bg-[#EB7134]/10 dark:hover:bg-[#EB7134]/20"
                                   >
                                     <Sparkles className="w-3 h-3" />
                                     {openChatSummary ? 'Close AI Chat' : 'Generate by AI'}
@@ -4291,7 +4291,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                 <textarea
                                   value={cvData.professionalSummary}
                                   onChange={(e) => setCvData({ ...cvData, professionalSummary: e.target.value })}
-                                  className={`w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none ${aiPulseSummary ? 'animate-pulse' : ''}`}
+                                  className={`w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] resize-none ${aiPulseSummary ? 'animate-pulse' : ''}`}
                                   rows={4}
                                   placeholder="Experienced CRM consultant passionate about leveraging technology..."
                                 />
@@ -4305,10 +4305,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                     transition={{ duration: 0.3 }}
                                     className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4"
                                   >
-                                    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-purple-200/50 dark:border-purple-800/50">
+                                    <div className="bg-gradient-to-br from-[#EB7134]/10 to-[#5D4D6B]/10 dark:from-[#EB7134]/20 dark:to-[#5D4D6B]/20 rounded-xl p-4 border border-[#EB7134]/30 dark:border-[#EB7134]/50">
                                       <div className="flex items-center gap-2 mb-3">
-                                        <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/40">
-                                          <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        <div className="p-1.5 rounded-lg bg-[#EB7134]/20 dark:bg-[#EB7134]/40">
+                                          <Sparkles className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />
                                         </div>
                                         <div>
                                           <h4 className="text-sm font-semibold text-gray-900 dark:text-white">AI Assistant</h4>
@@ -4328,7 +4328,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                             >
                                               <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
                                                 msg.role === 'user'
-                                                  ? 'bg-purple-600 text-white'
+                                                  ? 'bg-[#EB7134] text-white'
                                                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
                                               }`}>
                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -4337,7 +4337,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                 <div className="basis-full pl-10 mt-1.5 flex items-center gap-2">
                                                   <button
                                                     onClick={() => applySuggestion('summary', idx)}
-                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-purple-600 text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition-colors"
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-[#EB7134] text-white shadow-sm hover:bg-[#5D4D6B] focus:outline-none focus:ring-2 focus:ring-[#EB7134]/40 transition-colors"
                                                   >
                                                     <Check className="w-3 h-3" />
                                                     Insert
@@ -4390,7 +4390,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                             }
                                           }}
                                           placeholder="What would you like to change? (e.g., 'Make it more concise', 'Add leadership focus')"
-                                          className="flex-1 text-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                          className="flex-1 text-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134]"
                                           disabled={aiUpdatingSummary}
                                         />
                                         <button
@@ -4403,7 +4403,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                             }
                                           }}
                                           disabled={aiUpdatingSummary}
-                                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                                          className="px-4 py-2 bg-[#EB7134] hover:bg-[#5D4D6B] text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                                         >
                                           {aiUpdatingSummary ? (
                                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -4452,7 +4452,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   </div>
                                   <button
                                     onClick={addExperience}
-                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+                                    className="text-xs text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] flex items-center gap-1"
                                   >
                                     <Plus className="w-3 h-3" />
                                     Add
@@ -4484,7 +4484,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                                 }}
                                                 className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600 ${
-                                                  snapshot.isDragging ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                                                  snapshot.isDragging ? 'bg-[#EB7134]/10 dark:bg-[#EB7134]/20' : ''
                                                 }`}
                                               >
                                                 <div className="flex items-start justify-between mb-3">
@@ -4577,7 +4577,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                     onClick={() => {
                                                       updateExperience(exp.id, { description: [...exp.description, ''] });
                                                     }}
-                                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+                                                    className="text-xs text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] flex items-center gap-1"
                                                   >
                                                     <Plus className="w-3 h-3" />
                                                     Add bullet point
@@ -4613,7 +4613,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                     transition={{ duration: 0.3 }}
                                                     className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4"
                                                   >
-                                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200/50 dark:border-blue-800/50">
+                                                    <div className="bg-gradient-to-br from-blue-50 to-[#5D4D6B]/10 dark:from-blue-900/20 dark:to-[#5D4D6B]/20 rounded-xl p-4 border border-blue-200/50 dark:border-blue-800/50">
                                                       <div className="flex items-center gap-2 mb-3">
                                                         <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/40">
                                                           <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -4770,7 +4770,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   </div>
                                   <button
                                     onClick={addEducation}
-                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+                                    className="text-xs text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] flex items-center gap-1"
                                   >
                                     <Plus className="w-3 h-3" />
                                     Add
@@ -4873,7 +4873,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                           transition={{ duration: 0.3 }}
                                           className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3"
                                         >
-                                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200/50 dark:border-blue-800/50">
+                                          <div className="bg-gradient-to-br from-blue-50 to-[#5D4D6B]/10 dark:from-blue-900/20 dark:to-[#5D4D6B]/20 rounded-xl p-4 border border-blue-200/50 dark:border-blue-800/50">
                                             <div className="flex items-center gap-2 mb-3">
                                               <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/40">
                                                 <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -5037,14 +5037,14 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                           }
                                         }
                                       }}
-                                      className="text-xs flex items-center gap-1 px-2 py-1 rounded-md transition-all text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                                      className="text-xs flex items-center gap-1 px-2 py-1 rounded-md transition-all text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] hover:bg-[#EB7134]/10 dark:hover:bg-[#EB7134]/20"
                                     >
                                       <Sparkles className="w-3 h-3" />
                                       {openChatSkills ? 'Close AI Chat' : 'Generate by AI'}
                                     </button>
                                     <button
                                       onClick={addSkill}
-                                      className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+                                      className="text-xs text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] flex items-center gap-1"
                                     >
                                       <Plus className="w-3 h-3" />
                                       Add
@@ -5105,10 +5105,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                     transition={{ duration: 0.3 }}
                                     className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4"
                                   >
-                                    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-purple-200/50 dark:border-purple-800/50">
+                                    <div className="bg-gradient-to-br from-[#EB7134]/10 to-[#5D4D6B]/10 dark:from-[#EB7134]/20 dark:to-[#5D4D6B]/20 rounded-xl p-4 border border-[#EB7134]/30 dark:border-[#EB7134]/50">
                                       <div className="flex items-center gap-2 mb-3">
-                                        <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/40">
-                                          <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        <div className="p-1.5 rounded-lg bg-[#EB7134]/20 dark:bg-[#EB7134]/40">
+                                          <Sparkles className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />
                                         </div>
                                         <div>
                                           <h4 className="text-sm font-semibold text-gray-900 dark:text-white">AI Assistant</h4>
@@ -5128,7 +5128,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                             >
                                               <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
                                                 msg.role === 'user'
-                                                  ? 'bg-purple-600 text-white'
+                                                  ? 'bg-[#EB7134] text-white'
                                                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
                                               }`}>
                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -5137,7 +5137,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                 <div className="basis-full pl-10 mt-1.5 flex items-center gap-2">
                                                   <button
                                                     onClick={() => applySuggestion('skills', idx)}
-                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-purple-600 text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition-colors"
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-[#EB7134] text-white shadow-sm hover:bg-[#5D4D6B] focus:outline-none focus:ring-2 focus:ring-[#EB7134]/40 transition-colors"
                                                   >
                                                     <Check className="w-3 h-3" />
                                                     Insert
@@ -5190,7 +5190,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                             }
                                           }}
                                           placeholder="What would you like to change? (e.g., 'Add more technical skills', 'Focus on leadership')"
-                                          className="flex-1 text-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                          className="flex-1 text-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134]"
                                           disabled={aiUpdatingSkills}
                                         />
                                         <button
@@ -5203,7 +5203,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                             }
                                           }}
                                           disabled={aiUpdatingSkills}
-                                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                                          className="px-4 py-2 bg-[#EB7134] hover:bg-[#5D4D6B] text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                                         >
                                           {aiUpdatingSkills ? (
                                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -5252,7 +5252,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   </div>
                                   <button
                                     onClick={addLanguage}
-                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+                                    className="text-xs text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] flex items-center gap-1"
                                   >
                                     <Plus className="w-3 h-3" />
                                     Add
@@ -5329,7 +5329,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   </div>
                                   <button
                                     onClick={addCertificate}
-                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+                                    className="text-xs text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] flex items-center gap-1"
                                   >
                                     <Plus className="w-3 h-3" />
                                     Add
@@ -5414,7 +5414,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   </div>
                                   <button
                                     onClick={addHobby}
-                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+                                    className="text-xs text-[#EB7134] dark:text-[#EB7134] hover:text-[#5D4D6B] dark:hover:text-[#5D4D6B] flex items-center gap-1"
                                   >
                                     <Plus className="w-3 h-3" />
                                     Add
@@ -5464,7 +5464,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#EB7134] to-[#5D4D6B] rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <>
@@ -5495,7 +5495,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
         </div>
 
         {/* Right Preview Area - PDF-like View with Zoom */}
-        <div className="flex-1 bg-gray-50 dark:bg-gray-900 overflow-y-auto p-8 flex items-start justify-center mr-4 my-4">
+        <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 overflow-y-auto p-8 flex items-start justify-center">
           <div className="bg-white shadow-2xl transition-transform duration-200" style={{ 
             width: '210mm',
             minHeight: '297mm',
@@ -5548,8 +5548,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                     }}
                     className={`group relative rounded-lg overflow-hidden transition-all ${
                       styling.template === 'harvard'
-                        ? 'ring-2 ring-purple-500 shadow-xl'
-                        : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-purple-400 shadow-md hover:shadow-lg'
+                        ? 'ring-2 ring-[#EB7134] shadow-xl'
+                        : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-[#EB7134] shadow-md hover:shadow-lg'
                     }`}
                   >
                     <div className="bg-white overflow-hidden relative" style={{ aspectRatio: '210/297', width: '100%' }}>
@@ -5569,7 +5569,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       )}
                     </div>
                     {styling.template === 'harvard' && (
-                      <div className="absolute top-2 right-2 bg-purple-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-lg flex items-center gap-1">
+                      <div className="absolute top-2 right-2 bg-[#EB7134] text-white px-2 py-1 rounded-md text-xs font-semibold shadow-lg flex items-center gap-1">
                         <Check className="w-3 h-3" />
                         Active
                       </div>
@@ -5609,8 +5609,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                     }}
                     className={`group relative rounded-lg overflow-hidden transition-all ${
                       styling.template === 'modern'
-                        ? 'ring-2 ring-purple-500 shadow-xl'
-                        : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-purple-400 shadow-md hover:shadow-lg'
+                        ? 'ring-2 ring-[#EB7134] shadow-xl'
+                        : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-[#EB7134] shadow-md hover:shadow-lg'
                     }`}
                   >
                     <div className="bg-white overflow-hidden relative" style={{ aspectRatio: '210/297', width: '100%' }}>
@@ -5630,7 +5630,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       )}
                     </div>
                     {styling.template === 'modern' && (
-                      <div className="absolute top-2 right-2 bg-purple-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-lg flex items-center gap-1">
+                      <div className="absolute top-2 right-2 bg-[#EB7134] text-white px-2 py-1 rounded-md text-xs font-semibold shadow-lg flex items-center gap-1">
                         <Check className="w-3 h-3" />
                         Active
                       </div>

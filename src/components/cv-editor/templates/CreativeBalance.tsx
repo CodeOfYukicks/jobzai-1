@@ -25,7 +25,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
       }}
     >
       {/* Header with accent color */}
-      <header className="mb-6 pb-4 border-b-4 border-purple-600">
+      <header className="mb-6 pb-4 border-b-4 border-[#EB7134]600">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-light text-gray-900">
@@ -33,7 +33,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
               {cvData.personalInfo.lastName}
             </h1>
             {cvData.personalInfo.title && (
-              <p className="text-lg text-purple-600 mt-1 font-medium">
+              <p className="text-lg text-[#EB7134]600 mt-1 font-medium">
                 {cvData.personalInfo.title}
               </p>
             )}
@@ -44,24 +44,24 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
             {cvData.personalInfo.email && (
               <div className="flex items-center justify-end gap-2 text-sm text-gray-600">
                 <span>{cvData.personalInfo.email}</span>
-                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Mail className="w-4 h-4 text-purple-600" />
+                <div className="w-8 h-8 bg-[#EB7134]100 rounded-full flex items-center justify-center">
+                  <Mail className="w-4 h-4 text-[#EB7134]600" />
                 </div>
               </div>
             )}
             {cvData.personalInfo.phone && (
               <div className="flex items-center justify-end gap-2 text-sm text-gray-600">
                 <span>{cvData.personalInfo.phone}</span>
-                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Phone className="w-4 h-4 text-purple-600" />
+                <div className="w-8 h-8 bg-[#EB7134]100 rounded-full flex items-center justify-center">
+                  <Phone className="w-4 h-4 text-[#EB7134]600" />
                 </div>
               </div>
             )}
             {cvData.personalInfo.location && (
               <div className="flex items-center justify-end gap-2 text-sm text-gray-600">
                 <span>{cvData.personalInfo.location}</span>
-                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <MapPin className="w-4 h-4 text-purple-600" />
+                <div className="w-8 h-8 bg-[#EB7134]100 rounded-full flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-[#EB7134]600" />
                 </div>
               </div>
             )}
@@ -72,13 +72,13 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
         {(cvData.personalInfo.linkedin || cvData.personalInfo.portfolio || cvData.personalInfo.github) && (
           <div className="flex gap-4 mt-3">
             {cvData.personalInfo.linkedin && (
-              <a className="flex items-center gap-1 text-sm text-gray-600 hover:text-purple-600">
+              <a className="flex items-center gap-1 text-sm text-gray-600 hover:text-[#EB7134]600">
                 <Linkedin className="w-3.5 h-3.5" />
                 <span>{formatURL(cvData.personalInfo.linkedin)}</span>
               </a>
             )}
             {cvData.personalInfo.portfolio && (
-              <a className="flex items-center gap-1 text-sm text-gray-600 hover:text-purple-600">
+              <a className="flex items-center gap-1 text-sm text-gray-600 hover:text-[#EB7134]600">
                 <Globe className="w-3.5 h-3.5" />
                 <span>{formatURL(cvData.personalInfo.portfolio)}</span>
               </a>
@@ -90,7 +90,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
       {/* Summary with background */}
       {cvData.summary && enabledSections.find(s => s.type === 'summary') && (
         <section className="mb-6">
-          <div className="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-600">
+          <div className="bg-[#EB7134]50 rounded-lg p-4 border-l-4 border-[#EB7134]600">
             <p className="text-sm text-gray-700 leading-relaxed">
               {cvData.summary}
             </p>
@@ -106,21 +106,21 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
           {cvData.experiences?.length > 0 && enabledSections.find(s => s.type === 'experience') && (
             <section>
               <div className="flex items-center gap-2 mb-3">
-                <Briefcase className="w-5 h-5 text-purple-600" />
+                <Briefcase className="w-5 h-5 text-[#EB7134]600" />
                 <h2 className="text-lg font-bold text-gray-800">Experience</h2>
               </div>
               <div className="space-y-4">
                 {cvData.experiences.map(exp => (
                   <div key={exp.id} className="relative pl-6">
                     {/* Timeline dot */}
-                    <div className="absolute left-0 top-2 w-3 h-3 bg-purple-600 rounded-full"></div>
+                    <div className="absolute left-0 top-2 w-3 h-3 bg-[#EB7134]600 rounded-full"></div>
                     <div className="absolute left-1.5 top-5 bottom-0 w-px bg-gray-200"></div>
                     
                     <div className="pb-4">
                       <div className="flex justify-between items-start mb-1">
                         <h3 className="font-bold text-gray-900">
                           {exp.title}
-                          <span className="text-purple-600 font-normal"> @ {exp.company}</span>
+                          <span className="text-[#EB7134]600 font-normal"> @ {exp.company}</span>
                         </h3>
                         <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                           {formatDateRange(exp.startDate, exp.endDate, exp.current)}
@@ -136,7 +136,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
                         <ul className="space-y-1">
                           {exp.bullets.map((bullet, idx) => (
                             <li key={idx} className="text-sm text-gray-700 flex">
-                              <span className="text-purple-400 mr-2">▸</span>
+                              <span className="text-[#EB7134]400 mr-2">▸</span>
                               <span className="flex-1">{bullet}</span>
                             </li>
                           ))}
@@ -159,7 +159,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
                     <h3 className="font-bold text-gray-900 mb-1">
                       {project.name}
                       {project.url && (
-                        <span className="ml-2 text-sm text-purple-600 font-normal">
+                        <span className="ml-2 text-sm text-[#EB7134]600 font-normal">
                           View →
                         </span>
                       )}
@@ -193,7 +193,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
                     <span className="text-sm text-gray-700 flex-1">{skill.name}</span>
                     <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-purple-600 rounded-full"
+                        className="h-full bg-[#EB7134]600 rounded-full"
                         style={{ width: `${skill.level === 'expert' ? 100 : skill.level === 'advanced' ? 75 : skill.level === 'intermediate' ? 50 : 25}%` }}
                       />
                     </div>
@@ -207,7 +207,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
           {cvData.education?.length > 0 && enabledSections.find(s => s.type === 'education') && (
             <section>
               <div className="flex items-center gap-2 mb-3">
-                <GraduationCap className="w-5 h-5 text-purple-600" />
+                <GraduationCap className="w-5 h-5 text-[#EB7134]600" />
                 <h2 className="text-lg font-bold text-gray-800">Education</h2>
               </div>
               <div className="space-y-3">
@@ -217,7 +217,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
                       {edu.degree}
                     </h3>
                     {edu.field && (
-                      <p className="text-sm text-purple-600">{edu.field}</p>
+                      <p className="text-sm text-[#EB7134]600">{edu.field}</p>
                     )}
                     <p className="text-sm text-gray-600">
                       {edu.institution}
@@ -236,12 +236,12 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
           {cvData.certifications?.length > 0 && enabledSections.find(s => s.type === 'certifications') && (
             <section>
               <div className="flex items-center gap-2 mb-3">
-                <Award className="w-5 h-5 text-purple-600" />
+                <Award className="w-5 h-5 text-[#EB7134]600" />
                 <h2 className="text-lg font-bold text-gray-800">Certifications</h2>
               </div>
               <div className="space-y-2">
                 {cvData.certifications.map(cert => (
-                  <div key={cert.id} className="bg-purple-50 rounded p-2">
+                  <div key={cert.id} className="bg-[#EB7134]50 rounded p-2">
                     <p className="text-sm font-medium text-gray-900">{cert.name}</p>
                     <p className="text-xs text-gray-600">
                       {cert.issuer} • {cert.date}
@@ -260,7 +260,7 @@ export default function CreativeBalance({ cvData, layoutSettings }: CreativeBala
                 {cvData.languages.map(lang => (
                   <div key={lang.id} className="flex justify-between items-center">
                     <span className="text-sm text-gray-700">{lang.name}</span>
-                    <span className="text-xs text-white bg-purple-600 px-2 py-1 rounded">
+                    <span className="text-xs text-white bg-[#EB7134]600 px-2 py-1 rounded">
                       {lang.proficiency}
                     </span>
                   </div>

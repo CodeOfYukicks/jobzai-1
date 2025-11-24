@@ -66,7 +66,7 @@ export default function LanguageModal({
       </button>
       <button
         onClick={handleSave}
-        className="group relative px-7 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-full shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all overflow-hidden"
+        className="group relative px-7 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#EB7134]600 to-[#5D4D6B]600 hover:from-[#EB7134]700 hover:to-[#5D4D6B]700 rounded-full shadow-lg shadow-[#EB7134]500/30 hover:shadow-xl hover:shadow-[#EB7134]500/40 transition-all overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
         <span className="relative z-10">Save Language</span>
@@ -109,7 +109,7 @@ export default function LanguageModal({
                   value={level}
                   checked={formData.proficiency === level}
                   onChange={(e) => setFormData(prev => ({ ...prev, proficiency: e.target.value as CVLanguage['proficiency'] }))}
-                  className="mt-0.5 w-4 h-4 border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                  className="mt-0.5 w-4 h-4 border-gray-300 text-[#EB7134]600 focus:ring-[#EB7134]500 focus:ring-offset-0"
                 />
                 <div className="flex-1">
                   <div className="text-sm font-medium text-gray-900 dark:text-white">

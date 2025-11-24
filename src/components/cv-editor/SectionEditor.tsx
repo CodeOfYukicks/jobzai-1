@@ -142,7 +142,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           key={action.id}
           onClick={() => handleAIAction(action.id)}
           disabled={isProcessingAI}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-300 dark:hover:border-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-[#EB7134]/10 dark:hover:bg-[#EB7134]/20 hover:text-[#EB7134] dark:hover:text-[#EB7134] hover:border-[#EB7134]/30 dark:hover:border-[#EB7134]/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isProcessingAI && currentAction === action.id ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -226,13 +226,13 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
+        className="mt-3 p-4 bg-gradient-to-r from-[#EB7134]50 to-[#5D4D6B]50 dark:from-[#EB7134]900/20 dark:to-[#5D4D6B]900/20 border border-[#EB7134]200 dark:border-[#EB7134]800 rounded-lg"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+              <Sparkles className="w-4 h-4 text-[#EB7134]600 dark:text-[#EB7134]400" />
+              <span className="text-xs font-medium text-[#EB7134]700 dark:text-[#EB7134]300">
                 AI Suggestion
               </span>
             </div>
@@ -243,7 +243,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           <div className="flex items-center gap-1">
             <button
               onClick={acceptSuggestion}
-              className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              className="p-2 bg-[#EB7134]600 hover:bg-[#EB7134]700 text-white rounded-lg transition-colors"
               title="Accept suggestion"
             >
               <Check className="w-4 h-4" />
@@ -279,7 +279,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="text"
                 value={data.firstName || ''}
                 onChange={(e) => onChange({ firstName: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
                 placeholder="John"
               />
             </div>
@@ -291,7 +291,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="text"
                 value={data.lastName || ''}
                 onChange={(e) => onChange({ lastName: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
                 placeholder="Doe"
               />
             </div>
@@ -305,7 +305,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="text"
                 value={data.title || ''}
                 onChange={(e) => onChange({ title: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
                 placeholder="Senior Software Engineer"
               />
           </div>
@@ -319,7 +319,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="email"
                 value={data.email || ''}
                 onChange={(e) => onChange({ email: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
                 placeholder="john.doe@example.com"
               />
             </div>
@@ -331,7 +331,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="tel"
                 value={data.phone || ''}
                 onChange={(e) => onChange({ phone: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
@@ -345,7 +345,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="text"
                 value={data.location || ''}
                 onChange={(e) => onChange({ location: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
                 placeholder="San Francisco, CA"
               />
           </div>
@@ -358,7 +358,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="url"
                 value={data.linkedin || ''}
                 onChange={(e) => onChange({ linkedin: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
                 placeholder="linkedin.com/in/johndoe"
               />
           </div>
@@ -376,7 +376,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               value={data.summary || ''}
               onChange={(e) => onChange({ summary: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 resize-none"
               placeholder="Write a compelling summary that highlights your key strengths and career objectives..."
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -394,7 +394,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           {data.experiences?.map((exp: CVExperience) => (
             <div
               key={exp.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
               onClick={() => {
                 setEditingItem(exp);
                 setExperienceModalOpen(true);
@@ -442,7 +442,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               setEditingItem(null);
               setExperienceModalOpen(true);
             }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
           >
             <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="text-sm font-semibold">Add Experience</span>
@@ -481,7 +481,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           {data.education?.map((edu: CVEducation) => (
             <div
               key={edu.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
               onClick={() => {
                 setEditingItem(edu);
                 setEducationModalOpen(true);
@@ -529,7 +529,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               setEditingItem(null);
               setEducationModalOpen(true);
             }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
           >
             <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="text-sm font-semibold">Add Education</span>
@@ -580,7 +580,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
             <input
               type="text"
               placeholder="Add a skill..."
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   const input = e.currentTarget;
@@ -600,7 +600,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               onClick={() => {
                 // TODO: Open skill suggestions
               }}
-              className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="px-3 py-2 bg-[#EB7134]600 text-white rounded-lg hover:bg-[#EB7134]700 transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -617,7 +617,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           {data.certifications?.map((cert: CVCertification) => (
             <div
               key={cert.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
               onClick={() => {
                 setEditingItem(cert);
                 setCertificationModalOpen(true);
@@ -665,7 +665,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               setEditingItem(null);
               setCertificationModalOpen(true);
             }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
           >
             <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="text-sm font-semibold">Add Certification</span>
@@ -702,7 +702,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           {data.projects?.map((project: CVProject) => (
             <div
               key={project.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
               onClick={() => {
                 setEditingItem(project);
                 setProjectModalOpen(true);
@@ -719,7 +719,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                   {project.technologies.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {project.technologies.slice(0, 3).map((tech, idx) => (
-                        <span key={idx} className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                        <span key={idx} className="text-xs px-2 py-0.5 bg-[#EB7134]100 dark:bg-[#EB7134]900/30 text-[#EB7134]700 dark:text-[#EB7134]300 rounded">
                           {tech}
                         </span>
                       ))}
@@ -761,7 +761,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               setEditingItem(null);
               setProjectModalOpen(true);
             }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
           >
             <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="text-sm font-semibold">Add Project</span>
@@ -798,7 +798,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           {data.languages?.map((language: CVLanguage) => (
             <div
               key={language.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
               onClick={() => {
                 setEditingItem(language);
                 setLanguageModalOpen(true);
@@ -843,7 +843,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               setEditingItem(null);
               setLanguageModalOpen(true);
                         }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
                       >
             <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="text-sm font-semibold">Add Language</span>
@@ -886,11 +886,11 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
 // SkillChip component - still used in skills section
 function SkillChip({ skill, onDelete }: { skill: CVSkill; onDelete: () => void }) {
   return (
-    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-full text-sm">
+    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#EB7134]50 dark:bg-[#EB7134]900/20 text-[#EB7134]700 dark:text-[#EB7134]300 rounded-full text-sm">
       <span>{skill.name}</span>
         <button
           onClick={onDelete}
-        className="ml-1 p-0.5 hover:bg-purple-100 dark:hover:bg-purple-800/30 rounded-full transition-colors"
+        className="ml-1 p-0.5 hover:bg-[#EB7134]100 dark:hover:bg-[#EB7134]800/30 rounded-full transition-colors"
         >
         <X className="w-3 h-3" />
         </button>

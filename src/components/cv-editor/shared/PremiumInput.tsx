@@ -39,7 +39,7 @@ const PremiumInput = forwardRef<HTMLInputElement, PremiumInputProps>(
             transition-colors
             ${error 
               ? 'border-red-300 dark:border-red-700 focus:border-red-500 dark:focus:border-red-500' 
-              : 'border-gray-200 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-500'
+              : 'border-gray-200 dark:border-gray-700 focus:border-[#EB7134]500 dark:focus:border-[#EB7134]500'
             }
             ${className}
           `}
@@ -57,7 +57,7 @@ const PremiumInput = forwardRef<HTMLInputElement, PremiumInputProps>(
             ${error
               ? 'text-red-500 dark:text-red-400'
               : isFocused
-                ? 'text-purple-600 dark:text-purple-400'
+                ? 'text-[#EB7134]600 dark:text-[#EB7134]400'
                 : 'text-gray-500 dark:text-gray-400'
             }
           `}

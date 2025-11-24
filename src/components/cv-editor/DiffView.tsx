@@ -85,7 +85,7 @@ export default function DiffView({
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border border-blue-200 dark:border-gray-700"
+      className="bg-gradient-to-r from-blue-50 to-[#EB7134]50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border border-blue-200 dark:border-gray-700"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
@@ -174,7 +174,7 @@ export default function DiffView({
         </button>
         <button
           onClick={onAccept}
-          className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+          className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-[#EB7134]600 rounded-lg hover:from-blue-700 hover:to-[#EB7134]700 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
         >
           <Check className="w-4 h-4" />
           Accept Changes

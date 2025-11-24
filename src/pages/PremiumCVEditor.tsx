@@ -474,7 +474,7 @@ export default function PremiumCVEditor() {
                   onClick={() => setShowAIPanel(!showAIPanel)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     showAIPanel 
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 shadow-sm' 
+                      ? 'bg-[#EB7134]/10 dark:bg-[#EB7134]/30 text-[#EB7134] dark:text-[#EB7134] shadow-sm' 
                       : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                   }`}
                 >
@@ -512,7 +512,7 @@ export default function PremiumCVEditor() {
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="group relative flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-purple-600 via-purple-600 to-indigo-600 hover:from-purple-700 hover:via-purple-600 hover:to-indigo-700 text-white rounded-full shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm overflow-hidden"
+                  className="group relative flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-[#EB7134] via-[#EB7134] to-[#5D4D6B] hover:from-[#EB7134] hover:via-[#EB7134] hover:to-[#5D4D6B] text-white rounded-full shadow-lg shadow-[#EB7134]/25 hover:shadow-xl hover:shadow-[#EB7134]/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                   <Download className="w-4 h-4 relative z-10" />
@@ -529,7 +529,7 @@ export default function PremiumCVEditor() {
         <main className="flex-1 overflow-hidden">
           <div className="h-full flex overflow-hidden">
           {/* Left: Editor Panel */}
-          <div className="w-full lg:w-2/5 xl:w-[480px] border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden rounded-tl-2xl">
+          <div className="h-full w-full lg:w-2/5 xl:w-[480px] border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
             <EditorPanel
               cvData={cvData}
               onUpdate={updateSection}
@@ -550,7 +550,7 @@ export default function PremiumCVEditor() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="flex-1 bg-gray-100 dark:bg-gray-950 overflow-hidden hidden lg:block rounded-tr-2xl"
+                className="h-full flex-1 bg-gray-100 dark:bg-gray-950 hidden lg:block"
               >
                 <PreviewContainer
                   cvData={cvData}

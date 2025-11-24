@@ -140,11 +140,11 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
               <button
                 key={t.value}
                 onClick={() => onTemplateChange(t.value)}
-                className={`
+                  className={`
                   text-left p-4 rounded-lg border-2 transition-all
                   ${template === t.value
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 bg-white dark:bg-gray-800'
+                    ? 'border-[#EB7134] bg-[#EB7134]/10 dark:bg-[#EB7134]/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-[#EB7134]/30 dark:hover:border-[#EB7134]/70 bg-white dark:bg-gray-800'
                   }
                 `}
               >
@@ -158,7 +158,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                     </p>
                   </div>
                   {template === t.value && (
-                    <div className="w-5 h-5 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-full bg-[#EB7134] dark:bg-[#EB7134] flex items-center justify-center">
                       <Check className="w-3 h-3 text-white" />
                     </div>
                   )}
@@ -204,7 +204,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             className={`
                               flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-lg border transition-all
                               ${snapshot.isDragging 
-                                ? 'shadow-xl scale-[1.02] ring-2 ring-purple-400' 
+                                ? 'shadow-xl scale-[1.02] ring-2 ring-[#EB7134]' 
                                 : 'shadow-sm border-gray-200 dark:border-gray-700'
                               }
                               ${isLocked ? 'opacity-60' : ''}
@@ -242,14 +242,14 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   onBlur={saveTitle}
                                   onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
                                   autoFocus
-                                  className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-purple-300 dark:border-purple-600 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                  className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-[#EB7134]/30 dark:border-[#EB7134]/60 rounded focus:outline-none focus:ring-2 focus:ring-[#EB7134]"
                                 />
                               ) : (
                                 <button
                                   onClick={() => !isLocked && startEditingTitle(section.id, section.title)}
                                   className={`
                                     text-sm font-medium text-gray-900 dark:text-white text-left
-                                    ${!isLocked && 'hover:text-purple-600 dark:hover:text-purple-400'}
+                                    ${!isLocked && 'hover:text-[#EB7134] dark:hover:text-[#EB7134]'}
                                   `}
                                   disabled={isLocked}
                                 >
@@ -323,7 +323,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                       max="14"
                       value={layoutSettings.fontSize}
                       onChange={(e) => onSettingsChange({ fontSize: Number(e.target.value) })}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#EB7134]"
                     />
                   </div>
                 </div>
@@ -353,7 +353,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.fontFamily}
                   onChange={(e) => onSettingsChange({ fontFamily: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-transparent appearance-none cursor-pointer transition-all"
                   style={{ fontFamily: layoutSettings.fontFamily }}
                 >
                   <optgroup label="Sans-Serif">
@@ -388,7 +388,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.dateFormat}
                   onChange={(e) => onSettingsChange({ dateFormat: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-transparent appearance-none cursor-pointer transition-all"
                 >
                   <option value="jan-24">Jan '24 (Short Name & Year)</option>
                   <option value="january-2024">January 2024 (Full Name & Year)</option>
@@ -414,7 +414,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.lineHeight}
                   onChange={(e) => onSettingsChange({ lineHeight: Number(e.target.value) })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-transparent appearance-none cursor-pointer transition-all"
                 >
                   <option value="1.0">1.0 (Compact)</option>
                   <option value="1.3">1.3 (Standard)</option>

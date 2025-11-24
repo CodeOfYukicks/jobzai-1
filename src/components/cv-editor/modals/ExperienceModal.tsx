@@ -90,7 +90,7 @@ export default function ExperienceModal({
       </button>
       <button
         onClick={handleSave}
-        className="group relative px-7 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-full shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all overflow-hidden"
+        className="group relative px-7 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#EB7134]600 to-[#5D4D6B]600 hover:from-[#EB7134]700 hover:to-[#5D4D6B]700 rounded-full shadow-lg shadow-[#EB7134]500/30 hover:shadow-xl hover:shadow-[#EB7134]500/40 transition-all overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
         <span className="relative z-10">Save Experience</span>
@@ -150,7 +150,7 @@ export default function ExperienceModal({
                 type="checkbox"
                 checked={formData.current}
                 onChange={(e) => setFormData(prev => ({ ...prev, current: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                className="w-4 h-4 rounded border-gray-300 text-[#EB7134]600 focus:ring-[#EB7134]500 focus:ring-offset-0"
               />
               <span className="font-medium">Currently working here</span>
             </label>
@@ -174,7 +174,7 @@ export default function ExperienceModal({
           <div className="space-y-5">
             {formData.bullets.map((bullet, index) => (
               <div key={index} className="flex items-start gap-4 group">
-                <div className="w-8 h-8 mt-2 flex-shrink-0 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md shadow-purple-500/20 flex items-center justify-center">
+                <div className="w-8 h-8 mt-2 flex-shrink-0 rounded-xl bg-gradient-to-br from-[#EB7134]500 to-[#5D4D6B]600 shadow-md shadow-[#EB7134]500/20 flex items-center justify-center">
                   <span className="text-sm font-bold text-white">{index + 1}</span>
                 </div>
                 <div className="flex-1">
@@ -197,7 +197,7 @@ export default function ExperienceModal({
           </div>
           <button
             onClick={addBullet}
-            className="mt-6 w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 border-2 border-dashed border-purple-300 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-600 rounded-xl transition-all shadow-sm hover:shadow-md"
+            className="mt-6 w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-[#EB7134]700 dark:text-[#EB7134]300 bg-[#EB7134]50 dark:bg-[#EB7134]900/20 hover:bg-[#EB7134]100 dark:hover:bg-[#EB7134]900/30 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 rounded-xl transition-all shadow-sm hover:shadow-md"
           >
             <Plus className="w-5 h-5" />
             Add Achievement

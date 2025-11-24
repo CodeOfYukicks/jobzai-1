@@ -154,7 +154,7 @@ export default function PreviewContainer({
                   className={`
                     px-3 py-1 text-xs font-medium rounded-md transition-colors
                     ${zoom === preset
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                      ? 'bg-[#EB7134]100 dark:bg-[#EB7134]900/30 text-[#EB7134]700 dark:text-[#EB7134]300'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }
                   `}
@@ -190,7 +190,7 @@ export default function PreviewContainer({
       </div>
 
       {/* Preview Area */}
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 min-h-0 overflow-auto p-8">
         <div className="flex justify-center">
           <motion.div
             animate={{ scale: zoom / 100 }}

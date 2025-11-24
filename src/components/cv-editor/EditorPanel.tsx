@@ -113,7 +113,7 @@ export default function EditorPanel({
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-900">
       {/* Premium Tabs Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-10">
+      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-10">
         <div className="flex items-center px-4">
           {/* AI Review Tab */}
           <button
@@ -121,7 +121,7 @@ export default function EditorPanel({
             className={`
               relative flex items-center gap-2 px-4 py-4 text-sm font-medium transition-all
               ${activeTab === 'ai-review' 
-                ? 'text-purple-600 dark:text-purple-400' 
+                ? 'text-[#EB7134] dark:text-[#EB7134]' 
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
@@ -131,7 +131,7 @@ export default function EditorPanel({
             {activeTab === 'ai-review' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 dark:bg-purple-400"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134] dark:bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -143,7 +143,7 @@ export default function EditorPanel({
             className={`
               relative flex items-center gap-2 px-4 py-4 text-sm font-medium transition-all
               ${activeTab === 'editor' 
-                ? 'text-purple-600 dark:text-purple-400' 
+                ? 'text-[#EB7134] dark:text-[#EB7134]' 
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
@@ -153,7 +153,7 @@ export default function EditorPanel({
             {activeTab === 'editor' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 dark:bg-purple-400"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134] dark:bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -165,7 +165,7 @@ export default function EditorPanel({
             className={`
               relative flex items-center gap-2 px-4 py-4 text-sm font-medium transition-all
               ${activeTab === 'layout-style' 
-                ? 'text-purple-600 dark:text-purple-400' 
+                ? 'text-[#EB7134] dark:text-[#EB7134]' 
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
@@ -175,7 +175,7 @@ export default function EditorPanel({
             {activeTab === 'layout-style' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 dark:bg-purple-400"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134] dark:bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -192,11 +192,11 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 flex items-center justify-center p-8"
+            className="flex-1 min-h-0 flex items-center justify-center p-8"
           >
             <div className="text-center max-w-md">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-50 dark:bg-purple-900/20 mb-4">
-                <Sparkles className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#EB7134]/10 dark:bg-[#EB7134]/20 mb-4">
+                <Sparkles className="w-8 h-8 text-[#EB7134] dark:text-[#EB7134]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 AI Review Coming Soon
@@ -215,7 +215,7 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 flex flex-col overflow-hidden"
+            className="flex-1 min-h-0 flex flex-col"
           >
             {/* Sections List */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
@@ -240,9 +240,9 @@ export default function EditorPanel({
                               className={`
                                 group rounded-md transition-all duration-200 border
                                 ${snapshot.isDragging 
-                                  ? 'shadow-2xl scale-[1.02] ring-2 ring-purple-500 bg-white dark:bg-gray-800 border-purple-500' 
+                                  ? 'shadow-2xl scale-[1.02] ring-2 ring-[#EB7134] bg-white dark:bg-gray-800 border-[#EB7134]' 
                                   : expandedSection === section.id
-                                    ? 'bg-white dark:bg-gray-800 shadow-xl border-2 border-purple-500 dark:border-purple-500'
+                                    ? 'bg-white dark:bg-gray-800 shadow-xl border-2 border-[#EB7134] dark:border-[#EB7134]'
                                     : 'bg-gray-50/50 dark:bg-gray-800/30 border-gray-200/50 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
                                 }
                               `}
@@ -265,7 +265,7 @@ export default function EditorPanel({
                                 <div className={`
                                   transition-colors
                                   ${expandedSection === section.id 
-                                    ? 'text-purple-600 dark:text-purple-400' 
+                                    ? 'text-[#EB7134] dark:text-[#EB7134]' 
                                     : 'text-gray-500 dark:text-gray-400'
                                   }
                                 `}>
@@ -306,7 +306,7 @@ export default function EditorPanel({
                                   className={`
                                     w-3 h-3 transition-all duration-200
                                     ${expandedSection === section.id 
-                                      ? 'rotate-180 text-purple-600 dark:text-purple-400' 
+                                      ? 'rotate-180 text-[#EB7134] dark:text-[#EB7134]' 
                                       : 'text-gray-400 dark:text-gray-500'
                                     }
                                   `}
@@ -355,7 +355,7 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 overflow-hidden"
+            className="flex-1 flex flex-col min-h-0"
           >
             <LayoutStyleTab 
               sections={cvData.sections} 
