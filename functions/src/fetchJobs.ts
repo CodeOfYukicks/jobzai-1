@@ -30,9 +30,11 @@
 
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-// import { fetchFromATS } from './utils/atsFetchers';
+import { fetchFromATS } from './utils/atsFetchers';
 import { ATSProviderConfig, JobDocument, NormalizedATSJob } from './types';
 import { extractSkillsWithLLM } from './utils/embeddings';
+import { cleanDescription } from './utils/cleanDescription';
+import { enrichJob } from './utils/jobEnrichment';
 import { ATS_SOURCES } from './config';
 
 
@@ -136,8 +138,8 @@ export const fetchJobsFromATS = onSchedule(
 		timeZone: 'UTC',
 		retryCount: 3,
 		maxInstances: 1,
-		timeoutSeconds: 540,
-		memory: '1GiB',
+		timeoutSeconds: 3600, // 60 minutes (increased from 540s)
+		memory: '4GiB', // Increased from 1GiB
 	},
 	async () => {
 		const db = admin.firestore();
@@ -190,7 +192,6 @@ export const fetchJobsFromATS = onSchedule(
 
 				for (const j of jobs) {
 					// Sanitize externalId: remove slashes that break Firestore document paths
-					// Also ensure it's actually a string before calling replace()
 					const cleanExternalId = (j.externalId && typeof j.externalId === 'string')
 						? j.externalId.replace(/\//g, '_')
 						: '';
@@ -201,16 +202,10 @@ export const fetchJobsFromATS = onSchedule(
 					const ref = db.collection('jobs').doc(docId);
 					const normalized = normalizeJob(j);
 
-					// Attempt to enrich skills if missing
-					if (!normalized.skills?.length && normalized.description) {
-						try {
-							const skills = await extractSkillsWithLLM(`${normalized.title}\n${normalized.description}`);
-							normalized.skills = skills;
-							totalEnriched++;
-						} catch (e: any) {
-							// console.warn(`[CRON] Skill enrichment failed for ${docId}:`, e.message);
-						}
-					}
+					// Clean HTML description → Markdown
+					normalized.description = cleanDescription(normalized.description || '');
+
+					// NO LLM enrichment here (too slow) - will be done separately
 
 					try {
 						batch.set(ref, normalized, { merge: true });
@@ -225,6 +220,26 @@ export const fetchJobsFromATS = onSchedule(
 
 				await batch.close();
 				console.log(`[CRON] Finished ${providerKey}: ${jobs.length} jobs`);
+
+				// Enrich jobs with v2.2 tags (no LLM, just regex)
+				console.log(`[CRON] Enriching ${jobs.length} jobs with v2.2 tags...`);
+				let enriched = 0;
+				for (const j of jobs) {
+					try {
+						const cleanExternalId = (j.externalId && typeof j.externalId === 'string')
+							? j.externalId.replace(/\//g, '_')
+							: '';
+						const docId = cleanExternalId.length > 0
+							? `${j.ats}_${cleanExternalId}`
+							: `${j.ats}_${hashString([j.title, j.company, j.applyUrl].join('|'))}`;
+						
+						await enrichJob(docId);
+						enriched++;
+					} catch (e: any) {
+						// Silent fail on enrichment
+					}
+				}
+				console.log(`[CRON] Enriched ${enriched}/${jobs.length} jobs`);
 
 			} catch (e: any) {
 				console.error(`[CRON] Failed source ${providerKey}:`, e);

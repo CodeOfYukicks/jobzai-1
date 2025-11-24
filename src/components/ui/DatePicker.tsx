@@ -8,6 +8,7 @@ interface DatePickerProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  buttonClassName?: string;
   required?: boolean;
 }
 
@@ -44,6 +45,7 @@ export default function DatePicker({
   disabled = false,
   placeholder = 'jj/mm/aaaa',
   className = '',
+  buttonClassName = '',
   required = false,
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -193,6 +195,7 @@ export default function DatePicker({
             : 'border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500'
           }
           ${isOpen ? 'ring-2 ring-purple-500 border-purple-500' : ''}
+          ${buttonClassName}
         `}
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">

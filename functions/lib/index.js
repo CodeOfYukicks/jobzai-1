@@ -11,7 +11,7 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
+exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
 // Version 2.0 - Worker-based architecture
 const admin = require("firebase-admin");
 if (!admin.apps.length) {
@@ -33,6 +33,18 @@ var fetchJobsWorker_1 = require("./workers/fetchJobsWorker");
 Object.defineProperty(exports, "fetchJobsWorker", { enumerable: true, get: function () { return fetchJobsWorker_1.fetchJobsWorker; } });
 var enrichSkillsWorker_1 = require("./workers/enrichSkillsWorker");
 Object.defineProperty(exports, "enrichSkillsWorker", { enumerable: true, get: function () { return enrichSkillsWorker_1.enrichSkillsWorker; } });
+// 🤖 AUTOMATED: Master + Batch Architecture (Production Ready)
+// Master triggers 4 batches in parallel for fast, reliable execution
+var masterTrigger_1 = require("./masterTrigger");
+Object.defineProperty(exports, "masterTrigger", { enumerable: true, get: function () { return masterTrigger_1.masterTrigger; } });
+var fetchJobsBatch1_1 = require("./batches/fetchJobsBatch1");
+Object.defineProperty(exports, "fetchJobsBatch1", { enumerable: true, get: function () { return fetchJobsBatch1_1.fetchJobsBatch1; } });
+var fetchJobsBatch2_1 = require("./batches/fetchJobsBatch2");
+Object.defineProperty(exports, "fetchJobsBatch2", { enumerable: true, get: function () { return fetchJobsBatch2_1.fetchJobsBatch2; } });
+var fetchJobsBatch3_1 = require("./batches/fetchJobsBatch3");
+Object.defineProperty(exports, "fetchJobsBatch3", { enumerable: true, get: function () { return fetchJobsBatch3_1.fetchJobsBatch3; } });
+var fetchJobsBatch4_1 = require("./batches/fetchJobsBatch4");
+Object.defineProperty(exports, "fetchJobsBatch4", { enumerable: true, get: function () { return fetchJobsBatch4_1.fetchJobsBatch4; } });
 // 🧪 TEST: Manual HTTP endpoint for testing Workday fetcher
 // export { testFetchWorkday } from './test/testFetchWorkday';
 /**

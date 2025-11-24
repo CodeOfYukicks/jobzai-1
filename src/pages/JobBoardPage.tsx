@@ -11,6 +11,8 @@ import { JobCard } from '../components/job-board/JobCard';
 import { JobSkeleton } from '../components/job-board/JobSkeleton';
 import { FilterState, Job } from '../types/job-board';
 import { GoogleLoader } from '../components/ui/GoogleLoader';
+import { useScrollCollapse } from '../hooks/useScrollCollapse';
+import '../components/job-board/premium-search.css';
 
 function timeAgo(date: Date): string {
 	const diffMs = Date.now() - date.getTime();
@@ -77,9 +79,8 @@ export default function JobBoardPage() {
 	const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 	const [hasMore, setHasMore] = useState(true);
 
-	// Search & Filter State
-	const [searchQuery, setSearchQuery] = useState('');
-	const [locationQuery, setLocationQuery] = useState('');
+	// Search & Filter State - Unified Search Input
+	const [searchInput, setSearchInput] = useState('');
 	const [filters, setFilters] = useState<FilterState>({
 		employmentType: [],
 		workLocation: [],
@@ -110,8 +111,33 @@ export default function JobBoardPage() {
 	const filteredSkills = popularSkills.filter(s => s.toLowerCase().includes(skillSearch.toLowerCase()));
 
 	// Debounce Search
-	const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
-	const [debouncedLocation, setDebouncedLocation] = useState(locationQuery);
+	const [debouncedSearch, setDebouncedSearch] = useState('');
+
+	// Parse unified search input to extract keywords and location
+	const parseSearchInput = (input: string) => {
+		// Smart parsing patterns
+		const patterns = [
+			// "React Developer in New York"
+			{ regex: /^(.+?)\s+(?:in|at|@)\s+(.+)$/i, keywordIndex: 1, locationIndex: 2 },
+			// "Remote React Developer"
+			{ regex: /^(remote|hybrid)\s+(.+)$/i, keywordIndex: 2, locationIndex: 1 },
+			// "React Developer - Remote"
+			{ regex: /^(.+?)\s*[-–—]\s*(remote|hybrid|onsite)$/i, keywordIndex: 1, locationIndex: 2 },
+		];
+
+		for (const pattern of patterns) {
+			const match = input.match(pattern.regex);
+			if (match) {
+				return {
+					keywords: match[pattern.keywordIndex]?.trim() || '',
+					location: match[pattern.locationIndex]?.trim() || '',
+				};
+			}
+		}
+
+		// No pattern matched, treat entire input as keywords
+		return { keywords: input.trim(), location: '' };
+	};
 
 	const hasFilters = useMemo(() =>
 		filters.employmentType.length > 0 ||
@@ -121,17 +147,15 @@ export default function JobBoardPage() {
 		filters.technologies.length > 0 ||
 		filters.skills.length > 0 ||
 		filters.datePosted !== 'any' ||
-		debouncedSearch !== '' ||
-		debouncedLocation !== '',
-		[filters, debouncedSearch, debouncedLocation]);
+		debouncedSearch !== '',
+		[filters, debouncedSearch]);
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
-			setDebouncedSearch(searchQuery);
-			setDebouncedLocation(locationQuery);
+			setDebouncedSearch(searchInput);
 		}, 500);
 		return () => clearTimeout(timer);
-	}, [searchQuery, locationQuery]);
+	}, [searchInput]);
 
 	// Load Initial Jobs
 	const loadJobs = useCallback(async (isSearch = false) => {
@@ -144,8 +168,12 @@ export default function JobBoardPage() {
 		try {
 			if (hasFilters && mode === 'explore') {
 				const params = new URLSearchParams();
-				if (debouncedSearch) params.append('keyword', debouncedSearch);
-				if (debouncedLocation) params.append('location', debouncedLocation);
+				
+				// Parse the unified search input
+				const { keywords, location } = parseSearchInput(debouncedSearch);
+				
+				if (keywords) params.append('keyword', keywords);
+				if (location) params.append('location', location);
 
 				// Employment Type filters
 				if (filters.employmentType.includes('full-time')) params.append('fullTime', 'true');
@@ -208,7 +236,7 @@ export default function JobBoardPage() {
 			setLoading(false);
 			setInitialLoading(false);
 		}
-	}, [debouncedSearch, debouncedLocation, filters, mode, selectedJob, hasFilters]);
+	}, [debouncedSearch, filters, mode, selectedJob, hasFilters]);
 
 	// Load More
 	const loadMore = useCallback(async () => {
@@ -250,7 +278,7 @@ export default function JobBoardPage() {
 	useEffect(() => {
 		loadJobs(true);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [debouncedSearch, debouncedLocation, filters]);
+	}, [debouncedSearch, filters]);
 
 	// Initial Load
 	useEffect(() => {
@@ -260,6 +288,10 @@ export default function JobBoardPage() {
 
 	// Observer for Infinite Scroll
 	const observerTarget = useRef(null);
+	
+	// Scroll collapse detection
+	const jobListScrollRef = useRef<HTMLDivElement>(null);
+	const isHeaderCollapsed = useScrollCollapse(jobListScrollRef, { threshold: 50 });
 	useEffect(() => {
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -301,29 +333,33 @@ export default function JobBoardPage() {
 			technologies: [],
 			skills: [],
 		});
-		setSearchQuery('');
-		setLocationQuery('');
+		setSearchInput('');
 		setTechSearch('');
 		setSkillSearch('');
+	};
+
+	const handleSearch = () => {
+		// Force immediate load when search button is clicked
+		loadJobs(true);
 	};
 
 	const displayedJobs = jobs.slice(0, visibleCount);
 
 	return (
 		<AuthLayout>
-			<div className="h-[calc(100vh-64px)] flex flex-col bg-[#F8F9FA] dark:bg-gray-950 overflow-hidden">
+			<div className="h-[calc(100vh-64px)] flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden">
 
 				<JobFilterBar
-					searchQuery={searchQuery}
-					setSearchQuery={setSearchQuery}
-					locationQuery={locationQuery}
-					setLocationQuery={setLocationQuery}
+					searchInput={searchInput}
+					onSearchChange={setSearchInput}
+					onSearch={handleSearch}
 					filters={filters}
 					toggleArrayFilter={toggleArrayFilter}
 					clearFilters={clearFilters}
 					onOpenMoreFilters={() => setIsFiltersModalOpen(true)}
 					mode={mode}
 					setMode={setMode}
+					isCollapsed={isHeaderCollapsed}
 				/>
 
 				<div className="flex-1 flex overflow-hidden">
@@ -350,7 +386,7 @@ export default function JobBoardPage() {
 							</div>
 						</div>
 
-						<div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+						<div ref={jobListScrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
 							{loading && initialLoading ? (
 								<>
 									<JobSkeleton />

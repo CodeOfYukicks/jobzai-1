@@ -1,0 +1,42 @@
+name: Daily Job Update
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2AM UTC every day
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-jobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd functions
+          npm install
+          npm run build
+      
+      - name: Setup Firebase credentials
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/firebase-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-key.json
+      
+      - name: Run complete pipeline
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
+        run: |
+          bash scripts/dailyJobUpdate.sh
+      
+      - name: Cleanup
+        if: always()
+        run: rm -f $HOME/firebase-key.json
+

@@ -54,6 +54,11 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
       
+      // CV Rewrites subcollection
+      match /cvRewrites/{rewriteId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
       // Optimized CVs subcollection
       match /optimizedCVs/{cvId} {
         allow read, write: if isSignedIn() && isOwner(userId);

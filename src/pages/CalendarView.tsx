@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import moment from 'moment';
 import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -67,6 +67,17 @@ export default function CalendarView() {
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [justSelectedEvent, setJustSelectedEvent] = useState(false);
+  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dragStartTimeRef = useRef<number>(0);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Fetch applications and interviews from Firestore
   useEffect(() => {
@@ -150,6 +161,11 @@ export default function CalendarView() {
   const handleEventDrop = async ({ event, start, end }: any) => {
     if (!currentUser) return;
     
+    // Clear timeout and reset dragging state
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+      dragTimeoutRef.current = null;
+    }
     setIsDragging(false);
     
     const eventEnd = end || new Date(start.getTime() + (event.end.getTime() - event.start.getTime()));
@@ -249,6 +265,11 @@ export default function CalendarView() {
   const handleEventResize = async ({ event, start, end }: any) => {
     if (!currentUser || event.type === 'application') return;
     
+    // Clear timeout and reset dragging state
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+      dragTimeoutRef.current = null;
+    }
     setIsDragging(false);
     
     try {
@@ -607,7 +628,7 @@ export default function CalendarView() {
         />
 
         {/* Main Content */}
-        <div className="flex-1 min-h-screen py-6 px-8 overflow-x-hidden">
+        <div className="flex-1 min-h-screen py-6 pl-8 pr-24 overflow-x-hidden">
           <div className="w-full max-w-7xl mx-auto">
             {/* Topbar */}
             <CalendarTopbar
@@ -635,22 +656,40 @@ export default function CalendarView() {
                   onNavigate={setCurrentDate}
                   onView={setSelectedView}
                 onSelectEvent={(event: CalendarEvent) => {
-                  if (isDragging) {
-                    return;
+                  // Check if this is a quick click (not a drag)
+                  const timeSinceDragStart = Date.now() - dragStartTimeRef.current;
+                  
+                  // If drag was started less than 150ms ago, or no drag is happening, open modal
+                  if (timeSinceDragStart < 150 || !isDragging) {
+                    // Cancel any pending drag timeout
+                    if (dragTimeoutRef.current) {
+                      clearTimeout(dragTimeoutRef.current);
+                      dragTimeoutRef.current = null;
+                    }
+                    setIsDragging(false);
+                    setJustSelectedEvent(true);
+                    setSelectedEvent(event);
+                    setTimeout(() => {
+                      setJustSelectedEvent(false);
+                    }, 300);
                   }
-                  setJustSelectedEvent(true);
-                  setSelectedEvent(event);
-                  setTimeout(() => {
-                    setJustSelectedEvent(false);
-                  }, 300);
                 }}
                 onSelectSlot={handleSlotSelect}
                 onEventDrop={handleEventDrop}
                 onEventResize={handleEventResize}
                 onDragStart={() => {
-                  setIsDragging(true);
-                    setJustSelectedEvent(false);
-                  }}
+                  // Record when drag started
+                  dragStartTimeRef.current = Date.now();
+                  setJustSelectedEvent(false);
+                  
+                  // Only set isDragging to true after 150ms (real drag, not a click)
+                  if (dragTimeoutRef.current) {
+                    clearTimeout(dragTimeoutRef.current);
+                  }
+                  dragTimeoutRef.current = setTimeout(() => {
+                    setIsDragging(true);
+                  }, 150);
+                }}
                   eventStyleGetter={eventStyleGetter}
                   isDragging={isDragging}
               />

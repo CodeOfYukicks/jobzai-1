@@ -78,7 +78,7 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
   const showTime = !event.allDay && variant !== 'month';
   const time = showTime ? moment(event.start).format('HH:mm') : null;
 
-  // Version pour month view (compacte avec logo)
+  // Version pour month view (compacte avec logo) - Optimized density
   if (variant === 'month') {
     return (
       <div
@@ -86,14 +86,16 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
         className={`
           ${bg}
           rounded-md
-          border border-white/20
-          px-1.5 py-1
+          border border-white/30
+          px-1.5 py-0.5
           text-white
           cursor-pointer
           transition-all duration-150
-          hover:shadow-lg hover:shadow-black/20
+          hover:shadow-md hover:shadow-black/25
+          hover:scale-[1.02]
           overflow-hidden
           group
+          min-h-[22px]
         `}
         style={{ 
           userSelect: 'none',
@@ -106,17 +108,18 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
           <CompanyLogo 
             companyName={companyName} 
             size="sm" 
-            className="flex-shrink-0 ring-1 ring-white/20 pointer-events-none"
+            className="flex-shrink-0 ring-1 ring-white/30"
           />
-          <div className="flex-1 min-w-0 pointer-events-none">
-            <div className="font-semibold text-[11px] truncate leading-tight">
+          <div className="flex-1 min-w-0 flex items-center gap-1">
+            <div className="font-semibold text-[10.5px] truncate leading-tight">
               {companyName}
             </div>
-            <div className="text-[9px] opacity-90 truncate leading-tight mt-0.5">
-              {position}
+            <span className="text-white/60 text-[10px]">•</span>
+            <div className="text-[9.5px] opacity-80 truncate leading-tight">
+              {position.length > 20 ? position.substring(0, 20) + '...' : position}
             </div>
           </div>
-          <div className={`${badgeBg} px-1 py-0.5 rounded text-[8px] font-medium flex-shrink-0 backdrop-blur-sm pointer-events-none`}>
+          <div className={`${badgeBg} px-1.5 py-0.5 rounded text-[7.5px] font-semibold flex-shrink-0 backdrop-blur-sm uppercase tracking-wide`}>
             {badge}
           </div>
         </div>

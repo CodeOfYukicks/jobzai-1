@@ -235,7 +235,7 @@ function RightSidebarPanel({
                   cvRewrite={cvRewrite}
                   isGenerating={isGeneratingCV}
                   onGenerate={onGenerateCVRewrite}
-                  onViewFull={() => navigate(`/ats-analysis/${analysis.id}/cv-rewrite`)}
+                  onViewFull={() => navigate(`/ats-analysis/${analysis.id}/cv-editor`)}
                   optimizedScore={optimizedScore || undefined}
                   premiumAnalysis={premiumAnalysis}
                 />

@@ -23,59 +23,91 @@ interface SectionRewriteInput {
  */
 function buildActionPrompt(input: SectionRewriteInput): string {
   const baseContext = `
-# CONTEXT - UNDERSTAND EVERYTHING
+# CONTEXT - WORLD-CLASS CV OPTIMIZATION
 
-You are an elite CV strategist helping a candidate apply for **${input.jobContext.jobTitle}** at **${input.jobContext.company}**.
+You are THE BEST CV strategist in the world, with 20+ years placing candidates at FAANG, McKinsey, and Fortune 500 companies.
+Your mission: Transform this section to make **${input.jobContext.company}** IMMEDIATELY want to interview this candidate for **${input.jobContext.jobTitle}**.
 
-## TARGET JOB DETAILS:
-- **Position**: ${input.jobContext.jobTitle}
+## 🎯 TARGET POSITION:
+- **Role**: ${input.jobContext.jobTitle}
 - **Company**: ${input.jobContext.company}
-${input.jobContext.jobDescription ? `- **Job Description** (excerpt): ${input.jobContext.jobDescription.substring(0, 500)}...` : ''}
+${input.jobContext.jobDescription ? `- **Requirements**: ${input.jobContext.jobDescription.substring(0, 500)}...` : ''}
 
-## ATS ANALYSIS INSIGHTS:
-**Key Strengths to Emphasize:**
-${input.jobContext.strengths.map(s => `  • ${s}`).join('\n')}
+## 💪 STRENGTHS TO AMPLIFY (Make these SHINE):
+${input.jobContext.strengths.map(s => `  ✓ ${s}`).join('\n') || 'No specific strengths identified'}
 
-**Gaps to Address:**
-${input.jobContext.gaps.map(g => `  • ${g}`).join('\n')}
+## ⚠️ GAPS TO ADDRESS (Position cleverly without lying):
+${input.jobContext.gaps.map(g => `  → ${g}`).join('\n') || 'No significant gaps identified'}
 
-**Critical Missing Keywords to Integrate:**
-${input.jobContext.keywords.slice(0, 10).join(', ')}
+## 🔑 MUST-HAVE KEYWORDS (Integrate naturally):
+${input.jobContext.keywords.slice(0, 15).join(', ') || 'No specific keywords identified'}
 
-${input.fullCV ? `## COMPLETE CV FOR CONTEXT:\n"""\n${input.fullCV.substring(0, 2000)}...\n"""\n` : ''}
+${input.fullCV ? `## 📄 FULL CV CONTEXT (for consistency):\n${input.fullCV.substring(0, 1500)}...\n` : ''}
 
-## CURRENT SECTION (${input.sectionType.toUpperCase()}):
+## 📝 CURRENT SECTION TO OPTIMIZE (${input.sectionType.toUpperCase()}):
 """
 ${input.currentContent}
 """
-`;
+
+## CRITICAL RULES:
+1. ✅ ONLY use information that exists - NEVER invent facts
+2. ✅ Every statement must be QUANTIFIED if possible (%, $, #, time)
+3. ✅ Use POWER VERBS (Led, Architected, Drove, Delivered, Spearheaded)
+4. ✅ Mirror the EXACT language from the job description
+5. ✅ Make it sound SENIOR and STRATEGIC, not just operational
+6. ✅ Optimize for ATS parsing (clean structure, keywords repeated 2-3x)
+7. ✅ Keep content CONCISE for one-page A4 format
+8. ⚠️ DO NOT DUPLICATE - Return ONE improved version, not multiple versions
+9. ⚠️ MAINTAIN STRUCTURE - Keep the same number of bullet points/items as input
+10. ⚠️ NO REPETITION - Each bullet point must be unique and distinct`;
 
   let actionInstructions = '';
   
   switch (input.action) {
     case 'rewrite':
       actionInstructions = `
-## ACTION: COMPLETE PROFESSIONAL REWRITE
+## ACTION: COMPLETE PROFESSIONAL REWRITE 🚀
 
-Transform this section into a powerful, ATS-optimized statement that positions the candidate perfectly for this role.
+Transform this section into a WORLD-CLASS statement that makes ${input.jobContext.company} desperate to hire this candidate.
 
-**Your Mission:**
-1. **Analyze** the current content deeply
-2. **Restructure** for maximum impact (most impressive first)
-3. **Enhance** with strong action verbs (Led, Architected, Drove, Delivered, Spearheaded, Optimized)
-4. **Quantify** all achievements (if metrics exist, make them prominent; if not, don't invent)
-5. **Integrate** 2-3 missing keywords naturally where contextually appropriate
-6. **Align** language with job description terminology
-7. **Emphasize** the strengths identified in ATS analysis
+**YOUR REWRITING STRATEGY:**
 
-**Critical Rules:**
-- Keep ALL factual information (dates, companies, job titles, real achievements)
-- DO NOT invent metrics, projects, or responsibilities
-- Make it senior-level and achievement-focused
-- Use specific, concrete language (avoid generic statements)
-- Ensure ATS-friendly formatting
+1. **PSYCHOLOGICAL POSITIONING** 🧠
+   - What does ${input.jobContext.company} REALLY want for this ${input.jobContext.jobTitle} role?
+   - Frame EVERYTHING through that lens
+   - Lead with the most impressive/relevant achievements
 
-Return ONLY the rewritten section content.`;
+2. **POWER VERB ARSENAL** ⚡
+   - Replace ALL weak verbs immediately:
+     ❌ "Worked on" → ✅ "Architected", "Engineered", "Delivered"
+     ❌ "Helped" → ✅ "Enabled", "Catalyzed", "Drove"
+     ❌ "Was responsible for" → ✅ "Owned", "Led", "Spearheaded"
+
+3. **QUANTIFICATION MAXIMIZATION** 📊
+   - EVERY achievement needs a number:
+     • Team size, budget, timeline, impact
+     • Performance improvements (73% faster, 2.5x growth)
+     • Scale (2M users, $5M revenue, 15 countries)
+
+4. **KEYWORD INTEGRATION** 🔑
+   - Weave in these missing keywords NATURALLY:
+     ${input.jobContext.keywords.slice(0, 5).join(', ')}
+   - Use exact terminology from the job description
+   - Repeat critical keywords 2-3 times across the content
+
+5. **SENIORITY ELEVATION** 👔
+   - Show STRATEGIC thinking, not just execution
+   - Emphasize LEADERSHIP and INFLUENCE
+   - Highlight CROSS-FUNCTIONAL collaboration
+   - Demonstrate BUSINESS IMPACT
+
+**OUTPUT REQUIREMENTS:**
+- Concise, impactful statements (20 words max per bullet)
+- Front-load keywords in first 1/3 of content
+- Use parallel structure for consistency
+- Optimize for one-page A4 format
+
+Return ONLY the rewritten content, ready to paste.`;
       break;
 
     case 'improve':
@@ -308,8 +340,15 @@ Return a JSON object with this exact structure:
   "content": "the improved section text here"
 }
 
-The "content" field should contain ONLY the improved section content - NO explanations, NO markdown formatting, NO code blocks.
-Just the clean, improved text ready to paste into the CV.`;
+⚠️ CRITICAL OUTPUT RULES TO PREVENT DUPLICATION:
+1. Return ONLY ONE improved version - NEVER duplicate or repeat content
+2. Maintain the EXACT same structure as input (same number of bullets/items)
+3. Each bullet point must be UNIQUE - no repetition of information
+4. If input has 3 bullet points, output EXACTLY 3 improved bullet points
+5. DO NOT concatenate or merge multiple attempts
+6. The "content" field should contain ONLY the final improved text
+7. NO explanations, NO markdown formatting, NO code blocks
+8. Just the clean, improved text ready to paste into the CV`;
 }
 
 /**
@@ -905,36 +944,133 @@ const getLabeledValue = (lines: string[], labels: string[]): string => {
 /**
  * Parse CV data from the generated rewrite into structured format
  */
+// Helper function to convert structured data to CVData format
+function convertStructuredDataToCVData(structuredData: any): any {
+  console.log('Converting structured data to CVData format:', structuredData);
+  
+  const generateId = () => Math.random().toString(36).substr(2, 9);
+  
+  return {
+    personalInfo: {
+      firstName: structuredData.personalInfo?.firstName || '',
+      lastName: structuredData.personalInfo?.lastName || '',
+      email: structuredData.personalInfo?.email || '',
+      phone: structuredData.personalInfo?.phone || '',
+      location: structuredData.personalInfo?.location || '',
+      linkedin: structuredData.personalInfo?.linkedin || '',
+      portfolio: structuredData.personalInfo?.portfolio || '',
+      github: structuredData.personalInfo?.github || '',
+      title: structuredData.personalInfo?.title || structuredData.personalInfo?.jobTitle || ''
+    },
+    summary: structuredData.summary || '',
+    experiences: (structuredData.experiences || []).map((exp: any) => ({
+      id: exp.id || generateId(),
+      title: exp.title || exp.position || '',
+      company: exp.company || '',
+      location: exp.location || '',
+      startDate: exp.startDate || exp.start_date || '',
+      endDate: exp.endDate || exp.end_date || '',
+      current: exp.current || exp.endDate === 'Present',
+      description: exp.description || '',
+      bullets: exp.bullets || exp.achievements || []
+    })),
+    education: (structuredData.educations || structuredData.education || []).map((edu: any) => ({
+      id: edu.id || generateId(),
+      degree: edu.degree || '',
+      field: edu.field || edu.major || '',
+      institution: edu.institution || edu.school || '',
+      location: edu.location || '',
+      startDate: edu.startDate || edu.start_date || '',
+      endDate: edu.endDate || edu.end_date || edu.graduationYear || '',
+      gpa: edu.gpa || '',
+      honors: edu.honors || [],
+      coursework: edu.coursework || []
+    })),
+    skills: Array.isArray(structuredData.skills) 
+      ? structuredData.skills.map((skill: string | any) => ({
+          id: generateId(),
+          name: typeof skill === 'string' ? skill : (skill.name || skill),
+          category: typeof skill === 'object' ? (skill.category || 'technical') : 'technical'
+        }))
+      : [],
+    certifications: (structuredData.certifications || []).map((cert: any) => ({
+      id: cert.id || generateId(),
+      name: cert.name || cert.title || '',
+      issuer: cert.issuer || cert.organization || '',
+      date: cert.date || cert.issue_date || '',
+      expiryDate: cert.expiryDate || cert.expiry_date || '',
+      credentialId: cert.credentialId || cert.credential_id || '',
+      url: cert.url || ''
+    })),
+    projects: (structuredData.projects || []).map((project: any) => ({
+      id: project.id || generateId(),
+      name: project.name || project.title || '',
+      description: project.description || '',
+      technologies: project.technologies || [],
+      url: project.url || project.link || '',
+      startDate: project.startDate || project.start_date || '',
+      endDate: project.endDate || project.end_date || '',
+      highlights: project.highlights || project.achievements || []
+    })),
+    languages: (structuredData.languages || []).map((lang: any) => ({
+      id: lang.id || generateId(),
+      name: typeof lang === 'string' ? lang : (lang.name || lang.language || ''),
+      proficiency: typeof lang === 'object' ? (lang.proficiency || lang.level || 'intermediate') : 'intermediate'
+    })),
+    sections: [
+      { id: 'personal', type: 'personal', title: 'Personal Information', enabled: true, order: 0 },
+      { id: 'summary', type: 'summary', title: 'Professional Summary', enabled: !!structuredData.summary, order: 1 },
+      { id: 'experience', type: 'experience', title: 'Work Experience', enabled: (structuredData.experiences || []).length > 0, order: 2 },
+      { id: 'education', type: 'education', title: 'Education', enabled: (structuredData.educations || structuredData.education || []).length > 0, order: 3 },
+      { id: 'skills', type: 'skills', title: 'Skills', enabled: (structuredData.skills || []).length > 0, order: 4 },
+      { id: 'certifications', type: 'certifications', title: 'Certifications', enabled: (structuredData.certifications || []).length > 0, order: 5 },
+      { id: 'projects', type: 'projects', title: 'Projects', enabled: (structuredData.projects || []).length > 0, order: 6 },
+      { id: 'languages', type: 'languages', title: 'Languages', enabled: (structuredData.languages || []).length > 0, order: 7 }
+    ]
+  };
+}
+
 export function parseCVData(cvRewrite: any): any {
+  // If it's already structured data, convert and return it
+  if (cvRewrite.structured_data) {
+    console.log('📄 Found structured_data, converting to CVData format');
+    return convertStructuredDataToCVData(cvRewrite.structured_data);
+  }
+  
   // Parse the initial_cv markdown into structured data
   // Try multiple sources for the CV content
   const content = cvRewrite.initial_cv || 
                   cvRewrite.content ||
                   cvRewrite.initial_markdown ||
                   cvRewrite.cv_content ||
+                  cvRewrite || // If cvRewrite is a string itself
                   '';
+  
+  // If content is an object, try to extract text from it
+  const textContent = typeof content === 'string' ? content : (content.text || content.content || '');
   
   console.log('📄 Parsing CV data:', {
     source: cvRewrite.initial_cv ? 'initial_cv' : 
             cvRewrite.content ? 'content' : 
             cvRewrite.initial_markdown ? 'initial_markdown' : 
-            cvRewrite.cv_content ? 'cv_content' : 'NONE',
-    contentLength: content.length,
-    contentPreview: content.substring(0, 200)
+            cvRewrite.cv_content ? 'cv_content' : 
+            typeof cvRewrite === 'string' ? 'direct string' : 'NONE',
+    contentLength: textContent.length,
+    contentPreview: textContent.substring(0, 200)
   });
   
   // Extract name (first # or ## header)
-  const nameMatch = content.match(/^#{1,2}\s+(.+)$/m);
+  const nameMatch = textContent.match(/^#{1,2}\s+(.+)$/m);
   const name = nameMatch ? nameMatch[1].trim() : 'Your Name';
   const [firstName, ...lastNameParts] = name.split(/\s+/).filter(Boolean);
   const lastName = lastNameParts.join(' ');
   
   // Extract contact info
-  const emailMatch = content.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-  const phoneMatch = content.match(/(\+?\d[\d\s().-]{7,})/);
-  const linkedinMatch = content.match(/(https?:\/\/(?:www\.)?linkedin\.com\/[^\s]+)/i);
+  const emailMatch = textContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  const phoneMatch = textContent.match(/(\+?\d[\d\s().-]{7,})/);
+  const linkedinMatch = textContent.match(/(https?:\/\/(?:www\.)?linkedin\.com\/[^\s]+)/i);
 
-  const headerBlock = content.split(/\n##\s+/)[0] || '';
+  const headerBlock = textContent.split(/\n##\s+/)[0] || '';
   const headerLines = headerBlock
     .split('\n')
     .map((line: string) => line.trim())
@@ -960,7 +1096,7 @@ export function parseCVData(cvRewrite: any): any {
   // Extract summary
   // 1. Try explicit summary headers
   let summary = '';
-  const summarySection = extractSectionContent(content, [
+  const summarySection = extractSectionContent(textContent, [
     'Professional Summary',
     'Summary',
     'Profile',
@@ -979,7 +1115,7 @@ export function parseCVData(cvRewrite: any): any {
     summary = summaryLines.join(' ');
   }
   
-  let experienceSection = extractSectionContent(content, [
+  let experienceSection = extractSectionContent(textContent, [
     'Professional Experience',
     'Experience',
     'Work Experience',
@@ -1009,14 +1145,14 @@ export function parseCVData(cvRewrite: any): any {
   
   if (!experiences.length) {
     // Fallback: essayer de parser avant la section Education
-    const beforeEducation = content.split(/##\s+Education/i)[0] || content;
+    const beforeEducation = textContent.split(/##\s+Education/i)[0] || textContent;
     const fallbackHeaderCount = (beforeEducation.match(/###\s+/g) || []).length;
     console.log(`⚠️ No experiences parsed, trying fallback. Found ${fallbackHeaderCount} ### headers before Education`);
     experiences = parseExperienceBlocks(beforeEducation);
     console.log(`📋 Fallback parsing: ${experiences.length} experiences`);
   }
   
-  const educationSection = extractSectionContent(content, [
+  const educationSection = extractSectionContent(textContent, [
     'Education',
     'Academic Background',
     'Academics',
@@ -1025,7 +1161,7 @@ export function parseCVData(cvRewrite: any): any {
   const education = parseEducationBlocks(educationSection);
   
   // Extract skills
-  const skillsSection = extractSectionContent(content, [
+  const skillsSection = extractSectionContent(textContent, [
     'Skills',
     'Core Competencies',
     'Technical Skills',
@@ -1033,7 +1169,7 @@ export function parseCVData(cvRewrite: any): any {
   ]);
   const skills = parseListFromSection(skillsSection);
 
-  const certificationsSection = extractSectionContent(content, [
+  const certificationsSection = extractSectionContent(textContent, [
     'Certifications',
     'Certificates',
     'Licenses',
@@ -1041,14 +1177,14 @@ export function parseCVData(cvRewrite: any): any {
   ]);
   const certifications = parseCertificationBlocks(certificationsSection);
   
-  const languagesSection = extractSectionContent(content, [
+  const languagesSection = extractSectionContent(textContent, [
     'Languages',
     'Language Skills',
     'Languages & Proficiency',
   ]);
   const languages = parseLanguageEntries(languagesSection);
   
-  const hobbiesSection = extractSectionContent(content, [
+  const hobbiesSection = extractSectionContent(textContent, [
     'Hobbies & Interests',
     'Hobbies',
     'Interests',

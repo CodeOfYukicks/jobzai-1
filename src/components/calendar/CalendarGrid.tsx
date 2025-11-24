@@ -56,6 +56,7 @@ export const CalendarGrid = ({
           onView={onView}
           eventPropGetter={eventStyleGetter}
           popup
+          popupOffset={30}
           tooltipAccessor={(event: CalendarEvent) => `${event.title}`}
           onSelectEvent={(event: CalendarEvent) => {
             if (!isDragging) {
@@ -69,6 +70,11 @@ export const CalendarGrid = ({
           onEventResize={onEventResize}
           resizable
           onDragStart={onDragStart}
+          // Limit events displayed in month view
+          max={selectedView === 'month' ? 3 : undefined}
+          messages={{
+            showMore: (total) => `+${total} more`
+          }}
           dayPropGetter={(date: Date) => {
             const today = new Date();
             const isToday =

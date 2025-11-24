@@ -148,6 +148,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/jobs' ||
     location.pathname === '/professional-profile' ||
     location.pathname === '/upcoming-interviews' ||
+    location.pathname === '/calendar' ||
     location.pathname.startsWith('/interview-prep/') ||
     location.pathname.startsWith('/ats-analysis/')
   );
@@ -156,12 +157,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [isHoveringCollapsedSidebar, setIsHoveringCollapsedSidebar] = useState(false);
 
   useEffect(() => {
-    // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Professional Profile page, Upcoming Interviews page, and Interview Prep pages for full-width editing
+    // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Professional Profile page, Upcoming Interviews page, Calendar page, and Interview Prep pages for full-width editing
     if (location.pathname.startsWith('/cv-optimizer/') || 
         location.pathname === '/applications' || 
         location.pathname === '/jobs' ||
         location.pathname === '/professional-profile' ||
         location.pathname === '/upcoming-interviews' ||
+        location.pathname === '/calendar' ||
         location.pathname.startsWith('/interview-prep/') ||
         location.pathname.startsWith('/ats-analysis/')) {
       setIsCollapsed(true);
@@ -318,8 +320,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               )}
             </Link>
             
-            {/* Bouton collapse - positionné à droite - désactivé sur /applications, /jobs, /professional-profile, /upcoming-interviews et /interview-prep */}
-            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/professional-profile' && location.pathname !== '/upcoming-interviews' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && (
+            {/* Bouton collapse - positionné à droite - désactivé sur /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar et /interview-prep */}
+            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/professional-profile' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/calendar' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && (
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className={`absolute right-3 group flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200
@@ -337,8 +339,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               </button>
             )}
 
-            {/* Bouton collapse pour /applications, /jobs, /professional-profile, /upcoming-interviews et /interview-prep - visible quand expanded */}
-            {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/')) && !isCollapsed && (
+            {/* Bouton collapse pour /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar et /interview-prep - visible quand expanded */}
+            {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/')) && !isCollapsed && (
               <button
                 onClick={() => setIsCollapsed(true)}
                 className={`absolute right-3 group flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200
@@ -353,11 +355,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             )}
           </div>
 
-          {/* Bouton flottant d'expansion - apparaît au hover sur sidebar compacte pour /applications, /jobs, /professional-profile, /upcoming-interviews et /interview-prep */}
+          {/* Bouton flottant d'expansion - apparaît au hover sur sidebar compacte pour /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar et /interview-prep */}
           <AnimatePresence>
             {isCollapsed && 
              isHoveringCollapsedSidebar && 
-             (location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/')) && (
+             (location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/')) && (
               <motion.button
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -830,8 +832,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed ? 'md:pl-24 lg:pl-24' : 'md:pl-[19rem] lg:pl-[21rem]'} ${location.pathname === '/applications' ? 'h-screen' : ''}`}>
         <main className="flex-1 min-h-0">
           <div className={`${location.pathname === '/applications' ? 'h-full flex flex-col pt-2 md:pt-6 pb-0' : `pt-2 md:py-6 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-6`}`}>
-            {location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') ? (
-              // Mode pleine largeur pour Applications, Jobs, Professional Profile, Upcoming Interviews et Interview Prep
+            {location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') ? (
+              // Mode pleine largeur pour Applications, Jobs, Professional Profile, Upcoming Interviews, Calendar et Interview Prep
               <div className="h-full flex flex-col min-h-0">{children}</div>
             ) : (
               // Mode normal avec max-width pour les autres pages

@@ -16,6 +16,14 @@ export { scheduleFetchJobs } from './schedulers/fetchJobsScheduler';
 export { fetchJobsWorker } from './workers/fetchJobsWorker';
 export { enrichSkillsWorker } from './workers/enrichSkillsWorker';
 
+// 🤖 AUTOMATED: Master + Batch Architecture (Production Ready)
+// Master triggers 4 batches in parallel for fast, reliable execution
+export { masterTrigger } from './masterTrigger';
+export { fetchJobsBatch1 } from './batches/fetchJobsBatch1';
+export { fetchJobsBatch2 } from './batches/fetchJobsBatch2';
+export { fetchJobsBatch3 } from './batches/fetchJobsBatch3';
+export { fetchJobsBatch4 } from './batches/fetchJobsBatch4';
+
 // 🧪 TEST: Manual HTTP endpoint for testing Workday fetcher
 // export { testFetchWorkday } from './test/testFetchWorkday';
 

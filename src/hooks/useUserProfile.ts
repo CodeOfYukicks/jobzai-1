@@ -23,6 +23,11 @@ export interface UserProfile {
   // Skills
   skills?: string[];
 
+  // CV Extracted Data (for enhanced AI generation)
+  cvText?: string;           // Full extracted CV text for comprehensive analysis
+  cvTechnologies?: string[]; // Extracted technologies from CV for precise matching
+  cvSkills?: string[];       // Extracted skills from CV for detailed profiling
+
   // Education
   education?: Array<{
     degree: string;
