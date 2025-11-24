@@ -1,0 +1,89 @@
+import { TextareaHTMLAttributes, forwardRef, useState } from 'react';
+
+interface PremiumTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: string;
+  error?: string;
+  helperText?: string;
+}
+
+const PremiumTextarea = forwardRef<HTMLTextAreaElement, PremiumTextareaProps>(
+  ({ label, error, helperText, className = '', rows = 3, ...props }, ref) => {
+    const [isFocused, setIsFocused] = useState(false);
+    const [hasValue, setHasValue] = useState(!!props.value || !!props.defaultValue);
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setHasValue(e.target.value !== '');
+      props.onChange?.(e);
+    };
+
+    return (
+      <div className="relative">
+        {/* Textarea */}
+        <textarea
+          ref={ref}
+          {...props}
+          rows={rows}
+          onChange={handleChange}
+          onFocus={(e) => {
+            setIsFocused(true);
+            props.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            props.onBlur?.(e);
+          }}
+          className={`
+            peer w-full px-0 py-3 bg-transparent border-0 border-b-2 
+            text-sm text-gray-900 dark:text-white
+            placeholder-transparent resize-none
+            focus:outline-none focus:ring-0
+            transition-colors
+            ${error 
+              ? 'border-red-300 dark:border-red-700 focus:border-red-500 dark:focus:border-red-500' 
+              : 'border-gray-200 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-500'
+            }
+            ${className}
+          `}
+          placeholder={label}
+        />
+
+        {/* Floating Label */}
+        <label
+          className={`
+            absolute left-0 transition-all duration-200 pointer-events-none
+            ${isFocused || hasValue || props.value
+              ? 'text-xs -top-3.5'
+              : 'text-sm top-3'
+            }
+            ${error
+              ? 'text-red-500 dark:text-red-400'
+              : isFocused
+                ? 'text-purple-600 dark:text-purple-400'
+                : 'text-gray-500 dark:text-gray-400'
+            }
+          `}
+        >
+          {label}
+        </label>
+
+        {/* Error or Helper Text */}
+        {(error || helperText) && (
+          <p className={`
+            mt-1.5 text-xs
+            ${error 
+              ? 'text-red-500 dark:text-red-400' 
+              : 'text-gray-500 dark:text-gray-400'
+            }
+          `}>
+            {error || helperText}
+          </p>
+        )}
+      </div>
+    );
+  }
+);
+
+PremiumTextarea.displayName = 'PremiumTextarea';
+
+export default PremiumTextarea;
+

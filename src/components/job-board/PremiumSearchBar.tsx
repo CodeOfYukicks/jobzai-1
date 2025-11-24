@@ -175,21 +175,13 @@ export function PremiumSearchBar({
         `}
       >
         {/* Search Input */}
-        <motion.div 
-          animate={{
-            height: isCollapsed ? '48px' : '56px',
-            paddingLeft: isCollapsed ? '16px' : '20px',
-            paddingRight: isCollapsed ? '16px' : '20px',
-          }}
-          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          className="flex items-center gap-2 sm:gap-3"
+        <div 
+          className={`
+            flex items-center gap-2 sm:gap-3
+            ${isCollapsed ? 'search-input-collapsed' : 'search-input-expanded'}
+          `}
         >
-          <motion.div 
-            animate={{
-              width: isCollapsed ? '18px' : '20px',
-              height: isCollapsed ? '18px' : '20px',
-            }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          <div 
             className={`
               flex-shrink-0 transition-all duration-200
               ${isFocused ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}
@@ -205,20 +197,17 @@ export function PremiumSearchBar({
             ) : (
               <Search className={isCollapsed ? "w-4.5 h-4.5" : "w-5 h-5"} />
             )}
-          </motion.div>
+          </div>
 
-          <motion.input
+          <input
             ref={inputRef}
             type="text"
             value={searchInput}
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={handleFocus}
             placeholder={isCollapsed ? "Search jobs..." : "Search for jobs, companies, or skills..."}
-            animate={{
-              fontSize: isCollapsed ? '15px' : '16px',
-            }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="flex-1 bg-transparent border-none outline-none font-medium text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 min-w-0"
+            style={{ fontSize: isCollapsed ? '15px' : '16px' }}
+            className="flex-1 bg-transparent border-none outline-none font-medium text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 min-w-0 transition-all duration-200"
           />
 
           {/* Clear Button */}
@@ -254,7 +243,7 @@ export function PremiumSearchBar({
           >
             {isCollapsed ? '🔍' : 'Search'}
           </motion.button>
-        </motion.div>
+        </div>
 
         {/* Filter Chips Below Search - Hide when collapsed */}
         <AnimatePresence>

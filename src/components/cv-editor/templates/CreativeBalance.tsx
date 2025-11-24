@@ -1,16 +1,29 @@
-import { CVData } from '../../../types/cvEditor';
-import { formatDateRange, formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { CVData, CVLayoutSettings } from '../../../types/cvEditor';
+import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Award, Briefcase, GraduationCap } from 'lucide-react';
 
 interface CreativeBalanceProps {
   cvData: CVData;
+  layoutSettings: CVLayoutSettings;
 }
 
-export default function CreativeBalance({ cvData }: CreativeBalanceProps) {
+export default function CreativeBalance({ cvData, layoutSettings }: CreativeBalanceProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
 
+  const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
+    return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
+  };
+
   return (
-    <div className="font-sans text-gray-900" style={{ fontSize: '10pt', lineHeight: 1.5 }}>
+    <div 
+      className="text-gray-900" 
+      style={{ 
+        fontSize: `${layoutSettings.fontSize}pt`, 
+        lineHeight: layoutSettings.lineHeight,
+        fontFamily: layoutSettings.fontFamily
+      }}
+    >
       {/* Header with accent color */}
       <header className="mb-6 pb-4 border-b-4 border-purple-600">
         <div className="flex justify-between items-start">

@@ -12,11 +12,13 @@ import { db } from '../lib/firebase';
 import EditorPanel from '../components/cv-editor/EditorPanel';
 import PreviewContainer from '../components/cv-editor/PreviewContainer';
 import AICompanionPanel from '../components/cv-editor/AICompanionPanel';
-import { CVData, CVTemplate, CVEditorState } from '../types/cvEditor';
+import CompanyHeader from '../components/cv-editor/CompanyHeader';
+import { CVData, CVTemplate, CVEditorState, CVLayoutSettings } from '../types/cvEditor';
 import { useCVEditor } from '../hooks/useCVEditor';
 import { exportToPDF, generateId } from '../lib/cvEditorUtils';
 import { parseCVData } from '../lib/cvSectionAI';
 import { loadOrInitializeCVData } from '../lib/initializeCVData';
+import AuthLayout from '../components/AuthLayout';
 
 // Initial empty CV data structure
 const initialCVData: CVData = {
@@ -79,6 +81,14 @@ export default function PremiumCVEditor() {
     gaps: string[];
   } | undefined>();
   const [showAIPanel, setShowAIPanel] = useState(false);
+  
+  // Layout settings state
+  const [layoutSettings, setLayoutSettings] = useState<CVLayoutSettings>({
+    fontSize: 10,
+    dateFormat: 'jan-24',
+    lineHeight: 1.3,
+    fontFamily: 'Inter'
+  });
   
   // Use custom hook for editor logic
   const {
@@ -366,6 +376,12 @@ export default function PremiumCVEditor() {
     setZoom(100);
   };
 
+  // Handle layout settings changes
+  const handleLayoutSettingsChange = useCallback((updates: Partial<CVLayoutSettings>) => {
+    setLayoutSettings(prev => ({ ...prev, ...updates }));
+    setIsDirty(true);
+  }, []);
+
   // Handle save
   const handleSave = async () => {
     setIsSaving(true);
@@ -426,128 +442,103 @@ export default function PremiumCVEditor() {
   }, [isDirty]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Top Bar */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Left: Back button and title */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(id ? `/ats-analysis/${id}` : '/dashboard')}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title="Go back"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-              
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  CV Editor
-                </h1>
-                {isDirty && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Unsaved changes
-                  </p>
-                )}
-              </div>
-            </div>
+    <AuthLayout>
+      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950">
+        {/* Premium Top Bar */}
+        <header className="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+          <div className="px-6 py-3.5">
+            <div className="flex items-center justify-between">
+              {/* Left: Company Context */}
+              <CompanyHeader
+                companyName={jobContext?.company}
+                jobTitle={jobContext?.jobTitle}
+              />
 
-            {/* Center: Template selector */}
-            <div className="hidden lg:flex items-center gap-3">
-              <FileText className="w-4 h-4 text-gray-400" />
-              <div className="relative">
-                <select
-                  value={template}
-                  onChange={(e) => handleTemplateChange(e.target.value as CVTemplate)}
-                  className="appearance-none pl-3 pr-10 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              {/* Right: Actions */}
+              <div className="flex items-center gap-2">
+                {/* Auto-save indicator */}
+                {isSaving && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3 py-2">
+                    Saving...
+                  </span>
+                )}
+                {!isSaving && isDirty && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium px-3 py-2 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    Unsaved
+                  </span>
+                )}
+
+                {/* AI Assistant */}
+                <button
+                  onClick={() => setShowAIPanel(!showAIPanel)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    showAIPanel 
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 shadow-sm' 
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
                 >
-                  {TEMPLATES.map(t => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden md:inline">AI Assistant</span>
+                </button>
+
+                {/* Toggle preview on mobile */}
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  title={showPreview ? 'Hide preview' : 'Show preview'}
+                >
+                  {showPreview ? (
+                    <EyeOff className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  )}
+                </button>
+
+                {/* Save button - Google style */}
+                <button
+                  onClick={handleSave}
+                  disabled={!isDirty || isSaving}
+                  className="group relative flex items-center gap-2.5 px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-full border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed font-medium text-sm overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-700/50 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <Save className="w-4 h-4 relative z-10" />
+                  <span className="hidden md:inline relative z-10">
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </span>
+                </button>
+
+                {/* Export button - Premium gradient */}
+                <button
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="group relative flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-purple-600 via-purple-600 to-indigo-600 hover:from-purple-700 hover:via-purple-600 hover:to-indigo-700 text-white rounded-full shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  <Download className="w-4 h-4 relative z-10" />
+                  <span className="hidden md:inline relative z-10">
+                    {isExporting ? 'Exporting...' : 'Export PDF'}
+                  </span>
+                </button>
               </div>
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2">
-              {/* AI Assistant */}
-              <button
-                onClick={() => setShowAIPanel(!showAIPanel)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                  showAIPanel 
-                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
-                }`}
-                title="AI Assistant"
-              >
-                <Brain className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm font-medium">AI Assistant</span>
-              </button>
-
-              {/* Toggle preview on mobile */}
-              <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title={showPreview ? 'Hide preview' : 'Show preview'}
-              >
-                {showPreview ? (
-                  <EyeOff className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                ) : (
-                  <Eye className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                )}
-              </button>
-
-              {/* Save button */}
-              <button
-                onClick={handleSave}
-                disabled={!isDirty || isSaving}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm font-medium">
-                  {isSaving ? 'Saving...' : 'Save'}
-                </span>
-              </button>
-
-              {/* Share button */}
-              <button
-                onClick={handleShare}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title="Share CV"
-              >
-                <Share2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-
-              {/* Export button */}
-              <button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm font-medium">
-                  {isExporting ? 'Exporting...' : 'Export PDF'}
-                </span>
-              </button>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        <div className="h-[calc(100vh-4rem)] flex">
+        {/* Main Content */}
+        <main className="flex-1 overflow-hidden">
+          <div className="h-full flex overflow-hidden">
           {/* Left: Editor Panel */}
-          <div className="w-full lg:w-2/5 xl:w-[480px] border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+          <div className="w-full lg:w-2/5 xl:w-[480px] border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden rounded-tl-2xl">
             <EditorPanel
               cvData={cvData}
               onUpdate={updateSection}
               onReorder={reorderSections}
               onToggleSection={toggleSection}
+              layoutSettings={layoutSettings}
+              onLayoutSettingsChange={handleLayoutSettingsChange}
+              template={template}
+              onTemplateChange={setTemplate}
               jobContext={jobContext}
             />
           </div>
@@ -559,12 +550,13 @@ export default function PremiumCVEditor() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="flex-1 bg-gray-100 dark:bg-gray-950 overflow-hidden hidden lg:block"
+                className="flex-1 bg-gray-100 dark:bg-gray-950 overflow-hidden hidden lg:block rounded-tr-2xl"
               >
                 <PreviewContainer
                   cvData={cvData}
                   template={template}
                   zoom={zoom}
+                  layoutSettings={layoutSettings}
                   onZoomIn={handleZoomIn}
                   onZoomOut={handleZoomOut}
                   onZoomReset={handleZoomReset}
@@ -586,6 +578,7 @@ export default function PremiumCVEditor() {
                   cvData={cvData}
                   template={template}
                   zoom={zoom}
+                  layoutSettings={layoutSettings}
                   onZoomIn={handleZoomIn}
                   onZoomOut={handleZoomOut}
                   onZoomReset={handleZoomReset}
@@ -604,13 +597,14 @@ export default function PremiumCVEditor() {
         </div>
       </main>
 
-      {/* AI Companion Panel */}
-      <AICompanionPanel
-        isOpen={showAIPanel}
-        onClose={() => setShowAIPanel(false)}
-        cvData={cvData}
-        jobContext={jobContext}
-      />
-    </div>
+        {/* AI Companion Panel */}
+        <AICompanionPanel
+          isOpen={showAIPanel}
+          onClose={() => setShowAIPanel(false)}
+          cvData={cvData}
+          jobContext={jobContext}
+        />
+      </div>
+    </AuthLayout>
   );
 }

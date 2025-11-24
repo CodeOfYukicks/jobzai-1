@@ -1,15 +1,28 @@
-import { CVData } from '../../../types/cvEditor';
-import { formatDateRange, formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { CVData, CVLayoutSettings } from '../../../types/cvEditor';
+import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 
 interface ExecutiveClassicProps {
   cvData: CVData;
+  layoutSettings: CVLayoutSettings;
 }
 
-export default function ExecutiveClassic({ cvData }: ExecutiveClassicProps) {
+export default function ExecutiveClassic({ cvData, layoutSettings }: ExecutiveClassicProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
 
+  const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
+    return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
+  };
+
   return (
-    <div className="font-serif text-gray-900" style={{ fontSize: '11pt', lineHeight: 1.6 }}>
+    <div 
+      className="text-gray-900" 
+      style={{ 
+        fontSize: `${layoutSettings.fontSize}pt`, 
+        lineHeight: layoutSettings.lineHeight,
+        fontFamily: layoutSettings.fontFamily
+      }}
+    >
       {/* Header */}
       <header className="text-center mb-8 pb-4 border-b-2 border-gray-800">
         <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-wide uppercase">

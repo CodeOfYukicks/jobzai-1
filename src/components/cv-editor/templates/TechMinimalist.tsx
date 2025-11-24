@@ -1,13 +1,19 @@
-import { CVData } from '../../../types/cvEditor';
-import { formatDateRange, formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { CVData, CVLayoutSettings } from '../../../types/cvEditor';
+import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import { Github, Globe, Mail, MapPin } from 'lucide-react';
 
 interface TechMinimalistProps {
   cvData: CVData;
+  layoutSettings: CVLayoutSettings;
 }
 
-export default function TechMinimalist({ cvData }: TechMinimalistProps) {
+export default function TechMinimalist({ cvData, layoutSettings }: TechMinimalistProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
+
+  const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
+    return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
+  };
 
   // Group skills by category
   const groupedSkills = cvData.skills.reduce((acc, skill) => {
@@ -26,7 +32,14 @@ export default function TechMinimalist({ cvData }: TechMinimalistProps) {
   };
 
   return (
-    <div className="font-mono text-gray-900" style={{ fontSize: '9.5pt', lineHeight: 1.4 }}>
+    <div 
+      className="text-gray-900" 
+      style={{ 
+        fontSize: `${layoutSettings.fontSize}pt`, 
+        lineHeight: layoutSettings.lineHeight,
+        fontFamily: layoutSettings.fontFamily
+      }}
+    >
       {/* Header - Minimalist */}
       <header className="mb-6">
         <div className="flex justify-between items-start">

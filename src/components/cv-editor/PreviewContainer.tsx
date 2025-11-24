@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { ZoomIn, ZoomOut, Maximize2, Download, RefreshCw } from 'lucide-react';
-import { CVData, CVTemplate } from '../../types/cvEditor';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ZoomIn, ZoomOut, Maximize2, Download, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CVData, CVTemplate, CVLayoutSettings } from '../../types/cvEditor';
 import { A4_WIDTH_PX, A4_HEIGHT_PX } from '../../lib/cvEditorUtils';
 import ModernProfessional from './templates/ModernProfessional';
 import ExecutiveClassic from './templates/ExecutiveClassic';
@@ -13,6 +13,7 @@ interface PreviewContainerProps {
   cvData: CVData;
   template: CVTemplate;
   zoom: number;
+  layoutSettings?: CVLayoutSettings;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
@@ -24,6 +25,7 @@ export default function PreviewContainer({
   cvData,
   template,
   zoom,
+  layoutSettings,
   onZoomIn,
   onZoomOut,
   onZoomReset
@@ -32,6 +34,8 @@ export default function PreviewContainer({
   const contentRef = useRef<HTMLDivElement>(null);
   const [fitToWidthZoom, setFitToWidthZoom] = useState(100);
   const [fitToPageZoom, setFitToPageZoom] = useState(100);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [overflowAmount, setOverflowAmount] = useState(0);
 
   // Calculate fit-to-width and fit-to-page zoom levels
   useEffect(() => {
@@ -49,6 +53,25 @@ export default function PreviewContainer({
     const pageZoom = Math.min(widthZoom, heightZoom);
     setFitToPageZoom(Math.min(pageZoom, 150));
   }, []);
+
+  // Detect A4 overflow with ResizeObserver
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const contentHeight = entry.target.scrollHeight;
+        const overflow = contentHeight > A4_HEIGHT_PX;
+        
+        setIsOverflowing(overflow);
+        setOverflowAmount(overflow ? contentHeight - A4_HEIGHT_PX : 0);
+      }
+    });
+
+    observer.observe(contentRef.current);
+    
+    return () => observer.disconnect();
+  }, [cvData, template, layoutSettings]);
 
   // Get the appropriate template component
   const getTemplateComponent = () => {
@@ -176,21 +199,69 @@ export default function PreviewContainer({
               transformOrigin: 'top center',
             }}
           >
-            {/* A4 Paper Container */}
-            <div
-              ref={contentRef}
-              id="cv-preview-content"
-              className="bg-white shadow-xl"
-              style={{
-                width: `${A4_WIDTH_PX}px`,
-                minHeight: `${A4_HEIGHT_PX}px`,
-                padding: '40px',
-                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-                borderRadius: '2px'
-              }}
-            >
-              {/* Template Content */}
-              <TemplateComponent cvData={cvData} />
+            {/* A4 Paper Container with Overflow Indicator */}
+            <div className="relative">
+              <div
+                ref={contentRef}
+                id="cv-preview-content"
+                className="bg-white shadow-xl transition-all duration-300"
+                style={{
+                  width: `${A4_WIDTH_PX}px`,
+                  minHeight: `${A4_HEIGHT_PX}px`,
+                  padding: '40px',
+                  boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                  borderRadius: '2px'
+                }}
+              >
+                {/* Template Content */}
+                <TemplateComponent 
+                  cvData={cvData} 
+                  layoutSettings={layoutSettings || {
+                    fontSize: 10,
+                    dateFormat: 'jan-24',
+                    lineHeight: 1.3,
+                    fontFamily: 'Inter'
+                  }}
+                />
+              </div>
+
+              {/* A4 Page Limit Indicator - Red line showing where A4 ends */}
+              {isOverflowing && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute left-0 pointer-events-none"
+                  style={{
+                    top: `${A4_HEIGHT_PX}px`,
+                    width: `${A4_WIDTH_PX}px`
+                  }}
+                >
+                  {/* Red border line marking the A4 limit */}
+                  <div className="relative">
+                    {/* Thick red line */}
+                    <div 
+                      className="w-full bg-red-500"
+                      style={{ height: '4px' }}
+                    />
+                    
+                    {/* Red overlay tint on overflow area */}
+                    <div 
+                      className="absolute top-0 left-0 w-full bg-red-500 opacity-10"
+                      style={{
+                        height: `${overflowAmount}px`
+                      }}
+                    />
+                    
+                    {/* Label indicator */}
+                    <div className="absolute -top-8 right-4 flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-full shadow-lg">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>A4 Limit</span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Page Break Indicator (if content exceeds one page) */}
@@ -202,6 +273,26 @@ export default function PreviewContainer({
           </motion.div>
         </div>
       </div>
+
+      {/* A4 Overflow Warning Badge */}
+      <AnimatePresence>
+        {isOverflowing && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50"
+          >
+            <div className="flex items-center gap-3 px-6 py-3 bg-red-500 text-white rounded-full shadow-2xl backdrop-blur-sm border border-red-400">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium text-sm whitespace-nowrap">
+                Content exceeds A4 page
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

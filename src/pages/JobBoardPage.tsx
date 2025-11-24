@@ -291,7 +291,7 @@ export default function JobBoardPage() {
 	
 	// Scroll collapse detection
 	const jobListScrollRef = useRef<HTMLDivElement>(null);
-	const isHeaderCollapsed = useScrollCollapse(jobListScrollRef, { threshold: 50 });
+	const isHeaderCollapsed = useScrollCollapse(jobListScrollRef, { threshold: 80 });
 	useEffect(() => {
 		const observer = new IntersectionObserver(
 			(entries) => {

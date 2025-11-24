@@ -1,15 +1,20 @@
 import { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plus, Trash2, GripVertical, Calendar, MapPin, Link,
+  Plus, Trash2, GripVertical, Calendar, MapPin, Link, Edit3,
   Wand2, TrendingUp, Target, Hash, FileText, Zap,
-  ChevronDown, ChevronUp, X, Check, Award, Code, Globe, Loader2
+  ChevronDown, ChevronUp, X, Check, Award, Code, Globe, Loader2, Sparkles
 } from 'lucide-react';
 import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage } from '../../types/cvEditor';
 import { generateId, formatDate } from '../../lib/cvEditorUtils';
 import { rewriteSection } from '../../lib/cvSectionAI';
 import { toast } from 'sonner';
 import DiffView from './DiffView';
+import ExperienceModal from './modals/ExperienceModal';
+import EducationModal from './modals/EducationModal';
+import ProjectModal from './modals/ProjectModal';
+import CertificationModal from './modals/CertificationModal';
+import LanguageModal from './modals/LanguageModal';
 
 interface SectionEditorProps {
   section: CVSection;
@@ -42,6 +47,14 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [currentAction, setCurrentAction] = useState<string>('');
   const [showDiff, setShowDiff] = useState(false);
+  
+  // Modal states
+  const [experienceModalOpen, setExperienceModalOpen] = useState(false);
+  const [educationModalOpen, setEducationModalOpen] = useState(false);
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [certificationModalOpen, setCertificationModalOpen] = useState(false);
+  const [languageModalOpen, setLanguageModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   const handleAIAction = async (action: string) => {
     if (!jobContext) {
@@ -259,26 +272,26 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 First Name
               </label>
               <input
                 type="text"
                 value={data.firstName || ''}
                 onChange={(e) => onChange({ firstName: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all overflow-hidden text-ellipsis"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="John"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 Last Name
               </label>
               <input
                 type="text"
                 value={data.lastName || ''}
                 onChange={(e) => onChange({ lastName: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all overflow-hidden text-ellipsis"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="Doe"
               />
             </div>
@@ -292,33 +305,33 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="text"
                 value={data.title || ''}
                 onChange={(e) => onChange({ title: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all overflow-hidden text-ellipsis"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="Senior Software Engineer"
               />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 Email
               </label>
               <input
                 type="email"
                 value={data.email || ''}
                 onChange={(e) => onChange({ email: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all overflow-hidden text-ellipsis"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="john.doe@example.com"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 Phone
               </label>
               <input
                 type="tel"
                 value={data.phone || ''}
                 onChange={(e) => onChange({ phone: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all overflow-hidden text-ellipsis"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
@@ -332,7 +345,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="text"
                 value={data.location || ''}
                 onChange={(e) => onChange({ location: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all overflow-hidden text-ellipsis"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="San Francisco, CA"
               />
           </div>
@@ -345,7 +358,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="url"
                 value={data.linkedin || ''}
                 onChange={(e) => onChange({ linkedin: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all overflow-hidden text-ellipsis"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="linkedin.com/in/johndoe"
               />
           </div>
@@ -363,7 +376,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               value={data.summary || ''}
               onChange={(e) => onChange({ summary: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
               placeholder="Write a compelling summary that highlights your key strengths and career objectives..."
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -378,42 +391,84 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
     case 'experience':
       return (
         <div className="space-y-4">
-          {data.experiences?.map((exp: CVExperience, index: number) => (
-            <ExperienceItem
+          {data.experiences?.map((exp: CVExperience) => (
+            <div
               key={exp.id}
-              experience={exp}
-              onUpdate={(updates) => {
-                const newExperiences = [...data.experiences];
-                newExperiences[index] = { ...exp, ...updates };
-                onChange({ experiences: newExperiences });
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              onClick={() => {
+                setEditingItem(exp);
+                setExperienceModalOpen(true);
               }}
-              onDelete={() => {
-                const newExperiences = data.experiences.filter((e: CVExperience) => e.id !== exp.id);
-                onChange({ experiences: newExperiences });
-              }}
-            />
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                    {exp.title || 'Untitled Position'}
+                  </h4>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                    {exp.company} {exp.location && `• ${exp.location}`}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {exp.startDate || 'Start'} - {exp.current ? 'Present' : exp.endDate || 'End'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingItem(exp);
+                      setExperienceModalOpen(true);
+                    }}
+                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange({ experiences: data.experiences.filter((e: CVExperience) => e.id !== exp.id) });
+                    }}
+                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                  </button>
+                </div>
+              </div>
+            </div>
           ))}
           
           <button
             onClick={() => {
-              const newExperience: CVExperience = {
-                id: generateId(),
-                title: '',
-                company: '',
-                location: '',
-                startDate: '',
-                endDate: '',
-                current: false,
-                description: '',
-                bullets: []
-              };
-              onChange({ experiences: [...(data.experiences || []), newExperience] });
+              setEditingItem(null);
+              setExperienceModalOpen(true);
             }}
-            className="w-full py-2 px-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-dashed border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
           >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm font-medium">Add Experience</span>
+            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-semibold">Add Experience</span>
           </button>
+
+          <ExperienceModal
+            isOpen={experienceModalOpen}
+            onClose={() => {
+              setExperienceModalOpen(false);
+              setEditingItem(null);
+            }}
+            onSave={(experience) => {
+              if (editingItem) {
+                // Update existing
+                onChange({
+                  experiences: data.experiences.map((e: CVExperience) =>
+                    e.id === editingItem.id ? experience : e
+                  )
+                });
+              } else {
+                // Add new
+                onChange({ experiences: [...(data.experiences || []), experience] });
+              }
+            }}
+            initialData={editingItem}
+          />
 
           {renderAIActions()}
           {renderAISuggestion()}
@@ -423,42 +478,82 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
     case 'education':
       return (
         <div className="space-y-4">
-          {data.education?.map((edu: CVEducation, index: number) => (
-            <EducationItem
+          {data.education?.map((edu: CVEducation) => (
+            <div
               key={edu.id}
-              education={edu}
-              onUpdate={(updates) => {
-                const newEducation = [...data.education];
-                newEducation[index] = { ...edu, ...updates };
-                onChange({ education: newEducation });
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              onClick={() => {
+                setEditingItem(edu);
+                setEducationModalOpen(true);
               }}
-              onDelete={() => {
-                const newEducation = data.education.filter((e: CVEducation) => e.id !== edu.id);
-                onChange({ education: newEducation });
-              }}
-            />
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                    {edu.degree || 'Untitled Degree'}
+                  </h4>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                    {edu.institution} {edu.field && `• ${edu.field}`}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {edu.endDate || 'Graduation date'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingItem(edu);
+                      setEducationModalOpen(true);
+                    }}
+                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange({ education: data.education.filter((e: CVEducation) => e.id !== edu.id) });
+                    }}
+                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                  </button>
+                </div>
+              </div>
+            </div>
           ))}
           
           <button
             onClick={() => {
-              const newEducation: CVEducation = {
-                id: generateId(),
-                degree: '',
-                field: '',
-                institution: '',
-                location: '',
-                endDate: '',
-                gpa: '',
-                honors: [],
-                coursework: []
-              };
-              onChange({ education: [...(data.education || []), newEducation] });
+              setEditingItem(null);
+              setEducationModalOpen(true);
             }}
-            className="w-full py-2 px-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-dashed border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
           >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm font-medium">Add Education</span>
+            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-semibold">Add Education</span>
           </button>
+
+          <EducationModal
+            isOpen={educationModalOpen}
+            onClose={() => {
+              setEducationModalOpen(false);
+              setEditingItem(null);
+            }}
+            onSave={(education) => {
+              if (editingItem) {
+                onChange({
+                  education: data.education.map((e: CVEducation) =>
+                    e.id === editingItem.id ? education : e
+                  )
+                });
+              } else {
+                onChange({ education: [...(data.education || []), education] });
+              }
+            }}
+            initialData={editingItem}
+          />
 
           {renderAIActions()}
           {renderAISuggestion()}
@@ -485,7 +580,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
             <input
               type="text"
               placeholder="Add a skill..."
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   const input = e.currentTarget;
@@ -519,40 +614,82 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
     case 'certifications':
       return (
         <div className="space-y-4">
-          {data.certifications?.map((cert: CVCertification, index: number) => (
-            <CertificationItem
+          {data.certifications?.map((cert: CVCertification) => (
+            <div
               key={cert.id}
-              certification={cert}
-              onUpdate={(updates) => {
-                const newCertifications = [...data.certifications];
-                newCertifications[index] = { ...cert, ...updates };
-                onChange({ certifications: newCertifications });
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              onClick={() => {
+                setEditingItem(cert);
+                setCertificationModalOpen(true);
               }}
-              onDelete={() => {
-                const newCertifications = data.certifications.filter((c: CVCertification) => c.id !== cert.id);
-                onChange({ certifications: newCertifications });
-              }}
-            />
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                    {cert.name || 'Untitled Certification'}
+                  </h4>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                    {cert.issuer || 'Issuer'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {cert.date || 'Issue date'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingItem(cert);
+                      setCertificationModalOpen(true);
+                    }}
+                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                  </button>
+          <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange({ certifications: data.certifications.filter((c: CVCertification) => c.id !== cert.id) });
+                    }}
+                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+          </button>
+        </div>
+              </div>
+            </div>
           ))}
           
           <button
             onClick={() => {
-              const newCertification: CVCertification = {
-                id: generateId(),
-                name: '',
-                issuer: '',
-                date: '',
-                expiryDate: '',
-                credentialId: '',
-                url: ''
-              };
-              onChange({ certifications: [...(data.certifications || []), newCertification] });
+              setEditingItem(null);
+              setCertificationModalOpen(true);
             }}
-            className="w-full py-2 px-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-dashed border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
           >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm font-medium">Add Certification</span>
+            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-semibold">Add Certification</span>
           </button>
+
+          <CertificationModal
+            isOpen={certificationModalOpen}
+            onClose={() => {
+              setCertificationModalOpen(false);
+              setEditingItem(null);
+            }}
+            onSave={(certification) => {
+              if (editingItem) {
+                onChange({
+                  certifications: data.certifications.map((c: CVCertification) =>
+                    c.id === editingItem.id ? certification : c
+                  )
+                });
+              } else {
+                onChange({ certifications: [...(data.certifications || []), certification] });
+              }
+            }}
+            initialData={editingItem}
+          />
 
           {renderAIActions()}
           {renderAISuggestion()}
@@ -562,644 +699,201 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
     case 'projects':
       return (
         <div className="space-y-4">
-          {data.projects?.map((project: CVProject, index: number) => (
-            <ProjectItem
+          {data.projects?.map((project: CVProject) => (
+            <div
               key={project.id}
-              project={project}
-              onUpdate={(updates) => {
-                const newProjects = [...data.projects];
-                newProjects[index] = { ...project, ...updates };
-                onChange({ projects: newProjects });
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              onClick={() => {
+                setEditingItem(project);
+                setProjectModalOpen(true);
               }}
-              onDelete={() => {
-                const newProjects = data.projects.filter((p: CVProject) => p.id !== project.id);
-                onChange({ projects: newProjects });
-              }}
-            />
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                    {project.name || 'Untitled Project'}
+                  </h4>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 line-clamp-2 font-medium">
+                    {project.description || 'No description'}
+                  </p>
+                  {project.technologies.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {project.technologies.slice(0, 3).map((tech, idx) => (
+                        <span key={idx} className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                          {tech}
+                        </span>
+                      ))}
+                      {project.technologies.length > 3 && (
+                        <span className="text-xs px-2 py-0.5 text-gray-500">
+                          +{project.technologies.length - 3}
+                        </span>
+                      )}
+          </div>
+                  )}
+              </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingItem(project);
+                      setProjectModalOpen(true);
+                    }}
+                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                    </button>
+                <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange({ projects: data.projects.filter((p: CVProject) => p.id !== project.id) });
+                  }}
+                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                >
+                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                </button>
+              </div>
+            </div>
+        </div>
           ))}
-          
-          <button
+
+        <button
             onClick={() => {
-              const newProject: CVProject = {
-                id: generateId(),
-                name: '',
-                description: '',
-                technologies: [],
-                url: '',
-                startDate: '',
-                endDate: '',
-                highlights: []
-              };
-              onChange({ projects: [...(data.projects || []), newProject] });
+              setEditingItem(null);
+              setProjectModalOpen(true);
             }}
-            className="w-full py-2 px-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-dashed border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
           >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm font-medium">Add Project</span>
-          </button>
+            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-semibold">Add Project</span>
+        </button>
+
+          <ProjectModal
+            isOpen={projectModalOpen}
+            onClose={() => {
+              setProjectModalOpen(false);
+              setEditingItem(null);
+            }}
+            onSave={(project) => {
+              if (editingItem) {
+                onChange({
+                  projects: data.projects.map((p: CVProject) =>
+                    p.id === editingItem.id ? project : p
+                  )
+                });
+              } else {
+                onChange({ projects: [...(data.projects || []), project] });
+              }
+            }}
+            initialData={editingItem}
+          />
 
           {renderAIActions()}
           {renderAISuggestion()}
-        </div>
-      );
+    </div>
+  );
 
     case 'languages':
-      return (
+  return (
         <div className="space-y-4">
-          {data.languages?.map((language: CVLanguage, index: number) => (
-            <LanguageItem
+          {data.languages?.map((language: CVLanguage) => (
+            <div
               key={language.id}
-              language={language}
-              onUpdate={(updates) => {
-                const newLanguages = [...data.languages];
-                newLanguages[index] = { ...language, ...updates };
-                onChange({ languages: newLanguages });
+              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+              onClick={() => {
+                setEditingItem(language);
+                setLanguageModalOpen(true);
               }}
-              onDelete={() => {
-                const newLanguages = data.languages.filter((l: CVLanguage) => l.id !== language.id);
-                onChange({ languages: newLanguages });
-              }}
-            />
+            >
+              <div className="flex items-center justify-between gap-3">
+        <div className="flex-1">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                    {language.name || 'Untitled Language'}
+                  </h4>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 capitalize font-medium">
+                    {language.proficiency}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingItem(language);
+                      setLanguageModalOpen(true);
+                    }}
+                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+            </button>
+        <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange({ languages: data.languages.filter((l: CVLanguage) => l.id !== language.id) });
+                    }}
+                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+        </button>
+      </div>
+    </div>
+          </div>
           ))}
           
-          <button
-            onClick={() => {
-              const newLanguage: CVLanguage = {
-                id: generateId(),
-                name: '',
-                proficiency: 'intermediate'
-              };
-              onChange({ languages: [...(data.languages || []), newLanguage] });
+                      <button
+                        onClick={() => {
+              setEditingItem(null);
+              setLanguageModalOpen(true);
+                        }}
+            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+                      >
+            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-semibold">Add Language</span>
+                      </button>
+
+          <LanguageModal
+            isOpen={languageModalOpen}
+            onClose={() => {
+              setLanguageModalOpen(false);
+              setEditingItem(null);
             }}
-            className="w-full py-2 px-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-dashed border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center justify-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm font-medium">Add Language</span>
-          </button>
+            onSave={(language) => {
+              if (editingItem) {
+                onChange({
+                  languages: data.languages.map((l: CVLanguage) =>
+                    l.id === editingItem.id ? language : l
+                  )
+                });
+              } else {
+                onChange({ languages: [...(data.languages || []), language] });
+              }
+            }}
+            initialData={editingItem}
+          />
 
           {renderAIActions()}
           {renderAISuggestion()}
-        </div>
+                  </div>
       );
 
     default:
       return (
         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           <p className="text-sm">Section editor for "{section.type}" coming soon</p>
-        </div>
-      );
+    </div>
+  );
   }
 }
 
-// Sub-components for complex sections
-function ExperienceItem({ 
-  experience, 
-  onUpdate, 
-  onDelete 
-}: { 
-  experience: CVExperience; 
-  onUpdate: (updates: Partial<CVExperience>) => void;
-  onDelete: () => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-            >
-              {expanded ? (
-                <ChevronUp className="w-4 h-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              )}
-            </button>
-            <input
-              type="text"
-              value={experience.title}
-              onChange={(e) => onUpdate({ title: e.target.value })}
-              className="flex-1 px-2 py-1 bg-transparent border-b border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-900 dark:text-white focus:border-purple-500 focus:outline-none"
-              placeholder="Job Title"
-            />
-          </div>
-          
-          {expanded && (
-            <div className="space-y-3 mt-3">
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={experience.company}
-                  onChange={(e) => onUpdate({ company: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Company"
-                />
-                <input
-                  type="text"
-                  value={experience.location || ''}
-                  onChange={(e) => onUpdate({ location: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Location"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="month"
-                  value={experience.startDate}
-                  onChange={(e) => onUpdate({ startDate: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                <div className="flex items-center gap-2">
-                  <input
-                    type="month"
-                    value={experience.endDate}
-                    onChange={(e) => onUpdate({ endDate: e.target.value })}
-                    disabled={experience.current}
-                    className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
-                  />
-                  <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                    <input
-                      type="checkbox"
-                      checked={experience.current}
-                      onChange={(e) => onUpdate({ current: e.target.checked })}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    Current
-                  </label>
-                </div>
-              </div>
-
-              <textarea
-                value={experience.description}
-                onChange={(e) => onUpdate({ description: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                placeholder="Describe your role and responsibilities..."
-              />
-
-              {/* Bullet points */}
-              <div className="space-y-2 max-w-full">
-                {experience.bullets.map((bullet, index) => (
-                  <div key={index} className="flex items-start gap-2 group">
-                    <span className="text-gray-400 mt-2 flex-shrink-0">•</span>
-                    <div className="flex-1 min-w-0">
-                      <input
-                        type="text"
-                        value={bullet}
-                        onChange={(e) => {
-                          const newBullets = [...experience.bullets];
-                          newBullets[index] = e.target.value;
-                          onUpdate({ bullets: newBullets });
-                        }}
-                        className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-0 border-b border-gray-200 dark:border-gray-700 rounded-none text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:border-purple-500 focus:ring-0 transition-all"
-                        placeholder="Achievement or responsibility..."
-                      />
-                    </div>
-                    <button
-                      onClick={() => {
-                        const newBullets = experience.bullets.filter((_, i) => i !== index);
-                        onUpdate({ bullets: newBullets });
-                      }}
-                      className="p-1 text-gray-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => {
-                    onUpdate({ bullets: [...experience.bullets, ''] });
-                  }}
-                  className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
-                >
-                  + Add bullet point
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={onDelete}
-          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-          title="Delete experience"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function EducationItem({ 
-  education, 
-  onUpdate, 
-  onDelete 
-}: { 
-  education: CVEducation; 
-  onUpdate: (updates: Partial<CVEducation>) => void;
-  onDelete: () => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-            >
-              {expanded ? (
-                <ChevronUp className="w-4 h-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              )}
-            </button>
-            <input
-              type="text"
-              value={education.degree}
-              onChange={(e) => onUpdate({ degree: e.target.value })}
-              className="flex-1 px-2 py-1 bg-transparent border-b border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-900 dark:text-white focus:border-purple-500 focus:outline-none"
-              placeholder="Degree"
-            />
-          </div>
-          
-          {expanded && (
-            <div className="space-y-3 mt-3">
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={education.field || ''}
-                  onChange={(e) => onUpdate({ field: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Field of Study"
-                />
-                <input
-                  type="text"
-                  value={education.institution}
-                  onChange={(e) => onUpdate({ institution: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Institution"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="month"
-                  value={education.endDate}
-                  onChange={(e) => onUpdate({ endDate: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Graduation Date"
-                />
-                <input
-                  type="text"
-                  value={education.gpa || ''}
-                  onChange={(e) => onUpdate({ gpa: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="GPA (optional)"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={onDelete}
-          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-          title="Delete education"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
+// SkillChip component - still used in skills section
 function SkillChip({ skill, onDelete }: { skill: CVSkill; onDelete: () => void }) {
   return (
     <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-full text-sm">
       <span>{skill.name}</span>
-      <button
-        onClick={onDelete}
+        <button
+          onClick={onDelete}
         className="ml-1 p-0.5 hover:bg-purple-100 dark:hover:bg-purple-800/30 rounded-full transition-colors"
-      >
+        >
         <X className="w-3 h-3" />
-      </button>
-    </div>
-  );
-}
-
-// Certification Item Component
-function CertificationItem({ 
-  certification, 
-  onUpdate, 
-  onDelete 
-}: { 
-  certification: CVCertification; 
-  onUpdate: (updates: Partial<CVCertification>) => void;
-  onDelete: () => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-            >
-              {expanded ? (
-                <ChevronUp className="w-4 h-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              )}
-            </button>
-            <Award className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <input
-              type="text"
-              value={certification.name}
-              onChange={(e) => onUpdate({ name: e.target.value })}
-              className="flex-1 px-2 py-1 bg-transparent border-b border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-900 dark:text-white focus:border-purple-500 focus:outline-none"
-              placeholder="Certification Name"
-            />
-          </div>
-          
-          {expanded && (
-            <div className="space-y-3 mt-3 pl-7">
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={certification.issuer}
-                  onChange={(e) => onUpdate({ issuer: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Issuing Organization"
-                />
-                <input
-                  type="month"
-                  value={certification.date}
-                  onChange={(e) => onUpdate({ date: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Issue Date"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={certification.credentialId || ''}
-                  onChange={(e) => onUpdate({ credentialId: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Credential ID (optional)"
-                />
-                <input
-                  type="month"
-                  value={certification.expiryDate || ''}
-                  onChange={(e) => onUpdate({ expiryDate: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Expiry Date (optional)"
-                />
-              </div>
-
-              <input
-                type="url"
-                value={certification.url || ''}
-                onChange={(e) => onUpdate({ url: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Verification URL (optional)"
-              />
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={onDelete}
-          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-          title="Delete certification"
-        >
-          <Trash2 className="w-4 h-4" />
         </button>
-      </div>
-    </div>
-  );
-}
-
-// Project Item Component
-function ProjectItem({ 
-  project, 
-  onUpdate, 
-  onDelete 
-}: { 
-  project: CVProject; 
-  onUpdate: (updates: Partial<CVProject>) => void;
-  onDelete: () => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-            >
-              {expanded ? (
-                <ChevronUp className="w-4 h-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              )}
-            </button>
-            <Code className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <input
-              type="text"
-              value={project.name}
-              onChange={(e) => onUpdate({ name: e.target.value })}
-              className="flex-1 px-2 py-1 bg-transparent border-b border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-900 dark:text-white focus:border-purple-500 focus:outline-none"
-              placeholder="Project Name"
-            />
-          </div>
-          
-          {expanded && (
-            <div className="space-y-3 mt-3 pl-7">
-              <textarea
-                value={project.description}
-                onChange={(e) => onUpdate({ description: e.target.value })}
-                rows={2}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                placeholder="Project description..."
-              />
-
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="month"
-                  value={project.startDate || ''}
-                  onChange={(e) => onUpdate({ startDate: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Start Date"
-                />
-                <input
-                  type="month"
-                  value={project.endDate || ''}
-                  onChange={(e) => onUpdate({ endDate: e.target.value })}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="End Date"
-                />
-              </div>
-
-              <input
-                type="url"
-                value={project.url || ''}
-                onChange={(e) => onUpdate({ url: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Project URL (optional)"
-              />
-
-              {/* Technologies */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Technologies
-                </label>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {project.technologies.map((tech, index) => (
-                    <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
-                      {tech}
-                      <button
-                        onClick={() => {
-                          const newTechs = project.technologies.filter((_, i) => i !== index);
-                          onUpdate({ technologies: newTechs });
-                        }}
-                        className="hover:text-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  placeholder="Add technology (press Enter)"
-                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      const input = e.currentTarget;
-                      if (input.value.trim()) {
-                        onUpdate({ technologies: [...project.technologies, input.value.trim()] });
-                        input.value = '';
-                      }
-                    }
-                  }}
-                />
-              </div>
-
-              {/* Highlights */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Key Highlights
-                </label>
-                {project.highlights.map((highlight, index) => (
-                  <div key={index} className="flex items-start gap-2 mb-2">
-                    <span className="text-gray-400 mt-1">•</span>
-                    <input
-                      type="text"
-                      value={highlight}
-                      onChange={(e) => {
-                        const newHighlights = [...project.highlights];
-                        newHighlights[index] = e.target.value;
-                        onUpdate({ highlights: newHighlights });
-                      }}
-                      className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Highlight..."
-                    />
-                    <button
-                      onClick={() => {
-                        const newHighlights = project.highlights.filter((_, i) => i !== index);
-                        onUpdate({ highlights: newHighlights });
-                      }}
-                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => {
-                    onUpdate({ highlights: [...project.highlights, ''] });
-                  }}
-                  className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
-                >
-                  + Add highlight
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={onDelete}
-          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-          title="Delete project"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Language Item Component
-function LanguageItem({ 
-  language, 
-  onUpdate, 
-  onDelete 
-}: { 
-  language: CVLanguage; 
-  onUpdate: (updates: Partial<CVLanguage>) => void;
-  onDelete: () => void;
-}) {
-  const proficiencyLevels: Array<CVLanguage['proficiency']> = ['basic', 'intermediate', 'advanced', 'fluent', 'native'];
-
-  return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="flex items-center justify-between gap-3">
-        <Globe className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-        
-        <input
-          type="text"
-          value={language.name}
-          onChange={(e) => onUpdate({ name: e.target.value })}
-          className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          placeholder="Language"
-        />
-        
-        <select
-          value={language.proficiency}
-          onChange={(e) => onUpdate({ proficiency: e.target.value as CVLanguage['proficiency'] })}
-          className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-        >
-          {proficiencyLevels.map(level => (
-            <option key={level} value={level}>
-              {level.charAt(0).toUpperCase() + level.slice(1)}
-            </option>
-          ))}
-        </select>
-
-        <button
-          onClick={onDelete}
-          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-          title="Delete language"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
     </div>
   );
 }

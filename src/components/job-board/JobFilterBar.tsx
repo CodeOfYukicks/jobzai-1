@@ -48,13 +48,13 @@ export function JobFilterBar({
     };
 
     return (
-        <motion.div 
-            animate={{
-                paddingTop: isCollapsed ? '0.75rem' : '1rem',
-                paddingBottom: isCollapsed ? '0.75rem' : '1rem',
-            }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="bg-gradient-to-b from-gray-50/80 to-white dark:from-gray-950/80 dark:to-gray-900 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-30"
+        <div 
+            className={`
+                search-header-container
+                ${isCollapsed ? 'search-header-collapsed' : 'search-header-expanded'}
+                bg-gradient-to-b from-gray-50/80 to-white dark:from-gray-950/80 dark:to-gray-900 
+                backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-30
+            `}
             style={{
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
@@ -275,7 +275,7 @@ export function JobFilterBar({
                     </motion.div>
                 )}
             </div>
-        </motion.div>
+        </div>
     );
 }
 

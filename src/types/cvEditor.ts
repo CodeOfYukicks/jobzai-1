@@ -148,3 +148,10 @@ export interface CVValidation {
     message: string;
   }[];
 }
+
+export interface CVLayoutSettings {
+  fontSize: number;          // 8-14 pt
+  dateFormat: string;         // 'jan-24', 'january-2024', '01-2024', '2024-01'
+  lineHeight: number;         // 1.0, 1.3, 1.5, 2.0
+  fontFamily: string;         // 'Inter', 'Playfair Display', 'Montserrat', etc.
+}

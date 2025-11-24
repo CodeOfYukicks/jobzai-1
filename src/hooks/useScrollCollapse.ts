@@ -1,4 +1,4 @@
-import { useEffect, useState, RefObject } from 'react';
+import { useEffect, useState, useRef, RefObject } from 'react';
 
 interface UseScrollCollapseOptions {
   threshold?: number;
@@ -9,37 +9,52 @@ export function useScrollCollapse(
   scrollContainerRef: RefObject<HTMLElement>,
   options: UseScrollCollapseOptions = {}
 ) {
-  const { threshold = 50, enabled = true } = options;
+  const { threshold = 80, enabled = true } = options;
   
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollYRef = useRef(0);
+  const lastUpdateTimeRef = useRef(0);
+  const tickingRef = useRef(false);
+  
+  // Throttle: minimum time between state updates (ms)
+  const THROTTLE_MS = 150;
 
   useEffect(() => {
     if (!enabled || !scrollContainerRef.current) return;
 
     const container = scrollContainerRef.current;
-    let ticking = false;
 
     const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentScrollY = container.scrollTop;
-          
-          // Only collapse when scrolling down past threshold
-          if (currentScrollY > threshold && currentScrollY > lastScrollY) {
-            setIsCollapsed(true);
-          } 
-          // Expand when scrolling back to near top
-          else if (currentScrollY < threshold) {
-            setIsCollapsed(false);
-          }
+      if (tickingRef.current) return;
+      
+      tickingRef.current = true;
 
-          setLastScrollY(currentScrollY);
-          ticking = false;
-        });
+      window.requestAnimationFrame(() => {
+        const now = Date.now();
+        const currentScrollY = container.scrollTop;
+        
+        // Throttle state updates
+        if (now - lastUpdateTimeRef.current < THROTTLE_MS) {
+          tickingRef.current = false;
+          return;
+        }
+        
+        const scrollingDown = currentScrollY > lastScrollYRef.current;
+        const shouldCollapse = currentScrollY > threshold && scrollingDown;
+        const shouldExpand = currentScrollY < threshold;
+        
+        // Only update state if it actually changes
+        if (shouldCollapse && !isCollapsed) {
+          setIsCollapsed(true);
+          lastUpdateTimeRef.current = now;
+        } else if (shouldExpand && isCollapsed) {
+          setIsCollapsed(false);
+          lastUpdateTimeRef.current = now;
+        }
 
-        ticking = true;
-      }
+        lastScrollYRef.current = currentScrollY;
+        tickingRef.current = false;
+      });
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -47,7 +62,7 @@ export function useScrollCollapse(
     return () => {
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [scrollContainerRef, threshold, enabled, lastScrollY]);
+  }, [scrollContainerRef, threshold, enabled, isCollapsed]);
 
   return isCollapsed;
 }

@@ -1,16 +1,29 @@
-import { CVData } from '../../../types/cvEditor';
-import { formatDateRange, formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { CVData, CVLayoutSettings } from '../../../types/cvEditor';
+import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github } from 'lucide-react';
 
 interface ModernProfessionalProps {
   cvData: CVData;
+  layoutSettings: CVLayoutSettings;
 }
 
-export default function ModernProfessional({ cvData }: ModernProfessionalProps) {
+export default function ModernProfessional({ cvData, layoutSettings }: ModernProfessionalProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
 
+  const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
+    return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
+  };
+
   return (
-    <div className="font-sans text-gray-900" style={{ fontSize: '10pt', lineHeight: 1.5 }}>
+    <div 
+      className="text-gray-900" 
+      style={{ 
+        fontSize: `${layoutSettings.fontSize}pt`, 
+        lineHeight: layoutSettings.lineHeight,
+        fontFamily: layoutSettings.fontFamily
+      }}
+    >
       {/* Header */}
       <header className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-1">

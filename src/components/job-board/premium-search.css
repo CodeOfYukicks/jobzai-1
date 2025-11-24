@@ -1,5 +1,45 @@
 /* Premium Search Bar Animations & Styles */
 
+/* GPU Acceleration & Performance Optimizations */
+.search-header-container {
+  will-change: padding;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.search-header-expanded {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  transition: padding 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-header-collapsed {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  transition: padding 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-bar-container {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.search-input-expanded {
+  height: 56px;
+  padding-left: 20px;
+  padding-right: 20px;
+  transition: height 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              padding 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-input-collapsed {
+  height: 48px;
+  padding-left: 16px;
+  padding-right: 16px;
+  transition: height 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              padding 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Custom Scrollbar for Suggestions Dropdown */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -37,6 +77,12 @@
   scrollbar-width: none;
 }
 
+/* Performance: Force GPU acceleration for scrollable containers */
+.custom-scrollbar {
+  transform: translateZ(0);
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Smooth focus ring animation */
 @keyframes focusRing {
   0% {
@@ -56,6 +102,7 @@
 .backdrop-blur-premium {
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
+  transform: translateZ(0);
 }
 
 /* Smooth transitions for all interactive elements */
@@ -80,6 +127,7 @@
 /* Hover lift effect */
 .hover-lift {
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
 .hover-lift:hover {
@@ -119,6 +167,7 @@
     rgba(255, 255, 255, 0) 100%
   );
   background-size: 1000px 100%;
+  transform: translateZ(0);
 }
 
 .dark .shimmer {
@@ -160,5 +209,16 @@
 
 .animate-slide-up {
   animation: slideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Performance optimization for animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
