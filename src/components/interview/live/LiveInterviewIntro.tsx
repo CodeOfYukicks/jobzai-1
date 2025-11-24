@@ -42,7 +42,7 @@ export const LiveInterviewIntro: React.FC<LiveInterviewIntroProps> = ({
 
                 <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-3">
                     <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
-                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
                             <span className="font-bold">1</span>
                         </div>
                         <h3 className="mb-1 font-semibold text-neutral-900 dark:text-white">Read Question</h3>
@@ -52,7 +52,7 @@ export const LiveInterviewIntro: React.FC<LiveInterviewIntroProps> = ({
                     </div>
 
                     <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
-                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+                        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
                             <span className="font-bold">2</span>
                         </div>
                         <h3 className="mb-1 font-semibold text-neutral-900 dark:text-white">Record Answer</h3>
@@ -62,7 +62,7 @@ export const LiveInterviewIntro: React.FC<LiveInterviewIntroProps> = ({
                     </div>
 
                     <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
-                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-600 dark:bg-green-500/20 dark:text-green-400">
+                        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-600 dark:bg-green-500/20 dark:text-green-400">
                             <span className="font-bold">3</span>
                         </div>
                         <h3 className="mb-1 font-semibold text-neutral-900 dark:text-white">Get Feedback</h3>

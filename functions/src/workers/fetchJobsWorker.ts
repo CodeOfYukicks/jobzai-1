@@ -6,6 +6,7 @@
 import * as admin from 'firebase-admin';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { NormalizedATSJob, JobDocument } from '../types';
+import { enrichJob } from '../utils/jobEnrichment';
 
 const REGION = process.env.FUNCTION_REGION || 'us-central1';
 
@@ -141,6 +142,30 @@ export const fetchJobsWorker = onDocumentCreated(
 
 			console.log(`[WORKER] Completed ${taskId}: ${written} written, ${failed} failed`);
 
+			// ✅ AUTO-ENRICH: Tag all newly written jobs with improved extraction logic
+			console.log(`[WORKER] Starting auto-enrichment for ${written} jobs...`);
+			let enriched = 0;
+			let enrichFailed = 0;
+
+			for (const j of jobs) {
+				try {
+					const cleanExternalId = (j.externalId && typeof j.externalId === 'string')
+						? j.externalId.replace(/\//g, '_')
+						: '';
+					const docId = cleanExternalId.length > 0
+						? `${j.ats}_${cleanExternalId}`
+						: `${j.ats}_${hashString([j.title, j.company, j.applyUrl].join('|'))}`;
+					
+					await enrichJob(docId);
+					enriched++;
+				} catch (e: any) {
+					enrichFailed++;
+					console.warn(`[WORKER] Enrichment failed for job ${j.externalId || j.title}:`, e.message);
+				}
+			}
+
+			console.log(`[WORKER] ✅ Auto-enrichment complete: ${enriched} enriched, ${enrichFailed} failed`);
+
 			await taskRef.update({
 				status: 'completed',
 				completedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -148,6 +173,8 @@ export const fetchJobsWorker = onDocumentCreated(
 				jobsFetched: jobs.length,
 				jobsWritten: written,
 				jobsFailed: failed,
+				jobsEnriched: enriched,
+				enrichmentFailed: enrichFailed,
 			});
 
 		} catch (error: any) {

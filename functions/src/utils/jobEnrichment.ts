@@ -25,78 +25,56 @@ interface JobDoc {
 }
 
 /**
+ * Helper function to escape special regex characters
+ */
+function escapeRegExp(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Extract industry/sector tags
  */
 function extractIndustryTags(job: JobDoc): string[] {
     const text = `${job.title || ''} ${job.description || ''} ${job.summary || ''} ${job.company || ''}`.toLowerCase();
     const industries: string[] = [];
 
-    // Tech & Software
-    if (
-        text.includes('software') || text.includes('tech') || text.includes('saas') ||
-        text.includes('startup') || text.includes('digital') || text.includes('platform') ||
-        text.includes('app') || text.includes('cloud') || text.includes('web') ||
-        text.includes('mobile') || text.includes('ai') || text.includes('machine learning')
-    ) {
+    // Tech & Software (avoid matching "technician", "biotech" as main industry)
+    if (/\b(software|tech(?!nician)|saas|startup|digital|platform|app(?!lication)|cloud|web|mobile|ai|machine learning|developer|engineer|programmer|coding)\b/i.test(text)) {
         industries.push('tech');
     }
 
-    // Finance & Banking
-    if (
-        text.includes('bank') || text.includes('finance') || text.includes('fintech') ||
-        text.includes('payment') || text.includes('insurance') || text.includes('trading') ||
-        text.includes('crypto') || text.includes('blockchain') || text.includes('investment')
-    ) {
+    // Finance & Banking (avoid matching "bankrupt")
+    if (/\b(bank(?!rupt)|finance|fintech|payment|insurance|trading|crypto|blockchain|investment)\b/i.test(text)) {
         industries.push('finance');
     }
 
     // E-commerce & Retail
-    if (
-        text.includes('e-commerce') || text.includes('ecommerce') || text.includes('retail') ||
-        text.includes('marketplace') || text.includes('shop') || text.includes('store')
-    ) {
+    if (/\b(e-commerce|ecommerce|retail|marketplace|shop(?!ping)|store)\b/i.test(text)) {
         industries.push('ecommerce');
     }
 
-    // Healthcare & Biotech
-    if (
-        text.includes('health') || text.includes('medical') || text.includes('healthcare') ||
-        text.includes('biotech') || text.includes('pharma') || text.includes('hospital') ||
-        text.includes('clinic') || text.includes('patient')
-    ) {
+    // Healthcare & Biotech (avoid matching "healthy")
+    if (/\b(health(?!y)|medical|healthcare|biotech|pharma|hospital|clinic|patient)\b/i.test(text)) {
         industries.push('healthcare');
     }
 
     // Education & EdTech
-    if (
-        text.includes('education') || text.includes('edtech') || text.includes('learning') ||
-        text.includes('university') || text.includes('school') || text.includes('training') ||
-        text.includes('course')
-    ) {
+    if (/\b(education|edtech|learning|university|school|training|course)\b/i.test(text)) {
         industries.push('education');
     }
 
     // Media & Entertainment
-    if (
-        text.includes('media') || text.includes('entertainment') || text.includes('gaming') ||
-        text.includes('streaming') || text.includes('content') || text.includes('music') ||
-        text.includes('video') || text.includes('news')
-    ) {
+    if (/\b(media|entertainment|gaming|streaming|content|music|video|news|publisher)\b/i.test(text)) {
         industries.push('media');
     }
 
     // Marketing & Advertising
-    if (
-        text.includes('marketing') || text.includes('advertising') || text.includes('agency') ||
-        text.includes('brand') || text.includes('social media')
-    ) {
+    if (/\b(marketing|advertising|agency|brand|social media|seo|sem)\b/i.test(text)) {
         industries.push('marketing');
     }
 
     // Consulting
-    if (
-        text.includes('consulting') || text.includes('consultant') || text.includes('advisory')
-    ) {
+    if (/\b(consulting|consultant|advisory|strategy)\b/i.test(text)) {
         industries.push('consulting');
     }
 
@@ -114,68 +92,98 @@ function extractTechnologyTags(job: JobDoc): string[] {
     const languages = ['python', 'javascript', 'typescript', 'java', 'go', 'golang', 'rust',
         'c++', 'c#', 'php', 'ruby', 'swift', 'kotlin', 'scala', 'r', 'sql'];
     languages.forEach(lang => {
-        if (text.includes(lang)) technologies.push(lang);
+        if (new RegExp(`\\b${escapeRegExp(lang)}\\b`, 'i').test(text)) {
+            technologies.push(lang);
+        }
     });
 
     // Frontend
     const frontend = ['react', 'vue', 'angular', 'svelte', 'next.js', 'nextjs', 'nuxt',
         'tailwind', 'bootstrap', 'html', 'css', 'sass', 'webpack'];
     frontend.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            // Normalize aliases
+            if (tech === 'nextjs') technologies.push('next.js');
+            else technologies.push(tech);
+        }
     });
 
     // Backend & Frameworks
     const backend = ['node.js', 'nodejs', 'express', 'django', 'flask', 'fastapi',
         'spring', 'laravel', 'rails', '.net', 'dotnet', 'graphql', 'rest', 'api'];
     backend.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            // Normalize aliases
+            if (tech === 'nodejs') technologies.push('node.js');
+            else if (tech === 'dotnet') technologies.push('.net');
+            else technologies.push(tech);
+        }
     });
 
     // Cloud & DevOps
     const cloud = ['aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'k8s',
         'terraform', 'ansible', 'jenkins', 'gitlab', 'github', 'ci/cd', 'cicd'];
     cloud.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            // Normalize k8s to kubernetes
+            if (tech === 'k8s') technologies.push('kubernetes');
+            else if (tech === 'cicd') technologies.push('ci/cd');
+            else technologies.push(tech);
+        }
     });
 
     // Databases
     const databases = ['postgresql', 'postgres', 'mysql', 'mongodb', 'redis', 'elasticsearch',
         'cassandra', 'dynamodb', 'firestore', 'firebase', 'supabase'];
     databases.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            // Normalize postgres to postgresql
+            if (tech === 'postgres') technologies.push('postgresql');
+            else technologies.push(tech);
+        }
     });
 
     // CRM & Business Tools
     const crm = ['salesforce', 'hubspot', 'crm', 'zendesk', 'intercom', 'pipedrive'];
     crm.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            technologies.push(tech);
+        }
     });
 
     // ERP & Enterprise
     const erp = ['sap', 'oracle', 'erp', 'workday', 'servicenow'];
     erp.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            technologies.push(tech);
+        }
     });
 
     // Design & Creative
     const design = ['figma', 'sketch', 'adobe', 'photoshop', 'illustrator', 'xd',
         'invision', 'framer', 'canva'];
     design.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            technologies.push(tech);
+        }
     });
 
     // Data & Analytics
     const data = ['tableau', 'powerbi', 'looker', 'databricks', 'snowflake', 'airflow',
         'spark', 'hadoop', 'pandas', 'numpy'];
     data.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            technologies.push(tech);
+        }
     });
 
     // AI & ML
     const ai = ['tensorflow', 'pytorch', 'scikit-learn', 'langchain', 'openai',
         'machine learning', 'deep learning', 'nlp', 'computer vision'];
     ai.forEach(tech => {
-        if (text.includes(tech)) technologies.push(tech);
+        if (new RegExp(`\\b${escapeRegExp(tech)}\\b`, 'i').test(text)) {
+            technologies.push(tech);
+        }
     });
 
     return [...new Set(technologies)]; // Remove duplicates
@@ -189,53 +197,74 @@ function extractSkillTags(job: JobDoc): string[] {
     const skills: string[] = [];
 
     // Marketing Skills
-    if (text.includes('seo')) skills.push('seo');
-    if (text.includes('sem') || text.includes('ppc')) skills.push('sem');
-    if (text.includes('content marketing')) skills.push('content-marketing');
-    if (text.includes('email marketing')) skills.push('email-marketing');
-    if (text.includes('social media')) skills.push('social-media');
-    if (text.includes('analytics') || text.includes('google analytics')) skills.push('analytics');
+    if (/\bseo\b/i.test(text)) skills.push('seo');
+    if (/\b(sem|ppc)\b/i.test(text)) skills.push('sem');
+    if (/\bcontent marketing\b/i.test(text)) skills.push('content-marketing');
+    if (/\bemail marketing\b/i.test(text)) skills.push('email-marketing');
+    if (/\bsocial media\b/i.test(text)) skills.push('social-media');
+    if (/\b(analytics|google analytics)\b/i.test(text)) skills.push('analytics');
 
     // Product & Project Management
-    if (text.includes('product management') || text.includes('product manager')) skills.push('product-management');
-    if (text.includes('project management') || text.includes('pmp')) skills.push('project-management');
-    if (text.includes('agile') || text.includes('scrum')) skills.push('agile');
+    if (/\b(product management|product manager)\b/i.test(text)) skills.push('product-management');
+    if (/\b(project management|pmp)\b/i.test(text)) skills.push('project-management');
+    if (/\b(agile|scrum)\b/i.test(text)) skills.push('agile');
 
     // Business
-    if (text.includes('sales')) skills.push('sales');
-    if (text.includes('business development') || text.includes('bd')) skills.push('business-development');
-    if (text.includes('customer success')) skills.push('customer-success');
+    if (/\bsales\b/i.test(text)) skills.push('sales');
+    if (/\b(business development|bd)\b/i.test(text)) skills.push('business-development');
+    if (/\bcustomer success\b/i.test(text)) skills.push('customer-success');
 
     // Design
-    if (text.includes('ui/ux') || text.includes('ux design')) skills.push('ux-design');
-    if (text.includes('ui design')) skills.push('ui-design');
-    if (text.includes('graphic design')) skills.push('graphic-design');
+    if (/\b(ui\/ux|ux design)\b/i.test(text)) skills.push('ux-design');
+    if (/\bui design\b/i.test(text)) skills.push('ui-design');
+    if (/\bgraphic design\b/i.test(text)) skills.push('graphic-design');
+
+    // Communication & Leadership
+    if (/\b(communication|communication skills)\b/i.test(text)) skills.push('communication');
+    if (/\b(leadership|team lead)\b/i.test(text)) skills.push('leadership');
+    if (/\b(teamwork|collaboration)\b/i.test(text)) skills.push('teamwork');
+    if (/\bproblem solving\b/i.test(text)) skills.push('problem-solving');
 
     return [...new Set(skills)];
 }
 
 /**
  * Analyze job title and description to extract employment type
+ * Must be called AFTER extractExperienceLevel for proper conflict resolution
  */
-function extractEmploymentType(job: JobDoc): string[] {
+function extractEmploymentType(job: JobDoc, experienceLevel?: string[]): string[] {
     const text = `${job.title || ''} ${job.description || ''} ${job.summary || ''}`.toLowerCase();
-    const types: string[] = [];
+    const title = (job.title || '').toLowerCase();
+    let types: string[] = [];
 
-    if (text.includes('full-time') || text.includes('full time') || text.includes('fulltime') || text.includes('cdi') || text.includes('permanent')) {
+    // Use word boundaries to avoid false matches
+    if (/\b(full.?time|permanent|cdi|fulltime)\b/i.test(text)) {
         types.push('full-time');
     }
-    if (text.includes('part-time') || text.includes('part time') || text.includes('parttime')) {
+    if (/\b(part.?time|temps partiel|parttime)\b/i.test(text)) {
         types.push('part-time');
     }
-    if (text.includes('contract') || text.includes('contractor') || text.includes('freelance') || text.includes('cdd') || text.includes('fixed-term') || text.includes('temporary')) {
+    if (/\b(contract(or)?|freelance|consultant|cdd|fixed.?term|temporary)\b/i.test(text)) {
         types.push('contract');
     }
-    if (text.includes('intern') || text.includes('internship') || text.includes('stage') || text.includes('alternance') || text.includes('apprenticeship')) {
+    if (/\b(intern|internship|stage|alternance|apprenticeship|apprenti)\b/i.test(text)) {
         types.push('internship');
     }
 
-    // Default to full-time if nothing detected and not internship
-    if (types.length === 0 && !text.includes('intern')) {
+    // ENHANCED CONFLICT RESOLUTION: Remove "internship" if it conflicts with seniority
+    if (types.includes('internship')) {
+        // Check title for senior/lead keywords
+        if (/\b(senior|lead|principal|staff|director|manager|head of|vp|chief)\b/i.test(title)) {
+            types = types.filter(t => t !== 'internship');
+        }
+        // CRITICAL: Also check experience level (if provided)
+        if (experienceLevel && (experienceLevel.includes('senior') || experienceLevel.includes('lead'))) {
+            types = types.filter(t => t !== 'internship');
+        }
+    }
+
+    // Default to full-time if nothing detected
+    if (types.length === 0) {
         types.push('full-time');
     }
 
@@ -249,31 +278,18 @@ function extractWorkLocation(job: JobDoc): string[] {
     const text = `${job.title || ''} ${job.description || ''} ${job.summary || ''} ${job.remote || ''} ${job.remotePolicy || ''} ${job.location || ''}`.toLowerCase();
     const locations: string[] = [];
 
-    if (
-        text.includes('remote') ||
-        text.includes('work from home') ||
-        text.includes('wfh') ||
-        text.includes('distributed') ||
-        text.includes('télétravail')
-    ) {
+    // Use word boundaries to avoid matching "remove", "remotely"
+    if (/\b(remote|work from home|wfh|distributed|télétravail|telecommute)\b/i.test(text)) {
         locations.push('remote');
     }
 
-    if (
-        text.includes('hybrid') ||
-        (text.includes('remote') && text.includes('office')) ||
-        text.includes('flex')
-    ) {
+    if (/\b(hybrid|flex)\b/i.test(text) || 
+        (locations.includes('remote') && /\b(office|on.?site)\b/i.test(text))) {
         locations.push('hybrid');
     }
 
-    if (
-        text.includes('on-site') ||
-        text.includes('onsite') ||
-        text.includes('in-office') ||
-        text.includes('au bureau') ||
-        (!locations.includes('remote') && !locations.includes('hybrid') && job.location)
-    ) {
+    if (/\b(on.?site|onsite|in.?office|au bureau|in.?person)\b/i.test(text) ||
+        (!locations.includes('remote') && !locations.includes('hybrid') && job.location)) {
         locations.push('on-site');
     }
 
@@ -315,67 +331,46 @@ function extractSalary(job: JobDoc): string | null {
 }
 
 /**
- * Extract experience level
+ * Extract experience level with STRICT PRIORITY SYSTEM
+ * Returns immediately on first match to avoid conflicting tags
  */
 function extractExperienceLevel(job: JobDoc): string[] {
     const text = `${job.title || ''} ${job.description || ''} ${job.summary || ''} ${job.seniority || ''} ${job.level || ''}`.toLowerCase();
-    const levels: string[] = [];
+    const title = (job.title || '').toLowerCase();
 
-    if (text.includes('intern') || text.includes('stage') || text.includes('apprenti') || text.includes('alternance')) {
-        levels.push('internship');
-    }
-    if (
-        text.includes('entry') ||
-        text.includes('junior') ||
-        text.includes('graduate') ||
-        text.includes('débutant') ||
-        text.includes('associate') ||
-        text.includes('0-2 years') ||
-        text.includes('0-2 ans')
-    ) {
-        levels.push('entry');
-    }
-    if (
-        text.includes('mid') ||
-        text.includes('intermediate') ||
-        text.includes('2-5 years') ||
-        text.includes('2-5 ans') ||
-        text.includes('confirmé') ||
-        text.includes('medior')
-    ) {
-        levels.push('mid');
-    }
-    if (
-        text.includes('senior') ||
-        text.includes('sr.') ||
-        text.includes('5+ years') ||
-        text.includes('expérimenté') ||
-        text.includes('expert') ||
-        text.includes('lead') // Often overlaps
-    ) {
-        levels.push('senior');
-    }
-    if (
-        text.includes('lead') ||
-        text.includes('principal') ||
-        text.includes('staff') ||
-        text.includes('architect') ||
-        text.includes('head of') ||
-        text.includes('director') ||
-        text.includes('vp') ||
-        text.includes('chief') ||
-        text.includes('c-level') ||
-        text.includes('founding')
-    ) {
-        levels.push('lead');
+    // PRIORITY 1: Lead/Executive Level (highest seniority)
+    if (/\b(lead|principal|staff engineer|staff software|staff developer|architect|director|vp|vice president|head of|chief|cto|ceo|cfo|coo|founding)\b/i.test(text)) {
+        return ['lead'];
     }
 
-    // Default to mid if nothing specific detected
-    if (levels.length === 0 && !text.includes('intern')) {
-        levels.push('mid');
+    // PRIORITY 2: Senior Level
+    // Be very strict: must have "senior" or "sr." explicitly in title OR with years requirement
+    if (/\b(senior|sr\.|sr\s|expérimenté)\b/i.test(title) ||
+        (/\b(senior|sr\.|sr\s)\b/i.test(text) && /\b(5\+|5-|6\+|7\+|8\+|10\+)\s*years?\b/i.test(text))) {
+        return ['senior'];
     }
 
-    return [...new Set(levels)];
+    // PRIORITY 3: Mid Level
+    if (/\b(mid|mid-level|intermediate|confirmé|medior)\b/i.test(text) ||
+        /\b(2-5|3-5|3-7|4-6)\s*years?\b/i.test(text)) {
+        return ['mid'];
+    }
+
+    // PRIORITY 4: Entry/Junior Level
+    if (/\b(entry|entry-level|junior|jr\.|jr\s|graduate|débutant|associate)\b/i.test(text) ||
+        /\b(0-2|0-1|1-2|1-3)\s*years?\b/i.test(text)) {
+        return ['entry'];
+    }
+
+    // PRIORITY 5: Internship (lowest priority, VERY strict)
+    // Only match if explicitly in TITLE with word boundary OR very clear in description with student keywords
+    if (/\b(intern|internship|stage|apprenti|alternance)\b/i.test(title) ||
+        (/\b(intern|internship|stage)\b/i.test(text) && /\b(student|université|university|école|school)\b/i.test(text))) {
+        return ['internship'];
+    }
+
+    // DEFAULT: Mid level (safest assumption for unmatched professional roles)
+    return ['mid'];
 }
 
 /**
@@ -393,10 +388,10 @@ export async function enrichJob(jobId: string): Promise<void> {
 
     const jobData = jobSnap.data() as JobDoc;
 
-    // Extract tags
-    const employmentTypes = extractEmploymentType(jobData);
-    const workLocations = extractWorkLocation(jobData);
+    // Extract tags - ORDER MATTERS! Extract experience level first
     const experienceLevels = extractExperienceLevel(jobData);
+    const employmentTypes = extractEmploymentType(jobData, experienceLevels); // Pass experience level for conflict resolution
+    const workLocations = extractWorkLocation(jobData);
     const industries = extractIndustryTags(jobData);
     const technologies = extractTechnologyTags(jobData);
     const skills = extractSkillTags(jobData);
@@ -425,7 +420,7 @@ export async function enrichJob(jobId: string): Promise<void> {
 
         // Metadata
         enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
-        enrichedVersion: '2.1', // Version 2.1 includes salary and improved extraction
+        enrichedVersion: '2.2', // Version 2.2: word boundaries + priority system for accurate tagging
     };
 
     await jobRef.update(updates);
@@ -479,9 +474,9 @@ export async function enrichAllJobs(batchSize: number = 100): Promise<void> {
                 }
             }
 
-            const employmentTypes = extractEmploymentType(jobData);
-            const workLocations = extractWorkLocation(jobData);
             const experienceLevels = extractExperienceLevel(jobData);
+            const employmentTypes = extractEmploymentType(jobData, experienceLevels);
+            const workLocations = extractWorkLocation(jobData);
             const industries = extractIndustryTags(jobData);
             const technologies = extractTechnologyTags(jobData);
             const skills = extractSkillTags(jobData);
@@ -497,7 +492,7 @@ export async function enrichAllJobs(batchSize: number = 100): Promise<void> {
                 remote: workLocations.includes('remote') ? 'remote' : workLocations[0] || 'on-site',
                 seniority: experienceLevels[0] || 'mid',
                 enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
-                enrichedVersion: '2.0',
+                enrichedVersion: '2.2',
             };
 
             batch.update(doc.ref, updates);

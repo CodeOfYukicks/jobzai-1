@@ -292,3 +292,4 @@ Le code est correct. Le problème est que **l'API Web Speech Recognition ne peut
 
 Teste maintenant et envoie-moi TOUS les messages de la console ! 🔍
 
+
