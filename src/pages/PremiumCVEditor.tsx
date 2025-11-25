@@ -13,7 +13,7 @@ import EditorPanel from '../components/cv-editor/EditorPanel';
 import PreviewContainer from '../components/cv-editor/PreviewContainer';
 import AICompanionPanel from '../components/cv-editor/AICompanionPanel';
 import CompanyHeader from '../components/cv-editor/CompanyHeader';
-import { CVData, CVTemplate, CVEditorState, CVLayoutSettings } from '../types/cvEditor';
+import { CVData, CVTemplate, CVEditorState, CVLayoutSettings, SectionClickTarget } from '../types/cvEditor';
 import { useCVEditor } from '../hooks/useCVEditor';
 import { exportToPDF, generateId } from '../lib/cvEditorUtils';
 import { parseCVData } from '../lib/cvSectionAI';
@@ -81,6 +81,9 @@ export default function PremiumCVEditor() {
     gaps: string[];
   } | undefined>();
   const [showAIPanel, setShowAIPanel] = useState(false);
+  
+  // Click-to-edit from preview
+  const [activeSectionTarget, setActiveSectionTarget] = useState<SectionClickTarget | null>(null);
   
   // Layout settings state
   const [layoutSettings, setLayoutSettings] = useState<CVLayoutSettings>({
@@ -382,6 +385,16 @@ export default function PremiumCVEditor() {
     setIsDirty(true);
   }, []);
 
+  // Handle click on CV preview section to open editor
+  const handlePreviewSectionClick = useCallback((target: SectionClickTarget) => {
+    setActiveSectionTarget(target);
+  }, []);
+
+  // Clear active section target after EditorPanel has processed it
+  const clearActiveSectionTarget = useCallback(() => {
+    setActiveSectionTarget(null);
+  }, []);
+
   // Handle save
   const handleSave = async () => {
     setIsSaving(true);
@@ -526,10 +539,10 @@ export default function PremiumCVEditor() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 min-h-0 overflow-hidden">
           <div className="h-full flex overflow-hidden">
           {/* Left: Editor Panel */}
-          <div className="h-full w-full lg:w-2/5 xl:w-[480px] border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="h-full w-full lg:w-2/5 xl:w-[480px] border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
             <EditorPanel
               cvData={cvData}
               onUpdate={updateSection}
@@ -540,6 +553,8 @@ export default function PremiumCVEditor() {
               template={template}
               onTemplateChange={setTemplate}
               jobContext={jobContext}
+              activeSectionTarget={activeSectionTarget}
+              onActiveSectionProcessed={clearActiveSectionTarget}
             />
           </div>
 
@@ -560,6 +575,7 @@ export default function PremiumCVEditor() {
                   onZoomIn={handleZoomIn}
                   onZoomOut={handleZoomOut}
                   onZoomReset={handleZoomReset}
+                  onSectionClick={handlePreviewSectionClick}
                 />
               </motion.div>
             )}
@@ -582,6 +598,7 @@ export default function PremiumCVEditor() {
                   onZoomIn={handleZoomIn}
                   onZoomOut={handleZoomOut}
                   onZoomReset={handleZoomReset}
+                  onSectionClick={handlePreviewSectionClick}
                 />
                 
                 {/* Close button for mobile preview */}

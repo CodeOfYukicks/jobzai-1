@@ -155,3 +155,9 @@ export interface CVLayoutSettings {
   lineHeight: number;         // 1.0, 1.3, 1.5, 2.0
   fontFamily: string;         // 'Inter', 'Playfair Display', 'Montserrat', etc.
 }
+
+// Click-to-edit target from CV preview
+export interface SectionClickTarget {
+  sectionType: CVSection['type'];
+  itemId?: string; // For sections with multiple items (experiences, education, etc.)
+}

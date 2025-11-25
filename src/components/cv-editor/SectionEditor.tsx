@@ -1,20 +1,22 @@
-import { useState, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plus, Trash2, GripVertical, Calendar, MapPin, Link, Edit3,
+  Plus, Trash2, Calendar, Edit3,
   Wand2, TrendingUp, Target, Hash, FileText, Zap,
-  ChevronDown, ChevronUp, X, Check, Award, Code, Globe, Loader2, Sparkles
+  X, Check, Loader2, Sparkles
 } from 'lucide-react';
 import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage } from '../../types/cvEditor';
-import { generateId, formatDate } from '../../lib/cvEditorUtils';
+import { generateId } from '../../lib/cvEditorUtils';
 import { rewriteSection } from '../../lib/cvSectionAI';
 import { toast } from 'sonner';
 import DiffView from './DiffView';
-import ExperienceModal from './modals/ExperienceModal';
-import EducationModal from './modals/EducationModal';
-import ProjectModal from './modals/ProjectModal';
-import CertificationModal from './modals/CertificationModal';
-import LanguageModal from './modals/LanguageModal';
+import {
+  ExperienceInlineForm,
+  EducationInlineForm,
+  ProjectInlineForm,
+  CertificationInlineForm,
+  LanguageInlineForm
+} from './inline-editors';
 
 interface SectionEditorProps {
   section: CVSection;
@@ -29,6 +31,9 @@ interface SectionEditorProps {
     gaps: string[];
   };
   fullCV?: string;
+  // External control for click-to-edit from preview
+  externalEditItemId?: string | null;
+  onExternalEditProcessed?: () => void;
 }
 
 // AI action buttons for each section
@@ -41,20 +46,33 @@ const AI_ACTIONS = [
   { id: 'shorten', label: 'Shorten', icon: <Zap className="w-3.5 h-3.5" /> }
 ];
 
-export default function SectionEditor({ section, data, onChange, jobContext, fullCV }: SectionEditorProps) {
+export default function SectionEditor({ 
+  section, 
+  data, 
+  onChange, 
+  jobContext, 
+  fullCV,
+  externalEditItemId,
+  onExternalEditProcessed
+}: SectionEditorProps) {
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>('');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [currentAction, setCurrentAction] = useState<string>('');
   const [showDiff, setShowDiff] = useState(false);
   
-  // Modal states
-  const [experienceModalOpen, setExperienceModalOpen] = useState(false);
-  const [educationModalOpen, setEducationModalOpen] = useState(false);
-  const [projectModalOpen, setProjectModalOpen] = useState(false);
-  const [certificationModalOpen, setCertificationModalOpen] = useState(false);
-  const [languageModalOpen, setLanguageModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  // Inline editing state
+  const [inlineEditingId, setInlineEditingId] = useState<string | null>(null);
+  const [isAddingNew, setIsAddingNew] = useState(false);
+
+  // Handle external edit request from preview click
+  useEffect(() => {
+    if (externalEditItemId) {
+      setInlineEditingId(externalEditItemId);
+      setIsAddingNew(false);
+      onExternalEditProcessed?.();
+    }
+  }, [externalEditItemId, onExternalEditProcessed]);
 
   const handleAIAction = async (action: string) => {
     if (!jobContext) {
@@ -159,17 +177,13 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
     if (!aiSuggestion) return null;
 
     const acceptSuggestion = () => {
-      // Apply the suggestion based on section type
       switch (section.type) {
         case 'summary':
           onChange({ summary: aiSuggestion });
           break;
         case 'experience':
-          // Parse and update experiences if needed
-          // For now, we'll just update the first experience's description
           if (data.experiences?.length > 0) {
             const updatedExperiences = [...data.experiences];
-            // Split the suggestion into paragraphs for bullets
             const lines = aiSuggestion.split('\n').filter(line => line.trim());
             updatedExperiences[0] = {
               ...updatedExperiences[0],
@@ -180,16 +194,13 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           }
           break;
         case 'skills':
-          // Parse skills from comma-separated or newline-separated list
           const skills = aiSuggestion.split(/[,\n]/)
             .map(s => s.trim())
             .filter(s => s)
             .map(name => ({ id: generateId(), name, category: 'technical' }));
           onChange({ skills });
           break;
-        // Add more cases as needed
         default:
-          // For other sections, just update the content directly
           onChange({ [section.type]: aiSuggestion });
       }
       
@@ -198,7 +209,6 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
       toast.success('AI suggestion applied!');
     };
 
-    // Show diff view if enabled
     if (showDiff && originalContent && aiSuggestion) {
       return (
         <motion.div
@@ -221,18 +231,17 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
       );
     }
 
-    // Regular suggestion view (fallback)
     return (
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-3 p-4 bg-gradient-to-r from-[#EB7134]50 to-[#5D4D6B]50 dark:from-[#EB7134]900/20 dark:to-[#5D4D6B]900/20 border border-[#EB7134]200 dark:border-[#EB7134]800 rounded-lg"
+        className="mt-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-[#EB7134]600 dark:text-[#EB7134]400" />
-              <span className="text-xs font-medium text-[#EB7134]700 dark:text-[#EB7134]300">
+              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
                 AI Suggestion
               </span>
             </div>
@@ -243,7 +252,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
           <div className="flex items-center gap-1">
             <button
               onClick={acceptSuggestion}
-              className="p-2 bg-[#EB7134]600 hover:bg-[#EB7134]700 text-white rounded-lg transition-colors"
+              className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
               title="Accept suggestion"
             >
               <Check className="w-4 h-4" />
@@ -265,6 +274,12 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
     );
   };
 
+  // Close inline form helper
+  const closeInlineForm = () => {
+    setInlineEditingId(null);
+    setIsAddingNew(false);
+  };
+
   // Render different editors based on section type
   switch (section.type) {
     case 'personal':
@@ -279,7 +294,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="text"
                 value={data.firstName || ''}
                 onChange={(e) => onChange({ firstName: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="John"
               />
             </div>
@@ -291,7 +306,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="text"
                 value={data.lastName || ''}
                 onChange={(e) => onChange({ lastName: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="Doe"
               />
             </div>
@@ -301,13 +316,13 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
               Professional Title
             </label>
-              <input
-                type="text"
-                value={data.title || ''}
-                onChange={(e) => onChange({ title: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
-                placeholder="Senior Software Engineer"
-              />
+            <input
+              type="text"
+              value={data.title || ''}
+              onChange={(e) => onChange({ title: e.target.value })}
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              placeholder="Senior Software Engineer"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -319,7 +334,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="email"
                 value={data.email || ''}
                 onChange={(e) => onChange({ email: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="john.doe@example.com"
               />
             </div>
@@ -331,7 +346,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
                 type="tel"
                 value={data.phone || ''}
                 onChange={(e) => onChange({ phone: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
@@ -341,26 +356,26 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
               Location
             </label>
-              <input
-                type="text"
-                value={data.location || ''}
-                onChange={(e) => onChange({ location: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
-                placeholder="San Francisco, CA"
-              />
+            <input
+              type="text"
+              value={data.location || ''}
+              onChange={(e) => onChange({ location: e.target.value })}
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              placeholder="San Francisco, CA"
+            />
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
               LinkedIn
             </label>
-              <input
-                type="url"
-                value={data.linkedin || ''}
-                onChange={(e) => onChange({ linkedin: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 transition-all"
-                placeholder="linkedin.com/in/johndoe"
-              />
+            <input
+              type="url"
+              value={data.linkedin || ''}
+              onChange={(e) => onChange({ linkedin: e.target.value })}
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              placeholder="linkedin.com/in/johndoe"
+            />
           </div>
         </div>
       );
@@ -376,7 +391,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               value={data.summary || ''}
               onChange={(e) => onChange({ summary: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500 resize-none"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
               placeholder="Write a compelling summary that highlights your key strengths and career objectives..."
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -391,172 +406,217 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
     case 'experience':
       return (
         <div className="space-y-4">
-          {data.experiences?.map((exp: CVExperience) => (
-            <div
-              key={exp.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
-              onClick={() => {
-                setEditingItem(exp);
-                setExperienceModalOpen(true);
-              }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                    {exp.title || 'Untitled Position'}
-                  </h4>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
-                    {exp.company} {exp.location && `• ${exp.location}`}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {exp.startDate || 'Start'} - {exp.current ? 'Present' : exp.endDate || 'End'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingItem(exp);
-                      setExperienceModalOpen(true);
-                    }}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChange({ experiences: data.experiences.filter((e: CVExperience) => e.id !== exp.id) });
-                    }}
-                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-          
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setExperienceModalOpen(true);
-            }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
-          >
-            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold">Add Experience</span>
-          </button>
+          <AnimatePresence mode="wait">
+            {/* Show inline form for adding new experience */}
+            {isAddingNew && (
+              <motion.div
+                key="add-new-experience"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ExperienceInlineForm
+                  onSave={(experience) => {
+                    onChange({ experiences: [...(data.experiences || []), experience] });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                  jobContext={jobContext}
+                  fullCV={fullCV}
+                />
+              </motion.div>
+            )}
 
-          <ExperienceModal
-            isOpen={experienceModalOpen}
-            onClose={() => {
-              setExperienceModalOpen(false);
-              setEditingItem(null);
-            }}
-            onSave={(experience) => {
-              if (editingItem) {
-                // Update existing
-                onChange({
-                  experiences: data.experiences.map((e: CVExperience) =>
-                    e.id === editingItem.id ? experience : e
-                  )
-                });
-              } else {
-                // Add new
-                onChange({ experiences: [...(data.experiences || []), experience] });
-              }
-            }}
-            initialData={editingItem}
-          />
+            {/* Show inline form for editing existing experience */}
+            {inlineEditingId && !isAddingNew && (
+              <motion.div
+                key={`edit-${inlineEditingId}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ExperienceInlineForm
+                  initialData={data.experiences?.find((e: CVExperience) => e.id === inlineEditingId)}
+                  onSave={(experience) => {
+                    onChange({
+                      experiences: data.experiences.map((e: CVExperience) =>
+                        e.id === inlineEditingId ? experience : e
+                      )
+                    });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                  jobContext={jobContext}
+                  fullCV={fullCV}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {renderAIActions()}
-          {renderAISuggestion()}
+          {/* Experience list - hide when editing */}
+          {!isAddingNew && !inlineEditingId && (
+            <>
+              {data.experiences?.map((exp: CVExperience) => (
+                <div
+                  key={exp.id}
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  onClick={() => setInlineEditingId(exp.id)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                        {exp.title || 'Untitled Position'}
+                      </h4>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                        {exp.company} {exp.location && `• ${exp.location}`}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {exp.startDate || 'Start'} - {exp.current ? 'Present' : exp.endDate || 'End'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInlineEditingId(exp.id);
+                        }}
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChange({ experiences: data.experiences.filter((e: CVExperience) => e.id !== exp.id) });
+                        }}
+                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <button
+                onClick={() => setIsAddingNew(true)}
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+              >
+                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold">Add Experience</span>
+              </button>
+
+              {renderAIActions()}
+              {renderAISuggestion()}
+            </>
+          )}
         </div>
       );
 
     case 'education':
       return (
         <div className="space-y-4">
-          {data.education?.map((edu: CVEducation) => (
-            <div
-              key={edu.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
-              onClick={() => {
-                setEditingItem(edu);
-                setEducationModalOpen(true);
-              }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                    {edu.degree || 'Untitled Degree'}
-                  </h4>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
-                    {edu.institution} {edu.field && `• ${edu.field}`}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {edu.endDate || 'Graduation date'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingItem(edu);
-                      setEducationModalOpen(true);
-                    }}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChange({ education: data.education.filter((e: CVEducation) => e.id !== edu.id) });
-                    }}
-                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-          
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setEducationModalOpen(true);
-            }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
-          >
-            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold">Add Education</span>
-          </button>
+          <AnimatePresence mode="wait">
+            {isAddingNew && (
+              <motion.div
+                key="add-new-education"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <EducationInlineForm
+                  onSave={(education) => {
+                    onChange({ education: [...(data.education || []), education] });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                />
+              </motion.div>
+            )}
 
-          <EducationModal
-            isOpen={educationModalOpen}
-            onClose={() => {
-              setEducationModalOpen(false);
-              setEditingItem(null);
-            }}
-            onSave={(education) => {
-              if (editingItem) {
-                onChange({
-                  education: data.education.map((e: CVEducation) =>
-                    e.id === editingItem.id ? education : e
-                  )
-                });
-              } else {
-                onChange({ education: [...(data.education || []), education] });
-              }
-            }}
-            initialData={editingItem}
-          />
+            {inlineEditingId && !isAddingNew && (
+              <motion.div
+                key={`edit-${inlineEditingId}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <EducationInlineForm
+                  initialData={data.education?.find((e: CVEducation) => e.id === inlineEditingId)}
+                  onSave={(education) => {
+                    onChange({
+                      education: data.education.map((e: CVEducation) =>
+                        e.id === inlineEditingId ? education : e
+                      )
+                    });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {renderAIActions()}
-          {renderAISuggestion()}
+          {!isAddingNew && !inlineEditingId && (
+            <>
+              {data.education?.map((edu: CVEducation) => (
+                <div
+                  key={edu.id}
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  onClick={() => setInlineEditingId(edu.id)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                        {edu.degree || 'Untitled Degree'}
+                      </h4>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                        {edu.institution} {edu.field && `• ${edu.field}`}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {edu.endDate || 'Graduation date'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInlineEditingId(edu.id);
+                        }}
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChange({ education: data.education.filter((e: CVEducation) => e.id !== edu.id) });
+                        }}
+                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <button
+                onClick={() => setIsAddingNew(true)}
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+              >
+                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold">Add Education</span>
+              </button>
+
+              {renderAIActions()}
+              {renderAISuggestion()}
+            </>
+          )}
         </div>
       );
 
@@ -580,7 +640,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
             <input
               type="text"
               placeholder="Add a skill..."
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-[#EB7134]500 focus:border-[#EB7134]500"
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   const input = e.currentTarget;
@@ -600,7 +660,7 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
               onClick={() => {
                 // TODO: Open skill suggestions
               }}
-              className="px-3 py-2 bg-[#EB7134]600 text-white rounded-lg hover:bg-[#EB7134]700 transition-colors"
+              className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -614,286 +674,350 @@ export default function SectionEditor({ section, data, onChange, jobContext, ful
     case 'certifications':
       return (
         <div className="space-y-4">
-          {data.certifications?.map((cert: CVCertification) => (
-            <div
-              key={cert.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
-              onClick={() => {
-                setEditingItem(cert);
-                setCertificationModalOpen(true);
-              }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                    {cert.name || 'Untitled Certification'}
-                  </h4>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
-                    {cert.issuer || 'Issuer'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {cert.date || 'Issue date'}
-                  </p>
+          <AnimatePresence mode="wait">
+            {isAddingNew && (
+              <motion.div
+                key="add-new-certification"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CertificationInlineForm
+                  onSave={(certification) => {
+                    onChange({ certifications: [...(data.certifications || []), certification] });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                />
+              </motion.div>
+            )}
+
+            {inlineEditingId && !isAddingNew && (
+              <motion.div
+                key={`edit-${inlineEditingId}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CertificationInlineForm
+                  initialData={data.certifications?.find((c: CVCertification) => c.id === inlineEditingId)}
+                  onSave={(certification) => {
+                    onChange({
+                      certifications: data.certifications.map((c: CVCertification) =>
+                        c.id === inlineEditingId ? certification : c
+                      )
+                    });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {!isAddingNew && !inlineEditingId && (
+            <>
+              {data.certifications?.map((cert: CVCertification) => (
+                <div
+                  key={cert.id}
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  onClick={() => setInlineEditingId(cert.id)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                        {cert.name || 'Untitled Certification'}
+                      </h4>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                        {cert.issuer || 'Issuer'}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {cert.date || 'Issue date'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInlineEditingId(cert.id);
+                        }}
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChange({ certifications: data.certifications.filter((c: CVCertification) => c.id !== cert.id) });
+                        }}
+                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingItem(cert);
-                      setCertificationModalOpen(true);
-                    }}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                  </button>
-          <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChange({ certifications: data.certifications.filter((c: CVCertification) => c.id !== cert.id) });
-                    }}
-                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-          </button>
-        </div>
-              </div>
-            </div>
-          ))}
-          
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setCertificationModalOpen(true);
-            }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
-          >
-            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold">Add Certification</span>
-          </button>
+              ))}
+              
+              <button
+                onClick={() => setIsAddingNew(true)}
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+              >
+                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold">Add Certification</span>
+              </button>
 
-          <CertificationModal
-            isOpen={certificationModalOpen}
-            onClose={() => {
-              setCertificationModalOpen(false);
-              setEditingItem(null);
-            }}
-            onSave={(certification) => {
-              if (editingItem) {
-                onChange({
-                  certifications: data.certifications.map((c: CVCertification) =>
-                    c.id === editingItem.id ? certification : c
-                  )
-                });
-              } else {
-                onChange({ certifications: [...(data.certifications || []), certification] });
-              }
-            }}
-            initialData={editingItem}
-          />
-
-          {renderAIActions()}
-          {renderAISuggestion()}
+              {renderAIActions()}
+              {renderAISuggestion()}
+            </>
+          )}
         </div>
       );
 
     case 'projects':
       return (
         <div className="space-y-4">
-          {data.projects?.map((project: CVProject) => (
-            <div
-              key={project.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
-              onClick={() => {
-                setEditingItem(project);
-                setProjectModalOpen(true);
-              }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                    {project.name || 'Untitled Project'}
-                  </h4>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 line-clamp-2 font-medium">
-                    {project.description || 'No description'}
-                  </p>
-                  {project.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {project.technologies.slice(0, 3).map((tech, idx) => (
-                        <span key={idx} className="text-xs px-2 py-0.5 bg-[#EB7134]100 dark:bg-[#EB7134]900/30 text-[#EB7134]700 dark:text-[#EB7134]300 rounded">
-                          {tech}
-                        </span>
-                      ))}
-                      {project.technologies.length > 3 && (
-                        <span className="text-xs px-2 py-0.5 text-gray-500">
-                          +{project.technologies.length - 3}
-                        </span>
-                      )}
-          </div>
-                  )}
-              </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingItem(project);
-                      setProjectModalOpen(true);
-                    }}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                    </button>
-                <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChange({ projects: data.projects.filter((p: CVProject) => p.id !== project.id) });
+          <AnimatePresence mode="wait">
+            {isAddingNew && (
+              <motion.div
+                key="add-new-project"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ProjectInlineForm
+                  onSave={(project) => {
+                    onChange({ projects: [...(data.projects || []), project] });
+                    closeInlineForm();
                   }}
-                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  onCancel={closeInlineForm}
+                  jobContext={jobContext}
+                  fullCV={fullCV}
+                />
+              </motion.div>
+            )}
+
+            {inlineEditingId && !isAddingNew && (
+              <motion.div
+                key={`edit-${inlineEditingId}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ProjectInlineForm
+                  initialData={data.projects?.find((p: CVProject) => p.id === inlineEditingId)}
+                  onSave={(project) => {
+                    onChange({
+                      projects: data.projects.map((p: CVProject) =>
+                        p.id === inlineEditingId ? project : p
+                      )
+                    });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                  jobContext={jobContext}
+                  fullCV={fullCV}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {!isAddingNew && !inlineEditingId && (
+            <>
+              {data.projects?.map((project: CVProject) => (
+                <div
+                  key={project.id}
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  onClick={() => setInlineEditingId(project.id)}
                 >
-                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-                </button>
-              </div>
-            </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                        {project.name || 'Untitled Project'}
+                      </h4>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 line-clamp-2 font-medium">
+                        {project.description || 'No description'}
+                      </p>
+                      {project.technologies.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {project.technologies.slice(0, 3).map((tech, idx) => (
+                            <span key={idx} className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                              {tech}
+                            </span>
+                          ))}
+                          {project.technologies.length > 3 && (
+                            <span className="text-xs px-2 py-0.5 text-gray-500">
+                              +{project.technologies.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInlineEditingId(project.id);
+                        }}
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChange({ projects: data.projects.filter((p: CVProject) => p.id !== project.id) });
+                        }}
+                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                onClick={() => setIsAddingNew(true)}
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+              >
+                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold">Add Project</span>
+              </button>
+
+              {renderAIActions()}
+              {renderAISuggestion()}
+            </>
+          )}
         </div>
-          ))}
-
-        <button
-            onClick={() => {
-              setEditingItem(null);
-              setProjectModalOpen(true);
-            }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
-          >
-            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold">Add Project</span>
-        </button>
-
-          <ProjectModal
-            isOpen={projectModalOpen}
-            onClose={() => {
-              setProjectModalOpen(false);
-              setEditingItem(null);
-            }}
-            onSave={(project) => {
-              if (editingItem) {
-                onChange({
-                  projects: data.projects.map((p: CVProject) =>
-                    p.id === editingItem.id ? project : p
-                  )
-                });
-              } else {
-                onChange({ projects: [...(data.projects || []), project] });
-              }
-            }}
-            initialData={editingItem}
-          />
-
-          {renderAIActions()}
-          {renderAISuggestion()}
-    </div>
-  );
+      );
 
     case 'languages':
-  return (
+      return (
         <div className="space-y-4">
-          {data.languages?.map((language: CVLanguage) => (
-            <div
-              key={language.id}
-              className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]500 shadow-sm hover:shadow-md"
-              onClick={() => {
-                setEditingItem(language);
-                setLanguageModalOpen(true);
-              }}
-            >
-              <div className="flex items-center justify-between gap-3">
-        <div className="flex-1">
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-                    {language.name || 'Untitled Language'}
-                  </h4>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 capitalize font-medium">
-                    {language.proficiency}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingItem(language);
-                      setLanguageModalOpen(true);
-                    }}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-            </button>
-        <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChange({ languages: data.languages.filter((l: CVLanguage) => l.id !== language.id) });
-                    }}
-                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-        </button>
-      </div>
-    </div>
-          </div>
-          ))}
-          
+          <AnimatePresence mode="wait">
+            {isAddingNew && (
+              <motion.div
+                key="add-new-language"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <LanguageInlineForm
+                  onSave={(language) => {
+                    onChange({ languages: [...(data.languages || []), language] });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                />
+              </motion.div>
+            )}
+
+            {inlineEditingId && !isAddingNew && (
+              <motion.div
+                key={`edit-${inlineEditingId}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <LanguageInlineForm
+                  initialData={data.languages?.find((l: CVLanguage) => l.id === inlineEditingId)}
+                  onSave={(language) => {
+                    onChange({
+                      languages: data.languages.map((l: CVLanguage) =>
+                        l.id === inlineEditingId ? language : l
+                      )
+                    });
+                    closeInlineForm();
+                  }}
+                  onCancel={closeInlineForm}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {!isAddingNew && !inlineEditingId && (
+            <>
+              {data.languages?.map((language: CVLanguage) => (
+                <div
+                  key={language.id}
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  onClick={() => setInlineEditingId(language.id)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                        {language.name || 'Untitled Language'}
+                      </h4>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 capitalize font-medium">
+                        {language.proficiency}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => {
-              setEditingItem(null);
-              setLanguageModalOpen(true);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInlineEditingId(language.id);
                         }}
-            className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#EB7134]600 dark:text-[#EB7134]400 border-2 border-dashed border-[#EB7134]300 dark:border-[#EB7134]700 rounded-xl hover:bg-[#EB7134]50 dark:hover:bg-[#EB7134]900/20 hover:border-[#EB7134]400 dark:hover:border-[#EB7134]600 transition-all flex items-center justify-center gap-2 group"
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                       >
-            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold">Add Language</span>
+                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
                       </button>
-
-          <LanguageModal
-            isOpen={languageModalOpen}
-            onClose={() => {
-              setLanguageModalOpen(false);
-              setEditingItem(null);
-            }}
-            onSave={(language) => {
-              if (editingItem) {
-                onChange({
-                  languages: data.languages.map((l: CVLanguage) =>
-                    l.id === editingItem.id ? language : l
-                  )
-                });
-              } else {
-                onChange({ languages: [...(data.languages || []), language] });
-              }
-            }}
-            initialData={editingItem}
-          />
-
-          {renderAIActions()}
-          {renderAISuggestion()}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChange({ languages: data.languages.filter((l: CVLanguage) => l.id !== language.id) });
+                        }}
+                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                      </button>
+                    </div>
                   </div>
+                </div>
+              ))}
+              
+              <button
+                onClick={() => setIsAddingNew(true)}
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+              >
+                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-semibold">Add Language</span>
+              </button>
+
+              {renderAIActions()}
+              {renderAISuggestion()}
+            </>
+          )}
+        </div>
       );
 
     default:
       return (
         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           <p className="text-sm">Section editor for "{section.type}" coming soon</p>
-    </div>
-  );
+        </div>
+      );
   }
 }
 
-// SkillChip component - still used in skills section
+// SkillChip component
 function SkillChip({ skill, onDelete }: { skill: CVSkill; onDelete: () => void }) {
   return (
-    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#EB7134]50 dark:bg-[#EB7134]900/20 text-[#EB7134]700 dark:text-[#EB7134]300 rounded-full text-sm">
+    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-full text-sm">
       <span>{skill.name}</span>
-        <button
-          onClick={onDelete}
-        className="ml-1 p-0.5 hover:bg-[#EB7134]100 dark:hover:bg-[#EB7134]800/30 rounded-full transition-colors"
-        >
+      <button
+        onClick={onDelete}
+        className="ml-1 p-0.5 hover:bg-purple-100 dark:hover:bg-purple-800/30 rounded-full transition-colors"
+      >
         <X className="w-3 h-3" />
-        </button>
+      </button>
     </div>
   );
 }

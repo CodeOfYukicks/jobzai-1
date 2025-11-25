@@ -122,7 +122,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
   const sortedSections = sortSections(sections);
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-6">
+    <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
       <div className="max-w-2xl mx-auto space-y-8">
         {/* CV Template */}
         <div>

@@ -297,8 +297,22 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const userFirstName = getFirstName(currentUser?.email);
   const userInitial = userFirstName.charAt(0).toUpperCase();
 
+  // Check if we need full height for certain pages (h-screen with internal scroll)
+  // Note: Only /ats-analysis/:id/cv-editor needs full height, not /ats-analysis/:id
+  const needsFullHeight = location.pathname === '/applications' || 
+    location.pathname === '/jobs' || 
+    location.pathname === '/professional-profile' || 
+    location.pathname === '/upcoming-interviews' || 
+    location.pathname === '/calendar' || 
+    location.pathname.startsWith('/interview-prep/') || 
+    (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor'));
+
+  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages
+  const needsFullWidth = needsFullHeight || 
+    location.pathname.startsWith('/ats-analysis/');
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col`}>
       {/* Sidebar desktop */}
       <div className={`hidden md:fixed md:inset-y-0 md:flex z-50 md:pl-3 lg:pl-4 md:py-3 transition-all duration-300 ${isCollapsed ? 'md:w-20 lg:w-20' : 'md:w-72 lg:w-80'}`}>
         <div 
@@ -829,12 +843,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed ? 'md:pl-24 lg:pl-24' : 'md:pl-[19rem] lg:pl-[21rem]'} ${location.pathname === '/applications' ? 'h-screen' : ''}`}>
-        <main className="flex-1 min-h-0">
-          <div className={`${location.pathname === '/applications' ? 'h-full flex flex-col pt-2 md:pt-6 pb-0' : `pt-2 md:py-6 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-6`}`}>
-            {location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') ? (
-              // Mode pleine largeur pour Applications, Jobs, Professional Profile, Upcoming Interviews, Calendar et Interview Prep
-              <div className="h-full flex flex-col min-h-0">{children}</div>
+      <div className={`flex flex-col flex-1 min-h-0 transition-all duration-300 ${isCollapsed ? 'md:pl-24 lg:pl-24' : 'md:pl-[19rem] lg:pl-[21rem]'}`}>
+        <main className="flex-1 min-h-0 flex flex-col">
+          <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : `pt-2 md:py-6 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-6`}`}>
+            {needsFullWidth ? (
+              // Mode pleine largeur pour Applications, Jobs, Professional Profile, Upcoming Interviews, Calendar, Interview Prep et ATS Analysis
+              <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0 overflow-hidden" : ""}>{children}</div>
             ) : (
               // Mode normal avec max-width pour les autres pages
               <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">

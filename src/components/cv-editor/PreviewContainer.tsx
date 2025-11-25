@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomIn, ZoomOut, Maximize2, Download, RefreshCw, AlertTriangle } from 'lucide-react';
-import { CVData, CVTemplate, CVLayoutSettings } from '../../types/cvEditor';
+import { CVData, CVTemplate, CVLayoutSettings, SectionClickTarget } from '../../types/cvEditor';
 import { A4_WIDTH_PX, A4_HEIGHT_PX } from '../../lib/cvEditorUtils';
 import ModernProfessional from './templates/ModernProfessional';
 import ExecutiveClassic from './templates/ExecutiveClassic';
@@ -17,6 +17,7 @@ interface PreviewContainerProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
+  onSectionClick?: (target: SectionClickTarget) => void;
 }
 
 const ZOOM_PRESETS = [50, 70, 100, 120, 150];
@@ -28,7 +29,8 @@ export default function PreviewContainer({
   layoutSettings,
   onZoomIn,
   onZoomOut,
-  onZoomReset
+  onZoomReset,
+  onSectionClick
 }: PreviewContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -222,6 +224,7 @@ export default function PreviewContainer({
                     lineHeight: 1.3,
                     fontFamily: 'Inter'
                   }}
+                  onSectionClick={onSectionClick}
                 />
               </div>
 

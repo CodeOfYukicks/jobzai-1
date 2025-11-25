@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -6,7 +6,7 @@ import {
   User, FileText, Briefcase, GraduationCap, Code, Award,
   FolderOpen, Globe, Settings, Sparkles, Edit3, Layout, Search
 } from 'lucide-react';
-import { CVData, CVSection, CVLayoutSettings, CVTemplate } from '../../types/cvEditor';
+import { CVData, CVSection, CVLayoutSettings, CVTemplate, SectionClickTarget } from '../../types/cvEditor';
 import SectionEditor from './SectionEditor';
 import { sortSections } from '../../lib/cvEditorUtils';
 import LayoutStyleTab from './tabs/LayoutStyleTab';
@@ -30,6 +30,9 @@ interface EditorPanelProps {
     strengths: string[];
     gaps: string[];
   };
+  // Click-to-edit from preview
+  activeSectionTarget?: SectionClickTarget | null;
+  onActiveSectionProcessed?: () => void;
 }
 
 const sectionIcons: Record<string, React.ReactNode> = {
@@ -52,11 +55,51 @@ export default function EditorPanel({
   onLayoutSettingsChange,
   template,
   onTemplateChange,
-  jobContext
+  jobContext,
+  activeSectionTarget,
+  onActiveSectionProcessed
 }: EditorPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('editor');
   const [expandedSection, setExpandedSection] = useState<string | null>(null); // All sections closed by default
   const [searchQuery, setSearchQuery] = useState('');
+  const [externalItemId, setExternalItemId] = useState<string | null>(null);
+  const sectionsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle external section activation from CV preview clicks
+  useEffect(() => {
+    if (activeSectionTarget) {
+      // Switch to editor tab
+      setActiveTab('editor');
+      
+      // Find the section by type
+      const targetSection = cvData.sections.find(s => s.type === activeSectionTarget.sectionType);
+      if (targetSection) {
+        // Expand the section
+        setExpandedSection(targetSection.id);
+        
+        // If there's an item ID, set it for the SectionEditor
+        if (activeSectionTarget.itemId) {
+          setExternalItemId(activeSectionTarget.itemId);
+        }
+        
+        // Scroll to the section after a short delay to allow for animation
+        setTimeout(() => {
+          const sectionElement = document.getElementById(`section-${targetSection.id}`);
+          if (sectionElement && sectionsContainerRef.current) {
+            sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+      
+      // Clear the target
+      onActiveSectionProcessed?.();
+    }
+  }, [activeSectionTarget, cvData.sections, onActiveSectionProcessed]);
+
+  // Clear external item ID after it's been processed
+  const handleExternalItemProcessed = () => {
+    setExternalItemId(null);
+  };
 
   // Handle drag end
   const handleDragEnd = (result: DropResult) => {
@@ -111,7 +154,7 @@ export default function EditorPanel({
   });
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-900">
+    <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-gray-900">
       {/* Premium Tabs Navigation */}
       <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-10">
         <div className="flex items-center px-4">
@@ -192,7 +235,7 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 min-h-0 flex items-center justify-center p-8"
+            className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center p-8"
           >
             <div className="text-center max-w-md">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#EB7134]/10 dark:bg-[#EB7134]/20 mb-4">
@@ -215,10 +258,10 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 min-h-0 flex flex-col"
+            className="flex-1 min-h-0 overflow-hidden flex flex-col"
           >
             {/* Sections List */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
+            <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-4">
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="cv-sections">
                   {(provided) => (
@@ -235,6 +278,7 @@ export default function EditorPanel({
                         >
                           {(provided, snapshot) => (
                             <div
+                              id={`section-${section.id}`}
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className={`
@@ -330,6 +374,8 @@ export default function EditorPanel({
                                         onChange={(updates) => onUpdate(section.id, updates)}
                                         jobContext={jobContext}
                                         fullCV={JSON.stringify(cvData)}
+                                        externalEditItemId={externalItemId}
+                                        onExternalEditProcessed={handleExternalItemProcessed}
                                       />
                                     </div>
                                   </motion.div>
@@ -355,7 +401,7 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 flex flex-col min-h-0"
+            className="flex-1 min-h-0 overflow-hidden flex flex-col"
           >
             <LayoutStyleTab 
               sections={cvData.sections} 

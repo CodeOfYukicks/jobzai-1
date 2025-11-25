@@ -4186,14 +4186,27 @@ URL to visit: ${jobUrl}
   const filteredAndSortedAnalyses = () => {
     let filtered = [...analyses];
 
+    // Helper to safely get date as string
+    const getDateString = (date: any): string => {
+      if (!date) return '';
+      if (typeof date === 'string') return date;
+      if (date.toDate && typeof date.toDate === 'function') {
+        return date.toDate().toISOString().split('T')[0];
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split('T')[0];
+      }
+      return String(date);
+    };
+
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (a) =>
-          a.jobTitle.toLowerCase().includes(query) ||
-          a.company.toLowerCase().includes(query) ||
-          a.date.toLowerCase().includes(query)
+          (a.jobTitle?.toLowerCase() || '').includes(query) ||
+          (a.company?.toLowerCase() || '').includes(query) ||
+          getDateString(a.date).toLowerCase().includes(query)
       );
     }
 
@@ -4210,13 +4223,15 @@ URL to visit: ${jobUrl}
     // Sort
     filtered.sort((a, b) => {
       if (sortBy === 'date') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        const dateA = getDateString(a.date);
+        const dateB = getDateString(b.date);
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
       }
       if (sortBy === 'score') {
         return b.matchScore - a.matchScore;
       }
       if (sortBy === 'company') {
-        return a.company.localeCompare(b.company);
+        return (a.company || '').localeCompare(b.company || '');
       }
       return 0;
     });
@@ -4334,78 +4349,113 @@ URL to visit: ${jobUrl}
 
     const isGrid = viewMode === 'grid';
 
-    // Si l'analyse est en cours de chargement, afficher une carte skeleton
+    // Premium loading skeleton
     if (isAnalysisLoading) {
       return (
         <motion.div
           key={analysis.id}
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative group rounded-xl p-5 border-2 border-dashed shadow-sm bg-gradient-to-br from-purple-50/50 to-indigo-50/50 dark:from-purple-900/10 dark:to-indigo-900/10 border-purple-300 dark:border-purple-700 overflow-hidden"
+          className="relative bg-white dark:bg-gray-900 rounded-2xl p-6 
+            border-2 border-dashed border-indigo-200 dark:border-indigo-500/30 
+            overflow-hidden"
         >
-          {/* Animated gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent animate-shimmer"
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-50/50 dark:via-indigo-500/5 to-transparent"
             style={{
               backgroundSize: '200% 100%',
-              animation: 'shimmer 2s infinite'
+              animation: 'shimmer 2s ease-in-out infinite'
             }}
           />
 
-          <div className="relative z-10 space-y-4">
-            {/* Header avec animation pulse */}
+          <div className="relative z-10">
+            {/* Header skeleton */}
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-lg bg-purple-200 dark:bg-purple-800/30 animate-pulse flex items-center justify-center">
-                <Loader2 className="w-6 h-6 text-purple-600 dark:text-purple-400 animate-spin" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 
+                dark:from-indigo-500/20 dark:to-purple-500/20 
+                flex items-center justify-center">
+                <Loader2 className="w-5 h-5 text-indigo-500 dark:text-indigo-400 animate-spin" />
               </div>
               <div className="flex-1 space-y-2">
-                <div className="h-5 bg-purple-200 dark:bg-purple-800/30 rounded-md animate-pulse" style={{ width: '60%' }} />
-                <div className="h-4 bg-purple-100 dark:bg-purple-900/20 rounded-md animate-pulse" style={{ width: '40%' }} />
+                <div className="h-5 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse w-3/4" />
+                <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse w-1/2" />
               </div>
-              <div className="px-3 py-1 bg-purple-200 dark:bg-purple-800/30 rounded-full animate-pulse h-6" style={{ width: '80px' }} />
+              <div className="w-16 h-8 bg-indigo-100 dark:bg-indigo-500/20 rounded-full animate-pulse" />
             </div>
 
             {/* Status message */}
-            <div className="flex items-center gap-2 px-4 py-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg border border-purple-200 dark:border-purple-800/30">
-              <Zap className="w-4 h-4 text-purple-600 dark:text-purple-400 animate-pulse" />
+            <div className="mt-4 flex items-center gap-3 px-4 py-3 
+              bg-gradient-to-r from-indigo-50 to-purple-50 
+              dark:from-indigo-500/10 dark:to-purple-500/10
+              rounded-xl border border-indigo-100 dark:border-indigo-500/20">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 
+                flex items-center justify-center">
+                <Zap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                  Analyzing resume with AI...
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  Analyzing with AI...
                 </p>
-                <p className="text-xs text-purple-700 dark:text-purple-300 mt-0.5">
-                  This usually takes 1-2 minutes. You can navigate away!
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  This takes 1-2 minutes. Feel free to navigate away!
                 </p>
               </div>
             </div>
 
-            {/* Progress bars skeleton */}
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-16 bg-purple-100 dark:bg-purple-900/20 rounded-lg animate-pulse" />
+            {/* Skill placeholders */}
+            <div className="flex gap-2 mt-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-7 w-20 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
               ))}
             </div>
           </div>
 
-          <style jsx>{`
+          <style>{`
             @keyframes shimmer {
               0% { background-position: -200% 0; }
               100% { background-position: 200% 0; }
-            }
-            .animate-shimmer {
-              animation: shimmer 2s infinite;
             }
           `}</style>
         </motion.div>
       );
     }
 
+    // Get score color based on match score
+    const getScoreBadgeStyles = (score: number) => {
+      if (score >= 80) return {
+        bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+        text: 'text-emerald-700 dark:text-emerald-400',
+        border: 'border-emerald-200 dark:border-emerald-500/20',
+        glow: 'group-hover:shadow-emerald-500/20'
+      };
+      if (score >= 65) return {
+        bg: 'bg-blue-50 dark:bg-blue-500/10',
+        text: 'text-blue-700 dark:text-blue-400',
+        border: 'border-blue-200 dark:border-blue-500/20',
+        glow: 'group-hover:shadow-blue-500/20'
+      };
+      return {
+        bg: 'bg-rose-50 dark:bg-rose-500/10',
+        text: 'text-rose-600 dark:text-rose-400',
+        border: 'border-rose-200 dark:border-rose-500/20',
+        glow: 'group-hover:shadow-rose-500/20'
+      };
+    };
+
+    const scoreStyles = getScoreBadgeStyles(analysis.matchScore);
+
     return (
       <motion.div
         key={analysis.id}
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -4, scale: 1.02 }}
-        transition={{ duration: 0.2 }}
-        className="relative group rounded-xl p-5 border shadow-sm bg-white dark:bg-[#1E1F22] dark:border-[#2A2A2E] dark:text-gray-100 dark:shadow-none cursor-pointer dark:hover:bg-[#26262B] hover:shadow-md transition-all"
+        whileHover={{ y: -6 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="group relative bg-white dark:bg-gray-900 rounded-2xl p-6 
+          border border-gray-100 dark:border-gray-800
+          hover:border-indigo-200/60 dark:hover:border-indigo-500/30
+          hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50
+          cursor-pointer overflow-hidden transition-all duration-300"
         onClick={() => {
           if (onSelect) {
             onSelect();
@@ -4414,80 +4464,61 @@ URL to visit: ${jobUrl}
           }
         }}
       >
-        <div className="relative z-10 space-y-3">
+        {/* Hover gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/0 via-transparent to-purple-50/0 
+          group-hover:from-indigo-50/40 group-hover:to-purple-50/30 
+          dark:group-hover:from-indigo-500/5 dark:group-hover:to-purple-500/5
+          transition-all duration-500 pointer-events-none" />
+
+        <div className="relative z-10">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center items-start gap-4">
-            <CompanyLogo
-              companyName={analysis.company}
-              size="lg"
-              className="rounded-lg border border-gray-200 dark:border-[#2A2A2E]"
-            />
-            <div className="flex-1 min-w-0">
-              <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {analysis.jobTitle}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 truncate flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                <span className="truncate">{analysis.company}</span>
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {formatDateString(analysis.date)}
-              </p>
+          <div className="flex items-start gap-4">
+            {/* Company Logo with hover effect */}
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl 
+                opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
+              <CompanyLogo
+                companyName={analysis.company}
+                size="lg"
+                className="relative rounded-xl border border-gray-100 dark:border-gray-800 
+                  group-hover:border-indigo-200/50 dark:group-hover:border-indigo-500/30
+                  transition-all duration-300"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full border dark:border-[#2A2A2E] ${analysis.matchScore >= 80
-                ? 'bg-green-50 text-green-700 border-green-200 dark:bg-[#26262B] dark:text-green-400 dark:border-[#2A2A2E]'
-                : analysis.matchScore >= 65
-                  ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-[#26262B] dark:text-blue-400 dark:border-[#2A2A2E]'
-                  : 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-[#26262B] dark:text-pink-400 dark:border-[#2A2A2E]'
-                }`}>
-                {analysis.matchScore}% match
-              </span>
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setIsActionMenuOpen(!isActionMenuOpen); }}
-                  className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-[#26262B] transition-opacity opacity-0 group-hover:opacity-100"
-                  aria-label="Card actions"
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate 
+                    group-hover:text-indigo-900 dark:group-hover:text-white transition-colors">
+                    {analysis.jobTitle}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
+                    <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">{analysis.company}</span>
+                  </p>
+                </div>
+
+                {/* Score Badge with pulse animation on hover */}
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold tabular-nums
+                    ${scoreStyles.bg} ${scoreStyles.text} border ${scoreStyles.border}
+                    transition-all duration-300`}
                 >
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
-                {isActionMenuOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 dark:border-[#2A2A2E] bg-white dark:bg-[#1E1F22] shadow-lg z-30"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={() => { setIsActionMenuOpen(false); onSelect && onSelect(); }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#26262B]"
-                    >
-                      View details
-                    </button>
-                    <button
-                      onClick={() => { setIsActionMenuOpen(false); duplicateAnalysis(analysis); }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#26262B] flex items-center gap-2"
-                    >
-                      <Copy className="w-4 h-4" /> Duplicate analysis
-                    </button>
-                    <button
-                      onClick={() => { setIsActionMenuOpen(false); setIsDeleteDialogOpen(true); }}
-                      className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-[#26262B] flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" /> Delete analysis
-                    </button>
-                  </div>
-                )}
+                  {analysis.matchScore}%
+                </motion.div>
               </div>
             </div>
           </div>
 
-          {/* Skills preview (compact pills) - Always show if skills exist */}
+          {/* Skills preview - refined styling */}
           {!isExpanded && (() => {
-            // Normalize skills data to ensure we always have an array
             const matchingSkills = Array.isArray(analysis.skillsMatch?.matching)
               ? analysis.skillsMatch.matching
               : [];
 
-            // Also check for alternative formats
             const skillsToShow = matchingSkills.length > 0
               ? matchingSkills
               : (analysis.keyFindings && Array.isArray(analysis.keyFindings) && analysis.keyFindings.length > 0
@@ -4496,26 +4527,35 @@ URL to visit: ${jobUrl}
 
             if (skillsToShow.length > 0) {
               return (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 mt-4">
                   {skillsToShow
                     .filter((skill: any) => skill && (typeof skill === 'string' ? skill : skill.name))
                     .map((skill: any, idx: number) => {
                       const skillName = typeof skill === 'string' ? skill : (skill.name || '');
-                      const relevance = typeof skill === 'object' && skill.relevance ? skill.relevance : 70;
                       return skillName ? (
                         <span
                           key={idx}
-                          className="text-xs px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800 font-medium"
+                          className="text-xs px-2.5 py-1 rounded-lg 
+                            bg-gray-50 dark:bg-gray-800 
+                            text-gray-600 dark:text-gray-300
+                            border border-gray-100 dark:border-gray-700
+                            group-hover:bg-indigo-50 group-hover:text-indigo-700 
+                            group-hover:border-indigo-100
+                            dark:group-hover:bg-indigo-500/10 dark:group-hover:text-indigo-300
+                            dark:group-hover:border-indigo-500/20
+                            transition-all duration-300 font-medium"
                         >
                           {skillName}
                         </span>
                       ) : null;
                     })
                     .filter(Boolean)
-                    .slice(0, 5)}
-                  {skillsToShow.length > 5 && (
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-[#26262B] dark:text-gray-400">
-                      +{skillsToShow.length - 5}
+                    .slice(0, 3)}
+                  {skillsToShow.length > 3 && (
+                    <span className="text-xs px-2.5 py-1 rounded-lg 
+                      bg-gray-100 dark:bg-gray-800 
+                      text-gray-500 dark:text-gray-400 font-medium">
+                      +{skillsToShow.length - 3}
                     </span>
                   )}
                 </div>
@@ -4524,22 +4564,51 @@ URL to visit: ${jobUrl}
             return null;
           })()}
 
-          {/* Divider and footer */}
-          <div className="h-px bg-gray-200 dark:bg-[#2A2A2E] my-3"></div>
-          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <div className="flex items-center gap-1.5">
+          {/* Footer with actions */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
               <Calendar className="w-3.5 h-3.5" />
-              <span className="font-medium">{formatDateString(analysis.date)}</span>
+              <span>{formatDateString(analysis.date)}</span>
+              <span className="mx-1.5">•</span>
+              <span>
+                {(() => {
+                  const matchingSkills = Array.isArray(analysis.skillsMatch?.matching)
+                    ? analysis.skillsMatch.matching
+                    : [];
+                  return `${matchingSkills.length} matched`;
+                })()}
+              </span>
             </div>
-            <div className="text-xs">
-              {(() => {
-                // Normalize skills count - ensure we always have a valid number
-                const matchingSkills = Array.isArray(analysis.skillsMatch?.matching)
-                  ? analysis.skillsMatch.matching
-                  : [];
-                const skillsCount = matchingSkills.length;
-                return `${skillsCount} matched skill${skillsCount !== 1 ? 's' : ''}`;
-              })()}
+
+            {/* Quick actions - appear on hover */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <button
+                onClick={(e) => { e.stopPropagation(); onSelect && onSelect(); }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 
+                  dark:hover:text-indigo-400 dark:hover:bg-indigo-500/10
+                  transition-colors"
+                aria-label="View details"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); duplicateAnalysis(analysis); }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 
+                  dark:hover:text-indigo-400 dark:hover:bg-indigo-500/10
+                  transition-colors"
+                aria-label="Duplicate"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsDeleteDialogOpen(true); }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 
+                  dark:hover:text-rose-400 dark:hover:bg-rose-500/10
+                  transition-colors"
+                aria-label="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -5453,7 +5522,7 @@ URL to visit: ${jobUrl}
           )}
         </div>
 
-        {/* Delete Confirmation Dialog */}
+        {/* Premium Delete Confirmation Dialog */}
         <AnimatePresence>
           {isDeleteDialogOpen && (
             <Dialog
@@ -5467,35 +5536,42 @@ URL to visit: ${jobUrl}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm"
                 />
 
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-5 mx-auto"
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 mx-auto border border-gray-100 dark:border-gray-800"
                 >
-                  <div className="text-center mb-4">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 text-red-500 mb-4">
-                      <AlertTriangle className="w-6 h-6" />
+                  <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl 
+                      bg-rose-50 dark:bg-rose-500/10 text-rose-500 mb-4">
+                      <AlertTriangle className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Delete this analysis?</h3>
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      This action is irreversible. Are you sure you want to delete this analysis for the position "{analysis.jobTitle}"?
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete analysis?</h3>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                      This will permanently delete the analysis for <span className="font-medium text-gray-700 dark:text-gray-300">"{analysis.jobTitle}"</span>
                     </p>
                   </div>
 
-                  <div className="flex gap-3 mt-4">
+                  <div className="flex gap-3 mt-6">
                     <button
                       onClick={() => setIsDeleteDialogOpen(false)}
-                      className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-offset-white dark:focus:ring-offset-gray-800"
+                      className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 
+                        dark:bg-gray-800 dark:hover:bg-gray-700 
+                        text-gray-700 dark:text-gray-300 
+                        rounded-xl font-medium text-sm transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={confirmDelete}
-                      className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 focus:ring-offset-white dark:focus:ring-offset-gray-800"
+                      className="flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 
+                        text-white rounded-xl font-medium text-sm transition-colors
+                        shadow-lg shadow-rose-600/20"
                     >
                       Delete
                     </button>
@@ -6817,17 +6893,22 @@ URL to visit: ${jobUrl}
 
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <div className="mb-8">
-          <PageHeader
-            title="Resume Lab"
-            subtitle="Get detailed insights on how your resume matches specific job positions. Improve your chances with AI-powered recommendations."
-          />
-          <div className="flex justify-center mt-6">
-            <button
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Premium Hero Section - Ultra Minimal */}
+        <div className="mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                Resume Lab
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1.5">
+                AI-powered resume analysis for smarter job applications
+              </p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => {
-                // Reset form when opening modal
                 setFormData({
                   jobTitle: '',
                   company: '',
@@ -6842,156 +6923,202 @@ URL to visit: ${jobUrl}
                 setShowJobDropdown(false);
                 setIsModalOpen(true);
               }}
-              className="group px-4 py-2.5 rounded-xl 
-                bg-gradient-to-r from-purple-600 to-indigo-600
-                hover:opacity-90 transition-all duration-200
-                shadow-lg shadow-purple-500/20"
+              className="group relative px-5 py-2.5 rounded-xl bg-gray-900 dark:bg-white
+                text-white dark:text-gray-900 font-medium text-sm
+                hover:bg-gray-800 dark:hover:bg-gray-100
+                shadow-lg shadow-gray-900/10 dark:shadow-white/10
+                transition-all duration-200 overflow-hidden"
             >
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <Sparkles className="h-4 w-4 text-white flex-shrink-0" />
-                <span className="text-sm font-medium text-white">New Analysis</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 
+                opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                <span>New Analysis</span>
               </div>
-            </button>
+            </motion.button>
           </div>
 
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                  <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {stats.total}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Analyses</p>
-                </div>
+          {/* Premium Stats Overview - Accent Border Style */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+            {/* Total Analyses */}
+            <motion.div 
+              whileHover={{ y: -2 }}
+              className="group relative bg-white dark:bg-gray-900 rounded-2xl p-5 
+                border border-gray-100 dark:border-gray-800
+                hover:border-gray-200 dark:hover:border-gray-700 
+                hover:shadow-lg hover:shadow-gray-100/50 dark:hover:shadow-gray-900/50
+                transition-all duration-300 overflow-hidden"
+            >
+              <div className="absolute left-0 top-4 bottom-4 w-1 rounded-full 
+                bg-gradient-to-b from-indigo-500 to-purple-500" />
+              <div className="pl-3">
+                <p className="text-3xl font-bold tabular-nums text-gray-900 dark:text-white">
+                  {stats.total}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                  Total Analyses
+                </p>
               </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {stats.averageScore}%
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Average Score</p>
-                </div>
+            </motion.div>
+
+            {/* Average Score */}
+            <motion.div 
+              whileHover={{ y: -2 }}
+              className="group relative bg-white dark:bg-gray-900 rounded-2xl p-5 
+                border border-gray-100 dark:border-gray-800
+                hover:border-gray-200 dark:hover:border-gray-700 
+                hover:shadow-lg hover:shadow-gray-100/50 dark:hover:shadow-gray-900/50
+                transition-all duration-300 overflow-hidden"
+            >
+              <div className="absolute left-0 top-4 bottom-4 w-1 rounded-full 
+                bg-gradient-to-b from-blue-500 to-cyan-500" />
+              <div className="pl-3">
+                <p className="text-3xl font-bold tabular-nums text-gray-900 dark:text-white">
+                  {stats.averageScore}<span className="text-xl">%</span>
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                  Average Score
+                </p>
               </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <Trophy className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {stats.highMatch}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">High Match (80%+)</p>
-                </div>
+            </motion.div>
+
+            {/* High Match */}
+            <motion.div 
+              whileHover={{ y: -2 }}
+              className="group relative bg-white dark:bg-gray-900 rounded-2xl p-5 
+                border border-gray-100 dark:border-gray-800
+                hover:border-gray-200 dark:hover:border-gray-700 
+                hover:shadow-lg hover:shadow-gray-100/50 dark:hover:shadow-gray-900/50
+                transition-all duration-300 overflow-hidden"
+            >
+              <div className="absolute left-0 top-4 bottom-4 w-1 rounded-full 
+                bg-gradient-to-b from-emerald-500 to-green-500" />
+              <div className="pl-3">
+                <p className="text-3xl font-bold tabular-nums text-gray-900 dark:text-white">
+                  {stats.highMatch}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                  High Match (80%+)
+                </p>
               </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {stats.mediumMatch + stats.lowMatch}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Needs Improvement</p>
-                </div>
+            </motion.div>
+
+            {/* Needs Improvement */}
+            <motion.div 
+              whileHover={{ y: -2 }}
+              className="group relative bg-white dark:bg-gray-900 rounded-2xl p-5 
+                border border-gray-100 dark:border-gray-800
+                hover:border-gray-200 dark:hover:border-gray-700 
+                hover:shadow-lg hover:shadow-gray-100/50 dark:hover:shadow-gray-900/50
+                transition-all duration-300 overflow-hidden"
+            >
+              <div className="absolute left-0 top-4 bottom-4 w-1 rounded-full 
+                bg-gradient-to-b from-amber-500 to-orange-500" />
+              <div className="pl-3">
+                <p className="text-3xl font-bold tabular-nums text-gray-900 dark:text-white">
+                  {stats.mediumMatch + stats.lowMatch}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                  Needs Improvement
+                </p>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
-        {/* Search, Filters and View Toggle */}
+        {/* Premium Search, Filters and View Toggle - Unified Floating Bar */}
         {analyses.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by job title, company, or date..."
-                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 
-                  border border-gray-200 dark:border-gray-700 rounded-xl
-                  focus:ring-2 focus:ring-purple-500 focus:border-purple-500
-                  text-sm"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Score Filter */}
-              <div className="relative">
-                <select
-                  value={filterScore}
-                  onChange={(e) => setFilterScore(e.target.value as any)}
-                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
-                    rounded-xl px-4 py-3 pr-10 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="all">All Scores</option>
-                  <option value="high">High (80%+)</option>
-                  <option value="medium">Medium (65-79%)</option>
-                  <option value="low">Low (&lt;65%)</option>
-                </select>
-                <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 
+            shadow-sm hover:shadow-md transition-shadow duration-300 p-2 mb-8">
+            <div className="flex flex-col sm:flex-row gap-2">
+              {/* Search Input */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search analyses..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 
+                    border-0 rounded-xl
+                    focus:ring-2 focus:ring-indigo-500/20 focus:bg-white dark:focus:bg-gray-800
+                    text-sm text-gray-900 dark:text-white placeholder-gray-400
+                    transition-all duration-200"
+                />
               </div>
 
-              {/* Sort By */}
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
-                    rounded-xl px-4 py-3 pr-10 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="date">Sort by Date</option>
-                  <option value="score">Sort by Score</option>
-                  <option value="company">Sort by Company</option>
-                </select>
-                <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
+              <div className="flex items-center gap-2">
+                {/* Score Filter */}
+                <div className="relative">
+                  <select
+                    value={filterScore}
+                    onChange={(e) => setFilterScore(e.target.value as any)}
+                    className="appearance-none bg-gray-50 dark:bg-gray-800 border-0
+                      rounded-xl px-4 py-2.5 pr-9 text-sm font-medium text-gray-700 dark:text-gray-300
+                      focus:ring-2 focus:ring-indigo-500/20 focus:bg-white dark:focus:bg-gray-800
+                      cursor-pointer transition-all duration-200"
+                  >
+                    <option value="all">All Scores</option>
+                    <option value="high">High (80%+)</option>
+                    <option value="medium">Medium (65-79%)</option>
+                    <option value="low">Low (&lt;65%)</option>
+                  </select>
+                  <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                </div>
 
-              {/* View Toggle Buttons */}
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 flex">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg flex items-center justify-center ${viewMode === 'grid'
-                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  aria-label="Grid View"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg flex items-center justify-center ${viewMode === 'list'
-                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  aria-label="List View"
-                >
-                  <List className="h-4 w-4" />
-                </button>
+                {/* Sort By */}
+                <div className="relative">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="appearance-none bg-gray-50 dark:bg-gray-800 border-0
+                      rounded-xl px-4 py-2.5 pr-9 text-sm font-medium text-gray-700 dark:text-gray-300
+                      focus:ring-2 focus:ring-indigo-500/20 focus:bg-white dark:focus:bg-gray-800
+                      cursor-pointer transition-all duration-200"
+                  >
+                    <option value="date">Date</option>
+                    <option value="score">Score</option>
+                    <option value="company">Company</option>
+                  </select>
+                  <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* Divider */}
+                <div className="hidden sm:block w-px h-6 bg-gray-200 dark:bg-gray-700" />
+
+                {/* View Toggle Buttons - Pill Style */}
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-1 flex">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg flex items-center justify-center transition-all duration-200 ${viewMode === 'grid'
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                    aria-label="Grid View"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 rounded-lg flex items-center justify-center transition-all duration-200 ${viewMode === 'list'
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                    aria-label="List View"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Analyses List/Grid */}
+        {/* Analyses List/Grid - Premium Layout */}
         {filteredAnalyses.length > 0 ? (
           <div className={viewMode === 'grid'
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-            : 'space-y-3'
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'
+            : 'space-y-4'
           }>
             {filteredAnalyses.map((analysis) => (
               <AnalysisCard
@@ -7004,65 +7131,106 @@ URL to visit: ${jobUrl}
             ))}
           </div>
         ) : analyses.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
-              <FileText className="w-10 h-10 text-purple-600 dark:text-purple-400" />
+          /* Premium Empty State - First Time */
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+          >
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
+              <div className="absolute inset-0" style={{
+                backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
+                backgroundSize: '32px 32px',
+              }} />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
-              No analyses yet
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
-              Analyze your resume against specific job descriptions to see how well it matches and get personalized improvement suggestions.
-            </p>
-            <button
-              onClick={() => {
-                // Reset form when opening modal
-                setFormData({
-                  jobTitle: '',
-                  company: '',
-                  jobDescription: '',
-                  jobUrl: '',
-                });
-                setCvFile(null);
-                setUsingSavedCV(false);
-                setCurrentStep(1);
-                setJobInputMode('ai');
-                setSelectedSavedJob(null);
-                setJobSearchQuery('');
-                setShowJobDropdown(false);
-                setIsModalOpen(true);
-              }}
-              className="group px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-all duration-200 shadow-lg shadow-purple-500/20 flex items-center gap-2 mx-auto whitespace-nowrap"
-            >
-              <Sparkles className="h-5 w-5 text-white flex-shrink-0" />
-              <span className="text-sm font-medium text-white">Start your first analysis</span>
-            </button>
-          </div>
+
+            <div className="relative py-20 px-6 text-center">
+              {/* Icon with glow */}
+              <div className="relative inline-flex mb-6">
+                <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full" />
+                <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 
+                  dark:from-indigo-500/10 dark:to-purple-500/10
+                  border border-indigo-100 dark:border-indigo-500/20
+                  flex items-center justify-center">
+                  <FileText className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+                </div>
+              </div>
+
+              <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
+                Start your first analysis
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-8 text-sm leading-relaxed">
+                Upload your resume and a job description to get AI-powered insights on how well they match.
+              </p>
+
+              <motion.button
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setFormData({
+                    jobTitle: '',
+                    company: '',
+                    jobDescription: '',
+                    jobUrl: '',
+                  });
+                  setCvFile(null);
+                  setUsingSavedCV(false);
+                  setCurrentStep(1);
+                  setJobInputMode('ai');
+                  setSelectedSavedJob(null);
+                  setJobSearchQuery('');
+                  setShowJobDropdown(false);
+                  setIsModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl 
+                  bg-gray-900 dark:bg-white 
+                  text-white dark:text-gray-900 
+                  font-medium text-sm
+                  shadow-lg shadow-gray-900/10 dark:shadow-white/10
+                  hover:shadow-xl hover:shadow-gray-900/20 dark:hover:shadow-white/20
+                  transition-all duration-300"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>New Analysis</span>
+              </motion.button>
+            </div>
+          </motion.div>
         ) : (
-          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Search className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+          /* Premium Empty State - No Search Results */
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 py-16 px-6 text-center"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 
+              flex items-center justify-center mx-auto mb-5">
+              <Search className="w-6 h-6 text-gray-400 dark:text-gray-500" />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
-              No results found
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              No matches found
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
-              Try adjusting your search or filter criteria to find what you're looking for.
+            <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6 text-sm">
+              Try adjusting your search or filter criteria
             </p>
             <button
               onClick={() => {
                 setSearchQuery('');
                 setFilterScore('all');
               }}
-              className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl 
+                bg-gray-100 dark:bg-gray-800 
+                text-gray-700 dark:text-gray-300 
+                hover:bg-gray-200 dark:hover:bg-gray-700 
+                font-medium text-sm transition-colors"
             >
-              Clear Filters
+              Clear filters
             </button>
-          </div>
+          </motion.div>
         )}
       </div>
 
-      {/* Modal */}
+      {/* Premium Modal */}
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
@@ -7071,31 +7239,31 @@ URL to visit: ${jobUrl}
             exit={{ opacity: 0 }}
             onClick={() => {
               setIsModalOpen(false);
-              // Reset states when closing modal
               setSelectedSavedJob(null);
               setJobSearchQuery('');
               setShowJobDropdown(false);
             }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.98, y: "100%" }}
+              initial={{ opacity: 0, scale: 0.96, y: "100%" }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: "100%" }}
+              exit={{ opacity: 0, scale: 0.96, y: "100%" }}
               onClick={(e) => e.stopPropagation()}
-              transition={{ type: "spring", damping: 30, stiffness: 400 }}
-              className="bg-white dark:bg-gray-900 w-full rounded-xl max-w-2xl max-h-[90vh] flex flex-col shadow-lg border border-gray-200/50 dark:border-gray-800 overflow-visible"
+              transition={{ type: "spring", damping: 28, stiffness: 350 }}
+              className="bg-white dark:bg-gray-900 w-full rounded-t-2xl sm:rounded-2xl max-w-2xl max-h-[90vh] flex flex-col 
+                shadow-2xl border border-gray-100 dark:border-gray-800 overflow-visible"
             >
               {/* Drag handle for mobile */}
-              <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
-                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+              <div className="w-full flex justify-center pt-3 pb-1 sm:hidden">
+                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
               </div>
 
               {/* Header */}
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700/50">
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2.5">
-                    <span className="text-gray-600 dark:text-gray-400">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                    <span className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                       {steps[currentStep - 1].icon}
                     </span>
                     {steps[currentStep - 1].title}
@@ -7103,12 +7271,12 @@ URL to visit: ${jobUrl}
                   <button
                     onClick={() => {
                       setIsModalOpen(false);
-                      // Reset states when closing modal
                       setSelectedSavedJob(null);
                       setJobSearchQuery('');
                       setShowJobDropdown(false);
                     }}
-                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 
+                      transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                     aria-label="Close modal"
                   >
                     <X className="w-4 h-4" />
@@ -7117,14 +7285,14 @@ URL to visit: ${jobUrl}
               </div>
 
               {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 overflow-x-visible">
+              <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6 overflow-x-visible">
                 <div className="relative">
                   {steps[currentStep - 1].content}
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 dark:border-gray-700/50">
+              <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                 <button
                   onClick={() => {
                     if (currentStep > 1) {
@@ -7132,19 +7300,18 @@ URL to visit: ${jobUrl}
                     }
                   }}
                   disabled={currentStep === 1}
-                  className={`px-4 py-2 text-sm font-medium flex items-center text-gray-600 dark:text-gray-400 transition-colors ${currentStep === 1
-                    ? 'opacity-40 cursor-not-allowed'
-                    : 'hover:text-gray-900 dark:hover:text-gray-200'
+                  className={`px-4 py-2.5 text-sm font-medium flex items-center rounded-xl transition-all ${currentStep === 1
+                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                 >
-                  <ChevronRight className="h-4 w-4 mr-1 rotate-180" />
+                  <ChevronRight className="h-4 w-4 mr-1.5 rotate-180" />
                   Back
                 </button>
 
                 <button
                   onClick={() => {
                     if (currentStep < steps.length) {
-                      // Validate step 2 before proceeding
                       if (currentStep === 2) {
                         if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
                           toast.error('Please fill in all job information fields');
@@ -7153,7 +7320,6 @@ URL to visit: ${jobUrl}
                       }
                       setCurrentStep(currentStep + 1);
                     } else {
-                      // Call handleAnalysis instead of just closing the modal
                       handleAnalysis();
                     }
                   }}
@@ -7162,25 +7328,26 @@ URL to visit: ${jobUrl}
                     (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
                     isDownloadingCV
                   }
-                  className={`px-5 py-2 bg-gray-900 dark:bg-gray-100 
-                      hover:bg-gray-800 dark:hover:bg-gray-200 disabled:bg-gray-300 disabled:dark:bg-gray-700
-                      text-white dark:text-gray-900 rounded-lg text-sm font-medium flex items-center 
-                      transition-colors
-                      disabled:cursor-not-allowed disabled:opacity-50`}
+                  className="px-5 py-2.5 bg-gray-900 dark:bg-white 
+                    hover:bg-gray-800 dark:hover:bg-gray-100 
+                    disabled:bg-gray-200 disabled:dark:bg-gray-800
+                    disabled:text-gray-400 disabled:dark:text-gray-600
+                    text-white dark:text-gray-900 rounded-xl text-sm font-medium flex items-center 
+                    transition-all disabled:cursor-not-allowed
+                    shadow-lg shadow-gray-900/10 dark:shadow-white/5
+                    disabled:shadow-none"
                 >
-                  <>
-                    {currentStep === steps.length ? (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        <span>Analyze Resume</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Continue</span>
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                      </>
-                    )}
-                  </>
+                  {currentStep === steps.length ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      <span>Analyze Resume</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Continue</span>
+                      <ChevronRight className="h-4 w-4 ml-1.5" />
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
