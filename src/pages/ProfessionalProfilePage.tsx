@@ -591,12 +591,11 @@ const ProfessionalProfilePage = () => {
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.3 }
               } : { duration: 0 }}
-              className="min-h-screen bg-gray-50 dark:bg-gray-900 relative"
-              style={{ margin: '-1.5rem', padding: '1rem' }}
+              className="min-h-0 flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 relative"
             >
 
               {/* Main Content - Premium Layout */}
-              <div className="relative w-full max-w-[1400px] mx-auto space-y-4 pt-4 px-4">
+              <div className="relative w-full max-w-[1400px] mx-auto space-y-4 pt-6 px-4 pb-20">
                 {/* Profile Header */}
                 <ProfileHeader onUpdate={updateFormData} />
 

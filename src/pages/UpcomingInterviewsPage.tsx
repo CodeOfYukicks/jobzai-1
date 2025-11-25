@@ -381,7 +381,7 @@ END:VCALENDAR`;
 
   return (
     <AuthLayout>
-      <div className="h-full px-4 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20">
         {/* Compact Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

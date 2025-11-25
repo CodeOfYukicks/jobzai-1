@@ -845,7 +845,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       {/* Main content */}
       <div className={`flex flex-col flex-1 min-h-0 transition-all duration-300 ${isCollapsed ? 'md:pl-24 lg:pl-24' : 'md:pl-[19rem] lg:pl-[21rem]'}`}>
         <main className="flex-1 min-h-0 flex flex-col">
-          <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : `pt-2 md:py-6 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-6`}`}>
+          <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : `pt-6 md:py-6 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-6`}`}>
             {needsFullWidth ? (
               // Mode pleine largeur pour Applications, Jobs, Professional Profile, Upcoming Interviews, Calendar, Interview Prep et ATS Analysis
               <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0 overflow-hidden" : ""}>{children}</div>

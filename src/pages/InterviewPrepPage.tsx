@@ -3074,7 +3074,7 @@ Make sure each answer is completely unique and specific to its question - no gen
   if (isLoading) {
     return (
       <AuthLayout>
-        <div className="h-full px-4 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-6"></div>
@@ -3092,7 +3092,7 @@ Make sure each answer is completely unique and specific to its question - no gen
   if (!application || !interview) {
     return (
       <AuthLayout>
-        <div className="h-full px-4 py-3 text-center">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 text-center">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Interview not found</h1>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
             The interview you're looking for doesn't exist or you don't have access to it.
@@ -3124,7 +3124,7 @@ Make sure each answer is completely unique and specific to its question - no gen
       />
 
       <MotionConfig transition={{ duration: 0.2 }}>
-        <div className="h-full lg:pr-[400px] overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto lg:pr-[400px]">
           {/* Premium Hero Section */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}

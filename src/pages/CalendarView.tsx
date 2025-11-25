@@ -611,7 +611,7 @@ export default function CalendarView() {
 
   return (
     <AuthLayout small>
-      <div className="flex w-full">
+      <div className="flex w-full min-h-0 flex-1 overflow-hidden">
         {/* Sidebar */}
         <CalendarSidebar
           selectedView={selectedView}
@@ -628,7 +628,7 @@ export default function CalendarView() {
         />
 
         {/* Main Content */}
-        <div className="flex-1 min-h-screen py-6 pl-8 pr-24 overflow-x-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto py-6 pl-8 pr-24">
           <div className="w-full max-w-7xl mx-auto">
             {/* Topbar */}
             <CalendarTopbar
