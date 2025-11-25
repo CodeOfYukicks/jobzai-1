@@ -1,14 +1,16 @@
-import { CVData, CVLayoutSettings } from '../../../types/cvEditor';
+import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Award, Briefcase, GraduationCap } from 'lucide-react';
+import ClickableSection from '../ClickableSection';
 
 interface CreativeBalanceProps {
   cvData: CVData;
   layoutSettings: CVLayoutSettings;
+  onSectionClick?: (target: SectionClickTarget) => void;
 }
 
-export default function CreativeBalance({ cvData, layoutSettings }: CreativeBalanceProps) {
+export default function CreativeBalance({ cvData, layoutSettings, onSectionClick }: CreativeBalanceProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {

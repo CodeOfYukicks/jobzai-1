@@ -255,12 +255,14 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick 
           </h2>
           <div className="space-y-1">
             {cvData.certifications.map(cert => (
-              <div key={cert.id} className="text-gray-700 font-sans" style={{ fontSize: '0.9em' }}>
-                <span className="text-gray-400">→</span>
-                <span className="ml-2">
-                  {cert.name} • {cert.issuer} • {cert.date}
-                </span>
-              </div>
+              <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick}>
+                <div className="text-gray-700 font-sans" style={{ fontSize: '0.9em' }}>
+                  <span className="text-gray-400">→</span>
+                  <span className="ml-2">
+                    {cert.name} • {cert.issuer} • {cert.date}
+                  </span>
+                </div>
+              </ClickableSection>
             ))}
           </div>
         </section>
