@@ -1,4 +1,5 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
+import { HighlightTarget } from '../../../types/cvReview';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github } from 'lucide-react';
@@ -9,9 +10,10 @@ interface ModernProfessionalProps {
   cvData: CVData;
   layoutSettings: CVLayoutSettings;
   onSectionClick?: (target: SectionClickTarget) => void;
+  highlightTarget?: HighlightTarget | null;
 }
 
-export default function ModernProfessional({ cvData, layoutSettings, onSectionClick }: ModernProfessionalProps) {
+export default function ModernProfessional({ cvData, layoutSettings, onSectionClick, highlightTarget }: ModernProfessionalProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
   
   // Dynamic accent color from layoutSettings
@@ -36,7 +38,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
       }}
     >
       {/* Header */}
-      <ClickableSection sectionType="personal" onSectionClick={onSectionClick}>
+      <ClickableSection sectionType="personal" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
         <header className="mb-6">
           <h1 className="font-bold text-gray-900 mb-1" style={{ fontSize: '2.25em' }}>
             {cvData.personalInfo.firstName} {cvData.personalInfo.lastName}
@@ -93,7 +95,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           case 'summary':
             if (!cvData.summary) return null;
             return (
-              <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick}>
+              <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Professional Summary
@@ -114,7 +116,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                 </h2>
                 <div className="space-y-4">
                   {cvData.experiences.map(exp => (
-                    <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick}>
+                    <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                       <div>
                         <div className="flex justify-between items-start mb-1">
                           <div>
@@ -156,7 +158,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                 </h2>
                 <div className="space-y-3">
                   {cvData.education.map(edu => (
-                    <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick}>
+                    <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                       <div>
                         <div className="flex justify-between items-start">
                           <div>
@@ -191,7 +193,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           case 'skills':
             if (!cvData.skills?.length) return null;
             return (
-              <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick}>
+              <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Skills
@@ -220,7 +222,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                 </h2>
                 <div className="space-y-2">
                   {cvData.certifications.map(cert => (
-                    <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick}>
+                    <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                       <div style={{ fontSize: '0.95em' }}>
                         <span className="font-medium text-gray-900">{cert.name}</span>
                         <span className="text-gray-600">
@@ -242,7 +244,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                 </h2>
                 <div className="space-y-3">
                   {cvData.projects.map(project => (
-                    <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick}>
+                    <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                       <div>
                         <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
                           {project.name}
@@ -283,7 +285,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                 </h2>
                 <div className="flex flex-wrap gap-3">
                   {cvData.languages.map(lang => (
-                    <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick}>
+                    <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                       <span className="text-gray-700" style={{ fontSize: '0.95em' }}>
                         <span className="font-medium">{lang.name}</span>
                         {' - '}

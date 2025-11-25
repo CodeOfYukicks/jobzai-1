@@ -148,9 +148,9 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             className={`
-                              flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-lg border transition-all
+                              flex items-center gap-3 px-4 py-3.5 bg-white dark:bg-gray-800 rounded-lg border transition-all
                               ${snapshot.isDragging 
-                                ? 'shadow-xl scale-[1.02] ring-2 ring-[#EB7134]' 
+                                ? 'shadow-xl scale-[1.02] ring-2 ring-emerald-500' 
                                 : 'shadow-sm border-gray-200 dark:border-gray-700'
                               }
                               ${isLocked ? 'opacity-60' : ''}
@@ -160,6 +160,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             <div
                               {...provided.dragHandleProps}
                               className={`
+                                flex-shrink-0
                                 ${isLocked 
                                   ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' 
                                   : 'text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing hover:text-gray-600 dark:hover:text-gray-400'
@@ -174,12 +175,12 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             </div>
 
                             {/* Section Icon */}
-                            <div className="text-gray-500 dark:text-gray-400">
+                            <div className="text-gray-500 dark:text-gray-400 flex-shrink-0">
                               {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
                             </div>
 
-                            {/* Section Title - Editable */}
-                            <div className="flex-1">
+                            {/* Section Title - Editable - Takes full width */}
+                            <div className="flex-1 min-w-0">
                               {editingSection === section.id ? (
                                 <input
                                   type="text"
@@ -188,14 +189,14 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   onBlur={saveTitle}
                                   onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
                                   autoFocus
-                                  className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-[#EB7134]/30 dark:border-[#EB7134]/60 rounded focus:outline-none focus:ring-2 focus:ring-[#EB7134]"
+                                  className="w-full px-3 py-1.5 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-emerald-300 dark:border-emerald-500/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                               ) : (
                                 <button
                                   onClick={() => !isLocked && startEditingTitle(section.id, section.title)}
                                   className={`
-                                    text-sm font-medium text-gray-900 dark:text-white text-left
-                                    ${!isLocked && 'hover:text-[#EB7134] dark:hover:text-[#EB7134]'}
+                                    w-full text-left text-sm font-semibold text-gray-900 dark:text-white truncate
+                                    ${!isLocked && 'hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors'}
                                   `}
                                   disabled={isLocked}
                                 >
@@ -208,9 +209,9 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             {!isLocked && editingSection !== section.id && (
                               <button
                                 onClick={() => startEditingTitle(section.id, section.title)}
-                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
                               >
-                                <Edit3 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                                <Edit3 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                               </button>
                             )}
                           </div>
@@ -269,7 +270,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                       max="14"
                       value={layoutSettings.fontSize}
                       onChange={(e) => onSettingsChange({ fontSize: Number(e.target.value) })}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#EB7134]"
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                     />
                   </div>
                 </div>
@@ -299,7 +300,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.fontFamily}
                   onChange={(e) => onSettingsChange({ fontFamily: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none cursor-pointer transition-all"
                   style={{ fontFamily: layoutSettings.fontFamily }}
                 >
                   <optgroup label="Sans-Serif">
@@ -334,7 +335,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.dateFormat}
                   onChange={(e) => onSettingsChange({ dateFormat: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none cursor-pointer transition-all"
                 >
                   <option value="jan-24">Jan '24 (Short Name & Year)</option>
                   <option value="january-2024">January 2024 (Full Name & Year)</option>
@@ -360,7 +361,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.lineHeight}
                   onChange={(e) => onSettingsChange({ lineHeight: Number(e.target.value) })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none cursor-pointer transition-all"
                 >
                   <option value="1.0">1.0 (Compact)</option>
                   <option value="1.3">1.3 (Standard)</option>

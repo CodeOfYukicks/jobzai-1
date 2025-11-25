@@ -64,7 +64,7 @@ export default function EducationModal({
       </button>
       <button
         onClick={handleSave}
-        className="group relative px-7 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#EB7134]600 to-[#5D4D6B]600 hover:from-[#EB7134]700 hover:to-[#5D4D6B]700 rounded-full shadow-lg shadow-[#EB7134]500/30 hover:shadow-xl hover:shadow-[#EB7134]500/40 transition-all overflow-hidden"
+        className="group relative px-7 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-full shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 transition-all overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
         <span className="relative z-10">Save Education</span>

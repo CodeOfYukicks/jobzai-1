@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, Download, Share2, Save, Eye, EyeOff,
-  FileText, Sparkles, Settings, ChevronDown, Brain
+  Download, Save, Eye, EyeOff, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -14,6 +13,7 @@ import PreviewContainer from '../components/cv-editor/PreviewContainer';
 import AICompanionPanel from '../components/cv-editor/AICompanionPanel';
 import CompanyHeader from '../components/cv-editor/CompanyHeader';
 import { CVData, CVTemplate, CVEditorState, CVLayoutSettings, SectionClickTarget } from '../types/cvEditor';
+import { HighlightTarget, CVSuggestion } from '../types/cvReview';
 import { useCVEditor } from '../hooks/useCVEditor';
 import { exportToPDF, generateId } from '../lib/cvEditorUtils';
 import { parseCVData } from '../lib/cvSectionAI';
@@ -81,9 +81,13 @@ export default function PremiumCVEditor() {
     gaps: string[];
   } | undefined>();
   const [showAIPanel, setShowAIPanel] = useState(false);
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   
   // Click-to-edit from preview
   const [activeSectionTarget, setActiveSectionTarget] = useState<SectionClickTarget | null>(null);
+  
+  // Highlight section from AI review
+  const [highlightTarget, setHighlightTarget] = useState<HighlightTarget | null>(null);
   
   // Layout settings state
   const [layoutSettings, setLayoutSettings] = useState<CVLayoutSettings>({
@@ -91,7 +95,7 @@ export default function PremiumCVEditor() {
     dateFormat: 'jan-24',
     lineHeight: 1.3,
     fontFamily: 'Inter',
-    accentColor: 'orange'
+    accentColor: 'emerald'
   });
   
   // Use custom hook for editor logic
@@ -396,6 +400,319 @@ export default function PremiumCVEditor() {
     setActiveSectionTarget(null);
   }, []);
 
+  // Handle applying AI suggestions to the CV
+  const handleApplySuggestion = useCallback((suggestion: CVSuggestion) => {
+    const { action } = suggestion;
+    
+    console.log('🔵 handleApplySuggestion called');
+    console.log('   Suggestion:', suggestion.title);
+    console.log('   Action:', JSON.stringify(action, null, 2));
+    console.log('   SuggestedValue:', action.suggestedValue);
+    
+    if (!action.suggestedValue) {
+      console.error('❌ No suggested value to apply');
+      toast.error('No suggested value to apply');
+      return;
+    }
+
+    // Cast to string for flexible comparison since API can return different values
+    const targetSection = action.targetSection as string;
+    const targetField = action.targetField;
+    
+    try {
+      // ==========================================
+      // PERSONAL INFO / CONTACT SECTION
+      // ==========================================
+      // Handle both "contact" and "personalInfo" as target sections
+      const isPersonalInfo = targetSection === 'contact' || 
+                            targetSection === 'personalInfo' || 
+                            targetSection === 'personal';
+      
+      if (isPersonalInfo && targetField) {
+        console.log('✅ Applying to personal info:', targetField);
+        setCvData(prev => ({
+          ...prev,
+          personalInfo: {
+            ...prev.personalInfo,
+            [targetField]: action.suggestedValue
+          }
+        }));
+        setIsDirty(true);
+        setHighlightTarget(null);
+        toast.success(`${targetField.charAt(0).toUpperCase() + targetField.slice(1)} updated!`);
+        return;
+      }
+
+      // ==========================================
+      // SUMMARY / ABOUT SECTION
+      // ==========================================
+      if (targetSection === 'about' || targetSection === 'summary' || targetField === 'summary') {
+        console.log('✅ Applying to summary section');
+        setCvData(prev => ({
+          ...prev,
+          summary: action.suggestedValue!
+        }));
+        setIsDirty(true);
+        setHighlightTarget(null);
+        toast.success('Summary updated!');
+        return;
+      }
+
+      // ==========================================
+      // SKILLS SECTION
+      // ==========================================
+      if (targetSection === 'skills') {
+        if (action.type === 'add' || !action.targetItemId) {
+          console.log('✅ Adding skills from suggestion');
+          const skillNames = action.suggestedValue!.split(',').map(s => s.trim()).filter(s => s);
+          const newSkills = skillNames.map((skill, index) => ({
+            id: `skill-ai-${Date.now()}-${index}`,
+            name: skill,
+            level: 'intermediate' as const,
+            category: 'technical' as const
+          }));
+          
+          setCvData(prev => ({
+            ...prev,
+            skills: [...prev.skills, ...newSkills]
+          }));
+          setIsDirty(true);
+          setHighlightTarget(null);
+          toast.success(`Added ${newSkills.length} skill${newSkills.length > 1 ? 's' : ''}!`);
+          return;
+        }
+      }
+
+      // ==========================================
+      // EXPERIENCES SECTION
+      // ==========================================
+      if (targetSection === 'experiences' || targetSection === 'experience') {
+        if (action.targetItemId) {
+          console.log('✅ Updating experience item:', action.targetItemId);
+          
+          // If we have a specific field, update that field
+          if (targetField) {
+            setCvData(prev => ({
+              ...prev,
+              experiences: prev.experiences.map(item =>
+                item.id === action.targetItemId
+                  ? { ...item, [targetField]: action.suggestedValue }
+                  : item
+              )
+            }));
+          } else {
+            // No specific field - check if it's about bullets (most common case)
+            // If suggestedValue looks like a bullet point, add it to bullets
+            const suggestedValue = action.suggestedValue!;
+            setCvData(prev => ({
+              ...prev,
+              experiences: prev.experiences.map(item => {
+                if (item.id === action.targetItemId) {
+                  // Add to bullets array
+                  const newBullets = [...(item.bullets || []), suggestedValue];
+                  return { ...item, bullets: newBullets };
+                }
+                return item;
+              })
+            }));
+          }
+          
+          setIsDirty(true);
+          setHighlightTarget(null);
+          toast.success('Experience updated!');
+          return;
+        }
+      }
+
+      // ==========================================
+      // EDUCATION SECTION
+      // ==========================================
+      if (targetSection === 'education') {
+        if (action.targetItemId) {
+          console.log('✅ Updating education item:', action.targetItemId);
+          if (targetField) {
+            setCvData(prev => ({
+              ...prev,
+              education: prev.education.map(item =>
+                item.id === action.targetItemId
+                  ? { ...item, [targetField]: action.suggestedValue }
+                  : item
+              )
+            }));
+          } else {
+            // Update description by default
+            setCvData(prev => ({
+              ...prev,
+              education: prev.education.map(item =>
+                item.id === action.targetItemId
+                  ? { ...item, description: action.suggestedValue }
+                  : item
+              )
+            }));
+          }
+          setIsDirty(true);
+          setHighlightTarget(null);
+          toast.success('Education updated!');
+          return;
+        }
+      }
+
+      // ==========================================
+      // CERTIFICATIONS SECTION
+      // ==========================================
+      if (targetSection === 'certifications') {
+        // Update existing certification
+        if (action.targetItemId) {
+          console.log('✅ Updating certification item:', action.targetItemId);
+          if (targetField) {
+            setCvData(prev => ({
+              ...prev,
+              certifications: prev.certifications.map(item =>
+                item.id === action.targetItemId
+                  ? { ...item, [targetField]: action.suggestedValue }
+                  : item
+              )
+            }));
+          } else {
+            // Update name by default
+            setCvData(prev => ({
+              ...prev,
+              certifications: prev.certifications.map(item =>
+                item.id === action.targetItemId
+                  ? { ...item, name: action.suggestedValue! }
+                  : item
+              )
+            }));
+          }
+          setIsDirty(true);
+          setHighlightTarget(null);
+          toast.success('Certification updated!');
+          return;
+        }
+        // Add new certification
+        if (action.type === 'add' || !action.targetItemId) {
+          console.log('✅ Adding new certification');
+          const newCert = {
+            id: `cert-ai-${Date.now()}`,
+            name: action.suggestedValue!,
+            issuer: '',
+            date: ''
+          };
+          setCvData(prev => ({
+            ...prev,
+            certifications: [...prev.certifications, newCert]
+          }));
+          setIsDirty(true);
+          setHighlightTarget(null);
+          toast.success('Certification added!');
+          return;
+        }
+      }
+
+      // ==========================================
+      // PROJECTS SECTION
+      // ==========================================
+      if (targetSection === 'projects') {
+        if (action.targetItemId) {
+          console.log('✅ Updating project item:', action.targetItemId);
+          if (targetField) {
+            setCvData(prev => ({
+              ...prev,
+              projects: prev.projects.map(item =>
+                item.id === action.targetItemId
+                  ? { ...item, [targetField]: action.suggestedValue }
+                  : item
+              )
+            }));
+          } else {
+            // Add to highlights by default for projects
+            setCvData(prev => ({
+              ...prev,
+              projects: prev.projects.map(item => {
+                if (item.id === action.targetItemId) {
+                  const newHighlights = [...(item.highlights || []), action.suggestedValue!];
+                  return { ...item, highlights: newHighlights };
+                }
+                return item;
+              })
+            }));
+          }
+          setIsDirty(true);
+          setHighlightTarget(null);
+          toast.success('Project updated!');
+          return;
+        }
+      }
+
+      // ==========================================
+      // LANGUAGES SECTION
+      // ==========================================
+      if (targetSection === 'languages') {
+        if (action.targetItemId) {
+          console.log('✅ Updating language item:', action.targetItemId);
+          if (targetField) {
+            setCvData(prev => ({
+              ...prev,
+              languages: prev.languages.map(item =>
+                item.id === action.targetItemId
+                  ? { ...item, [targetField]: action.suggestedValue }
+                  : item
+              )
+            }));
+          } else {
+            // Update name by default for languages (proficiency has strict types)
+            setCvData(prev => ({
+              ...prev,
+              languages: prev.languages.map(item =>
+                item.id === action.targetItemId
+                  ? { ...item, name: action.suggestedValue! }
+                  : item
+              )
+            }));
+          }
+          setIsDirty(true);
+          setHighlightTarget(null);
+          toast.success('Language updated!');
+          return;
+        }
+      }
+
+      // ==========================================
+      // FALLBACK: If we have a targetField, try generic update
+      // ==========================================
+      if (targetField) {
+        console.log('✅ Applying generic field update:', targetField, 'to section:', targetSection);
+        
+        // Try to update personal info if field matches
+        const personalFields = ['firstName', 'lastName', 'email', 'phone', 'location', 'linkedin', 'github', 'portfolio', 'title'];
+        if (personalFields.includes(targetField)) {
+          setCvData(prev => ({
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              [targetField]: action.suggestedValue
+            }
+          }));
+          setIsDirty(true);
+          setHighlightTarget(null);
+          toast.success(`${targetField.charAt(0).toUpperCase() + targetField.slice(1)} updated!`);
+          return;
+        }
+      }
+
+      // If we get here, we couldn't apply the suggestion
+      console.error('❌ Could not determine how to apply suggestion');
+      console.error('   targetSection:', targetSection);
+      console.error('   targetField:', targetField);
+      console.error('   targetItemId:', action.targetItemId);
+      toast.error('Unable to apply this suggestion automatically. Please edit manually.');
+      
+    } catch (error) {
+      console.error('❌ Error applying suggestion:', error);
+      toast.error('Failed to apply suggestion');
+    }
+  }, [setCvData, setIsDirty]);
+
   // Handle save
   const handleSave = async () => {
     setIsSaving(true);
@@ -488,7 +805,7 @@ export default function PremiumCVEditor() {
                   onClick={() => setShowAIPanel(!showAIPanel)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     showAIPanel 
-                      ? 'bg-[#EB7134]/10 dark:bg-[#EB7134]/30 text-[#EB7134] dark:text-[#EB7134] shadow-sm' 
+                      ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-500/30' 
                       : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                   }`}
                 >
@@ -509,28 +826,26 @@ export default function PremiumCVEditor() {
                   )}
                 </button>
 
-                {/* Save button - Google style */}
+                {/* Save button - Premium Google Material Design 3 style */}
                 <button
                   onClick={handleSave}
                   disabled={!isDirty || isSaving}
-                  className="group relative flex items-center gap-2.5 px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-full border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed font-medium text-sm overflow-hidden"
+                  className="group relative flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200/80 dark:border-gray-700/80 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/80 hover:shadow-sm active:shadow-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200/80 font-medium text-sm"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-700/50 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <Save className="w-4 h-4 relative z-10" />
-                  <span className="hidden md:inline relative z-10">
+                  <Save className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+                  <span className="hidden md:inline">
                     {isSaving ? 'Saving...' : 'Save'}
                   </span>
                 </button>
 
-                {/* Export button - Premium gradient */}
+                {/* Export button - Premium Google Material Design 3 style */}
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="group relative flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-[#EB7134] via-[#EB7134] to-[#5D4D6B] hover:from-[#EB7134] hover:via-[#EB7134] hover:to-[#5D4D6B] text-white rounded-full shadow-lg shadow-[#EB7134]/25 hover:shadow-xl hover:shadow-[#EB7134]/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm overflow-hidden"
+                  className="group relative flex items-center gap-2 px-5 py-2 bg-[#1a73e8] hover:bg-[#1557b0] active:bg-[#1557b0] text-white rounded-lg shadow-sm hover:shadow-md active:shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#1a73e8] font-medium text-sm"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                  <Download className="w-4 h-4 relative z-10" />
-                  <span className="hidden md:inline relative z-10">
+                  <Download className="w-4 h-4" />
+                  <span className="hidden md:inline">
                     {isExporting ? 'Exporting...' : 'Export PDF'}
                   </span>
                 </button>
@@ -541,22 +856,34 @@ export default function PremiumCVEditor() {
 
         {/* Main Content */}
         <main className="flex-1 min-h-0 overflow-hidden">
-          <div className="h-full flex overflow-hidden">
+          <div className="h-full flex overflow-hidden relative">
           {/* Left: Editor Panel */}
-          <div className="h-full w-full lg:w-2/5 xl:w-[480px] border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-            <EditorPanel
-              cvData={cvData}
-              onUpdate={updateSection}
-              onReorder={reorderSections}
-              onToggleSection={toggleSection}
-              layoutSettings={layoutSettings}
-              onLayoutSettingsChange={handleLayoutSettingsChange}
-              template={template}
-              onTemplateChange={setTemplate}
-              jobContext={jobContext}
-              activeSectionTarget={activeSectionTarget}
-              onActiveSectionProcessed={clearActiveSectionTarget}
-            />
+          <div
+            className={`h-full relative border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-visible flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+              isLeftPanelCollapsed 
+                ? 'w-16' 
+                : 'w-full lg:w-[480px]'
+            }`}
+          >
+            <div className="h-full w-full overflow-hidden">
+              <EditorPanel
+                cvData={cvData}
+                onUpdate={updateSection}
+                onReorder={reorderSections}
+                onToggleSection={toggleSection}
+                layoutSettings={layoutSettings}
+                onLayoutSettingsChange={handleLayoutSettingsChange}
+                template={template}
+                onTemplateChange={setTemplate}
+                jobContext={jobContext}
+                activeSectionTarget={activeSectionTarget}
+                onActiveSectionProcessed={clearActiveSectionTarget}
+                onHighlightSection={setHighlightTarget}
+                onApplySuggestion={handleApplySuggestion}
+                isCollapsed={isLeftPanelCollapsed}
+                onToggleCollapse={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
+              />
+            </div>
           </div>
 
           {/* Right: Preview Panel */}
@@ -567,6 +894,7 @@ export default function PremiumCVEditor() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 className="h-full flex-1 bg-gray-100 dark:bg-gray-950 hidden lg:block"
+                transition={{ duration: 0.2 }}
               >
                 <PreviewContainer
                   cvData={cvData}
@@ -577,6 +905,7 @@ export default function PremiumCVEditor() {
                   onZoomOut={handleZoomOut}
                   onZoomReset={handleZoomReset}
                   onSectionClick={handlePreviewSectionClick}
+                  highlightTarget={highlightTarget}
                 />
               </motion.div>
             )}
@@ -600,6 +929,7 @@ export default function PremiumCVEditor() {
                   onZoomOut={handleZoomOut}
                   onZoomReset={handleZoomReset}
                   onSectionClick={handlePreviewSectionClick}
+                  highlightTarget={highlightTarget}
                 />
                 
                 {/* Close button for mobile preview */}

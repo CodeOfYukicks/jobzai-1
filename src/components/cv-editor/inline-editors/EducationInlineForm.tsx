@@ -99,7 +99,7 @@ export default function EducationInlineForm({
             min={yearOnly ? 1950 : undefined}
             max={yearOnly ? 2030 : undefined}
             disabled={hideSection}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#EB7134]/30 focus:border-[#EB7134] transition-all disabled:opacity-50"
+            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
         </div>
         <div>
@@ -114,7 +114,7 @@ export default function EducationInlineForm({
             min={yearOnly ? 1950 : undefined}
             max={yearOnly ? 2030 : undefined}
             disabled={inProgress || hideSection}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#EB7134]/30 focus:border-[#EB7134] transition-all disabled:opacity-50"
+            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
         </div>
         <InlineInput
@@ -151,7 +151,7 @@ export default function EducationInlineForm({
         <button
           type="button"
           onClick={() => setShowDateSettings(!showDateSettings)}
-          className="mt-2 inline-flex items-center gap-1 text-xs text-[#EB7134] hover:text-[#E85D04] font-medium transition-colors"
+          className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
         >
           <Settings2 className="w-3 h-3" />
           Change Date Format
@@ -170,7 +170,7 @@ export default function EducationInlineForm({
                   <button
                     key={format}
                     type="button"
-                    className="px-2 py-1 text-[10px] font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded hover:border-[#EB7134] hover:text-[#EB7134] transition-all"
+                    className="px-2 py-1 text-[10px] font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
                   >
                     {format}
                   </button>

@@ -1,0 +1,876 @@
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Sparkles, RefreshCw, AlertTriangle, CheckCircle2, ChevronDown,
+  User, FileText, Briefcase, GraduationCap, Code, Award,
+  FolderOpen, Globe, X, Check, ChevronRight, MessageSquare,
+  LayoutGrid, ArrowDownWideNarrow, Info
+} from 'lucide-react';
+import { CVData } from '../../../types/cvEditor';
+import {
+  CVSuggestion, CVReviewResult, CVSectionType, SuggestionTag,
+  SuggestionPriority, TAG_CONFIG, SECTION_CONFIG, PRIORITY_CONFIG,
+  HighlightTarget
+} from '../../../types/cvReview';
+import { analyzeCVWithAI } from '../../../services/cvReviewAI';
+import { toast } from 'sonner';
+
+interface AIReviewTabProps {
+  cvData: CVData;
+  jobContext?: {
+    jobTitle: string;
+    company: string;
+    jobDescription?: string;
+    keywords: string[];
+    strengths: string[];
+    gaps: string[];
+  };
+  onApplySuggestion: (suggestion: CVSuggestion) => void;
+  // Persisted state from parent to survive tab switches
+  reviewState?: {
+    result: CVReviewResult | null;
+    ignoredIds: Set<string>;
+    hasAnalyzed: boolean;
+  };
+  onReviewStateChange?: (state: { result: CVReviewResult | null; ignoredIds: Set<string>; hasAnalyzed: boolean }) => void;
+  // Highlight section in preview when clicking a suggestion
+  onHighlightSection?: (target: HighlightTarget | null) => void;
+}
+
+// Section icons mapping
+const SectionIcon = ({ section }: { section: CVSectionType }) => {
+  const icons: Record<CVSectionType, React.ReactNode> = {
+    contact: <User className="w-4 h-4" />,
+    about: <FileText className="w-4 h-4" />,
+    experiences: <Briefcase className="w-4 h-4" />,
+    education: <GraduationCap className="w-4 h-4" />,
+    skills: <Code className="w-4 h-4" />,
+    certifications: <Award className="w-4 h-4" />,
+    projects: <FolderOpen className="w-4 h-4" />,
+    languages: <Globe className="w-4 h-4" />
+  };
+  return icons[section] || <FileText className="w-4 h-4" />;
+};
+
+// Tag badge component
+const TagBadge = ({ tag }: { tag: SuggestionTag }) => {
+  const config = TAG_CONFIG[tag];
+  if (!config) return null;
+  
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full border ${config.bgColor} ${config.color}`}>
+      <span className={`w-1 h-1 rounded-full mr-1.5 ${config.color.replace('text-', 'bg-')}`} />
+      {config.label}
+    </span>
+  );
+};
+
+// Priority indicator component
+const PriorityIndicator = ({ priority }: { priority: SuggestionPriority }) => {
+  if (priority === 'high') {
+    return (
+      <div className="flex-shrink-0">
+        <AlertTriangle className="w-4 h-4 text-amber-500" />
+      </div>
+    );
+  }
+  return null;
+};
+
+// Suggestion Card component
+const SuggestionCard = ({
+  suggestion,
+  isSelected,
+  isFocused,
+  onToggle,
+  onApply,
+  onFocus
+}: {
+  suggestion: CVSuggestion;
+  isSelected: boolean;
+  isFocused: boolean;
+  onToggle: () => void;
+  onApply: () => void;
+  onFocus: () => void;
+}) => {
+  const sectionConfig = SECTION_CONFIG[suggestion.section];
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      onClick={onFocus}
+      className={`
+        group relative bg-white dark:bg-gray-800/50 rounded-xl border transition-all duration-200 cursor-pointer
+        ${isFocused
+          ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/30 shadow-lg'
+          : isSelected 
+            ? 'border-emerald-400 dark:border-emerald-500 shadow-md shadow-emerald-100 dark:shadow-emerald-900/20' 
+            : 'border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
+        }
+      `}
+    >
+      {/* Focus indicator */}
+      {isFocused && (
+        <div className="absolute -left-1 top-3 bottom-3 w-1 bg-blue-500 rounded-full" />
+      )}
+      
+      {/* Selection checkbox */}
+      <div 
+        className="absolute left-3 top-3.5 cursor-pointer z-10"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
+      >
+        <div className={`
+          w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all
+          ${isSelected
+            ? 'bg-emerald-500 border-emerald-500 text-white'
+            : 'border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500'
+          }
+        `}>
+          {isSelected && <Check className="w-3 h-3" strokeWidth={3} />}
+        </div>
+      </div>
+
+      <div className="pl-10 pr-4 py-3.5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <h4 className={`text-sm font-semibold ${sectionConfig?.color || 'text-gray-700 dark:text-gray-200'}`}>
+                {typeof suggestion.title === 'string' ? suggestion.title : String(suggestion.title)}
+              </h4>
+              <PriorityIndicator priority={suggestion.priority} />
+            </div>
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2">
+          {typeof suggestion.description === 'string' ? suggestion.description : String(suggestion.description)}
+        </p>
+
+        {/* Show suggested value when focused */}
+        {isFocused && suggestion.action.suggestedValue && suggestion.isApplicable && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mb-3 p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800/50"
+          >
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Ready to apply:</span>
+            </div>
+            <p className="text-xs text-emerald-800 dark:text-emerald-200 leading-relaxed">
+              {typeof suggestion.action.suggestedValue === 'string' 
+                ? suggestion.action.suggestedValue 
+                : JSON.stringify(suggestion.action.suggestedValue)}
+            </p>
+          </motion.div>
+        )}
+        
+        {/* Show manual action required for non-applicable suggestions */}
+        {isFocused && !suggestion.isApplicable && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mb-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800/50"
+          >
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Info className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+              <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Manual action required</span>
+            </div>
+            <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+              Click on the highlighted section in the preview to edit this information directly.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1.5">
+          {suggestion.tags.map(tag => (
+            <TagBadge key={tag} tag={tag} />
+          ))}
+        </div>
+
+        {/* Quick apply button */}
+        {suggestion.isApplicable && suggestion.action.suggestedValue && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onApply();
+            }}
+            className={`mt-3 w-full py-1.5 px-3 text-xs font-medium text-emerald-600 dark:text-emerald-400 
+                     bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800
+                     hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors
+                     ${isFocused ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+          >
+            Apply this suggestion
+          </button>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+// Section Group component
+const SectionGroup = ({
+  section,
+  suggestions,
+  selectedIds,
+  focusedId,
+  onToggle,
+  onSelectSection,
+  onApply,
+  onFocus
+}: {
+  section: CVSectionType;
+  suggestions: CVSuggestion[];
+  selectedIds: Set<string>;
+  focusedId: string | null;
+  onToggle: (id: string) => void;
+  onSelectSection: () => void;
+  onApply: (suggestion: CVSuggestion) => void;
+  onFocus: (suggestion: CVSuggestion) => void;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const config = SECTION_CONFIG[section];
+  const selectedInSection = suggestions.filter(s => selectedIds.has(s.id)).length;
+  
+  return (
+    <div className="mb-4">
+      {/* Section Header */}
+      <div 
+        className="flex items-center justify-between py-2 px-1 cursor-pointer group"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          <div className={`${config?.color || 'text-gray-500'}`}>
+            <SectionIcon section={section} />
+          </div>
+          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+            {config?.label || section}
+          </span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            ({suggestions.length})
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {selectedInSection > 0 && (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              {selectedInSection} selected
+            </span>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectSection();
+            }}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 
+                     opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            {selectedInSection === suggestions.length ? 'Deselect All' : 'Select All'}
+          </button>
+          <ChevronDown 
+            className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+          />
+        </div>
+      </div>
+
+      {/* Suggestions */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-2 pl-1"
+          >
+            {suggestions.map(suggestion => (
+              <SuggestionCard
+                key={suggestion.id}
+                suggestion={suggestion}
+                isSelected={selectedIds.has(suggestion.id)}
+                isFocused={focusedId === suggestion.id}
+                onToggle={() => onToggle(suggestion.id)}
+                onApply={() => onApply(suggestion)}
+                onFocus={() => onFocus(suggestion)}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// Priority Group component
+const PriorityGroup = ({
+  priority,
+  suggestions,
+  selectedIds,
+  focusedId,
+  onToggle,
+  onApply,
+  onFocus
+}: {
+  priority: SuggestionPriority;
+  suggestions: CVSuggestion[];
+  selectedIds: Set<string>;
+  focusedId: string | null;
+  onToggle: (id: string) => void;
+  onApply: (suggestion: CVSuggestion) => void;
+  onFocus: (suggestion: CVSuggestion) => void;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const config = PRIORITY_CONFIG[priority];
+  
+  return (
+    <div className="mb-4">
+      {/* Priority Header */}
+      <div 
+        className="flex items-center justify-between py-2 px-1 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          <span className={`text-sm font-semibold ${config.color}`}>
+            {config.label}
+          </span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            ({suggestions.length})
+          </span>
+        </div>
+        <ChevronDown 
+          className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+        />
+      </div>
+
+      {/* Suggestions */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-2 pl-1"
+          >
+            {suggestions.map(suggestion => (
+              <SuggestionCard
+                key={suggestion.id}
+                suggestion={suggestion}
+                isSelected={selectedIds.has(suggestion.id)}
+                isFocused={focusedId === suggestion.id}
+                onToggle={() => onToggle(suggestion.id)}
+                onApply={() => onApply(suggestion)}
+                onFocus={() => onFocus(suggestion)}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ATS Score Ring component
+const ATSScoreRing = ({ score }: { score: number }) => {
+  const circumference = 2 * Math.PI * 36;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+  
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-emerald-500';
+    if (score >= 60) return 'text-amber-500';
+    return 'text-red-500';
+  };
+
+  const getStrokeColor = (score: number) => {
+    if (score >= 80) return '#10b981';
+    if (score >= 60) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  return (
+    <div className="relative w-20 h-20">
+      <svg className="w-full h-full transform -rotate-90">
+        <circle
+          cx="40"
+          cy="40"
+          r="36"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="6"
+          className="text-gray-100 dark:text-gray-700"
+        />
+        <motion.circle
+          cx="40"
+          cy="40"
+          r="36"
+          fill="none"
+          stroke={getStrokeColor(score)}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`text-xl font-bold ${getScoreColor(score)}`}>
+          {score}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// Main AIReviewTab component
+export default function AIReviewTab({
+  cvData,
+  jobContext,
+  onApplySuggestion,
+  reviewState,
+  onReviewStateChange,
+  onHighlightSection
+}: AIReviewTabProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<CVReviewResult | null>(reviewState?.result || null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [ignoredIds, setIgnoredIds] = useState<Set<string>>(reviewState?.ignoredIds || new Set());
+  const [groupBy, setGroupBy] = useState<'section' | 'priority'>('section');
+  const [hasAnalyzed, setHasAnalyzed] = useState(reviewState?.hasAnalyzed || false);
+  const [focusedSuggestionId, setFocusedSuggestionId] = useState<string | null>(null);
+
+  // Sync state changes back to parent for persistence
+  useEffect(() => {
+    if (onReviewStateChange && (result || hasAnalyzed)) {
+      onReviewStateChange({ result, ignoredIds, hasAnalyzed });
+    }
+  }, [result, ignoredIds, hasAnalyzed]);
+
+  // Only analyze on first mount if not already analyzed
+  useEffect(() => {
+    if (!hasAnalyzed && !result && !isLoading) {
+      runAnalysis();
+    }
+  }, []);
+
+  const runAnalysis = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const analysisResult = await analyzeCVWithAI({
+        cvData,
+        jobContext
+      });
+      setResult(analysisResult);
+      setSelectedIds(new Set());
+      setIgnoredIds(new Set());
+      setHasAnalyzed(true);
+    } catch (err: any) {
+      console.error('CV Analysis error:', err);
+      setError(err.message || 'Failed to analyze CV');
+      toast.error('Failed to analyze CV. Please try again.');
+      setHasAnalyzed(true); // Mark as analyzed even on error to prevent re-triggering
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter out ignored suggestions
+  const activeSuggestions = useMemo(() => {
+    if (!result) return [];
+    return result.suggestions.filter(s => !ignoredIds.has(s.id));
+  }, [result, ignoredIds]);
+
+  // Group suggestions by section
+  const suggestionsBySection = useMemo(() => {
+    const groups: Record<CVSectionType, CVSuggestion[]> = {
+      contact: [],
+      about: [],
+      experiences: [],
+      education: [],
+      skills: [],
+      certifications: [],
+      projects: [],
+      languages: []
+    };
+    
+    activeSuggestions.forEach(suggestion => {
+      if (groups[suggestion.section]) {
+        groups[suggestion.section].push(suggestion);
+      }
+    });
+    
+    return groups;
+  }, [activeSuggestions]);
+
+  // Group suggestions by priority
+  const suggestionsByPriority = useMemo(() => {
+    const groups: Record<SuggestionPriority, CVSuggestion[]> = {
+      high: [],
+      medium: [],
+      low: []
+    };
+    
+    activeSuggestions.forEach(suggestion => {
+      groups[suggestion.priority].push(suggestion);
+    });
+    
+    return groups;
+  }, [activeSuggestions]);
+
+  // Toggle selection
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Select all in section
+  const selectAllInSection = useCallback((section: CVSectionType) => {
+    const sectionSuggestions = suggestionsBySection[section];
+    const allSelected = sectionSuggestions.every(s => selectedIds.has(s.id));
+    
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      sectionSuggestions.forEach(s => {
+        if (allSelected) {
+          newSet.delete(s.id);
+        } else {
+          newSet.add(s.id);
+        }
+      });
+      return newSet;
+    });
+  }, [suggestionsBySection, selectedIds]);
+
+  // Select all
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(activeSuggestions.map(s => s.id)));
+  }, [activeSuggestions]);
+
+  // Deselect all
+  const deselectAll = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  // Apply single suggestion
+  const applySuggestion = useCallback((suggestion: CVSuggestion) => {
+    console.log('🟢 AIReviewTab.applySuggestion called');
+    console.log('   Suggestion:', suggestion.title);
+    console.log('   Has onApplySuggestion:', !!onApplySuggestion);
+    
+    if (!onApplySuggestion) {
+      console.error('❌ onApplySuggestion is not defined!');
+      toast.error('Cannot apply - callback not configured');
+      return;
+    }
+    
+    onApplySuggestion(suggestion);
+    setIgnoredIds(prev => new Set([...prev, suggestion.id]));
+    setFocusedSuggestionId(null);
+    onHighlightSection?.(null);
+  }, [onApplySuggestion, onHighlightSection]);
+
+  // Apply selected suggestions
+  const applySelected = useCallback(() => {
+    const selectedSuggestions = activeSuggestions.filter(s => selectedIds.has(s.id) && s.isApplicable && s.action.suggestedValue);
+    
+    if (selectedSuggestions.length === 0) {
+      toast.error('No applicable suggestions selected. Only suggestions with "Ready to apply" can be auto-applied.');
+      return;
+    }
+    
+    selectedSuggestions.forEach(suggestion => {
+      onApplySuggestion(suggestion);
+    });
+    
+    setIgnoredIds(prev => new Set([...prev, ...selectedIds]));
+    setSelectedIds(new Set());
+    setFocusedSuggestionId(null);
+    onHighlightSection?.(null);
+    toast.success(`Applied ${selectedSuggestions.length} suggestion${selectedSuggestions.length > 1 ? 's' : ''}!`);
+  }, [activeSuggestions, selectedIds, onApplySuggestion, onHighlightSection]);
+
+  // Ignore selected suggestions
+  const ignoreSelected = useCallback(() => {
+    setIgnoredIds(prev => new Set([...prev, ...selectedIds]));
+    setSelectedIds(new Set());
+  }, [selectedIds]);
+
+  // Focus a suggestion to highlight it in preview
+  const focusSuggestion = useCallback((suggestion: CVSuggestion) => {
+    // Toggle focus - if already focused, unfocus
+    if (focusedSuggestionId === suggestion.id) {
+      setFocusedSuggestionId(null);
+      onHighlightSection?.(null);
+    } else {
+      setFocusedSuggestionId(suggestion.id);
+      onHighlightSection?.({
+        section: suggestion.section,
+        itemId: suggestion.action.targetItemId,
+        field: suggestion.action.targetField,
+        suggestedValue: suggestion.action.suggestedValue,
+        currentValue: suggestion.action.currentValue
+      });
+    }
+  }, [focusedSuggestionId, onHighlightSection]);
+
+  // Calculate remaining suggestions count
+  const remainingCount = activeSuggestions.length - Array.from(selectedIds).length;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-full border-4 border-emerald-100 dark:border-emerald-900/30" />
+          <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-emerald-500 animate-spin" />
+        </div>
+        <h3 className="mt-6 text-base font-semibold text-gray-900 dark:text-white">
+          Analyzing your CV...
+        </h3>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs">
+          Our AI is reviewing your resume for ATS optimization and improvement opportunities.
+        </p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !result) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+          <AlertTriangle className="w-8 h-8 text-red-500" />
+        </div>
+        <h3 className="mt-4 text-base font-semibold text-gray-900 dark:text-white">
+          Analysis Failed
+        </h3>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs">
+          {error}
+        </p>
+        <button
+          onClick={runAnalysis}
+          className="mt-4 px-4 py-2 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  if (!result) return null;
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Header Controls */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Group by</span>
+            <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+              <button
+                onClick={() => setGroupBy('section')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  groupBy === 'section'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Section
+              </button>
+              <button
+                onClick={() => setGroupBy('priority')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  groupBy === 'priority'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Priority
+              </button>
+            </div>
+          </div>
+          
+          <button
+            onClick={runAnalysis}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 
+                     hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 
+                     rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="px-4 py-4">
+          {/* Review Summary Card */}
+          <div className="mb-6 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
+            <div className="flex items-start gap-4">
+              <ATSScoreRing score={result.summary.overallScore} />
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                    AI Review
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {typeof result.summary.greeting === 'string' ? result.summary.greeting : String(result.summary.greeting)}
+                </p>
+                
+                {result.summary.strengths.length > 0 && (
+                  <div className="mt-3">
+                    <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      Strengths:
+                    </span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
+                      {result.summary.strengths.map(s => typeof s === 'string' ? s : String(s)).join(' • ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Suggestions List */}
+          {groupBy === 'section' ? (
+            // Group by Section
+            Object.entries(suggestionsBySection).map(([section, suggestions]) => {
+              if (suggestions.length === 0) return null;
+              return (
+                <SectionGroup
+                  key={section}
+                  section={section as CVSectionType}
+                  suggestions={suggestions}
+                  selectedIds={selectedIds}
+                  focusedId={focusedSuggestionId}
+                  onToggle={toggleSelection}
+                  onSelectSection={() => selectAllInSection(section as CVSectionType)}
+                  onApply={applySuggestion}
+                  onFocus={focusSuggestion}
+                />
+              );
+            })
+          ) : (
+            // Group by Priority
+            Object.entries(suggestionsByPriority).map(([priority, suggestions]) => {
+              if (suggestions.length === 0) return null;
+              return (
+                <PriorityGroup
+                  key={priority}
+                  priority={priority as SuggestionPriority}
+                  suggestions={suggestions}
+                  selectedIds={selectedIds}
+                  focusedId={focusedSuggestionId}
+                  onToggle={toggleSelection}
+                  onApply={applySuggestion}
+                  onFocus={focusSuggestion}
+                />
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Scroll Indicator */}
+      {remainingCount > 0 && (
+        <div className="flex-shrink-0 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-t border-amber-200 dark:border-amber-800/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <ChevronDown className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                Scroll for <span className="font-bold">{remainingCount}</span> more suggestions
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                const container = document.querySelector('.overflow-y-auto');
+                if (container) {
+                  container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+                }
+              }}
+              className="text-sm font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
+            >
+              See Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Action Bar */}
+      <div className="flex-shrink-0 px-4 py-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+        {/* Selection Count Row */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {selectedIds.size} selected
+          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={selectAll}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Select All
+            </button>
+            <button
+              onClick={deselectAll}
+              className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              Deselect All
+            </button>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={ignoreSelected}
+            disabled={selectedIds.size === 0}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium 
+                     text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 
+                     border border-gray-300 dark:border-gray-600 rounded-xl
+                     hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <X className="w-4 h-4" />
+            Ignore {selectedIds.size > 0 ? selectedIds.size : ''} Selected
+          </button>
+          <button
+            onClick={applySelected}
+            disabled={selectedIds.size === 0}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium 
+                     text-white bg-emerald-500 rounded-xl
+                     hover:bg-emerald-600 transition-colors
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Check className="w-4 h-4" />
+            Apply {selectedIds.size > 0 ? selectedIds.size : ''} Selected
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -1,4 +1,5 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
+import { HighlightTarget } from '../../../types/cvReview';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Award, Briefcase, GraduationCap } from 'lucide-react';
@@ -9,15 +10,16 @@ interface CreativeBalanceProps {
   cvData: CVData;
   layoutSettings: CVLayoutSettings;
   onSectionClick?: (target: SectionClickTarget) => void;
+  highlightTarget?: HighlightTarget | null;
 }
 
-export default function CreativeBalance({ cvData, layoutSettings, onSectionClick }: CreativeBalanceProps) {
+export default function CreativeBalance({ cvData, layoutSettings, onSectionClick, highlightTarget }: CreativeBalanceProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
   
   // Dynamic accent color from layoutSettings
   const accentColor = layoutSettings.accentColor 
     ? COLOR_HEX_MAP[layoutSettings.accentColor] 
-    : '#EB7134';
+    : '#10b981';
   
   // Generate lighter and darker variants
   const accentColorLight = `${accentColor}15`; // 15% opacity for backgrounds
@@ -37,7 +39,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
       }}
     >
       {/* Header with accent color */}
-      <ClickableSection sectionType="personal" onSectionClick={onSectionClick}>
+      <ClickableSection sectionType="personal" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
         <header className="mb-6 pb-4 border-b-4" style={{ borderColor: accentColor }}>
           <div className="flex justify-between items-start">
             <div>
@@ -103,7 +105,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
 
       {/* Summary with background */}
       {cvData.summary && enabledSections.find(s => s.type === 'summary') && (
-        <ClickableSection sectionType="summary" onSectionClick={onSectionClick}>
+        <ClickableSection sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
           <section className="mb-6">
             <div className="rounded-lg p-4 border-l-4" style={{ backgroundColor: accentColorLight, borderColor: accentColor }}>
               <p className="text-gray-700 leading-relaxed" style={{ fontSize: '1em' }}>
@@ -127,7 +129,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
               </div>
               <div className="space-y-4">
                 {cvData.experiences.map(exp => (
-                  <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div className="relative pl-6">
                       {/* Timeline dot */}
                       <div className="absolute left-0 top-2 w-3 h-3 rounded-full" style={{ backgroundColor: accentColor }}></div>
@@ -173,7 +175,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
               <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Featured Projects</h2>
               <div className="grid grid-cols-1 gap-3">
                 {cvData.projects.map(project => (
-                  <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div className="bg-gray-50 rounded-lg p-3">
                       <h3 className="font-bold text-gray-900 mb-1" style={{ fontSize: '1em' }}>
                         {project.name}
@@ -205,7 +207,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
         <div className="space-y-6">
           {/* Skills with visual bars */}
           {cvData.skills?.length > 0 && enabledSections.find(s => s.type === 'skills') && (
-            <ClickableSection sectionType="skills" onSectionClick={onSectionClick}>
+            <ClickableSection sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
               <section>
                 <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Skills</h2>
                 <div className="space-y-2">
@@ -237,7 +239,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
               </div>
               <div className="space-y-3">
                 {cvData.education.map(edu => (
-                  <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div>
                       <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
                         {edu.degree}
@@ -268,7 +270,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
               </div>
               <div className="space-y-2">
                 {cvData.certifications.map(cert => (
-                  <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div className="rounded p-2" style={{ backgroundColor: accentColorLight }}>
                       <p className="font-medium text-gray-900" style={{ fontSize: '0.95em' }}>{cert.name}</p>
                       <p className="text-gray-600" style={{ fontSize: '0.85em' }}>
@@ -287,7 +289,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
               <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Languages</h2>
               <div className="space-y-2">
                 {cvData.languages.map(lang => (
-                  <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700" style={{ fontSize: '0.95em' }}>{lang.name}</span>
                       <span className="text-white px-2 py-1 rounded" style={{ fontSize: '0.85em', backgroundColor: accentColor }}>

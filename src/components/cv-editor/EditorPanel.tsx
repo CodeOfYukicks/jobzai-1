@@ -2,15 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  GripVertical, Plus, Eye, EyeOff, ChevronDown, ChevronRight,
+  GripVertical, Plus, Eye, EyeOff, ChevronDown, ChevronLeft, ChevronRight,
   User, FileText, Briefcase, GraduationCap, Code, Award,
-  FolderOpen, Globe, Settings, Sparkles, Edit3, Layout, Search
+  FolderOpen, Globe, Sparkles, Edit3, Layout
 } from 'lucide-react';
 import { CVData, CVSection, CVLayoutSettings, CVTemplate, SectionClickTarget } from '../../types/cvEditor';
+import { CVSuggestion, CVReviewResult, HighlightTarget } from '../../types/cvReview';
 import SectionEditor from './SectionEditor';
 import { sortSections } from '../../lib/cvEditorUtils';
 import LayoutStyleTab from './tabs/LayoutStyleTab';
 import TemplatesTab from './tabs/TemplatesTab';
+import AIReviewTab from './tabs/AIReviewTab';
 import { Palette } from 'lucide-react';
 
 type TabType = 'ai-review' | 'editor' | 'templates' | 'layout-style';
@@ -35,9 +37,27 @@ interface EditorPanelProps {
   // Click-to-edit from preview
   activeSectionTarget?: SectionClickTarget | null;
   onActiveSectionProcessed?: () => void;
+  // Highlight section in preview from AI review
+  onHighlightSection?: (target: HighlightTarget | null) => void;
+  // Apply suggestion to CV
+  onApplySuggestion?: (suggestion: CVSuggestion) => void;
+  // Panel collapse
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const sectionIcons: Record<string, React.ReactNode> = {
+  personal: <User className="w-5 h-5" />,
+  summary: <FileText className="w-5 h-5" />,
+  experience: <Briefcase className="w-5 h-5" />,
+  education: <GraduationCap className="w-5 h-5" />,
+  skills: <Code className="w-5 h-5" />,
+  certifications: <Award className="w-5 h-5" />,
+  projects: <FolderOpen className="w-5 h-5" />,
+  languages: <Globe className="w-5 h-5" />
+};
+
+const sectionIconsSmall: Record<string, React.ReactNode> = {
   personal: <User className="w-4 h-4" />,
   summary: <FileText className="w-4 h-4" />,
   experience: <Briefcase className="w-4 h-4" />,
@@ -59,13 +79,36 @@ export default function EditorPanel({
   onTemplateChange,
   jobContext,
   activeSectionTarget,
-  onActiveSectionProcessed
+  onActiveSectionProcessed,
+  onHighlightSection,
+  onApplySuggestion,
+  isCollapsed,
+  onToggleCollapse
 }: EditorPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('editor');
   const [expandedSection, setExpandedSection] = useState<string | null>(null); // All sections closed by default
   const [searchQuery, setSearchQuery] = useState('');
   const [externalItemId, setExternalItemId] = useState<string | null>(null);
   const sectionsContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Persisted AI Review state to survive tab switches
+  const [reviewState, setReviewState] = useState<{
+    result: CVReviewResult | null;
+    ignoredIds: Set<string>;
+    hasAnalyzed: boolean;
+  }>({ result: null, ignoredIds: new Set(), hasAnalyzed: false });
+  
+  // Handle applying suggestions from AI Review
+  const handleApplySuggestion = (suggestion: CVSuggestion) => {
+    console.log('🟡 EditorPanel.handleApplySuggestion called');
+    console.log('   Has onApplySuggestion prop:', !!onApplySuggestion);
+    
+    if (onApplySuggestion) {
+      onApplySuggestion(suggestion);
+    } else {
+      console.error('❌ onApplySuggestion prop is undefined in EditorPanel!');
+    }
+  };
 
   // Handle external section activation from CV preview clicks
   useEffect(() => {
@@ -155,28 +198,82 @@ export default function EditorPanel({
     return section.title.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  // Collapsed version - just icons
+  if (isCollapsed) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-gray-900">
+        {/* Collapsed Header with expand button */}
+        <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="px-3 py-3 flex items-center justify-center">
+            {onToggleCollapse && (
+              <motion.button
+                onClick={onToggleCollapse}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all duration-200 group"
+                aria-label="Expand panel"
+                title="Ouvrir le panneau"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors" />
+              </motion.button>
+            )}
+          </div>
+        </div>
+
+        {/* Collapsed Sections - Icon only */}
+        <div className="flex-1 overflow-y-auto py-3 px-2 space-y-2">
+          {sortSections(cvData.sections).map((section) => (
+            <motion.button
+              key={section.id}
+              onClick={() => {
+                onToggleCollapse?.();
+                setTimeout(() => {
+                  setExpandedSection(section.id);
+                  setActiveTab('editor');
+                }, 300);
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`
+                w-full flex items-center justify-center p-2.5 rounded-lg transition-all
+                ${section.enabled
+                  ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  : 'text-gray-400 dark:text-gray-600 opacity-50'
+                }
+              `}
+              title={section.title}
+            >
+              {sectionIcons[section.type] || <FileText className="w-5 h-5" />}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Full version
   return (
     <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-gray-900">
       {/* Premium Tabs Navigation */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-10">
-        <div className="flex items-center px-2">
+      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="px-4 py-3 flex items-center">
           {/* AI Review Tab */}
           <button
             onClick={() => setActiveTab('ai-review')}
             className={`
-              relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all
+              relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
               ${activeTab === 'ai-review' 
                 ? 'text-[#EB7134] dark:text-[#EB7134]' 
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-4 h-4" />
             <span>AI Review</span>
             {activeTab === 'ai-review' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134]"
+                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -186,19 +283,19 @@ export default function EditorPanel({
           <button
             onClick={() => setActiveTab('editor')}
             className={`
-              relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all
+              relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
               ${activeTab === 'editor' 
                 ? 'text-[#EB7134] dark:text-[#EB7134]' 
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
-            <Edit3 className="w-3.5 h-3.5" />
+            <Edit3 className="w-4 h-4" />
             <span>Editor</span>
             {activeTab === 'editor' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134]"
+                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -208,19 +305,19 @@ export default function EditorPanel({
           <button
             onClick={() => setActiveTab('templates')}
             className={`
-              relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all
+              relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
               ${activeTab === 'templates' 
                 ? 'text-[#EB7134] dark:text-[#EB7134]' 
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
-            <Palette className="w-3.5 h-3.5" />
+            <Palette className="w-4 h-4" />
             <span>Templates</span>
             {activeTab === 'templates' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134]"
+                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -230,23 +327,40 @@ export default function EditorPanel({
           <button
             onClick={() => setActiveTab('layout-style')}
             className={`
-              relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all
+              relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
               ${activeTab === 'layout-style' 
                 ? 'text-[#EB7134] dark:text-[#EB7134]' 
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
-            <Layout className="w-3.5 h-3.5" />
-            <span>Layout & Style</span>
+            <Layout className="w-4 h-4" />
+            <span>Style</span>
             {activeTab === 'layout-style' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134]"
+                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
           </button>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Collapse Panel Button */}
+          {onToggleCollapse && (
+            <motion.button
+              onClick={onToggleCollapse}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all duration-200 group"
+              aria-label={isCollapsed ? 'Expand panel' : 'Collapse panel'}
+              title="Réduire le panneau"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors" />
+            </motion.button>
+          )}
         </div>
       </div>
 
@@ -259,19 +373,16 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center p-8"
+            className="flex-1 min-h-0 overflow-hidden flex flex-col"
           >
-            <div className="text-center max-w-md">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#EB7134]/10 dark:bg-[#EB7134]/20 mb-4">
-                <Sparkles className="w-8 h-8 text-[#EB7134] dark:text-[#EB7134]" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                AI Review Coming Soon
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Get intelligent feedback and suggestions to improve your CV with AI-powered analysis.
-              </p>
-            </div>
+            <AIReviewTab
+              cvData={cvData}
+              jobContext={jobContext}
+              onApplySuggestion={handleApplySuggestion}
+              reviewState={reviewState}
+              onReviewStateChange={setReviewState}
+              onHighlightSection={onHighlightSection}
+            />
           </motion.div>
         )}
 
@@ -337,7 +448,7 @@ export default function EditorPanel({
                                     : 'text-gray-500 dark:text-gray-400'
                                   }
                                 `}>
-                                  {sectionIcons[section.type] || <FileText className="w-3 h-3" />}
+                                  {sectionIconsSmall[section.type] || <FileText className="w-4 h-4" />}
                                 </div>
 
                                 {/* Section Title */}
@@ -353,32 +464,32 @@ export default function EditorPanel({
                                   </h3>
                                 </div>
 
-                                {/* Toggle Visibility */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onToggleSection(section.id);
-                                  }}
+                                  {/* Toggle Visibility */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onToggleSection(section.id);
+                                    }}
                                   className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                                  title={section.enabled ? 'Hide section' : 'Show section'}
-                                >
-                                  {section.enabled ? (
+                                    title={section.enabled ? 'Hide section' : 'Show section'}
+                                  >
+                                    {section.enabled ? (
                                     <Eye className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                                  ) : (
+                                    ) : (
                                     <EyeOff className="w-3 h-3 text-gray-400 dark:text-gray-500" />
-                                  )}
-                                </button>
+                                    )}
+                                  </button>
 
-                                {/* Expand/Collapse Chevron */}
-                                <ChevronDown 
-                                  className={`
+                                  {/* Expand/Collapse Chevron */}
+                                  <ChevronDown 
+                                    className={`
                                     w-3 h-3 transition-all duration-200
-                                    ${expandedSection === section.id 
+                                      ${expandedSection === section.id 
                                       ? 'rotate-180 text-[#EB7134] dark:text-[#EB7134]' 
-                                      : 'text-gray-400 dark:text-gray-500'
-                                    }
-                                  `}
-                                />
+                                        : 'text-gray-400 dark:text-gray-500'
+                                      }
+                                    `}
+                                  />
                               </div>
 
                               {/* Section Content */}

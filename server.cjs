@@ -658,6 +658,302 @@ app.post('/api/chatgpt', async (req, res) => {
   }
 });
 
+// CV Review AI Analysis endpoint
+app.post('/api/cv-review', async (req, res) => {
+  try {
+    console.log("🔵 CV Review AI endpoint called");
+    console.log("   Request body keys:", Object.keys(req.body || {}));
+
+    // Get API key from Firestore or environment variables
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+    } catch (keyError) {
+      console.error('❌ Error retrieving API key:', keyError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to retrieve API key: ${keyError.message}`
+      });
+    }
+
+    if (!apiKey) {
+      console.error('❌ ERREUR: Clé API OpenAI manquante pour CV Review');
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).'
+      });
+    }
+
+    console.log('✅ API key retrieved successfully for CV Review');
+
+    const { cvData, jobContext } = req.body;
+
+    if (!cvData) {
+      console.error('❌ CV data is missing in request body');
+      return res.status(400).json({
+        status: 'error',
+        message: 'CV data is required'
+      });
+    }
+
+    // Generate the CV review prompt
+    const prompt = generateCVReviewPrompt(cvData, jobContext);
+    
+    const systemMessage = `You are an elite CV/Resume strategist and ATS optimization expert. You analyze CVs with extreme precision and provide highly actionable, specific suggestions. 
+
+CRITICAL RULES:
+1. Always respond with valid JSON matching the EXACT structure requested
+2. Never include markdown code blocks - just raw JSON
+3. Be SPECIFIC - reference actual content from the CV, not generic advice
+4. Prioritize suggestions by real impact on ATS scores and recruiter engagement
+5. For each suggestion, provide a concrete action that can be applied`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemMessage
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ];
+
+    console.log('📡 Sending CV review request to ChatGPT API...');
+    console.log(`   CV sections: ${cvData.sections?.length || 0}`);
+    console.log(`   Has job context: ${!!jobContext}`);
+
+    // Call OpenAI API
+    let openaiResponse;
+    let responseText;
+
+    try {
+      openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: messages,
+          response_format: { type: 'json_object' },
+          max_tokens: 8000,
+          temperature: 0.3
+        })
+      });
+
+      console.log(`OpenAI API response status: ${openaiResponse.status}`);
+
+      responseText = await openaiResponse.text();
+      console.log("Response received, length:", responseText.length);
+
+      if (!openaiResponse.ok) {
+        console.error("❌ Non-200 response from OpenAI API for CV Review");
+        console.error("Response status:", openaiResponse.status);
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          return res.status(openaiResponse.status).json({
+            status: 'error',
+            message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
+            error: errorData.error
+          });
+        } catch (parseError) {
+          return res.status(openaiResponse.status).json({
+            status: 'error',
+            message: `OpenAI API error (status ${openaiResponse.status})`
+          });
+        }
+      }
+    } catch (fetchError) {
+      console.error("❌ Error calling OpenAI API for CV Review:", fetchError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to call OpenAI API: ${fetchError.message}`
+      });
+    }
+
+    // Parse and return response
+    try {
+      console.log("Parsing CV Review response...");
+      const parsedResponse = JSON.parse(responseText);
+
+      if (!parsedResponse.choices || parsedResponse.choices.length === 0) {
+        throw new Error('Invalid response structure from ChatGPT API');
+      }
+
+      const content = parsedResponse.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('Empty response from ChatGPT API');
+      }
+
+      // Parse JSON content
+      let reviewResult;
+      try {
+        reviewResult = typeof content === 'string' ? JSON.parse(content) : content;
+        console.log("✅ Successfully parsed CV review JSON content");
+      } catch (parseError) {
+        console.warn("⚠️  Failed to parse content as JSON, trying to extract...");
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) ||
+          content.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          reviewResult = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          throw new Error('Could not parse JSON from response');
+        }
+      }
+
+      // Ensure required structure
+      if (!reviewResult.summary) {
+        reviewResult.summary = {
+          greeting: `Hey ${cvData.personalInfo?.firstName || 'there'}, I've analyzed your CV.`,
+          overallScore: 50,
+          strengths: [],
+          mainIssues: []
+        };
+      }
+      
+      if (!reviewResult.suggestions || !Array.isArray(reviewResult.suggestions)) {
+        reviewResult.suggestions = [];
+      }
+      
+      if (!reviewResult.analyzedAt) {
+        reviewResult.analyzedAt = new Date().toISOString();
+      }
+
+      // Ensure each suggestion has required fields
+      reviewResult.suggestions = reviewResult.suggestions.map((suggestion, index) => ({
+        id: suggestion.id || `suggestion-${index}`,
+        title: suggestion.title || 'Suggestion',
+        description: suggestion.description || '',
+        section: suggestion.section || 'about',
+        priority: suggestion.priority || 'medium',
+        tags: Array.isArray(suggestion.tags) ? suggestion.tags : [],
+        action: suggestion.action || { type: 'update', targetSection: suggestion.section || 'about' },
+        isApplicable: suggestion.isApplicable !== undefined ? suggestion.isApplicable : true
+      }));
+
+      console.log('✅ CV Review completed successfully');
+      console.log(`   Overall score: ${reviewResult.summary.overallScore}`);
+      console.log(`   Suggestions count: ${reviewResult.suggestions.length}`);
+
+      return res.json({
+        status: 'success',
+        result: reviewResult,
+        usage: parsedResponse.usage
+      });
+    } catch (parseError) {
+      console.error("❌ Parse error in CV Review:", parseError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to parse response: ${parseError.message}`
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Unexpected error in CV Review handler:", error);
+    
+    if (res.headersSent) {
+      return;
+    }
+
+    res.status(500).json({
+      status: 'error',
+      message: error.message || "An error occurred processing your CV review request"
+    });
+  }
+});
+
+// Helper function for CV Review prompt generation
+function generateCVReviewPrompt(cvData, jobContext) {
+  const cvJson = JSON.stringify(cvData, null, 2);
+  
+  return `You are an expert CV/Resume reviewer and ATS optimization specialist. Analyze the following CV and provide highly specific, actionable suggestions to improve it.
+
+${jobContext ? `
+TARGET JOB CONTEXT:
+- Position: ${jobContext.jobTitle}
+- Company: ${jobContext.company}
+- Job Description: ${jobContext.jobDescription || 'Not provided'}
+- Key Skills Required: ${(jobContext.keywords || []).join(', ') || 'Not specified'}
+- Identified Strengths: ${(jobContext.strengths || []).join(', ') || 'None identified'}
+- Identified Gaps: ${(jobContext.gaps || []).join(', ') || 'None identified'}
+` : 'No specific job target provided - analyze for general improvement.'}
+
+CV DATA (JSON):
+${cvJson}
+
+ANALYSIS REQUIREMENTS:
+
+1. REVIEW SUMMARY:
+   - Write a personalized greeting using the candidate's first name (${cvData.personalInfo?.firstName || 'there'})
+   - Mention 1-2 specific strengths you noticed in their CV
+   - Provide an ATS compatibility score (0-100)
+   - List 2-3 key strengths
+   - List 2-3 main issues to address
+
+2. SUGGESTIONS:
+   For each issue found, create a suggestion with:
+   - id: unique identifier (e.g., "contact-phone", "exp-metrics-1")
+   - title: Short, actionable title (e.g., "Add Phone Number", "Quantify achievements at [Company]")
+   - description: 2-3 sentences explaining WHY this matters and HOW to fix it
+   - section: One of "contact", "about", "experiences", "education", "skills", "certifications", "projects", "languages"
+   - priority: "high", "medium", or "low"
+   - tags: Array from ["missing_info", "ats_optimize", "add_impact", "stay_relevant", "be_concise", "tailor_resume"]
+   - action: Object with:
+     - type: "add", "update", "remove", or "rewrite"
+     - targetSection: Same as section
+     - targetField: (optional) specific field like "phone", "summary"
+     - targetItemId: (optional) ID of specific experience/education item
+     - suggestedValue: (optional) The suggested text/value
+     - currentValue: (optional) Current value if rewriting
+   - isApplicable: boolean - can this be auto-applied?
+
+PRIORITIES:
+- HIGH: Missing critical info (phone, email), no summary, no metrics in experience
+- MEDIUM: Missing LinkedIn, skills need expansion, summary too long/short
+- LOW: Nice-to-have improvements, formatting suggestions
+
+IMPORTANT:
+- Be SPECIFIC to this CV - don't give generic advice
+- Reference actual content from the CV in your suggestions
+- If targeting a specific job, prioritize suggestions that align with job requirements
+- Include at least 5-15 suggestions across different sections
+- Provide suggested text/values where possible for "add" and "rewrite" actions
+
+Respond ONLY with valid JSON in this exact structure:
+{
+  "summary": {
+    "greeting": "string",
+    "overallScore": number,
+    "strengths": ["string"],
+    "mainIssues": ["string"]
+  },
+  "suggestions": [
+    {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "section": "string",
+      "priority": "string",
+      "tags": ["string"],
+      "action": {
+        "type": "string",
+        "targetSection": "string",
+        "targetField": "string (optional)",
+        "targetItemId": "string (optional)",
+        "suggestedValue": "string (optional)",
+        "currentValue": "string (optional)"
+      },
+      "isApplicable": boolean
+    }
+  ],
+  "analyzedAt": "${new Date().toISOString()}"
+}`;
+}
+
 // GPT-4o Vision API route for CV analysis
 app.post('/api/analyze-cv-vision', async (req, res) => {
   try {

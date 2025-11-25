@@ -21,7 +21,7 @@ const InlineInput = forwardRef<HTMLInputElement, InlineInputProps>(
             rounded-lg 
             text-xs text-gray-900 dark:text-white 
             placeholder-gray-400 dark:placeholder-gray-500
-            focus:outline-none focus:ring-1 focus:ring-[#EB7134]/30 focus:border-[#EB7134]
+            focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500
             transition-all duration-150
             ${props.disabled ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50' : ''}
             ${className}

@@ -212,8 +212,8 @@ export default function AICompanionPanel({
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-[#EB7134]100 dark:bg-[#EB7134]900/30 rounded-lg">
-                    <Brain className="w-5 h-5 text-[#EB7134]600 dark:text-[#EB7134]400" />
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                    <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -275,8 +275,8 @@ export default function AICompanionPanel({
               </div>
 
               {jobContext && (
-                <div className="mt-3 p-2 bg-[#EB7134]50 dark:bg-[#EB7134]900/20 rounded-lg">
-                  <p className="text-xs text-[#EB7134]700 dark:text-[#EB7134]300">
+                <div className="mt-3 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
                     Optimized for: <span className="font-medium">{jobContext.jobTitle}</span> at {jobContext.company}
                   </p>
                 </div>
@@ -291,7 +291,7 @@ export default function AICompanionPanel({
 
               {isAnalyzing ? (
                 <div className="flex flex-col items-center justify-center py-8">
-                  <div className="w-8 h-8 border-3 border-[#EB7134]600 border-t-transparent rounded-full animate-spin mb-3" />
+                  <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin mb-3" />
                   <p className="text-sm text-gray-500 dark:text-gray-400">Analyzing your CV...</p>
                 </div>
               ) : (
@@ -318,7 +318,7 @@ export default function AICompanionPanel({
                             {suggestion.description}
                           </p>
                           {suggestion.action && (
-                            <button className="flex items-center gap-1 text-xs text-[#EB7134]600 dark:text-[#EB7134]400 hover:text-[#EB7134]700 dark:hover:text-[#EB7134]300 font-medium">
+                            <button className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium">
                               <Sparkles className="w-3 h-3" />
                               {suggestion.action}
                               <ChevronRight className="w-3 h-3" />

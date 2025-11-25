@@ -3124,7 +3124,7 @@ Make sure each answer is completely unique and specific to its question - no gen
       />
 
       <MotionConfig transition={{ duration: 0.2 }}>
-        <div className="h-full lg:pr-[400px]">
+        <div className="h-full lg:pr-[400px] overflow-y-auto">
           {/* Premium Hero Section */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}

@@ -160,7 +160,7 @@ export default function SectionEditor({
           key={action.id}
           onClick={() => handleAIAction(action.id)}
           disabled={isProcessingAI}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-[#EB7134]/10 dark:hover:bg-[#EB7134]/20 hover:text-[#EB7134] dark:hover:text-[#EB7134] hover:border-[#EB7134]/30 dark:hover:border-[#EB7134]/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isProcessingAI && currentAction === action.id ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -235,13 +235,13 @@ export default function SectionEditor({
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
+        className="mt-3 p-4 bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/30 rounded-lg"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
                 AI Suggestion
               </span>
             </div>
@@ -252,7 +252,7 @@ export default function SectionEditor({
           <div className="flex items-center gap-1">
             <button
               onClick={acceptSuggestion}
-              className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
               title="Accept suggestion"
             >
               <Check className="w-4 h-4" />
@@ -294,7 +294,7 @@ export default function SectionEditor({
                 type="text"
                 value={data.firstName || ''}
                 onChange={(e) => onChange({ firstName: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                 placeholder="John"
               />
             </div>
@@ -306,7 +306,7 @@ export default function SectionEditor({
                 type="text"
                 value={data.lastName || ''}
                 onChange={(e) => onChange({ lastName: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                 placeholder="Doe"
               />
             </div>
@@ -320,7 +320,7 @@ export default function SectionEditor({
               type="text"
               value={data.title || ''}
               onChange={(e) => onChange({ title: e.target.value })}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
               placeholder="Senior Software Engineer"
             />
           </div>
@@ -334,7 +334,7 @@ export default function SectionEditor({
                 type="email"
                 value={data.email || ''}
                 onChange={(e) => onChange({ email: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                 placeholder="john.doe@example.com"
               />
             </div>
@@ -346,7 +346,7 @@ export default function SectionEditor({
                 type="tel"
                 value={data.phone || ''}
                 onChange={(e) => onChange({ phone: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
@@ -360,7 +360,7 @@ export default function SectionEditor({
               type="text"
               value={data.location || ''}
               onChange={(e) => onChange({ location: e.target.value })}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
               placeholder="San Francisco, CA"
             />
           </div>
@@ -373,7 +373,7 @@ export default function SectionEditor({
               type="url"
               value={data.linkedin || ''}
               onChange={(e) => onChange({ linkedin: e.target.value })}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
               placeholder="linkedin.com/in/johndoe"
             />
           </div>
@@ -391,7 +391,7 @@ export default function SectionEditor({
               value={data.summary || ''}
               onChange={(e) => onChange({ summary: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
               placeholder="Write a compelling summary that highlights your key strengths and career objectives..."
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -461,7 +461,7 @@ export default function SectionEditor({
               {data.experiences?.map((exp: CVExperience) => (
                 <div
                   key={exp.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(exp.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -502,7 +502,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Experience</span>
@@ -566,7 +566,7 @@ export default function SectionEditor({
               {data.education?.map((edu: CVEducation) => (
                 <div
                   key={edu.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(edu.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -607,7 +607,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Education</span>
@@ -640,7 +640,7 @@ export default function SectionEditor({
             <input
               type="text"
               placeholder="Add a skill..."
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   const input = e.currentTarget;
@@ -660,7 +660,7 @@ export default function SectionEditor({
               onClick={() => {
                 // TODO: Open skill suggestions
               }}
-              className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -722,7 +722,7 @@ export default function SectionEditor({
               {data.certifications?.map((cert: CVCertification) => (
                 <div
                   key={cert.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(cert.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -763,7 +763,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Certification</span>
@@ -831,7 +831,7 @@ export default function SectionEditor({
               {data.projects?.map((project: CVProject) => (
                 <div
                   key={project.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(project.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -845,7 +845,7 @@ export default function SectionEditor({
                       {project.technologies.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {project.technologies.slice(0, 3).map((tech, idx) => (
-                            <span key={idx} className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                            <span key={idx} className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded">
                               {tech}
                             </span>
                           ))}
@@ -883,7 +883,7 @@ export default function SectionEditor({
 
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Project</span>
@@ -947,7 +947,7 @@ export default function SectionEditor({
               {data.languages?.map((language: CVLanguage) => (
                 <div
                   key={language.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(language.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -985,7 +985,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Language</span>
@@ -1010,11 +1010,11 @@ export default function SectionEditor({
 // SkillChip component
 function SkillChip({ skill, onDelete }: { skill: CVSkill; onDelete: () => void }) {
   return (
-    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-full text-sm">
+    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-full text-sm">
       <span>{skill.name}</span>
       <button
         onClick={onDelete}
-        className="ml-1 p-0.5 hover:bg-purple-100 dark:hover:bg-purple-800/30 rounded-full transition-colors"
+        className="ml-1 p-0.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/30 rounded-full transition-colors"
       >
         <X className="w-3 h-3" />
       </button>

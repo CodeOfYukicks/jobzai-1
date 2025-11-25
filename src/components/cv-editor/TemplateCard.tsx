@@ -30,7 +30,7 @@ export const TEMPLATE_INFO: CVTemplateInfo[] = [
     label: 'Modern', 
     description: 'Clean and ATS-optimized',
     styleDescriptor: 'clean · professional',
-    availableColors: ['charcoal', 'blue', 'teal', 'emerald', 'orange'] // Supports colors
+    availableColors: ['emerald', 'teal', 'blue', 'charcoal', 'orange'] // Emerald first
   },
   { 
     value: 'executive-classic', 
@@ -51,7 +51,7 @@ export const TEMPLATE_INFO: CVTemplateInfo[] = [
     label: 'Creative', 
     description: 'Modern with personality',
     styleDescriptor: 'colorful · bold',
-    availableColors: ['orange', 'blue', 'teal', 'emerald'] // Full color support
+    availableColors: ['emerald', 'teal', 'blue', 'orange'] // Emerald first
   },
 ];
 
@@ -367,7 +367,7 @@ export default function TemplateCard({
 }: TemplateCardProps) {
   const hasColors = template.availableColors.length > 0;
   const accentColorHex = hasColors 
-    ? (COLOR_OPTIONS.find(c => c.id === selectedColor)?.hex || COLOR_OPTIONS.find(c => c.id === template.availableColors[0])?.hex || '#EB7134')
+    ? (COLOR_OPTIONS.find(c => c.id === selectedColor)?.hex || COLOR_OPTIONS.find(c => c.id === template.availableColors[0])?.hex || '#10b981')
     : '#374151'; // Gray for no-color templates
   const availableColorOptions = COLOR_OPTIONS.filter(c => template.availableColors.includes(c.id));
 
@@ -378,7 +378,7 @@ export default function TemplateCard({
       className={`
         relative cursor-pointer rounded-lg overflow-hidden transition-all duration-200
         ${isSelected 
-          ? 'ring-2 ring-[#EB7134] shadow-md' 
+          ? 'ring-2 ring-emerald-500 shadow-md' 
           : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-600 hover:shadow-sm'
         }
         bg-white dark:bg-gray-800
@@ -389,7 +389,7 @@ export default function TemplateCard({
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="absolute top-1 right-1 z-10 w-3.5 h-3.5 rounded-full bg-[#EB7134] flex items-center justify-center shadow-md"
+          className="absolute top-1 right-1 z-10 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center shadow-md"
         >
           <Check className="w-2 h-2 text-white" />
         </motion.div>

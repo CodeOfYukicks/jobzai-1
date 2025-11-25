@@ -76,13 +76,13 @@ export default function CompanyHeader({ companyName, jobTitle, appliedDate }: Co
   // Generate color from company name
   const getCompanyColor = (name: string): string => {
     const colors = [
-      'bg-[#EB7134]',
+      'bg-emerald-500',
+      'bg-teal-500',
       'bg-blue-500',
-      'bg-[#5D4D6B]',
-      'bg-violet-500',
-      'bg-pink-500',
-      'bg-rose-500',
-      'bg-fuchsia-500',
+      'bg-slate-600',
+      'bg-cyan-500',
+      'bg-sky-500',
+      'bg-indigo-500',
     ];
     const index = name.length % colors.length;
     return colors[index];
@@ -92,7 +92,7 @@ export default function CompanyHeader({ companyName, jobTitle, appliedDate }: Co
   if (!companyName && !jobTitle) {
     return (
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EB7134] to-[#5D4D6B] flex items-center justify-center shadow-sm">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm">
           <Briefcase className="w-5 h-5 text-white" />
         </div>
         <div>

@@ -1,4 +1,5 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
+import { HighlightTarget } from '../../../types/cvReview';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import ClickableSection from '../ClickableSection';
@@ -7,9 +8,10 @@ interface ExecutiveClassicProps {
   cvData: CVData;
   layoutSettings: CVLayoutSettings;
   onSectionClick?: (target: SectionClickTarget) => void;
+  highlightTarget?: HighlightTarget | null;
 }
 
-export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClick }: ExecutiveClassicProps) {
+export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClick, highlightTarget }: ExecutiveClassicProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
@@ -26,7 +28,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
       }}
     >
       {/* Header */}
-      <ClickableSection sectionType="personal" onSectionClick={onSectionClick}>
+      <ClickableSection sectionType="personal" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
         <header className="text-center mb-8 pb-4 border-b-2 border-gray-800">
           <h1 className="font-bold text-gray-900 mb-2 tracking-wide uppercase" style={{ fontSize: '2.25em' }}>
             {cvData.personalInfo.firstName} {cvData.personalInfo.lastName}
@@ -77,7 +79,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
         <div className="flex-1" style={{ flex: '0 0 70%' }}>
           {/* Summary */}
           {cvData.summary && enabledSections.find(s => s.type === 'summary') && (
-            <ClickableSection sectionType="summary" onSectionClick={onSectionClick}>
+            <ClickableSection sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
               <section className="mb-6">
                 <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                   Executive Summary
@@ -97,7 +99,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
               </h2>
               <div className="space-y-5">
                 {cvData.experiences.map(exp => (
-                  <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div>
                       <div className="mb-2">
                         <div className="flex justify-between items-baseline">
@@ -141,7 +143,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
               </h2>
               <div className="space-y-3">
                 {cvData.projects.map(project => (
-                  <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div>
                       <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
                         {project.name}
@@ -175,7 +177,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
               </h2>
               <div className="space-y-3">
                 {cvData.education.map(edu => (
-                  <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div>
                       <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
                         {edu.degree}
@@ -206,7 +208,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
 
           {/* Skills */}
           {cvData.skills?.length > 0 && enabledSections.find(s => s.type === 'skills') && (
-            <ClickableSection sectionType="skills" onSectionClick={onSectionClick}>
+            <ClickableSection sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
               <section className="mb-6">
                 <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                   Core Competencies
@@ -230,7 +232,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
               </h2>
               <div className="space-y-2">
                 {cvData.certifications.map(cert => (
-                  <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div>
                       <p className="font-medium text-gray-900" style={{ fontSize: '0.95em' }}>{cert.name}</p>
                       <p className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
@@ -251,7 +253,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
               </h2>
               <div className="space-y-1">
                 {cvData.languages.map(lang => (
-                  <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick}>
+                  <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div className="text-gray-700" style={{ fontSize: '0.95em' }}>
                       <span className="font-medium">{lang.name}</span>
                       <span className="text-gray-600 italic"> — {lang.proficiency}</span>

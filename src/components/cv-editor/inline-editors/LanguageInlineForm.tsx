@@ -71,8 +71,8 @@ export default function LanguageInlineForm({
               className={`
                 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
                 ${formData.proficiency === level.value
-                  ? 'bg-gradient-to-r from-[#EB7134] to-[#5D4D6B] text-white shadow-md'
-                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-[#EB7134] hover:text-[#EB7134]'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-md'
+                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
                 }
               `}
             >

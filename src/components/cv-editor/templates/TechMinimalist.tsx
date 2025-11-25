@@ -1,4 +1,5 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
+import { HighlightTarget } from '../../../types/cvReview';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import { Github, Globe, Mail, MapPin } from 'lucide-react';
@@ -8,9 +9,10 @@ interface TechMinimalistProps {
   cvData: CVData;
   layoutSettings: CVLayoutSettings;
   onSectionClick?: (target: SectionClickTarget) => void;
+  highlightTarget?: HighlightTarget | null;
 }
 
-export default function TechMinimalist({ cvData, layoutSettings, onSectionClick }: TechMinimalistProps) {
+export default function TechMinimalist({ cvData, layoutSettings, onSectionClick, highlightTarget }: TechMinimalistProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
@@ -43,7 +45,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick 
       }}
     >
       {/* Header - Minimalist */}
-      <ClickableSection sectionType="personal" onSectionClick={onSectionClick}>
+      <ClickableSection sectionType="personal" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
         <header className="mb-6">
           <div className="flex justify-between items-start">
             <div>
@@ -88,7 +90,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick 
 
       {/* Summary - Code block style */}
       {cvData.summary && enabledSections.find(s => s.type === 'summary') && (
-        <ClickableSection sectionType="summary" onSectionClick={onSectionClick}>
+        <ClickableSection sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
           <section className="mb-6">
             <div className="bg-gray-50 border-l-4 border-gray-400 p-3">
               <p className="text-gray-700 font-sans leading-relaxed" style={{ fontSize: '1em' }}>
@@ -101,7 +103,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick 
 
       {/* Skills - Grid layout */}
       {cvData.skills?.length > 0 && enabledSections.find(s => s.type === 'skills') && (
-        <ClickableSection sectionType="skills" onSectionClick={onSectionClick}>
+        <ClickableSection sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
           <section className="mb-6">
             <h2 className="font-bold uppercase tracking-wider text-gray-500 mb-3" style={{ fontSize: '0.9em' }}>
               TECHNICAL STACK
@@ -134,7 +136,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick 
           </h2>
           <div className="space-y-4">
             {cvData.experiences.map(exp => (
-              <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick}>
+              <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <div className="border-l-2 border-gray-200 pl-4">
                   <div className="flex justify-between items-start mb-1">
                     <div>
@@ -177,7 +179,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick 
           </h2>
           <div className="space-y-3">
             {cvData.projects.map(project => (
-              <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick}>
+              <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <div className="border-l-2 border-gray-200 pl-4">
                   <div className="flex items-baseline gap-2">
                     <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
@@ -225,7 +227,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick 
           </h2>
           <div className="space-y-2">
             {cvData.education.map(edu => (
-              <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick}>
+              <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
@@ -255,7 +257,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick 
           </h2>
           <div className="space-y-1">
             {cvData.certifications.map(cert => (
-              <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick}>
+              <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <div className="text-gray-700 font-sans" style={{ fontSize: '0.9em' }}>
                   <span className="text-gray-400">→</span>
                   <span className="ml-2">

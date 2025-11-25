@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomIn, ZoomOut, Maximize2, Download, RefreshCw, AlertTriangle } from 'lucide-react';
 import { CVData, CVTemplate, CVLayoutSettings, SectionClickTarget } from '../../types/cvEditor';
+import { HighlightTarget } from '../../types/cvReview';
 import { A4_WIDTH_PX, A4_HEIGHT_PX } from '../../lib/cvEditorUtils';
 import ModernProfessional from './templates/ModernProfessional';
 import ExecutiveClassic from './templates/ExecutiveClassic';
@@ -18,6 +19,7 @@ interface PreviewContainerProps {
   onZoomOut: () => void;
   onZoomReset: () => void;
   onSectionClick?: (target: SectionClickTarget) => void;
+  highlightTarget?: HighlightTarget | null;
 }
 
 const ZOOM_PRESETS = [50, 70, 100, 120, 150];
@@ -30,7 +32,8 @@ export default function PreviewContainer({
   onZoomIn,
   onZoomOut,
   onZoomReset,
-  onSectionClick
+  onSectionClick,
+  highlightTarget
 }: PreviewContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -156,7 +159,7 @@ export default function PreviewContainer({
                   className={`
                     px-3 py-1 text-xs font-medium rounded-md transition-colors
                     ${zoom === preset
-                      ? 'bg-[#EB7134]100 dark:bg-[#EB7134]900/30 text-[#EB7134]700 dark:text-[#EB7134]300'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }
                   `}
@@ -225,6 +228,7 @@ export default function PreviewContainer({
                     fontFamily: 'Inter'
                   }}
                   onSectionClick={onSectionClick}
+                  highlightTarget={highlightTarget}
                 />
               </div>
 
