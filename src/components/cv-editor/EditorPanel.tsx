@@ -10,8 +10,10 @@ import { CVData, CVSection, CVLayoutSettings, CVTemplate, SectionClickTarget } f
 import SectionEditor from './SectionEditor';
 import { sortSections } from '../../lib/cvEditorUtils';
 import LayoutStyleTab from './tabs/LayoutStyleTab';
+import TemplatesTab from './tabs/TemplatesTab';
+import { Palette } from 'lucide-react';
 
-type TabType = 'ai-review' | 'editor' | 'layout-style';
+type TabType = 'ai-review' | 'editor' | 'templates' | 'layout-style';
 
 interface EditorPanelProps {
   cvData: CVData;
@@ -157,24 +159,24 @@ export default function EditorPanel({
     <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-gray-900">
       {/* Premium Tabs Navigation */}
       <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 z-10">
-        <div className="flex items-center px-4">
+        <div className="flex items-center px-2">
           {/* AI Review Tab */}
           <button
             onClick={() => setActiveTab('ai-review')}
             className={`
-              relative flex items-center gap-2 px-4 py-4 text-sm font-medium transition-all
+              relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all
               ${activeTab === 'ai-review' 
                 ? 'text-[#EB7134] dark:text-[#EB7134]' 
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-3.5 h-3.5" />
             <span>AI Review</span>
             {activeTab === 'ai-review' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134] dark:bg-[#EB7134]"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -184,19 +186,41 @@ export default function EditorPanel({
           <button
             onClick={() => setActiveTab('editor')}
             className={`
-              relative flex items-center gap-2 px-4 py-4 text-sm font-medium transition-all
+              relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all
               ${activeTab === 'editor' 
                 ? 'text-[#EB7134] dark:text-[#EB7134]' 
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
-            <Edit3 className="w-4 h-4" />
+            <Edit3 className="w-3.5 h-3.5" />
             <span>Editor</span>
             {activeTab === 'editor' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134] dark:bg-[#EB7134]"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134]"
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              />
+            )}
+          </button>
+
+          {/* Templates Tab */}
+          <button
+            onClick={() => setActiveTab('templates')}
+            className={`
+              relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all
+              ${activeTab === 'templates' 
+                ? 'text-[#EB7134] dark:text-[#EB7134]' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }
+            `}
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span>Templates</span>
+            {activeTab === 'templates' && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -206,19 +230,19 @@ export default function EditorPanel({
           <button
             onClick={() => setActiveTab('layout-style')}
             className={`
-              relative flex items-center gap-2 px-4 py-4 text-sm font-medium transition-all
+              relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all
               ${activeTab === 'layout-style' 
                 ? 'text-[#EB7134] dark:text-[#EB7134]' 
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
-            <Layout className="w-4 h-4" />
+            <Layout className="w-3.5 h-3.5" />
             <span>Layout & Style</span>
             {activeTab === 'layout-style' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134] dark:bg-[#EB7134]"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#EB7134]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -394,6 +418,24 @@ export default function EditorPanel({
           </motion.div>
         )}
 
+        {activeTab === 'templates' && (
+          <motion.div
+            key="templates"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 min-h-0 overflow-hidden flex flex-col"
+          >
+            <TemplatesTab
+              template={template}
+              onTemplateChange={onTemplateChange}
+              layoutSettings={layoutSettings}
+              onSettingsChange={onLayoutSettingsChange}
+            />
+          </motion.div>
+        )}
+
         {activeTab === 'layout-style' && (
           <motion.div
             key="layout-style"
@@ -408,8 +450,6 @@ export default function EditorPanel({
               onReorder={onReorder}
               layoutSettings={layoutSettings}
               onSettingsChange={onLayoutSettingsChange}
-              template={template}
-              onTemplateChange={onTemplateChange}
             />
           </motion.div>
         )}

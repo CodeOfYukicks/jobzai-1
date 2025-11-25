@@ -90,7 +90,8 @@ export default function PremiumCVEditor() {
     fontSize: 10,
     dateFormat: 'jan-24',
     lineHeight: 1.3,
-    fontFamily: 'Inter'
+    fontFamily: 'Inter',
+    accentColor: 'orange'
   });
   
   // Use custom hook for editor logic

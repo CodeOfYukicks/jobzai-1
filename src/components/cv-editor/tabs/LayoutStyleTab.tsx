@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { motion } from 'framer-motion';
 import { 
   GripVertical, User, FileText, Briefcase, GraduationCap, 
   Code, Award, FolderOpen, Globe, Lock, Minus, Plus,
-  ChevronDown, Edit3, Type, Check
+  ChevronDown, Edit3, Type
 } from 'lucide-react';
-import { CVSection, CVLayoutSettings, CVTemplate } from '../../../types/cvEditor';
+import { CVSection, CVLayoutSettings } from '../../../types/cvEditor';
 import { sortSections } from '../../../lib/cvEditorUtils';
 
 interface LayoutStyleTabProps {
@@ -14,16 +13,7 @@ interface LayoutStyleTabProps {
   onReorder: (sections: CVSection[]) => void;
   layoutSettings: CVLayoutSettings;
   onSettingsChange: (settings: Partial<CVLayoutSettings>) => void;
-  template: CVTemplate;
-  onTemplateChange: (template: CVTemplate) => void;
 }
-
-const TEMPLATES: { value: CVTemplate; label: string; description: string }[] = [
-  { value: 'modern-professional', label: 'Modern Professional', description: 'Clean and ATS-optimized' },
-  { value: 'executive-classic', label: 'Executive Classic', description: 'Traditional and elegant' },
-  { value: 'tech-minimalist', label: 'Tech Minimalist', description: 'Google/Linear inspired' },
-  { value: 'creative-balance', label: 'Creative Balance', description: 'Modern with personality' }
-];
 
 // Premium font families with their categories
 const PREMIUM_FONTS = [
@@ -82,7 +72,7 @@ const sectionIcons: Record<string, React.ReactNode> = {
 
 const lockedSections = ['personal', 'contact', 'links'];
 
-export default function LayoutStyleTab({ sections, onReorder, layoutSettings, onSettingsChange, template, onTemplateChange }: LayoutStyleTabProps) {
+export default function LayoutStyleTab({ sections, onReorder, layoutSettings, onSettingsChange }: LayoutStyleTabProps) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
 
@@ -124,50 +114,6 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
   return (
     <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
       <div className="max-w-2xl mx-auto space-y-8">
-        {/* CV Template */}
-        <div>
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-              CV Template
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Choose a professional template for your CV
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3">
-            {TEMPLATES.map((t) => (
-              <button
-                key={t.value}
-                onClick={() => onTemplateChange(t.value)}
-                  className={`
-                  text-left p-4 rounded-lg border-2 transition-all
-                  ${template === t.value
-                    ? 'border-[#EB7134] bg-[#EB7134]/10 dark:bg-[#EB7134]/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-[#EB7134]/30 dark:hover:border-[#EB7134]/70 bg-white dark:bg-gray-800'
-                  }
-                `}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                      {t.label}
-                    </h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {t.description}
-                    </p>
-                  </div>
-                  {template === t.value && (
-                    <div className="w-5 h-5 rounded-full bg-[#EB7134] dark:bg-[#EB7134] flex items-center justify-center">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Section Order & Titles */}
         <div>
           <div className="mb-4">

@@ -3,6 +3,7 @@ import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEdit
 import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github } from 'lucide-react';
 import ClickableSection from '../ClickableSection';
+import { COLOR_HEX_MAP } from '../TemplateCard';
 
 interface ModernProfessionalProps {
   cvData: CVData;
@@ -12,6 +13,11 @@ interface ModernProfessionalProps {
 
 export default function ModernProfessional({ cvData, layoutSettings, onSectionClick }: ModernProfessionalProps) {
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
+  
+  // Dynamic accent color from layoutSettings
+  const accentColor = layoutSettings.accentColor 
+    ? COLOR_HEX_MAP[layoutSettings.accentColor] 
+    : '#3b82f6'; // Default blue for Modern
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
     return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
@@ -43,37 +49,37 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           <div className="flex flex-wrap gap-4 text-gray-600" style={{ fontSize: '0.9em' }}>
             {cvData.personalInfo.email && (
               <div className="flex items-center gap-1">
-                <Mail style={{ width: '1em', height: '1em' }} />
+                <Mail style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{cvData.personalInfo.email}</span>
               </div>
             )}
             {cvData.personalInfo.phone && (
               <div className="flex items-center gap-1">
-                <Phone style={{ width: '1em', height: '1em' }} />
+                <Phone style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{cvData.personalInfo.phone}</span>
               </div>
             )}
             {cvData.personalInfo.location && (
               <div className="flex items-center gap-1">
-                <MapPin style={{ width: '1em', height: '1em' }} />
+                <MapPin style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{cvData.personalInfo.location}</span>
               </div>
             )}
             {cvData.personalInfo.linkedin && (
               <div className="flex items-center gap-1">
-                <Linkedin style={{ width: '1em', height: '1em' }} />
+                <Linkedin style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{formatURL(cvData.personalInfo.linkedin)}</span>
               </div>
             )}
             {cvData.personalInfo.github && (
               <div className="flex items-center gap-1">
-                <Github style={{ width: '1em', height: '1em' }} />
+                <Github style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{formatURL(cvData.personalInfo.github)}</span>
               </div>
             )}
             {cvData.personalInfo.portfolio && (
               <div className="flex items-center gap-1">
-                <Globe style={{ width: '1em', height: '1em' }} />
+                <Globe style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{formatURL(cvData.personalInfo.portfolio)}</span>
               </div>
             )}
@@ -89,7 +95,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             return (
               <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick}>
                 <section className="mb-6">
-                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 border-gray-300 pb-1 mb-3" style={{ fontSize: '1em' }}>
+                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Professional Summary
                   </h2>
                   <p className="text-gray-700 leading-relaxed" style={{ fontSize: '1em' }}>
@@ -103,7 +109,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             if (!cvData.experiences?.length) return null;
             return (
               <section key={section.id} className="mb-6">
-                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 border-gray-300 pb-1 mb-3" style={{ fontSize: '1em' }}>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                   Work Experience
                 </h2>
                 <div className="space-y-4">
@@ -145,7 +151,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             if (!cvData.education?.length) return null;
             return (
               <section key={section.id} className="mb-6">
-                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 border-gray-300 pb-1 mb-3" style={{ fontSize: '1em' }}>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                   Education
                 </h2>
                 <div className="space-y-3">
@@ -187,7 +193,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             return (
               <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick}>
                 <section className="mb-6">
-                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 border-gray-300 pb-1 mb-3" style={{ fontSize: '1em' }}>
+                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Skills
                   </h2>
                   <div className="flex flex-wrap gap-2">
@@ -209,7 +215,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             if (!cvData.certifications?.length) return null;
             return (
               <section key={section.id} className="mb-6">
-                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 border-gray-300 pb-1 mb-3" style={{ fontSize: '1em' }}>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                   Certifications
                 </h2>
                 <div className="space-y-2">
@@ -231,7 +237,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             if (!cvData.projects?.length) return null;
             return (
               <section key={section.id} className="mb-6">
-                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 border-gray-300 pb-1 mb-3" style={{ fontSize: '1em' }}>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                   Projects
                 </h2>
                 <div className="space-y-3">
@@ -241,7 +247,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                         <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
                           {project.name}
                           {project.url && (
-                            <span className="ml-2 text-blue-600 font-normal" style={{ fontSize: '0.9em' }}>
+                            <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
                               {formatURL(project.url)}
                             </span>
                           )}
@@ -272,7 +278,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             if (!cvData.languages?.length) return null;
             return (
               <section key={section.id} className="mb-6">
-                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 border-gray-300 pb-1 mb-3" style={{ fontSize: '1em' }}>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                   Languages
                 </h2>
                 <div className="flex flex-wrap gap-3">

@@ -100,6 +100,31 @@ export interface CVData {
 
 export type CVTemplate = 'modern-professional' | 'executive-classic' | 'tech-minimalist' | 'creative-balance';
 
+// Color scheme types for template customization
+export type CVColorScheme = 
+  | 'slate'      // Professional dark gray
+  | 'charcoal'   // Deep black
+  | 'blue'       // Classic blue
+  | 'orange'     // Vibrant orange (brand color)
+  | 'teal'       // Modern teal
+  | 'emerald';   // Fresh green
+
+export interface CVColorOption {
+  id: CVColorScheme;
+  name: string;
+  hex: string;
+  darkHex?: string; // Optional darker variant for headers
+}
+
+// Template metadata for the visual selector
+export interface CVTemplateInfo {
+  value: CVTemplate;
+  label: string;
+  description: string;
+  styleDescriptor: string; // e.g., "simple · classic"
+  availableColors: CVColorScheme[];
+}
+
 export interface CVEditorState {
   data: CVData;
   template: CVTemplate;
@@ -154,6 +179,7 @@ export interface CVLayoutSettings {
   dateFormat: string;         // 'jan-24', 'january-2024', '01-2024', '2024-01'
   lineHeight: number;         // 1.0, 1.3, 1.5, 2.0
   fontFamily: string;         // 'Inter', 'Playfair Display', 'Montserrat', etc.
+  accentColor?: CVColorScheme; // Template accent color
 }
 
 // Click-to-edit target from CV preview
