@@ -1,15 +1,77 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Edit3, Trash2, MoreHorizontal, CheckCircle, XCircle } from 'lucide-react';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Building2, Calendar, Clock, MapPin, Eye, Edit3, Trash2 } from 'lucide-react';
 import { Interview, JobApplication } from '../../types/job';
-import { StepChip } from '../application/StepChip';
-import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl } from '../../utils/logo';
+import { CompanyLogo } from '../common/CompanyLogo';
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
+// Helper function to get type badge styles
+const getTypeBadgeStyles = (type: string) => {
+  switch (type) {
+    case 'technical':
+      return {
+        bg: 'bg-purple-50 dark:bg-purple-500/10',
+        text: 'text-purple-700 dark:text-purple-400',
+        border: 'border-purple-200 dark:border-purple-500/20',
+      };
+    case 'hr':
+      return {
+        bg: 'bg-pink-50 dark:bg-pink-500/10',
+        text: 'text-pink-700 dark:text-pink-400',
+        border: 'border-pink-200 dark:border-pink-500/20',
+      };
+    case 'manager':
+      return {
+        bg: 'bg-amber-50 dark:bg-amber-500/10',
+        text: 'text-amber-700 dark:text-amber-400',
+        border: 'border-amber-200 dark:border-amber-500/20',
+      };
+    case 'final':
+      return {
+        bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+        text: 'text-emerald-700 dark:text-emerald-400',
+        border: 'border-emerald-200 dark:border-emerald-500/20',
+      };
+    default:
+      return {
+        bg: 'bg-gray-50 dark:bg-gray-500/10',
+        text: 'text-gray-700 dark:text-gray-400',
+        border: 'border-gray-200 dark:border-gray-500/20',
+      };
+  }
+};
+
+// Helper function to format type label
+const getTypeLabel = (type: string): string => {
+  const labels: Record<string, string> = {
+    technical: 'Technical',
+    hr: 'HR',
+    manager: 'Manager',
+    final: 'Final',
+    other: 'Other',
+  };
+  return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
+};
+
+// Helper function to format date
+const formatDateString = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = date.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays === -1) return 'Yesterday';
+  if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
+  if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
+
+  return date.toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
+};
 
 export function InterviewCard({
   application,
@@ -30,184 +92,132 @@ export function InterviewCard({
   onMarkCompleted: () => void;
   onMarkCancelled: () => void;
 }) {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    const root = document.documentElement;
-    const check = () => setIsDark(root.classList.contains('dark'));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  const companyDomain = getCompanyDomain(application.companyName);
-  const initialLogo = companyDomain ? getClearbitUrl(companyDomain) : null;
-  const [logoSrc, setLogoSrc] = useState<string | null>(initialLogo);
-  const triedGoogle = useRef(false);
-  function handleLogoError() {
-    if (companyDomain && !triedGoogle.current) {
-      triedGoogle.current = true;
-      setLogoSrc(getGoogleFaviconUrl(companyDomain));
-    } else {
-      setLogoSrc(null);
-    }
-  }
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!menuRef.current) return;
-      if (e.target instanceof Node && !menuRef.current.contains(e.target)) setMenuOpen(false);
-    }
-    if (menuOpen) document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [menuOpen]);
+  const typeStyles = getTypeBadgeStyles(interview.type);
+  const navigate = useNavigate();
 
   return (
-    <div
-      className={[
-        'group relative w-full h-full cursor-pointer select-none',
-        'rounded-[20px] md:rounded-[16px] border',
-        'bg-white dark:bg-[#1E1F22] hover:bg-white dark:hover:bg-[#232428] transition-all duration-200',
-        'shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.06)]',
-        'dark:shadow-none',
-        'flex flex-col',
-      ].join(' ')}
-      style={{ borderColor: isDark ? '#2A2A2E' : '#E5E7EB' }}
-      role="region"
-      aria-label="Interview card"
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="group relative bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 
+        border border-gray-200/60 dark:border-gray-700/50
+        hover:border-gray-300/80 dark:hover:border-gray-600/60
+        shadow-sm hover:shadow-md
+        cursor-pointer transition-all duration-200
+        h-full flex flex-col"
+      onClick={() => {
+        if (linkToPrepare) {
+          navigate(linkToPrepare);
+        }
+      }}
     >
-      <div className="p-5 flex flex-col flex-1">
+      <div className="relative flex flex-col flex-1 min-h-0">
         {/* Header */}
-        <div className="flex items-start gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-full flex items-center justify-center ring-8 ring-white dark:ring-[#1E1F22] dark:bg-[#2A2A2E]">
-              {logoSrc ? (
-                <img
-                  src={logoSrc}
-                  alt={`${application.companyName} logo`}
-                  onError={handleLogoError}
-                  className="h-8 w-8 rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-sm font-semibold text-[#374151] dark:text-gray-200">{getInitials(application.companyName)}</span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1 pr-2 md:pr-4 lg:pr-6 xl:pr-8 2xl:pr-10 group-hover:pr-10 transition-[padding] duration-150 ease-out">
-              <div
-                className="text-gray-900 dark:text-gray-100 font-semibold text-[17px] leading-tight tracking-[-0.01em] mb-[6px]"
-                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-              >
-                {application.position}
-              </div>
-              <div
-                className="text-[14px] font-medium text-gray-600 dark:text-gray-400 leading-snug mb-[10px]"
-                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-              >
-                {application.companyName}{application.location ? ` • ${application.location}` : ''}
-              </div>
-            </div>
-          </div>
+        <div className="flex items-start gap-3 flex-shrink-0">
+          {/* Company Logo */}
+          <CompanyLogo
+            companyName={application.companyName}
+            size="lg"
+            className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
+          />
 
-          {/* Right side: type chip + action menu */}
-          <div className="absolute top-3 right-3" ref={menuRef}>
-            <div className="flex items-center gap-2">
-              <StepChip type={interview.type} className="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity" />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen((v) => !v);
-                }}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                aria-label="Open actions"
-                className="h-8 w-8 inline-flex items-center justify-center rounded-md text-[#9CA3AF] dark:text-gray-400 opacity-0 invisible transition-opacity hover:text-[#6B7280] dark:hover:text-gray-200 group-hover:opacity-100 group-hover:visible pointer-events-none group-hover:pointer-events-auto"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-            </div>
-
-            {menuOpen && (
-              <div
-                role="menu"
-                className="absolute top-9 right-0 z-20 w-44 rounded-lg border border-[#E5E7EB] dark:border-[#2A2A2E] bg-white dark:bg-[#1E1F22] shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  role="menuitem"
-                  onClick={() => { setMenuOpen(false); onEdit(); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-[13px] rounded-md hover:bg-[#F3F4F6] dark:hover:bg-[#2A2A2E] text-[#111827] dark:text-gray-100"
-                >
-                  <Edit3 className="h-4 w-4 text-[#9CA3AF] dark:text-gray-400" />
-                  Edit
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={() => { setMenuOpen(false); onDelete(); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-[13px] rounded-md hover:bg-[#FEE2E2] dark:hover:bg-red-900/30 text-[#111827] dark:text-gray-100"
-                >
-                  <Trash2 className="h-4 w-4 text-[#9CA3AF] dark:text-gray-400" />
-                  Delete
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={() => { setMenuOpen(false); onMarkCompleted(); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-[13px] rounded-md hover:bg-[#ECFDF5] dark:hover:bg-green-900/30 text-[#111827] dark:text-gray-100"
-                >
-                  <CheckCircle className="h-4 w-4 text-[#10B981]" />
-                  Mark as Completed
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={() => { setMenuOpen(false); onMarkCancelled(); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-[13px] rounded-md hover:bg-[#FEE2E2] dark:hover:bg-red-900/30 text-[#111827] dark:text-gray-100"
-                >
-                  <XCircle className="h-4 w-4 text-[#EF4444]" />
-                  Mark as Cancelled
-                </button>
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white truncate">
+                  {application.position}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
+                  <Building2 className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+                  <span className="truncate">{application.companyName}</span>
+                </p>
               </div>
-            )}
+
+              {/* Type Badge */}
+              <span className={`flex-shrink-0 px-2.5 py-1 rounded-md text-xs font-medium
+                ${typeStyles.bg} ${typeStyles.text}
+                transition-colors duration-200`}
+              >
+                {getTypeLabel(interview.type)}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Body: date/time/location */}
-        <div className="mt-3 space-y-3 flex-1">
-          <div className="text-[13px] text-gray-600 dark:text-gray-400">
-            <span className="font-medium">Date: </span>
-            {new Date(interview.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        {/* Interview Details - compact */}
+        <div className="mt-3 space-y-1.5 flex-shrink-0">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <Calendar className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+            <span>{formatDateString(interview.date)}</span>
           </div>
-          <div className="text-[13px] text-gray-600 dark:text-gray-400">
-            <span className="font-medium">Time: </span>
-            {interview.time || 'Time not specified'}
-          </div>
+          {interview.time && (
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+              <span>{interview.time}</span>
+            </div>
+          )}
           {interview.location && (
-            <div className="text-[13px] text-gray-600 dark:text-gray-400">
-              <span className="font-medium">Location: </span>
-              {interview.location}
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <MapPin className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+              <span className="truncate">{interview.location}</span>
             </div>
           )}
         </div>
 
+        {/* Spacer to push footer to bottom */}
+        <div className="flex-1"></div>
+
         {/* Footer */}
-        <div className="h-px bg-gray-200 dark:bg-[#2A2A2E] my-3 mt-auto" />
-        {linkToPrepare ? (
-          <Link
-            to={linkToPrepare}
-            className="inline-flex items-center justify-center text-[13px] font-medium text-white bg-[#4F46E5] hover:bg-[#4338CA] transition-colors rounded-md px-3 py-2 w-full"
-          >
-            {isPast ? 'View Details' : 'Prepare for Interview'}
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="inline-flex items-center justify-center text-[13px] font-medium text-white bg-[#4F46E5] hover:bg-[#4338CA] transition-colors rounded-md px-3 py-2 w-full"
-          >
-            {isPast ? 'View Details' : 'Prepare for Interview'}
-          </button>
-        )}
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex-shrink-0">
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            {isPast ? 'Past interview' : 'Upcoming'}
+          </span>
+
+          {/* Quick actions - appear on hover */}
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {linkToPrepare && (
+              <Link
+                to={linkToPrepare}
+                onClick={(e) => e.stopPropagation()}
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 
+                  dark:hover:text-gray-300 dark:hover:bg-gray-700
+                  transition-colors"
+                aria-label="View details"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </Link>
+            )}
+            <button
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                onEdit(); 
+              }}
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 
+                dark:hover:text-gray-300 dark:hover:bg-gray-700
+                transition-colors"
+              aria-label="Edit"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                onDelete(); 
+              }}
+              className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 
+                dark:hover:text-red-400 dark:hover:bg-red-500/10
+                transition-colors"
+              aria-label="Delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

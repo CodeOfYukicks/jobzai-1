@@ -20,6 +20,158 @@ interface SectionRewriteInput {
 }
 
 /**
+ * Detect user's intent from their custom request
+ */
+function detectUserIntent(userRequest: string): {
+  type: 'structure' | 'tone' | 'length' | 'content' | 'general';
+  specificRequest: string;
+} {
+  const lower = userRequest.toLowerCase();
+  
+  // Détection de structuration (nombre de points/bullets)
+  if (lower.match(/keep (only )?\d+ (points?|bullets?|achievements?)/i) || 
+      lower.match(/reduce to \d+ (points?|bullets?|achievements?)/i) ||
+      lower.match(/just \d+ (points?|bullets?|achievements?)/i) ||
+      lower.match(/only \d+ (points?|bullets?|achievements?)/i)) {
+    return { type: 'structure', specificRequest: userRequest };
+  }
+  
+  // Détection de longueur/mots
+  if (lower.match(/\d+ words?/i) || 
+      lower.includes('shorter') || 
+      lower.includes('longer') || 
+      lower.includes('more concise') ||
+      lower.includes('brief')) {
+    return { type: 'length', specificRequest: userRequest };
+  }
+  
+  // Détection de contenu (add/remove)
+  if (lower.includes('remove') || 
+      lower.includes('delete') ||
+      lower.includes('without') ||
+      lower.includes('no metrics') ||
+      lower.includes('no numbers') ||
+      lower.includes('add ')) {
+    return { type: 'content', specificRequest: userRequest };
+  }
+  
+  // Détection de ton/style
+  if (lower.includes('tone') || 
+      lower.includes('more technical') || 
+      lower.includes('more creative') ||
+      lower.includes('less formal') ||
+      lower.includes('more professional')) {
+    return { type: 'tone', specificRequest: userRequest };
+  }
+  
+  return { type: 'general', specificRequest: userRequest };
+}
+
+/**
+ * Build simple, intent-based prompt for custom requests (no contradictory rules)
+ */
+function buildSimplePromptForIntent(
+  input: SectionRewriteInput,
+  intent: { type: string; specificRequest: string }
+): string {
+  
+  const simpleBaseContext = `
+You are an expert CV writer. Your job is to follow the user's request EXACTLY.
+
+TARGET JOB: ${input.jobContext.jobTitle} at ${input.jobContext.company}
+KEY KEYWORDS (use if relevant): ${input.jobContext.keywords.slice(0, 8).join(', ')}
+
+CURRENT CONTENT:
+"""
+${input.currentContent.replace(/\[USER REQUEST\]:.*$/s, '').trim()}
+"""
+
+USER REQUEST: "${intent.specificRequest}"
+`;
+
+  let simpleInstruction = '';
+  
+  switch (intent.type) {
+    case 'structure':
+      simpleInstruction = `
+YOUR TASK: Follow the user's request about the NUMBER of bullet points EXACTLY.
+
+RULES (simple):
+1. If they say "keep only 3 points" → Output EXACTLY 3 bullet points (keep the best 3)
+2. If they say "reduce to 2 bullets" → Output EXACTLY 2 bullets (keep the top 2)
+3. Choose the most impactful bullets for the ${input.jobContext.jobTitle} role
+4. Keep power verbs and any existing metrics
+5. Don't add new bullets, don't keep extra bullets
+
+OUTPUT: Return exactly the requested number of bullet points, nothing more, nothing less.`;
+      break;
+      
+    case 'length':
+      simpleInstruction = `
+YOUR TASK: Follow the user's request about LENGTH/WORD COUNT exactly.
+
+RULES (simple):
+1. If specific word count mentioned (e.g., "30 words") → Count every word and match it EXACTLY
+2. If "shorter" → Reduce by 30-40%, keep most impactful parts
+3. If "longer" → Expand with relevant details, no filler
+4. Keep impactful content, cut fluff
+
+OUTPUT: Content matching the exact length requirement.`;
+      break;
+      
+    case 'content':
+      simpleInstruction = `
+YOUR TASK: Add or remove what the user specifically asked for.
+
+RULES (simple):
+1. If "remove metrics" → Remove ALL numbers, percentages, and quantified data
+2. If "remove X" → Remove every mention of X
+3. If "add Y" → Integrate Y naturally into the content
+4. If "no numbers" → Strip out all numerical data
+5. Do literally what is asked, nothing more
+
+OUTPUT: Content with the exact modifications requested.`;
+      break;
+      
+    case 'tone':
+      simpleInstruction = `
+YOUR TASK: Change the TONE/STYLE as requested.
+
+RULES (simple):
+1. Keep all facts, achievements, and content unchanged
+2. Change ONLY the phrasing, word choice, and tone
+3. Apply the requested tone consistently across all content
+4. Don't add or remove information
+
+OUTPUT: Same content with the requested tone applied.`;
+      break;
+      
+    default:
+      simpleInstruction = `
+YOUR TASK: Make the improvement the user requested.
+
+RULES (simple):
+1. Follow their request precisely
+2. Keep content relevant to ${input.jobContext.jobTitle} role
+3. Use power verbs (Led, Drove, Architected, Delivered)
+4. Integrate keywords naturally if possible: ${input.jobContext.keywords.slice(0, 5).join(', ')}
+5. Don't invent facts
+
+OUTPUT: Improved content as requested.`;
+  }
+  
+  return simpleBaseContext + simpleInstruction + `
+
+OUTPUT FORMAT:
+Return a JSON object with this exact structure:
+{
+  "content": "the modified text here"
+}
+
+CRITICAL: Return ONLY the JSON, no explanations, no markdown, just the clean improved text in the "content" field.`;
+}
+
+/**
  * Build specialized prompt for Professional Summary (elevator pitch format)
  */
 function buildSummaryPrompt(input: SectionRewriteInput): string {
@@ -347,6 +499,14 @@ function buildActionPrompt(input: SectionRewriteInput): string {
   // Special handling for Professional Summary - use elevator pitch format
   if (input.sectionType === 'summary') {
     return buildSummaryPrompt(input);
+  }
+
+  // For Work Experience/Projects: if custom request, use simple intent-based prompt
+  if ((input.sectionType === 'experience' || input.sectionType === 'project') && 
+      input.currentContent.includes('[USER REQUEST]:')) {
+    const userRequest = input.currentContent.split('[USER REQUEST]:')[1]?.trim() || '';
+    const intent = detectUserIntent(userRequest);
+    return buildSimplePromptForIntent(input, intent);
   }
 
   const baseContext = `

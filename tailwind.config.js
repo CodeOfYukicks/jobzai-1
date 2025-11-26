@@ -193,6 +193,7 @@ export default {
 			},
 			boxShadow: {
 				'premium': '0 20px 40px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.1)',
+				'premium-lg': '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
 				'glow-sm': '0 0 15px rgba(141, 117, 230, 0.3)',
 				'glow': '0 0 30px rgba(141, 117, 230, 0.3)',
 				'glow-lg': '0 0 50px rgba(141, 117, 230, 0.4)',

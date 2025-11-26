@@ -340,7 +340,22 @@ export default function ATSAnalysisPage() {
       try {
         const analysisDoc = await getDoc(doc(db, 'users', currentUser.uid, 'analyses', id));
         if (analysisDoc.exists()) {
-          setAnalysis({ id: analysisDoc.id, ...analysisDoc.data() } as ATSAnalysis);
+          const data = analysisDoc.data();
+          
+          // Normalize matchScore: for premium analyses, use match_scores.overall_score if available
+          // This ensures consistency between card display and detail page
+          const normalizedMatchScore = data.match_scores?.overall_score !== undefined
+            ? data.match_scores.overall_score
+            : (data.matchScore !== undefined ? data.matchScore : 0);
+          
+          // Create analysis object with normalized score
+          const normalizedAnalysis = {
+            id: analysisDoc.id,
+            ...data,
+            matchScore: normalizedMatchScore
+          } as ATSAnalysis;
+          
+          setAnalysis(normalizedAnalysis);
         } else {
           toast.error('Analysis not found');
           navigate('/cv-analysis');

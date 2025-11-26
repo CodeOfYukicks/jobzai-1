@@ -307,9 +307,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/interview-prep/') || 
     (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor'));
 
-  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages
+  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages and cv-analysis
   const needsFullWidth = needsFullHeight || 
-    location.pathname.startsWith('/ats-analysis/');
+    location.pathname.startsWith('/ats-analysis/') ||
+    location.pathname === '/cv-analysis';
 
   return (
     <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden`}>
@@ -645,61 +646,183 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
           {/* Section du bas - flex-shrink-0 pour taille fixe */}
           <div className="flex-shrink-0">
-            {/* Credits Card - Version améliorée */}
+            {/* Credits Card - Premium Design */}
             {!isCollapsed ? (
-              <div className="p-2 border-t border-gray-200 dark:border-gray-700">
-                <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 p-2.5">
-                  {/* Cercles décoratifs en arrière-plan */}
-                  <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/10" />
-                  <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-white/5" />
+              <div className="p-2 border-t border-gray-200 dark:border-gray-700 relative z-10">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                  className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 p-3.5 shadow-premium-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-0.5"
+                >
+                  {/* Mesh gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
                   
-                  <div className="relative">
-                    {/* Montant des crédits */}
-                    <div className="flex items-baseline gap-1 mb-1.5">
-                      <span className="text-xl font-bold text-white">{credits}</span>
-                      <span className="text-xs text-white/70">credits</span>
+                  {/* Cercles décoratifs animés avec glow */}
+                  <motion.div
+                    className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/15 blur-xl"
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.15, 0.25, 0.15],
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  />
+                  <motion.div
+                    className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-indigo-400/10 blur-2xl"
+                    animate={{
+                      scale: [1, 1.3, 1],
+                      opacity: [0.1, 0.2, 0.1],
+                    }}
+                    transition={{
+                      duration: 5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 0.5,
+                    }}
+                  />
+                  <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/5 blur-md" />
+                  
+                  {/* Effet de brillance animé */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                    animate={{
+                      x: ['-100%', '200%'],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      repeatDelay: 2,
+                      ease: "linear",
+                    }}
+                    style={{ transform: 'skewX(-20deg)' }}
+                  />
+                  
+                  <div className="relative z-10">
+                    {/* Montant des crédits - Typographie premium */}
+                    <div className="flex items-baseline gap-1.5 mb-2">
+                      <motion.span
+                        key={credits}
+                        initial={{ scale: 1.1, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        className="text-2xl font-bold text-white tracking-tight"
+                      >
+                        {credits.toLocaleString()}
+                      </motion.span>
+                      <span className="text-[10px] font-medium text-white/80 tracking-wider uppercase">
+                        credits
+                      </span>
                     </div>
 
-                    {/* Barre de progression stylisée */}
-                    <div className="h-1 bg-white/20 rounded-full overflow-hidden mb-1.5">
-                      <motion.div 
-                        className="h-full bg-white/40 rounded-full"
+                    {/* Barre de progression premium avec glow */}
+                    <div className="relative h-0.5 bg-white/15 rounded-full overflow-hidden mb-2.5 backdrop-blur-sm">
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 blur-sm"
+                        animate={{
+                          x: ['-100%', '200%'],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
+                      />
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-white/60 to-white/90 rounded-full shadow-lg shadow-white/50"
                         initial={{ width: 0 }}
-                        animate={{ width: `${(credits / 500) * 100}%` }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        animate={{ width: `${Math.min((credits / 500) * 100, 100)}%` }}
+                        transition={{
+                          duration: 0.8,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
                       />
                     </div>
 
-                    {/* Bouton Add More Credits */}
+                    {/* Bouton Add More Credits - Glassmorphism premium */}
                     <Link
                       to="/billing"
-                      className="inline-flex items-center gap-1 text-[11px] text-white/90 hover:text-white
-                        transition-colors group"
+                      className="group/button relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg
+                        backdrop-blur-md bg-white/10 border border-white/20
+                        hover:bg-white/20 hover:border-white/30
+                        active:scale-[0.98]
+                        transition-all duration-300 ease-out
+                        overflow-hidden"
                     >
-                      <div className="flex items-center justify-center w-4 h-4 rounded-full bg-white/20 
-                        group-hover:bg-white/30 transition-colors">
-                        <Plus className="h-3 w-3" />
+                      {/* Effet de brillance au hover */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        initial={{ x: '-100%' }}
+                        whileHover={{ x: '200%' }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                        style={{ transform: 'skewX(-20deg)' }}
+                      />
+                      
+                      <div className="relative flex items-center justify-center w-4 h-4 rounded-full bg-white/20 
+                        group-hover/button:bg-white/30 group-hover/button:scale-110
+                        transition-all duration-300">
+                        <Plus className="h-3 w-3 text-white" />
                       </div>
-                      <span>Add More Credits</span>
+                      <span className="text-[10px] font-semibold text-white/95 tracking-wide">
+                        Add More Credits
+                      </span>
                     </Link>
                   </div>
-                </div>
+                </motion.div>
               </div>
             ) : (
               <div className="p-2 border-t border-gray-200 dark:border-gray-700">
-                <Link
-                  to="/billing"
-                  className="flex items-center justify-center w-full p-2 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 hover:opacity-90 transition-opacity"
-                  title={`${credits} credits`}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <CreditCard className="h-5 w-5 text-white" />
-                </Link>
+                  <Link
+                    to="/billing"
+                    className="group relative flex items-center justify-center w-full p-2.5 rounded-lg
+                      bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700
+                      hover:from-purple-500 hover:via-purple-600 hover:to-indigo-600
+                      shadow-lg hover:shadow-xl hover:shadow-purple-500/30
+                      hover:-translate-y-0.5 active:translate-y-0
+                      transition-all duration-300 ease-out
+                      overflow-hidden"
+                    title={`${credits.toLocaleString()} credits`}
+                  >
+                    {/* Effet de brillance au hover */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      initial={{ x: '-100%' }}
+                      whileHover={{ x: '200%' }}
+                      transition={{ duration: 0.6, ease: "easeInOut" }}
+                      style={{ transform: 'skewX(-20deg)' }}
+                    />
+                    
+                    <CreditCard className="relative z-10 h-4 w-4 text-white group-hover:scale-110 transition-transform duration-300" />
+                    
+                    {/* Badge avec nombre de crédits au hover */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      whileHover={{ opacity: 1, y: 0 }}
+                      className="absolute -top-1 -right-1 z-20 px-1.5 py-0.5 rounded-full
+                        bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm
+                        border border-white/50
+                        shadow-lg"
+                    >
+                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
+                        {credits > 999 ? `${(credits / 1000).toFixed(1)}k` : credits}
+                      </span>
+                    </motion.div>
+                  </Link>
+                </motion.div>
               </div>
             )}
 
             {/* User Profile */}
             <div className={`${isCollapsed ? 'p-2' : 'p-2'} border-t border-gray-200 dark:border-gray-700`}>
-              <div className="relative">
+              <div className="relative z-20">
                 <div className={`${!isCollapsed ? 'flex items-center justify-between gap-2.5' : ''}`}>
                   <button 
                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -755,7 +878,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       className={`absolute bottom-full ${isCollapsed ? 'left-0 w-48' : 'left-0 w-full'} mb-2 bg-white dark:bg-gray-800 
-                        rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden`}
+                        rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50`}
                     >
                       <div className="py-1">
                         <Link
