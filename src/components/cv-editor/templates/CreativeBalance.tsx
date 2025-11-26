@@ -1,7 +1,7 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { HighlightTarget } from '../../../types/cvReview';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
-import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
+import { formatDateRange as formatDateRangeUtil, formatCVDate as formatCVDateUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Award, Briefcase, GraduationCap } from 'lucide-react';
 import ClickableSection from '../ClickableSection';
 import { COLOR_HEX_MAP } from '../TemplateCard';
@@ -27,6 +27,10 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
     return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
+  };
+
+  const formatDate = (date: string) => {
+    return formatCVDateUtil(date, layoutSettings.dateFormat as any);
   };
 
   return (
@@ -60,7 +64,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                 <div className="flex items-center justify-end gap-2 text-gray-600">
                   <span>{cvData.personalInfo.email}</span>
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: accentColorLight }}>
-                    <Mail style={{ width: '1em', height: '1em', color: accentColor }} />
+                    <Mail data-icon-type="mail" style={{ width: '1em', height: '1em', color: accentColor }} />
                   </div>
                 </div>
               )}
@@ -68,7 +72,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                 <div className="flex items-center justify-end gap-2 text-gray-600">
                   <span>{cvData.personalInfo.phone}</span>
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: accentColorLight }}>
-                    <Phone style={{ width: '1em', height: '1em', color: accentColor }} />
+                    <Phone data-icon-type="phone" style={{ width: '1em', height: '1em', color: accentColor }} />
                   </div>
                 </div>
               )}
@@ -76,7 +80,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                 <div className="flex items-center justify-end gap-2 text-gray-600">
                   <span>{cvData.personalInfo.location}</span>
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: accentColorLight }}>
-                    <MapPin style={{ width: '1em', height: '1em', color: accentColor }} />
+                    <MapPin data-icon-type="mapPin" style={{ width: '1em', height: '1em', color: accentColor }} />
                   </div>
                 </div>
               )}
@@ -88,13 +92,13 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
             <div className="flex gap-4 mt-3" style={{ fontSize: '0.9em' }}>
               {cvData.personalInfo.linkedin && (
                 <a className="flex items-center gap-1 text-gray-600">
-                  <Linkedin style={{ width: '1em', height: '1em' }} />
+                  <Linkedin data-icon-type="linkedin" style={{ width: '1em', height: '1em' }} />
                   <span>{formatURL(cvData.personalInfo.linkedin)}</span>
                 </a>
               )}
               {cvData.personalInfo.portfolio && (
                 <a className="flex items-center gap-1 text-gray-600">
-                  <Globe style={{ width: '1em', height: '1em' }} />
+                  <Globe data-icon-type="globe" style={{ width: '1em', height: '1em' }} />
                   <span>{formatURL(cvData.personalInfo.portfolio)}</span>
                 </a>
               )}
@@ -124,10 +128,10 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
           {cvData.experiences?.length > 0 && enabledSections.find(s => s.type === 'experience') && (
             <section>
               <div className="flex items-center gap-2 mb-3">
-                <Briefcase style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
+                <Briefcase data-icon-type="briefcase" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
                 <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Experience</h2>
               </div>
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: `${(layoutSettings.experienceSpacing ?? 6) * 4}px` }}>
                 {cvData.experiences.map(exp => (
                   <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div className="relative pl-6">
@@ -177,14 +181,21 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                 {cvData.projects.map(project => (
                   <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div className="bg-gray-50 rounded-lg p-3">
-                      <h3 className="font-bold text-gray-900 mb-1" style={{ fontSize: '1em' }}>
-                        {project.name}
-                        {project.url && (
-                          <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
-                            View →
+                      <div className="flex justify-between items-start mb-1">
+                        <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
+                          {project.name}
+                          {project.url && (
+                            <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
+                              View →
+                            </span>
+                          )}
+                        </h3>
+                        {project.startDate && (
+                          <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded" style={{ fontSize: '0.9em' }}>
+                            {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
                           </span>
                         )}
-                      </h3>
+                      </div>
                       <p className="text-gray-700 mb-2" style={{ fontSize: '0.95em' }}>{project.description}</p>
                       {project.technologies.length > 0 && (
                         <div className="flex flex-wrap gap-1">
@@ -234,7 +245,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
           {cvData.education?.length > 0 && enabledSections.find(s => s.type === 'education') && (
             <section>
               <div className="flex items-center gap-2 mb-3">
-                <GraduationCap style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
+                <GraduationCap data-icon-type="book" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
                 <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Education</h2>
               </div>
               <div className="space-y-3">
@@ -251,7 +262,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                         {edu.institution}
                       </p>
                       <p className="text-gray-500 mt-1" style={{ fontSize: '0.85em' }}>
-                        {edu.endDate}
+                        {formatDate(edu.endDate)}
                         {edu.gpa && ` • GPA: ${edu.gpa}`}
                       </p>
                     </div>
@@ -265,7 +276,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
           {cvData.certifications?.length > 0 && enabledSections.find(s => s.type === 'certifications') && (
             <section>
               <div className="flex items-center gap-2 mb-3">
-                <Award style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
+                <Award data-icon-type="award" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
                 <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Certifications</h2>
               </div>
               <div className="space-y-2">
@@ -274,7 +285,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                     <div className="rounded p-2" style={{ backgroundColor: accentColorLight }}>
                       <p className="font-medium text-gray-900" style={{ fontSize: '0.95em' }}>{cert.name}</p>
                       <p className="text-gray-600" style={{ fontSize: '0.85em' }}>
-                        {cert.issuer} • {cert.date}
+                        {cert.issuer} • {formatDate(cert.date)}
                       </p>
                     </div>
                   </ClickableSection>

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { CVData } from '../types/cvEditor';
 import { CVReviewResult, CVSuggestion, CVSectionType, SuggestionTag, SuggestionPriority } from '../types/cvReview';
+import { PreviousAnalysisContext } from '../types/cvReviewHistory';
 
 interface JobContext {
   jobTitle: string;
@@ -14,6 +15,7 @@ interface JobContext {
 interface CVReviewRequest {
   cvData: CVData;
   jobContext?: JobContext;
+  previousAnalysis?: PreviousAnalysisContext;
 }
 
 /**
@@ -36,7 +38,7 @@ export async function analyzeCVWithAI(request: CVReviewRequest): Promise<CVRevie
     // If API fails, return fallback analysis
     if (error.code === 'ECONNREFUSED' || error.response?.status === 404) {
       console.log('API not available, using fallback analysis');
-      return generateFallbackAnalysis(request.cvData, request.jobContext);
+      return generateFallbackAnalysis(request.cvData, request.jobContext, request.previousAnalysis);
     }
     
     throw error;
@@ -46,12 +48,15 @@ export async function analyzeCVWithAI(request: CVReviewRequest): Promise<CVRevie
 /**
  * Generate fallback analysis when API is unavailable
  */
-function generateFallbackAnalysis(cvData: CVData, jobContext?: JobContext): CVReviewResult {
+function generateFallbackAnalysis(cvData: CVData, jobContext?: JobContext, previousAnalysis?: PreviousAnalysisContext): CVReviewResult {
   const suggestions: CVSuggestion[] = [];
   const firstName = cvData.personalInfo.firstName || 'there';
   
-  // Contact section checks
-  if (!cvData.personalInfo.phone) {
+  // Get list of applied suggestion IDs to avoid repeating them
+  const appliedSuggestionIds = new Set(previousAnalysis?.appliedSuggestionIds || []);
+  
+  // Contact section checks - Skip if already applied
+  if (!cvData.personalInfo.phone && !appliedSuggestionIds.has('contact-phone')) {
     suggestions.push({
       id: 'contact-phone',
       title: 'Add Phone Number',
@@ -69,7 +74,7 @@ function generateFallbackAnalysis(cvData: CVData, jobContext?: JobContext): CVRe
     });
   }
 
-  if (!cvData.personalInfo.location) {
+  if (!cvData.personalInfo.location && !appliedSuggestionIds.has('contact-location')) {
     suggestions.push({
       id: 'contact-location',
       title: 'Add Location',
@@ -87,7 +92,7 @@ function generateFallbackAnalysis(cvData: CVData, jobContext?: JobContext): CVRe
     });
   }
 
-  if (!cvData.personalInfo.linkedin) {
+  if (!cvData.personalInfo.linkedin && !appliedSuggestionIds.has('contact-linkedin')) {
     suggestions.push({
       id: 'contact-linkedin',
       title: 'Add LinkedIn Profile',
@@ -330,9 +335,33 @@ function generateFallbackAnalysis(cvData: CVData, jobContext?: JobContext): CVRe
     mainIssues.push('Experience bullets lack quantified metrics');
   }
 
+  // Generate contextual greeting based on previous analysis
+  let greeting = `Hey ${firstName}, `;
+  if (previousAnalysis) {
+    const scoreImprovement = score - previousAnalysis.score;
+    const appliedCount = previousAnalysis.appliedSuggestionIds?.length || 0;
+    
+    if (appliedCount > 0 && scoreImprovement > 0) {
+      greeting += `great progress! You've improved your CV by ${scoreImprovement} points (from ${previousAnalysis.score} to ${score}). `;
+      if (cvData.personalInfo.phone && !previousAnalysis.previousCVSnapshot?.personalInfo.phone) {
+        greeting += `I see you added your phone number - excellent! `;
+      }
+      if (cvData.personalInfo.linkedin && !previousAnalysis.previousCVSnapshot?.personalInfo.linkedin) {
+        greeting += `Adding LinkedIn was a smart move. `;
+      }
+      greeting += `Let's keep building on this momentum.`;
+    } else if (appliedCount > 0) {
+      greeting += `I see you made some changes. Let's review what else we can improve.`;
+    } else {
+      greeting += `welcome back! Let's continue refining your resume.`;
+    }
+  } else {
+    greeting += `I've analyzed your resume${jobContext ? ` for the ${jobContext.jobTitle} position at ${jobContext.company}` : ''}. ${strengths.length > 0 ? `I'm impressed by ${strengths[0].toLowerCase()}.` : 'Here are my suggestions to strengthen your application.'}`;
+  }
+
   return {
     summary: {
-      greeting: `Hey ${firstName}, I've analyzed your resume${jobContext ? ` for the ${jobContext.jobTitle} position at ${jobContext.company}` : ''}. ${strengths.length > 0 ? `I'm impressed by ${strengths[0].toLowerCase()}.` : 'Here are my suggestions to strengthen your application.'}`,
+      greeting,
       overallScore: Math.min(100, score),
       strengths,
       mainIssues

@@ -1,7 +1,7 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { HighlightTarget } from '../../../types/cvReview';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
-import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
+import { formatDateRange as formatDateRangeUtil, formatCVDate as formatCVDateUtil } from '../../../lib/dateFormatters';
 import { Github, Globe, Mail, MapPin } from 'lucide-react';
 import ClickableSection from '../ClickableSection';
 
@@ -17,6 +17,10 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
     return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
+  };
+
+  const formatDate = (date: string) => {
+    return formatCVDateUtil(date, layoutSettings.dateFormat as any);
   };
 
   // Group skills by category
@@ -62,25 +66,25 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
               {cvData.personalInfo.email && (
                 <div className="flex items-center justify-end gap-1">
                   <span className="text-gray-600">{cvData.personalInfo.email}</span>
-                  <Mail style={{ width: '1em', height: '1em' }} className="text-gray-400" />
+                  <Mail data-icon-type="mail" style={{ width: '1em', height: '1em' }} className="text-gray-400" />
                 </div>
               )}
               {cvData.personalInfo.location && (
                 <div className="flex items-center justify-end gap-1">
                   <span className="text-gray-600">{cvData.personalInfo.location}</span>
-                  <MapPin style={{ width: '1em', height: '1em' }} className="text-gray-400" />
+                  <MapPin data-icon-type="mapPin" style={{ width: '1em', height: '1em' }} className="text-gray-400" />
                 </div>
               )}
               {cvData.personalInfo.github && (
                 <div className="flex items-center justify-end gap-1">
                   <span className="text-gray-600">{formatURL(cvData.personalInfo.github)}</span>
-                  <Github style={{ width: '1em', height: '1em' }} className="text-gray-400" />
+                  <Github data-icon-type="github" style={{ width: '1em', height: '1em' }} className="text-gray-400" />
                 </div>
               )}
               {cvData.personalInfo.portfolio && (
                 <div className="flex items-center justify-end gap-1">
                   <span className="text-gray-600">{formatURL(cvData.personalInfo.portfolio)}</span>
-                  <Globe style={{ width: '1em', height: '1em' }} className="text-gray-400" />
+                  <Globe data-icon-type="globe" style={{ width: '1em', height: '1em' }} className="text-gray-400" />
                 </div>
               )}
             </div>
@@ -134,7 +138,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
           <h2 className="font-bold uppercase tracking-wider text-gray-500 mb-3" style={{ fontSize: '0.9em' }}>
             EXPERIENCE
           </h2>
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: `${(layoutSettings.experienceSpacing ?? 6) * 4}px` }}>
             {cvData.experiences.map(exp => (
               <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <div className="border-l-2 border-gray-200 pl-4">
@@ -181,17 +185,24 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
             {cvData.projects.map(project => (
               <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <div className="border-l-2 border-gray-200 pl-4">
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
-                      {project.name}
-                    </h3>
-                    {project.url && (
-                      <span className="text-blue-600" style={{ fontSize: '0.85em' }}>
-                        [{formatURL(project.url)}]
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
+                        {project.name}
+                      </h3>
+                      {project.url && (
+                        <span className="text-blue-600" style={{ fontSize: '0.85em' }}>
+                          [{formatURL(project.url)}]
+                        </span>
+                      )}
+                    </div>
+                    {project.startDate && (
+                      <span className="text-gray-500 font-sans" style={{ fontSize: '0.85em' }}>
+                        {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-600 font-sans mt-1" style={{ fontSize: '0.9em' }}>
+                  <p className="text-gray-600 font-sans" style={{ fontSize: '0.9em' }}>
                     {project.description}
                   </p>
                   {project.technologies.length > 0 && (
@@ -240,7 +251,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
                     </p>
                   </div>
                   <span className="text-gray-500 font-sans" style={{ fontSize: '0.85em' }}>
-                    {edu.endDate}
+                    {formatDate(edu.endDate)}
                   </span>
                 </div>
               </ClickableSection>
@@ -261,7 +272,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
                 <div className="text-gray-700 font-sans" style={{ fontSize: '0.9em' }}>
                   <span className="text-gray-400">→</span>
                   <span className="ml-2">
-                    {cert.name} • {cert.issuer} • {cert.date}
+                    {cert.name} • {cert.issuer} • {formatDate(cert.date)}
                   </span>
                 </div>
               </ClickableSection>

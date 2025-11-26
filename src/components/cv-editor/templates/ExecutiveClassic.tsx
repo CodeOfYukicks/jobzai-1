@@ -1,7 +1,7 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { HighlightTarget } from '../../../types/cvReview';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
-import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
+import { formatDateRange as formatDateRangeUtil, formatCVDate as formatCVDateUtil } from '../../../lib/dateFormatters';
 import ClickableSection from '../ClickableSection';
 
 interface ExecutiveClassicProps {
@@ -16,6 +16,10 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
     return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
+  };
+
+  const formatDate = (date: string) => {
+    return formatCVDateUtil(date, layoutSettings.dateFormat as any);
   };
 
   return (
@@ -97,7 +101,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
               <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                 Professional Experience
               </h2>
-              <div className="space-y-5">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: `${(layoutSettings.experienceSpacing ?? 6) * 4}px` }}>
                 {cvData.experiences.map(exp => (
                   <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div>
@@ -145,9 +149,16 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                 {cvData.projects.map(project => (
                   <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <div>
-                      <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
-                        {project.name}
-                      </h3>
+                      <div className="flex justify-between items-baseline mb-1">
+                        <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
+                          {project.name}
+                        </h3>
+                        {project.startDate && (
+                          <span className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
+                            {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-gray-700 text-justify" style={{ fontSize: '0.95em' }}>{project.description}</p>
                       {project.highlights.length > 0 && (
                         <ul className="mt-1 space-y-1">
@@ -189,7 +200,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                         {edu.institution}
                       </p>
                       <p className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
-                        {edu.endDate}
+                        {formatDate(edu.endDate)}
                       </p>
                       {edu.gpa && (
                         <p className="text-gray-600" style={{ fontSize: '0.9em' }}>GPA: {edu.gpa}</p>
@@ -236,7 +247,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                     <div>
                       <p className="font-medium text-gray-900" style={{ fontSize: '0.95em' }}>{cert.name}</p>
                       <p className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
-                        {cert.issuer}, {cert.date}
+                        {cert.issuer}, {formatDate(cert.date)}
                       </p>
                     </div>
                   </ClickableSection>

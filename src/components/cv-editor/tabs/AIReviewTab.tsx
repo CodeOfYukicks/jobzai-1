@@ -33,6 +33,9 @@ interface AIReviewTabProps {
     hasAnalyzed: boolean;
   };
   onReviewStateChange?: (state: { result: CVReviewResult | null; ignoredIds: Set<string>; hasAnalyzed: boolean }) => void;
+  // Analysis loading state and trigger from parent
+  isAnalyzing?: boolean;
+  onReanalyze?: () => void;
   // Highlight section in preview when clicking a suggestion
   onHighlightSection?: (target: HighlightTarget | null) => void;
 }
@@ -378,6 +381,30 @@ const PriorityGroup = ({
   );
 };
 
+// Score Improvement Badge
+const ScoreImprovementBadge = ({ improvement }: { improvement: number }) => {
+  if (improvement === 0) return null;
+  
+  const isPositive = improvement > 0;
+  
+  return (
+    <motion.div
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: 0.5, type: 'spring' }}
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+        isPositive 
+          ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' 
+          : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+      }`}
+    >
+      <span>{isPositive ? '+' : ''}{improvement}</span>
+      <span className="text-[10px] opacity-70">points</span>
+      {isPositive && <Sparkles className="w-3 h-3" />}
+    </motion.div>
+  );
+};
+
 // ATS Score Ring component
 const ATSScoreRing = ({ score }: { score: number }) => {
   const circumference = 2 * Math.PI * 36;
@@ -437,9 +464,10 @@ export default function AIReviewTab({
   onApplySuggestion,
   reviewState,
   onReviewStateChange,
+  isAnalyzing,
+  onReanalyze,
   onHighlightSection
 }: AIReviewTabProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CVReviewResult | null>(reviewState?.result || null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -455,35 +483,14 @@ export default function AIReviewTab({
     }
   }, [result, ignoredIds, hasAnalyzed]);
 
-  // Only analyze on first mount if not already analyzed
+  // Sync result from parent reviewState when it changes
   useEffect(() => {
-    if (!hasAnalyzed && !result && !isLoading) {
-      runAnalysis();
+    if (reviewState?.result) {
+      setResult(reviewState.result);
+      setHasAnalyzed(reviewState.hasAnalyzed);
+      setIgnoredIds(reviewState.ignoredIds);
     }
-  }, []);
-
-  const runAnalysis = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const analysisResult = await analyzeCVWithAI({
-        cvData,
-        jobContext
-      });
-      setResult(analysisResult);
-      setSelectedIds(new Set());
-      setIgnoredIds(new Set());
-      setHasAnalyzed(true);
-    } catch (err: any) {
-      console.error('CV Analysis error:', err);
-      setError(err.message || 'Failed to analyze CV');
-      toast.error('Failed to analyze CV. Please try again.');
-      setHasAnalyzed(true); // Mark as analyzed even on error to prevent re-triggering
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [reviewState]);
 
   // Filter out ignored suggestions
   const activeSuggestions = useMemo(() => {
@@ -635,7 +642,7 @@ export default function AIReviewTab({
   const remainingCount = activeSuggestions.length - Array.from(selectedIds).length;
 
   // Loading state
-  if (isLoading) {
+  if (isAnalyzing) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8">
         <div className="relative">
@@ -666,7 +673,7 @@ export default function AIReviewTab({
           {error}
         </p>
         <button
-          onClick={runAnalysis}
+          onClick={onReanalyze}
           className="mt-4 px-4 py-2 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors"
         >
           Try Again
@@ -709,13 +716,13 @@ export default function AIReviewTab({
           </div>
           
           <button
-            onClick={runAnalysis}
-            disabled={isLoading}
+            onClick={onReanalyze}
+            disabled={isAnalyzing}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 
                      hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 
                      rounded-lg transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
@@ -727,7 +734,15 @@ export default function AIReviewTab({
           {/* Review Summary Card */}
           <div className="mb-6 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
             <div className="flex items-start gap-4">
-              <ATSScoreRing score={result.summary.overallScore} />
+              <div className="flex flex-col items-center gap-2">
+                <ATSScoreRing score={result.summary.overallScore} />
+                {/* Show improvement badge if this is a re-analysis with history */}
+                {reviewState?.result && result.analyzedAt !== reviewState.result.analyzedAt && (
+                  <ScoreImprovementBadge 
+                    improvement={result.summary.overallScore - reviewState.result.summary.overallScore} 
+                  />
+                )}
+              </div>
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">

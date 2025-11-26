@@ -71,7 +71,7 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
       // Modern Professional: Single column, large name, contact row with icons
       case 'modern-professional':
         return (
-          <div className="w-full h-full p-2.5 flex flex-col">
+          <div className="w-full h-full p-2 flex flex-col">
             {/* Header - Large name, title, contact row */}
             <div className="mb-2">
               <div className="h-3 w-28 rounded-sm bg-gray-800 mb-1" />
@@ -237,7 +237,7 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
       // Creative Balance: Accent border header, bold first name, colored icon circles
       case 'creative-balance':
         return (
-          <div className="w-full h-full p-2.5 flex flex-col">
+          <div className="w-full h-full p-2 flex flex-col">
             {/* Header with accent bottom border */}
             <div className="pb-2 mb-2 border-b-4" style={{ borderColor: accentColor }}>
               <div className="flex justify-between items-start">
@@ -307,7 +307,7 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
   };
 
   return (
-    <div className="w-full aspect-[5/6] bg-white rounded-md shadow-inner overflow-hidden border border-gray-100">
+    <div className="w-full aspect-[3/4] bg-white rounded-md shadow-inner overflow-hidden border border-gray-100">
       {getPreviewContent()}
     </div>
   );
@@ -396,12 +396,12 @@ export default function TemplateCard({
       )}
 
       {/* Preview area - very compact */}
-      <div className="p-1.5 bg-gray-50 dark:bg-gray-900/50">
+      <div className="p-1 bg-gray-50 dark:bg-gray-900/50">
         <TemplatePreview template={template.value} accentColor={accentColorHex} />
       </div>
 
       {/* Info area - very compact */}
-      <div className="px-2 py-1.5 space-y-1">
+      <div className="px-1.5 py-1 space-y-0.5">
         {/* Template name and style */}
         <div>
           <h4 className="text-[11px] font-bold text-gray-900 dark:text-white leading-tight">

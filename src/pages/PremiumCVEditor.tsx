@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Download, Save, Eye, EyeOff, Sparkles
+  Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -13,12 +13,19 @@ import PreviewContainer from '../components/cv-editor/PreviewContainer';
 import AICompanionPanel from '../components/cv-editor/AICompanionPanel';
 import CompanyHeader from '../components/cv-editor/CompanyHeader';
 import { CVData, CVTemplate, CVEditorState, CVLayoutSettings, SectionClickTarget } from '../types/cvEditor';
-import { HighlightTarget, CVSuggestion } from '../types/cvReview';
+import { HighlightTarget, CVSuggestion, CVReviewResult } from '../types/cvReview';
+import { PreviousAnalysisContext } from '../types/cvReviewHistory';
 import { useCVEditor } from '../hooks/useCVEditor';
-import { exportToPDF, generateId } from '../lib/cvEditorUtils';
+import { exportToPDFEnhanced, generateId, A4_WIDTH_PX, A4_HEIGHT_PX } from '../lib/cvEditorUtils';
 import { parseCVData } from '../lib/cvSectionAI';
 import { loadOrInitializeCVData } from '../lib/initializeCVData';
+import { analyzeCVWithAI } from '../services/cvReviewAI';
+import { compareCVData, detectAppliedSuggestions } from '../lib/cvComparison';
 import AuthLayout from '../components/AuthLayout';
+import ModernProfessional from '../components/cv-editor/templates/ModernProfessional';
+import ExecutiveClassic from '../components/cv-editor/templates/ExecutiveClassic';
+import TechMinimalist from '../components/cv-editor/templates/TechMinimalist';
+import CreativeBalance from '../components/cv-editor/templates/CreativeBalance';
 
 // Initial empty CV data structure
 const initialCVData: CVData = {
@@ -82,6 +89,7 @@ export default function PremiumCVEditor() {
   } | undefined>();
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Click-to-edit from preview
   const [activeSectionTarget, setActiveSectionTarget] = useState<SectionClickTarget | null>(null);
@@ -89,13 +97,27 @@ export default function PremiumCVEditor() {
   // Highlight section from AI review
   const [highlightTarget, setHighlightTarget] = useState<HighlightTarget | null>(null);
   
+  // AI Review state - managed at page level for auto-loading
+  const [reviewState, setReviewState] = useState<{
+    result: CVReviewResult | null;
+    ignoredIds: Set<string>;
+    hasAnalyzed: boolean;
+  }>({ result: null, ignoredIds: new Set(), hasAnalyzed: false });
+  
+  // Track if analysis is currently running
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Store CV snapshot from last analysis for comparison
+  const [lastAnalyzedCVSnapshot, setLastAnalyzedCVSnapshot] = useState<CVData | null>(null);
+  
   // Layout settings state
   const [layoutSettings, setLayoutSettings] = useState<CVLayoutSettings>({
     fontSize: 10,
     dateFormat: 'jan-24',
     lineHeight: 1.3,
     fontFamily: 'Inter',
-    accentColor: 'emerald'
+    accentColor: 'emerald',
+    experienceSpacing: 6
   });
   
   // Use custom hook for editor logic
@@ -118,6 +140,101 @@ export default function PremiumCVEditor() {
     }
   }, [id, currentUser]);
 
+  // Run AI analysis function - can be called automatically or manually
+  const runAnalysis = useCallback(async () => {
+    setIsAnalyzing(true);
+    
+    try {
+      console.log('🚀 Starting AI review analysis...');
+      
+      // Build previous analysis context if we have history
+      let previousAnalysis: PreviousAnalysisContext | undefined;
+      
+      if (reviewState.result && lastAnalyzedCVSnapshot) {
+        // Detect which suggestions were applied by comparing CV states
+        const changes = compareCVData(cvData, lastAnalyzedCVSnapshot);
+        const appliedSuggestionIds = detectAppliedSuggestions(
+          changes,
+          reviewState.result.suggestions
+        );
+        
+        previousAnalysis = {
+          score: reviewState.result.summary.overallScore,
+          suggestions: reviewState.result.suggestions,
+          appliedSuggestionIds,
+          previousCVSnapshot: lastAnalyzedCVSnapshot,
+          timestamp: reviewState.result.analyzedAt
+        };
+        
+        console.log(`   📊 Previous analysis context:`, {
+          previousScore: previousAnalysis.score,
+          appliedSuggestionsCount: appliedSuggestionIds.length,
+          hasChanges: changes.hasChanges
+        });
+      }
+      
+      const analysisResult = await analyzeCVWithAI({
+        cvData,
+        jobContext,
+        previousAnalysis
+      });
+      
+      // Store current CV snapshot for next comparison
+      setLastAnalyzedCVSnapshot(JSON.parse(JSON.stringify(cvData)));
+      
+      setReviewState({
+        result: analysisResult,
+        ignoredIds: new Set(),
+        hasAnalyzed: true
+      });
+      
+      // Show success message with score improvement if applicable
+      if (previousAnalysis) {
+        const scoreImprovement = analysisResult.summary.overallScore - previousAnalysis.score;
+        if (scoreImprovement > 0) {
+          toast.success(`Analysis complete! Your score improved by +${scoreImprovement} points! 🎉`);
+        } else if (scoreImprovement < 0) {
+          toast.info('Analysis complete. Let\'s work on improving your CV.');
+        } else {
+          toast.success('Analysis complete!');
+        }
+      } else {
+        toast.success('AI review analysis completed!');
+      }
+      
+      console.log('✅ AI review analysis completed');
+    } catch (error: any) {
+      console.error('❌ AI review analysis error:', error);
+      toast.error('Failed to analyze CV. Please try again.');
+      // Mark as analyzed even on error to prevent re-triggering
+      setReviewState(prev => ({
+        ...prev,
+        hasAnalyzed: true
+      }));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [cvData, jobContext, reviewState.result, lastAnalyzedCVSnapshot]);
+
+  // Auto-trigger AI review analysis once CV data is loaded
+  useEffect(() => {
+    // Only run if:
+    // 1. We have CV data (not empty)
+    // 2. We haven't analyzed yet
+    // 3. We're not currently analyzing
+    // 4. We have at least some content to analyze
+    const hasContent = 
+      cvData.personalInfo.firstName || 
+      cvData.personalInfo.lastName || 
+      cvData.summary || 
+      cvData.experiences.length > 0 ||
+      cvData.education.length > 0;
+
+    if (hasContent && !reviewState.hasAnalyzed && !isAnalyzing) {
+      runAnalysis();
+    }
+  }, [cvData.personalInfo.firstName, cvData.personalInfo.lastName, cvData.summary, cvData.experiences.length, cvData.education.length, reviewState.hasAnalyzed, isAnalyzing, runAnalysis]);
+
   // Load ATS analysis data
   const loadATSData = async (analysisId: string) => {
     if (!currentUser) {
@@ -129,7 +246,7 @@ export default function PremiumCVEditor() {
     try {
       // Use the new unified loading function
       console.log('Loading CV data for analysis:', analysisId);
-      const { cvData: loadedCvData, jobContext: loadedJobContext } = await loadOrInitializeCVData(
+      const { cvData: loadedCvData, jobContext: loadedJobContext, editorState } = await loadOrInitializeCVData(
         currentUser.uid,
         analysisId
       );
@@ -137,7 +254,20 @@ export default function PremiumCVEditor() {
       setCvData(loadedCvData);
       setJobContext(loadedJobContext);
       
-      if (loadedJobContext) {
+      // Restore editor state if it exists
+      if (editorState) {
+        console.log('Restoring editor state:', editorState);
+        if (editorState.template) {
+          setTemplate(editorState.template);
+        }
+        if (editorState.layoutSettings) {
+          setLayoutSettings(editorState.layoutSettings);
+        }
+        if (editorState.zoom) {
+          setZoom(editorState.zoom);
+        }
+        toast.success('CV, preferences, and job context loaded successfully');
+      } else if (loadedJobContext) {
         toast.success('CV and job context loaded successfully');
       } else {
         toast.info('CV loaded. Add job context for AI features.');
@@ -384,6 +514,11 @@ export default function PremiumCVEditor() {
     setZoom(100);
   };
 
+  // Handle fullscreen toggle
+  const handleToggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
   // Handle layout settings changes
   const handleLayoutSettingsChange = useCallback((updates: Partial<CVLayoutSettings>) => {
     setLayoutSettings(prev => ({ ...prev, ...updates }));
@@ -399,6 +534,17 @@ export default function PremiumCVEditor() {
   const clearActiveSectionTarget = useCallback(() => {
     setActiveSectionTarget(null);
   }, []);
+
+  // Handle re-analyze request from user
+  const handleReanalyze = useCallback(() => {
+    // Reset hasAnalyzed flag to allow re-analysis
+    setReviewState(prev => ({
+      ...prev,
+      hasAnalyzed: false
+    }));
+    // Trigger analysis
+    runAnalysis();
+  }, [runAnalysis]);
 
   // Handle applying AI suggestions to the CV
   const handleApplySuggestion = useCallback((suggestion: CVSuggestion) => {
@@ -717,7 +863,14 @@ export default function PremiumCVEditor() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await saveCVData();
+      // Prepare editor state to save
+      const editorStateToSave = {
+        template,
+        layoutSettings,
+        zoom
+      };
+      
+      await saveCVData(id, editorStateToSave);
       setIsDirty(false);
       toast.success('CV saved successfully');
     } catch (error) {
@@ -732,11 +885,14 @@ export default function PremiumCVEditor() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      await exportToPDF(cvData, template);
-      toast.success('CV exported successfully');
+      await exportToPDFEnhanced(cvData, template, layoutSettings, {
+        quality: 'high',
+        compression: true
+      });
+      toast.success('CV exported successfully! High-quality PDF generated.');
     } catch (error) {
       console.error('Error exporting CV:', error);
-      toast.error('Failed to export CV');
+      toast.error('Failed to export CV. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -752,12 +908,28 @@ export default function PremiumCVEditor() {
   useEffect(() => {
     if (!isDirty) return;
     
-    const timer = setTimeout(() => {
-      handleSave();
+    const timer = setTimeout(async () => {
+      setIsSaving(true);
+      try {
+        // Prepare editor state to save
+        const editorStateToSave = {
+          template,
+          layoutSettings,
+          zoom
+        };
+        
+        await saveCVData(id, editorStateToSave);
+        setIsDirty(false);
+        console.log('Auto-save completed');
+      } catch (error) {
+        console.error('Auto-save error:', error);
+      } finally {
+        setIsSaving(false);
+      }
     }, 5000); // Auto-save after 5 seconds of inactivity
     
     return () => clearTimeout(timer);
-  }, [cvData, isDirty]);
+  }, [cvData, template, layoutSettings, zoom, isDirty, id, saveCVData]);
 
   // Prevent navigation with unsaved changes
   useEffect(() => {
@@ -799,19 +971,6 @@ export default function PremiumCVEditor() {
                     Unsaved
                   </span>
                 )}
-
-                {/* AI Assistant */}
-                <button
-                  onClick={() => setShowAIPanel(!showAIPanel)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    showAIPanel 
-                      ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-500/30' 
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span className="hidden md:inline">AI Assistant</span>
-                </button>
 
                 {/* Toggle preview on mobile */}
                 <button
@@ -880,6 +1039,10 @@ export default function PremiumCVEditor() {
                 onActiveSectionProcessed={clearActiveSectionTarget}
                 onHighlightSection={setHighlightTarget}
                 onApplySuggestion={handleApplySuggestion}
+                reviewState={reviewState}
+                onReviewStateChange={setReviewState}
+                isAnalyzing={isAnalyzing}
+                onReanalyze={handleReanalyze}
                 isCollapsed={isLeftPanelCollapsed}
                 onToggleCollapse={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
               />
@@ -904,6 +1067,7 @@ export default function PremiumCVEditor() {
                   onZoomIn={handleZoomIn}
                   onZoomOut={handleZoomOut}
                   onZoomReset={handleZoomReset}
+                  onToggleFullscreen={handleToggleFullscreen}
                   onSectionClick={handlePreviewSectionClick}
                   highlightTarget={highlightTarget}
                 />
@@ -928,6 +1092,7 @@ export default function PremiumCVEditor() {
                   onZoomIn={handleZoomIn}
                   onZoomOut={handleZoomOut}
                   onZoomReset={handleZoomReset}
+                  onToggleFullscreen={handleToggleFullscreen}
                   onSectionClick={handlePreviewSectionClick}
                   highlightTarget={highlightTarget}
                 />
@@ -952,6 +1117,122 @@ export default function PremiumCVEditor() {
           cvData={cvData}
           jobContext={jobContext}
         />
+
+        {/* Fullscreen Preview Modal */}
+        <AnimatePresence>
+          {isFullscreen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-gray-900/95 backdrop-blur-md z-[100] flex items-center justify-center"
+              onClick={handleToggleFullscreen}
+            >
+              <button
+                onClick={handleToggleFullscreen}
+                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Zoom Controls in Fullscreen */}
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
+                  disabled={zoom <= 50}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-all disabled:opacity-30"
+                >
+                  <ZoomOut className="w-4 h-4 text-white" />
+                </button>
+                <div className="flex rounded-2xl border border-white/30 overflow-hidden">
+                  {[50, 70, 100, 120, 150].map((level) => (
+                    <button
+                      key={level}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        const steps = Math.abs(level - zoom) / 10;
+                        if (level > zoom) {
+                          for (let i = 0; i < steps; i++) {
+                            setTimeout(() => handleZoomIn(), i * 50);
+                          }
+                        } else if (level < zoom) {
+                          for (let i = 0; i < steps; i++) {
+                            setTimeout(() => handleZoomOut(), i * 50);
+                          }
+                        }
+                      }}
+                      className={`px-3 py-1 text-xs font-semibold ${
+                        zoom === level ? 'bg-white text-gray-900' : 'text-white/80'
+                      }`}
+                    >
+                      {level}%
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
+                  disabled={zoom >= 150}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-all disabled:opacity-30"
+                >
+                  <ZoomIn className="w-4 h-4 text-white" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleZoomReset(); }}
+                  className="px-3 py-1 text-xs font-semibold text-white/80 hover:text-white transition-all"
+                >
+                  Reset
+                </button>
+              </div>
+
+              <div className="overflow-auto max-h-[90vh] max-w-[95vw]" onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-center" style={{ minWidth: 'fit-content' }}>
+                  <motion.div
+                    animate={{ scale: zoom / 100 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    style={{
+                      transformOrigin: 'top center',
+                    }}
+                    className="m-8"
+                  >
+                  <div
+                    id="cv-fullscreen-preview"
+                    className="bg-white shadow-xl"
+                    style={{
+                      width: `${A4_WIDTH_PX}px`,
+                      minHeight: `${A4_HEIGHT_PX}px`,
+                      padding: '40px',
+                      boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                      borderRadius: '2px'
+                    }}
+                  >
+                    {/* Render template based on current selection */}
+                    {(() => {
+                      const layoutSettingsWithDefaults = layoutSettings || {
+                        fontSize: 10,
+                        dateFormat: 'jan-24',
+                        lineHeight: 1.3,
+                        fontFamily: 'Inter'
+                      };
+
+                      switch (template) {
+                        case 'executive-classic':
+                          return <ExecutiveClassic cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                        case 'tech-minimalist':
+                          return <TechMinimalist cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                        case 'creative-balance':
+                          return <CreativeBalance cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                        case 'modern-professional':
+                        default:
+                          return <ModernProfessional cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                      }
+                    })()}
+                  </div>
+                </motion.div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </AuthLayout>
   );

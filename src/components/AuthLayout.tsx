@@ -312,7 +312,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/ats-analysis/');
 
   return (
-    <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col`}>
+    <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden`}>
       {/* Sidebar desktop */}
       <div className={`hidden md:fixed md:inset-y-0 md:flex z-50 md:pl-3 lg:pl-4 md:py-3 transition-all duration-300 ${isCollapsed ? 'md:w-20 lg:w-20' : 'md:w-72 lg:w-80'}`}>
         <div 
@@ -843,9 +843,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className={`flex flex-col flex-1 min-h-0 transition-all duration-300 ${isCollapsed ? 'md:pl-24 lg:pl-24' : 'md:pl-[19rem] lg:pl-[21rem]'}`}>
+      <div className={`flex flex-col flex-1 min-h-0 transition-all duration-300 overflow-x-hidden ${isCollapsed ? 'md:pl-24 lg:pl-24' : 'md:pl-[19rem] lg:pl-[21rem]'}`}>
         <main className="flex-1 min-h-0 flex flex-col">
-          <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : `pt-6 md:py-6 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-6`}`}>
+          <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : 'pt-6 md:py-6 pb-6'}`}>
             {needsFullWidth ? (
               // Mode pleine largeur pour Applications, Jobs, Professional Profile, Upcoming Interviews, Calendar, Interview Prep et ATS Analysis
               <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0 overflow-hidden" : ""}>{children}</div>
@@ -862,8 +862,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </main>
       </div>
 
-      {/* Nouvelle navigation mobile */}
-      {location.pathname !== '/applications' && <MobileNavigation />}
+      {/* MobileNavigation disabled for now - will revisit responsive mode later */}
+      {/* {location.pathname !== '/applications' && <MobileNavigation />} */}
       
     </div>
   );

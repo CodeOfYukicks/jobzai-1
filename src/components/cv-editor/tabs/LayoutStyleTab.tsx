@@ -371,6 +371,54 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
+
+            {/* Experience Spacing */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Experience Spacing
+              </label>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => onSettingsChange({ experienceSpacing: Math.max(0, (layoutSettings.experienceSpacing ?? 6) - 1) })}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={(layoutSettings.experienceSpacing ?? 6) <= 0}
+                >
+                  <Minus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+                
+                <div className="flex-1">
+                  <div className="relative">
+                    <input
+                      type="range"
+                      min="0"
+                      max="12"
+                      value={layoutSettings.experienceSpacing ?? 6}
+                      onChange={(e) => onSettingsChange({ experienceSpacing: Number(e.target.value) })}
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onSettingsChange({ experienceSpacing: Math.min(12, (layoutSettings.experienceSpacing ?? 6) + 1) })}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={(layoutSettings.experienceSpacing ?? 6) >= 12}
+                >
+                  <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+
+                <div className="w-12 text-center">
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {layoutSettings.experienceSpacing ?? 6}
+                  </span>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {layoutSettings.experienceSpacing === 0 ? 'Compact (0px)' : 
+                 layoutSettings.experienceSpacing === 6 ? 'Balanced (24px)' :
+                 (layoutSettings.experienceSpacing ?? 6) >= 10 ? 'Spacious' : 'Adjust vertical spacing between job positions'}
+              </p>
+            </div>
           </div>
         </div>
       </div>

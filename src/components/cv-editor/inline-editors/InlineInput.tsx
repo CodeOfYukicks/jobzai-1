@@ -8,21 +8,22 @@ const InlineInput = forwardRef<HTMLInputElement, InlineInputProps>(
   ({ label, className = '', ...props }, ref) => {
     return (
       <div>
-        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
           {label}
         </label>
         <input
           ref={ref}
           {...props}
           className={`
-            w-full px-3 py-2 
-            bg-white dark:bg-gray-800 
-            border border-gray-200 dark:border-gray-700 
+            w-full px-3.5 py-2.5 
+            bg-white dark:bg-gray-900/50 
+            border border-gray-200/80 dark:border-gray-700/60 
             rounded-lg 
-            text-xs text-gray-900 dark:text-white 
+            text-sm text-gray-900 dark:text-gray-100 
             placeholder-gray-400 dark:placeholder-gray-500
-            focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500
-            transition-all duration-150
+            font-normal
+            focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50
+            transition-all duration-200
             ${props.disabled ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50' : ''}
             ${className}
           `}

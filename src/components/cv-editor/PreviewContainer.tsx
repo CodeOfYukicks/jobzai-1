@@ -18,6 +18,7 @@ interface PreviewContainerProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
+  onToggleFullscreen?: () => void;
   onSectionClick?: (target: SectionClickTarget) => void;
   highlightTarget?: HighlightTarget | null;
 }
@@ -32,6 +33,7 @@ export default function PreviewContainer({
   onZoomIn,
   onZoomOut,
   onZoomReset,
+  onToggleFullscreen,
   onSectionClick,
   highlightTarget
 }: PreviewContainerProps) {
@@ -181,22 +183,22 @@ export default function PreviewContainer({
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                // TODO: Implement fullscreen
-              }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              title="Fullscreen"
-            >
-              <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            </button>
+            {onToggleFullscreen && (
+              <button
+                onClick={onToggleFullscreen}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                title="Fullscreen"
+              >
+                <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Preview Area */}
       <div className="flex-1 min-h-0 overflow-auto p-8">
-        <div className="flex justify-center">
+        <div className="flex justify-center" style={{ minWidth: 'fit-content' }}>
           <motion.div
             animate={{ scale: zoom / 100 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}

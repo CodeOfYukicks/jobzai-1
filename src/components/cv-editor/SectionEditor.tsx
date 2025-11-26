@@ -17,6 +17,7 @@ import {
   CertificationInlineForm,
   LanguageInlineForm
 } from './inline-editors';
+import AIEnhancePanel from './inline-editors/AIEnhancePanel';
 
 interface SectionEditorProps {
   section: CVSection;
@@ -64,6 +65,9 @@ export default function SectionEditor({
   // Inline editing state
   const [inlineEditingId, setInlineEditingId] = useState<string | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
+
+  // Conversation history for AI interactions (per section type)
+  const [conversationHistory, setConversationHistory] = useState<Record<string, string[]>>({});
 
   // Handle external edit request from preview click
   useEffect(() => {
@@ -154,18 +158,20 @@ export default function SectionEditor({
   };
 
   const renderAIActions = () => (
-    <div className="flex flex-wrap gap-2 mt-3">
+    <div className="flex flex-wrap gap-2 mt-4">
       {AI_ACTIONS.map(action => (
         <button
           key={action.id}
           onClick={() => handleAIAction(action.id)}
           disabled={isProcessingAI}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="group flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-900 dark:hover:text-gray-200 hover:shadow-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isProcessingAI && currentAction === action.id ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
-            action.icon
+            <span className="text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+              {action.icon}
+            </span>
           )}
           <span>{action.label}</span>
         </button>
@@ -235,24 +241,24 @@ export default function SectionEditor({
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-3 p-4 bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/30 rounded-lg"
+        className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/40 dark:to-gray-900/20 border border-gray-200/80 dark:border-gray-700/60 rounded-xl shadow-sm"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+              <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wide">
                 AI Suggestion
               </span>
             </div>
-            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+            <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
               {aiSuggestion}
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={acceptSuggestion}
-              className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+              className="p-2.5 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 rounded-lg transition-all duration-200 shadow-sm hover:shadow"
               title="Accept suggestion"
             >
               <Check className="w-4 h-4" />
@@ -263,7 +269,7 @@ export default function SectionEditor({
                 setShowDiff(false);
                 setOriginalContent('');
               }}
-              className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
+              className="p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700/60 rounded-lg transition-all duration-200"
               title="Reject suggestion"
             >
               <X className="w-4 h-4" />
@@ -287,93 +293,93 @@ export default function SectionEditor({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
                 First Name
               </label>
               <input
                 type="text"
                 value={data.firstName || ''}
                 onChange={(e) => onChange({ firstName: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
                 placeholder="John"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
                 Last Name
               </label>
               <input
                 type="text"
                 value={data.lastName || ''}
                 onChange={(e) => onChange({ lastName: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
                 placeholder="Doe"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
               Professional Title
             </label>
             <input
               type="text"
               value={data.title || ''}
               onChange={(e) => onChange({ title: e.target.value })}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
               placeholder="Senior Software Engineer"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
                 Email
               </label>
               <input
                 type="email"
                 value={data.email || ''}
                 onChange={(e) => onChange({ email: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
                 placeholder="john.doe@example.com"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
                 Phone
               </label>
               <input
                 type="tel"
                 value={data.phone || ''}
                 onChange={(e) => onChange({ phone: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
               Location
             </label>
             <input
               type="text"
               value={data.location || ''}
               onChange={(e) => onChange({ location: e.target.value })}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
               placeholder="San Francisco, CA"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
               LinkedIn
             </label>
             <input
               type="url"
               value={data.linkedin || ''}
               onChange={(e) => onChange({ linkedin: e.target.value })}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
               placeholder="linkedin.com/in/johndoe"
             />
           </div>
@@ -382,24 +388,44 @@ export default function SectionEditor({
 
     case 'summary':
       return (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {jobContext && (
+            <AIEnhancePanel
+              sectionType="summary"
+              currentContent={data.summary || ''}
+              onApply={(enhancedContent) => {
+                onChange({ summary: enhancedContent });
+                // Don't reset history - keep it for iterative refinement
+              }}
+              jobContext={jobContext}
+              fullCV={fullCV}
+              conversationHistory={conversationHistory['summary'] || []}
+              onAddToHistory={(message) => {
+                setConversationHistory(prev => ({
+                  ...prev,
+                  summary: [...(prev.summary || []).slice(-3), message] // Keep last 3-4 messages
+                }));
+              }}
+              onResetHistory={() => {
+                setConversationHistory(prev => ({ ...prev, summary: [] }));
+              }}
+            />
+          )}
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
               Professional Summary
             </label>
             <textarea
               value={data.summary || ''}
               onChange={(e) => onChange({ summary: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200 resize-none"
               placeholder="Write a compelling summary that highlights your key strengths and career objectives..."
             />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
               {data.summary?.length || 0} characters
             </p>
           </div>
-          {renderAIActions()}
-          {renderAISuggestion()}
         </div>
       );
 
@@ -424,6 +450,16 @@ export default function SectionEditor({
                   onCancel={closeInlineForm}
                   jobContext={jobContext}
                   fullCV={fullCV}
+                  conversationHistory={conversationHistory['new-experience'] || []}
+                  onAddToHistory={(message) => {
+                    setConversationHistory(prev => ({
+                      ...prev,
+                      'new-experience': [...(prev['new-experience'] || []).slice(-3), message]
+                    }));
+                  }}
+                  onResetHistory={() => {
+                    setConversationHistory(prev => ({ ...prev, 'new-experience': [] }));
+                  }}
                 />
               </motion.div>
             )}
@@ -448,8 +484,25 @@ export default function SectionEditor({
                     closeInlineForm();
                   }}
                   onCancel={closeInlineForm}
+                  onDelete={() => {
+                    onChange({
+                      experiences: data.experiences.filter((e: CVExperience) => e.id !== inlineEditingId)
+                    });
+                    closeInlineForm();
+                    toast.success('Experience deleted');
+                  }}
                   jobContext={jobContext}
                   fullCV={fullCV}
+                  conversationHistory={conversationHistory[`experience-${inlineEditingId}`] || []}
+                  onAddToHistory={(message) => {
+                    setConversationHistory(prev => ({
+                      ...prev,
+                      [`experience-${inlineEditingId}`]: [...(prev[`experience-${inlineEditingId}`] || []).slice(-3), message]
+                    }));
+                  }}
+                  onResetHistory={() => {
+                    setConversationHistory(prev => ({ ...prev, [`experience-${inlineEditingId}`]: [] }));
+                  }}
                 />
               </motion.div>
             )}
@@ -461,7 +514,7 @@ export default function SectionEditor({
               {data.experiences?.map((exp: CVExperience) => (
                 <div
                   key={exp.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
+                  className="group p-4 bg-white dark:bg-gray-800/40 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-all duration-200 cursor-pointer border border-gray-200/60 dark:border-gray-700/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(exp.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -507,9 +560,6 @@ export default function SectionEditor({
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Experience</span>
               </button>
-
-              {renderAIActions()}
-              {renderAISuggestion()}
             </>
           )}
         </div>
@@ -556,6 +606,13 @@ export default function SectionEditor({
                     closeInlineForm();
                   }}
                   onCancel={closeInlineForm}
+                  onDelete={() => {
+                    onChange({
+                      education: data.education.filter((e: CVEducation) => e.id !== inlineEditingId)
+                    });
+                    closeInlineForm();
+                    toast.success('Education deleted');
+                  }}
                 />
               </motion.div>
             )}
@@ -612,9 +669,6 @@ export default function SectionEditor({
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Education</span>
               </button>
-
-              {renderAIActions()}
-              {renderAISuggestion()}
             </>
           )}
         </div>
@@ -665,9 +719,6 @@ export default function SectionEditor({
               <Plus className="w-4 h-4" />
             </button>
           </div>
-
-          {renderAIActions()}
-          {renderAISuggestion()}
         </div>
       );
 
@@ -712,6 +763,13 @@ export default function SectionEditor({
                     closeInlineForm();
                   }}
                   onCancel={closeInlineForm}
+                  onDelete={() => {
+                    onChange({
+                      certifications: data.certifications.filter((c: CVCertification) => c.id !== inlineEditingId)
+                    });
+                    closeInlineForm();
+                    toast.success('Certification deleted');
+                  }}
                 />
               </motion.div>
             )}
@@ -768,9 +826,6 @@ export default function SectionEditor({
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Certification</span>
               </button>
-
-              {renderAIActions()}
-              {renderAISuggestion()}
             </>
           )}
         </div>
@@ -796,6 +851,16 @@ export default function SectionEditor({
                   onCancel={closeInlineForm}
                   jobContext={jobContext}
                   fullCV={fullCV}
+                  conversationHistory={conversationHistory['new-project'] || []}
+                  onAddToHistory={(message) => {
+                    setConversationHistory(prev => ({
+                      ...prev,
+                      'new-project': [...(prev['new-project'] || []).slice(-3), message]
+                    }));
+                  }}
+                  onResetHistory={() => {
+                    setConversationHistory(prev => ({ ...prev, 'new-project': [] }));
+                  }}
                 />
               </motion.div>
             )}
@@ -819,8 +884,25 @@ export default function SectionEditor({
                     closeInlineForm();
                   }}
                   onCancel={closeInlineForm}
+                  onDelete={() => {
+                    onChange({
+                      projects: data.projects.filter((p: CVProject) => p.id !== inlineEditingId)
+                    });
+                    closeInlineForm();
+                    toast.success('Project deleted');
+                  }}
                   jobContext={jobContext}
                   fullCV={fullCV}
+                  conversationHistory={conversationHistory[`project-${inlineEditingId}`] || []}
+                  onAddToHistory={(message) => {
+                    setConversationHistory(prev => ({
+                      ...prev,
+                      [`project-${inlineEditingId}`]: [...(prev[`project-${inlineEditingId}`] || []).slice(-3), message]
+                    }));
+                  }}
+                  onResetHistory={() => {
+                    setConversationHistory(prev => ({ ...prev, [`project-${inlineEditingId}`]: [] }));
+                  }}
                 />
               </motion.div>
             )}
@@ -888,9 +970,6 @@ export default function SectionEditor({
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Project</span>
               </button>
-
-              {renderAIActions()}
-              {renderAISuggestion()}
             </>
           )}
         </div>
@@ -937,6 +1016,13 @@ export default function SectionEditor({
                     closeInlineForm();
                   }}
                   onCancel={closeInlineForm}
+                  onDelete={() => {
+                    onChange({
+                      languages: data.languages.filter((l: CVLanguage) => l.id !== inlineEditingId)
+                    });
+                    closeInlineForm();
+                    toast.success('Language deleted');
+                  }}
                 />
               </motion.div>
             )}
@@ -990,9 +1076,6 @@ export default function SectionEditor({
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Language</span>
               </button>
-
-              {renderAIActions()}
-              {renderAISuggestion()}
             </>
           )}
         </div>

@@ -41,6 +41,16 @@ interface EditorPanelProps {
   onHighlightSection?: (target: HighlightTarget | null) => void;
   // Apply suggestion to CV
   onApplySuggestion?: (suggestion: CVSuggestion) => void;
+  // AI Review state managed by parent
+  reviewState?: {
+    result: CVReviewResult | null;
+    ignoredIds: Set<string>;
+    hasAnalyzed: boolean;
+  };
+  onReviewStateChange?: (state: { result: CVReviewResult | null; ignoredIds: Set<string>; hasAnalyzed: boolean }) => void;
+  // AI analysis loading and trigger
+  isAnalyzing?: boolean;
+  onReanalyze?: () => void;
   // Panel collapse
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -58,14 +68,14 @@ const sectionIcons: Record<string, React.ReactNode> = {
 };
 
 const sectionIconsSmall: Record<string, React.ReactNode> = {
-  personal: <User className="w-4 h-4" />,
-  summary: <FileText className="w-4 h-4" />,
-  experience: <Briefcase className="w-4 h-4" />,
-  education: <GraduationCap className="w-4 h-4" />,
-  skills: <Code className="w-4 h-4" />,
-  certifications: <Award className="w-4 h-4" />,
-  projects: <FolderOpen className="w-4 h-4" />,
-  languages: <Globe className="w-4 h-4" />
+  personal: <User className="w-5 h-5" />,
+  summary: <FileText className="w-5 h-5" />,
+  experience: <Briefcase className="w-5 h-5" />,
+  education: <GraduationCap className="w-5 h-5" />,
+  skills: <Code className="w-5 h-5" />,
+  certifications: <Award className="w-5 h-5" />,
+  projects: <FolderOpen className="w-5 h-5" />,
+  languages: <Globe className="w-5 h-5" />
 };
 
 export default function EditorPanel({
@@ -82,6 +92,10 @@ export default function EditorPanel({
   onActiveSectionProcessed,
   onHighlightSection,
   onApplySuggestion,
+  reviewState,
+  onReviewStateChange,
+  isAnalyzing,
+  onReanalyze,
   isCollapsed,
   onToggleCollapse
 }: EditorPanelProps) {
@@ -90,13 +104,6 @@ export default function EditorPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [externalItemId, setExternalItemId] = useState<string | null>(null);
   const sectionsContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Persisted AI Review state to survive tab switches
-  const [reviewState, setReviewState] = useState<{
-    result: CVReviewResult | null;
-    ignoredIds: Set<string>;
-    hasAnalyzed: boolean;
-  }>({ result: null, ignoredIds: new Set(), hasAnalyzed: false });
   
   // Handle applying suggestions from AI Review
   const handleApplySuggestion = (suggestion: CVSuggestion) => {
@@ -235,7 +242,7 @@ export default function EditorPanel({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`
-                w-full flex items-center justify-center p-2.5 rounded-lg transition-all
+                relative w-full flex items-center justify-center p-2.5 rounded-lg transition-all
                 ${section.enabled
                   ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                   : 'text-gray-400 dark:text-gray-600 opacity-50'
@@ -244,6 +251,12 @@ export default function EditorPanel({
               title={section.title}
             >
               {sectionIcons[section.type] || <FileText className="w-5 h-5" />}
+              {/* AI indicator for sections with AI enhancement */}
+              {(section.type === 'summary' || section.type === 'experience' || section.type === 'projects') && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 border border-white dark:border-gray-900">
+                  <Sparkles className="w-2 h-2 text-white" />
+                </span>
+              )}
             </motion.button>
           ))}
         </div>
@@ -380,7 +393,9 @@ export default function EditorPanel({
               jobContext={jobContext}
               onApplySuggestion={handleApplySuggestion}
               reviewState={reviewState}
-              onReviewStateChange={setReviewState}
+              onReviewStateChange={onReviewStateChange}
+              isAnalyzing={isAnalyzing}
+              onReanalyze={onReanalyze}
               onHighlightSection={onHighlightSection}
             />
           </motion.div>
@@ -403,7 +418,7 @@ export default function EditorPanel({
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className="space-y-1.5"
+                      className="space-y-2"
                     >
                       {filteredSections.map((section, index) => (
                         <Draggable
@@ -417,44 +432,44 @@ export default function EditorPanel({
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className={`
-                                group rounded-md transition-all duration-200 border
+                                group rounded-lg transition-all duration-200 border
                                 ${snapshot.isDragging 
                                   ? 'shadow-2xl scale-[1.02] ring-2 ring-[#EB7134] bg-white dark:bg-gray-800 border-[#EB7134]' 
                                   : expandedSection === section.id
-                                    ? 'bg-white dark:bg-gray-800 shadow-xl border-2 border-[#EB7134] dark:border-[#EB7134]'
-                                    : 'bg-gray-50/50 dark:bg-gray-800/30 border-gray-200/50 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
+                                    ? 'bg-white dark:bg-gray-800 shadow-lg border border-gray-300/70 dark:border-gray-600/70 ring-1 ring-gray-200/50 dark:ring-gray-700/50'
+                                    : 'bg-white dark:bg-gray-800/40 border-gray-200/60 dark:border-gray-700/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 hover:shadow-md hover:bg-gray-50/30 dark:hover:bg-gray-800/60'
                                 }
                               `}
                             >
                               {/* Section Header */}
                               <div 
-                                className="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
+                                className="flex items-center gap-3 px-4 py-3.5 cursor-pointer"
                                 onClick={() => toggleExpanded(section.id)}
                               >
                                 {/* Drag Handle - subtle, appears on hover */}
                                 <div
                                   {...provided.dragHandleProps}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition-opacity"
+                                  className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition-all duration-200"
                                 >
-                                  <GripVertical className="w-3 h-3" />
+                                  <GripVertical className="w-4 h-4" />
                                 </div>
 
                                 {/* Section Icon */}
                                 <div className={`
-                                  transition-colors
+                                  transition-colors duration-200
                                   ${expandedSection === section.id 
-                                    ? 'text-[#EB7134] dark:text-[#EB7134]' 
+                                    ? 'text-gray-700 dark:text-gray-300' 
                                     : 'text-gray-500 dark:text-gray-400'
                                   }
                                 `}>
-                                  {sectionIconsSmall[section.type] || <FileText className="w-4 h-4" />}
+                                  {sectionIconsSmall[section.type] || <FileText className="w-5 h-5" />}
                                 </div>
 
                                 {/* Section Title */}
-                                <div className="flex-1">
+                                <div className="flex-1 flex items-center gap-2">
                                   <h3 className={`
-                                    text-xs font-semibold transition-colors
+                                    text-sm font-semibold transition-colors duration-200
                                     ${expandedSection === section.id 
                                       ? 'text-gray-900 dark:text-white' 
                                       : 'text-gray-600 dark:text-gray-400'
@@ -462,6 +477,13 @@ export default function EditorPanel({
                                   `}>
                                     {section.title}
                                   </h3>
+                                  {/* AI Badge for sections with AI enhancement */}
+                                  {(section.type === 'summary' || section.type === 'experience' || section.type === 'projects') && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50">
+                                      <Sparkles className="w-2.5 h-2.5" />
+                                      AI
+                                    </span>
+                                  )}
                                 </div>
 
                                   {/* Toggle Visibility */}
@@ -470,22 +492,22 @@ export default function EditorPanel({
                                       e.stopPropagation();
                                       onToggleSection(section.id);
                                     }}
-                                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
                                     title={section.enabled ? 'Hide section' : 'Show section'}
                                   >
                                     {section.enabled ? (
-                                    <Eye className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                                    <Eye className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                     ) : (
-                                    <EyeOff className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                                    <EyeOff className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                     )}
                                   </button>
 
                                   {/* Expand/Collapse Chevron */}
                                   <ChevronDown 
                                     className={`
-                                    w-3 h-3 transition-all duration-200
+                                    w-4 h-4 transition-all duration-200
                                       ${expandedSection === section.id 
-                                      ? 'rotate-180 text-[#EB7134] dark:text-[#EB7134]' 
+                                      ? 'rotate-180 text-gray-600 dark:text-gray-400' 
                                         : 'text-gray-400 dark:text-gray-500'
                                       }
                                     `}
@@ -502,7 +524,7 @@ export default function EditorPanel({
                                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                                     className="overflow-hidden"
                                   >
-                                    <div className="px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
+                                    <div className="px-4 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700/50 bg-gradient-to-b from-gray-50/30 to-transparent dark:from-gray-900/20">
                                       <SectionEditor
                                         section={section}
                                         data={getSectionData(section)}

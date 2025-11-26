@@ -347,7 +347,7 @@ export default function JobBoardPage() {
 
 	return (
 		<AuthLayout>
-			<div className="h-[calc(100vh-64px)] flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden">
+			<div className="h-[calc(100vh-64px)] flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden overflow-x-hidden">
 
 				<JobFilterBar
 					searchInput={searchInput}

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import { CVData, CVSection } from '../types/cvEditor';
+import { CVData, CVSection, CVEditorSavedState } from '../types/cvEditor';
 import { db } from '../lib/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 
 export function useCVEditor(
@@ -36,17 +36,43 @@ export function useCVEditor(
   }, [currentUser, setCvData]);
 
   // Save CV data to Firestore
-  const saveCVData = useCallback(async (cvId?: string) => {
+  const saveCVData = useCallback(async (cvId?: string, editorState?: CVEditorSavedState) => {
     if (!currentUser) throw new Error('User not authenticated');
     
     setIsLoading(true);
     try {
-      const docRef = doc(db, 'users', currentUser.uid, 'cvs', cvId || 'default');
-      await setDoc(docRef, {
-        ...cvData,
-        updatedAt: new Date().toISOString(),
-        userId: currentUser.uid
-      });
+      if (cvId) {
+        // When analysisId is provided, save to the analyses collection
+        const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', cvId);
+        const updateData: any = {
+          'cv_rewrite.structured_data': cvData,
+          'cv_rewrite.updatedAt': new Date().toISOString()
+        };
+        
+        // Save editor state if provided
+        if (editorState) {
+          updateData['cv_rewrite.editor_state'] = {
+            ...editorState,
+            lastModified: new Date().toISOString()
+          };
+        }
+        
+        await updateDoc(analysisRef, updateData);
+        console.log('CV data and editor state saved to analysis:', cvId);
+      } else {
+        // Standalone mode - save to cvs collection
+        const docRef = doc(db, 'users', currentUser.uid, 'cvs', 'default');
+        await setDoc(docRef, {
+          ...cvData,
+          updatedAt: new Date().toISOString(),
+          userId: currentUser.uid,
+          editorState: editorState ? {
+            ...editorState,
+            lastModified: new Date().toISOString()
+          } : undefined
+        });
+        console.log('CV data saved to standalone collection');
+      }
       return true;
     } catch (error) {
       console.error('Error saving CV data:', error);

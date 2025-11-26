@@ -16,12 +16,339 @@ interface SectionRewriteInput {
     strengths: string[];
     gaps: string[];
   };
+  conversationHistory?: string[]; // History of user's previous custom requests
+}
+
+/**
+ * Build specialized prompt for Professional Summary (elevator pitch format)
+ */
+function buildSummaryPrompt(input: SectionRewriteInput): string {
+  const baseContext = `
+# PROFESSIONAL SUMMARY - ELEVATOR PITCH GENERATOR
+
+You are an elite executive speechwriter who crafts compelling 30-second elevator pitches.
+
+## 🎯 TARGET POSITION:
+- **Role**: ${input.jobContext.jobTitle}
+- **Company**: ${input.jobContext.company}
+${input.jobContext.jobDescription ? `- **Job Description**: ${input.jobContext.jobDescription.substring(0, 500)}...` : ''}
+
+## 💪 KEY STRENGTHS TO HIGHLIGHT:
+${input.jobContext.strengths.map(s => `  ✓ ${s}`).join('\n') || 'No specific strengths identified'}
+
+## ⚠️ GAPS TO ADDRESS CLEVERLY:
+${input.jobContext.gaps.map(g => `  → ${g}`).join('\n') || 'No significant gaps identified'}
+
+## 🔑 KEYWORDS FOR ATS (use naturally):
+${input.jobContext.keywords.slice(0, 12).join(', ') || 'No specific keywords identified'}
+
+${input.fullCV ? `## 📄 FULL CV FOR CONTEXT (extract best metrics):\n${input.fullCV.substring(0, 2000)}...\n` : ''}
+
+## 📝 CURRENT SUMMARY:
+"""
+${input.currentContent}
+"""
+
+## UNIVERSAL RULES FOR SUMMARY:
+1. ✅ ONLY use real information from CV - NEVER invent
+2. ✅ Third person, no "I/me/my"
+3. ✅ NO generic phrases ("results-driven", "team player", "passionate")
+4. ✅ Every achievement needs proof (metric, scale, impact)
+5. ✅ Mirror job description terminology naturally
+
+${input.currentContent.includes('[USER REQUEST]:') ? `
+## 🚨🚨🚨 ABSOLUTE PRIORITY - USER CUSTOM REQUEST DETECTED 🚨🚨🚨
+
+⚠️⚠️⚠️ THE USER HAS MADE A SPECIFIC CUSTOM REQUEST - THIS TAKES ABSOLUTE PRIORITY OVER EVERYTHING ELSE! ⚠️⚠️⚠️
+
+**CRITICAL: OVERRIDE ALL SUMMARY RULES AND GUIDELINES ABOVE IF THEY CONFLICT WITH THE USER'S REQUEST**
+
+The user's custom request is embedded in the content above with [USER REQUEST]: tag.
+
+**YOU MUST FOLLOW THE USER'S REQUEST LITERALLY AND PRECISELY:**
+
+1. ✅ If user says "remove metrics" or "no numbers" → Remove ALL numbers, percentages, and quantified results completely
+2. ✅ If user says "add more details" or "make it longer" → Ignore 50-60 word limit, make it as long as needed
+3. ✅ If user says "make it shorter" or specific word count → Go below 40 words if needed, or match exact count
+4. ✅ If user says "remove something specific" → Remove it completely, don't mention it at all
+5. ✅ If user says "add something" → Add it even if not explicitly in CV
+6. ✅ If user specifies exact word count (e.g., "in 30 words") → Respect it EXACTLY, count every single word
+7. ✅ If user specifies a style or tone → Apply ONLY that style, ignore professional tone rules
+8. ✅ If user says "focus on X" → Mention ONLY X, remove everything else
+
+**CONCRETE EXAMPLES OF WHAT TO DO:**
+- User: "remove the results and metrics here it should not be" → Output must have ZERO numbers, percentages, or metrics
+- User: "in 30 words exactly" → Output must be EXACTLY 30 words, not 29, not 31
+- User: "make it more creative and fun" → Ignore professional elevator pitch rules, be creative
+- User: "just focus on leadership, no technical stuff" → Remove ALL technical details, keep only leadership
+- User: "no achievements, just who I am" → Remove all proof points and achievements
+
+**THE CUSTOM REQUEST COMPLETELY OVERRIDES:**
+❌ The 50-60 word guideline (ignore if user wants different length)
+❌ The elevator pitch structure (ignore if user wants different structure)  
+❌ The metrics requirement (ignore if user says no metrics)
+❌ The storytelling format (ignore if user wants different format)
+❌ ALL other instructions in this prompt
+
+**YOUR ONLY JOB: FOLLOW THE USER'S CUSTOM REQUEST TO THE LETTER!**
+
+Do not try to "improve" or "enhance" what the user asked for. Just do EXACTLY what they said.
+` : ''}
+
+${input.conversationHistory && input.conversationHistory.length > 0 ? `
+## 💬 CONVERSATION HISTORY - User's Previous Requests
+
+The user has made the following requests in sequence. Each new request builds on the previous ones:
+
+${input.conversationHistory.map((msg, idx) => `${idx + 1}. "${msg}"`).join('\n')}
+
+**IMPORTANT: Consider ALL previous requests when generating the output.**
+
+The user is refining iteratively - STACK all their requests together, don't forget the earlier ones!
+
+**Example of stacking requests:**
+- Request 1: "remove metrics" → Remove all numbers
+- Request 2: "make it shorter" → Apply shorter constraint ON TOP of no metrics (40 words, still no numbers)
+- Request 3: "more creative tone" → Apply creative tone WHILE keeping it short AND without metrics
+
+**Your output must satisfy ALL requests in the history, not just the most recent one!**
+` : ''}`;
+
+  let actionInstructions = '';
+
+  switch (input.action) {
+    case 'improve':
+    case 'improve_tone':
+    case 'rewrite':
+      actionInstructions = `
+${input.currentContent.includes('[USER REQUEST]:') ? `
+⚠️⚠️⚠️ USER CUSTOM REQUEST DETECTED - FOLLOW IT EXACTLY, IGNORE THE INSTRUCTIONS BELOW IF THEY CONFLICT ⚠️⚠️⚠️
+
+The user's specific request OVERRIDES all storytelling, word count, and structure guidelines below.
+` : ''}
+## ACTION: ELEVATOR PITCH WITH STORYTELLING 🎬
+
+Transform into a compelling 50-60 word elevator pitch that tells a CAREER STORY.
+
+**MANDATORY STRUCTURE:**
+
+**Part 1 - HOOK (10-15 words):**
+Start with unique positioning that grabs attention
+- Example: "8-year Salesforce architect who transformed enterprise compliance for global organizations"
+- Formula: "[X-year] [Job Title] specializing in [unique strength matching job]"
+
+**Part 2 - STORY ARC (20-30 words):**
+Show progression with a mini narrative journey
+- Example: "From optimizing SMB workflows to spearheading digital transformations across 15 countries, consistently delivering 40%+ efficiency gains"
+- Show evolution: where you started → key milestones → where you are now
+- Include 1-2 quantified achievements that prove expertise
+
+**Part 3 - CLIMAX (15-20 words):**
+End with powerful value proposition for target company
+- Example: "Now ready to drive ${input.jobContext.company}'s next phase of cloud innovation and operational excellence"
+- Formula: "Now/Seeking to bring [key skills] to ${input.jobContext.company} to [specific impact]"
+
+**TONE & STYLE:**
+- Like a movie trailer: create intrigue, show growth, make recruiter lean in
+- Confident but authentic
+- Show progression and evolution
+- End with a hook that makes them want to interview you
+
+**CRITICAL REQUIREMENTS:**
+- EXACTLY 50-60 words (count carefully)
+- Third person throughout
+- Must tell a story of progression
+- Every claim needs proof (numbers, scale, impact)
+- Weave in top 3-4 keywords from job naturally
+
+**OUTPUT:** Return ONLY the summary text, 50-60 words, ready to use.`;
+      break;
+
+    case 'metrics':
+    case 'add_metrics':
+      actionInstructions = `
+${input.currentContent.includes('[USER REQUEST]:') ? `
+⚠️⚠️⚠️ USER CUSTOM REQUEST DETECTED - FOLLOW IT EXACTLY, IGNORE THE INSTRUCTIONS BELOW IF THEY CONFLICT ⚠️⚠️⚠️
+
+If user says "remove metrics" or "no numbers", DO NOT add metrics. The user's request OVERRIDES all metric guidelines below.
+` : ''}
+## ACTION: METRICS-HEAVY IMPACT SUMMARY 📊
+
+Rewrite as a DATA-DRIVEN summary that screams "high-performer" through numbers.
+
+**YOUR MISSION:**
+Scan the FULL CV and extract the TOP 3 most impressive metrics, then build the summary around them.
+
+**METRIC PRIORITIES (choose top 3):**
+1. Revenue impact ($X generated/saved, ARR, cost reduction)
+2. Scale (Xk users, X projects, X countries, X transactions)
+3. Efficiency gains (X% improvement, X hours saved, X faster)
+4. Team leadership (X people managed, X teams built)
+5. Growth metrics (X% increase, Xx growth, market expansion)
+
+**FORMULA TO FOLLOW:**
+"[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] for ${input.jobContext.company}."
+
+**FORMATTING RULES:**
+- Lead with most impressive number first
+- Format numbers for maximum impact: "2.5M" not "2,500,000"
+- Every sentence MUST contain at least one number
+- Use comparative metrics when possible: "40% faster", "3x growth", "50% reduction"
+- 50-60 words total
+
+**EXAMPLES OF STRONG METRICS:**
+- "Led platform serving 2M users across 15 markets, improving data accuracy 40%"
+- "Shipped features generating $5M ARR while reducing operational costs 35%"
+- "Architected infrastructure processing 10M daily transactions with 99.9% uptime"
+
+**TONE:** Confident, proof-based, let the numbers do the talking
+
+**OUTPUT:** Return ONLY the metrics-heavy summary, 50-60 words.`;
+      break;
+
+    case 'shorten':
+      actionInstructions = `
+${input.currentContent.includes('[USER REQUEST]:') ? `
+⚠️⚠️⚠️ USER CUSTOM REQUEST DETECTED - FOLLOW IT EXACTLY, IGNORE THE INSTRUCTIONS BELOW IF THEY CONFLICT ⚠️⚠️⚠️
+
+If user specifies a different word count, follow theirs EXACTLY. The user's request OVERRIDES the 40-50 word guideline below.
+` : ''}
+## ACTION: ULTRA-CONCISE POWER PITCH ⚡
+
+Create the MOST CONCISE version possible (40-50 words) while maximizing impact per word.
+
+**STRICT REQUIREMENTS:**
+- EXACTLY 40-50 words (count every single word)
+- Every word must earn its place
+- Remove ALL filler words and adjectives
+- Keep ONLY: positioning + best proof + value proposition
+
+**3-PART FORMULA (follow exactly):**
+
+**Part 1 (5-8 words): WHO YOU ARE**
+- Format: "[Job Title]. [X years]. [Primary specialization]"
+- Example: "Salesforce Architect. 8 years. Enterprise compliance specialist."
+
+**Part 2 (20-25 words): BEST PROOF POINT**
+- Your single most impressive achievement with metric
+- Format: "Led [what] serving [scale metric], [impact metric]"
+- Example: "Led compliance platform serving 2M users across 15 markets, improving data accuracy 40% and reducing audit time 60%"
+
+**Part 3 (12-15 words): VALUE FOR TARGET COMPANY**
+- What you bring to the specific company
+- Format: "Bringing [expertise type] to ${input.jobContext.company}'s [relevant initiative]"
+- Example: "Bringing enterprise-scale expertise to ${input.jobContext.company}'s digital transformation and compliance evolution"
+
+**WHAT TO CUT:**
+❌ Adjectives: "skilled", "experienced", "passionate", "dedicated"
+❌ Generic statements: "results-driven professional", "team player"
+❌ Weak verbs: "worked on", "helped with", "participated in"
+❌ Filler phrases: "with a focus on", "in order to", "as well as"
+
+**WHAT TO KEEP:**
+✅ Power verbs: Led, Drove, Architected, Delivered, Scaled, Built
+✅ Concrete metrics and numbers
+✅ Specific technologies, methodologies, or domains
+✅ Clear value proposition
+
+**EXAMPLES (40-50 words):**
+- "Product Leader. 10 years. Shipped features generating $5M ARR. Built cross-functional teams of 12 across 3 countries. Ready to scale ${input.jobContext.company}'s next growth phase with proven SaaS expertise." (31 words - too short, needs expansion)
+- "Data Engineer specializing in real-time analytics. Architected ML infrastructure processing 5M daily transactions with 99.9% uptime. 6 years building scalable pipelines using Python, AWS, Kubernetes. Bringing cloud-native expertise to ${input.jobContext.company}'s data platform evolution." (41 words - perfect)
+
+**OUTPUT:** Return ONLY the ultra-concise summary, 40-50 words exactly.`;
+      break;
+
+    case 'keywords':
+    case 'insert_keywords':
+      actionInstructions = `
+${input.currentContent.includes('[USER REQUEST]:') ? `
+⚠️⚠️⚠️ USER CUSTOM REQUEST DETECTED - FOLLOW IT EXACTLY, IGNORE THE INSTRUCTIONS BELOW IF THEY CONFLICT ⚠️⚠️⚠️
+
+The user's specific request OVERRIDES all keyword integration guidelines below.
+` : ''}
+## ACTION: ATS KEYWORD OPTIMIZATION (NATURAL) 🎯
+
+Strategically integrate missing ATS keywords while maintaining natural storytelling flow.
+
+**MISSING KEYWORDS TO INTEGRATE (prioritize top 8):**
+${input.jobContext.keywords.slice(0, 12).join(', ')}
+
+**INTEGRATION STRATEGY:**
+
+**Part 1 - HOOK (integrate job title keywords):**
+- Weave in role-specific terms and job title variations
+- Example: If keywords include "Senior Engineer", "Cloud Architecture", "DevOps"
+- "Senior Software Engineer specializing in cloud architecture and DevOps transformation"
+
+**Part 2 - PROOF (integrate technical skills):**
+- Naturally mention technologies, methodologies, frameworks
+- Example: If keywords include "Python", "AWS", "Kubernetes", "CI/CD"
+- "Architected scalable platforms using Python and AWS, implementing CI/CD pipelines with Kubernetes for 99.9% uptime"
+
+**Part 3 - VALUE (integrate soft skills & business impact):**
+- Weave in leadership, collaboration, business terms
+- Example: If keywords include "Agile", "Cross-functional", "Stakeholder Management"
+- "Bringing agile leadership and cross-functional stakeholder management expertise to drive innovation"
+
+**CRITICAL RULES:**
+1. Must sound 100% NATURAL - recruiter should NOT notice optimization
+2. Integrate only 5-8 keywords maximum (not all of them)
+3. Prioritize keywords that fit naturally into elevator pitch format
+4. NO keyword stuffing or forced phrases
+5. Maintain storytelling and impact focus
+6. 50-60 words total
+
+**BALANCE: 70% compelling pitch + 30% strategic keywords**
+
+**GOOD EXAMPLE (natural integration):**
+"Senior Data Engineer specializing in Python, AWS, and real-time analytics pipelines. Architected scalable ML infrastructure processing 5M daily transactions, leveraging Docker and Kubernetes for 99.9% uptime. Seeking to bring cloud-native expertise and agile leadership to ${input.jobContext.company}'s data platform evolution."
+*(Keywords naturally integrated: Python, AWS, ML, Docker, Kubernetes, cloud-native, agile)*
+
+**BAD EXAMPLE (keyword stuffing - AVOID):**
+"Python AWS Kubernetes expert skilled in machine learning, Docker, DevOps, CI/CD, with cloud-native experience in agile teams using microservices architecture..."
+*(Too many keywords, no storytelling, obvious stuffing)*
+
+**OUTPUT:** Return ONLY the keyword-optimized summary, 50-60 words, sounding completely natural.`;
+      break;
+
+    default:
+      actionInstructions = `
+## ACTION: IMPROVE PROFESSIONAL SUMMARY
+
+Create a compelling 50-60 word Professional Summary that works as a powerful elevator pitch.
+
+Focus on:
+- Unique positioning for the ${input.jobContext.jobTitle} role
+- Top 2-3 quantified achievements
+- Clear value proposition for ${input.jobContext.company}
+
+OUTPUT: Return ONLY the improved summary, 50-60 words.`;
+  }
+
+  return baseContext + actionInstructions + `
+
+## OUTPUT FORMAT:
+Return a JSON object with this exact structure:
+{
+  "content": "the improved professional summary here (50-60 words)"
+}
+
+⚠️ CRITICAL:
+- Return ONLY ONE version of the summary
+- Count words carefully to stay within limit
+- No explanations, no markdown formatting, no code blocks
+- Just clean summary text in the "content" field`;
 }
 
 /**
  * Build ultra-precise context-aware prompts for each action
  */
 function buildActionPrompt(input: SectionRewriteInput): string {
+  // Special handling for Professional Summary - use elevator pitch format
+  if (input.sectionType === 'summary') {
+    return buildSummaryPrompt(input);
+  }
+
   const baseContext = `
 # CONTEXT - WORLD-CLASS CV OPTIMIZATION
 
@@ -59,7 +386,52 @@ ${input.currentContent}
 7. ✅ Keep content CONCISE for one-page A4 format
 8. ⚠️ DO NOT DUPLICATE - Return ONE improved version, not multiple versions
 9. ⚠️ MAINTAIN STRUCTURE - Keep the same number of bullet points/items as input
-10. ⚠️ NO REPETITION - Each bullet point must be unique and distinct`;
+10. ⚠️ NO REPETITION - Each bullet point must be unique and distinct
+
+${input.currentContent.includes('[USER REQUEST]:') ? `
+## 🚨 ABSOLUTE PRIORITY - USER CUSTOM REQUEST DETECTED 🚨
+
+⚠️⚠️⚠️ THE USER HAS MADE A SPECIFIC CUSTOM REQUEST - THIS TAKES ABSOLUTE PRIORITY! ⚠️⚠️⚠️
+
+**OVERRIDE ALL PREVIOUS INSTRUCTIONS IF THEY CONFLICT WITH THE USER'S REQUEST**
+
+The user's custom request is embedded in the content above with [USER REQUEST]: tag.
+
+**YOU MUST:**
+1. ✅ Follow the user's request LITERALLY and PRECISELY
+2. ✅ If they specify a word count (e.g., "in 10 words", "use only 15 words") → COUNT EVERY WORD and respect it EXACTLY
+3. ✅ If they ask for shorter content → Make it SHORTER than original, ignore "concise" rules above
+4. ✅ If they ask for longer content → Make it LONGER, ignore length limits above
+5. ✅ If they specify a style → Apply ONLY that style change
+6. ✅ The user's instruction is MORE IMPORTANT than keywords, metrics, or any other optimization
+
+**EXAMPLES:**
+- User says "in 10 words" → Your output MUST be EXACTLY 10 words, not 11, not 50
+- User says "make it more technical" → Focus ONLY on technical terminology
+- User says "remove metrics" → Remove ALL numbers and percentages
+- User says "one sentence" → Return EXACTLY one sentence
+
+**THE CUSTOM REQUEST OVERRIDES EVERYTHING ELSE IN THIS PROMPT!**
+` : ''}
+
+${input.conversationHistory && input.conversationHistory.length > 0 ? `
+## 💬 CONVERSATION HISTORY - User's Previous Requests
+
+The user has made the following requests in sequence for this section:
+
+${input.conversationHistory.map((msg, idx) => `${idx + 1}. "${msg}"`).join('\n')}
+
+**IMPORTANT: Consider ALL previous requests when generating the output.**
+
+The user is refining iteratively - STACK all their requests together:
+
+**Example:**
+- Request 1: "remove metrics" → Remove all numbers
+- Request 2: "make it shorter" → Apply shorter constraint ON TOP of no metrics
+- Request 3: "more technical" → Apply technical tone WHILE keeping it short AND without metrics
+
+**Your output must satisfy ALL requests in the history!**
+` : ''}`;
 
   let actionInstructions = '';
   

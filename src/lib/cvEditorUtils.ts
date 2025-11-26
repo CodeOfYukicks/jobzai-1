@@ -1,6 +1,7 @@
-import { CVData, CVTemplate } from '../types/cvEditor';
+import { CVData, CVTemplate, CVLayoutSettings } from '../types/cvEditor';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { prepareDOMForPDFExport, cleanupAfterPDFExport } from './pdfIconUtils';
 
 // A4 dimensions in pixels at 96 DPI
 export const A4_WIDTH_PX = 794; // 210mm
@@ -132,22 +133,53 @@ export function getEnabledSections<T extends { enabled: boolean }>(sections: T[]
   return sections.filter(s => s.enabled);
 }
 
-// Export CV to PDF
-export async function exportToPDF(cvData: CVData, template: CVTemplate): Promise<void> {
+// Export CV to PDF using canvas method for pixel-perfect rendering
+export async function exportToPDF(
+  cvData: CVData, 
+  template: CVTemplate, 
+  layoutSettings?: CVLayoutSettings
+): Promise<void> {
   const element = document.getElementById('cv-preview-content');
   if (!element) {
     throw new Error('Preview element not found');
   }
 
   try {
+    // Use high-quality canvas method for best results
+    await exportWithCanvas(cvData, template, 'high');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw error;
+  }
+}
+
+// Export CV to PDF with canvas method - pixel perfect rendering
+async function exportWithCanvas(
+  cvData: CVData, 
+  template: CVTemplate, 
+  quality: 'high' | 'medium' | 'low' = 'high'
+): Promise<void> {
+  const element = document.getElementById('cv-preview-content');
+  if (!element) {
+    throw new Error('Preview element not found');
+  }
+
+  try {
+    // Determine scale based on quality
+    const canvasScale = quality === 'high' ? 2.5 : quality === 'medium' ? 2 : 1.5;
+    const jpegQuality = quality === 'high' ? 0.95 : quality === 'medium' ? 0.92 : 0.88;
+
     // Create canvas from the preview element
     const canvas = await html2canvas(element, {
-      scale: 2, // Higher quality
+      scale: canvasScale,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff'
     });
 
+    // Convert canvas to image
+    const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
+    
     // Create PDF
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -155,23 +187,46 @@ export async function exportToPDF(cvData: CVData, template: CVTemplate): Promise
       format: 'a4'
     });
 
-    // Calculate dimensions
-    const imgWidth = 210; // A4 width in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // A4 dimensions
+    const pageWidth = 210;
+    const pageHeight = 297;
     
-    // Add image to PDF
-    const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    // Calculate image dimensions to fit A4
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * pageWidth) / canvas.width;
+    
+    // Add image to PDF (x, y, width, height)
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
 
     // Generate filename
-    const fileName = `${cvData.personalInfo.firstName}_${cvData.personalInfo.lastName}_CV_${new Date().toISOString().split('T')[0]}.pdf`;
+    const firstName = cvData.personalInfo.firstName || 'CV';
+    const lastName = cvData.personalInfo.lastName || '';
+    const fileName = `${firstName}_${lastName}_CV_${new Date().toISOString().split('T')[0]}.pdf`.replace(/\s+/g, '_');
     
     // Save PDF
     pdf.save(fileName);
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    console.error('Error generating PDF with canvas:', error);
     throw error;
   }
+}
+
+// Enhanced export - always uses canvas for best quality and reliability
+export async function exportToPDFEnhanced(
+  cvData: CVData, 
+  template: CVTemplate,
+  layoutSettings?: CVLayoutSettings,
+  options?: {
+    quality?: 'high' | 'medium' | 'low';
+    compression?: boolean;
+    method?: 'canvas';
+  }
+): Promise<void> {
+  const quality = options?.quality || 'high';
+  
+  // Always use canvas method for pixel-perfect rendering
+  // This ensures what you see in preview is exactly what you get in PDF
+  await exportWithCanvas(cvData, template, quality);
 }
 
 // Copy CV content to clipboard

@@ -1,7 +1,7 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { HighlightTarget } from '../../../types/cvReview';
 import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
-import { formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
+import { formatDateRange as formatDateRangeUtil, formatCVDate as formatCVDateUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github } from 'lucide-react';
 import ClickableSection from '../ClickableSection';
 import { COLOR_HEX_MAP } from '../TemplateCard';
@@ -23,6 +23,10 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
     return formatDateRangeUtil(start, end, isCurrent, layoutSettings.dateFormat as any);
+  };
+
+  const formatDate = (date: string) => {
+    return formatCVDateUtil(date, layoutSettings.dateFormat as any);
   };
 
   // Base font size in pt, all other sizes are relative to this
@@ -51,37 +55,37 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           <div className="flex flex-wrap gap-4 text-gray-600" style={{ fontSize: '0.9em' }}>
             {cvData.personalInfo.email && (
               <div className="flex items-center gap-1">
-                <Mail style={{ width: '1em', height: '1em', color: accentColor }} />
+                <Mail data-icon-type="mail" style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{cvData.personalInfo.email}</span>
               </div>
             )}
             {cvData.personalInfo.phone && (
               <div className="flex items-center gap-1">
-                <Phone style={{ width: '1em', height: '1em', color: accentColor }} />
+                <Phone data-icon-type="phone" style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{cvData.personalInfo.phone}</span>
               </div>
             )}
             {cvData.personalInfo.location && (
               <div className="flex items-center gap-1">
-                <MapPin style={{ width: '1em', height: '1em', color: accentColor }} />
+                <MapPin data-icon-type="mapPin" style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{cvData.personalInfo.location}</span>
               </div>
             )}
             {cvData.personalInfo.linkedin && (
               <div className="flex items-center gap-1">
-                <Linkedin style={{ width: '1em', height: '1em', color: accentColor }} />
+                <Linkedin data-icon-type="linkedin" style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{formatURL(cvData.personalInfo.linkedin)}</span>
               </div>
             )}
             {cvData.personalInfo.github && (
               <div className="flex items-center gap-1">
-                <Github style={{ width: '1em', height: '1em', color: accentColor }} />
+                <Github data-icon-type="github" style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{formatURL(cvData.personalInfo.github)}</span>
               </div>
             )}
             {cvData.personalInfo.portfolio && (
               <div className="flex items-center gap-1">
-                <Globe style={{ width: '1em', height: '1em', color: accentColor }} />
+                <Globe data-icon-type="globe" style={{ width: '1em', height: '1em', color: accentColor }} />
                 <span>{formatURL(cvData.personalInfo.portfolio)}</span>
               </div>
             )}
@@ -109,12 +113,13 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
 
           case 'experience':
             if (!cvData.experiences?.length) return null;
+            const experienceSpacing = layoutSettings.experienceSpacing ?? 6;
             return (
               <section key={section.id} className="mb-6">
                 <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                   Work Experience
                 </h2>
-                <div className="space-y-4">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: `${experienceSpacing * 4}px` }}>
                   {cvData.experiences.map(exp => (
                     <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                       <div>
@@ -175,7 +180,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                             )}
                           </div>
                           <span className="text-gray-600" style={{ fontSize: '0.9em' }}>
-                            {edu.endDate}
+                            {formatDate(edu.endDate)}
                           </span>
                         </div>
                         {edu.honors && edu.honors.length > 0 && (
@@ -226,7 +231,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                       <div style={{ fontSize: '0.95em' }}>
                         <span className="font-medium text-gray-900">{cert.name}</span>
                         <span className="text-gray-600">
-                          {' • '}{cert.issuer} • {cert.date}
+                          {' • '}{cert.issuer} • {formatDate(cert.date)}
                         </span>
                       </div>
                     </ClickableSection>
@@ -246,14 +251,21 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                   {cvData.projects.map(project => (
                     <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                       <div>
-                        <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
-                          {project.name}
-                          {project.url && (
-                            <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
-                              {formatURL(project.url)}
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
+                            {project.name}
+                            {project.url && (
+                              <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
+                                {formatURL(project.url)}
+                              </span>
+                            )}
+                          </h3>
+                          {project.startDate && (
+                            <span className="text-gray-600" style={{ fontSize: '0.9em' }}>
+                              {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
                             </span>
                           )}
-                        </h3>
+                        </div>
                         <p className="text-gray-700" style={{ fontSize: '0.95em' }}>{project.description}</p>
                         {project.technologies.length > 0 && (
                           <p className="text-gray-600 mt-1" style={{ fontSize: '0.9em' }}>

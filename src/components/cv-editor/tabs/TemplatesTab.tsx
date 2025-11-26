@@ -20,10 +20,10 @@ export default function TemplatesTab({
   };
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
+    <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
       <div className="max-w-md mx-auto">
         {/* Header - Compact */}
-        <div className="mb-3">
+        <div className="mb-2">
           <h3 className="text-xs font-semibold text-gray-900 dark:text-white">
             Choose Your Template
           </h3>

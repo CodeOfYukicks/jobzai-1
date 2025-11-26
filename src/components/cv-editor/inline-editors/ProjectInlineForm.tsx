@@ -11,6 +11,7 @@ interface ProjectInlineFormProps {
   initialData?: CVProject;
   onSave: (project: CVProject) => void;
   onCancel: () => void;
+  onDelete?: () => void;
   jobContext?: {
     jobTitle: string;
     company: string;
@@ -20,14 +21,21 @@ interface ProjectInlineFormProps {
     gaps: string[];
   };
   fullCV?: string;
+  conversationHistory?: string[];
+  onAddToHistory?: (message: string) => void;
+  onResetHistory?: () => void;
 }
 
 export default function ProjectInlineForm({
   initialData,
   onSave,
   onCancel,
+  onDelete,
   jobContext,
-  fullCV
+  fullCV,
+  conversationHistory,
+  onAddToHistory,
+  onResetHistory
 }: ProjectInlineFormProps) {
   const [formData, setFormData] = useState<CVProject>({
     id: generateId(),
@@ -149,6 +157,7 @@ export default function ProjectInlineForm({
     <InlineFormCard
       onCancel={onCancel}
       onSave={handleSave}
+      onDelete={onDelete}
       isEditing={!!initialData}
     >
       {/* Project Name & URL */}
@@ -280,6 +289,9 @@ export default function ProjectInlineForm({
           onApply={handleAIEnhance}
           jobContext={jobContext}
           fullCV={fullCV}
+          conversationHistory={conversationHistory}
+          onAddToHistory={onAddToHistory}
+          onResetHistory={onResetHistory}
         />
       )}
 

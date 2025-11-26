@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { CVData } from '../types/cvEditor';
+import { CVData, CVEditorSavedState } from '../types/cvEditor';
 import { generateId } from './cvEditorUtils';
 
 /**
@@ -202,9 +202,10 @@ export async function initializeCVData(
 export async function loadOrInitializeCVData(
   userId: string,
   analysisId?: string
-): Promise<{ cvData: CVData; jobContext?: any }> {
+): Promise<{ cvData: CVData; jobContext?: any; editorState?: CVEditorSavedState }> {
   let cvData: CVData;
   let jobContext: any = undefined;
+  let editorState: CVEditorSavedState | undefined = undefined;
 
   if (analysisId) {
     try {
@@ -236,12 +237,18 @@ export async function loadOrInitializeCVData(
           const cvRewriteData = analysisData.cv_rewrite;
           console.log('CV Rewrite found in analysis:', cvRewriteData);
           
+          // Load editor state if it exists
+          if (cvRewriteData.editor_state) {
+            editorState = cvRewriteData.editor_state;
+            console.log('Editor state loaded:', editorState);
+          }
+          
           // Check if structured_data exists
           if (cvRewriteData.structured_data) {
             console.log('Found structured_data, converting to CVData format');
             cvData = convertStructuredDataToCVData(cvRewriteData.structured_data);
             console.log('Converted CV data:', cvData);
-            return { cvData, jobContext };
+            return { cvData, jobContext, editorState };
           }
           
           // If no structured_data but has initial_cv, parse it
@@ -257,7 +264,7 @@ export async function loadOrInitializeCVData(
             });
             
             console.log('Parsed and saved structured CV data');
-            return { cvData, jobContext };
+            return { cvData, jobContext, editorState };
           }
         }
         
@@ -268,7 +275,7 @@ export async function loadOrInitializeCVData(
           const parsedData = await parseCVData({ initial_cv: analysisData.originalCV });
           cvData = parsedData;
           console.log('Parsed original CV data');
-          return { cvData, jobContext };
+          return { cvData, jobContext, editorState };
         }
       }
       
@@ -279,6 +286,12 @@ export async function loadOrInitializeCVData(
       if (cvRewriteDoc.exists()) {
         const data = cvRewriteDoc.data();
         console.log('Found data in cvRewrites collection (legacy):', data);
+        
+        // Load editor state if it exists
+        if (data.editor_state) {
+          editorState = data.editor_state;
+          console.log('Editor state loaded from cvRewrites:', editorState);
+        }
         
         // Check different possible data structures
         if (data.structured_data) {
@@ -466,5 +479,5 @@ export async function loadOrInitializeCVData(
     cvData = await initializeCVData(userId, undefined, userDoc.data());
   }
 
-  return { cvData, jobContext };
+  return { cvData, jobContext, editorState };
 }

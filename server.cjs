@@ -686,7 +686,7 @@ app.post('/api/cv-review', async (req, res) => {
 
     console.log('✅ API key retrieved successfully for CV Review');
 
-    const { cvData, jobContext } = req.body;
+    const { cvData, jobContext, previousAnalysis } = req.body;
 
     if (!cvData) {
       console.error('❌ CV data is missing in request body');
@@ -696,8 +696,15 @@ app.post('/api/cv-review', async (req, res) => {
       });
     }
 
-    // Generate the CV review prompt
-    const prompt = generateCVReviewPrompt(cvData, jobContext);
+    // Log if we have history context
+    if (previousAnalysis) {
+      console.log('   📊 Previous analysis provided');
+      console.log(`   Previous score: ${previousAnalysis.score}`);
+      console.log(`   Applied suggestions: ${previousAnalysis.appliedSuggestionIds?.length || 0}`);
+    }
+
+    // Generate the CV review prompt with history context
+    const prompt = generateCVReviewPrompt(cvData, jobContext, previousAnalysis);
     
     const systemMessage = `You are an elite CV/Resume strategist and ATS optimization expert. You analyze CVs with extreme precision and provide highly actionable, specific suggestions. 
 
@@ -867,11 +874,64 @@ CRITICAL RULES:
 });
 
 // Helper function for CV Review prompt generation
-function generateCVReviewPrompt(cvData, jobContext) {
+function generateCVReviewPrompt(cvData, jobContext, previousAnalysis) {
   const cvJson = JSON.stringify(cvData, null, 2);
   
-  return `You are an expert CV/Resume reviewer and ATS optimization specialist. Analyze the following CV and provide highly specific, actionable suggestions to improve it.
+  // Build previous analysis context section
+  let previousContext = '';
+  if (previousAnalysis) {
+    const appliedSuggestions = previousAnalysis.appliedSuggestionIds || [];
+    const appliedCount = appliedSuggestions.length;
+    
+    previousContext = `
+🔄 PREVIOUS ANALYSIS CONTEXT - **CRITICAL FOR CREDIBILITY**:
+This is a RE-ANALYSIS. The user has made changes since the last analysis.
 
+Previous Analysis Details:
+- Previous Score: ${previousAnalysis.score}/100
+- Timestamp: ${previousAnalysis.timestamp}
+- Applied Suggestions Count: ${appliedCount}
+${appliedCount > 0 ? `- Applied Suggestion IDs: ${appliedSuggestions.join(', ')}` : ''}
+
+**EXTREMELY IMPORTANT INSTRUCTIONS FOR RE-ANALYSIS:**
+
+1. **DETECT IMPROVEMENTS**: Compare the current CV with what you'd expect based on the previous score.
+   - If phone was missing and now exists → ACKNOWLEDGE IT in your greeting
+   - If summary was poor and now improved → ACKNOWLEDGE IT
+   - If skills were added → ACKNOWLEDGE IT
+   
+2. **ADJUST SCORE APPROPRIATELY**: 
+   - If ${appliedCount} suggestions were applied, the score MUST increase significantly
+   - Previous score: ${previousAnalysis.score}/100
+   - Expected improvement: +${Math.min(appliedCount * 5, 30)} to +${Math.min(appliedCount * 8, 40)} points
+   - DO NOT give the same score if real improvements were made
+   
+3. **NEVER REPEAT FIXED ISSUES**:
+   - DO NOT suggest things that were already fixed
+   - ${appliedCount > 0 ? `These suggestion IDs were applied: ${appliedSuggestions.join(', ')}` : ''}
+   - Check if the target fields of these suggestions now exist/are filled
+   
+4. **CELEBRATE PROGRESS**:
+   - Start your greeting by acknowledging what they improved
+   - Example: "Great job adding your phone number and LinkedIn! Your CV is looking much stronger."
+   - Be specific about what got better
+   
+5. **FOCUS ON NEW ISSUES**:
+   - Find NEW problems or areas for improvement
+   - Don't rehash old suggestions that were addressed
+   - Move to next-level improvements
+   
+6. **BE CREDIBLE**:
+   - If the CV is genuinely good now (score 85+), say so!
+   - Don't force suggestions if everything is solid
+   - Quality over quantity
+
+**FAILURE TO FOLLOW THESE INSTRUCTIONS WILL DESTROY USER TRUST**
+`;
+  }
+  
+  return `You are an expert CV/Resume reviewer and ATS optimization specialist. Analyze the following CV and provide highly specific, actionable suggestions to improve it.
+${previousContext}
 ${jobContext ? `
 TARGET JOB CONTEXT:
 - Position: ${jobContext.jobTitle}
@@ -889,8 +949,9 @@ ANALYSIS REQUIREMENTS:
 
 1. REVIEW SUMMARY:
    - Write a personalized greeting using the candidate's first name (${cvData.personalInfo?.firstName || 'there'})
+   ${previousAnalysis ? '- **ACKNOWLEDGE improvements made since last analysis** (if any)' : ''}
    - Mention 1-2 specific strengths you noticed in their CV
-   - Provide an ATS compatibility score (0-100)
+   - Provide an ATS compatibility score (0-100)${previousAnalysis ? ` - MUST be higher than ${previousAnalysis.score} if improvements were made!` : ''}
    - List 2-3 key strengths
    - List 2-3 main issues to address
 

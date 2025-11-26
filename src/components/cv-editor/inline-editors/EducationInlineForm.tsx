@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Settings2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import InlineFormCard from './InlineFormCard';
 import InlineInput from './InlineInput';
 import ToggleSwitch from './ToggleSwitch';
@@ -11,12 +9,14 @@ interface EducationInlineFormProps {
   initialData?: CVEducation;
   onSave: (education: CVEducation) => void;
   onCancel: () => void;
+  onDelete?: () => void;
 }
 
 export default function EducationInlineForm({
   initialData,
   onSave,
-  onCancel
+  onCancel,
+  onDelete
 }: EducationInlineFormProps) {
   const [formData, setFormData] = useState<CVEducation>({
     id: generateId(),
@@ -33,7 +33,6 @@ export default function EducationInlineForm({
 
   const [yearOnly, setYearOnly] = useState(true);
   const [hideSection, setHideSection] = useState(false);
-  const [showDateSettings, setShowDateSettings] = useState(false);
   const [inProgress, setInProgress] = useState(false);
 
   useEffect(() => {
@@ -50,6 +49,7 @@ export default function EducationInlineForm({
     <InlineFormCard
       onCancel={onCancel}
       onSave={handleSave}
+      onDelete={onDelete}
       isEditing={!!initialData}
     >
       {/* Degree & Field - Same row */}
@@ -147,38 +147,6 @@ export default function EducationInlineForm({
             onChange={setHideSection}
           />
         </div>
-        
-        <button
-          type="button"
-          onClick={() => setShowDateSettings(!showDateSettings)}
-          className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
-        >
-          <Settings2 className="w-3 h-3" />
-          Change Date Format
-        </button>
-
-        <AnimatePresence>
-          {showDateSettings && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex flex-wrap gap-1.5">
-                {['2024', 'Jan 2024', 'January 2024', '01/2024'].map((format) => (
-                  <button
-                    key={format}
-                    type="button"
-                    className="px-2 py-1 text-[10px] font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
-                  >
-                    {format}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </InlineFormCard>
   );

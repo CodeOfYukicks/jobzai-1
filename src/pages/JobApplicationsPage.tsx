@@ -1146,7 +1146,7 @@ END:VCALENDAR`;
       {/* CSS Variables pour les animations */}
       <style>{cssVariables}</style>
 
-      <div className="min-h-0 flex-1 overflow-y-auto flex flex-col px-4 pt-6 pb-20">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col px-4 pt-6 pb-6">
         {/* Compact Header Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
