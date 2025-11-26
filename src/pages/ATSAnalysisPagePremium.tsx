@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
 import { generateCVRewrite } from '../lib/cvRewriteService';
 import { CompanyLogo } from '../components/common/CompanyLogo';
+import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl } from '../utils/logo';
 import TailoredResumePanel from '../components/ats-premium/TailoredResumePanel';
 import { analyzeOptimizedCV } from '../lib/optimizedCVAnalyzer';
 import { analyzePremiumScore, type PremiumScoreAnalysis } from '../lib/premiumScoreAnalyzer';
@@ -30,6 +31,49 @@ import OpportunityFitPanel from '../components/ats-premium/OpportunityFitPanel';
 // Types
 import type { PremiumATSAnalysis } from '../types/premiumATS';
 
+// Helper function to get company initials
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Logo component without box (like InterviewPrepPage)
+function CompanyLogoWithoutBox({ companyName }: { companyName: string }) {
+  const companyDomain = getCompanyDomain(companyName);
+  const initialLogo = companyDomain ? getClearbitUrl(companyDomain) : null;
+  const [logoSrc, setLogoSrc] = useState<string | null>(initialLogo);
+  const triedGoogle = useRef(false);
+
+  function handleLogoError() {
+    if (companyDomain && !triedGoogle.current) {
+      triedGoogle.current = true;
+      setLogoSrc(getGoogleFaviconUrl(companyDomain));
+    } else {
+      setLogoSrc(null);
+    }
+  }
+
+  return (
+    <>
+      {logoSrc ? (
+        <img
+          src={logoSrc}
+          alt={`${companyName} logo`}
+          onError={handleLogoError}
+          className="h-full w-full object-contain drop-shadow-sm"
+        />
+      ) : (
+        <div className="h-full w-full rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <span className="text-2xl font-bold text-gray-400 dark:text-gray-500">
+            {getInitials(companyName)}
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
+
 interface SectionProps {
   id: string;
   title: string;
@@ -40,15 +84,9 @@ interface SectionProps {
 function Section({ id, title, description, children }: SectionProps) {
   return (
     <section id={id} className="scroll-mt-24">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="space-y-6"
-      >
-        {/* Section Header with subtle underline */}
-        <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-8 space-y-6">
+        {/* Section Header with subtle separator */}
+        <div className="space-y-3 pb-6 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             {title}
           </h2>
@@ -63,7 +101,7 @@ function Section({ id, title, description, children }: SectionProps) {
         <div>
           {children}
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }
@@ -90,6 +128,9 @@ function RightSidebarPanel({
   navigate: (path: string) => void;
   optimizedScore: { overall: number; skills: number; experience: number } | null;
   premiumAnalysis: PremiumScoreAnalysis | null;
+  cvRewrite: any;
+  sidebarTab: 'summary' | 'navigation' | 'cv';
+  setSidebarTab: (tab: 'summary' | 'navigation' | 'cv') => void;
 }) {
   const sections = [
     { id: 'overview', label: 'Overview', icon: <Target className="w-4 h-4" /> },
@@ -727,176 +768,169 @@ export default function ATSAnalysisPagePremium() {
         onNavigate={handleNavigate}
         onGenerateCVRewrite={handleGenerateCVRewrite}
         isGeneratingCV={isGeneratingCV}
-        generationProgress={generationProgress}
-        generationStep={generationStep}
         cvRewrite={cvRewrite}
         sidebarTab={sidebarTab}
         setSidebarTab={setSidebarTab}
         navigate={navigate}
         optimizedScore={optimizedScore}
-        isCalculatingScore={isCalculatingScore}
         premiumAnalysis={premiumAnalysis}
       />
 
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B]">
-        {/* Premium Expansive Header - SaaS Style - Animations disabled to prevent blinking */}
-        <div className="relative overflow-hidden">
-          {/* Gradient Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 dark:from-purple-950/20 dark:via-indigo-950/20 dark:to-pink-950/20" />
-
-          {/* Static gradient overlay - animation removed to prevent conflicts */}
-          <div className="absolute inset-0 opacity-30 bg-gradient-radial from-purple-100/20 via-transparent to-transparent" />
-
-          <div className="relative px-6 sm:px-8 lg:px-12 pt-12 pb-8">
-            <div className="max-w-7xl mx-auto lg:pr-96">
-              {/* Top Row: Logo + Title + Overall Score */}
-              <div className="flex items-start justify-between gap-6 mb-8">
-                {/* Left: Logo + Title */}
-                <div className="flex items-start gap-5 flex-1 min-w-0">
-                  {/* Company Logo - Animations removed to prevent blinking */}
-                  <div className="flex-shrink-0">
-                    <CompanyLogo
-                      companyName={analysis.company}
-                      size="xl"
-                      className="w-20 h-20 rounded-2xl border-2 border-white dark:border-gray-800 shadow-xl bg-white dark:bg-gray-900 p-3"
-                    />
-                  </div>
-
-                  {/* Title and Info */}
-                  <div className="flex-1 min-w-0 pt-1">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-3 leading-tight tracking-tight">
-                      {analysis.jobTitle}
-                    </h1>
-                    <div className="flex flex-wrap items-center gap-4">
-                      <span className="text-base text-gray-700 dark:text-gray-300 flex items-center gap-2 font-medium">
-                        <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        {analysis.company}
-                      </span>
-                      {analysis.location && (
-                        <>
-                          <span className="text-gray-300 dark:text-gray-700">•</span>
-                          <span className="text-base text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                            <MapPin className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            {analysis.location}
-                          </span>
-                        </>
-                      )}
-                      {analysis.jobUrl && (
-                        <>
-                          <span className="text-gray-300 dark:text-gray-700">•</span>
-                          <a
-                            href={analysis.jobUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-base text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors font-semibold"
-                          >
-                            <ExternalLink className="w-5 h-5" />
-                            View Job Posting
-                          </a>
-                        </>
-                      )}
-                    </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col pt-6 pb-6">
+        {/* Simplified Header - Minimalist Design */}
+        <div className="mb-6 flex-shrink-0 px-4 lg:px-6">
+          <div className="w-full lg:pr-96">
+            {/* Top Row: Logo + Title + Overall Score */}
+            <div className="flex items-start justify-between gap-8 mb-6">
+              {/* Left: Logo + Title */}
+              <div className="flex items-start gap-6 flex-1 min-w-0 pt-2">
+                {/* Company Logo - Large without box */}
+                <div className="flex-shrink-0 relative group">
+                  <div className="h-20 w-20 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    <CompanyLogoWithoutBox companyName={analysis.company} />
                   </div>
                 </div>
 
-                {/* Right: Overall Match Score - Animations removed */}
-                <div className="flex-shrink-0">
-                  <div className={`relative px-8 py-6 rounded-3xl shadow-2xl border-2 ${analysis.match_scores.overall_score >= 80
-                    ? 'bg-gradient-to-br from-purple-600 to-indigo-600 border-purple-500 dark:border-purple-400'
-                    : analysis.match_scores.overall_score >= 60
-                      ? 'bg-gradient-to-br from-blue-600 to-cyan-600 border-blue-500 dark:border-blue-400'
-                      : 'bg-gradient-to-br from-pink-600 to-rose-600 border-pink-500 dark:border-pink-400'
+                {/* Title and Info */}
+                <div className="flex-1 min-w-0 pt-1">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3 leading-tight">
+                    {analysis.jobTitle}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-3 text-base">
+                    <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                      <Building2 className="w-5 h-5" />
+                      {analysis.company}
+                    </span>
+                    {analysis.location && (
+                      <>
+                        <span className="text-gray-300 dark:text-gray-700">•</span>
+                        <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                          <MapPin className="w-5 h-5" />
+                          {analysis.location}
+                        </span>
+                      </>
+                    )}
+                    {analysis.jobUrl && (
+                      <>
+                        <span className="text-gray-300 dark:text-gray-700">•</span>
+                        <a
+                          href={analysis.jobUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                        >
+                          <ExternalLink className="w-5 h-5" />
+                          View Job Posting
+                        </a>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Overall Match Score - Styled Card */}
+              <div className="flex-shrink-0">
+                <div className={`bg-white dark:bg-gray-900 rounded-2xl border-2 shadow-lg px-8 py-6 ${
+                  analysis.match_scores.overall_score >= 80 
+                    ? 'border-purple-200 dark:border-purple-800/50' 
+                    : analysis.match_scores.overall_score >= 60 
+                      ? 'border-blue-200 dark:border-blue-800/50' 
+                      : 'border-pink-200 dark:border-pink-800/50'
+                }`}>
+                  <div className="text-center">
+                    <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                      Match Score
+                    </div>
+                    <div className={`text-5xl font-black leading-none mb-2 ${
+                      analysis.match_scores.overall_score >= 80 
+                        ? 'text-purple-600 dark:text-purple-400' 
+                        : analysis.match_scores.overall_score >= 60 
+                          ? 'text-blue-600 dark:text-blue-400' 
+                          : 'text-pink-600 dark:text-pink-400'
                     }`}>
-                    {/* Shine effect */}
-                    <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
-
-                    <div className="relative text-center">
-                      <div className="text-xs font-bold text-white/80 uppercase tracking-widest mb-1">
-                        Match Score
-                      </div>
-                      <div className={`text-7xl sm:text-8xl font-black text-white leading-none mb-2 ${analysis.match_scores.overall_score >= 80 ? 'drop-shadow-2xl' : ''
-                        }`}>
-                        {analysis.match_scores.overall_score}
-                        <span className="text-4xl sm:text-5xl">%</span>
-                      </div>
-                      <div className={`text-xs font-semibold text-white/90 uppercase tracking-wide ${analysis.match_scores.overall_score >= 80 ? 'text-purple-100' :
-                        analysis.match_scores.overall_score >= 60 ? 'text-blue-100' :
-                          'text-pink-100'
-                        }`}>
-                        {analysis.match_scores.category}
-                      </div>
+                      {analysis.match_scores.overall_score}
+                      <span className="text-3xl">%</span>
+                    </div>
+                    <div className={`text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full inline-block ${
+                      analysis.match_scores.overall_score >= 80 
+                        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' 
+                        : analysis.match_scores.overall_score >= 60 
+                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' 
+                          : 'bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300'
+                    }`}>
+                      {analysis.match_scores.category}
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Stats Row - Animations removed to prevent blinking */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  {
-                    label: 'Skills',
-                    value: `${analysis.match_scores.skills_score}%`,
-                    iconColor: analysis.match_scores.skills_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.skills_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
-                    valueColor: analysis.match_scores.skills_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.skills_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
-                    icon: <Zap className="w-5 h-5" />
-                  },
-                  {
-                    label: 'Experience',
-                    value: `${analysis.match_scores.experience_score}%`,
-                    iconColor: analysis.match_scores.experience_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.experience_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
-                    valueColor: analysis.match_scores.experience_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.experience_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
-                    icon: <TrendingUp className="w-5 h-5" />
-                  },
-                  {
-                    label: 'Strengths',
-                    value: analysis.top_strengths.length,
-                    iconColor: 'text-green-600 dark:text-green-400',
-                    valueColor: 'text-green-600 dark:text-green-400',
-                    icon: <Check className="w-5 h-5" />
-                  },
-                  {
-                    label: 'Gaps',
-                    value: analysis.top_gaps.length,
-                    iconColor: 'text-red-600 dark:text-red-400',
-                    valueColor: 'text-red-600 dark:text-red-400',
-                    icon: <AlertCircle className="w-5 h-5" />
-                  }
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-200/50 dark:border-gray-800/50 shadow-lg hover:shadow-xl transition-all hover:scale-105"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className={stat.iconColor}>
-                        {stat.icon}
-                      </div>
-                      <div className={`text-2xl font-bold ${stat.valueColor}`}>
-                        {stat.value}
-                      </div>
+            {/* Stats Row - Minimalist Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                {
+                  label: 'Skills',
+                  value: `${analysis.match_scores.skills_score}%`,
+                  iconColor: analysis.match_scores.skills_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.skills_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
+                  valueColor: analysis.match_scores.skills_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.skills_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
+                  icon: <Zap className="w-4 h-4" />
+                },
+                {
+                  label: 'Experience',
+                  value: `${analysis.match_scores.experience_score}%`,
+                  iconColor: analysis.match_scores.experience_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.experience_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
+                  valueColor: analysis.match_scores.experience_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.experience_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
+                  icon: <TrendingUp className="w-4 h-4" />
+                },
+                {
+                  label: 'Strengths',
+                  value: analysis.top_strengths.length,
+                  iconColor: 'text-green-600 dark:text-green-400',
+                  valueColor: 'text-green-600 dark:text-green-400',
+                  icon: <Check className="w-4 h-4" />
+                },
+                {
+                  label: 'Gaps',
+                  value: analysis.top_gaps.length,
+                  iconColor: 'text-red-600 dark:text-red-400',
+                  valueColor: 'text-red-600 dark:text-red-400',
+                  icon: <AlertCircle className="w-4 h-4" />
+                }
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm p-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={stat.iconColor}>
+                      {stat.icon}
                     </div>
-                    <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                      {stat.label}
+                    <div className={`text-xl font-bold ${stat.valueColor}`}>
+                      {stat.value}
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Main Content - With right margin for fixed sidebar */}
-        <div className="px-4 pb-8 lg:pr-[400px]">
-          <div className="max-w-7xl mx-auto">
-            <main className="space-y-12">
+        <div className="flex-1 min-h-0 px-4 lg:px-6">
+          <div className="w-full lg:pr-96">
+            <main className="space-y-6">
               {/* Overview - Executive Summary */}
               <div
                 ref={(el) => { sectionsRef.current['overview'] = el; }}
                 className="scroll-mt-24"
               >
-                <div className="p-8 space-y-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center shadow-sm">
-                      <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-8 space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     </div>
                     <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                       Executive Summary
@@ -908,10 +942,10 @@ export default function ATSAnalysisPagePremium() {
 
                   {/* Scoring Rationale - How This Score Was Calculated */}
                   {analysis.scoring_rationale && (
-                    <div className="mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-900/30 rounded-xl p-6">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="mt-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Activity className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                         </div>
                         <div className="flex-1">
                           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
@@ -948,7 +982,7 @@ export default function ATSAnalysisPagePremium() {
                   title="Top Strengths"
                   description="Your strongest assets for this role with evidence from your resume"
                 >
-                  <div className="grid gap-6 lg:grid-cols-2">
+                  <div className="grid gap-4 lg:grid-cols-2">
                     {analysis.top_strengths.map((strength, index) => (
                       <StrengthCard key={index} strength={strength} index={index} />
                     ))}
@@ -963,7 +997,7 @@ export default function ATSAnalysisPagePremium() {
                   title="Gaps to Address"
                   description="Areas where your profile doesn't fully match requirements, with actionable fixes"
                 >
-                  <div className="grid gap-6 lg:grid-cols-2">
+                  <div className="grid gap-4 lg:grid-cols-2">
                     {analysis.top_gaps.map((gap, index) => (
                       <GapCard key={index} gap={gap} index={index} />
                     ))}

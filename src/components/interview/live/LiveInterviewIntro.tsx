@@ -1,17 +1,33 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Mic, Video, ArrowRight, Sparkles } from 'lucide-react';
+import { InterviewType } from './LiveSessionConfig';
 
 interface LiveInterviewIntroProps {
     onStart: () => void;
     onCancel: () => void;
     questionCount: number;
+    interviewType?: InterviewType;
 }
+
+const getInterviewTypeLabel = (type?: InterviewType): string => {
+    switch (type) {
+        case 'general':
+            return 'General / HR';
+        case 'technical':
+            return 'Technical';
+        case 'company-specific':
+            return 'Company-specific';
+        default:
+            return 'Interview';
+    }
+};
 
 export const LiveInterviewIntro: React.FC<LiveInterviewIntroProps> = ({
     onStart,
     onCancel,
     questionCount,
+    interviewType,
 }) => {
     return (
         <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center">
@@ -36,8 +52,7 @@ export const LiveInterviewIntro: React.FC<LiveInterviewIntroProps> = ({
                 </h1>
 
                 <p className="mb-10 text-lg text-neutral-600 dark:text-neutral-300">
-                    Practice answering {questionCount} questions in real-time. Speak your answers out loud,
-                    and receive instant AI feedback on your delivery, content, and clarity.
+                    {getInterviewTypeLabel(interviewType)} interview • {questionCount} questions
                 </p>
 
                 <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-3">

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
+import { LiveSessionConfig, InterviewType, QuestionCount } from './LiveSessionConfig';
 import { LiveInterviewIntro } from './LiveInterviewIntro';
 import { LiveInterviewQuestion } from './LiveInterviewQuestion';
 import { LiveInterviewResults } from './LiveInterviewResults';
@@ -16,9 +18,12 @@ interface LiveInterviewSessionProps {
         answers: Record<number, string>;
         questionsCount: number;
     }) => void;
+    onGenerateQuestions?: (type: InterviewType, count: QuestionCount) => Promise<QuestionEntry[]>;
+    companyName?: string;
+    position?: string;
 }
 
-type SessionState = 'intro' | 'question' | 'results';
+type SessionState = 'config' | 'intro' | 'question' | 'results';
 
 export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     isOpen,
@@ -26,25 +31,84 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     questions,
     jobContext,
     onSessionComplete,
+    onGenerateQuestions,
+    companyName,
+    position,
 }) => {
-    const [sessionState, setSessionState] = useState<SessionState>('intro');
+    const [sessionState, setSessionState] = useState<SessionState>('config');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [analysis, setAnalysis] = useState<InterviewAnalysis | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
     const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
+    const [sessionQuestions, setSessionQuestions] = useState<QuestionEntry[]>(questions);
+    const [selectedInterviewType, setSelectedInterviewType] = useState<InterviewType | undefined>(undefined);
+
+    // Update session questions when questions prop changes
+    React.useEffect(() => {
+        if (questions.length > 0) {
+            setSessionQuestions(questions);
+        }
+    }, [questions]);
 
     // Reset state when session opens/closes
     React.useEffect(() => {
         if (isOpen) {
-            setSessionState('intro');
+            // Always start with config screen to let user choose type and count
+            setSessionState('config');
             setCurrentQuestionIndex(0);
             setAnswers({});
             setAnalysis(null);
             setIsAnalyzing(false);
-            setDetectedLanguage(null); // Reset language detection
+            setIsGeneratingQuestions(false);
+            setDetectedLanguage(null);
+            setSessionQuestions([]); // Reset to empty, will be populated after config
+            setSelectedInterviewType(undefined);
         }
     }, [isOpen]);
+
+    const handleConfigStart = async (type: InterviewType, count: QuestionCount) => {
+        setSelectedInterviewType(type); // Store the selected interview type
+        if (!onGenerateQuestions) {
+            // If no generator, use existing questions if available
+            if (questions.length > 0) {
+                setSessionQuestions(questions);
+                setSessionState('intro');
+            } else {
+                // No questions and no generator - show error or stay on config
+                console.error('No question generator available and no existing questions');
+                return;
+            }
+            return;
+        }
+
+        setIsGeneratingQuestions(true);
+        setSelectedInterviewType(type); // Store the selected interview type
+        try {
+            const generatedQuestions = await onGenerateQuestions(type, count);
+            console.log('✅ Generated questions for live session:', {
+                type,
+                count,
+                questionsCount: generatedQuestions.length,
+                questions: generatedQuestions.map(q => ({ id: q.id, text: q.text.substring(0, 50) + '...' }))
+            });
+            setSessionQuestions(generatedQuestions);
+            setSessionState('intro');
+        } catch (error) {
+            console.error('Error generating questions:', error);
+            // On error, try to use existing questions if available
+            if (questions.length > 0) {
+                setSessionQuestions(questions);
+                setSessionState('intro');
+            } else {
+                // No fallback questions - stay on config or show error
+                toast.error('Failed to generate questions. Please try again.');
+            }
+        } finally {
+            setIsGeneratingQuestions(false);
+        }
+    };
 
     const handleStart = () => {
         setSessionState('question');
@@ -54,8 +118,8 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
         setIsAnalyzing(true);
         try {
             console.log('📤 Sending to analyze-interview:', {
-                questionsCount: questions.length,
-                questionIds: questions.map(q => q.id),
+                questionsCount: sessionQuestions.length,
+                questionIds: sessionQuestions.map(q => q.id),
                 answersKeys: Object.keys(finalAnswers),
                 answers: finalAnswers
             });
@@ -66,7 +130,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    questions,
+                    questions: sessionQuestions,
                     answers: finalAnswers,
                     jobContext
                 }),
@@ -85,7 +149,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                     onSessionComplete({
                         analysis: data.analysis,
                         answers: finalAnswers,
-                        questionsCount: questions.length
+                        questionsCount: sessionQuestions.length
                     });
                 }
             } else {
@@ -100,14 +164,19 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     };
 
     const handleNextQuestion = (answer: string) => {
-        const currentQuestion = questions[currentQuestionIndex];
+        const currentQuestion = sessionQuestions[currentQuestionIndex];
+        console.log(`📝 Answering question ${currentQuestionIndex + 1}/${sessionQuestions.length}:`, {
+            questionId: currentQuestion.id,
+            questionText: currentQuestion.text.substring(0, 60) + (currentQuestion.text.length > 60 ? '...' : ''),
+            answerLength: answer.length
+        });
         const newAnswers = {
             ...answers,
             [currentQuestion.id]: answer
         };
         setAnswers(newAnswers);
 
-        if (currentQuestionIndex < questions.length - 1) {
+        if (currentQuestionIndex < sessionQuestions.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
         } else {
             setSessionState('results');
@@ -116,7 +185,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     };
 
     const handleSkipQuestion = () => {
-        if (currentQuestionIndex < questions.length - 1) {
+        if (currentQuestionIndex < sessionQuestions.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
         } else {
             setSessionState('results');
@@ -125,10 +194,11 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     };
 
     const handleRetry = () => {
-        setSessionState('intro');
+        setSessionState('config');
         setCurrentQuestionIndex(0);
         setAnswers({});
         setAnalysis(null);
+        setSessionQuestions([]);
     };
 
     if (!isOpen) return null;
@@ -158,19 +228,40 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
 
                     {/* Content */}
                     <div className="flex-1 overflow-hidden relative">
-                        {sessionState === 'intro' && (
-                            <LiveInterviewIntro
-                                onStart={handleStart}
+                        {isGeneratingQuestions && (
+                            <div className="flex h-full items-center justify-center">
+                                <div className="text-center">
+                                    <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-neutral-300 border-t-neutral-900 dark:border-neutral-700 dark:border-t-white"></div>
+                                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                                        Generating personalized questions...
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isGeneratingQuestions && sessionState === 'config' && (
+                            <LiveSessionConfig
+                                onStart={handleConfigStart}
                                 onCancel={onClose}
-                                questionCount={questions.length}
+                                companyName={companyName}
+                                position={position}
                             />
                         )}
 
-                        {sessionState === 'question' && (
+                        {!isGeneratingQuestions && sessionState === 'intro' && (
+                            <LiveInterviewIntro
+                                onStart={handleStart}
+                                onCancel={onClose}
+                                questionCount={sessionQuestions.length}
+                                interviewType={selectedInterviewType}
+                            />
+                        )}
+
+                        {!isGeneratingQuestions && sessionState === 'question' && sessionQuestions.length > 0 && (
                             <LiveInterviewQuestion
-                                question={questions[currentQuestionIndex]}
+                                question={sessionQuestions[currentQuestionIndex]}
                                 questionIndex={currentQuestionIndex}
-                                totalQuestions={questions.length}
+                                totalQuestions={sessionQuestions.length}
                                 onNext={handleNextQuestion}
                                 onSkip={handleSkipQuestion}
                                 detectedLanguage={detectedLanguage}
@@ -178,9 +269,9 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                             />
                         )}
 
-                        {sessionState === 'results' && (
+                        {!isGeneratingQuestions && sessionState === 'results' && (
                             <LiveInterviewResults
-                                questions={questions}
+                                questions={sessionQuestions}
                                 answers={answers}
                                 analysis={analysis}
                                 onClose={onClose}

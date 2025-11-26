@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { collection, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { ref, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
 import { analyzeJobPost, JobPostAnalysisResult } from '../services/jobPostAnalyzer';
 import { queryPerplexity } from '../lib/perplexity';
-import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
+// Removed react-draggable - using manual drag implementation
 import Xarrow, { Xwrapper } from 'react-xarrows';
 import {
   ArrowLeft, Briefcase, Building, MapPin, Calendar, Clock, LinkIcon,
@@ -38,6 +39,7 @@ import { LazySection } from '../components/interview/utils/LazySection';
 import RightSidebarPanel from '../components/interview/RightSidebarPanel';
 import { LiveInterviewSession } from '../components/interview/live/LiveInterviewSession';
 import { LiveInterviewResults } from '../components/interview/live/LiveInterviewResults';
+import { InterviewType, QuestionCount } from '../components/interview/live/LiveSessionConfig';
 
 // Interface for the job application data
 interface Note {
@@ -373,9 +375,14 @@ export default function InterviewPrepPage() {
   const [noteSizes, setNoteSizes] = useState<Record<string, { width: number; height: number }>>({});
   const [isResizing, setIsResizing] = useState(false);
   const [resizingNoteId, setResizingNoteId] = useState<string | null>(null);
-  const [resizeStart, setResizeStart] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [resizeStart, setResizeStart] = useState<{ x: number; y: number; width: number; height: number; startX: number; startY: number } | null>(null);
+  const [resizeType, setResizeType] = useState<'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingNote, setIsDraggingNote] = useState(false);
+  const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
+  const [dragStartPos, setDragStartPos] = useState<{ x: number; y: number; mouseX: number; mouseY: number } | null>(null);
+  // Ref to store potential drag info before actual drag starts (after 10px movement)
+  const potentialDragRef = useRef<{ noteId: string; startPos: { x: number; y: number; mouseX: number; mouseY: number } } | null>(null);
   const [dragStartTime, setDragStartTime] = useState(0);
   const [selectedTool, setSelectedTool] = useState<'select' | 'pen' | 'arrow' | 'line' | 'rectangle' | 'circle' | 'text' | 'sticky'>('select');
   const [drawingShape, setDrawingShape] = useState<Shape | null>(null);
@@ -429,7 +436,61 @@ export default function InterviewPrepPage() {
   const [liveSessionHistory, setLiveSessionHistory] = useState<LiveSessionRecord[]>([]);
   const [selectedHistorySession, setSelectedHistorySession] = useState<LiveSessionRecord | null>(null);
 
+  // Play sound from Firebase Storage when user clicks "Prepare Live"
+  const playFuturisticSound = async () => {
+    try {
+      console.log('🔊 Attempting to load sound from Firebase Storage...');
+      // Get download URL from Firebase Storage
+      const soundRef = ref(storage, 'sound/mixkit-magic-marimba-2820.wav');
+      console.log('📁 Sound reference created:', soundRef.fullPath);
+      
+      const downloadURL = await getDownloadURL(soundRef);
+      console.log('✅ Got download URL:', downloadURL);
+      
+      // Create and play audio
+      const audio = new Audio(downloadURL);
+      audio.volume = 0.7; // Increased volume
+      
+      // Add event listeners for debugging
+      audio.addEventListener('loadstart', () => console.log('🔊 Audio loading started'));
+      audio.addEventListener('loadeddata', () => console.log('✅ Audio data loaded'));
+      audio.addEventListener('canplay', () => console.log('▶️ Audio can play'));
+      audio.addEventListener('error', (e) => {
+        console.error('❌ Audio error:', e);
+        console.error('Audio error details:', audio.error);
+      });
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('✅ Sound playing successfully');
+          })
+          .catch(error => {
+            console.error('❌ Could not play sound:', error);
+            console.error('Error details:', error.message);
+            // Try to show user-friendly error
+            toast.error('Could not play sound. Please check your browser audio settings.');
+          });
+      }
+    } catch (error: any) {
+      console.error('❌ Could not load sound from Firebase Storage:', error);
+      console.error('Error code:', error?.code);
+      console.error('Error message:', error?.message);
+      
+      // Show user-friendly error
+      if (error?.code === 'storage/object-not-found') {
+        toast.error('Sound file not found in Firebase Storage');
+      } else if (error?.code === 'storage/unauthorized') {
+        toast.error('Unauthorized access to sound file');
+      } else {
+        toast.error('Could not load sound file');
+      }
+    }
+  };
+
   const handleStartLiveSession = () => {
+    playFuturisticSound(); // Play sound when user clicks "Prepare Live"
     setIsLiveSessionOpen(true);
   };
 
@@ -2325,112 +2386,331 @@ Make sure each answer is completely unique and specific to its question - no gen
     }
   };
 
-  // Ref for drag start position to calculate distance
-  const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
-  // Ref for double click detection
-  const lastClickTimeRef = useRef<number>(0);
-  const lastClickNoteIdRef = useRef<string | null>(null);
-
-  const handleDragStart = (e: DraggableEvent, data: DraggableData) => {
-    // Store start position
-    dragStartPosRef.current = { x: data.x, y: data.y };
-    setDragStartTime(Date.now());
-    // Do NOT set isDragging(true) here
-  };
-
-  const handleDrag = (e: DraggableEvent, data: DraggableData) => {
-    if (!dragStartPosRef.current) return;
-
-    // Calculate distance moved
-    const dx = Math.abs(data.x - dragStartPosRef.current.x);
-    const dy = Math.abs(data.y - dragStartPosRef.current.y);
-
-    // Only start "dragging" state if moved more than 5 pixels
-    // This prevents jitter and accidental drags on clicks
-    if (!isDragging && (dx > 5 || dy > 5)) {
-      setIsDragging(true);
+  // Generate questions for live session based on type and count
+  const generateLiveSessionQuestions = async (
+    type: InterviewType,
+    count: QuestionCount
+  ): Promise<QuestionEntry[]> => {
+    if (!currentUser || !application || !interview || !applicationId) {
+      throw new Error('Missing required data for question generation');
     }
 
-    // CRITICAL: Update position state during drag to keep controlled component in sync
-    // This prevents "snap back" issues when re-renders occur
-    if (isDragging) {
-      // We need to find the note ID. Since we don't have it in arguments, 
-      // we'll rely on the fact that this handler is attached to specific notes.
-      // However, react-draggable's onDrag doesn't pass the note ID directly.
-      // We need to wrap the handler in the render loop.
-      // See the change in the render loop below.
+    const jobPostUrl = interview.jobPostUrl || '';
+    const position = application.position || '';
+    const companyName = application.companyName || '';
+    const jobPostContent = interview.jobPostContent || '';
+
+    // Build prompt based on interview type
+    let typeSpecificInstructions = '';
+    let questionFocus = '';
+
+    switch (type) {
+      case 'general':
+        typeSpecificInstructions = `
+Focus on GENERAL/HR questions about:
+- Motivation and career goals
+- Personality traits and work style
+- Cultural fit and values alignment
+- Behavioral questions using STAR method
+- Why this role/company interests you
+- Teamwork and collaboration examples
+- Leadership and communication skills
+- Work-life balance and preferences
+`;
+        questionFocus = 'general HR, behavioral, and cultural fit questions';
+        break;
+
+      case 'technical':
+        typeSpecificInstructions = `
+Focus on TECHNICAL questions specific to the ${position} role:
+- Technical skills and competencies required for this position
+- Hands-on technical problem-solving scenarios
+- Specific tools, technologies, or platforms mentioned in the job description
+- Technical challenges and how you've solved them
+- System design, architecture, or implementation questions (if relevant)
+- Code review, debugging, or optimization scenarios (if relevant)
+- Technical knowledge assessment questions
+- Real-world technical project examples
+`;
+        questionFocus = `technical questions specific to ${position}`;
+        break;
+
+      case 'company-specific':
+        typeSpecificInstructions = `
+Focus on COMPANY-SPECIFIC and ROLE-SPECIFIC questions:
+- Deep knowledge about ${companyName} as a company
+- Company culture, values, and mission alignment
+- Recent company news, products, or initiatives
+- Industry-specific challenges and opportunities
+- Role-specific scenarios and responsibilities
+- How your experience relates to this specific role at ${companyName}
+- Questions about the company's future direction
+- Why you want to work specifically at ${companyName} in this role
+`;
+        questionFocus = `company-specific questions about ${companyName} and role-specific questions for ${position}`;
+        break;
     }
 
-    // CRITICAL: Only update position state if we are actually dragging
-    // This prevents the note from "jumping" or moving during a simple click
-    if (isDragging) {
-      // We don't update state here to avoid excessive re-renders, 
-      // react-draggable handles the visual movement via DOM
-    }
-  };
+    const prompt = `
+Based on this job posting for a ${position} position at ${companyName}${jobPostUrl ? `: ${jobPostUrl}` : ''}
 
-  const handleDragStop = (noteId: string, e: DraggableEvent, data: DraggableData) => {
-    const dragDuration = Date.now() - dragStartTime;
+${jobPostContent ? `JOB POSTING CONTENT:
+"""
+${jobPostContent}
+"""` : ''}
 
-    if (isDragging) {
-      setIsDragging(false);
-    }
+Please generate ${count} different interview questions that might be asked during this interview.
 
-    // Si le drag a duré moins de 200ms, c'est considéré comme un clic
-    if (dragDuration < 200) {
-      // Manual Double Click Detection
-      const now = Date.now();
-      const timeSinceLastClick = now - lastClickTimeRef.current;
+${typeSpecificInstructions}
 
-      if (lastClickNoteIdRef.current === noteId && timeSinceLastClick < 300) {
-        // Double click detected!
-        openNote(stickyNotes.find(n => n.id === noteId)!);
-        // Reset
-        lastClickTimeRef.current = 0;
-        lastClickNoteIdRef.current = null;
-      } else {
-        // First click
-        lastClickTimeRef.current = now;
-        lastClickNoteIdRef.current = noteId;
+CRITICAL: For EACH question, provide a UNIQUE and HIGHLY SPECIFIC suggested answer approach that:
+1. Directly addresses the specific question asked (NOT generic advice like "use STAR method")
+2. Provides concrete, actionable guidance tailored to THAT EXACT question
+3. References specific aspects of the question (e.g., if the question mentions "data analytics", the answer should specifically address data analytics)
+4. Suggests specific skills, experiences, or examples relevant to THAT question
+5. Is 2-4 sentences of practical, question-specific advice
+6. Each answer must be DIFFERENT and UNIQUE - do not repeat the same guidance for different questions
+
+IMPORTANT: 
+- Do NOT use generic phrases like "Structure your answer using the STAR method" for all questions
+- Each answer must be tailored to its specific question
+- Focus on ${questionFocus}
+- Make each answer distinct and question-specific
+
+Return the questions in a JSON format like this:
+{
+  "questions": [
+    "Question 1 text here",
+    "Question 2 text here",
+    ...
+  ],
+  "answers": [
+    {"question": "Question 1 text here", "answer": "Specific, detailed, unique guidance tailored specifically to Question 1, addressing its particular focus and requirements"},
+    {"question": "Question 2 text here", "answer": "Specific, detailed, unique guidance tailored specifically to Question 2, addressing its particular focus and requirements"},
+    ...
+  ]
+}
+
+CRITICAL: The "question" field in each answer object must EXACTLY match the corresponding question in the questions array. This is essential for proper matching.
+Make sure each answer is completely unique and specific to its question - no generic advice.
+Generate exactly ${count} questions.
+`;
+
+    try {
+      const response = await queryPerplexity(prompt);
+
+      if (!response) {
+        throw new Error('Empty response from Perplexity API');
       }
+
+      // Extract and clean the JSON from the response
+      const contentFromAPI = response?.choices?.[0]?.message?.content || response?.text || '';
+      if (!contentFromAPI) {
+        throw new Error('Empty response content from Perplexity API');
+      }
+
+      // Clean content: remove unwanted tags
+      const content = String(contentFromAPI)
+        .replace(/<think>[\s\S]*?<\/think>/g, '')
+        .replace(/<think>[\s\S]*?<\/redacted_reasoning>/g, '')
+        .trim();
+
+      // Find JSON content within the response
+      let jsonString = '';
+      const jsonCodeBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/i);
+      if (jsonCodeBlockMatch) {
+        jsonString = jsonCodeBlockMatch[1].trim();
+      } else {
+        const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonObjectMatch) {
+          jsonString = jsonObjectMatch[0];
+        } else {
+          jsonString = content;
+        }
+      }
+
+      // Parse JSON
+      let questionsData: any;
+      try {
+        questionsData = JSON.parse(jsonString);
+      } catch (parseError) {
+        // Try to repair JSON
+        const repaired = jsonString
+          .replace(/,\s*\]/g, ']')
+          .replace(/,\s*\}/g, '}')
+          .replace(/"\s+"/g, '", "');
+        questionsData = JSON.parse(repaired);
+      }
+
+      // Normalize questions and answers
+      const normalizeString = (str: string): string => {
+        if (!str || typeof str !== 'string') return '';
+        return str
+          .trim()
+          .replace(/^["']?question["']?\s*:\s*["']?/i, '')
+          .replace(/^["']?answer["']?\s*:\s*["']?/i, '')
+          .replace(/["']?\s*,\s*["']?answer["']?\s*:\s*["']?/gi, '')
+          .replace(/["']?\s*,\s*["']?question["']?\s*:\s*["']?/gi, '')
+          .replace(/["']\s*,\s*$/g, '')
+          .replace(/,\s*$/g, '')
+          .replace(/["']?\s*\}\s*$/g, '')
+          .replace(/["']?\s*\]\s*$/g, '')
+          .replace(/^["']/g, '')
+          .replace(/["']$/g, '')
+          .trim();
+      };
+
+      const questions: string[] = [];
+      if (Array.isArray(questionsData.questions)) {
+        questionsData.questions.forEach((q: any) => {
+          if (typeof q === 'string') {
+            const cleaned = normalizeString(q);
+            if (cleaned && cleaned.length > 10) {
+              questions.push(cleaned);
+            }
+          }
+        });
+      }
+
+      const answersMap: Record<string, string> = {};
+      if (Array.isArray(questionsData.answers)) {
+        questionsData.answers.forEach((a: any) => {
+          if (typeof a === 'object' && a !== null && a.question && a.answer) {
+            const question = normalizeString(a.question);
+            const answer = normalizeString(a.answer);
+            if (question && answer && question.length > 10 && answer.length > 10) {
+              answersMap[question] = answer;
+            }
+          }
+        });
+      }
+
+      // Convert to QuestionEntry format
+      const questionEntries: QuestionEntry[] = questions.map((question, index) => {
+        const tags = getQuestionTags(question) as QuestionTag[];
+        const answer = answersMap[question] || null;
+
+        return {
+          id: index,
+          rawValue: question,
+          text: sanitizeQuestionText(question),
+          tags,
+          suggestedApproach: answer,
+        };
+      }).filter((entry): entry is QuestionEntry => Boolean(entry && entry.text && entry.text.length > 10));
+
+      console.log('✅ Generated questions for live session:', {
+        type,
+        count,
+        requestedCount: count,
+        actualCount: questionEntries.length,
+        questions: questionEntries.map(q => ({
+          id: q.id,
+          text: q.text.substring(0, 60) + (q.text.length > 60 ? '...' : ''),
+          tags: q.tags
+        }))
+      });
+
+      // Ensure we have the exact number of questions requested
+      if (questionEntries.length !== count) {
+        console.warn(`⚠️ Generated ${questionEntries.length} questions but requested ${count}`);
+        // If we have more, take only the requested count
+        if (questionEntries.length > count) {
+          return questionEntries.slice(0, count);
+        }
+        // If we have less, return what we have (better than nothing)
+        console.warn(`⚠️ Only ${questionEntries.length} questions available, using all of them`);
+      }
+
+      return questionEntries;
+    } catch (error) {
+      console.error('Error generating live session questions:', error);
+      throw new Error(`Failed to generate questions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Manual drag implementation handlers
+  // Define handleNoteDragMove and handleNoteDragEnd first to avoid reference errors
+  const handleNoteDragMove = useCallback((e: MouseEvent) => {
+    // First check if we have a potential drag from the ref
+    if (!potentialDragRef.current && !draggedNoteId) return;
+
+    // If we have a potential drag but haven't activated it yet
+    if (potentialDragRef.current && !draggedNoteId) {
+      const { noteId, startPos } = potentialDragRef.current;
+      const deltaX = e.clientX - startPos.mouseX;
+      const deltaY = e.clientY - startPos.mouseY;
+
+      // Only activate dragging if moved more than 10px
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        // Now activate the actual drag
+        setDraggedNoteId(noteId);
+        setDragStartPos(startPos);
+        setIsDraggingNote(true);
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+        // Clear the ref since we've activated the drag
+        potentialDragRef.current = null;
+      } else {
+        // Not enough movement yet, don't do anything
+        return;
+      }
+    }
+
+    // If we're already dragging, update position
+    if (dragStartPos && draggedNoteId) {
+      const deltaX = e.clientX - dragStartPos.mouseX;
+      const deltaY = e.clientY - dragStartPos.mouseY;
+
+      const newX = dragStartPos.x + deltaX;
+      const newY = dragStartPos.y + deltaY;
+
+      // Apply canvas limits
+      const noteWidth = noteSizes[draggedNoteId]?.width || 250;
+      const noteHeight = noteSizes[draggedNoteId]?.height || 200;
+      const clampedX = Math.max(CANVAS_MIN_X, Math.min(CANVAS_MAX_X - noteWidth, newX));
+      const clampedY = Math.max(CANVAS_MIN_Y, Math.min(CANVAS_MAX_Y - noteHeight, newY));
+
+      setNotePositions(prev => ({
+        ...prev,
+        [draggedNoteId]: { x: clampedX, y: clampedY }
+      }));
+    }
+  }, [dragStartPos, draggedNoteId, isDraggingNote, noteSizes]);
+
+  const handleNoteDragEnd = useCallback((e?: MouseEvent) => {
+    // Clean up potential drag ref if it exists (click without movement)
+    if (potentialDragRef.current && !draggedNoteId) {
+      potentialDragRef.current = null;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
       return;
     }
 
-    // If we were not dragging (isDragging was false), it means it was a click or very short drag
-    // But if dragDuration >= 200, we treat it as a drag even if isDragging wasn't set (edge case)
-
-    // Reset drag start ref
-    dragStartPosRef.current = null;
-
-    // Apply canvas limits
-
-    // Apply canvas limits
-    const noteWidth = noteSizes[noteId]?.width || 250;
-    const noteHeight = noteSizes[noteId]?.height || 200;
-    const clampedX = Math.max(CANVAS_MIN_X, Math.min(CANVAS_MAX_X - noteWidth, data.x));
-    const clampedY = Math.max(CANVAS_MIN_Y, Math.min(CANVAS_MAX_Y - noteHeight, data.y));
-
-    // Show warning if limits were reached
-    if (clampedX !== data.x || clampedY !== data.y) {
-      setShowCanvasLimitWarning(true);
-      setTimeout(() => setShowCanvasLimitWarning(false), 2000);
+    if (!draggedNoteId || !dragStartPos) {
+      // Reset states even if drag didn't actually happen
+      setIsDraggingNote(false);
+      setDraggedNoteId(null);
+      setDragStartPos(null);
+      potentialDragRef.current = null;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      return;
     }
 
-    // Update position with clamped values
-    setNotePositions(prev => ({
-      ...prev,
-      [noteId]: { x: clampedX, y: clampedY }
-    }));
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
 
-    // Save positions to Firestore
-    if (currentUser && application && interview && applicationId) {
+    // Save position if actually dragged (isDraggingNote means we moved > 10px)
+    if (isDraggingNote && currentUser && application && interview && applicationId) {
+      const finalPosition = notePositions[draggedNoteId];
       const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
 
-      if (interviewIndex !== -1) {
+      if (interviewIndex !== -1 && finalPosition) {
         const updatedInterviews = [...(application.interviews || [])];
         const updatedNotes = stickyNotes.map(note => ({
           ...note,
-          position: note.id === noteId ? { x: clampedX, y: clampedY } : notePositions[note.id]
+          position: note.id === draggedNoteId ? finalPosition : notePositions[note.id]
         }));
 
         updatedInterviews[interviewIndex] = {
@@ -2447,11 +2727,87 @@ Make sure each answer is completely unique and specific to its question - no gen
           toast.error('Failed to save note positions');
         });
       }
+    } else if (dragStartPos) {
+      // If we didn't actually drag, reset position to original
+      setNotePositions(prev => ({
+        ...prev,
+        [draggedNoteId]: { x: dragStartPos.x, y: dragStartPos.y }
+      }));
     }
-  };
+
+    // Reset drag states
+    setIsDraggingNote(false);
+    setDraggedNoteId(null);
+    setDragStartPos(null);
+    potentialDragRef.current = null;
+  }, [draggedNoteId, isDraggingNote, dragStartPos, currentUser, application, interview, applicationId, notePositions, stickyNotes]);
+
+  const handleNoteDragStart = useCallback((noteId: string, e: React.MouseEvent) => {
+    // Only start drag from the drag handle - check if target or its parent has the class
+    const target = e.target as HTMLElement;
+    const isDragHandle = target.classList.contains('drag-handle') || 
+                         target.closest('.drag-handle') !== null;
+    
+    // Don't start drag if clicking on resize zones
+    const isResizeZone = target.classList.contains('resize-zone') || 
+                         target.closest('.resize-zone') !== null;
+    
+    // Don't start drag if clicking on buttons or content
+    const isInteractive = target.tagName === 'BUTTON' || 
+                          target.closest('button') !== null ||
+                          target.closest('.note-content') !== null;
+    
+    if (!isDragHandle || isResizeZone || isInteractive) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const notePosition = notePositions[noteId] || { x: 0, y: 0 };
+    
+    // Store potential drag info in ref instead of state
+    // This prevents event listeners from being added until we actually drag
+    potentialDragRef.current = {
+      noteId,
+      startPos: {
+        x: notePosition.x,
+        y: notePosition.y,
+        mouseX: e.clientX,
+        mouseY: e.clientY
+      }
+    };
+    
+    setDragStartTime(Date.now());
+
+    // Add event listeners directly here instead of using useEffect
+    // This ensures they're added immediately when we click on drag-handle
+    const moveHandler = (moveEvent: MouseEvent) => {
+      if (!potentialDragRef.current && !draggedNoteId) {
+        // Clean up if drag was cancelled
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', upHandler);
+        return;
+      }
+      handleNoteDragMove(moveEvent);
+    };
+    
+    const upHandler = (upEvent: MouseEvent) => {
+      handleNoteDragEnd(upEvent);
+      // Always remove listeners after mouseup
+      document.removeEventListener('mousemove', moveHandler);
+      document.removeEventListener('mouseup', upHandler);
+    };
+
+    document.addEventListener('mousemove', moveHandler);
+    document.addEventListener('mouseup', upHandler);
+  }, [notePositions]);
+
+  // Event listeners are now added directly in handleNoteDragStart
+  // This ensures they're only added when we actually click on the drag handle
 
   // Note resizing handlers
-  const handleResizeStart = useCallback((noteId: string, e: React.MouseEvent) => {
+  const handleResizeStart = useCallback((noteId: string, resizeType: 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw', e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -2460,25 +2816,54 @@ Make sure each answer is completely unique and specific to its question - no gen
       height: stickyNotes.find(n => n.id === noteId)?.height || 200
     };
 
+    const currentPosition = notePositions[noteId] || { x: 0, y: 0 };
+
     setIsResizing(true);
     setResizingNoteId(noteId);
+    setResizeType(resizeType);
     setResizeStart({
       x: e.clientX,
       y: e.clientY,
       width: currentSize.width,
-      height: currentSize.height
+      height: currentSize.height,
+      startX: currentPosition.x,
+      startY: currentPosition.y
     });
-  }, [noteSizes, stickyNotes]);
+  }, [noteSizes, stickyNotes, notePositions]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !resizingNoteId || !resizeStart) return;
+    if (!isResizing || !resizingNoteId || !resizeStart || !resizeType) return;
 
     const deltaX = e.clientX - resizeStart.x;
     const deltaY = e.clientY - resizeStart.y;
 
-    const newWidth = Math.max(150, resizeStart.width + deltaX);
-    const newHeight = Math.max(100, resizeStart.height + deltaY);
+    const minWidth = 150;
+    const minHeight = 100;
+    const startX = resizeStart.startX || 0;
+    const startY = resizeStart.startY || 0;
 
+    let newWidth = resizeStart.width;
+    let newHeight = resizeStart.height;
+    let newX = startX;
+    let newY = startY;
+
+    // Handle resize based on type
+    if (resizeType.includes('e')) {
+      newWidth = Math.max(minWidth, resizeStart.width + deltaX);
+    }
+    if (resizeType.includes('w')) {
+      newWidth = Math.max(minWidth, resizeStart.width - deltaX);
+      newX = startX + deltaX;
+    }
+    if (resizeType.includes('s')) {
+      newHeight = Math.max(minHeight, resizeStart.height + deltaY);
+    }
+    if (resizeType.includes('n')) {
+      newHeight = Math.max(minHeight, resizeStart.height - deltaY);
+      newY = startY + deltaY;
+    }
+
+    // Update size
     setNoteSizes(prev => ({
       ...prev,
       [resizingNoteId]: {
@@ -2486,12 +2871,21 @@ Make sure each answer is completely unique and specific to its question - no gen
         height: newHeight
       }
     }));
-  }, [isResizing, resizingNoteId, resizeStart]);
+
+    // Update position if needed (for north/west resizing)
+    if (resizeType.includes('n') || resizeType.includes('w')) {
+      setNotePositions(prev => ({
+        ...prev,
+        [resizingNoteId]: { x: newX, y: newY }
+      }));
+    }
+  }, [isResizing, resizingNoteId, resizeStart, resizeType]);
 
   const handleResizeEnd = useCallback(() => {
     if (!isResizing || !resizingNoteId) return;
 
     setIsResizing(false);
+    setResizeType(null);
 
     // Save to Firestore
     if (currentUser && application && interview && applicationId) {
@@ -5686,42 +6080,83 @@ Make sure each answer is completely unique and specific to its question - no gen
                           </div>
                         ) : (
                           <Xwrapper>
-                            {filteredNotes.map((note) => (
-                              <Draggable
-                                key={note.id}
-                                position={notePositions[note.id] || { x: 0, y: 0 }}
-                                onStart={handleDragStart}
-                                onDrag={(e, data) => {
-                                  // Update local state immediately for smooth controlled dragging
-                                  if (isDragging) {
-                                    setNotePositions(prev => ({
-                                      ...prev,
-                                      [note.id]: { x: data.x, y: data.y }
-                                    }));
-                                  }
-                                  handleDrag(e, data);
-                                }}
-                                onStop={(e, data) => handleDragStop(note.id, e, data)}
-                                bounds="parent"
-                                disabled={selectedTool !== 'select'}
-                              >
+                            {filteredNotes.map((note) => {
+                              const position = notePositions[note.id] || { x: 0, y: 0 };
+                              return (
                                 <div
-                                  className={`absolute rounded-lg shadow-lg z-20 transition-all duration-200 ${isDragging
-                                    ? 'cursor-grabbing shadow-2xl scale-105 rotate-2'
-                                    : 'cursor-grab hover:shadow-xl'
-                                    } ${isResizing && resizingNoteId === note.id
+                                  key={note.id}
+                                  className={`absolute rounded-lg shadow-lg z-20 transition-all duration-200 ${
+                                    isDraggingNote && draggedNoteId === note.id
+                                      ? 'cursor-grabbing shadow-2xl scale-105 rotate-1'
+                                      : 'hover:shadow-xl'
+                                  } ${
+                                    isResizing && resizingNoteId === note.id
                                       ? 'ring-2 ring-purple-400 ring-offset-2'
-                                      : !isDragging && 'hover:scale-[1.02]'
+                                      : !isDraggingNote && 'hover:scale-[1.02]'
                                     }`}
                                   style={{
                                     backgroundColor: note.color,
                                     width: `${noteSizes[note.id]?.width || note.width || 250}px`,
                                     height: `${noteSizes[note.id]?.height || note.height || 200}px`,
-                                    transition: (isResizing && resizingNoteId === note.id) || isDragging
+                                    left: `${position.x}px`,
+                                    top: `${position.y}px`,
+                                    transition: isDraggingNote && draggedNoteId === note.id
                                       ? 'none'
+                                      : (isResizing && resizingNoteId === note.id)
+                                        ? 'width 0s, height 0s, transform 0.2s'
                                       : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                   }}
+                                  onMouseDown={(e) => {
+                                    // Don't interfere with drag-handle or resize zones
+                                    // Let them handle their own events
+                                    const target = e.target as HTMLElement;
+                                    const isDragHandle = target.classList.contains('drag-handle') || 
+                                                         target.closest('.drag-handle') !== null;
+                                    const isResizeZone = target.classList.contains('resize-zone') || 
+                                                         target.closest('.resize-zone') !== null;
+                                    
+                                    // If clicking on drag-handle or resize zone, let them handle it
+                                    if (isDragHandle || isResizeZone) {
+                                      return; // Don't interfere
+                                    }
+                                    
+                                    // Only cancel drag if clicking on content/other areas
+                                    // Cancel any pending drag if clicking elsewhere
+                                    if (draggedNoteId === note.id) {
+                                      setDraggedNoteId(null);
+                                      setDragStartPos(null);
+                                      setIsDraggingNote(false);
+                                    }
+                                    // Cancel potential drag ref if it exists
+                                    if (potentialDragRef.current && potentialDragRef.current.noteId === note.id) {
+                                      potentialDragRef.current = null;
+                                      // Remove any event listeners that might have been added
+                                      document.body.style.userSelect = '';
+                                      document.body.style.cursor = '';
+                                    }
+                                  }}
+                                  onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    openNote(note);
+                                  }}
                                 >
+                                  {/* Drag handle - visible zone at the top for dragging */}
+                                  <div
+                                    className="drag-handle absolute top-0 left-0 right-0 h-6 cursor-grab active:cursor-grabbing z-10 rounded-t-lg transition-all"
+                                    style={{ 
+                                      background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, transparent 100%)',
+                                      borderBottom: '1px dashed rgba(0, 0, 0, 0.1)',
+                                      pointerEvents: 'auto'
+                                    }}
+                                    title="Drag from here to move"
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      handleNoteDragStart(note.id, e);
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                    }}
+                                  />
                                   {/* Calculate adaptive font sizes */}
                                   {useMemo(() => {
                                     const currentWidth = noteSizes[note.id]?.width || note.width || 250;
@@ -5732,10 +6167,21 @@ Make sure each answer is completely unique and specific to its question - no gen
                                     const scaledPadding = Math.max(12, Math.min(24, currentWidth / 12));
 
                                     return (
-                                      <div className="h-full flex flex-col" style={{ padding: `${scaledPadding}px` }}>
-                                        <div className="flex justify-between items-start mb-2 flex-shrink-0">
+                                      <div 
+                                        className="h-full flex flex-col no-drag" 
+                                        style={{ padding: `${scaledPadding}px`, pointerEvents: 'auto' }}
+                                        onMouseDown={(e) => {
+                                          // Prevent drag when clicking on content
+                                          e.stopPropagation();
+                                          if (draggedNoteId === note.id) {
+                                            setDraggedNoteId(null);
+                                            setDragStartPos(null);
+                                          }
+                                        }}
+                                      >
+                                        <div className="flex justify-between items-start mb-2 flex-shrink-0 no-drag">
                                           <h4
-                                            className="font-medium text-gray-800 truncate flex-1"
+                                            className="font-medium text-gray-800 truncate flex-1 no-drag"
                                             style={{ fontSize: `${titleFontSize}px` }}
                                           >
                                             {note.title || 'Untitled Note'}
@@ -5745,13 +6191,13 @@ Make sure each answer is completely unique and specific to its question - no gen
                                               e.stopPropagation();
                                               deleteNote(note.id);
                                             }}
-                                            className="p-1 hover:bg-black/10 rounded-full flex-shrink-0 ml-2"
+                                            className="p-1 hover:bg-black/10 rounded-full flex-shrink-0 ml-2 no-drag"
                                           >
                                             <X className="w-3.5 h-3.5" />
                                           </button>
                                         </div>
                                         <div
-                                          className="text-gray-700 flex-1 overflow-y-auto cursor-pointer hover:bg-black/5 rounded p-1 -m-1 transition-colors"
+                                          className="note-content text-gray-700 flex-1 overflow-y-auto hover:bg-black/5 rounded p-1 -m-1 transition-colors no-drag"
                                           style={{ fontSize: `${baseFontSize}px`, lineHeight: '1.5' }}
                                           title="Double-click to edit"
                                         >
@@ -5759,20 +6205,54 @@ Make sure each answer is completely unique and specific to its question - no gen
                                         </div>
                                       </div>
                                     );
-                                  }, [noteSizes[note.id]?.width, noteSizes[note.id]?.height, note.width, note.height, note.title, note.content, note.id, isDragging, isResizing, selectedTool])}
-                                  {/* Resize handle */}
+                                  }, [noteSizes[note.id]?.width, noteSizes[note.id]?.height, note.width, note.height, note.title, note.content, note.id, isDraggingNote, isResizing, selectedTool])}
+                                  
+                                  {/* Resize zones - corners */}
+                                  {/* Top-left corner */}
                                   <div
-                                    className={`absolute bottom-0 right-0 w-4 h-4 cursor-se-resize rounded-tl-lg transition-all duration-200 ${isResizing && resizingNoteId === note.id
-                                      ? 'bg-purple-400/40 scale-125'
-                                      : 'bg-black/10 hover:bg-black/20 hover:scale-110'
-                                      }`}
-                                    onMouseDown={(e) => handleResizeStart(note.id, e)}
-                                  >
-                                    <div className="absolute bottom-0.5 right-0.5 w-2 h-2 border-r-2 border-b-2 border-gray-600 transition-colors"></div>
+                                    className="resize-zone absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-30"
+                                    onMouseDown={(e) => handleResizeStart(note.id, 'nw', e)}
+                                  />
+                                  {/* Top-right corner */}
+                                  <div
+                                    className="resize-zone absolute top-0 right-0 w-4 h-4 cursor-ne-resize z-30"
+                                    onMouseDown={(e) => handleResizeStart(note.id, 'ne', e)}
+                                  />
+                                  {/* Bottom-left corner */}
+                                  <div
+                                    className="resize-zone absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize z-30"
+                                    onMouseDown={(e) => handleResizeStart(note.id, 'sw', e)}
+                                  />
+                                  {/* Bottom-right corner */}
+                                  <div
+                                    className="resize-zone absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-30"
+                                    onMouseDown={(e) => handleResizeStart(note.id, 'se', e)}
+                                  />
+                                  
+                                  {/* Resize zones - edges */}
+                                  {/* Top edge */}
+                                  <div
+                                    className="resize-zone absolute top-0 left-4 right-4 h-2 cursor-n-resize z-30"
+                                    onMouseDown={(e) => handleResizeStart(note.id, 'n', e)}
+                                  />
+                                  {/* Bottom edge */}
+                                  <div
+                                    className="resize-zone absolute bottom-0 left-4 right-4 h-2 cursor-s-resize z-30"
+                                    onMouseDown={(e) => handleResizeStart(note.id, 's', e)}
+                                  />
+                                  {/* Left edge */}
+                                  <div
+                                    className="resize-zone absolute left-0 top-4 bottom-4 w-2 cursor-w-resize z-30"
+                                    onMouseDown={(e) => handleResizeStart(note.id, 'w', e)}
+                                  />
+                                  {/* Right edge */}
+                                  <div
+                                    className="resize-zone absolute right-0 top-4 bottom-4 w-2 cursor-e-resize z-30"
+                                    onMouseDown={(e) => handleResizeStart(note.id, 'e', e)}
+                                  />
                                   </div>
-                                </div>
-                              </Draggable>
-                            ))}
+                              );
+                            })}
                           </Xwrapper>
                         )}
                       </div>
@@ -5858,63 +6338,105 @@ Make sure each answer is completely unique and specific to its question - no gen
             }
           />
 
-          {/* Improve the note modal */}
+          {/* Improved note modal with modern design */}
           <AnimatePresence>
             {isNoteModalOpen && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                transition={{ duration: 0.2 }}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setIsNoteModalOpen(false);
+                  }
+                }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4"
               >
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl"
+                  transition={{ 
+                    type: "spring", 
+                    damping: 25, 
+                    stiffness: 300,
+                    duration: 0.3
+                  }}
+                  className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl border border-gray-200/50 dark:border-gray-700/50"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+                  }}
                 >
-                  <div className="flex justify-between items-center mb-5">
-                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+                  {/* Decorative gradient accent */}
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
+                    style={{ 
+                      background: `linear-gradient(90deg, ${noteColor} 0%, ${noteColor}dd 100%)`,
+                      opacity: 0.8
+                    }}
+                  />
+                  
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                       {activeNote ? 'Edit Note' : 'New Note'}
                     </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {activeNote ? 'Update your note details' : 'Create a new sticky note'}
+                      </p>
+                    </div>
                     <button
                       onClick={() => setIsNoteModalOpen(false)}
-                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-all duration-200 hover:scale-110"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <div className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Title
                       </label>
                       <input
                         type="text"
                         value={noteTitle}
                         onChange={(e) => setNoteTitle(e.target.value)}
-                        placeholder="Note title"
-                        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        placeholder="Give your note a title..."
+                        className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700/50 dark:text-white transition-all duration-200 placeholder:text-gray-400"
                         autoFocus
                       />
-                    </div>
+                    </motion.div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15 }}
+                    >
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Content
                       </label>
                       <textarea
                         value={noteContent}
                         onChange={(e) => setNoteContent(e.target.value)}
-                        placeholder="Note content"
-                        rows={7}
-                        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
+                        placeholder="Write your note content here..."
+                        rows={8}
+                        className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700/50 dark:text-white resize-none transition-all duration-200 placeholder:text-gray-400"
                       />
-                    </div>
+                    </motion.div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Color
                       </label>
                       <div className="flex flex-wrap gap-3">
@@ -5926,34 +6448,41 @@ Make sure each answer is completely unique and specific to its question - no gen
                           { color: '#f48fb1', name: 'Pink' },
                           { color: '#b39ddb', name: 'Purple' }
                         ].map(colorOption => (
-                          <button
+                          <motion.button
                             key={colorOption.color}
                             onClick={() => setNoteColor(colorOption.color)}
-                            className={`w-8 h-8 rounded-lg transition-all ${noteColor === colorOption.color
-                              ? 'ring-2 ring-offset-2 ring-gray-700 scale-110'
-                              : 'hover:scale-105'
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`w-10 h-10 rounded-xl transition-all duration-200 shadow-md ${
+                              noteColor === colorOption.color
+                                ? 'ring-3 ring-offset-2 ring-purple-500 scale-110 shadow-lg'
+                                : 'hover:shadow-lg hover:scale-105'
                               }`}
                             style={{ backgroundColor: colorOption.color }}
                             title={colorOption.name}
                           />
                         ))}
                       </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="flex justify-end gap-3 pt-4">
-                      <button
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => setIsNoteModalOpen(false)}
-                        className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                        className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 text-gray-700 dark:text-gray-300 font-medium"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={saveNote}
-                        className="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-sm"
+                        className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl font-medium"
                       >
                         <Save className="w-4 h-4" />
                         Save Note
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
                 </motion.div>
@@ -5969,10 +6498,13 @@ Make sure each answer is completely unique and specific to its question - no gen
         jobContext={{
           companyName: application?.companyName || '',
           position: application?.position || '',
-          jobDescription: interview?.jobPostContent || application?.jobDescription || '',
+          jobDescription: interview?.jobPostContent || '',
           requiredSkills: interview?.preparation?.requiredSkills || []
         }}
         onSessionComplete={handleSessionComplete}
+        onGenerateQuestions={generateLiveSessionQuestions}
+        companyName={application?.companyName}
+        position={application?.position}
       />
 
       {/* History Session Modal */}
