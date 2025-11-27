@@ -682,6 +682,101 @@ export default function AIReviewTab({
     );
   }
 
+  // Check if CV is empty or almost empty
+  const isCVEmptyOrMinimal = useMemo(() => {
+    const hasName = !!(cvData.personalInfo?.firstName || cvData.personalInfo?.lastName);
+    const hasSummary = !!cvData.summary && cvData.summary.trim().length > 0;
+    const hasExperiences = cvData.experiences && cvData.experiences.length > 0;
+    const hasEducation = cvData.education && cvData.education.length > 0;
+    const hasSkills = cvData.skills && cvData.skills.length > 0;
+    
+    // Count how many sections have content
+    const filledSections = [
+      hasName,
+      hasSummary,
+      hasExperiences,
+      hasEducation,
+      hasSkills
+    ].filter(Boolean).length;
+    
+    // Consider CV empty/minimal if:
+    // - No name AND no summary AND no experiences AND no education AND no skills
+    // OR
+    // - Less than 2 sections filled
+    return filledSections === 0 || filledSections < 2;
+  }, [cvData]);
+
+  // Show empty CV message if CV is empty/minimal and no result yet
+  if (!result && isCVEmptyOrMinimal) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <div className="max-w-md w-full">
+          <div className="text-center mb-6">
+            <div className="w-20 h-20 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-10 h-10 text-amber-500 dark:text-amber-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Your CV is Empty or Almost Empty
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Before we can analyze your CV, you need to add some content. Start by filling in the essential sections below.
+            </p>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">Get started by adding:</p>
+            <ul className="space-y-2">
+              {!cvData.personalInfo?.firstName && !cvData.personalInfo?.lastName && (
+                <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <User className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                  <span><strong className="text-gray-900 dark:text-white">Personal Information</strong> - Your name and contact details</span>
+                </li>
+              )}
+              {!cvData.summary && (
+                <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <FileText className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                  <span><strong className="text-gray-900 dark:text-white">Professional Summary</strong> - A brief overview of your experience</span>
+                </li>
+              )}
+              {(!cvData.experiences || cvData.experiences.length === 0) && (
+                <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Briefcase className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                  <span><strong className="text-gray-900 dark:text-white">Work Experience</strong> - Your previous roles and achievements</span>
+                </li>
+              )}
+              {(!cvData.education || cvData.education.length === 0) && (
+                <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <GraduationCap className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                  <span><strong className="text-gray-900 dark:text-white">Education</strong> - Your academic background</span>
+                </li>
+              )}
+              {(!cvData.skills || cvData.skills.length === 0) && (
+                <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Code className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                  <span><strong className="text-gray-900 dark:text-white">Skills</strong> - Your technical and soft skills</span>
+                </li>
+              )}
+            </ul>
+          </div>
+          
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+                  Quick Tip
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Click on any section in the preview to start editing, or use the <strong>Editor</strong> tab to add content. Once you've added some information, come back here to get AI-powered suggestions for improvement.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!result) return null;
 
   return (
@@ -731,6 +826,23 @@ export default function AIReviewTab({
       {/* Scrollable Content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="px-4 py-4">
+          {/* Show warning if CV is minimal even with results */}
+          {isCVEmptyOrMinimal && (
+            <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/50">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                    Your CV Needs More Content
+                  </h4>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                    Your CV is quite minimal. For the best AI analysis and suggestions, consider adding more details to your work experience, education, and skills sections. Click on any section in the preview to start editing.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Review Summary Card */}
           <div className="mb-6 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
             <div className="flex items-start gap-4">

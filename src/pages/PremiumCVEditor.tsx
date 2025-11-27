@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import EditorPanel from '../components/cv-editor/EditorPanel';
 import PreviewContainer from '../components/cv-editor/PreviewContainer';
@@ -69,7 +69,11 @@ const TEMPLATES: { value: CVTemplate; label: string; description: string }[] = [
 export default function PremiumCVEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, userData } = useAuth();
+  
+  // Check if this is a resume-builder route
+  const isResumeBuilder = location.pathname.startsWith('/resume-builder/');
   
   // Editor state
   const [cvData, setCvData] = useState<CVData>(initialCVData);
@@ -79,6 +83,9 @@ export default function PremiumCVEditor() {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [resumeName, setResumeName] = useState<string>('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
   const [jobContext, setJobContext] = useState<{
     jobTitle: string;
     company: string;
@@ -132,13 +139,18 @@ export default function PremiumCVEditor() {
   // Load data on mount
   useEffect(() => {
     if (id) {
-      // Load from ATS analysis if ID provided
-      loadATSData(id);
+      if (isResumeBuilder) {
+        // Load from resume builder (cvs collection)
+        loadResumeData(id);
+      } else {
+        // Load from ATS analysis if ID provided
+        loadATSData(id);
+      }
     } else {
       // Load user profile data for standalone mode
       loadUserProfile();
     }
-  }, [id, currentUser]);
+  }, [id, currentUser, isResumeBuilder]);
 
   // Run AI analysis function - can be called automatically or manually
   const runAnalysis = useCallback(async () => {
@@ -417,6 +429,62 @@ export default function PremiumCVEditor() {
         // Load user profile as fallback
         await loadUserProfile();
       }
+    }
+  };
+
+  // Load resume data from resume builder (cvs collection)
+  const loadResumeData = async (resumeId: string) => {
+    if (!currentUser) {
+      console.error('No user authenticated');
+      toast.error('Please sign in to access the CV editor');
+      return;
+    }
+    
+    try {
+      console.log('Loading resume data for:', resumeId);
+      const resumeDoc = await getDoc(doc(db, 'users', currentUser.uid, 'cvs', resumeId));
+      
+      if (resumeDoc.exists()) {
+        const data = resumeDoc.data();
+        console.log('Resume data loaded:', data);
+        
+        // Load resume name
+        if (data.name) {
+          setResumeName(data.name);
+          setEditedName(data.name);
+        }
+        
+        // Load resume name
+        if (data.name) {
+          setResumeName(data.name);
+          setEditedName(data.name);
+        }
+        
+        // Load CV data
+        if (data.cvData) {
+          setCvData(data.cvData);
+        } else {
+          // If cvData doesn't exist, use the data directly (for backward compatibility)
+          setCvData(data as any);
+        }
+        
+        // Load template and layout settings if they exist
+        if (data.template) {
+          setTemplate(data.template as CVTemplate);
+        }
+        if (data.layoutSettings) {
+          setLayoutSettings(data.layoutSettings);
+        }
+        
+        toast.success('Resume loaded successfully');
+      } else {
+        toast.error('Resume not found');
+        navigate('/resume-builder');
+      }
+    } catch (error: any) {
+      console.error('Error loading resume data:', error);
+      toast.error('Failed to load resume');
+      navigate('/resume-builder');
     }
   };
 
@@ -870,7 +938,7 @@ export default function PremiumCVEditor() {
         zoom
       };
       
-      await saveCVData(id, editorStateToSave);
+      await saveCVData(id, editorStateToSave, isResumeBuilder);
       setIsDirty(false);
       toast.success('CV saved successfully');
     } catch (error) {
@@ -918,7 +986,7 @@ export default function PremiumCVEditor() {
           zoom
         };
         
-        await saveCVData(id, editorStateToSave);
+        await saveCVData(id, editorStateToSave, isResumeBuilder);
         setIsDirty(false);
         console.log('Auto-save completed');
       } catch (error) {
@@ -951,11 +1019,68 @@ export default function PremiumCVEditor() {
         <header className="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
           <div className="px-6 py-3.5">
             <div className="flex items-center justify-between">
-              {/* Left: Company Context */}
-              <CompanyHeader
-                companyName={jobContext?.company}
-                jobTitle={jobContext?.jobTitle}
-              />
+              {/* Left: Resume Name (for Resume Builder) or Company Context (for ATS Analysis) */}
+              {isResumeBuilder && resumeName ? (
+                <div className="flex items-center min-w-0 flex-1">
+                  {isEditingName ? (
+                    <input
+                      type="text"
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      onBlur={async () => {
+                        if (editedName.trim() && editedName !== resumeName && id) {
+                          try {
+                            const resumeRef = doc(db, 'users', currentUser!.uid, 'cvs', id);
+                            await updateDoc(resumeRef, {
+                              name: editedName.trim(),
+                              updatedAt: serverTimestamp()
+                            });
+                            setResumeName(editedName.trim());
+                            toast.success('Resume renamed');
+                          } catch (error) {
+                            console.error('Error renaming resume:', error);
+                            toast.error('Failed to rename resume');
+                            setEditedName(resumeName);
+                          }
+                        } else {
+                          setEditedName(resumeName);
+                        }
+                        setIsEditingName(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
+                        } else if (e.key === 'Escape') {
+                          setEditedName(resumeName);
+                          setIsEditingName(false);
+                        }
+                      }}
+                      className="text-lg font-semibold text-gray-900 dark:text-white 
+                        bg-transparent border-b-2 border-blue-500 dark:border-blue-400
+                        focus:outline-none px-1 min-w-0 flex-1"
+                      autoFocus
+                    />
+                  ) : (
+                    <h1 
+                      className="text-lg font-semibold text-gray-900 dark:text-white truncate
+                        cursor-text hover:text-blue-600 dark:hover:text-blue-400 transition-colors
+                        px-2 py-1 rounded"
+                      onClick={() => {
+                        setEditedName(resumeName);
+                        setIsEditingName(true);
+                      }}
+                      title="Click to rename"
+                    >
+                      {resumeName}
+                    </h1>
+                  )}
+                </div>
+              ) : (
+                <CompanyHeader
+                  companyName={jobContext?.company}
+                  jobTitle={jobContext?.jobTitle}
+                />
+              )}
 
               {/* Right: Actions */}
               <div className="flex items-center gap-2">

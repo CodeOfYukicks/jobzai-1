@@ -172,10 +172,321 @@ CRITICAL: Return ONLY the JSON, no explanations, no markdown, just the clean imp
 }
 
 /**
+ * Build specialized prompt for Professional Summary in Resume Builder context
+ * Focus: Help users write professional content from scratch
+ */
+function buildResumeBuilderSummaryPrompt(input: SectionRewriteInput): string {
+  const baseContext = `
+# PROFESSIONAL SUMMARY - WRITING ASSISTANT
+
+You are an expert resume writer helping a professional craft their summary from scratch.
+Your mission: Guide them to create a compelling, professional summary that showcases their expertise and value.
+
+## 📝 YOUR ROLE:
+- Help write professional, impactful content that works for general job applications
+- Focus on clarity, impact, and professional positioning
+- Use best practices and industry standards
+- Guide users to craft compelling elevator pitches
+
+${input.fullCV ? `## 📄 CV CONTEXT (to understand their background):\n${input.fullCV.substring(0, 2000)}...\n` : ''}
+
+## 📝 CURRENT SUMMARY (what they've written so far):
+"""
+${input.currentContent || 'No content yet - help them write from scratch'}
+"""
+
+## UNIVERSAL RULES FOR SUMMARY:
+1. ✅ ONLY use information provided by the user - NEVER invent facts
+2. ✅ Third person, no "I/me/my"
+3. ✅ NO generic phrases ("results-driven", "team player", "passionate")
+4. ✅ Every achievement needs proof (metric, scale, impact) when available
+5. ✅ Use professional, industry-standard language
+6. ✅ Help them position themselves professionally
+7. ✅ Focus on clarity and impact
+
+${input.currentContent.includes('[USER REQUEST]:') ? `
+## 🚨 ABSOLUTE PRIORITY - USER CUSTOM REQUEST DETECTED 🚨
+
+⚠️⚠️⚠️ THE USER HAS MADE A SPECIFIC CUSTOM REQUEST - THIS TAKES ABSOLUTE PRIORITY! ⚠️⚠️⚠️
+
+**CRITICAL: OVERRIDE ALL SUMMARY RULES AND GUIDELINES ABOVE IF THEY CONFLICT WITH THE USER'S REQUEST**
+
+The user's custom request is embedded in the content above with [USER REQUEST]: tag.
+
+**YOU MUST FOLLOW THE USER'S REQUEST LITERALLY AND PRECISELY:**
+1. ✅ If user says "remove metrics" or "no numbers" → Remove ALL numbers, percentages, and quantified results completely
+2. ✅ If user says "add more details" or "make it longer" → Ignore 50-60 word limit, make it as long as needed
+3. ✅ If user says "make it shorter" or specific word count → Go below 40 words if needed, or match exact count
+4. ✅ If user says "remove something specific" → Remove it completely, don't mention it at all
+5. ✅ If user says "add something" → Add it even if not explicitly in CV
+6. ✅ If user specifies exact word count (e.g., "in 30 words") → Respect it EXACTLY, count every single word
+7. ✅ If user specifies a style or tone → Apply ONLY that style, ignore professional tone rules
+8. ✅ If user says "focus on X" → Mention ONLY X, remove everything else
+
+**THE CUSTOM REQUEST COMPLETELY OVERRIDES ALL OTHER INSTRUCTIONS!**
+` : ''}
+
+${input.conversationHistory && input.conversationHistory.length > 0 ? `
+## 💬 CONVERSATION HISTORY - User's Previous Requests
+
+The user has made the following requests in sequence. Each new request builds on the previous ones:
+
+${input.conversationHistory.map((msg, idx) => `${idx + 1}. "${msg}"`).join('\n')}
+
+**IMPORTANT: Consider ALL previous requests when generating the output.**
+
+The user is refining iteratively - STACK all their requests together, don't forget the earlier ones!
+
+**Your output must satisfy ALL requests in the history, not just the most recent one!**
+` : ''}`;
+
+  let actionInstructions = '';
+
+  switch (input.action) {
+    case 'improve':
+    case 'improve_tone':
+    case 'rewrite':
+      actionInstructions = `
+${input.currentContent.includes('[USER REQUEST]:') ? `
+⚠️⚠️⚠️ USER CUSTOM REQUEST DETECTED - FOLLOW IT EXACTLY, IGNORE THE INSTRUCTIONS BELOW IF THEY CONFLICT ⚠️⚠️⚠️
+
+The user's specific request OVERRIDES all storytelling, word count, and structure guidelines below.
+` : ''}
+## ACTION: CRAFT COMPELLING PROFESSIONAL SUMMARY 🎬
+
+Help them create a compelling 50-60 word professional summary that tells their career story.
+
+**MANDATORY STRUCTURE:**
+
+**Part 1 - HOOK (10-15 words):**
+Start with unique positioning that grabs attention
+- Example: "8-year software engineer specializing in scalable cloud architecture"
+- Formula: "[X-year] [Job Title] specializing in [unique strength/area]"
+
+**Part 2 - STORY ARC (20-30 words):**
+Show progression with key achievements
+- Example: "From building microservices to leading platform architecture, consistently delivering high-performance solutions"
+- Show evolution: where they started → key milestones → where they are now
+- Include 1-2 quantified achievements if available
+
+**Part 3 - VALUE PROPOSITION (15-20 words):**
+End with what they bring to potential employers
+- Example: "Seeking to leverage expertise to drive innovation and deliver measurable results"
+- Formula: "Seeking to bring [key skills] to [type of organization] to [specific impact]"
+
+**TONE & STYLE:**
+- Professional and confident
+- Clear and impactful
+- Show progression and expertise
+- Make recruiters want to learn more
+
+**CRITICAL REQUIREMENTS:**
+- EXACTLY 50-60 words (count carefully)
+- Third person throughout
+- Must tell a story of progression
+- Every claim needs proof (numbers, scale, impact) when available
+- Use professional terminology and industry-standard language
+
+**OUTPUT:** Return ONLY the summary text, 50-60 words, ready to use.`;
+      break;
+
+    case 'metrics':
+    case 'add_metrics':
+      actionInstructions = `
+${input.currentContent.includes('[USER REQUEST]:') ? `
+⚠️⚠️⚠️ USER CUSTOM REQUEST DETECTED - FOLLOW IT EXACTLY, IGNORE THE INSTRUCTIONS BELOW IF THEY CONFLICT ⚠️⚠️⚠️
+
+If user says "remove metrics" or "no numbers", DO NOT add metrics. The user's request OVERRIDES all metric guidelines below.
+` : ''}
+## ACTION: HIGHLIGHT METRICS & QUANTIFIABLE ACHIEVEMENTS 📊
+
+Help them create a data-driven summary that showcases impact through numbers.
+
+**YOUR MISSION:**
+Scan the CV context and extract the TOP 3 most impressive metrics, then build the summary around them.
+
+**METRIC PRIORITIES (choose top 3 if available):**
+1. Revenue impact ($X generated/saved, ARR, cost reduction)
+2. Scale (Xk users, X projects, X countries, X transactions)
+3. Efficiency gains (X% improvement, X hours saved, X faster)
+4. Team leadership (X people managed, X teams built)
+5. Growth metrics (X% increase, Xx growth, market expansion)
+
+**FORMULA TO FOLLOW:**
+"[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] and drive results."
+
+**FORMATTING RULES:**
+- Lead with most impressive number first
+- Format numbers for maximum impact: "2.5M" not "2,500,000"
+- Every sentence should contain at least one number when possible
+- Use comparative metrics when possible: "40% faster", "3x growth", "50% reduction"
+- 50-60 words total
+
+**EXAMPLES OF STRONG METRICS:**
+- "Led platform serving 2M users across 15 markets, improving data accuracy 40%"
+- "Shipped features generating $5M ARR while reducing operational costs 35%"
+- "Architected infrastructure processing 10M daily transactions with 99.9% uptime"
+
+**TONE:** Confident, proof-based, let the numbers do the talking
+
+**OUTPUT:** Return ONLY the metrics-heavy summary, 50-60 words.`;
+      break;
+
+    case 'shorten':
+      actionInstructions = `
+${input.currentContent.includes('[USER REQUEST]:') ? `
+⚠️⚠️⚠️ USER CUSTOM REQUEST DETECTED - FOLLOW IT EXACTLY, IGNORE THE INSTRUCTIONS BELOW IF THEY CONFLICT ⚠️⚠️⚠️
+
+If user specifies a different word count, follow theirs EXACTLY. The user's request OVERRIDES the 40-50 word guideline below.
+` : ''}
+## ACTION: CREATE ULTRA-CONCISE SUMMARY ⚡
+
+Help them create the MOST CONCISE version possible (40-50 words) while maximizing impact per word.
+
+**STRICT REQUIREMENTS:**
+- EXACTLY 40-50 words (count every single word)
+- Every word must earn its place
+- Remove ALL filler words and adjectives
+- Keep ONLY: positioning + best proof + value proposition
+
+**3-PART FORMULA (follow exactly):**
+
+**Part 1 (5-8 words): WHO THEY ARE**
+- Format: "[Job Title]. [X years]. [Primary specialization]"
+- Example: "Software Engineer. 8 years. Cloud architecture specialist."
+
+**Part 2 (20-25 words): BEST PROOF POINT**
+- Their single most impressive achievement with metric
+- Format: "Led [what] serving [scale metric], [impact metric]"
+- Example: "Led platform serving 2M users across 15 markets, improving performance 40% and reducing costs 60%"
+
+**Part 3 (12-15 words): VALUE PROPOSITION**
+- What they bring to potential employers
+- Format: "Bringing [expertise type] to drive [relevant initiative]"
+- Example: "Bringing enterprise-scale expertise to drive digital transformation and operational excellence"
+
+**WHAT TO CUT:**
+❌ Adjectives: "skilled", "experienced", "passionate", "dedicated"
+❌ Generic statements: "results-driven professional", "team player"
+❌ Weak verbs: "worked on", "helped with", "participated in"
+❌ Filler phrases: "with a focus on", "in order to", "as well as"
+
+**WHAT TO KEEP:**
+✅ Power verbs: Led, Drove, Architected, Delivered, Scaled, Built
+✅ Concrete metrics and numbers
+✅ Specific technologies, methodologies, or domains
+✅ Clear value proposition
+
+**OUTPUT:** Return ONLY the ultra-concise summary, 40-50 words exactly.`;
+      break;
+
+    case 'keywords':
+    case 'insert_keywords':
+      actionInstructions = `
+${input.currentContent.includes('[USER REQUEST]:') ? `
+⚠️⚠️⚠️ USER CUSTOM REQUEST DETECTED - FOLLOW IT EXACTLY, IGNORE THE INSTRUCTIONS BELOW IF THEY CONFLICT ⚠️⚠️⚠️
+
+The user's specific request OVERRIDES all keyword integration guidelines below.
+` : ''}
+## ACTION: GENERAL ATS OPTIMIZATION 🎯
+
+Help them optimize their summary for ATS (Applicant Tracking System) while maintaining natural flow.
+
+**YOUR MISSION:**
+- Use industry-standard terminology and keywords naturally
+- Focus on common ATS-friendly terms for their field
+- Maintain readability and professional tone
+- Avoid keyword stuffing
+
+**INTEGRATION STRATEGY:**
+
+**Part 1 - HOOK (integrate professional terms):**
+- Weave in role-specific terminology naturally
+- Example: "Senior Software Engineer specializing in cloud architecture and DevOps"
+
+**Part 2 - PROOF (integrate technical skills):**
+- Naturally mention technologies, methodologies, frameworks
+- Example: "Architected scalable platforms using Python and AWS, implementing CI/CD pipelines with Kubernetes"
+
+**Part 3 - VALUE (integrate soft skills & business impact):**
+- Weave in leadership, collaboration, business terms naturally
+- Example: "Bringing agile leadership and cross-functional expertise to drive innovation"
+
+**CRITICAL RULES:**
+1. Must sound 100% NATURAL - no keyword stuffing
+2. Use industry-standard terms that fit their field
+3. Prioritize readability over keyword count
+4. Maintain storytelling and impact focus
+5. 50-60 words total
+
+**BALANCE: 70% compelling pitch + 30% strategic keywords**
+
+**OUTPUT:** Return ONLY the optimized summary, 50-60 words, sounding completely natural.`;
+      break;
+
+    default:
+      actionInstructions = `
+## ACTION: IMPROVE PROFESSIONAL SUMMARY
+
+Help them create a compelling 50-60 word Professional Summary that works as a powerful elevator pitch.
+
+Focus on:
+- Unique positioning and professional expertise
+- Top 2-3 quantified achievements (if available)
+- Clear value proposition for potential employers
+
+OUTPUT: Return ONLY the improved summary, 50-60 words.`;
+  }
+
+  return baseContext + actionInstructions + `
+
+## OUTPUT FORMAT:
+Return a JSON object with this exact structure:
+{
+  "content": "the improved professional summary here (50-60 words)"
+}
+
+⚠️ CRITICAL:
+- Return ONLY ONE version of the summary
+- Count words carefully to stay within limit
+- No explanations, no markdown formatting, no code blocks
+- Just clean summary text in the "content" field`;
+}
+
+/**
  * Build specialized prompt for Professional Summary (elevator pitch format)
  */
 function buildSummaryPrompt(input: SectionRewriteInput): string {
-  const baseContext = `
+  // Check if this is Resume Builder context (no specific job target)
+  const isResumeBuilderContext = input.jobContext.jobTitle === 'General Professional Role' || 
+                                input.jobContext.company === 'Target Company' ||
+                                !input.jobContext.jobDescription || 
+                                input.jobContext.jobDescription === 'General professional position';
+
+  // Use Resume Builder prompts for Resume Builder context
+  if (isResumeBuilderContext) {
+    return buildResumeBuilderSummaryPrompt(input);
+  }
+
+  // Use existing CV Analysis prompts (unchanged)
+  // Check if this is general enhancement (no specific job target)
+  const isGeneralEnhancement = input.jobContext.jobTitle === 'General Professional Role' || 
+                                input.jobContext.company === 'Target Company' ||
+                                !input.jobContext.jobDescription || 
+                                input.jobContext.jobDescription === 'General professional position';
+
+  const baseContext = isGeneralEnhancement ? `
+# PROFESSIONAL SUMMARY - ELEVATOR PITCH GENERATOR
+
+You are an elite executive speechwriter who crafts compelling 30-second elevator pitches.
+
+## 📝 GENERAL ENHANCEMENT GUIDELINES:
+- Create a professional, impactful summary that works for general job applications
+- Highlight key achievements and expertise
+- Use strong action verbs and quantify results where possible
+- Optimize for ATS (Applicant Tracking System) parsing
+- Keep it concise (50-60 words) and compelling
+` : `
 # PROFESSIONAL SUMMARY - ELEVATOR PITCH GENERATOR
 
 You are an elite executive speechwriter who crafts compelling 30-second elevator pitches.
@@ -206,7 +517,7 @@ ${input.currentContent}
 2. ✅ Third person, no "I/me/my"
 3. ✅ NO generic phrases ("results-driven", "team player", "passionate")
 4. ✅ Every achievement needs proof (metric, scale, impact)
-5. ✅ Mirror job description terminology naturally
+${isGeneralEnhancement ? '5. ✅ Use professional, industry-standard language' : '5. ✅ Mirror job description terminology naturally'}
 
 ${input.currentContent.includes('[USER REQUEST]:') ? `
 ## 🚨🚨🚨 ABSOLUTE PRIORITY - USER CUSTOM REQUEST DETECTED 🚨🚨🚨
@@ -296,9 +607,13 @@ Show progression with a mini narrative journey
 - Include 1-2 quantified achievements that prove expertise
 
 **Part 3 - CLIMAX (15-20 words):**
-End with powerful value proposition for target company
-- Example: "Now ready to drive ${input.jobContext.company}'s next phase of cloud innovation and operational excellence"
-- Formula: "Now/Seeking to bring [key skills] to ${input.jobContext.company} to [specific impact]"
+End with powerful value proposition${isGeneralEnhancement ? '' : ` for target company`}
+${isGeneralEnhancement ? 
+  `- Example: "Seeking to leverage expertise to drive innovation and deliver measurable results in next role"
+- Formula: "Seeking to bring [key skills] to [type of organization] to [specific impact]"` :
+  `- Example: "Now ready to drive ${input.jobContext.company}'s next phase of cloud innovation and operational excellence"
+- Formula: "Now/Seeking to bring [key skills] to ${input.jobContext.company} to [specific impact]"`
+}"
 
 **TONE & STYLE:**
 - Like a movie trailer: create intrigue, show growth, make recruiter lean in
@@ -311,7 +626,7 @@ End with powerful value proposition for target company
 - Third person throughout
 - Must tell a story of progression
 - Every claim needs proof (numbers, scale, impact)
-- Weave in top 3-4 keywords from job naturally
+${isGeneralEnhancement ? '- Use professional terminology and industry-standard language' : '- Weave in top 3-4 keywords from job naturally'}
 
 **OUTPUT:** Return ONLY the summary text, 50-60 words, ready to use.`;
       break;
@@ -339,7 +654,10 @@ Scan the FULL CV and extract the TOP 3 most impressive metrics, then build the s
 5. Growth metrics (X% increase, Xx growth, market expansion)
 
 **FORMULA TO FOLLOW:**
-"[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] for ${input.jobContext.company}."
+"${isGeneralEnhancement ? 
+  '[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] and drive results.' :
+  `[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] for ${input.jobContext.company}.`
+}"
 
 **FORMATTING RULES:**
 - Lead with most impressive number first
@@ -386,10 +704,15 @@ Create the MOST CONCISE version possible (40-50 words) while maximizing impact p
 - Format: "Led [what] serving [scale metric], [impact metric]"
 - Example: "Led compliance platform serving 2M users across 15 markets, improving data accuracy 40% and reducing audit time 60%"
 
-**Part 3 (12-15 words): VALUE FOR TARGET COMPANY**
-- What you bring to the specific company
+**Part 3 (12-15 words): VALUE PROPOSITION**
+${isGeneralEnhancement ? 
+  `- What you bring to potential employers
+- Format: "Bringing [expertise type] to [type of organization]'s [relevant initiative]"
+- Example: "Bringing enterprise-scale expertise to drive digital transformation and operational excellence"` :
+  `- What you bring to the specific company
 - Format: "Bringing [expertise type] to ${input.jobContext.company}'s [relevant initiative]"
-- Example: "Bringing enterprise-scale expertise to ${input.jobContext.company}'s digital transformation and compliance evolution"
+- Example: "Bringing enterprise-scale expertise to ${input.jobContext.company}'s digital transformation and compliance evolution"`
+}
 
 **WHAT TO CUT:**
 ❌ Adjectives: "skilled", "experienced", "passionate", "dedicated"
@@ -453,8 +776,12 @@ ${input.jobContext.keywords.slice(0, 12).join(', ')}
 **BALANCE: 70% compelling pitch + 30% strategic keywords**
 
 **GOOD EXAMPLE (natural integration):**
-"Senior Data Engineer specializing in Python, AWS, and real-time analytics pipelines. Architected scalable ML infrastructure processing 5M daily transactions, leveraging Docker and Kubernetes for 99.9% uptime. Seeking to bring cloud-native expertise and agile leadership to ${input.jobContext.company}'s data platform evolution."
-*(Keywords naturally integrated: Python, AWS, ML, Docker, Kubernetes, cloud-native, agile)*
+${isGeneralEnhancement ?
+  `"Senior Data Engineer specializing in Python, AWS, and real-time analytics pipelines. Architected scalable ML infrastructure processing 5M daily transactions, leveraging Docker and Kubernetes for 99.9% uptime. Seeking to bring cloud-native expertise and agile leadership to drive data platform evolution."
+*(Keywords naturally integrated: Python, AWS, ML, Docker, Kubernetes, cloud-native, agile)*` :
+  `"Senior Data Engineer specializing in Python, AWS, and real-time analytics pipelines. Architected scalable ML infrastructure processing 5M daily transactions, leveraging Docker and Kubernetes for 99.9% uptime. Seeking to bring cloud-native expertise and agile leadership to ${input.jobContext.company}'s data platform evolution."
+*(Keywords naturally integrated: Python, AWS, ML, Docker, Kubernetes, cloud-native, agile)*`
+}
 
 **BAD EXAMPLE (keyword stuffing - AVOID):**
 "Python AWS Kubernetes expert skilled in machine learning, Docker, DevOps, CI/CD, with cloud-native experience in agile teams using microservices architecture..."
@@ -470,9 +797,14 @@ ${input.jobContext.keywords.slice(0, 12).join(', ')}
 Create a compelling 50-60 word Professional Summary that works as a powerful elevator pitch.
 
 Focus on:
-- Unique positioning for the ${input.jobContext.jobTitle} role
+${isGeneralEnhancement ? 
+  `- Unique positioning and professional expertise
 - Top 2-3 quantified achievements
-- Clear value proposition for ${input.jobContext.company}
+- Clear value proposition for potential employers` :
+  `- Unique positioning for the ${input.jobContext.jobTitle} role
+- Top 2-3 quantified achievements
+- Clear value proposition for ${input.jobContext.company}`
+}
 
 OUTPUT: Return ONLY the improved summary, 50-60 words.`;
   }
@@ -493,6 +825,381 @@ Return a JSON object with this exact structure:
 }
 
 /**
+ * Build specialized prompt for Experience/Projects in Resume Builder context
+ * Focus: Help users write professional content from scratch
+ */
+function buildResumeBuilderActionPrompt(input: SectionRewriteInput): string {
+  const baseContext = `
+# PROFESSIONAL CV WRITING ASSISTANT
+
+You are an expert resume writer helping a professional craft their ${input.sectionType === 'experience' ? 'work experience' : 'project'} content from scratch.
+Your mission: Guide them to create professional, impactful descriptions that showcase their achievements and expertise.
+
+## 📝 YOUR ROLE:
+- Help write professional, impactful content that works for general job applications
+- Focus on clarity, impact, and professional positioning
+- Use best practices and industry standards
+- Guide users to craft compelling achievement statements
+
+${input.fullCV ? `## 📄 CV CONTEXT (to understand their background):\n${input.fullCV.substring(0, 1500)}...\n` : ''}
+
+## 📝 CURRENT CONTENT (what they've written so far):
+"""
+${input.currentContent || 'No content yet - help them write from scratch'}
+"""
+
+${input.currentContent && input.currentContent.includes('[USER REQUEST]:') && !input.currentContent.replace(/\[USER REQUEST\]:.*$/s, '').trim() ? `
+## 🎯 GENERATING FROM USER INSTRUCTIONS
+
+The user has provided instructions but no existing content. Generate professional ${input.sectionType === 'experience' ? 'achievement bullet points' : input.sectionType === 'project' ? 'project description and highlights' : 'professional summary'} based SOLELY on their instructions.
+
+**IMPORTANT:**
+- Follow their instructions EXACTLY (e.g., if they ask for "two bullet points", create exactly 2)
+- Use the information they provided in their instructions
+- Make it professional and impactful
+- Use power verbs and quantify when possible
+- Format appropriately for the section type
+- If they mention specific details (technologies, clients, projects), incorporate them naturally
+` : ''}
+
+## CRITICAL RULES:
+1. ✅ ONLY use information provided by the user - NEVER invent facts
+2. ✅ Every statement should be QUANTIFIED if possible (%, $, #, time)
+3. ✅ Use POWER VERBS (Led, Architected, Drove, Delivered, Spearheaded)
+4. ✅ Use professional, industry-standard language
+5. ✅ Make it sound SENIOR and STRATEGIC, not just operational
+6. ✅ Optimize for ATS parsing (clean structure, clear formatting)
+7. ✅ Keep content CONCISE for one-page A4 format
+8. ⚠️ DO NOT DUPLICATE - Return ONE improved version, not multiple versions
+9. ⚠️ MAINTAIN STRUCTURE - Keep the same number of bullet points/items as input
+10. ⚠️ NO REPETITION - Each bullet point must be unique and distinct
+
+${input.currentContent.includes('[USER REQUEST]:') ? `
+## 🚨 ABSOLUTE PRIORITY - USER CUSTOM REQUEST DETECTED 🚨
+
+⚠️⚠️⚠️ THE USER HAS MADE A SPECIFIC CUSTOM REQUEST - THIS TAKES ABSOLUTE PRIORITY! ⚠️⚠️⚠️
+
+**OVERRIDE ALL PREVIOUS INSTRUCTIONS IF THEY CONFLICT WITH THE USER'S REQUEST**
+
+The user's custom request is embedded in the content above with [USER REQUEST]: tag.
+
+**YOU MUST:**
+1. ✅ Follow the user's request LITERALLY and PRECISELY
+2. ✅ If they specify a word count (e.g., "in 10 words", "use only 15 words") → COUNT EVERY WORD and respect it EXACTLY
+3. ✅ If they ask for shorter content → Make it SHORTER than original, ignore "concise" rules above
+4. ✅ If they ask for longer content → Make it LONGER, ignore length limits above
+5. ✅ If they specify a style → Apply ONLY that style change
+6. ✅ The user's instruction is MORE IMPORTANT than any other optimization
+
+**EXAMPLES:**
+- User says "in 10 words" → Your output MUST be EXACTLY 10 words, not 11, not 50
+- User says "make it more technical" → Focus ONLY on technical terminology
+- User says "remove metrics" → Remove ALL numbers and percentages
+- User says "one sentence" → Return EXACTLY one sentence
+
+**THE CUSTOM REQUEST OVERRIDES EVERYTHING ELSE IN THIS PROMPT!**
+` : ''}
+
+${input.conversationHistory && input.conversationHistory.length > 0 ? `
+## 💬 CONVERSATION HISTORY - User's Previous Requests
+
+The user has made the following requests in sequence for this section:
+
+${input.conversationHistory.map((msg, idx) => `${idx + 1}. "${msg}"`).join('\n')}
+
+**IMPORTANT: Consider ALL previous requests when generating the output.**
+
+The user is refining iteratively - STACK all their requests together:
+
+**Example:**
+- Request 1: "remove metrics" → Remove all numbers
+- Request 2: "make it shorter" → Apply shorter constraint ON TOP of no metrics
+- Request 3: "more technical" → Apply technical tone WHILE keeping it short AND without metrics
+
+**Your output must satisfy ALL requests in the history!**
+` : ''}`;
+
+  let actionInstructions = '';
+  
+  switch (input.action) {
+    case 'rewrite':
+      actionInstructions = `
+## ACTION: COMPLETE PROFESSIONAL REWRITE 🚀
+
+Help them transform this section into a professional, impactful statement.
+
+**YOUR REWRITING STRATEGY:**
+
+1. **PROFESSIONAL POSITIONING** 🧠
+   - Frame their work in a way that showcases expertise and value
+   - Lead with the most impressive achievements
+   - Show progression and growth
+
+2. **POWER VERB ARSENAL** ⚡
+   - Replace ALL weak verbs immediately:
+     ❌ "Worked on" → ✅ "Architected", "Engineered", "Delivered"
+     ❌ "Helped" → ✅ "Enabled", "Catalyzed", "Drove"
+     ❌ "Was responsible for" → ✅ "Owned", "Led", "Spearheaded"
+
+3. **QUANTIFICATION MAXIMIZATION** 📊
+   - EVERY achievement should have a number when possible:
+     • Team size, budget, timeline, impact
+     • Performance improvements (73% faster, 2.5x growth)
+     • Scale (2M users, $5M revenue, 15 countries)
+
+4. **SENIORITY ELEVATION** 👔
+   - Show STRATEGIC thinking, not just execution
+   - Emphasize LEADERSHIP and INFLUENCE
+   - Highlight CROSS-FUNCTIONAL collaboration
+   - Demonstrate BUSINESS IMPACT
+
+**OUTPUT REQUIREMENTS:**
+- Concise, impactful statements (20 words max per bullet)
+- Use parallel structure for consistency
+- Optimize for one-page A4 format
+
+Return ONLY the rewritten content, ready to paste.`;
+      break;
+
+    case 'improve':
+    case 'improve_tone':
+      actionInstructions = `
+## ACTION: IMPROVE TONE TO SENIOR/CONFIDENT LEVEL
+
+Help them elevate the tone to sound more senior, confident, and achievement-oriented.
+
+**Your Mission:**
+1. **Replace** passive language with active, powerful verbs
+2. **Transform** task descriptions into achievement statements
+3. **Emphasize** leadership, ownership, and impact
+4. **Remove** weak words (helped, assisted, worked on, participated)
+5. **Add** confidence and authority to the language
+6. **Highlight** decision-making and strategic contributions
+
+**Examples of Tone Improvement:**
+- "Worked on frontend" → "Architected and delivered core frontend infrastructure"
+- "Helped improve performance" → "Led performance optimization initiative, achieving 60% faster load times"
+- "Participated in code reviews" → "Established and enforced code review standards across 15-person engineering team"
+
+**Critical Rules:**
+- Keep ALL factual content unchanged
+- Only change phrasing and tone
+- Don't invent achievements
+- Make every statement stronger and more confident
+
+Return ONLY the improved section content.`;
+      break;
+
+    case 'metrics':
+    case 'add_metrics':
+      actionInstructions = `
+## ACTION: EMPHASIZE METRICS & QUANTIFY ACHIEVEMENTS
+
+Help them make this section more impactful by highlighting quantifiable achievements and measurable outcomes.
+
+**Your Mission:**
+1. **Identify** any existing metrics in the content (%, numbers, time, scale, team size, revenue, users, etc.)
+2. **Emphasize** these metrics by placing them prominently in each statement
+3. **Structure** bullets to lead with impact: "[Action] [Metric/Outcome] [Context]"
+4. **Add context** to numbers where appropriate (e.g., "30% improvement in..." rather than just "30%")
+5. **Highlight** scale and scope (team size, budget, users, geographic reach)
+
+**Metric Priority:**
+- Business impact (revenue, cost savings, ROI)
+- Performance improvements (%, time reductions, efficiency gains)
+- Scale (users, transactions, data volume)
+- Team leadership (team size, people managed, mentored)
+- Delivery (projects shipped, features launched, timelines met)
+
+**Examples:**
+- "Improved system performance" → "Optimized system architecture, reducing response time by 65% and increasing throughput to 10M requests/day"
+- "Led a team" → "Led cross-functional team of 8 engineers, delivering $2M+ revenue-generating features on time and 15% under budget"
+
+**Critical Rules:**
+- ONLY use metrics that exist in the original content
+- If no metrics exist, keep the content as is (don't invent)
+- Make existing metrics more prominent and contextualized
+- Ensure metrics are specific and credible
+
+Return ONLY the metrics-enhanced section content.`;
+      break;
+
+    case 'senior':
+    case 'make_senior':
+      actionInstructions = `
+## ACTION: ELEVATE TO SENIOR-LEVEL POSITIONING
+
+Help them rewrite this section to emphasize senior-level responsibilities, leadership, and strategic impact.
+
+**Your Mission:**
+1. **Highlight** leadership and team management aspects
+2. **Emphasize** strategic decision-making and architecture
+3. **Show** cross-functional collaboration and stakeholder management
+4. **Demonstrate** business acumen and impact on company goals
+5. **Feature** mentorship, hiring, and team building
+6. **Showcase** technical depth combined with business understanding
+
+**Senior-Level Indicators to Emphasize:**
+- Architecture and system design decisions
+- Technical leadership and mentorship
+- Cross-team collaboration
+- Strategic planning and roadmap contribution
+- Hiring and team building
+- Stakeholder communication
+- Business impact and revenue influence
+- Industry best practices and standards
+
+**Transformation Examples:**
+- "Developed features" → "Led technical architecture and development of core platform features, establishing patterns adopted across 5 product teams"
+- "Code reviews" → "Established engineering excellence standards through rigorous code reviews, technical mentorship of 6 engineers, and architectural decision records"
+- "Worked with product team" → "Partnered with product leadership to define technical strategy, translating business requirements into scalable engineering solutions"
+
+**Critical Rules:**
+- Only emphasize senior aspects that exist in the content
+- Don't invent leadership roles or responsibilities
+- Frame existing work in senior-level language
+- Show strategic thinking and broader impact
+
+Return ONLY the senior-level rewritten content.`;
+      break;
+
+    case 'keywords':
+    case 'insert_keywords':
+      actionInstructions = `
+## ACTION: GENERAL ATS OPTIMIZATION
+
+Help them naturally integrate industry-standard keywords to improve ATS match score.
+
+**Your Mission:**
+1. **Analyze** the content for opportunities to add relevant industry terms
+2. **Identify** where keywords fit naturally in the existing content
+3. **Integrate** keywords smoothly without forcing or keyword-stuffing
+4. **Maintain** natural language flow and readability
+5. **Ensure** keywords make sense in context
+6. **Use** common ATS-friendly terms for their field
+
+**Integration Strategies:**
+- Add keywords as technologies/tools used: "using React, TypeScript, and Node.js"
+- Add as methodologies: "following Agile/Scrum practices"
+- Add in context of achievements: "Led migration to microservices architecture"
+- Add as skills demonstrated: "demonstrated expertise in system design and scalability"
+
+**Examples:**
+- Original: "Built web applications"
+- Enhanced: "Architected and delivered scalable web applications using React, TypeScript, and GraphQL"
+
+- Original: "Improved team productivity"
+- Enhanced: "Enhanced team velocity by 40% through CI/CD automation, code review standards, and Agile sprint optimization"
+
+**Critical Rules:**
+- ONLY add keywords that make contextual sense
+- Don't force-fit keywords awkwardly
+- Maintain professional, natural language
+- If a keyword doesn't fit naturally, skip it
+- Prioritize readability over keyword count
+
+Return ONLY the keyword-enhanced section content.`;
+      break;
+
+    case 'shorten':
+      actionInstructions = `
+## ACTION: MAKE MORE CONCISE
+
+Help them condense this section while keeping the most impactful and relevant information.
+
+**Your Mission:**
+1. **Identify** the most impactful achievements and statements
+2. **Remove** redundancy and filler words
+3. **Combine** related points where possible
+4. **Keep** all quantified achievements and metrics
+5. **Preserve** relevant skills and experiences
+6. **Eliminate** generic statements that don't add value
+7. **Focus** on what matters most
+
+**Shortening Strategies:**
+- Remove weak verbs and qualifiers
+- Combine similar accomplishments
+- Cut generic responsibilities (keep unique achievements)
+- Focus on outcomes over processes
+- Prioritize quantified results
+
+**Examples:**
+- Before (wordy): "Was responsible for working on and helping to improve the frontend architecture of our main application which resulted in better performance"
+- After (concise): "Optimized frontend architecture, improving performance by 45%"
+
+**Critical Rules:**
+- Keep the BEST and most relevant content
+- Don't lose important achievements
+- Maintain all factual information
+- Target 30-40% reduction in length
+- Keep professional tone
+
+Return ONLY the concise, impactful content.`;
+      break;
+
+    case 'expand':
+      actionInstructions = `
+## ACTION: EXPAND WITH STRATEGIC DETAIL
+
+Help them add depth and detail to this section by elaborating on methodologies, technologies, impact, and context.
+
+**Your Mission:**
+1. **Add technical depth** - Mention specific technologies, frameworks, methodologies used
+2. **Expand on impact** - Add context to achievements (before/after, scale, business value)
+3. **Show methodology** - Explain approach and problem-solving process
+4. **Demonstrate** cross-functional collaboration and stakeholder engagement
+5. **Include** relevant keywords naturally as you expand
+6. **Provide** context that showcases expertise
+
+**Expansion Strategies:**
+- Add "how" to achievements: "...by implementing [methodology/technology]"
+- Add scale and context: "...across 5 product teams serving 2M+ users"
+- Add business impact: "...resulting in $X revenue increase" or "...enabling Y business capability"
+- Add technical stack: "...using React, TypeScript, GraphQL, and AWS"
+
+**Examples:**
+- Before: "Led team to improve application"
+- After: "Led cross-functional team of 6 engineers to architect and deliver scalable microservices platform using Node.js, Kubernetes, and PostgreSQL, improving deployment frequency by 300% and enabling 10x user growth capacity"
+
+**Critical Rules:**
+- ONLY expand based on what's IMPLIED or reasonable from existing content
+- Don't invent specific metrics or technologies not present
+- Add depth and context, not fabrication
+- Make expansions relevant and natural
+- Ensure expanded content sounds natural and credible
+
+Return ONLY the expanded section content.`;
+      break;
+
+    default:
+      actionInstructions = `
+## ACTION: IMPROVE THIS SECTION
+
+Help them enhance this section to better showcase their professional expertise and achievements.
+
+Return ONLY the improved section content.`;
+  }
+
+  return baseContext + actionInstructions + `
+
+## OUTPUT FORMAT:
+Return a JSON object with this exact structure:
+{
+  "content": "the improved section text here"
+}
+
+⚠️ CRITICAL OUTPUT RULES TO PREVENT DUPLICATION:
+1. Return ONLY ONE improved version - NEVER duplicate or repeat content
+2. Maintain the EXACT same structure as input (same number of bullets/items)
+3. Each bullet point must be UNIQUE - no repetition of information
+4. If input has 3 bullet points, output EXACTLY 3 improved bullet points
+5. DO NOT concatenate or merge multiple attempts
+6. The "content" field should contain ONLY the final improved text
+7. NO explanations, NO markdown formatting, NO code blocks
+8. Just the clean, improved text ready to paste into the CV`;
+}
+
+/**
  * Build ultra-precise context-aware prompts for each action
  */
 function buildActionPrompt(input: SectionRewriteInput): string {
@@ -509,7 +1216,38 @@ function buildActionPrompt(input: SectionRewriteInput): string {
     return buildSimplePromptForIntent(input, intent);
   }
 
-  const baseContext = `
+  // Check if this is Resume Builder context (no specific job target)
+  const isResumeBuilderContext = input.jobContext.jobTitle === 'General Professional Role' || 
+                                input.jobContext.company === 'Target Company' ||
+                                !input.jobContext.jobDescription || 
+                                input.jobContext.jobDescription === 'General professional position';
+
+  // Use Resume Builder prompts for Resume Builder context
+  if (isResumeBuilderContext) {
+    return buildResumeBuilderActionPrompt(input);
+  }
+
+  // Use existing CV Analysis prompts (unchanged)
+  // Check if this is general enhancement (no specific job target)
+  const isGeneralEnhancement = input.jobContext.jobTitle === 'General Professional Role' || 
+                                input.jobContext.company === 'Target Company' ||
+                                !input.jobContext.jobDescription || 
+                                input.jobContext.jobDescription === 'General professional position';
+
+  const baseContext = isGeneralEnhancement ? `
+# CONTEXT - PROFESSIONAL CV ENHANCEMENT
+
+You are an expert CV strategist with 20+ years of experience helping professionals create standout resumes.
+Your mission: Enhance this section to make it more professional, impactful, and ATS-friendly for general job applications.
+
+## 📝 GENERAL ENHANCEMENT GUIDELINES:
+- Make the content more professional and impactful
+- Use strong action verbs and quantify achievements where possible
+- Optimize for ATS (Applicant Tracking System) parsing
+- Keep content concise and clear
+- Highlight achievements and results
+- Use industry-standard terminology
+` : `
 # CONTEXT - WORLD-CLASS CV OPTIMIZATION
 
 You are THE BEST CV strategist in the world, with 20+ years placing candidates at FAANG, McKinsey, and Fortune 500 companies.
@@ -540,7 +1278,7 @@ ${input.currentContent}
 1. ✅ ONLY use information that exists - NEVER invent facts
 2. ✅ Every statement must be QUANTIFIED if possible (%, $, #, time)
 3. ✅ Use POWER VERBS (Led, Architected, Drove, Delivered, Spearheaded)
-4. ✅ Mirror the EXACT language from the job description
+${isGeneralEnhancement ? '4. ✅ Use professional, industry-standard language' : '4. ✅ Mirror the EXACT language from the job description'}
 5. ✅ Make it sound SENIOR and STRATEGIC, not just operational
 6. ✅ Optimize for ATS parsing (clean structure, keywords repeated 2-3x)
 7. ✅ Keep content CONCISE for one-page A4 format

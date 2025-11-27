@@ -124,8 +124,8 @@ export default function ExperienceInlineForm({
     if (formData.bullets.length > 0) {
       return formData.bullets.map(b => `• ${b}`).join('\n');
     }
-    // If no bullets yet, provide context for AI to generate some
-    return `Generate achievements for a ${formData.title || 'professional'} role at ${formData.company || 'a company'}`;
+    // Return empty string when no content - user should add content first
+    return '';
   };
 
   return (
@@ -215,19 +215,17 @@ export default function ExperienceInlineForm({
         placeholder="+ add location"
       />
 
-      {/* AI Enhancement Panel */}
-      {jobContext && (
-        <AIEnhancePanel
-          sectionType="experience"
-          currentContent={getCurrentContent()}
-          onApply={handleAIEnhance}
-          jobContext={jobContext}
-          fullCV={fullCV}
-          conversationHistory={conversationHistory}
-          onAddToHistory={onAddToHistory}
-          onResetHistory={onResetHistory}
-        />
-      )}
+      {/* AI Enhancement Panel - Always show, works with or without job context */}
+      <AIEnhancePanel
+        sectionType="experience"
+        currentContent={getCurrentContent()}
+        onApply={handleAIEnhance}
+        jobContext={jobContext}
+        fullCV={fullCV}
+        conversationHistory={conversationHistory}
+        onAddToHistory={onAddToHistory}
+        onResetHistory={onResetHistory}
+      />
 
       {/* Achievements Section - Compact */}
       <div>

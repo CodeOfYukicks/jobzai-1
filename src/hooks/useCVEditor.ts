@@ -36,29 +36,51 @@ export function useCVEditor(
   }, [currentUser, setCvData]);
 
   // Save CV data to Firestore
-  const saveCVData = useCallback(async (cvId?: string, editorState?: CVEditorSavedState) => {
+  const saveCVData = useCallback(async (cvId?: string, editorState?: CVEditorSavedState, isResume?: boolean) => {
     if (!currentUser) throw new Error('User not authenticated');
     
     setIsLoading(true);
     try {
       if (cvId) {
-        // When analysisId is provided, save to the analyses collection
-        const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', cvId);
-        const updateData: any = {
-          'cv_rewrite.structured_data': cvData,
-          'cv_rewrite.updatedAt': new Date().toISOString()
-        };
-        
-        // Save editor state if provided
-        if (editorState) {
-          updateData['cv_rewrite.editor_state'] = {
-            ...editorState,
-            lastModified: new Date().toISOString()
+        if (isResume) {
+          // Save to cvs collection for resume builder
+          const resumeRef = doc(db, 'users', currentUser.uid, 'cvs', cvId);
+          // Get existing resume data to preserve name
+          const existingDoc = await getDoc(resumeRef);
+          const existingData = existingDoc.exists() ? existingDoc.data() : {};
+          
+          await setDoc(resumeRef, {
+            ...existingData, // Preserve existing fields like name
+            cvData,
+            updatedAt: new Date().toISOString(),
+            userId: currentUser.uid,
+            template: editorState?.template || existingData.template,
+            layoutSettings: editorState?.layoutSettings || existingData.layoutSettings,
+            editorState: editorState ? {
+              ...editorState,
+              lastModified: new Date().toISOString()
+            } : existingData.editorState
+          }, { merge: true });
+          console.log('CV data and editor state saved to resume:', cvId);
+        } else {
+          // When analysisId is provided, save to the analyses collection
+          const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', cvId);
+          const updateData: any = {
+            'cv_rewrite.structured_data': cvData,
+            'cv_rewrite.updatedAt': new Date().toISOString()
           };
+          
+          // Save editor state if provided
+          if (editorState) {
+            updateData['cv_rewrite.editor_state'] = {
+              ...editorState,
+              lastModified: new Date().toISOString()
+            };
+          }
+          
+          await updateDoc(analysisRef, updateData);
+          console.log('CV data and editor state saved to analysis:', cvId);
         }
-        
-        await updateDoc(analysisRef, updateData);
-        console.log('CV data and editor state saved to analysis:', cvId);
       } else {
         // Standalone mode - save to cvs collection
         const docRef = doc(db, 'users', currentUser.uid, 'cvs', 'default');

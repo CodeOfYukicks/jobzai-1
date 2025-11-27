@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Lightbulb, Settings, CreditCard, User, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Lightbulb, Settings, CreditCard, User, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
@@ -50,6 +50,7 @@ const navigationGroups = {
       { name: 'Job Board', href: '/jobs', icon: LayoutGrid },
       { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
       { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
+      { name: 'Resume Builder', href: '/resume-builder', icon: FileEdit },
     ],
   },
   track: [
@@ -150,14 +151,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/upcoming-interviews' ||
     location.pathname === '/calendar' ||
     location.pathname.startsWith('/interview-prep/') ||
-    location.pathname.startsWith('/ats-analysis/')
+    location.pathname.startsWith('/ats-analysis/') ||
+    (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'))
   );
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [hasScrolled, setHasScrolled] = useState<boolean>(false);
   const [isHoveringCollapsedSidebar, setIsHoveringCollapsedSidebar] = useState(false);
 
   useEffect(() => {
-    // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Professional Profile page, Upcoming Interviews page, Calendar page, and Interview Prep pages for full-width editing
+    // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Professional Profile page, Upcoming Interviews page, Calendar page, Interview Prep pages, and Resume Builder editor for full-width editing
     if (location.pathname.startsWith('/cv-optimizer/') || 
         location.pathname === '/applications' || 
         location.pathname === '/jobs' ||
@@ -165,7 +167,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         location.pathname === '/upcoming-interviews' ||
         location.pathname === '/calendar' ||
         location.pathname.startsWith('/interview-prep/') ||
-        location.pathname.startsWith('/ats-analysis/')) {
+        location.pathname.startsWith('/ats-analysis/') ||
+        (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'))) {
       setIsCollapsed(true);
     }
   }, [location.pathname]);
@@ -305,12 +308,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/upcoming-interviews' || 
     location.pathname === '/calendar' || 
     location.pathname.startsWith('/interview-prep/') || 
-    (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor'));
+    location.pathname === '/resume-builder' ||
+    (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor')) ||
+    (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'));
 
   // Check if we need full width (no max-width constraint) - includes all ats-analysis pages and cv-analysis
   const needsFullWidth = needsFullHeight || 
     location.pathname.startsWith('/ats-analysis/') ||
-    location.pathname === '/cv-analysis';
+    location.pathname === '/cv-analysis' ||
+    location.pathname.startsWith('/resume-builder');
 
   return (
     <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden`}>
@@ -335,8 +341,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               )}
             </Link>
             
-            {/* Bouton collapse - positionné à droite - désactivé sur /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar et /interview-prep */}
-            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/professional-profile' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/calendar' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && (
+            {/* Bouton collapse - positionné à droite - désactivé sur /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis et resume-builder editor */}
+            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/professional-profile' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/calendar' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && (
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className={`absolute right-3 group flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200
@@ -354,8 +360,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               </button>
             )}
 
-            {/* Bouton collapse pour /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar et /interview-prep - visible quand expanded */}
-            {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/')) && !isCollapsed && (
+            {/* Bouton collapse pour /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis et resume-builder editor - visible quand expanded */}
+            {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'))) && !isCollapsed && (
               <button
                 onClick={() => setIsCollapsed(true)}
                 className={`absolute right-3 group flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200
@@ -370,11 +376,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             )}
           </div>
 
-          {/* Bouton flottant d'expansion - apparaît au hover sur sidebar compacte pour /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar et /interview-prep */}
+          {/* Bouton flottant d'expansion - apparaît au hover sur sidebar compacte pour /applications, /jobs, /professional-profile, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis et resume-builder editor */}
           <AnimatePresence>
             {isCollapsed && 
              isHoveringCollapsedSidebar && 
-             (location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/')) && (
+             (location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/professional-profile' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'))) && (
               <motion.button
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}

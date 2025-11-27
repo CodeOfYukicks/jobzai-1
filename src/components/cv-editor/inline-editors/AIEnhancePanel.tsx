@@ -49,13 +49,46 @@ export default function AIEnhancePanel({
   const [suggestion, setSuggestion] = useState<string | null>(null);
 
   const handleQuickAction = async (actionId: string) => {
-    if (!jobContext) {
-      toast.error('Job context required for AI enhancement');
+    // For quick actions, require content - show message in panel instead of processing
+    if (!currentContent.trim()) {
+      // Message is shown in panel, just return without processing
       return;
     }
 
-    if (!currentContent.trim()) {
-      toast.error('Please add some content first');
+    // If no job context, use general enhancement mode
+    if (!jobContext) {
+      // Create a minimal job context for general enhancement
+      const generalJobContext = {
+        jobTitle: 'General Professional Role',
+        company: 'Target Company',
+        jobDescription: 'General professional position',
+        keywords: [],
+        strengths: [],
+        gaps: []
+      };
+      
+      setIsLoading(true);
+      setActiveAction(actionId);
+      
+      try {
+        const result = await rewriteSection({
+          action: actionId as any,
+          sectionType,
+          currentContent,
+          fullCV: fullCV || '',
+          jobContext: generalJobContext,
+          conversationHistory: conversationHistory || []
+        });
+        
+        setSuggestion(result);
+        toast.success('AI suggestion ready!');
+      } catch (error) {
+        console.error('AI enhancement error:', error);
+        toast.error('Failed to generate suggestion');
+      } finally {
+        setIsLoading(false);
+        setActiveAction(null);
+      }
       return;
     }
 
@@ -95,8 +128,46 @@ export default function AIEnhancePanel({
   const handleCustomRequest = async () => {
     if (!customPrompt.trim()) return;
     
+    // If no job context, use general enhancement mode
     if (!jobContext) {
-      toast.error('Job context required');
+      const generalJobContext = {
+        jobTitle: 'General Professional Role',
+        company: 'Target Company',
+        jobDescription: 'General professional position',
+        keywords: [],
+        strengths: [],
+        gaps: []
+      };
+      
+      onAddToHistory?.(customPrompt);
+      setIsLoading(true);
+      setActiveAction('custom');
+      
+      try {
+        // If no current content, use the custom prompt as the content to generate from
+        const contentToUse = currentContent.trim() 
+          ? `${currentContent}\n\n[USER REQUEST]: ${customPrompt}`
+          : `[USER REQUEST]: ${customPrompt}`;
+        
+        const result = await rewriteSection({
+          action: 'rewrite',
+          sectionType,
+          currentContent: contentToUse,
+          fullCV: fullCV || '',
+          jobContext: generalJobContext,
+          conversationHistory: conversationHistory || []
+        });
+        
+        setSuggestion(result);
+        setCustomPrompt('');
+        toast.success('AI suggestion ready!');
+      } catch (error) {
+        console.error('AI custom request error:', error);
+        toast.error('Failed to generate suggestion');
+      } finally {
+        setIsLoading(false);
+        setActiveAction(null);
+      }
       return;
     }
 
@@ -107,11 +178,16 @@ export default function AIEnhancePanel({
     setActiveAction('custom');
 
     try {
+      // If no current content, use the custom prompt as the content to generate from
+      const contentToUse = currentContent.trim() 
+        ? `${currentContent}\n\n[USER REQUEST]: ${customPrompt}`
+        : `[USER REQUEST]: ${customPrompt}`;
+      
       // For custom requests, we use the 'rewrite' action with custom instructions
       const result = await rewriteSection({
         action: 'rewrite',
         sectionType,
-        currentContent: `${currentContent}\n\n[USER REQUEST]: ${customPrompt}`,
+        currentContent: contentToUse,
         fullCV: fullCV || '',
         jobContext,
         conversationHistory: conversationHistory || []
@@ -144,7 +220,7 @@ export default function AIEnhancePanel({
 
   return (
     <div className="mb-3">
-      {/* Collapsed State - Premium Button */}
+      {/* Collapsed State - Premium Button - Always show, even without job context */}
       {!isExpanded && !suggestion && (
         <motion.button
           type="button"
@@ -160,7 +236,9 @@ export default function AIEnhancePanel({
           {/* Content */}
           <div className="relative flex items-center justify-center gap-2 py-2 px-4">
             <Sparkles className="w-3.5 h-3.5 text-purple-700 dark:text-purple-300 group-hover:text-purple-800 dark:group-hover:text-purple-200 transition-colors" />
-            <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 group-hover:text-purple-800 dark:group-hover:text-purple-200 transition-colors">Enhance with AI</span>
+            <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 group-hover:text-purple-800 dark:group-hover:text-purple-200 transition-colors">
+              {jobContext ? 'Enhance with AI' : 'Enhance with AI (General)'}
+            </span>
             <ChevronDown className="w-3 h-3 text-purple-600 dark:text-purple-400 group-hover:text-purple-800 dark:group-hover:text-purple-200 transition-colors" />
           </div>
         </motion.button>
@@ -227,6 +305,29 @@ export default function AIEnhancePanel({
                 </div>
               )}
 
+              {/* Empty Content Message */}
+              {!currentContent.trim() && (
+                <div className="mb-3 p-3 rounded-lg border border-amber-200/60 dark:border-amber-800/40 bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10">
+                  <div className="flex items-start gap-2">
+                    <div className="p-1 rounded-md bg-amber-100 dark:bg-amber-900/40 mt-0.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                        No content yet
+                      </p>
+                      <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
+                        {sectionType === 'experience' 
+                          ? 'Add your achievements first, or use the chatbox below to describe your work and we\'ll create professional bullet points for you.'
+                          : sectionType === 'project'
+                          ? 'Add your project details first, or use the chatbox below to describe your project and we\'ll create professional content for you.'
+                          : 'Add your summary content first, or use the chatbox below to describe your professional background and we\'ll create a compelling summary for you.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Quick Actions */}
               <div className="grid grid-cols-4 gap-1.5 mb-3">
                 {QUICK_ACTIONS.map((action) => {
@@ -269,7 +370,7 @@ export default function AIEnhancePanel({
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleCustomRequest()}
-                    placeholder="Custom request... (e.g., 'make it more technical')"
+                    placeholder={currentContent.trim() ? "Custom request... (e.g., 'make it more technical')" : "Describe your work... (e.g., 'I worked as full stack dev in a project for a retail client, please create two bullet points for me')"}
                     disabled={isLoading}
                     className="w-full px-3 py-2 pr-8 text-xs bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200 disabled:opacity-50"
                   />

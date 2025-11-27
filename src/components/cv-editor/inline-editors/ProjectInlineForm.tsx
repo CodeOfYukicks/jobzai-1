@@ -145,10 +145,9 @@ export default function ProjectInlineForm({
     if (formData.highlights.length > 0) {
       formData.highlights.forEach(h => parts.push(`• ${h}`));
     }
+    // Return empty string when no content - user should add content first
     if (parts.length === 0) {
-      // If nothing yet, provide context for AI to generate
-      const techStr = formData.technologies.length > 0 ? ` using ${formData.technologies.join(', ')}` : '';
-      return `Generate a description and highlights for a project called "${formData.name || 'Project'}"${techStr}`;
+      return '';
     }
     return parts.join('\n');
   };
@@ -281,19 +280,17 @@ export default function ProjectInlineForm({
         )}
       </div>
 
-      {/* AI Enhancement Panel */}
-      {jobContext && (
-        <AIEnhancePanel
-          sectionType="project"
-          currentContent={getCurrentContent()}
-          onApply={handleAIEnhance}
-          jobContext={jobContext}
-          fullCV={fullCV}
-          conversationHistory={conversationHistory}
-          onAddToHistory={onAddToHistory}
-          onResetHistory={onResetHistory}
-        />
-      )}
+      {/* AI Enhancement Panel - Always show, works with or without job context */}
+      <AIEnhancePanel
+        sectionType="project"
+        currentContent={getCurrentContent()}
+        onApply={handleAIEnhance}
+        jobContext={jobContext}
+        fullCV={fullCV}
+        conversationHistory={conversationHistory}
+        onAddToHistory={onAddToHistory}
+        onResetHistory={onResetHistory}
+      />
 
       {/* Highlights - Compact */}
       <div>

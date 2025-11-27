@@ -2085,6 +2085,392 @@ app.post('/api/extract-job-url', async (req, res) => {
   }
 });
 
+// Generate STAR story using AI
+app.post('/api/generate-star-story', async (req, res) => {
+  try {
+    console.log('⭐ STAR story generation endpoint called');
+    const { userId, skill, jobDescription, position, companyName } = req.body;
+
+    if (!userId || !skill) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'userId and skill are required'
+      });
+    }
+
+    // Fetch user profile data from Firestore using Admin SDK
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // Extract comprehensive profile data
+    const profileData = {
+      firstName: userData.firstName || '',
+      lastName: userData.lastName || '',
+      professionalHistory: userData.professionalHistory || [],
+      skills: userData.skills || [],
+      tools: userData.tools || [],
+      softSkills: userData.softSkills || [],
+      yearsOfExperience: userData.yearsOfExperience || 0,
+      education: {
+        level: userData.educationLevel || '',
+        field: userData.educationField || '',
+        institution: userData.educationInstitution || '',
+        major: userData.educationMajor || '',
+        graduationYear: userData.graduationYear || '',
+      },
+      languages: userData.languages || [],
+      certifications: userData.certifications || [],
+      careerPriorities: userData.careerPriorities || [],
+      primaryMotivator: userData.primaryMotivator || '',
+      managementExperience: userData.managementExperience || { hasExperience: false },
+      mentoringExperience: userData.mentoringExperience || false,
+      recruitingExperience: userData.recruitingExperience || false,
+    };
+
+    // Get CV content
+    let cvContent = '';
+    let cvTechnologies = [];
+    let cvSkills = [];
+
+    if (userData.cvText) {
+      cvContent = userData.cvText;
+      console.log(`✓ Using extracted CV text (${cvContent.length} characters)`);
+    } else {
+      console.log('⚠ No CV text found in Firestore');
+    }
+
+    if (userData.cvTechnologies && Array.isArray(userData.cvTechnologies)) {
+      cvTechnologies = userData.cvTechnologies;
+      console.log(`✓ Found ${cvTechnologies.length} CV-extracted technologies`);
+    }
+    if (userData.cvSkills && Array.isArray(userData.cvSkills)) {
+      cvSkills = userData.cvSkills;
+      console.log(`✓ Found ${cvSkills.length} CV-extracted skills`);
+    }
+
+    if (!cvContent && userData.cvUrl) {
+      console.log(`⚠ CV URL available but cvText not found`);
+    }
+
+    console.log('📊 Data summary for STAR generation:');
+    console.log(`   - Professional history entries: ${(profileData.professionalHistory || []).length}`);
+    console.log(`   - Skills: ${(profileData.skills || []).length}`);
+    console.log(`   - Tools: ${(profileData.tools || []).length}`);
+    console.log(`   - CV text length: ${cvContent.length} characters`);
+    console.log(`   - CV technologies: ${cvTechnologies.length}`);
+    console.log(`   - CV skills: ${cvSkills.length}`);
+
+    // Build experience summary
+    const experienceSummary = profileData.professionalHistory && profileData.professionalHistory.length > 0
+      ? profileData.professionalHistory
+          .map((exp) => {
+            const responsibilities = Array.isArray(exp.responsibilities)
+              ? exp.responsibilities.join('; ')
+              : exp.responsibilities || '';
+            const achievements = Array.isArray(exp.achievements)
+              ? exp.achievements.join('; ')
+              : exp.achievements || '';
+            const industry = exp.industry || '';
+            const contractType = exp.contractType || '';
+            const location = exp.location || '';
+
+            return `Position: ${exp.title || 'N/A'} at ${exp.company || 'N/A'}
+Duration: ${exp.startDate || 'N/A'} - ${exp.endDate || 'Present'}${exp.current ? ' (Current)' : ''}
+Industry: ${industry}
+Contract Type: ${contractType}
+Location: ${location}
+Responsibilities: ${responsibilities || 'N/A'}
+Achievements: ${achievements || 'N/A'}`;
+          })
+          .join('\n\n---\n\n')
+      : 'No professional history available.';
+
+    // Build comprehensive skills list
+    const allSkills = [
+      ...(profileData.skills || []),
+      ...(profileData.tools || []),
+      ...(profileData.softSkills || []),
+      ...(cvTechnologies || []),
+      ...(cvSkills || []),
+    ].filter((skill, index, self) => skill && self.indexOf(skill) === index);
+
+    // Build languages summary
+    const languagesSummary = profileData.languages && profileData.languages.length > 0
+      ? profileData.languages.map((lang) => {
+          if (typeof lang === 'string') return lang;
+          return `${lang.language} (${lang.level || 'N/A'})`;
+        }).join(', ')
+      : 'No languages specified';
+
+    // Build certifications summary
+    const certificationsSummary = profileData.certifications && profileData.certifications.length > 0
+      ? profileData.certifications.map((cert) => {
+          if (typeof cert === 'string') return cert;
+          return `${cert.name || cert}${cert.issuer ? ` from ${cert.issuer}` : ''}${cert.year ? ` (${cert.year})` : ''}`;
+        }).join(', ')
+      : 'No certifications listed';
+
+    // Get API keys from Firestore
+    const openaiSettingsDoc = await admin.firestore().collection('settings').doc('openai').get();
+    const openaiApiKey = openaiSettingsDoc.exists ? (openaiSettingsDoc.data().apiKey || null) : null;
+
+    const anthropicSettingsDoc = await admin.firestore().collection('settings').doc('anthropic').get();
+    const anthropicApiKey = anthropicSettingsDoc.exists ? (anthropicSettingsDoc.data().apiKey || null) : null;
+
+    // Fallback to environment variables
+    const finalOpenAIApiKey = openaiApiKey || process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    const finalAnthropicApiKey = anthropicApiKey || process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
+
+    if (!finalOpenAIApiKey && !finalAnthropicApiKey) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'No AI API key found'
+      });
+    }
+
+    // Build the prompt
+    const prompt = `You are an expert career coach helping a candidate prepare for interviews. Your task is to create an authentic STAR (Situation, Task, Action, Result) story for the skill "${skill}".
+
+CRITICAL RULES:
+1. ONLY use real experiences from the user's profile data provided below
+2. NEVER invent, fabricate, or make up experiences
+3. If no relevant experience exists for this skill, respond with: {"status": "no_experience", "message": "Based on your profile, we couldn't find relevant experience for ${skill}. Consider gaining experience or focusing on transferable skills."}
+4. Be honest and authentic - it's better to say there's no match than to invent something
+5. You can combine multiple experiences if they relate to the skill
+6. Focus on the most relevant and impactful experience
+
+=== COMPREHENSIVE USER PROFILE ===
+
+PROFESSIONAL EXPERIENCE:
+${experienceSummary}
+
+SKILLS & EXPERTISE:
+- Technical Skills: ${(profileData.skills || []).join(', ') || 'None listed'}
+- Tools & Technologies: ${(profileData.tools || []).join(', ') || 'None listed'}
+- Soft Skills: ${(profileData.softSkills || []).join(', ') || 'None listed'}
+- CV-Extracted Technologies: ${cvTechnologies.length > 0 ? cvTechnologies.join(', ') : 'None'}
+- CV-Extracted Skills: ${cvSkills.length > 0 ? cvSkills.join(', ') : 'None'}
+- All Skills Combined: ${allSkills.length > 0 ? allSkills.join(', ') : 'None listed'}
+
+EXPERIENCE LEVEL:
+- Years of Experience: ${profileData.yearsOfExperience || 0}
+- Management Experience: ${profileData.managementExperience?.hasExperience ? `Yes (Team size: ${profileData.managementExperience.teamSize || 'N/A'}, Type: ${profileData.managementExperience.teamType || 'N/A'})` : 'No'}
+- Mentoring Experience: ${profileData.mentoringExperience ? 'Yes' : 'No'}
+- Recruiting Experience: ${profileData.recruitingExperience ? 'Yes' : 'No'}
+
+EDUCATION:
+- Level: ${profileData.education.level || 'Not specified'}
+- Field: ${profileData.education.field || 'Not specified'}
+- Institution: ${profileData.education.institution || 'Not specified'}
+- Major: ${profileData.education.major || 'Not specified'}
+- Graduation Year: ${profileData.education.graduationYear || 'Not specified'}
+
+LANGUAGES:
+${languagesSummary}
+
+CERTIFICATIONS:
+${certificationsSummary}
+
+CAREER CONTEXT:
+- Career Priorities: ${(profileData.careerPriorities || []).join(', ') || 'None specified'}
+- Primary Motivator: ${profileData.primaryMotivator || 'Not specified'}
+
+${cvContent ? `\n=== COMPLETE CV CONTENT (Extracted Text) ===\n${cvContent}\n` : '\n=== CV CONTENT ===\nNo CV text available in database.\n'}
+
+${jobDescription ? `\n=== JOB CONTEXT ===\nPosition: ${position || 'N/A'} at ${companyName || 'N/A'}\nJob Description:\n${jobDescription}\n` : ''}
+
+TASK: Create a STAR story for "${skill}" using ONLY real experiences from the profile above.
+
+If you find relevant experience, respond with JSON:
+{
+  "status": "success",
+  "story": {
+    "situation": "Brief context and challenge (2-3 sentences)",
+    "action": "Specific actions you took, tools/technologies used (3-4 sentences)",
+    "result": "Quantifiable outcomes, impact, lessons learned (2-3 sentences)"
+  }
+}
+
+If NO relevant experience exists, respond with:
+{
+  "status": "no_experience",
+  "message": "Based on your profile, we couldn't find relevant experience for ${skill}. Consider gaining experience or focusing on transferable skills."
+}
+
+Respond ONLY with valid JSON, no markdown, no explanations.`;
+
+    let starStory;
+
+    // Try OpenAI first, then Claude
+    if (finalOpenAIApiKey) {
+      try {
+        console.log('📡 Calling OpenAI API for STAR story generation...');
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${finalOpenAIApiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4-turbo',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert career coach. Always respond with valid JSON matching the exact format requested. Never invent experiences.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.3,
+            max_tokens: 2000,
+          })
+        });
+
+        if (openaiResponse.ok) {
+          const responseData = await openaiResponse.json();
+          const responseText = responseData.choices[0]?.message?.content || '';
+          starStory = JSON.parse(responseText);
+          
+          // Validate all three fields are present
+          if (starStory.status === 'success' && starStory.story) {
+            console.log('✅ OpenAI STAR story generated successfully');
+            console.log('   Situation length:', starStory.story.situation?.length || 0);
+            console.log('   Action length:', starStory.story.action?.length || 0);
+            console.log('   Result length:', starStory.story.result?.length || 0);
+            
+            // Ensure all fields exist
+            if (!starStory.story.situation || !starStory.story.action || !starStory.story.result) {
+              console.warn('⚠️ Missing fields in generated story:', {
+                hasSituation: !!starStory.story.situation,
+                hasAction: !!starStory.story.action,
+                hasResult: !!starStory.story.result
+              });
+            }
+          }
+        } else {
+          throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+        }
+      } catch (error) {
+        console.error('OpenAI error:', error);
+        // Fall through to Claude
+        if (!finalAnthropicApiKey) throw error;
+      }
+    }
+
+    // Use Claude if OpenAI failed or wasn't available
+    if (!starStory && finalAnthropicApiKey) {
+      try {
+        console.log('📡 Calling Claude API for STAR story generation...');
+        const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': finalAnthropicApiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 2000,
+            messages: [
+              {
+                role: 'user',
+                content: prompt
+              }
+            ]
+          })
+        });
+
+          if (claudeResponse.ok) {
+            const responseData = await claudeResponse.json();
+            const content = responseData.content[0].text;
+            // Extract JSON from response (Claude might wrap it in markdown)
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              starStory = JSON.parse(jsonMatch[0]);
+              
+              // Validate all three fields are present
+              if (starStory.status === 'success' && starStory.story) {
+                console.log('✅ Claude STAR story generated successfully');
+                console.log('   Situation length:', starStory.story.situation?.length || 0);
+                console.log('   Action length:', starStory.story.action?.length || 0);
+                console.log('   Result length:', starStory.story.result?.length || 0);
+                
+                // Ensure all fields exist
+                if (!starStory.story.situation || !starStory.story.action || !starStory.story.result) {
+                  console.warn('⚠️ Missing fields in generated story:', {
+                    hasSituation: !!starStory.story.situation,
+                    hasAction: !!starStory.story.action,
+                    hasResult: !!starStory.story.result
+                  });
+                }
+              }
+            } else {
+              throw new Error('Could not parse Claude response');
+            }
+          } else {
+            throw new Error(`Claude API error: ${claudeResponse.status}`);
+          }
+      } catch (error) {
+        console.error('Claude error:', error);
+        throw error;
+      }
+    }
+
+    if (!starStory) {
+      throw new Error('Failed to generate STAR story');
+    }
+
+    // Validate response structure
+    if (starStory.status === 'no_experience') {
+      return res.status(200).json(starStory);
+    }
+
+    if (starStory.status === 'success' && starStory.story) {
+      // Validate story has all required fields
+      const hasSituation = starStory.story.situation && starStory.story.situation.trim().length > 0;
+      const hasAction = starStory.story.action && starStory.story.action.trim().length > 0;
+      const hasResult = starStory.story.result && starStory.story.result.trim().length > 0;
+      
+      if (hasSituation && hasAction && hasResult) {
+        console.log('✅ Returning complete STAR story with all three fields');
+        return res.status(200).json(starStory);
+      } else {
+        console.error('❌ STAR story missing required fields:', {
+          hasSituation,
+          hasAction,
+          hasResult,
+          situationLength: starStory.story.situation?.length || 0,
+          actionLength: starStory.story.action?.length || 0,
+          resultLength: starStory.story.result?.length || 0
+        });
+      }
+    }
+
+    // If we get here, something went wrong
+    return res.status(200).json({
+      status: 'no_experience',
+      message: `Based on your profile, we couldn't find relevant experience for ${skill}. Consider gaining experience or focusing on transferable skills.`
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating STAR story:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to generate STAR story'
+    });
+  }
+});
+
 // Explain why a job matches a user
 app.post('/api/explainMatch', async (req, res) => {
   try {
@@ -2166,6 +2552,7 @@ app.listen(PORT, () => {
   console.log(`Job URL extraction available at http://localhost:${PORT}/api/extract-job-url`);
   console.log(`Interview analysis available at http://localhost:${PORT}/api/analyze-interview`);
   console.log(`Whisper transcription available at http://localhost:${PORT}/api/transcribe-audio`);
+  console.log(`STAR story generation available at http://localhost:${PORT}/api/generate-star-story`);
   console.log(`Stripe Checkout proxy available at http://localhost:${PORT}/api/stripe/create-checkout-session`);
   console.log(`Company Logo API proxy available at http://localhost:${PORT}/api/company-logo`);
   console.log(`Test endpoint available at http://localhost:${PORT}/api/test`);

@@ -3333,9 +3333,15 @@ Generate exactly ${count} questions.
     return tasks;
   };
 
-  const addStarStory = async (skill: string) => {
+  const addStarStory = async (skill: string, initialContent?: { situation: string; action: string; result: string }) => {
     const stories = skillCoach?.starStories?.[skill] || [];
-    const nextStories = [...stories, { id: uuidv4(), situation: '', action: '', result: '' }];
+    const newStory = {
+      id: uuidv4(),
+      situation: initialContent?.situation || '',
+      action: initialContent?.action || '',
+      result: initialContent?.result || '',
+    };
+    const nextStories = [...stories, newStory];
     const next = { ...skillCoach, starStories: { ...(skillCoach?.starStories || {}), [skill]: nextStories } } as Interview['skillCoach'];
     setSkillCoach(next);
     await saveSkillCoach(next);
