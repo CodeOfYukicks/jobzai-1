@@ -466,6 +466,10 @@ app.post('/api/chatgpt', async (req, res) => {
       type === 'resume-optimizer' ? 8000 :
         4000;
 
+    // Select model based on task type
+    // Use gpt-4o-mini for translation to be faster and cheaper (and avoid rate limits)
+    const model = type === 'cv-translation' ? 'gpt-4o-mini' : 'gpt-4o';
+
     try {
       openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -474,7 +478,7 @@ app.post('/api/chatgpt', async (req, res) => {
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "gpt-4o", // Using GPT-4o for better quality
+          model: model,
           messages: messages,
           response_format: { type: 'json_object' },
           max_tokens: maxTokens,

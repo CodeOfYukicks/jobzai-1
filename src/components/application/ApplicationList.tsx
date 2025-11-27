@@ -22,7 +22,7 @@ export function ApplicationList({
               {...provided.draggableProps}
               {...provided.dragHandleProps}
               style={{ ...provided.draggableProps.style, zIndex: snapshot.isDragging ? 9999 : 'auto' }}
-              className="mb-[18px] last:mb-0"
+              className="mb-[18px] last:mb-0 h-[280px]"
             >
               <ApplicationCard
                 app={app}

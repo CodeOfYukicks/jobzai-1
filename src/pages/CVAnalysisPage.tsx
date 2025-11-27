@@ -4430,10 +4430,11 @@ URL to visit: ${jobUrl}
     return (
       <motion.div
         key={analysis.id}
-        initial={{ opacity: 0, y: 8 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -2 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
+        layout={false}
         className="group relative bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 
           border border-gray-200/60 dark:border-gray-700/50
           hover:border-gray-300/80 dark:hover:border-gray-600/60
@@ -6144,7 +6145,7 @@ URL to visit: ${jobUrl}
               animate={{ opacity: 1, y: 0 }}
               className={`border-2 rounded-xl p-5 transition-all duration-200 shadow-sm ${usingSavedCV
                 ? 'border-purple-500 dark:border-purple-400 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/20 shadow-purple-200 dark:shadow-purple-900/20'
-                : 'border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-800 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md'
+                : 'border-purple-200 dark:border-purple-800 bg-white dark:bg-[#1A1A1A] hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md'
                 }`}
             >
               {/* Header with badge */}
@@ -6267,7 +6268,7 @@ URL to visit: ${jobUrl}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`w-full flex items-center p-4 border-2 border-dashed rounded-xl cursor-pointer
+              className={`w-full flex items-center p-4 border-2 border-dashed rounded-2xl cursor-pointer
                 transition-all duration-200 ease-out
                 backdrop-blur-sm
                 group
@@ -6275,7 +6276,7 @@ URL to visit: ${jobUrl}
                   ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
                   : cvFile && !usingSavedCV
                     ? 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
-                    : 'border-gray-200/60 dark:border-gray-700/50 hover:border-purple-400/60 dark:hover:border-purple-600/60 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
+                    : 'border-gray-200/60 dark:border-gray-700/50 hover:border-purple-400/60 dark:hover:border-purple-600/60 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-[#1A1A1A]'
                 }`}
             >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 transition-transform duration-200
@@ -6409,14 +6410,14 @@ URL to visit: ${jobUrl}
               className="space-y-3"
             >
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1 flex items-center gap-1.5">
                   <Link2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   Job Posting URL
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 transition-opacity"></div>
                   <div className="relative rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500">
-                    <div className="relative flex rounded-xl bg-white dark:bg-gray-800/95 overflow-hidden">
+                    <div className="relative flex rounded-xl bg-white dark:bg-[#1A1A1A] overflow-hidden">
                       <input
                         type="url"
                         value={formData.jobUrl}
@@ -6458,49 +6459,37 @@ URL to visit: ${jobUrl}
               {/* Extracted/Manual Fields */}
               <div className="space-y-3 pt-3 border-t border-gray-100/50 dark:border-gray-800/50">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
                     Job Title
                   </label>
                   <input
                     type="text"
                     value={formData.jobTitle}
                     onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
-                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
-                dark:bg-gray-800/30 dark:text-white text-xs
-                bg-gray-50/50 backdrop-blur-sm
-                transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                     placeholder="e.g., Full Stack Developer"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
                     Company
                   </label>
                   <input
                     type="text"
                     value={formData.company}
                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
-                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
-                dark:bg-gray-800/30 dark:text-white text-xs
-                bg-gray-50/50 backdrop-blur-sm
-                transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                     placeholder="e.g., Google"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
                     Job Description
                   </label>
                   <textarea
                     value={formData.jobDescription}
                     onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
-                      focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
-                      dark:bg-gray-800/30 dark:text-white h-36 text-xs resize-none
-                      bg-gray-50/50 backdrop-blur-sm
-                      transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all h-36 resize-none"
                     placeholder="Job description will be extracted automatically, or paste it manually..."
                   />
                 </div>
@@ -6517,49 +6506,37 @@ URL to visit: ${jobUrl}
               className="space-y-3"
             >
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
                   Job Title
                 </label>
                 <input
                   type="text"
                   value={formData.jobTitle}
                   onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
-                    focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
-                    dark:bg-gray-800/30 dark:text-white text-xs
-                    bg-gray-50/50 backdrop-blur-sm
-                    transition-all duration-200"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                   placeholder="e.g., Full Stack Developer"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
                   Company
                 </label>
                 <input
                   type="text"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
-                    focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
-                    dark:bg-gray-800/30 dark:text-white text-xs
-                    bg-gray-50/50 backdrop-blur-sm
-                    transition-all duration-200"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                   placeholder="e.g., Google"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
                   Job Description
                 </label>
                 <textarea
                   value={formData.jobDescription}
                   onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
-                    focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
-                    dark:bg-gray-800/30 dark:text-white h-40 text-xs resize-none
-                    bg-gray-50/50 backdrop-blur-sm
-                    transition-all duration-200"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all h-40 resize-none"
                   placeholder="Paste the complete job description here..."
                 />
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
@@ -6579,7 +6556,7 @@ URL to visit: ${jobUrl}
               className="space-y-3"
             >
               <div className="relative job-selector-container" ref={jobSelectorRef}>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1 flex items-center gap-1.5">
                   <Briefcase className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   Select a Saved Job
                 </label>
@@ -6615,11 +6592,7 @@ URL to visit: ${jobUrl}
                         setShowJobDropdown(true);
                       }
                     }}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200/60 dark:border-gray-700/50 
-                      focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
-                      dark:bg-gray-800/30 dark:text-white text-xs
-                      bg-gray-50/50 backdrop-blur-sm
-                      transition-all duration-200"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                     placeholder="Search by company or position..."
                   />
                   {selectedSavedJob && (
@@ -6643,115 +6616,118 @@ URL to visit: ${jobUrl}
                 </div>
 
                 {/* Dropdown avec les jobs */}
-                <AnimatePresence>
-                  {showJobDropdown && savedJobs.length > 0 && (
-                    <motion.div
-                      ref={jobDropdownRef}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200/60 dark:border-gray-700/50 rounded-xl shadow-xl max-h-80 overflow-y-auto"
-                      style={dropdownPosition ? {
-                        position: 'fixed',
-                        top: `${dropdownPosition.top}px`,
-                        left: `${dropdownPosition.left}px`,
-                        width: `${dropdownPosition.width}px`,
-                        zIndex: 100
-                      } : {
-                        position: 'fixed',
-                        zIndex: 100
-                      }}
-                    >
-                      {isLoadingSavedJobs ? (
-                        <div className="p-4 text-center">
-                          <Loader2 className="w-5 h-5 animate-spin mx-auto text-gray-400" />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Loading jobs...</p>
-                        </div>
-                      ) : (
-                        <>
-                          {savedJobs
-                            .filter(job =>
+                {createPortal(
+                  <AnimatePresence>
+                    {showJobDropdown && savedJobs.length > 0 && (
+                      <motion.div
+                        ref={jobDropdownRef}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200/60 dark:border-gray-700/50 rounded-xl shadow-xl max-h-80 overflow-y-auto"
+                        style={dropdownPosition ? {
+                          position: 'fixed',
+                          top: `${dropdownPosition.top}px`,
+                          left: `${dropdownPosition.left}px`,
+                          width: `${dropdownPosition.width}px`,
+                          zIndex: 100
+                        } : {
+                          position: 'fixed',
+                          zIndex: 100
+                        }}
+                      >
+                        {isLoadingSavedJobs ? (
+                          <div className="p-4 text-center">
+                            <Loader2 className="w-5 h-5 animate-spin mx-auto text-gray-400" />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Loading jobs...</p>
+                          </div>
+                        ) : (
+                          <>
+                            {savedJobs
+                              .filter(job =>
+                                !jobSearchQuery ||
+                                job.companyName.toLowerCase().includes(jobSearchQuery.toLowerCase()) ||
+                                job.position.toLowerCase().includes(jobSearchQuery.toLowerCase())
+                              )
+                              .slice(0, 10)
+                              .map((job) => (
+                                <button
+                                  key={job.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedSavedJob(job);
+                                    setJobSearchQuery(`${job.companyName} - ${job.position}`);
+                                    setShowJobDropdown(false);
+
+                                    // Pré-remplir les champs
+                                    setFormData({
+                                      jobTitle: job.position,
+                                      company: job.companyName,
+                                      jobDescription: job.fullJobDescription || job.description || '',
+                                      jobUrl: job.url || '',
+                                    });
+
+                                    toast.success('Job selected successfully');
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-b-0"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+                                      <Building className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                        {job.companyName}
+                                      </p>
+                                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
+                                        {job.position}
+                                      </p>
+                                      {job.location && (
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                          <MapPin className="w-3 h-3" />
+                                          {job.location}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                      {job.fullJobDescription ? (
+                                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                          Complete
+                                        </span>
+                                      ) : job.description ? (
+                                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                          Summary
+                                        </span>
+                                      ) : null}
+                                      {job.appliedDate && (
+                                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                          {new Date(job.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            {savedJobs.filter(job =>
                               !jobSearchQuery ||
                               job.companyName.toLowerCase().includes(jobSearchQuery.toLowerCase()) ||
                               job.position.toLowerCase().includes(jobSearchQuery.toLowerCase())
-                            )
-                            .slice(0, 10)
-                            .map((job) => (
-                              <button
-                                key={job.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedSavedJob(job);
-                                  setJobSearchQuery(`${job.companyName} - ${job.position}`);
-                                  setShowJobDropdown(false);
-
-                                  // Pré-remplir les champs
-                                  setFormData({
-                                    jobTitle: job.position,
-                                    company: job.companyName,
-                                    jobDescription: job.fullJobDescription || job.description || '',
-                                    jobUrl: job.url || '',
-                                  });
-
-                                  toast.success('Job selected successfully');
-                                }}
-                                className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-b-0"
-                              >
-                                <div className="flex items-start gap-3">
-                                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
-                                    <Building className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                                      {job.companyName}
-                                    </p>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
-                                      {job.position}
-                                    </p>
-                                    {job.location && (
-                                      <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
-                                        <MapPin className="w-3 h-3" />
-                                        {job.location}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                    {job.fullJobDescription ? (
-                                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                                        Complete
-                                      </span>
-                                    ) : job.description ? (
-                                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                                        Summary
-                                      </span>
-                                    ) : null}
-                                    {job.appliedDate && (
-                                      <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                                        {new Date(job.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                      </span>
-                                    )}
-                                  </div>
+                            ).length === 0 && (
+                                <div className="p-4 text-center">
+                                  <Briefcase className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No jobs found</p>
+                                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                    {jobSearchQuery ? 'Try a different search term' : 'Start tracking jobs in Applications to use them here'}
+                                  </p>
                                 </div>
-                              </button>
-                            ))}
-                          {savedJobs.filter(job =>
-                            !jobSearchQuery ||
-                            job.companyName.toLowerCase().includes(jobSearchQuery.toLowerCase()) ||
-                            job.position.toLowerCase().includes(jobSearchQuery.toLowerCase())
-                          ).length === 0 && (
-                              <div className="p-4 text-center">
-                                <Briefcase className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No jobs found</p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                  {jobSearchQuery ? 'Try a different search term' : 'Start tracking jobs in Applications to use them here'}
-                                </p>
-                              </div>
-                            )}
-                        </>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                              )}
+                          </>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>,
+                  document.body
+                )}
 
                 {/* Job sélectionné - Affichage de confirmation compact */}
                 {selectedSavedJob && (
@@ -7077,42 +7053,33 @@ URL to visit: ${jobUrl}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: "100%" }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: "100%" }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              transition={{ type: "spring", damping: 28, stiffness: 350 }}
-              className="bg-white dark:bg-gray-900 w-full rounded-t-2xl sm:rounded-2xl max-w-2xl max-h-[90vh] flex flex-col 
-                shadow-2xl border border-gray-100 dark:border-gray-800 overflow-visible"
+              className="bg-white dark:bg-[#121212] w-full sm:rounded-2xl rounded-t-2xl max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
             >
-              {/* Drag handle for mobile */}
-              <div className="w-full flex justify-center pt-3 pb-1 sm:hidden">
-                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-              </div>
-
               {/* Header */}
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-3">
-                    <span className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                      {steps[currentStep - 1].icon}
-                    </span>
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl z-10 sticky top-0">
+                <div>
+                  <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
                     {steps[currentStep - 1].title}
                   </h2>
-                  <button
-                    onClick={() => {
-                      setIsModalOpen(false);
-                      setSelectedSavedJob(null);
-                      setJobSearchQuery('');
-                      setShowJobDropdown(false);
-                    }}
-                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 
-                      transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    aria-label="Close modal"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    {steps[currentStep - 1].description}
+                  </p>
                 </div>
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setSelectedSavedJob(null);
+                    setJobSearchQuery('');
+                    setShowJobDropdown(false);
+                  }}
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               {/* Scrollable content */}
@@ -7123,7 +7090,7 @@ URL to visit: ${jobUrl}
               </div>
 
               {/* Footer */}
-              <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+              <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#121212] flex justify-between items-center z-10">
                 <button
                   onClick={() => {
                     if (currentStep > 1) {
@@ -7131,12 +7098,12 @@ URL to visit: ${jobUrl}
                     }
                   }}
                   disabled={currentStep === 1}
-                  className={`px-4 py-2.5 text-sm font-medium flex items-center rounded-xl transition-all ${currentStep === 1
+                  className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-colors flex items-center gap-2 ${currentStep === 1
                     ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A]'
                     }`}
                 >
-                  <ChevronRight className="h-4 w-4 mr-1.5 rotate-180" />
+                  <ChevronRight className="h-4 w-4 rotate-180" />
                   Back
                 </button>
 
@@ -7159,24 +7126,17 @@ URL to visit: ${jobUrl}
                     (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
                     isDownloadingCV
                   }
-                  className="px-5 py-2.5 bg-gray-900 dark:bg-white 
-                    hover:bg-gray-800 dark:hover:bg-gray-100 
-                    disabled:bg-gray-200 disabled:dark:bg-gray-800
-                    disabled:text-gray-400 disabled:dark:text-gray-600
-                    text-white dark:text-gray-900 rounded-xl text-sm font-medium flex items-center 
-                    transition-all disabled:cursor-not-allowed
-                    shadow-lg shadow-gray-900/10 dark:shadow-white/5
-                    disabled:shadow-none"
+                  className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-black rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-gray-200 dark:shadow-none flex items-center gap-2"
                 >
                   {currentStep === steps.length ? (
                     <>
-                      <Sparkles className="h-4 w-4 mr-2" />
+                      <Sparkles className="h-4 w-4" />
                       <span>Analyze Resume</span>
                     </>
                   ) : (
                     <>
                       <span>Continue</span>
-                      <ChevronRight className="h-4 w-4 ml-1.5" />
+                      <ChevronRight className="h-4 w-4" />
                     </>
                   )}
                 </button>

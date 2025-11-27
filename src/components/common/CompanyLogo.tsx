@@ -19,16 +19,41 @@ interface CacheEntry {
 
 const urlCache = new Map<string, CacheEntry>();
 
+// Helper function to get initial state from cache
+const getInitialLogoState = (companyName: string): { logoSrc: string | null; isLoading: boolean } => {
+  if (!companyName) {
+    return { logoSrc: null, isLoading: false };
+  }
+  
+  const cacheKey = companyName.toLowerCase().trim();
+  const cached = urlCache.get(cacheKey);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return { logoSrc: cached.url, isLoading: false };
+  }
+  
+  const companyDomain = getCompanyDomain(companyName);
+  if (!companyDomain) {
+    return { logoSrc: null, isLoading: false };
+  }
+  
+  // Return Clearbit URL to try first
+  return { logoSrc: getClearbitUrl(companyDomain), isLoading: true };
+};
+
 export function CompanyLogo({
   companyName,
   size = 'md',
   className = '',
   showInitials = true,
 }: CompanyLogoProps) {
-  const [logoSrc, setLogoSrc] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Initialize state synchronously from cache to avoid flicker
+  const initialState = getInitialLogoState(companyName);
+  const [logoSrc, setLogoSrc] = useState<string | null>(initialState.logoSrc);
+  const [isLoading, setIsLoading] = useState(initialState.isLoading);
   const triedGoogle = useRef(false);
   const isMounted = useRef(true);
+  const prevCompanyName = useRef(companyName);
 
   const sizeClasses = {
     sm: 'h-4 w-4',
@@ -59,8 +84,15 @@ export function CompanyLogo({
   }, []);
 
   useEffect(() => {
+    // Only run if companyName actually changed
+    if (prevCompanyName.current === companyName) {
+      return;
+    }
+    prevCompanyName.current = companyName;
+
     if (!companyName) {
       setIsLoading(false);
+      setLogoSrc(null);
       return;
     }
 
