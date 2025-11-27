@@ -431,6 +431,7 @@ export default function InterviewPrepPage() {
   const [freeFormNotes, setFreeFormNotes] = useState<string>('');
   const [noteDocuments, setNoteDocuments] = useState<NoteDocument[]>([]);
   const [activeNoteDocumentId, setActiveNoteDocumentId] = useState<string | null>(null);
+  const [highlightedDocumentId, setHighlightedDocumentId] = useState<string | null>(null);
   const documentsSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
   const [liveSessionHistory, setLiveSessionHistory] = useState<LiveSessionRecord[]>([]);
@@ -3363,25 +3364,53 @@ Generate exactly ${count} questions.
     await saveSkillCoach(next);
   };
 
-  const exportStoryToNotes = (skill: string, storyId: string) => {
+  const exportStoryToNotes = async (skill: string, storyId: string) => {
     const story = (skillCoach?.starStories?.[skill] || []).find(s => s.id === storyId);
     if (!story) return;
-    const content = `STAR for ${skill}\n\nSituation: ${story.situation}\nAction: ${story.action}\nResult: ${story.result}`;
-    const newNoteId = uuidv4();
-    const newNote: Note = {
-      id: newNoteId,
-      title: `${skill} - STAR story`,
-      content,
-      color: '#b39ddb',
+
+    // Format STAR story content as HTML
+    const htmlContent = `
+      <h2>STAR Story: ${skill}</h2>
+      <h3>Situation</h3>
+      <p>${story.situation || '<em>No situation provided</em>'}</p>
+      <h3>Action</h3>
+      <p>${story.action || '<em>No action provided</em>'}</p>
+      <h3>Result</h3>
+      <p>${story.result || '<em>No result provided</em>'}</p>
+    `.trim();
+
+    // Extract preview text
+    const previewText = `${story.situation || ''} ${story.action || ''} ${story.result || ''}`.trim().substring(0, 100);
+
+    // Create new note document
+    const newDoc: NoteDocument = {
+      id: uuidv4(),
+      title: `${skill} - STAR Story`,
+      content: htmlContent,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      position: { x: 50, y: 50 }
+      preview: previewText,
     };
-    const updatedNotes = [...stickyNotes, newNote];
-    setStickyNotes(updatedNotes);
-    setNotePositions(prev => ({ ...prev, [newNoteId]: { x: 50, y: 50 } }));
-    setNoteSizes(prev => ({ ...prev, [newNoteId]: { width: 250, height: 200 } }));
-    updateInterviewNotes(updatedNotes);
+
+    // Add to documents and set as active
+    const updatedDocs = [...noteDocuments, newDoc];
+    setNoteDocuments(updatedDocs);
+    setActiveNoteDocumentId(newDoc.id);
+    
+    // Highlight the newly created document
+    setHighlightedDocumentId(newDoc.id);
+    
+    // Clear highlight after 3 seconds
+    setTimeout(() => {
+      setHighlightedDocumentId(null);
+    }, 3000);
+    
+    // Open notes tab
+    setSidebarTab('notes');
+
+    // Save to Firebase
+    await saveNoteDocuments(updatedDocs, newDoc.id);
+    
     toast.success('STAR story exported to Notes');
   };
 
@@ -3521,6 +3550,7 @@ Generate exactly ${count} questions.
         onDocumentsChange={handleDocumentsChange}
         liveSessionHistory={liveSessionHistory}
         onViewHistorySession={setSelectedHistorySession}
+        highlightedDocumentId={highlightedDocumentId}
       />
 
       <MotionConfig transition={{ duration: 0.2 }}>
@@ -4728,8 +4758,6 @@ Generate exactly ${count} questions.
                           skillGaps={skillGaps}
                           application={application!}
                           handleRateSkill={handleRateSkill}
-                          toggleMicroTask={toggleMicroTask}
-                          ensureDefaultTasks={ensureDefaultTasks}
                           addStarStory={addStarStory}
                           updateStarField={updateStarField}
                           deleteStarStory={deleteStarStory}

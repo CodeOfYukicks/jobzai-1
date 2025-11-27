@@ -19,22 +19,22 @@ export function AICard({
 	return (
 		<div
 			className={[
-				'rounded-2xl p-6 sm:p-8',
-				'bg-white dark:bg-[#1A1B1E]', // Premium dark gray (not too black, not too blue)
-				'shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]', // Soft shadow
+				'rounded-xl p-5',
+				'bg-white dark:bg-[#1A1B1E]', // Premium dark gray
+				'shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]', // Subtle shadow
 				'border border-gray-200/60 dark:border-[#2E2F33]',
 				'flex flex-col',
 				'transition-all duration-300',
-				'hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] dark:hover:border-[#3E3F45]',
+				'hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] dark:hover:border-[#3E3F45]',
 				className
 			].join(' ')}
 		>
-			<div className="flex flex-col sm:flex-row sm:items-start gap-5 mb-6">
-				<div className="h-12 w-12 rounded-xl flex-shrink-0 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-indigo-100 dark:ring-indigo-500/20 transition-colors">
-					<Sparkles className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+			<div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+				<div className="h-10 w-10 rounded-lg flex-shrink-0 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-indigo-100 dark:ring-indigo-500/20 transition-colors">
+					<Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
 				</div>
-				<div className="min-w-0 flex-1 pt-1">
-					<div className="text-lg font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">
+				<div className="min-w-0 flex-1">
+					<div className="text-base font-semibold text-gray-900 dark:text-white mb-1 tracking-tight">
 						AI-Powered Job Analysis
 					</div>
 					<div className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-2xl">
@@ -43,18 +43,18 @@ export function AICard({
 				</div>
 			</div>
 
-			<div className="mt-2">
+			<div className="mt-0">
 				<div className="flex flex-col sm:flex-row items-stretch gap-3">
-					<div className="flex-1 flex items-center rounded-xl border border-gray-200 dark:border-[#2E2F33] bg-gray-50 dark:bg-[#131416] px-4 py-1.5 transition-all focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/50 focus-within:ring-4 focus-within:ring-indigo-500/10 dark:focus-within:ring-indigo-500/20 focus-within:bg-white dark:focus-within:bg-[#131416]">
-						<div className="p-1.5 rounded-lg bg-white dark:bg-[#1F2023] mr-3 shadow-sm border border-gray-100 dark:border-[#2A2B30]">
-							<Link2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+					<div className="flex-1 flex items-center rounded-lg border border-gray-200 dark:border-[#2E2F33] bg-gray-50 dark:bg-[#131416] px-3 py-1 transition-all focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 dark:focus-within:ring-indigo-500/20 focus-within:bg-white dark:focus-within:bg-[#131416]">
+						<div className="p-1.5 rounded-md bg-white dark:bg-[#1F2023] mr-2 shadow-sm border border-gray-100 dark:border-[#2A2B30]">
+							<Link2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
 						</div>
 						<input
 							type="url"
 							value={jobUrl}
 							onChange={(e) => onJobUrlChange(e.target.value)}
 							placeholder="https://careers.company.com/job/..."
-							className="flex-1 py-2.5 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-600"
+							className="flex-1 py-2 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-600"
 						/>
 					</div>
 					<button
@@ -62,7 +62,7 @@ export function AICard({
 						disabled={isAnalyzing || !jobUrl}
 						className={[
 							'inline-flex items-center justify-center whitespace-nowrap',
-							'px-6 py-3 rounded-xl text-sm font-semibold',
+							'px-5 py-2 rounded-lg text-sm font-medium',
 							'text-white',
 							'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500',
 							'disabled:opacity-50 disabled:cursor-not-allowed',

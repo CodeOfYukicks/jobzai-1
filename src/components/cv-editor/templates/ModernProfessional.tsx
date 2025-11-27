@@ -104,9 +104,9 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                     Professional Summary
                   </h2>
                   {cvData.summary ? (
-                    <p className="text-gray-700 leading-relaxed" style={{ fontSize: '1em' }}>
-                      {cvData.summary}
-                    </p>
+                  <p className="text-gray-700 leading-relaxed" style={{ fontSize: '1em' }}>
+                    {cvData.summary}
+                  </p>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                       <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -123,42 +123,42 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             return (
               <ClickableSection key={section.id} sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-6">
-                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
-                    Work Experience
-                  </h2>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
+                  Work Experience
+                </h2>
                   {cvData.experiences?.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: `${experienceSpacing * 4}px` }}>
-                      {cvData.experiences.map(exp => (
-                        <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: `${experienceSpacing * 4}px` }}>
+                  {cvData.experiences.map(exp => (
+                    <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                      <div>
+                        <div className="flex justify-between items-start mb-1">
                           <div>
-                            <div className="flex justify-between items-start mb-1">
-                              <div>
-                                <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>{exp.title}</h3>
-                                <p className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                                  {exp.company}
-                                  {exp.location && ` • ${exp.location}`}
-                                </p>
-                              </div>
-                              <span className="text-gray-600" style={{ fontSize: '0.9em' }}>
-                                {formatDateRange(exp.startDate, exp.endDate, exp.current)}
-                              </span>
-                            </div>
-                            {exp.description && (
-                              <p className="text-gray-700 mb-2" style={{ fontSize: '0.95em' }}>{exp.description}</p>
-                            )}
-                            {exp.bullets.length > 0 && (
-                              <ul className="list-disc list-inside space-y-1">
-                                {exp.bullets.map((bullet, idx) => (
-                                  <li key={idx} className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                                    {bullet}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
+                            <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>{exp.title}</h3>
+                            <p className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                              {exp.company}
+                              {exp.location && ` • ${exp.location}`}
+                            </p>
                           </div>
-                        </ClickableSection>
-                      ))}
-                    </div>
+                          <span className="text-gray-600" style={{ fontSize: '0.9em' }}>
+                            {formatDateRange(exp.startDate, exp.endDate, exp.current)}
+                          </span>
+                        </div>
+                        {exp.description && (
+                          <p className="text-gray-700 mb-2" style={{ fontSize: '0.95em' }}>{exp.description}</p>
+                        )}
+                        {exp.bullets.length > 0 && (
+                          <ul className="list-disc list-inside space-y-1">
+                            {exp.bullets.map((bullet, idx) => (
+                              <li key={idx} className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                                {bullet}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </ClickableSection>
+                  ))}
+                </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                       <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -166,7 +166,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                       </p>
                     </div>
                   )}
-                </section>
+              </section>
               </ClickableSection>
             );
 
@@ -174,41 +174,41 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             return (
               <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-6">
-                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
-                    Education
-                  </h2>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
+                  Education
+                </h2>
                   {cvData.education?.length > 0 ? (
-                    <div className="space-y-3">
-                      {cvData.education.map(edu => (
-                        <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                <div className="space-y-3">
+                  {cvData.education.map(edu => (
+                    <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                      <div>
+                        <div className="flex justify-between items-start">
                           <div>
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
-                                  {edu.degree}
-                                  {edu.field && ` in ${edu.field}`}
-                                </h3>
-                                <p className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                                  {edu.institution}
-                                  {edu.location && ` • ${edu.location}`}
-                                </p>
-                                {edu.gpa && (
-                                  <p className="text-gray-600" style={{ fontSize: '0.9em' }}>GPA: {edu.gpa}</p>
-                                )}
-                              </div>
-                              <span className="text-gray-600" style={{ fontSize: '0.9em' }}>
-                                {formatDate(edu.endDate)}
-                              </span>
-                            </div>
-                            {edu.honors && edu.honors.length > 0 && (
-                              <p className="text-gray-600 mt-1" style={{ fontSize: '0.9em' }}>
-                                Honors: {edu.honors.join(', ')}
-                              </p>
+                            <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
+                              {edu.degree}
+                              {edu.field && ` in ${edu.field}`}
+                            </h3>
+                            <p className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                              {edu.institution}
+                              {edu.location && ` • ${edu.location}`}
+                            </p>
+                            {edu.gpa && (
+                              <p className="text-gray-600" style={{ fontSize: '0.9em' }}>GPA: {edu.gpa}</p>
                             )}
                           </div>
-                        </ClickableSection>
-                      ))}
-                    </div>
+                          <span className="text-gray-600" style={{ fontSize: '0.9em' }}>
+                            {formatDate(edu.endDate)}
+                          </span>
+                        </div>
+                        {edu.honors && edu.honors.length > 0 && (
+                          <p className="text-gray-600 mt-1" style={{ fontSize: '0.9em' }}>
+                            Honors: {edu.honors.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </ClickableSection>
+                  ))}
+                </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                       <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -216,7 +216,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                       </p>
                     </div>
                   )}
-                </section>
+              </section>
               </ClickableSection>
             );
 
@@ -228,17 +228,17 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                     Skills
                   </h2>
                   {cvData.skills?.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {cvData.skills.map(skill => (
-                        <span
-                          key={skill.id}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full"
-                          style={{ fontSize: '0.9em' }}
-                        >
-                          {skill.name}
-                        </span>
-                      ))}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {cvData.skills.map(skill => (
+                      <span
+                        key={skill.id}
+                        className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full"
+                        style={{ fontSize: '0.9em' }}
+                      >
+                        {skill.name}
+                      </span>
+                    ))}
+                  </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                       <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -254,22 +254,22 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             return (
               <ClickableSection key={section.id} sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-6">
-                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
-                    Certifications
-                  </h2>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
+                  Certifications
+                </h2>
                   {cvData.certifications?.length > 0 ? (
-                    <div className="space-y-2">
-                      {cvData.certifications.map(cert => (
-                        <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                          <div style={{ fontSize: '0.95em' }}>
-                            <span className="font-medium text-gray-900">{cert.name}</span>
-                            <span className="text-gray-600">
-                              {' • '}{cert.issuer} • {formatDate(cert.date)}
-                            </span>
-                          </div>
-                        </ClickableSection>
-                      ))}
-                    </div>
+                <div className="space-y-2">
+                  {cvData.certifications.map(cert => (
+                    <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                      <div style={{ fontSize: '0.95em' }}>
+                        <span className="font-medium text-gray-900">{cert.name}</span>
+                        <span className="text-gray-600">
+                          {' • '}{cert.issuer} • {formatDate(cert.date)}
+                        </span>
+                      </div>
+                    </ClickableSection>
+                  ))}
+                </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                       <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -277,7 +277,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                       </p>
                     </div>
                   )}
-                </section>
+              </section>
               </ClickableSection>
             );
 
@@ -285,48 +285,48 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             return (
               <ClickableSection key={section.id} sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-6">
-                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
-                    Projects
-                  </h2>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
+                  Projects
+                </h2>
                   {cvData.projects?.length > 0 ? (
-                    <div className="space-y-3">
-                      {cvData.projects.map(project => (
-                        <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                          <div>
-                            <div className="flex justify-between items-start">
-                              <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
-                                {project.name}
-                                {project.url && (
-                                  <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
-                                    {formatURL(project.url)}
-                                  </span>
-                                )}
-                              </h3>
-                              {project.startDate && (
-                                <span className="text-gray-600" style={{ fontSize: '0.9em' }}>
-                                  {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-gray-700" style={{ fontSize: '0.95em' }}>{project.description}</p>
-                            {project.technologies.length > 0 && (
-                              <p className="text-gray-600 mt-1" style={{ fontSize: '0.9em' }}>
-                                Technologies: {project.technologies.join(', ')}
-                              </p>
+                <div className="space-y-3">
+                  {cvData.projects.map(project => (
+                    <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
+                            {project.name}
+                            {project.url && (
+                              <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
+                                {formatURL(project.url)}
+                              </span>
                             )}
-                            {project.highlights.length > 0 && (
-                              <ul className="list-disc list-inside mt-1 space-y-1">
-                                {project.highlights.map((highlight, idx) => (
-                                  <li key={idx} className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                                    {highlight}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        </ClickableSection>
-                      ))}
-                    </div>
+                          </h3>
+                          {project.startDate && (
+                            <span className="text-gray-600" style={{ fontSize: '0.9em' }}>
+                              {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-700" style={{ fontSize: '0.95em' }}>{project.description}</p>
+                        {project.technologies.length > 0 && (
+                          <p className="text-gray-600 mt-1" style={{ fontSize: '0.9em' }}>
+                            Technologies: {project.technologies.join(', ')}
+                          </p>
+                        )}
+                        {project.highlights.length > 0 && (
+                          <ul className="list-disc list-inside mt-1 space-y-1">
+                            {project.highlights.map((highlight, idx) => (
+                              <li key={idx} className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                                {highlight}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </ClickableSection>
+                  ))}
+                </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                       <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -334,7 +334,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                       </p>
                     </div>
                   )}
-                </section>
+              </section>
               </ClickableSection>
             );
 
@@ -342,21 +342,21 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             return (
               <ClickableSection key={section.id} sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-6">
-                  <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
-                    Languages
-                  </h2>
+                <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
+                  Languages
+                </h2>
                   {cvData.languages?.length > 0 ? (
-                    <div className="flex flex-wrap gap-3">
-                      {cvData.languages.map(lang => (
-                        <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                          <span className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                            <span className="font-medium">{lang.name}</span>
-                            {' - '}
-                            <span className="text-gray-600">{lang.proficiency}</span>
-                          </span>
-                        </ClickableSection>
-                      ))}
-                    </div>
+                <div className="flex flex-wrap gap-3">
+                  {cvData.languages.map(lang => (
+                    <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                      <span className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                        <span className="font-medium">{lang.name}</span>
+                        {' - '}
+                        <span className="text-gray-600">{lang.proficiency}</span>
+                      </span>
+                    </ClickableSection>
+                  ))}
+                </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                       <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -364,7 +364,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                       </p>
                     </div>
                   )}
-                </section>
+              </section>
               </ClickableSection>
             );
 

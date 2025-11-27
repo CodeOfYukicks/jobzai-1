@@ -89,9 +89,9 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                   Executive Summary
                 </h2>
                 {cvData.summary ? (
-                  <p className="text-gray-700 leading-relaxed text-justify" style={{ fontSize: '1em' }}>
-                    {cvData.summary}
-                  </p>
+                <p className="text-gray-700 leading-relaxed text-justify" style={{ fontSize: '1em' }}>
+                  {cvData.summary}
+                </p>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -106,46 +106,46 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
           {/* Experience */}
           {enabledSections.find(s => s.type === 'experience') && (
             <ClickableSection sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section className="mb-6">
-                <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
-                  Professional Experience
-                </h2>
+            <section className="mb-6">
+              <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
+                Professional Experience
+              </h2>
                 {cvData.experiences?.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: `${(layoutSettings.experienceSpacing ?? 6) * 4}px` }}>
-                    {cvData.experiences.map(exp => (
-                      <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div>
-                          <div className="mb-2">
-                            <div className="flex justify-between items-baseline">
-                              <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>{exp.title}</h3>
-                              <span className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
-                                {formatDateRange(exp.startDate, exp.endDate, exp.current)}
-                              </span>
-                            </div>
-                            <p className="text-gray-700 italic" style={{ fontSize: '0.95em' }}>
-                              {exp.company}
-                              {exp.location && ` — ${exp.location}`}
-                            </p>
-                          </div>
-                          {exp.description && (
-                            <p className="text-gray-700 mb-2 text-justify" style={{ fontSize: '0.95em' }}>
-                              {exp.description}
-                            </p>
-                          )}
-                          {exp.bullets.length > 0 && (
-                            <ul className="space-y-1">
-                              {exp.bullets.map((bullet, idx) => (
-                                <li key={idx} className="text-gray-700 flex" style={{ fontSize: '0.95em' }}>
-                                  <span className="mr-2">•</span>
-                                  <span className="flex-1 text-justify">{bullet}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: `${(layoutSettings.experienceSpacing ?? 6) * 4}px` }}>
+                {cvData.experiences.map(exp => (
+                  <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div>
+                      <div className="mb-2">
+                        <div className="flex justify-between items-baseline">
+                          <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>{exp.title}</h3>
+                          <span className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
+                            {formatDateRange(exp.startDate, exp.endDate, exp.current)}
+                          </span>
                         </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+                        <p className="text-gray-700 italic" style={{ fontSize: '0.95em' }}>
+                          {exp.company}
+                          {exp.location && ` — ${exp.location}`}
+                        </p>
+                      </div>
+                      {exp.description && (
+                        <p className="text-gray-700 mb-2 text-justify" style={{ fontSize: '0.95em' }}>
+                          {exp.description}
+                        </p>
+                      )}
+                      {exp.bullets.length > 0 && (
+                        <ul className="space-y-1">
+                          {exp.bullets.map((bullet, idx) => (
+                            <li key={idx} className="text-gray-700 flex" style={{ fontSize: '0.95em' }}>
+                              <span className="mr-2">•</span>
+                              <span className="flex-1 text-justify">{bullet}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -153,47 +153,47 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
 
           {/* Projects */}
           {enabledSections.find(s => s.type === 'projects') && (
             <ClickableSection sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section className="mb-6">
-                <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
-                  Key Projects
-                </h2>
+            <section className="mb-6">
+              <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
+                Key Projects
+              </h2>
                 {cvData.projects?.length > 0 ? (
-                  <div className="space-y-3">
-                    {cvData.projects.map(project => (
-                      <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div>
-                          <div className="flex justify-between items-baseline mb-1">
-                            <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
-                              {project.name}
-                            </h3>
-                            {project.startDate && (
-                              <span className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
-                                {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-700 text-justify" style={{ fontSize: '0.95em' }}>{project.description}</p>
-                          {project.highlights.length > 0 && (
-                            <ul className="mt-1 space-y-1">
-                              {project.highlights.map((highlight, idx) => (
-                                <li key={idx} className="text-gray-700 flex" style={{ fontSize: '0.95em' }}>
-                                  <span className="mr-2">•</span>
-                                  <span className="flex-1">{highlight}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+              <div className="space-y-3">
+                {cvData.projects.map(project => (
+                  <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div>
+                      <div className="flex justify-between items-baseline mb-1">
+                        <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
+                          {project.name}
+                        </h3>
+                        {project.startDate && (
+                          <span className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
+                            {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-700 text-justify" style={{ fontSize: '0.95em' }}>{project.description}</p>
+                      {project.highlights.length > 0 && (
+                        <ul className="mt-1 space-y-1">
+                          {project.highlights.map((highlight, idx) => (
+                            <li key={idx} className="text-gray-700 flex" style={{ fontSize: '0.95em' }}>
+                              <span className="mr-2">•</span>
+                              <span className="flex-1">{highlight}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -201,7 +201,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
         </div>
@@ -211,39 +211,39 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
           {/* Education */}
           {enabledSections.find(s => s.type === 'education') && (
             <ClickableSection sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section className="mb-6">
-                <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
-                  Education
-                </h2>
+            <section className="mb-6">
+              <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
+                Education
+              </h2>
                 {cvData.education?.length > 0 ? (
-                  <div className="space-y-3">
-                    {cvData.education.map(edu => (
-                      <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div>
-                          <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
-                            {edu.degree}
-                          </h3>
-                          {edu.field && (
-                            <p className="text-gray-700 italic" style={{ fontSize: '0.95em' }}>{edu.field}</p>
-                          )}
-                          <p className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                            {edu.institution}
-                          </p>
-                          <p className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
-                            {formatDate(edu.endDate)}
-                          </p>
-                          {edu.gpa && (
-                            <p className="text-gray-600" style={{ fontSize: '0.9em' }}>GPA: {edu.gpa}</p>
-                          )}
-                          {edu.honors && edu.honors.length > 0 && (
-                            <p className="text-gray-600 italic mt-1" style={{ fontSize: '0.9em' }}>
-                              {edu.honors.join(', ')}
-                            </p>
-                          )}
-                        </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+              <div className="space-y-3">
+                {cvData.education.map(edu => (
+                  <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div>
+                      <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
+                        {edu.degree}
+                      </h3>
+                      {edu.field && (
+                        <p className="text-gray-700 italic" style={{ fontSize: '0.95em' }}>{edu.field}</p>
+                      )}
+                      <p className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                        {edu.institution}
+                      </p>
+                      <p className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
+                        {formatDate(edu.endDate)}
+                      </p>
+                      {edu.gpa && (
+                        <p className="text-gray-600" style={{ fontSize: '0.9em' }}>GPA: {edu.gpa}</p>
+                      )}
+                      {edu.honors && edu.honors.length > 0 && (
+                        <p className="text-gray-600 italic mt-1" style={{ fontSize: '0.9em' }}>
+                          {edu.honors.join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -251,7 +251,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
 
@@ -263,13 +263,13 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                   Core Competencies
                 </h2>
                 {cvData.skills?.length > 0 ? (
-                  <div className="space-y-1">
-                    {cvData.skills.map(skill => (
-                      <div key={skill.id} className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                        • {skill.name}
-                      </div>
-                    ))}
-                  </div>
+                <div className="space-y-1">
+                  {cvData.skills.map(skill => (
+                    <div key={skill.id} className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                      • {skill.name}
+                    </div>
+                  ))}
+                </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -284,23 +284,23 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
           {/* Certifications */}
           {enabledSections.find(s => s.type === 'certifications') && (
             <ClickableSection sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section className="mb-6">
-                <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
-                  Certifications
-                </h2>
+            <section className="mb-6">
+              <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
+                Certifications
+              </h2>
                 {cvData.certifications?.length > 0 ? (
-                  <div className="space-y-2">
-                    {cvData.certifications.map(cert => (
-                      <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div>
-                          <p className="font-medium text-gray-900" style={{ fontSize: '0.95em' }}>{cert.name}</p>
-                          <p className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
-                            {cert.issuer}, {formatDate(cert.date)}
-                          </p>
-                        </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+              <div className="space-y-2">
+                {cvData.certifications.map(cert => (
+                  <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div>
+                      <p className="font-medium text-gray-900" style={{ fontSize: '0.95em' }}>{cert.name}</p>
+                      <p className="text-gray-600 italic" style={{ fontSize: '0.9em' }}>
+                        {cert.issuer}, {formatDate(cert.date)}
+                      </p>
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -308,28 +308,28 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
 
           {/* Languages */}
           {enabledSections.find(s => s.type === 'languages') && (
             <ClickableSection sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section className="mb-6">
-                <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
-                  Languages
-                </h2>
+            <section className="mb-6">
+              <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
+                Languages
+              </h2>
                 {cvData.languages?.length > 0 ? (
-                  <div className="space-y-1">
-                    {cvData.languages.map(lang => (
-                      <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                          <span className="font-medium">{lang.name}</span>
-                          <span className="text-gray-600 italic"> — {lang.proficiency}</span>
-                        </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+              <div className="space-y-1">
+                {cvData.languages.map(lang => (
+                  <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                      <span className="font-medium">{lang.name}</span>
+                      <span className="text-gray-600 italic"> — {lang.proficiency}</span>
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -337,7 +337,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
         </div>

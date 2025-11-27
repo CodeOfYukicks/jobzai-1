@@ -2,19 +2,23 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, Search, Filter, Trash2, Copy, Eye, Plus,
-  Loader2, Calendar, Edit, MoreVertical, Sparkles, Wand2, ChevronDown, X, Check, Info
+  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, query, getDocs, deleteDoc, doc, orderBy, addDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { toast } from 'sonner';
 import { CVData, CVTemplate } from '../types/cvEditor';
 import { generateId } from '../lib/cvEditorUtils';
 import CVPreviewCard from '../components/resume-builder/CVPreviewCard';
+import { Folder } from '../components/resume-builder/FolderCard';
+import FolderManagementModal from '../components/resume-builder/FolderManagementModal';
+import FolderSidebar, { SelectedFolderType } from '../components/resume-builder/FolderSidebar';
+import FolderHeader from '../components/resume-builder/FolderHeader';
 
-interface Resume {
+export interface Resume {
   id: string;
   name: string;
   cvData: CVData;
@@ -22,6 +26,8 @@ interface Resume {
   updatedAt: any;
   template?: string;
   layoutSettings?: any;
+  folderId?: string;
+  tags?: string[];
 }
 
 // Initial empty CV data structure
@@ -60,6 +66,7 @@ export default function ResumeBuilderPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [resumes, setResumes] = useState<Resume[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
@@ -67,6 +74,42 @@ export default function ResumeBuilderPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newResumeName, setNewResumeName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<CVTemplate>('modern-professional');
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
+  const [isSavingFolder, setIsSavingFolder] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<SelectedFolderType>('all');
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+
+  // Fetch folders from Firestore
+  const fetchFolders = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const foldersRef = collection(db, 'users', currentUser.uid, 'folders');
+      const q = query(foldersRef, orderBy('order', 'asc'));
+      const querySnapshot = await getDocs(q);
+
+      const foldersList: Folder[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        foldersList.push({
+          id: doc.id,
+          name: data.name,
+          icon: data.icon || '📁',
+          color: data.color || '#8B5CF6',
+          coverPhoto: data.coverPhoto,
+          order: data.order || 0,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt
+        });
+      });
+
+      setFolders(foldersList);
+    } catch (error) {
+      console.error('Error fetching folders:', error);
+      toast.error('Failed to load folders');
+    }
+  }, [currentUser]);
 
   // Fetch resumes from Firestore
   const fetchResumes = useCallback(async () => {
@@ -92,7 +135,9 @@ export default function ResumeBuilderPage() {
             createdAt: data.createdAt,
             updatedAt: data.updatedAt,
             template: data.template,
-            layoutSettings: data.layoutSettings
+            layoutSettings: data.layoutSettings,
+            folderId: data.folderId,
+            tags: data.tags || []
           });
         }
       });
@@ -107,8 +152,11 @@ export default function ResumeBuilderPage() {
   }, [currentUser]);
 
   useEffect(() => {
-    fetchResumes();
-  }, [fetchResumes]);
+    if (currentUser) {
+      fetchFolders();
+      fetchResumes();
+    }
+  }, [currentUser, fetchFolders, fetchResumes]);
 
   // Templates available
   const templates: { value: CVTemplate; label: string; description: string }[] = [
@@ -187,41 +235,6 @@ export default function ResumeBuilderPage() {
     }
   };
 
-  // Duplicate resume
-  const duplicateResume = async (resume: Resume) => {
-    if (!currentUser) return;
-
-    try {
-      const newResumeId = generateId();
-      const duplicatedResume: Resume = {
-        ...resume,
-        id: newResumeId,
-        name: `${resume.name} (Copy)`,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      const docRef = doc(db, 'users', currentUser.uid, 'cvs', newResumeId);
-      await setDoc(docRef, {
-        ...duplicatedResume,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      setResumes(prev => [duplicatedResume, ...prev]);
-      toast.success('Resume duplicated');
-    } catch (error) {
-      console.error('Error duplicating resume:', error);
-      toast.error('Failed to duplicate resume');
-    }
-  };
-
-  // Enhance resume with AI - navigate to editor where AI features are available
-  const enhanceResumeWithAI = (resumeId: string) => {
-    navigate(`/resume-builder/${resumeId}/cv-editor`);
-    toast.info('AI enhancement features are available in the editor');
-  };
-
   // Handle edit navigation
   const handleEditResume = (resumeId: string) => {
     navigate(`/resume-builder/${resumeId}/cv-editor`);
@@ -245,6 +258,216 @@ export default function ResumeBuilderPage() {
     } catch (error) {
       console.error('Error renaming resume:', error);
       toast.error('Failed to rename resume');
+    }
+  };
+
+  // Update resume tags
+  const updateResumeTags = async (resumeId: string, tags: string[]) => {
+    if (!currentUser) return;
+
+    try {
+      const resumeRef = doc(db, 'users', currentUser.uid, 'cvs', resumeId);
+      await updateDoc(resumeRef, {
+        tags,
+        updatedAt: serverTimestamp()
+      });
+      
+      setResumes(prev => prev.map(r => 
+        r.id === resumeId ? { ...r, tags } : r
+      ));
+    } catch (error) {
+      console.error('Error updating resume tags:', error);
+      toast.error('Failed to update tags');
+    }
+  };
+
+  // Folder management functions
+  const createFolder = async (folderData: Omit<Folder, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!currentUser) return;
+
+    setIsSavingFolder(true);
+    try {
+      const foldersRef = collection(db, 'users', currentUser.uid, 'folders');
+      const newFolder = {
+        ...folderData,
+        order: folders.length,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(foldersRef, newFolder);
+      
+      const createdFolder: Folder = {
+        id: docRef.id,
+        ...folderData,
+        order: folders.length,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      setFolders(prev => [...prev, createdFolder]);
+      setIsFolderModalOpen(false);
+      setEditingFolder(null);
+      toast.success('Folder created');
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      toast.error('Failed to create folder');
+    } finally {
+      setIsSavingFolder(false);
+    }
+  };
+
+  const updateFolder = async (folderId: string, updates: Partial<Folder>) => {
+    if (!currentUser) return;
+
+    setIsSavingFolder(true);
+    try {
+      const folderRef = doc(db, 'users', currentUser.uid, 'folders', folderId);
+      await updateDoc(folderRef, {
+        ...updates,
+        updatedAt: serverTimestamp()
+      });
+      
+      setFolders(prev => prev.map(f => 
+        f.id === folderId ? { ...f, ...updates } : f
+      ));
+      setIsFolderModalOpen(false);
+      setEditingFolder(null);
+      toast.success('Folder updated');
+    } catch (error) {
+      console.error('Error updating folder:', error);
+      toast.error('Failed to update folder');
+    } finally {
+      setIsSavingFolder(false);
+    }
+  };
+
+  const deleteFolder = async (folderId: string) => {
+    if (!currentUser) return;
+
+    try {
+      // Move all CVs in this folder to uncategorized (remove folderId)
+      const folderResumes = resumes.filter(r => r.folderId === folderId);
+      for (const resume of folderResumes) {
+        const resumeRef = doc(db, 'users', currentUser.uid, 'cvs', resume.id);
+        await updateDoc(resumeRef, {
+          folderId: null,
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      // Update local state
+      setResumes(prev => prev.map(r => 
+        r.folderId === folderId ? { ...r, folderId: undefined } : r
+      ));
+
+      // Delete folder
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'folders', folderId));
+      setFolders(prev => prev.filter(f => f.id !== folderId));
+      toast.success('Folder deleted');
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast.error('Failed to delete folder');
+    }
+  };
+
+  // Move CV to folder - called from FolderSidebar on drop
+  const handleDropResume = async (resumeId: string, folderId: string | null) => {
+    if (!currentUser || !resumeId) return;
+
+    // Find current folder of the resume
+    const resume = resumes.find(r => r.id === resumeId);
+    if (!resume) return;
+
+    // Don't do anything if dropping to same folder
+    const currentFolder = resume.folderId || null;
+    if (currentFolder === folderId) return;
+
+    try {
+      const resumeRef = doc(db, 'users', currentUser.uid, 'cvs', resumeId);
+      await updateDoc(resumeRef, {
+        folderId: folderId || null,
+        updatedAt: serverTimestamp()
+      });
+      
+      setResumes(prev => prev.map(r => 
+        r.id === resumeId ? { ...r, folderId: folderId || undefined } : r
+      ));
+
+      const folderName = folderId 
+        ? folders.find(f => f.id === folderId)?.name || 'folder'
+        : 'Uncategorized';
+      toast.success(`Moved "${resume.name}" to ${folderName}`);
+    } catch (error) {
+      console.error('Error moving CV:', error);
+      toast.error('Failed to move resume');
+    }
+  };
+
+  const handleSelectFolder = (folderId: SelectedFolderType) => {
+    setSelectedFolderId(folderId);
+  };
+
+  const openFolderModal = (folder?: Folder) => {
+    setEditingFolder(folder || null);
+    setIsFolderModalOpen(true);
+  };
+
+  const handleFolderSave = async (folderData: Omit<Folder, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (editingFolder) {
+      await updateFolder(editingFolder.id, folderData);
+    } else {
+      await createFolder(folderData);
+    }
+  };
+
+  const handleUpdateCover = async (blob: Blob) => {
+    if (!currentUser || !selectedFolderId || typeof selectedFolderId !== 'string' || selectedFolderId === 'all') return;
+    
+    setIsUpdatingCover(true);
+    try {
+      const timestamp = Date.now();
+      // Use cover-photos collection which is already allowed in storage.rules
+      // Naming convention: folder_{folderId}_cover_{timestamp}.jpg
+      const fileName = `folder_${selectedFolderId}_cover_${timestamp}.jpg`;
+      const folderCoverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+      
+      await uploadBytes(folderCoverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(folderCoverRef);
+      
+      await updateFolder(selectedFolderId, { coverPhoto: coverUrl });
+      toast.success('Folder cover updated');
+    } catch (error) {
+      console.error('Error updating folder cover:', error);
+      toast.error('Failed to update cover');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  };
+
+  const handleRemoveCover = async () => {
+    if (!currentUser || !selectedFolderId || typeof selectedFolderId !== 'string' || selectedFolderId === 'all') return;
+    
+    const folder = folders.find(f => f.id === selectedFolderId);
+    if (!folder || !folder.coverPhoto) return;
+
+    setIsUpdatingCover(true);
+    try {
+      await updateFolder(selectedFolderId, { coverPhoto: undefined }); // FieldValue.delete() in update would be cleaner but simple update works if logic handles it
+      
+      try {
+        const coverRef = ref(storage, folder.coverPhoto);
+        await deleteObject(coverRef);
+      } catch (e) {
+        console.warn('Could not delete old cover photo from storage', e);
+      }
+      
+      toast.success('Folder cover removed');
+    } catch (error) {
+      console.error('Error removing folder cover:', error);
+      toast.error('Failed to remove cover');
+    } finally {
+      setIsUpdatingCover(false);
     }
   };
 
@@ -278,60 +501,143 @@ export default function ResumeBuilderPage() {
 
   const filteredResumes = filteredAndSortedResumes();
 
+  // Group resumes by folder and calculate counts
+  const groupedResumes = () => {
+    const grouped: Record<string, Resume[]> = {};
+    const uncategorized: Resume[] = [];
+    const folderCounts: Record<string, number> = {};
+
+    // Initialize counts for all folders
+    folders.forEach(f => {
+      folderCounts[f.id] = 0;
+      grouped[f.id] = [];
+    });
+
+    filteredResumes.forEach(resume => {
+      if (resume.folderId && grouped[resume.folderId] !== undefined) {
+        grouped[resume.folderId].push(resume);
+        folderCounts[resume.folderId]++;
+      } else {
+        uncategorized.push(resume);
+      }
+    });
+
+    return { grouped, uncategorized, folderCounts };
+  };
+
+  const { grouped, uncategorized, folderCounts } = groupedResumes();
+
+  // Get resumes to display based on selected folder
+  const getDisplayedResumes = (): Resume[] => {
+    if (selectedFolderId === 'all') {
+      return filteredResumes;
+    } else if (selectedFolderId === null) {
+      return uncategorized;
+    } else {
+      return grouped[selectedFolderId] || [];
+    }
+  };
+
+  const displayedResumes = getDisplayedResumes();
+
+  // Determine current folder object for header
+  const currentFolder = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
+    ? folders.find(f => f.id === selectedFolderId) 
+    : null;
+
+  const getHeaderProps = () => {
+    if (selectedFolderId === 'all') {
+      return {
+        title: 'All Resumes',
+        subtitle: `${displayedResumes.length} ${displayedResumes.length === 1 ? 'resume' : 'resumes'}`,
+        icon: <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
+      };
+    } else if (selectedFolderId === null) {
+      return {
+        title: 'Uncategorized',
+        subtitle: `${displayedResumes.length} ${displayedResumes.length === 1 ? 'resume' : 'resumes'}`,
+        icon: <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
+      };
+    } else {
+      // Custom folder
+      const folder = folders.find(f => f.id === selectedFolderId);
+      return {
+        folder,
+        title: folder?.name || 'Folder',
+        subtitle: `${displayedResumes.length} ${displayedResumes.length === 1 ? 'resume' : 'resumes'}`,
+        icon: null // Icon is handled inside FolderHeader via folder prop
+      };
+    }
+  };
+
+  const headerProps = getHeaderProps();
+
   return (
     <AuthLayout>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-4 py-6">
-          {/* Minimal Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Resume Builder
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Create and manage your professional resumes
-              </p>
-            </div>
+      <div className="flex h-full">
+        {/* Sidebar */}
+        <FolderSidebar
+          folders={folders}
+          selectedFolderId={selectedFolderId}
+          onSelectFolder={handleSelectFolder}
+          onEditFolder={openFolderModal}
+          onDeleteFolder={deleteFolder}
+          onNewFolder={() => openFolderModal()}
+          onDropResume={handleDropResume}
+          folderCounts={folderCounts}
+          uncategorizedCount={uncategorized.length}
+          totalCount={filteredResumes.length}
+        />
+
+        {/* Main Content */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {/* Replaced Header with FolderHeader */}
+          <FolderHeader
+            folder={currentFolder}
+            title={headerProps.title}
+            subtitle={headerProps.subtitle}
+            icon={headerProps.icon}
+            onUpdateCover={currentFolder ? handleUpdateCover : undefined}
+            onRemoveCover={currentFolder ? handleRemoveCover : undefined}
+            isUpdating={isUpdatingCover}
+          >
             <button
-              onClick={openCreateModal}
-              disabled={isCreating}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                text-gray-700 dark:text-gray-200 
-                bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
-                border border-gray-200 dark:border-gray-700 rounded-lg
-                hover:bg-gray-50 dark:hover:bg-gray-700/80 
-                hover:border-gray-300 dark:hover:border-gray-600
-                shadow-sm hover:shadow transition-all duration-200
-                disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>New Resume</span>
+                onClick={openCreateModal}
+                disabled={isCreating}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                  text-gray-700 dark:text-gray-200 
+                  bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
+                  border border-gray-200 dark:border-gray-700 rounded-lg
+                  hover:bg-gray-50 dark:hover:bg-gray-700/80 
+                  hover:border-gray-300 dark:hover:border-gray-600
+                  shadow-sm hover:shadow transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>New Resume</span>
             </button>
-          </div>
+          </FolderHeader>
 
-          {/* Minimal Search and Filters - Notion Style */}
-          {resumes.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
-              {/* Search Input */}
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full pl-9 pr-4 py-2 
-                    bg-transparent
-                    border border-gray-200 dark:border-gray-700 rounded-lg
-                    focus:border-gray-300 dark:focus:border-gray-600
-                    focus:ring-0 focus:outline-none
-                    text-sm text-gray-900 dark:text-white placeholder-gray-400
-                    transition-colors duration-200"
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                {/* Sort By */}
+          <div className="p-6 pt-4">
+            {/* Search */}
+            {resumes.length > 0 && (
+              <div className="flex items-center gap-3 mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search resumes..."
+                    className="w-full pl-9 pr-4 py-2 
+                      bg-transparent
+                      border border-gray-200 dark:border-gray-700 rounded-lg
+                      focus:border-gray-300 dark:focus:border-gray-600
+                      focus:ring-0 focus:outline-none
+                      text-sm text-gray-900 dark:text-white placeholder-gray-400
+                      transition-colors duration-200"
+                  />
+                </div>
                 <div className="relative">
                   <select
                     value={sortBy}
@@ -343,110 +649,88 @@ export default function ResumeBuilderPage() {
                   </select>
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
                 </div>
-
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Loading State */}
-          {isLoading && (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!isLoading && resumes.length === 0 && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-24 text-center"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 
-                flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
               </div>
+            )}
 
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5">
-                No resumes yet
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-6">
-                Create your first professional resume to get started.
-              </p>
-
-              <button
-                onClick={createNewResume}
-                disabled={isCreating}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                  text-gray-700 dark:text-gray-200 
-                  bg-white dark:bg-gray-800 
-                  border border-gray-200 dark:border-gray-700 rounded-lg
-                  hover:bg-gray-50 dark:hover:bg-gray-700 
-                  hover:border-gray-300 dark:hover:border-gray-600
-                  shadow-sm transition-all duration-200
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* Empty State - No resumes at all */}
+            {!isLoading && resumes.length === 0 && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-20 text-center"
               >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating...
-                  </>
+                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 
+                  flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5">
+                  No resumes yet
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-6">
+                  Create your first professional resume to get started.
+                </p>
+                <button
+                  onClick={openCreateModal}
+                  disabled={isCreating}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                    text-gray-700 dark:text-gray-200 
+                    bg-white dark:bg-gray-800 
+                    border border-gray-200 dark:border-gray-700 rounded-lg
+                    hover:bg-gray-50 dark:hover:bg-gray-700 
+                    hover:border-gray-300 dark:hover:border-gray-600
+                    shadow-sm transition-all duration-200
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>New Resume</span>
+                </button>
+              </motion.div>
+            )}
+
+            {/* Resumes Grid */}
+            {!isLoading && resumes.length > 0 && (
+              <>
+                {displayedResumes.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {displayedResumes.map((resume) => (
+                      <CVPreviewCard
+                        key={resume.id}
+                        resume={resume}
+                        onDelete={deleteResume}
+                        onRename={renameResume}
+                        onEdit={handleEditResume}
+                        onUpdateTags={updateResumeTags}
+                        compact
+                        draggable
+                      />
+                    ))}
+                  </div>
                 ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>New Resume</span>
-                  </>
+                  <div className="py-16 text-center">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 
+                      flex items-center justify-center mx-auto mb-3">
+                      <FileText className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
+                      {searchQuery ? 'No results found' : 'No resumes in this folder'}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {searchQuery 
+                        ? 'Try adjusting your search' 
+                        : 'Drag resumes here or create a new one'}
+                    </p>
+                  </div>
                 )}
-              </button>
-            </motion.div>
-          )}
-
-          {/* Resumes Grid */}
-          {!isLoading && filteredResumes.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              <AnimatePresence>
-                {filteredResumes.map((resume) => (
-                  <CVPreviewCard
-                    key={resume.id}
-                    resume={resume}
-                    onDelete={deleteResume}
-                    onRename={renameResume}
-                    onEdit={handleEditResume}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
-
-          {/* No Results */}
-          {!isLoading && resumes.length > 0 && filteredResumes.length === 0 && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-20 text-center"
-            >
-              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 
-                flex items-center justify-center mx-auto mb-3">
-                <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              </div>
-              <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-                No results
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Try adjusting your filters
-              </p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                }}
-                className="text-sm text-gray-600 dark:text-gray-400 
-                  hover:text-gray-900 dark:hover:text-white 
-                  underline underline-offset-2 transition-colors"
-              >
-                Clear filters
-              </button>
-            </motion.div>
-          )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -603,7 +887,19 @@ export default function ResumeBuilderPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Folder Management Modal */}
+      <FolderManagementModal
+        isOpen={isFolderModalOpen}
+        onClose={() => {
+          setIsFolderModalOpen(false);
+          setEditingFolder(null);
+        }}
+        onSave={handleFolderSave}
+        editingFolder={editingFolder}
+        isSaving={isSavingFolder}
+      />
+
     </AuthLayout>
   );
 }
-

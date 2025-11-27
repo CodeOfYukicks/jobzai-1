@@ -216,16 +216,16 @@ export default function ExperienceInlineForm({
       />
 
       {/* AI Enhancement Panel - Always show, works with or without job context */}
-      <AIEnhancePanel
-        sectionType="experience"
-        currentContent={getCurrentContent()}
-        onApply={handleAIEnhance}
-        jobContext={jobContext}
-        fullCV={fullCV}
-        conversationHistory={conversationHistory}
-        onAddToHistory={onAddToHistory}
-        onResetHistory={onResetHistory}
-      />
+        <AIEnhancePanel
+          sectionType="experience"
+          currentContent={getCurrentContent()}
+          onApply={handleAIEnhance}
+          jobContext={jobContext}
+          fullCV={fullCV}
+          conversationHistory={conversationHistory}
+          onAddToHistory={onAddToHistory}
+          onResetHistory={onResetHistory}
+        />
 
       {/* Achievements Section - Compact */}
       <div>

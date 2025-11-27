@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, Trash2, Clock, Search, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ interface DocumentsLibraryProps {
   onCreateDocument: () => void;
   onOpenDocument: (id: string) => void;
   onDeleteDocument: (id: string) => void;
+  highlightedDocumentId?: string | null;
 }
 
 interface DeleteModalProps {
@@ -65,10 +66,11 @@ function DeleteConfirmationModal({ document, onConfirm, onCancel }: DeleteModalP
   );
 }
 
-function DocumentCard({ document, onOpen, onDelete }: {
+function DocumentCard({ document, onOpen, onDelete, isHighlighted }: {
   document: NoteDocument;
   onOpen: () => void;
   onDelete: () => void;
+  isHighlighted?: boolean;
 }) {
   const getTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -98,7 +100,11 @@ function DocumentCard({ document, onOpen, onDelete }: {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       onClick={onOpen}
-      className="group relative bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-[#2A2A2E] rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-900 cursor-pointer"
+      className={`group relative bg-white dark:bg-[#1A1A1D] border rounded-xl p-4 transition-all duration-200 hover:shadow-md cursor-pointer ${
+        isHighlighted 
+          ? 'border-purple-400 dark:border-purple-600 shadow-lg shadow-purple-200/50 dark:shadow-purple-900/30 ring-2 ring-purple-200 dark:ring-purple-800' 
+          : 'border-gray-200 dark:border-[#2A2A2E] hover:border-indigo-200 dark:hover:border-indigo-900'
+      }`}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 overflow-hidden">
@@ -139,9 +145,23 @@ export default function DocumentsLibrary({
   onCreateDocument,
   onOpenDocument,
   onDeleteDocument,
+  highlightedDocumentId,
 }: DocumentsLibraryProps) {
   const [documentToDelete, setDocumentToDelete] = useState<NoteDocument | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const highlightedRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to highlighted document when it appears (only once, then allow normal scrolling)
+  useEffect(() => {
+    if (highlightedDocumentId && highlightedRef.current) {
+      const timeoutId = setTimeout(() => {
+        if (highlightedRef.current) {
+          highlightedRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 200);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [highlightedDocumentId]);
 
   const handleDeleteConfirm = () => {
     if (documentToDelete) {
@@ -160,7 +180,7 @@ export default function DocumentsLibrary({
     );
 
   return (
-    <div className="h-full flex flex-col bg-gray-50/50 dark:bg-[#1E1F22]">
+    <div className="flex-1 flex flex-col min-h-0 bg-gray-50/50 dark:bg-[#1E1F22]">
       {/* Header */}
       <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-white dark:bg-[#1E1F22] border-b border-gray-100 dark:border-[#2A2A2E]">
         <div className="flex items-center justify-between mb-4">
@@ -215,12 +235,17 @@ export default function DocumentsLibrary({
           <div className="grid grid-cols-1 gap-3">
             <AnimatePresence>
               {sortedDocuments.map((doc) => (
-                <DocumentCard
+                <div
                   key={doc.id}
-                  document={doc}
-                  onOpen={() => onOpenDocument(doc.id)}
-                  onDelete={() => setDocumentToDelete(doc)}
-                />
+                  ref={doc.id === highlightedDocumentId ? highlightedRef : null}
+                >
+                  <DocumentCard
+                    document={doc}
+                    onOpen={() => onOpenDocument(doc.id)}
+                    onDelete={() => setDocumentToDelete(doc)}
+                    isHighlighted={doc.id === highlightedDocumentId}
+                  />
+                </div>
               ))}
             </AnimatePresence>
             {sortedDocuments.length === 0 && searchQuery && (

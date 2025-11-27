@@ -7,23 +7,25 @@ interface NotesDocumentManagerProps {
   documents: NoteDocument[];
   activeDocumentId: string | null;
   onDocumentsChange: (documents: NoteDocument[], activeDocumentId: string | null) => void;
+  highlightedDocumentId?: string | null;
 }
 
 export default function NotesDocumentManager({
   documents,
   activeDocumentId,
   onDocumentsChange,
+  highlightedDocumentId,
 }: NotesDocumentManagerProps) {
   const [localDocuments, setLocalDocuments] = useState<NoteDocument[]>(documents);
   const [localActiveId, setLocalActiveId] = useState<string | null>(activeDocumentId);
   const isInitialized = useRef(false);
 
-  // Sync local state with props only on initial mount or when coming from external changes
+  // Sync local state with props - update when documents change or activeDocumentId changes externally
   useEffect(() => {
-    if (!isInitialized.current) {
-      setLocalDocuments(documents);
+    setLocalDocuments(documents);
+    // Only update activeId if it's different and not null (external change)
+    if (activeDocumentId !== localActiveId) {
       setLocalActiveId(activeDocumentId);
-      isInitialized.current = true;
     }
   }, [documents, activeDocumentId]);
 
@@ -102,7 +104,7 @@ export default function NotesDocumentManager({
     : null;
 
   return (
-    <div className="h-full">
+    <div className="flex-1 flex flex-col min-h-0">
       {!localActiveId || !activeDocument ? (
         // Show library view
         <DocumentsLibrary
@@ -110,6 +112,7 @@ export default function NotesDocumentManager({
           onCreateDocument={createDocument}
           onOpenDocument={openDocument}
           onDeleteDocument={deleteDocument}
+          highlightedDocumentId={highlightedDocumentId}
         />
       ) : (
         // Show editor view

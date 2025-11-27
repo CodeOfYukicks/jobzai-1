@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw
+  Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { getDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getDoc, doc, updateDoc, serverTimestamp, collection, query, orderBy, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import EditorPanel from '../components/cv-editor/EditorPanel';
 import PreviewContainer from '../components/cv-editor/PreviewContainer';
@@ -22,6 +22,7 @@ import { loadOrInitializeCVData } from '../lib/initializeCVData';
 import { analyzeCVWithAI } from '../services/cvReviewAI';
 import { compareCVData, detectAppliedSuggestions } from '../lib/cvComparison';
 import AuthLayout from '../components/AuthLayout';
+import SaveAsModal, { Folder } from '../components/cv-editor/SaveAsModal';
 import ModernProfessional from '../components/cv-editor/templates/ModernProfessional';
 import ExecutiveClassic from '../components/cv-editor/templates/ExecutiveClassic';
 import TechMinimalist from '../components/cv-editor/templates/TechMinimalist';
@@ -98,6 +99,11 @@ export default function PremiumCVEditor() {
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
+  // Save As modal state
+  const [isSaveAsModalOpen, setIsSaveAsModalOpen] = useState(false);
+  const [isSavingAs, setIsSavingAs] = useState(false);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  
   // Click-to-edit from preview
   const [activeSectionTarget, setActiveSectionTarget] = useState<SectionClickTarget | null>(null);
   
@@ -151,6 +157,39 @@ export default function PremiumCVEditor() {
       loadUserProfile();
     }
   }, [id, currentUser, isResumeBuilder]);
+
+  // Fetch folders for Save As modal (only for ATS analysis mode)
+  useEffect(() => {
+    const fetchFolders = async () => {
+      if (!currentUser || isResumeBuilder) return;
+      
+      try {
+        const foldersRef = collection(db, 'users', currentUser.uid, 'folders');
+        const q = query(foldersRef, orderBy('order', 'asc'));
+        const querySnapshot = await getDocs(q);
+        
+        const foldersList: Folder[] = [];
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          foldersList.push({
+            id: docSnap.id,
+            name: data.name,
+            icon: data.icon || '📁',
+            color: data.color || '#8B5CF6',
+            order: data.order || 0,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt
+          });
+        });
+        
+        setFolders(foldersList);
+      } catch (error) {
+        console.error('Error fetching folders:', error);
+      }
+    };
+    
+    fetchFolders();
+  }, [currentUser, isResumeBuilder]);
 
   // Run AI analysis function - can be called automatically or manually
   const runAnalysis = useCallback(async () => {
@@ -972,6 +1011,57 @@ export default function PremiumCVEditor() {
     toast.info('Share functionality coming soon!');
   };
 
+  // Handle Save As - save tailored CV to Resume Builder library
+  const handleSaveAs = async (name: string, folderId: string | null) => {
+    if (!currentUser) {
+      toast.error('Please sign in to save');
+      return;
+    }
+    
+    setIsSavingAs(true);
+    try {
+      const newResumeId = generateId();
+      const resumeRef = doc(db, 'users', currentUser.uid, 'cvs', newResumeId);
+      
+      await setDoc(resumeRef, {
+        name,
+        cvData,
+        template,
+        layoutSettings,
+        folderId: folderId || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        userId: currentUser.uid,
+        // Store source info for reference
+        sourceAnalysisId: id,
+        sourceJobContext: jobContext ? {
+          jobTitle: jobContext.jobTitle,
+          company: jobContext.company
+        } : null
+      });
+      
+      setIsSaveAsModalOpen(false);
+      
+      toast.success(
+        <div className="flex flex-col gap-1">
+          <span>CV saved to library!</span>
+          <button 
+            onClick={() => navigate('/resume-builder')}
+            className="text-xs text-purple-600 dark:text-purple-400 hover:underline text-left"
+          >
+            View in Resume Builder →
+          </button>
+        </div>,
+        { duration: 5000 }
+      );
+    } catch (error) {
+      console.error('Error saving CV to library:', error);
+      toast.error('Failed to save CV to library');
+    } finally {
+      setIsSavingAs(false);
+    }
+  };
+
   // Auto-save
   useEffect(() => {
     if (!isDirty) return;
@@ -1121,6 +1211,18 @@ export default function PremiumCVEditor() {
                     {isSaving ? 'Saving...' : 'Save'}
                   </span>
                 </button>
+
+                {/* Save As button - Only visible in ATS analysis mode */}
+                {!isResumeBuilder && (
+                  <button
+                    onClick={() => setIsSaveAsModalOpen(true)}
+                    className="group relative flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200/80 dark:border-gray-700/80 hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 hover:shadow-sm active:shadow-none transition-all duration-200 font-medium text-sm"
+                    title="Save to Resume Builder library"
+                  >
+                    <FolderOpen className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <span className="hidden md:inline">Save As</span>
+                  </button>
+                )}
 
                 {/* Export button - Premium Google Material Design 3 style */}
                 <button
@@ -1358,6 +1460,16 @@ export default function PremiumCVEditor() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Save As Modal */}
+        <SaveAsModal
+          isOpen={isSaveAsModalOpen}
+          onClose={() => setIsSaveAsModalOpen(false)}
+          onSave={handleSaveAs}
+          defaultName={jobContext ? `${jobContext.jobTitle} @ ${jobContext.company} - Tailored` : 'Tailored Resume'}
+          folders={folders}
+          isSaving={isSavingAs}
+        />
       </div>
     </AuthLayout>
   );

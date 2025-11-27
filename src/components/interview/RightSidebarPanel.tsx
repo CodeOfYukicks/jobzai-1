@@ -37,6 +37,7 @@ interface RightSidebarPanelProps {
   onDocumentsChange: (documents: NoteDocument[], activeDocumentId: string | null) => void;
   liveSessionHistory?: LiveSessionRecord[];
   onViewHistorySession?: (session: LiveSessionRecord) => void;
+  highlightedDocumentId?: string | null;
 }
 
 export default function RightSidebarPanel({
@@ -49,6 +50,7 @@ export default function RightSidebarPanel({
   onDocumentsChange,
   liveSessionHistory = [],
   onViewHistorySession,
+  highlightedDocumentId,
 }: RightSidebarPanelProps) {
   
   const getScoreColor = (score: number) => {
@@ -88,9 +90,9 @@ export default function RightSidebarPanel({
   const sortedHistory = [...liveSessionHistory].sort((a, b) => b.timestamp - a.timestamp);
 
   return (
-    <div className="hidden lg:block fixed right-0 top-0 bottom-0 w-[400px] bg-white dark:bg-[#1E1F22] border-l border-gray-200 dark:border-[#2A2A2E] shadow-[0_0_40px_rgba(0,0,0,0.05)] z-30 flex flex-col">
+    <div className="hidden lg:flex fixed right-0 top-0 h-screen w-[400px] bg-white dark:bg-[#1E1F22] border-l border-gray-200 dark:border-[#2A2A2E] shadow-[0_0_40px_rgba(0,0,0,0.05)] z-30 flex-col">
         {/* Tab Headers */}
-        <div className="flex items-center justify-around px-2 pt-4 pb-2 border-b border-gray-100 dark:border-[#2A2A2E]">
+        <div className="flex-shrink-0 flex items-center justify-around px-2 pt-4 pb-2 border-b border-gray-100 dark:border-[#2A2A2E]">
           {['progress', 'notes', 'history'].map((tab) => (
             <button
               key={tab}
@@ -119,7 +121,7 @@ export default function RightSidebarPanel({
         </div>
 
         {/* Tab Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
           <AnimatePresence mode="wait">
             {sidebarTab === 'progress' && (
               <motion.div
@@ -128,7 +130,7 @@ export default function RightSidebarPanel({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="p-6 space-y-8"
+                className="p-6 space-y-8 min-h-0"
               >
                 {/* Progress Header with Circular Indicator */}
                 <div className="bg-gray-50 dark:bg-[#1A1A1D] rounded-2xl p-6 flex items-center gap-6 border border-gray-100 dark:border-[#2A2A2E]">
@@ -250,12 +252,13 @@ export default function RightSidebarPanel({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
-                className="h-full"
+                className="min-h-0 flex flex-col"
               >
                 <NotesDocumentManager
                   documents={noteDocuments}
                   activeDocumentId={activeNoteDocumentId}
                   onDocumentsChange={onDocumentsChange}
+                  highlightedDocumentId={highlightedDocumentId}
                 />
               </motion.div>
             )}
@@ -267,7 +270,7 @@ export default function RightSidebarPanel({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="p-6 space-y-6"
+                className="p-6 space-y-6 min-h-0"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between">

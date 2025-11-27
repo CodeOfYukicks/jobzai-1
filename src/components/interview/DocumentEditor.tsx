@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Check, Loader2, FileText, Pencil } from 'lucide-react';
 import RichTextNotesEditor from './RichTextNotesEditor';
 
 export interface NoteDocument {
@@ -84,55 +85,106 @@ export default function DocumentEditor({
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Top Bar */}
-      <div className="flex-shrink-0 border-b border-[#E6B84D] dark:border-[#B8903D] bg-[#FFCC66] dark:bg-[#D4A947]">
+    <div className="flex-1 flex flex-col min-h-0 bg-gray-50/50 dark:bg-[#1E1F22]">
+      {/* Premium Header */}
+      <div className="flex-shrink-0 bg-white dark:bg-[#1E1F22] border-b border-gray-100 dark:border-[#2A2A2E]">
+        {/* Top Row: Back + Save Status */}
         <div className="flex items-center justify-between px-6 py-3">
-          {/* Left: Back Button */}
-          <button
+          {/* Back Button - Premium Pill Style */}
+          <motion.button
             onClick={onBack}
-            className="flex items-center gap-2 text-sm font-medium text-[#8B7332] dark:text-[#5A4A1F] hover:text-[#6B5828] dark:hover:text-[#4A3A18] transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-[#2A2A2E] text-gray-600 dark:text-gray-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
-          </button>
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+            <span className="text-sm font-medium">Back</span>
+          </motion.button>
 
-          {/* Center: Editable Title */}
-          <div className="flex-1 max-w-2xl mx-auto px-4">
-            {isEditingTitle ? (
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                onBlur={handleTitleBlur}
-                onKeyDown={handleTitleKeyDown}
-                autoFocus
-                className="w-full text-lg font-semibold text-center text-gray-900 dark:text-gray-900 bg-transparent border-b-2 border-[#8B7332] focus:outline-none px-2 py-1"
-              />
-            ) : (
-              <h1
-                onClick={() => setIsEditingTitle(true)}
-                className="text-lg font-semibold text-center text-gray-900 dark:text-gray-900 cursor-pointer hover:text-[#8B7332] dark:hover:text-[#6B5828] transition-colors px-2 py-1"
-                title="Click to edit title"
-              >
-                {title}
-              </h1>
-            )}
-          </div>
-
-          {/* Right: Save Indicator */}
-          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-800 min-w-[120px] justify-end">
+          {/* Save Status - Premium Pill */}
+          <AnimatePresence mode="wait">
             {isSaving ? (
-              <>
+              <motion.div
+                key="saving"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-[#2A2A2E] text-gray-500 dark:text-gray-400"
+              >
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Saving...</span>
-              </>
+                <span className="text-xs font-medium">Saving...</span>
+              </motion.div>
             ) : lastSaved ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-green-700 dark:text-green-800" />
-                <span>Saved {getTimeAgo(lastSaved)}</span>
-              </>
-            ) : null}
+              <motion.div
+                key="saved"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">Saved {getTimeAgo(lastSaved)}</span>
+              </motion.div>
+            ) : (
+              <div className="w-[100px]" /> // Placeholder for layout balance
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Title Section - Premium Card Style */}
+        <div className="px-6 pb-5">
+          <div className="bg-gray-50 dark:bg-[#1A1A1D] rounded-xl p-4 border border-gray-100 dark:border-[#2A2A2E]">
+            <div className="flex items-start gap-4">
+              {/* Document Icon Badge */}
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              
+              {/* Title Area */}
+              <div className="flex-1 min-w-0">
+                {isEditingTitle ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => handleTitleChange(e.target.value)}
+                      onBlur={handleTitleBlur}
+                      onKeyDown={handleTitleKeyDown}
+                      autoFocus
+                      className="w-full text-base font-semibold text-gray-900 dark:text-white bg-white dark:bg-[#2A2A2E] border border-indigo-300 dark:border-indigo-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all"
+                      placeholder="Enter document title..."
+                    />
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5 ml-1">
+                      Press Enter to save, Escape to cancel
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    onClick={() => setIsEditingTitle(true)}
+                    className="group w-full text-left"
+                    whileHover={{ scale: 1.005 }}
+                    whileTap={{ scale: 0.995 }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <h1 className="text-base font-semibold text-gray-900 dark:text-white leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+                        {title || 'Untitled Document'}
+                      </h1>
+                      <div className="flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
+                          <Pencil className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                      Click to edit title
+                    </p>
+                  </motion.button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

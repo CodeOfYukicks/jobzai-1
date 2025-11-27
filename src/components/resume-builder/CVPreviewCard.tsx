@@ -1,31 +1,35 @@
 import { memo, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles, Calendar, Trash2
+  Sparkles, Calendar, Trash2, Edit2, Eye, Check, Tag
 } from 'lucide-react';
-import { CVData, CVLayoutSettings, CVTemplate } from '../../types/cvEditor';
+import { CVData, CVLayoutSettings } from '../../types/cvEditor';
 import { A4_WIDTH_PX, A4_HEIGHT_PX } from '../../lib/cvEditorUtils';
 import ModernProfessional from '../cv-editor/templates/ModernProfessional';
 import ExecutiveClassic from '../cv-editor/templates/ExecutiveClassic';
 import TechMinimalist from '../cv-editor/templates/TechMinimalist';
 import CreativeBalance from '../cv-editor/templates/CreativeBalance';
-
-interface Resume {
-  id: string;
-  name: string;
-  cvData: CVData;
-  createdAt: any;
-  updatedAt: any;
-  template?: string;
-  layoutSettings?: CVLayoutSettings;
-}
+import { Resume } from '../../pages/ResumeBuilderPage';
 
 interface CVPreviewCardProps {
   resume: Resume;
   onDelete: (id: string) => void;
   onRename: (id: string, newName: string) => void;
   onEdit: (id: string) => void;
+  onUpdateTags?: (id: string, tags: string[]) => void;
+  compact?: boolean;
+  draggable?: boolean;
 }
+
+const TAG_COLORS = [
+  { id: 'red', color: '#EF4444', label: 'Red' },
+  { id: 'orange', color: '#F97316', label: 'Orange' },
+  { id: 'yellow', color: '#EAB308', label: 'Yellow' },
+  { id: 'green', color: '#22C55E', label: 'Green' },
+  { id: 'blue', color: '#3B82F6', label: 'Blue' },
+  { id: 'purple', color: '#A855F7', label: 'Purple' },
+  { id: 'gray', color: '#6B7280', label: 'Gray' },
+];
 
 // Default layout settings
 const defaultLayoutSettings: CVLayoutSettings = {
@@ -95,11 +99,52 @@ function formatDateString(dateInput: any): string {
   }
 }
 
+// Skeleton Loader Component
+const SkeletonPreview = memo(() => (
+  <div className="w-full h-full flex flex-col p-8 bg-white">
+    {/* Header area */}
+    <div className="flex gap-4 mb-8">
+      <div className="w-16 h-16 rounded-full bg-gray-100" />
+      <div className="flex-1 space-y-3 py-2">
+        <div className="h-4 bg-gray-100 rounded w-3/4" />
+        <div className="h-3 bg-gray-50 rounded w-1/2" />
+      </div>
+    </div>
+    
+    {/* Content blocks */}
+    <div className="space-y-8">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="space-y-3">
+          <div className="h-3 bg-gray-100 rounded w-1/4 mb-4" />
+          <div className="space-y-2">
+            <div className="h-2 bg-gray-50 rounded w-full" />
+            <div className="h-2 bg-gray-50 rounded w-5/6" />
+            <div className="h-2 bg-gray-50 rounded w-4/6" />
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* Empty State Overlay */}
+    <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
+       <div className="bg-white/90 backdrop-blur-sm px-4 py-3 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2">
+         <Sparkles className="w-4 h-4 text-purple-500" />
+         <span className="text-xs font-medium text-gray-600">Empty Template</span>
+       </div>
+    </div>
+  </div>
+));
+
+SkeletonPreview.displayName = 'SkeletonPreview';
+
 const CVPreviewCard = memo(({
   resume,
   onDelete,
   onRename,
-  onEdit
+  onEdit,
+  onUpdateTags,
+  compact = false,
+  draggable = true
 }: CVPreviewCardProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -110,19 +155,13 @@ const CVPreviewCard = memo(({
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Calculate scale factor - A4 page preview
-  // Use a fixed scale that ensures good visibility
-  const targetWidth = 220; // Target preview width for grid (reduced from 260)
-  const scale = targetWidth / A4_WIDTH_PX; // Scale based on target width
+  const targetWidth = compact ? 140 : 220; 
+  const scale = targetWidth / A4_WIDTH_PX; 
   const scaledHeight = A4_HEIGHT_PX * scale;
   const scaledWidth = A4_WIDTH_PX * scale;
   
-  // Get template component
   const TemplateComponent = getTemplateComponent(resume.template);
-  
-  // Get layout settings
   const layoutSettings = resume.layoutSettings || defaultLayoutSettings;
-  
-  // Check if CV has content
   const hasCVContent = hasContent(resume.cvData);
 
   const handleEdit = () => {
@@ -132,6 +171,17 @@ const CVPreviewCard = memo(({
   const confirmDelete = () => {
     onDelete(resume.id);
     setIsDeleteDialogOpen(false);
+  };
+
+  const handleToggleTag = (colorId: string) => {
+    if (!onUpdateTags) return;
+    
+    const currentTags = resume.tags || [];
+    const newTags = currentTags.includes(colorId)
+      ? currentTags.filter(t => t !== colorId)
+      : [...currentTags, colorId];
+      
+    onUpdateTags(resume.id, newTags);
   };
 
   const handleNameClick = (e: React.MouseEvent) => {
@@ -170,7 +220,6 @@ const CVPreviewCard = memo(({
     setIsDeleteDialogOpen(true);
   };
 
-  // Close context menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setContextMenuOpen(false);
@@ -182,7 +231,6 @@ const CVPreviewCard = memo(({
     }
   }, [contextMenuOpen]);
 
-  // Focus input when editing starts
   useEffect(() => {
     if (isEditingName && nameInputRef.current) {
       nameInputRef.current.focus();
@@ -190,121 +238,162 @@ const CVPreviewCard = memo(({
     }
   }, [isEditingName]);
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData('text/plain', resume.id);
+    e.dataTransfer.setData('application/x-resume-id', resume.id);
+    e.dataTransfer.effectAllowed = 'move';
+    
+    const dragImage = document.createElement('div');
+    dragImage.style.cssText = `
+      width: 80px;
+      height: 100px;
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #666;
+      position: absolute;
+      top: -1000px;
+      left: -1000px;
+    `;
+    dragImage.textContent = resume.name.slice(0, 15) + (resume.name.length > 15 ? '...' : '');
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 40, 50);
+    
+    setTimeout(() => {
+      if (document.body.contains(dragImage)) {
+        document.body.removeChild(dragImage);
+      }
+    }, 100);
+  };
+
   return (
     <motion.div
       ref={cardRef}
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-      className="group relative bg-transparent dark:bg-transparent rounded-lg p-3
-        cursor-pointer transition-all duration-150
-        flex flex-col items-center"
+      className={`group relative flex flex-col items-center p-4 rounded-xl transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50`}
       onClick={handleEdit}
       onContextMenu={handleContextMenu}
+      draggable={draggable}
+      onDragStart={draggable ? handleDragStart : undefined}
     >
-      {/* A4 Page Preview - Direct, no box */}
+      {/* Document Preview */}
       <div 
-        className="relative flex items-start justify-center mb-3 w-full"
+        className={`relative mb-4 transition-transform duration-200 ease-out group-hover:-translate-y-1`}
+        style={{
+          width: `${scaledWidth}px`,
+          height: `${scaledHeight}px`,
+        }}
       >
+        {/* Stack effect layers */}
+        <div className="absolute top-0 left-0 w-full h-full bg-gray-200 dark:bg-gray-700 rounded-[2px] transform translate-y-1 translate-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 -z-10" />
+        <div className="absolute top-0 left-0 w-full h-full bg-gray-300 dark:bg-gray-600 rounded-[2px] transform translate-y-2 translate-x-2 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20" />
+
         <div
-          className="relative"
-          style={{
-            width: `${scaledWidth}px`,
-            height: `${scaledHeight}px`,
-          }}
+          className="relative w-full h-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 overflow-hidden rounded-[2px]"
         >
-          {hasCVContent ? (
-            <div
-              className="bg-white shadow-lg overflow-hidden"
-              style={{
-                width: `${A4_WIDTH_PX}px`,
-                minHeight: `${A4_HEIGHT_PX}px`,
-                padding: '40px',
-                transform: `scale(${scale})`,
-                transformOrigin: 'top left',
-                pointerEvents: 'none',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                borderRadius: '2px'
-              }}
-            >
-              <TemplateComponent
-                cvData={resume.cvData}
-                layoutSettings={layoutSettings}
-              />
-            </div>
-          ) : (
-            <div 
-              className="bg-white shadow-lg flex flex-col items-center justify-center overflow-hidden"
-              style={{
-                width: `${A4_WIDTH_PX}px`,
-                height: `${A4_HEIGHT_PX}px`,
-                transform: `scale(${scale})`,
-                transformOrigin: 'top left',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                borderRadius: '2px'
-              }}
-            >
-              <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700/50 
-                flex items-center justify-center mb-2">
-                <Sparkles className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-              </div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Empty Resume
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Click to start editing
-              </p>
-            </div>
-          )}
+           {/* Hover Overlay Actions */}
+           <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors duration-200 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleEdit(); }}
+                className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 transform scale-90 hover:scale-100 transition-all"
+                title="Edit"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
+                className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transform scale-90 hover:scale-100 transition-all"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+           </div>
+
+          <div
+            style={{
+              width: `${A4_WIDTH_PX}px`,
+              height: `${A4_HEIGHT_PX}px`,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            {hasCVContent ? (
+                <div className="w-full h-full bg-white p-[40px]">
+                    <TemplateComponent
+                        cvData={resume.cvData}
+                        layoutSettings={layoutSettings}
+                    />
+                </div>
+            ) : (
+                <SkeletonPreview />
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Resume Name and Metadata - Minimal, centered */}
-      <div className="w-full flex flex-col items-center">
-        <div className="w-full mb-1.5 flex justify-center">
-          {isEditingName ? (
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              onBlur={handleNameBlur}
-              onKeyDown={handleNameKeyDown}
-              onClick={(e) => e.stopPropagation()}
-              className="text-sm font-medium text-gray-900 dark:text-white 
-                bg-transparent border-b-2 border-blue-500 dark:border-blue-400
-                focus:outline-none text-center w-full max-w-[200px] px-1"
-            />
-          ) : (
-            <h3 
-              className="text-sm font-medium text-gray-900 dark:text-white truncate 
-                cursor-text hover:text-blue-600 dark:hover:text-blue-400 transition-colors
-                px-2 py-1 rounded"
-              onClick={handleNameClick}
-              title="Click to rename"
-            >
-              {resume.name}
-            </h3>
-          )}
-        </div>
+      {/* Footer Info */}
+      <div className="w-full flex flex-col items-center gap-1">
+        {/* Tags Display */}
+        {resume.tags && resume.tags.length > 0 && (
+          <div className="flex items-center gap-1 mb-1">
+            {resume.tags.map(tagId => {
+              const tagColor = TAG_COLORS.find(t => t.id === tagId)?.color;
+              if (!tagColor) return null;
+              return (
+                <div
+                  key={tagId}
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: tagColor }}
+                  title={TAG_COLORS.find(t => t.id === tagId)?.label}
+                />
+              );
+            })}
+          </div>
+        )}
 
-        {/* Minimal metadata - centered */}
-        <div className="flex items-center justify-center gap-2 mb-2">
-          {resume.template && (
-            <span className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700/50 
-              text-gray-600 dark:text-gray-400 font-medium">
-              {resume.template.replace('-', ' ')}
-            </span>
-          )}
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            {formatDateString(resume.updatedAt || resume.createdAt)}
-          </span>
-        </div>
+        {isEditingName ? (
+          <input
+            ref={nameInputRef}
+            type="text"
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            onBlur={handleNameBlur}
+            onKeyDown={handleNameKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            className="text-sm font-medium text-gray-900 dark:text-white bg-transparent border-b border-purple-500 focus:outline-none text-center w-full px-1"
+          />
+        ) : (
+          <h3 
+            className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[180px] cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+            onClick={handleNameClick}
+            title={resume.name}
+          >
+            {resume.name}
+          </h3>
+        )}
+        
+        {!compact && (
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 dark:text-gray-500">
+                <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {formatDateString(resume.updatedAt || resume.createdAt)}
+                </span>
+                {resume.template && (
+                    <>
+                        <span>•</span>
+                        <span className="capitalize">{resume.template.replace('-', ' ')}</span>
+                    </>
+                )}
+            </div>
+        )}
       </div>
 
-      {/* Context Menu for Delete */}
+      {/* Context Menu */}
       <AnimatePresence>
         {contextMenuOpen && (
           <motion.div
@@ -319,6 +408,44 @@ const CVPreviewCard = memo(({
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {onUpdateTags && (
+              <>
+                <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                  <div className="flex items-center justify-between gap-1">
+                    {TAG_COLORS.map((tag) => (
+                      <button
+                        key={tag.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleTag(tag.id);
+                        }}
+                        className={`w-4 h-4 rounded-full transition-transform hover:scale-110 flex items-center justify-center
+                          ${resume.tags?.includes(tag.id) ? 'ring-1 ring-offset-1 ring-gray-400 dark:ring-gray-500' : ''}`}
+                        style={{ backgroundColor: tag.color }}
+                        title={tag.label}
+                      >
+                        {resume.tags?.includes(tag.id) && (
+                          <div className="w-1.5 h-1.5 bg-white rounded-full shadow-sm" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+             <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setContextMenuOpen(false);
+                handleEdit();
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200
+                hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              Edit
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -327,7 +454,7 @@ const CVPreviewCard = memo(({
               className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400
                 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
               Delete
             </button>
           </motion.div>
@@ -388,4 +515,3 @@ const CVPreviewCard = memo(({
 CVPreviewCard.displayName = 'CVPreviewCard';
 
 export default CVPreviewCard;
-

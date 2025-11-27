@@ -1,8 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Briefcase, Clock, Award, MessageSquare, ArrowUp, Check, CheckCircle2, AlertCircle, TrendingUp, Target, Sparkles, Loader2, AlertCircle as AlertCircleIcon } from 'lucide-react';
+import { Briefcase, Award, MessageSquare, ArrowUp, CheckCircle2, Sparkles, Loader2, AlertCircle as AlertCircleIcon, Trash2, FileText, Plus, Wand2 } from 'lucide-react';
 import { Interview } from '../../../types/interview';
-import { JobApplication } from '../../../types/job';
 import { generateStarStory } from '../../../services/starStoryGenerator';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -14,14 +13,158 @@ interface SkillsTabProps {
   skillGaps: Array<{ skill: string; rating: number; gap: number }>;
   application: { position?: string; companyName?: string };
   handleRateSkill: (skill: string, rating: number) => Promise<void>;
-  toggleMicroTask: (skill: string, taskId: string) => Promise<void>;
-  ensureDefaultTasks: (skill: string) => Array<{ id: string; label: string; done: boolean }>;
-  addStarStory: (skill: string) => Promise<void>;
+  addStarStory: (skill: string, initialContent?: { situation: string; action: string; result: string }) => Promise<void>;
   updateStarField: (skill: string, storyId: string, field: 'situation' | 'action' | 'result', value: string) => Promise<void>;
   deleteStarStory: (skill: string, storyId: string) => Promise<void>;
   exportStoryToNotes: (skill: string, storyId: string) => void;
   practiceInChat: (skill: string) => void;
 }
+
+// Premium Confidence Slider Component
+const ConfidenceSlider = memo(function ConfidenceSlider({
+  value,
+  onChange,
+  labels,
+}: {
+  value: number;
+  onChange: (rating: number) => void;
+  labels: string[];
+}) {
+  const [isHovering, setIsHovering] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const getTrackGradient = (val: number) => {
+    if (val === 0) return 'from-neutral-300 to-neutral-300 dark:from-neutral-600 dark:to-neutral-600';
+    if (val <= 2) return 'from-amber-400 to-orange-500';
+    if (val <= 3) return 'from-yellow-400 to-amber-500';
+    return 'from-emerald-400 to-teal-500';
+  };
+
+  const getThumbColor = (val: number) => {
+    if (val === 0) return 'bg-neutral-400 dark:bg-neutral-500';
+    if (val <= 2) return 'bg-orange-500';
+    if (val <= 3) return 'bg-amber-500';
+    return 'bg-emerald-500';
+  };
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(Number(e.target.value));
+  };
+
+  const handlePointClick = (point: number) => {
+    onChange(point);
+  };
+
+  return (
+    <div 
+      className="relative py-5 px-2"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
+      {/* Track Container */}
+      <div className="relative h-2 rounded-full bg-neutral-200 dark:bg-neutral-700">
+        {/* Filled Track */}
+        <motion.div
+          className={`absolute left-0 top-0 h-full rounded-full bg-gradient-to-r ${getTrackGradient(value)}`}
+          initial={false}
+          animate={{ width: `${(value / 5) * 100}%` }}
+          transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+        />
+        
+        {/* Snap Point Markers */}
+        <div className="absolute inset-0 flex justify-between items-center pointer-events-none">
+          {[0, 1, 2, 3, 4, 5].map((point) => (
+            <div
+              key={point}
+              className={`
+                w-3 h-3 rounded-full transition-all duration-200 border-2
+                ${value >= point 
+                  ? 'bg-white border-white shadow-sm' 
+                  : 'bg-neutral-300 dark:bg-neutral-600 border-neutral-300 dark:border-neutral-600'
+                }
+                ${point === value ? 'scale-0' : 'scale-100'}
+              `}
+            />
+          ))}
+        </div>
+
+        {/* Clickable Areas for Snap Points */}
+        <div className="absolute inset-0 flex justify-between items-center">
+          {[0, 1, 2, 3, 4, 5].map((point) => (
+            <button
+              key={point}
+              onClick={() => handlePointClick(point)}
+              className="w-6 h-6 rounded-full cursor-pointer hover:bg-neutral-500/10 transition-colors z-10"
+              aria-label={`Set confidence to ${point}`}
+            />
+          ))}
+        </div>
+
+        {/* Native Range Input for Dragging */}
+        <input
+          type="range"
+          min={0}
+          max={5}
+          step={1}
+          value={value}
+          onChange={handleSliderChange}
+          onMouseDown={() => setIsDragging(true)}
+          onMouseUp={() => setIsDragging(false)}
+          onTouchStart={() => setIsDragging(true)}
+          onTouchEnd={() => setIsDragging(false)}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+          aria-label="Confidence level"
+        />
+
+        {/* Custom Thumb */}
+        <motion.div
+          className={`
+            absolute top-1/2 pointer-events-none
+            w-5 h-5 rounded-full shadow-lg
+            ${getThumbColor(value)}
+            ring-[3px] ring-white dark:ring-neutral-900
+          `}
+          style={{ 
+            left: `calc(${(value / 5) * 100}% - 10px)`,
+            y: '-50%'
+          }}
+          initial={false}
+          animate={{ 
+            scale: isDragging ? 1.2 : isHovering ? 1.1 : 1,
+          }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        />
+      </div>
+      
+      {/* Labels */}
+      <div className="flex justify-between mt-4 -mx-1">
+        <button 
+          onClick={() => handlePointClick(0)}
+          className={`text-[11px] transition-all duration-200 hover:text-neutral-600 dark:hover:text-neutral-300 px-1 ${
+            value === 0 
+              ? 'text-neutral-900 dark:text-white font-semibold' 
+              : 'text-neutral-400 dark:text-neutral-500'
+          }`}
+        >
+          Not rated
+        </button>
+        {labels.map((label, i) => (
+          <button 
+            key={i}
+            onClick={() => handlePointClick(i + 1)}
+            className={`text-[11px] transition-all duration-200 hover:text-neutral-600 dark:hover:text-neutral-300 px-1 ${
+              value === i + 1 
+                ? 'text-neutral-900 dark:text-white font-semibold' 
+                : 'text-neutral-400 dark:text-neutral-500'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+});
 
 const SkillsTab = memo(function SkillsTab({
   interview,
@@ -30,8 +173,6 @@ const SkillsTab = memo(function SkillsTab({
   skillGaps,
   application,
   handleRateSkill,
-  toggleMicroTask,
-  ensureDefaultTasks,
   addStarStory,
   updateStarField,
   deleteStarStory,
@@ -73,6 +214,11 @@ const SkillsTab = memo(function SkillsTab({
     const assessed = Object.keys(skillRatings).filter(skill => 
       interview.preparation?.requiredSkills?.includes(skill)
     ).length;
+    const avgRating = assessed > 0 
+      ? Object.entries(skillRatings)
+          .filter(([skill]) => interview.preparation?.requiredSkills?.includes(skill))
+          .reduce((acc, [, rating]) => acc + rating, 0) / assessed
+      : 0;
     
     return {
       total,
@@ -80,10 +226,12 @@ const SkillsTab = memo(function SkillsTab({
       ready: groupedSkills.ready.length,
       needsWork: groupedSkills.needsWork.length,
       critical: groupedSkills.critical.length,
+      avgRating: Math.round(avgRating * 10) / 10,
+      readinessPercent: total > 0 ? Math.round((groupedSkills.ready.length / total) * 100) : 0,
     };
   }, [interview.preparation?.requiredSkills, skillRatings, groupedSkills]);
 
-  // Get all skills in order (not grouped, not sorted by gap)
+  // Get all skills in order
   const allSkills = useMemo(() => {
     return interview.preparation?.requiredSkills || [];
   }, [interview.preparation?.requiredSkills]);
@@ -91,13 +239,6 @@ const SkillsTab = memo(function SkillsTab({
   // Helper to get gap info for a skill
   const getSkillGap = (skill: string) => {
     return skillGaps.find(g => g.skill === skill);
-  };
-
-  // Helper to get skill readiness category
-  const getSkillCategory = (rating: number) => {
-    if (rating >= 4) return 'ready';
-    if (rating >= 2) return 'needsWork';
-    return 'critical';
   };
 
   // Handle AI STAR story generation
@@ -120,7 +261,6 @@ const SkillsTab = memo(function SkillsTab({
       });
 
       if (result.success && result.story) {
-        // Verify all three fields are present
         if (!result.story.situation || !result.story.action || !result.story.result) {
           console.warn('⚠️ Incomplete STAR story received from API:', {
             hasSituation: !!result.story.situation,
@@ -136,22 +276,11 @@ const SkillsTab = memo(function SkillsTab({
           result: result.story.result || '',
         };
         
-        console.log('💾 Generated STAR story content for skill:', skill, {
-          situationLength: storyContent.situation.length,
-          actionLength: storyContent.action.length,
-          resultLength: storyContent.result.length,
-        });
-        
-        // Create the story with all three fields populated atomically
         await addStarStory(skill, storyContent);
-        
-        console.log('✅ STAR story created with all fields populated');
         toast.success(`STAR story generated for ${skill}!`);
       } else if (result.message) {
-        // No relevant experience found
         setGenerationError(prev => ({ ...prev, [skill]: result.message || '' }));
       } else if (result.error) {
-        // API returned an error
         const errorMessage = result.error;
         setGenerationError(prev => ({ ...prev, [skill]: errorMessage }));
         toast.error(errorMessage);
@@ -168,386 +297,312 @@ const SkillsTab = memo(function SkillsTab({
     }
   };
 
-  // Helper to render skill assessment card
-  const renderSkillAssessment = (skill: string, rating: number, index: number) => {
-    const category = getSkillCategory(rating);
-    const borderColor = category === 'critical' ? 'border-red-200/40 dark:border-red-800/40 hover:border-red-300/60 dark:hover:border-red-700/60' :
-                        category === 'needsWork' ? 'border-amber-200/40 dark:border-amber-800/40 hover:border-amber-300/60 dark:hover:border-amber-700/60' :
-                        'border-emerald-200/40 dark:border-emerald-800/40 hover:border-emerald-300/60 dark:hover:border-emerald-700/60';
-    const buttonColor = category === 'critical' ? 
-      { active: 'bg-red-600 dark:bg-red-500', filled: 'bg-red-400/80 dark:bg-red-600/80', hover: 'hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400' } :
-      category === 'needsWork' ?
-      { active: 'bg-amber-600 dark:bg-amber-500', filled: 'bg-amber-400/80 dark:bg-amber-600/80', hover: 'hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400' } :
-      { active: 'bg-emerald-600 dark:bg-emerald-500', filled: 'bg-emerald-400/80 dark:bg-emerald-600/80', hover: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-400' };
-    const badgeColor = category === 'critical' ? 'bg-red-50/60 dark:bg-red-900/30 border-red-200/40 dark:border-red-800/40 text-red-700 dark:text-red-300' :
-                       category === 'needsWork' ? 'bg-amber-50/60 dark:bg-amber-900/30 border-amber-200/40 dark:border-amber-800/40 text-amber-700 dark:text-amber-300' :
-                       'bg-emerald-50/60 dark:bg-emerald-900/30 border-emerald-200/40 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300';
-    const progressColor = category === 'critical' ? 'bg-red-100/60 dark:bg-red-900/40 from-red-500 to-red-600' :
-                           category === 'needsWork' ? 'bg-amber-100/60 dark:bg-amber-900/40 from-amber-500 to-amber-600' :
-                           'bg-emerald-100/60 dark:bg-emerald-900/40 from-emerald-500 to-emerald-600';
-            
-            return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.03 }}
-        className={`group/skill relative rounded-lg border ${borderColor} bg-transparent px-3.5 py-2.5 transition-all`}
-      >
-        <div className="mb-2.5">
-          <p className="text-sm font-medium text-neutral-900 dark:text-white">
-                    {skill}
-                  </p>
-                </div>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 flex-1">
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((r) => (
-                <motion.button
-                  key={r}
-                  onClick={() => handleRateSkill(skill, r)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                          className={`
-                    relative w-8 h-8 rounded-md transition-all duration-200 text-xs font-medium
-                    ${rating >= r
-                      ? rating === r
-                        ? `${buttonColor.active} text-white`
-                        : `${buttonColor.filled} text-white`
-                      : `bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 ${buttonColor.hover}`
-                    }
-                  `}
-                  aria-label={`Rate ${skill} ${r} out of 5`}
-                  title={`${r}/5 - ${confidenceLabels[r - 1]}`}
-                >
-                  {r}
-                </motion.button>
-                      ))}
-                    </div>
-                  </div>
-                  
-          {rating > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded border ${badgeColor}`}
-            >
-              <span className="text-xs font-medium">
-                {rating}/5
-                      </span>
-              <span className="text-xs hidden sm:inline">
-                {confidenceLabels[rating - 1]}
-                      </span>
-            </motion.div>
-          )}
-      </div>
-      
-        {rating > 0 && (
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: '100%' }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className={`mt-2 h-1 ${progressColor.split(' ')[0]} rounded-full overflow-hidden`}
-          >
-            <div
-              className={`h-full bg-gradient-to-r ${progressColor.split(' ').slice(-2).join(' ')} rounded-full transition-all duration-300`}
-              style={{ width: `${(rating / 5) * 100}%` }}
-            />
-          </motion.div>
-        )}
-      </motion.div>
-    );
+  // Get confidence level badge styling
+  const getConfidenceBadge = (rating: number) => {
+    if (rating === 0) return { bg: 'bg-neutral-100 dark:bg-neutral-800', text: 'text-neutral-500 dark:text-neutral-400', label: 'Not rated' };
+    if (rating <= 2) return { bg: 'bg-amber-50 dark:bg-amber-900/30', text: 'text-amber-600 dark:text-amber-400', label: confidenceLabels[rating - 1] };
+    if (rating === 3) return { bg: 'bg-yellow-50 dark:bg-yellow-900/30', text: 'text-yellow-600 dark:text-yellow-400', label: confidenceLabels[rating - 1] };
+    return { bg: 'bg-emerald-50 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400', label: confidenceLabels[rating - 1] };
   };
 
-  // Helper to render skill coach card
-  const renderSkillCoach = (skill: string, rating: number, gap: number | undefined, index: number) => {
-    if (!gap && gap !== 0) {
-      // No gap means skill is ready, show minimal coach card or empty state
-      return (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.03 + 0.01 }}
-          className="group/skill relative rounded-lg border border-neutral-200/60 dark:border-neutral-800/60 bg-transparent px-4 py-3"
-        >
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <CheckCircle2 className="w-8 h-8 text-emerald-500 dark:text-emerald-400 mb-2" />
-            <p className="text-xs font-medium text-neutral-900 dark:text-white mb-1">Skill is ready</p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">No improvement needed</p>
-          </div>
-        </motion.div>
-      );
-    }
+  // Render premium unified skill card
+  const renderUnifiedSkillCard = (skill: string, rating: number, gap: number | undefined, index: number) => {
+    const starStories = skillCoach?.starStories?.[skill] || [];
+    const badge = getConfidenceBadge(rating);
+    const hasGap = gap !== undefined && gap > 0;
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 6 }}
+        key={skill}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.03 + 0.01 }}
-        className="group/skill relative rounded-lg border border-neutral-200/60 dark:border-neutral-800/60 bg-transparent px-4 py-3 hover:border-purple-300/60 dark:hover:border-purple-700/60 transition-all"
+        transition={{ delay: index * 0.05, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+        className="group relative rounded-2xl bg-white/80 dark:bg-neutral-900/60 backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:shadow-md transition-all duration-300 overflow-hidden"
       >
-        <div className="mb-3">
-          <div className="flex items-start justify-between gap-3 mb-2.5">
-            <h4 className="text-sm font-semibold text-neutral-900 dark:text-white flex-1">
-                    {skill}
-                  </h4>
-                </div>
-                
-          <div className="flex items-center justify-between gap-2.5">
+        {/* Header Section */}
+        <div className="px-6 pt-6 pb-4">
+          <div className="flex items-start justify-between gap-4 mb-1">
+            <h3 className="text-base font-semibold text-neutral-900 dark:text-white leading-snug flex-1">
+            {skill}
+          </h3>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-purple-50/60 dark:bg-purple-900/30 border border-purple-200/40 dark:border-purple-800/40">
-                <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
-                        {rating}/5
-                      </span>
-                <span className="text-xs text-neutral-400 dark:text-neutral-500">•</span>
-                      <span className="text-xs text-purple-600 dark:text-purple-400">
-                        Gap {gap}
-                      </span>
+              {/* Practice Button - Only show when there's a gap */}
+              {hasGap && (
+                  <motion.button
+                  onClick={() => practiceInChat(skill)}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="group/btn relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white shadow-md transition-all hover:shadow-lg dark:bg-white dark:text-neutral-900"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-300 group-hover/btn:opacity-20" />
+                  <MessageSquare className="w-3 h-3 relative z-10" />
+                  <span className="relative z-10">Practice</span>
+                  </motion.button>
+              )}
+              {/* Confidence Badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${badge.bg}`}
+              >
+                <span className={`text-xs font-medium ${badge.text}`}>
+                  {rating > 0 ? `${rating}/5` : ''} {badge.label}
+                </span>
+              </motion.div>
+            </div>
+          </div>
+          
+          {/* Confidence Slider */}
+          <ConfidenceSlider
+            value={rating}
+            onChange={(r) => handleRateSkill(skill, r)}
+            labels={confidenceLabels}
+          />
+        </div>
+
+        {/* Ready State - Only show when no gap and high rating */}
+        {!hasGap && rating >= 4 && (
+          <div className="border-t border-neutral-100 dark:border-neutral-800 px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-900 dark:text-white">Ready for interview</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">Your confidence level is high</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STAR Stories Section */}
+        <div className="border-t border-neutral-100 dark:border-neutral-800 px-6 py-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-purple-500" />
+              <h4 className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                STAR Stories
+              </h4>
+              {starStories.length > 0 && (
+                <span className="text-xs text-neutral-400 dark:text-neutral-500">
+                  ({starStories.length})
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Existing Stories */}
+          {starStories.length > 0 && (
+            <div className="space-y-4 mb-4">
+              {starStories.map((story, storyIndex) => (
+                <motion.div
+                  key={story.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: storyIndex * 0.05 }}
+                  className="group/story rounded-xl bg-neutral-50/80 dark:bg-neutral-800/50 p-4 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/70 transition-colors"
+                >
+                  {/* 3-Column Grid for S, A, R */}
+                  <div className="grid grid-cols-3 gap-4 mb-3">
+                    {[
+                      { key: 'situation', label: 'Situation', placeholder: 'Context and challenge...' },
+                      { key: 'action', label: 'Action', placeholder: 'What you did...' },
+                      { key: 'result', label: 'Result', placeholder: 'Impact and metrics...' },
+                    ].map((field) => (
+                      <div key={field.key} className="space-y-2">
+                        <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                          {field.label}
+                      </label>
+                      <textarea
+                          rows={4}
+                          value={story[field.key as keyof typeof story] as string}
+                          onChange={(e) => updateStarField(skill, story.id, field.key as 'situation' | 'action' | 'result', e.target.value)}
+                          placeholder={field.placeholder}
+                          className="w-full rounded-lg border-0 bg-white dark:bg-neutral-900/60 px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 resize-none focus:ring-2 focus:ring-purple-500/30 focus:outline-none transition-all"
+                      />
                     </div>
+                    ))}
                   </div>
-                  
+
+                  {/* Story Actions */}
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-neutral-200/60 dark:border-neutral-700/60">
+                    <motion.button
+                      onClick={() => exportStoryToNotes(skill, story.id)}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="group/export relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-700 px-3.5 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-200 transition-all hover:bg-neutral-200 dark:hover:bg-neutral-600"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Export to Notes</span>
+                    </motion.button>
+                    <motion.button
+                      onClick={() => deleteStarStory(skill, story.id)}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all opacity-0 group-hover/story:opacity-100"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2.5">
             <motion.button
-                    onClick={() => practiceInChat(skill)}
+              onClick={() => handleGenerateStarStory(skill)}
+              disabled={generatingForSkill === skill}
+              whileHover={{ scale: generatingForSkill === skill ? 1 : 1.02 }}
+              whileTap={{ scale: generatingForSkill === skill ? 1 : 0.98 }}
+              className="group/gen relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none dark:bg-white dark:text-neutral-900"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-300 group-hover/gen:opacity-20" />
+              
+              {generatingForSkill === skill ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin relative z-10" />
+                  <span className="relative z-10">Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-3.5 h-3.5 relative z-10" />
+                  <span className="relative z-10">Generate with AI</span>
+                  <Sparkles className="w-3 h-3 text-purple-400 dark:text-purple-600 relative z-10" />
+                </>
+              )}
+            </motion.button>
+            <motion.button
+              onClick={() => addStarStory(skill)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center gap-1.5 rounded-md bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700 transition-colors dark:bg-purple-500 dark:hover:bg-purple-600"
+              className="group/add relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2.5 text-sm font-medium text-neutral-600 dark:text-neutral-300 transition-all hover:border-purple-300 hover:text-purple-600 dark:hover:border-purple-600 dark:hover:text-purple-400"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Practice</span>
+              <Plus className="w-3.5 h-3.5 transition-transform duration-200 group-hover/add:rotate-90" />
+              <span>Add Manually</span>
             </motion.button>
-                </div>
-              </div>
-              
-        <div className="mt-3 pt-3 border-t border-neutral-200/60 dark:border-neutral-800/60">
-          <div className="flex items-center gap-1.5 mb-2.5">
-            <Clock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-            <h5 className="text-xs font-semibold text-neutral-900 dark:text-white">30‑minute plan</h5>
-                </div>
-          <div className="space-y-1.5">
-                  {ensureDefaultTasks(skill).map(t => (
-              <div
-                      key={t.id}
-                className={[
-                  'flex items-center rounded-md px-2.5 py-1.5 text-xs transition-all border',
-                  t.done
-                    ? 'border-neutral-200/40 dark:border-neutral-800/40 bg-neutral-50/40 dark:bg-neutral-900/30'
-                    : 'border-neutral-200/60 dark:border-neutral-800/60 bg-transparent hover:bg-neutral-50/60 dark:hover:bg-neutral-900/40',
-                ].join(' ')}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleMicroTask(skill, t.id)}
-                  className={[
-                    'mr-2 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-all',
-                    t.done
-                      ? 'border-emerald-500 bg-emerald-500 text-white'
-                      : 'border-neutral-300 dark:border-neutral-600 hover:border-purple-500 dark:hover:border-purple-500',
-                  ].join(' ')}
-                >
-                  {t.done && <Check className="h-2.5 w-2.5" />}
-                </button>
-                <span className={[
-                  'flex-1 bg-transparent text-xs outline-none',
-                  t.done
-                    ? 'text-neutral-500 line-through dark:text-neutral-400'
-                    : 'text-neutral-800 dark:text-neutral-100',
-                ].join(' ')}>
-                        {t.label}
-                      </span>
-              </div>
-                  ))}
-                </div>
-              </div>
-              
-        <div className="mt-3 pt-3 border-t border-neutral-200/60 dark:border-neutral-800/60">
-          <div className="flex items-center gap-1.5 mb-2.5">
-            <Award className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-            <h5 className="text-xs font-semibold text-neutral-900 dark:text-white">STAR stories</h5>
-                </div>
-          <div className="space-y-2">
-                  {(skillCoach?.starStories?.[skill] || []).map(story => (
-              <div key={story.id} className="space-y-2 p-2.5 rounded-lg border border-neutral-200/60 dark:border-neutral-800/60 bg-neutral-50/30 dark:bg-neutral-900/30">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        <textarea
-                    rows={2}
-                          value={story.situation}
-                          onChange={(e) => updateStarField(skill, story.id, 'situation', e.target.value)}
-                    placeholder="Situation"
-                    className="w-full rounded-md border border-neutral-200/60 dark:border-neutral-800/60 bg-white/60 dark:bg-white/5 px-2.5 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/20 dark:text-neutral-50 dark:placeholder:text-neutral-500 resize-y"
-                        />
-                        <textarea
-                    rows={2}
-                          value={story.action}
-                          onChange={(e) => updateStarField(skill, story.id, 'action', e.target.value)}
-                    placeholder="Action"
-                    className="w-full rounded-md border border-neutral-200/60 dark:border-neutral-800/60 bg-white/60 dark:bg-white/5 px-2.5 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/20 dark:text-neutral-50 dark:placeholder:text-neutral-500 resize-y"
-                        />
-                        <textarea
-                    rows={2}
-                          value={story.result}
-                          onChange={(e) => updateStarField(skill, story.id, 'result', e.target.value)}
-                    placeholder="Result"
-                    className="w-full rounded-md border border-neutral-200/60 dark:border-neutral-800/60 bg-white/60 dark:bg-white/5 px-2.5 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/20 dark:text-neutral-50 dark:placeholder:text-neutral-500 resize-y"
-                        />
-                      </div>
-                <div className="flex gap-1.5">
-                  <motion.button
-                          onClick={() => exportStoryToNotes(skill, story.id)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="rounded-md bg-neutral-100/60 dark:bg-white/10 px-2 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/20 transition-colors"
-                  >
-                    Export
-                  </motion.button>
-                  <motion.button
-                          onClick={() => deleteStarStory(skill, story.id)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="rounded-md bg-red-50/60 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
-                        >
-                          Delete
-                  </motion.button>
-                      </div>
-                    </div>
-                  ))}
-            
-            {/* Error message */}
-            {generationError[skill] && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`rounded-md border px-2.5 py-2 ${
+          </div>
+
+          {/* Error Message */}
+          {generationError[skill] && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`rounded-xl px-4 py-3 mt-3 ${
+                generationError[skill].toLowerCase().includes('network') || 
+                generationError[skill].toLowerCase().includes('server') ||
+                generationError[skill].toLowerCase().includes('connect') ||
+                generationError[skill].toLowerCase().includes('endpoint')
+                  ? 'bg-red-50 dark:bg-red-900/20'
+                  : 'bg-amber-50 dark:bg-amber-900/20'
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                <AlertCircleIcon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
                   generationError[skill].toLowerCase().includes('network') || 
                   generationError[skill].toLowerCase().includes('server') ||
                   generationError[skill].toLowerCase().includes('connect') ||
                   generationError[skill].toLowerCase().includes('endpoint')
-                    ? 'border-red-200/60 bg-red-50/60 dark:border-red-800/60 dark:bg-red-900/20'
-                    : 'border-amber-200/60 bg-amber-50/60 dark:border-amber-800/60 dark:bg-amber-900/20'
-                }`}
-              >
-                <div className="flex items-start gap-1.5">
-                  <AlertCircleIcon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${
+                    ? 'text-red-500'
+                    : 'text-amber-500'
+                }`} />
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${
                     generationError[skill].toLowerCase().includes('network') || 
                     generationError[skill].toLowerCase().includes('server') ||
                     generationError[skill].toLowerCase().includes('connect') ||
                     generationError[skill].toLowerCase().includes('endpoint')
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-amber-600 dark:text-amber-400'
-                  }`} />
-                  <div className="flex-1">
-                    <p className={`text-xs font-medium mb-0.5 ${
-                      generationError[skill].toLowerCase().includes('network') || 
-                      generationError[skill].toLowerCase().includes('server') ||
-                      generationError[skill].toLowerCase().includes('connect') ||
-                      generationError[skill].toLowerCase().includes('endpoint')
-                        ? 'text-red-900 dark:text-red-200'
-                        : 'text-amber-900 dark:text-amber-200'
-                    }`}>
-                      {generationError[skill].toLowerCase().includes('network') || 
-                       generationError[skill].toLowerCase().includes('server') ||
-                       generationError[skill].toLowerCase().includes('connect') ||
-                       generationError[skill].toLowerCase().includes('endpoint')
-                        ? 'Connection Error'
-                        : 'No relevant experience found'}
-                    </p>
-                    <p className={`text-[10px] ${
-                      generationError[skill].toLowerCase().includes('network') || 
-                      generationError[skill].toLowerCase().includes('server') ||
-                      generationError[skill].toLowerCase().includes('connect') ||
-                      generationError[skill].toLowerCase().includes('endpoint')
-                        ? 'text-red-700 dark:text-red-300'
-                        : 'text-amber-700 dark:text-amber-300'
-                    }`}>
-                      {generationError[skill]}
-                    </p>
-                  </div>
+                      ? 'text-red-800 dark:text-red-200'
+                      : 'text-amber-800 dark:text-amber-200'
+                  }`}>
+                    {generationError[skill].toLowerCase().includes('network') || 
+                     generationError[skill].toLowerCase().includes('server') ||
+                     generationError[skill].toLowerCase().includes('connect') ||
+                     generationError[skill].toLowerCase().includes('endpoint')
+                      ? 'Connection Error'
+                      : 'No relevant experience found'}
+                  </p>
+                  <p className={`text-xs mt-0.5 ${
+                    generationError[skill].toLowerCase().includes('network') || 
+                    generationError[skill].toLowerCase().includes('server') ||
+                    generationError[skill].toLowerCase().includes('connect') ||
+                    generationError[skill].toLowerCase().includes('endpoint')
+                      ? 'text-red-600 dark:text-red-300'
+                      : 'text-amber-600 dark:text-amber-300'
+                  }`}>
+                    {generationError[skill]}
+                  </p>
                 </div>
-              </motion.div>
-            )}
-            
-            {/* Action buttons */}
-            <div className="flex gap-1.5">
-              <motion.button
-                onClick={() => handleGenerateStarStory(skill)}
-                disabled={generatingForSkill === skill}
-                whileHover={{ scale: generatingForSkill === skill ? 1 : 1.02 }}
-                whileTap={{ scale: generatingForSkill === skill ? 1 : 0.98 }}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md border border-purple-200/60 dark:border-purple-800/60 bg-purple-50/60 dark:bg-purple-900/30 px-2.5 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100/60 hover:border-purple-300/60 transition-all dark:text-purple-300 dark:hover:bg-purple-800/40 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {generatingForSkill === skill ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Generating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Generate with AI</span>
-                  </>
-                )}
-              </motion.button>
-              <motion.button
-                    onClick={() => addStarStory(skill)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1 text-xs px-2.5 py-1.5 rounded-md border border-dashed border-neutral-200/60 dark:border-neutral-800/60 bg-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50/60 dark:hover:bg-neutral-900/40 transition-colors font-medium"
-                  >
-                    + Add story
-              </motion.button>
-            </div>
-          </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </motion.div>
     );
   };
-
-  return (
-    <div className="space-y-4">
-      {/* Summary Card */}
+            
+            return (
+    <div className="space-y-5">
+      {/* Premium Summary Card */}
       {summaryStats.total > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-          className="group relative rounded-lg border border-neutral-200/60 dark:border-neutral-800/60 bg-transparent px-4 py-3 transition-all duration-200 dark:bg-transparent"
+          transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+          className="relative rounded-2xl bg-white/80 dark:bg-neutral-900/60 backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden"
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-50/60 dark:bg-emerald-900/30 border border-emerald-200/40 dark:border-emerald-800/40">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                    {summaryStats.ready} ready
+          {/* Progress Bar Background */}
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-neutral-100 dark:bg-neutral-800">
+            <motion.div
+              className="h-full bg-gradient-to-r from-purple-500 to-purple-600"
+              initial={{ width: 0 }}
+              animate={{ width: `${summaryStats.readinessPercent}%` }}
+              transition={{ delay: 0.3, duration: 0.8, ease: 'easeOut' }}
+            />
+                </div>
+                
+          <div className="px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                {/* Ready */}
+            <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span className="text-sm text-neutral-600 dark:text-neutral-300">
+                    <span className="font-semibold text-neutral-900 dark:text-white">{summaryStats.ready}</span> ready
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-50/60 dark:bg-amber-900/30 border border-amber-200/40 dark:border-amber-800/40">
-                  <TrendingUp className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                    {summaryStats.needsWork} need practice
+                {/* Need Practice */}
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span className="text-sm text-neutral-600 dark:text-neutral-300">
+                    <span className="font-semibold text-neutral-900 dark:text-white">{summaryStats.needsWork}</span> need practice
                   </span>
                 </div>
+                {/* Critical */}
                 {summaryStats.critical > 0 && (
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-red-50/60 dark:bg-red-900/30 border border-red-200/40 dark:border-red-800/40">
-                    <AlertCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                    <span className="text-xs font-medium text-red-700 dark:text-red-300">
-                      {summaryStats.critical} critical gap{summaryStats.critical !== 1 ? 's' : ''}
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                    <span className="text-sm text-neutral-600 dark:text-neutral-300">
+                      <span className="font-semibold text-neutral-900 dark:text-white">{summaryStats.critical}</span> critical
                     </span>
                   </div>
                 )}
               </div>
-            </div>
+
             <div className="text-right">
-              <div className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-0.5">
-                Skills Readiness
-              </div>
-              <div className="text-sm font-bold text-neutral-900 dark:text-white">
-                {summaryStats.assessed}/{summaryStats.total} assessed
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5">Overall Readiness</p>
+                <p className="text-lg font-bold text-neutral-900 dark:text-white">
+                  {summaryStats.readinessPercent}%
+                </p>
               </div>
             </div>
         </div>
         </motion.div>
       )}
 
-      {/* Skills - Each skill paired with its coach card */}
+      {/* Skills List */}
       {allSkills.length > 0 ? (
         <div className="space-y-4">
           {allSkills.map((skill, index) => {
@@ -555,35 +610,37 @@ const SkillsTab = memo(function SkillsTab({
             const gapInfo = getSkillGap(skill);
             const gap = gapInfo?.gap;
 
-            return (
-              <div key={skill} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Assessment Card */}
-                {renderSkillAssessment(skill, rating, index)}
-                
-                {/* Coach Card */}
-                {renderSkillCoach(skill, rating, gap, index)}
-              </div>
-            );
+            return renderUnifiedSkillCard(skill, rating, gap, index);
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-200/60 dark:border-neutral-800/60 bg-transparent px-4 py-8 text-center">
-          <Briefcase className="mb-2 h-6 w-6 text-neutral-300 dark:text-neutral-600" />
-          <p className="mb-0.5 text-xs font-medium text-neutral-900 dark:text-white">No skills to assess yet</p>
-          <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
-            Analyze a job posting to see required skills.
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center rounded-2xl bg-white/80 dark:bg-neutral-900/60 backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] px-8 py-12 text-center"
+        >
+          <div className="w-14 h-14 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-4">
+            <Briefcase className="w-6 h-6 text-neutral-400 dark:text-neutral-500" />
+          </div>
+          <h3 className="text-base font-semibold text-neutral-900 dark:text-white mb-1">No skills to assess yet</h3>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5 max-w-xs">
+            Analyze a job posting to automatically extract the required skills for this role.
           </p>
-          <button
+          <motion.button
             type="button"
             onClick={() =>
               (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()
             }
-            className="inline-flex items-center justify-center gap-1 rounded-md bg-purple-50/80 px-2.5 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-200 dark:hover:bg-purple-800/60 transition-colors"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="group/analyze relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl dark:bg-white dark:text-neutral-900"
           >
-            <ArrowUp className="h-3 w-3" />
-            Analyze a job posting
-          </button>
-      </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-300 group-hover/analyze:opacity-20" />
+            <ArrowUp className="w-4 h-4 relative z-10" />
+            <span className="relative z-10">Analyze Job Posting</span>
+            <Sparkles className="w-3.5 h-3.5 text-purple-400 dark:text-purple-600 relative z-10" />
+          </motion.button>
+        </motion.div>
       )}
     </div>
   );

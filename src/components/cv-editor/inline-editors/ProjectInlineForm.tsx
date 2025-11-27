@@ -281,16 +281,16 @@ export default function ProjectInlineForm({
       </div>
 
       {/* AI Enhancement Panel - Always show, works with or without job context */}
-      <AIEnhancePanel
-        sectionType="project"
-        currentContent={getCurrentContent()}
-        onApply={handleAIEnhance}
-        jobContext={jobContext}
-        fullCV={fullCV}
-        conversationHistory={conversationHistory}
-        onAddToHistory={onAddToHistory}
-        onResetHistory={onResetHistory}
-      />
+        <AIEnhancePanel
+          sectionType="project"
+          currentContent={getCurrentContent()}
+          onApply={handleAIEnhance}
+          jobContext={jobContext}
+          fullCV={fullCV}
+          conversationHistory={conversationHistory}
+          onAddToHistory={onAddToHistory}
+          onResetHistory={onResetHistory}
+        />
 
       {/* Highlights - Compact */}
       <div>

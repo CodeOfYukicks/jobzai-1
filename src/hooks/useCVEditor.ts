@@ -63,23 +63,23 @@ export function useCVEditor(
           }, { merge: true });
           console.log('CV data and editor state saved to resume:', cvId);
         } else {
-          // When analysisId is provided, save to the analyses collection
-          const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', cvId);
-          const updateData: any = {
-            'cv_rewrite.structured_data': cvData,
-            'cv_rewrite.updatedAt': new Date().toISOString()
+        // When analysisId is provided, save to the analyses collection
+        const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', cvId);
+        const updateData: any = {
+          'cv_rewrite.structured_data': cvData,
+          'cv_rewrite.updatedAt': new Date().toISOString()
+        };
+        
+        // Save editor state if provided
+        if (editorState) {
+          updateData['cv_rewrite.editor_state'] = {
+            ...editorState,
+            lastModified: new Date().toISOString()
           };
-          
-          // Save editor state if provided
-          if (editorState) {
-            updateData['cv_rewrite.editor_state'] = {
-              ...editorState,
-              lastModified: new Date().toISOString()
-            };
-          }
-          
-          await updateDoc(analysisRef, updateData);
-          console.log('CV data and editor state saved to analysis:', cvId);
+        }
+        
+        await updateDoc(analysisRef, updateData);
+        console.log('CV data and editor state saved to analysis:', cvId);
         }
       } else {
         // Standalone mode - save to cvs collection

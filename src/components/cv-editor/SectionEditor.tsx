@@ -390,26 +390,26 @@ export default function SectionEditor({
       return (
         <div className="space-y-4">
           {/* AI Enhancement Panel - Always show, works with or without job context */}
-          <AIEnhancePanel
-            sectionType="summary"
-            currentContent={data.summary || ''}
-            onApply={(enhancedContent) => {
-              onChange({ summary: enhancedContent });
-              // Don't reset history - keep it for iterative refinement
-            }}
-            jobContext={jobContext}
-            fullCV={fullCV}
-            conversationHistory={conversationHistory['summary'] || []}
-            onAddToHistory={(message) => {
-              setConversationHistory(prev => ({
-                ...prev,
-                summary: [...(prev.summary || []).slice(-3), message] // Keep last 3-4 messages
-              }));
-            }}
-            onResetHistory={() => {
-              setConversationHistory(prev => ({ ...prev, summary: [] }));
-            }}
-          />
+            <AIEnhancePanel
+              sectionType="summary"
+              currentContent={data.summary || ''}
+              onApply={(enhancedContent) => {
+                onChange({ summary: enhancedContent });
+                // Don't reset history - keep it for iterative refinement
+              }}
+              jobContext={jobContext}
+              fullCV={fullCV}
+              conversationHistory={conversationHistory['summary'] || []}
+              onAddToHistory={(message) => {
+                setConversationHistory(prev => ({
+                  ...prev,
+                  summary: [...(prev.summary || []).slice(-3), message] // Keep last 3-4 messages
+                }));
+              }}
+              onResetHistory={() => {
+                setConversationHistory(prev => ({ ...prev, summary: [] }));
+              }}
+            />
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
               Professional Summary

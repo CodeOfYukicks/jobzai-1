@@ -267,3 +267,4 @@ export function calculateImprovementScore(
   return Math.min(improvementPoints, 30); // Cap at 30 points improvement
 }
 
+

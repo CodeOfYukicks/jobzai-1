@@ -112,11 +112,11 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
         <ClickableSection sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
           <section className="mb-6">
             {cvData.summary ? (
-              <div className="rounded-lg p-4 border-l-4" style={{ backgroundColor: accentColorLight, borderColor: accentColor }}>
-                <p className="text-gray-700 leading-relaxed" style={{ fontSize: '1em' }}>
-                  {cvData.summary}
-                </p>
-              </div>
+            <div className="rounded-lg p-4 border-l-4" style={{ backgroundColor: accentColorLight, borderColor: accentColor }}>
+              <p className="text-gray-700 leading-relaxed" style={{ fontSize: '1em' }}>
+                {cvData.summary}
+              </p>
+            </div>
             ) : (
               <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                 <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -135,51 +135,51 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
           {/* Experience with icons */}
           {enabledSections.find(s => s.type === 'experience') && (
             <ClickableSection sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <Briefcase data-icon-type="briefcase" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
-                  <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Experience</h2>
-                </div>
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <Briefcase data-icon-type="briefcase" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
+                <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Experience</h2>
+              </div>
                 {cvData.experiences?.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: `${(layoutSettings.experienceSpacing ?? 6) * 4}px` }}>
-                    {cvData.experiences.map(exp => (
-                      <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div className="relative pl-6">
-                          {/* Timeline dot */}
-                          <div className="absolute left-0 top-2 w-3 h-3 rounded-full" style={{ backgroundColor: accentColor }}></div>
-                          <div className="absolute left-1.5 top-5 bottom-0 w-px bg-gray-200"></div>
-                          
-                          <div className="pb-4">
-                            <div className="flex justify-between items-start mb-1">
-                              <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
-                                {exp.title}
-                                <span className="font-normal" style={{ color: accentColor }}> @ {exp.company}</span>
-                              </h3>
-                              <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded" style={{ fontSize: '0.9em' }}>
-                                {formatDateRange(exp.startDate, exp.endDate, exp.current)}
-                              </span>
-                            </div>
-                            {exp.location && (
-                              <p className="text-gray-600 mb-2" style={{ fontSize: '0.9em' }}>{exp.location}</p>
-                            )}
-                            {exp.description && (
-                              <p className="text-gray-700 mb-2" style={{ fontSize: '0.95em' }}>{exp.description}</p>
-                            )}
-                            {exp.bullets.length > 0 && (
-                              <ul className="space-y-1">
-                                {exp.bullets.map((bullet, idx) => (
-                                  <li key={idx} className="text-gray-700 flex" style={{ fontSize: '0.95em' }}>
-                                    <span className="mr-2" style={{ color: accentColorMedium }}>▸</span>
-                                    <span className="flex-1">{bullet}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: `${(layoutSettings.experienceSpacing ?? 6) * 4}px` }}>
+                {cvData.experiences.map(exp => (
+                  <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div className="relative pl-6">
+                      {/* Timeline dot */}
+                      <div className="absolute left-0 top-2 w-3 h-3 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                      <div className="absolute left-1.5 top-5 bottom-0 w-px bg-gray-200"></div>
+                      
+                      <div className="pb-4">
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
+                            {exp.title}
+                            <span className="font-normal" style={{ color: accentColor }}> @ {exp.company}</span>
+                          </h3>
+                          <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded" style={{ fontSize: '0.9em' }}>
+                            {formatDateRange(exp.startDate, exp.endDate, exp.current)}
+                          </span>
                         </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+                        {exp.location && (
+                          <p className="text-gray-600 mb-2" style={{ fontSize: '0.9em' }}>{exp.location}</p>
+                        )}
+                        {exp.description && (
+                          <p className="text-gray-700 mb-2" style={{ fontSize: '0.95em' }}>{exp.description}</p>
+                        )}
+                        {exp.bullets.length > 0 && (
+                          <ul className="space-y-1">
+                            {exp.bullets.map((bullet, idx) => (
+                              <li key={idx} className="text-gray-700 flex" style={{ fontSize: '0.95em' }}>
+                                <span className="mr-2" style={{ color: accentColorMedium }}>▸</span>
+                                <span className="flex-1">{bullet}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -187,49 +187,49 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
 
           {/* Projects */}
           {enabledSections.find(s => s.type === 'projects') && (
             <ClickableSection sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section>
-                <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Featured Projects</h2>
+            <section>
+              <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Featured Projects</h2>
                 {cvData.projects?.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-3">
-                    {cvData.projects.map(project => (
-                      <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="flex justify-between items-start mb-1">
-                            <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
-                              {project.name}
-                              {project.url && (
-                                <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
-                                  View →
-                                </span>
-                              )}
-                            </h3>
-                            {project.startDate && (
-                              <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded" style={{ fontSize: '0.9em' }}>
-                                {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-700 mb-2" style={{ fontSize: '0.95em' }}>{project.description}</p>
-                          {project.technologies.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {project.technologies.map((tech, idx) => (
-                                <span key={idx} className="px-2 py-1 bg-white text-gray-600 rounded" style={{ fontSize: '0.85em' }}>
-                                  {tech}
-                                </span>
-                              ))}
-                            </div>
+              <div className="grid grid-cols-1 gap-3">
+                {cvData.projects.map(project => (
+                  <ClickableSection key={project.id} sectionType="projects" itemId={project.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex justify-between items-start mb-1">
+                        <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
+                          {project.name}
+                          {project.url && (
+                            <span className="ml-2 font-normal" style={{ fontSize: '0.9em', color: accentColor }}>
+                              View →
+                            </span>
                           )}
+                        </h3>
+                        {project.startDate && (
+                          <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded" style={{ fontSize: '0.9em' }}>
+                            {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-700 mb-2" style={{ fontSize: '0.95em' }}>{project.description}</p>
+                      {project.technologies.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {project.technologies.map((tech, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-white text-gray-600 rounded" style={{ fontSize: '0.85em' }}>
+                              {tech}
+                            </span>
+                          ))}
                         </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+                      )}
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -237,7 +237,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
         </div>
@@ -250,22 +250,22 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
               <section>
                 <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Skills</h2>
                 {cvData.skills?.length > 0 ? (
-                  <div className="space-y-2">
-                    {cvData.skills.slice(0, 10).map(skill => (
-                      <div key={skill.id} className="flex items-center gap-2">
-                        <span className="text-gray-700 flex-1" style={{ fontSize: '0.95em' }}>{skill.name}</span>
-                        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full rounded-full"
-                            style={{ 
-                              backgroundColor: accentColor,
-                              width: `${skill.level === 'expert' ? 100 : skill.level === 'advanced' ? 75 : skill.level === 'intermediate' ? 50 : 25}%` 
-                            }}
-                          />
-                        </div>
+                <div className="space-y-2">
+                  {cvData.skills.slice(0, 10).map(skill => (
+                    <div key={skill.id} className="flex items-center gap-2">
+                      <span className="text-gray-700 flex-1" style={{ fontSize: '0.95em' }}>{skill.name}</span>
+                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full"
+                          style={{ 
+                            backgroundColor: accentColor,
+                            width: `${skill.level === 'expert' ? 100 : skill.level === 'advanced' ? 75 : skill.level === 'intermediate' ? 50 : 25}%` 
+                          }}
+                        />
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -280,33 +280,33 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
           {/* Education with icon */}
           {enabledSections.find(s => s.type === 'education') && (
             <ClickableSection sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <GraduationCap data-icon-type="book" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
-                  <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Education</h2>
-                </div>
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <GraduationCap data-icon-type="book" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
+                <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Education</h2>
+              </div>
                 {cvData.education?.length > 0 ? (
-                  <div className="space-y-3">
-                    {cvData.education.map(edu => (
-                      <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div>
-                          <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
-                            {edu.degree}
-                          </h3>
-                          {edu.field && (
-                            <p style={{ fontSize: '0.95em', color: accentColor }}>{edu.field}</p>
-                          )}
-                          <p className="text-gray-600" style={{ fontSize: '0.95em' }}>
-                            {edu.institution}
-                          </p>
-                          <p className="text-gray-500 mt-1" style={{ fontSize: '0.85em' }}>
-                            {formatDate(edu.endDate)}
-                            {edu.gpa && ` • GPA: ${edu.gpa}`}
-                          </p>
-                        </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+              <div className="space-y-3">
+                {cvData.education.map(edu => (
+                  <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div>
+                      <h3 className="font-semibold text-gray-900" style={{ fontSize: '1em' }}>
+                        {edu.degree}
+                      </h3>
+                      {edu.field && (
+                        <p style={{ fontSize: '0.95em', color: accentColor }}>{edu.field}</p>
+                      )}
+                      <p className="text-gray-600" style={{ fontSize: '0.95em' }}>
+                        {edu.institution}
+                      </p>
+                      <p className="text-gray-500 mt-1" style={{ fontSize: '0.85em' }}>
+                        {formatDate(edu.endDate)}
+                        {edu.gpa && ` • GPA: ${edu.gpa}`}
+                      </p>
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -314,31 +314,31 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
 
           {/* Certifications with badge icon */}
           {enabledSections.find(s => s.type === 'certifications') && (
             <ClickableSection sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <Award data-icon-type="award" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
-                  <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Certifications</h2>
-                </div>
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <Award data-icon-type="award" style={{ width: '1.25em', height: '1.25em', color: accentColor }} />
+                <h2 className="font-bold text-gray-800" style={{ fontSize: '1.15em' }}>Certifications</h2>
+              </div>
                 {cvData.certifications?.length > 0 ? (
-                  <div className="space-y-2">
-                    {cvData.certifications.map(cert => (
-                      <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div className="rounded p-2" style={{ backgroundColor: accentColorLight }}>
-                          <p className="font-medium text-gray-900" style={{ fontSize: '0.95em' }}>{cert.name}</p>
-                          <p className="text-gray-600" style={{ fontSize: '0.85em' }}>
-                            {cert.issuer} • {formatDate(cert.date)}
-                          </p>
-                        </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+              <div className="space-y-2">
+                {cvData.certifications.map(cert => (
+                  <ClickableSection key={cert.id} sectionType="certifications" itemId={cert.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div className="rounded p-2" style={{ backgroundColor: accentColorLight }}>
+                      <p className="font-medium text-gray-900" style={{ fontSize: '0.95em' }}>{cert.name}</p>
+                      <p className="text-gray-600" style={{ fontSize: '0.85em' }}>
+                        {cert.issuer} • {formatDate(cert.date)}
+                      </p>
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -346,28 +346,28 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
 
           {/* Languages */}
           {enabledSections.find(s => s.type === 'languages') && (
             <ClickableSection sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-              <section>
-                <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Languages</h2>
+            <section>
+              <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Languages</h2>
                 {cvData.languages?.length > 0 ? (
-                  <div className="space-y-2">
-                    {cvData.languages.map(lang => (
-                      <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700" style={{ fontSize: '0.95em' }}>{lang.name}</span>
-                          <span className="text-white px-2 py-1 rounded" style={{ fontSize: '0.85em', backgroundColor: accentColor }}>
-                            {lang.proficiency}
-                          </span>
-                        </div>
-                      </ClickableSection>
-                    ))}
-                  </div>
+              <div className="space-y-2">
+                {cvData.languages.map(lang => (
+                  <ClickableSection key={lang.id} sectionType="languages" itemId={lang.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700" style={{ fontSize: '0.95em' }}>{lang.name}</span>
+                      <span className="text-white px-2 py-1 rounded" style={{ fontSize: '0.85em', backgroundColor: accentColor }}>
+                        {lang.proficiency}
+                      </span>
+                    </div>
+                  </ClickableSection>
+                ))}
+              </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm italic">
@@ -375,7 +375,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                     </p>
                   </div>
                 )}
-              </section>
+            </section>
             </ClickableSection>
           )}
         </div>
