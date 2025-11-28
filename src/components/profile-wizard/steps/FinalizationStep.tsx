@@ -61,12 +61,12 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
       await uploadBytes(cvRef, file);
       const downloadUrl = await getDownloadURL(cvRef);
 
-      // Extract text and tags
-      let extractedData = {};
+      // Extract text, tags, and experiences
+      let extractedData: Record<string, any> = {};
       try {
         toast.info('Analyzing your CV...');
         const images = await pdfToImages(file, 2, 1.5);
-        const { text, technologies, skills } = await extractCVTextAndTags(images);
+        const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
 
         extractedData = {
           cvText: text,
@@ -74,7 +74,13 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
           cvSkills: skills
         };
 
-        toast.success(`CV analyzed! Found ${technologies.length} technologies and ${skills.length} skills`);
+        // Add experiences to professionalHistory if extracted
+        if (experiences && experiences.length > 0) {
+          extractedData.professionalHistory = experiences;
+        }
+
+        const expCount = experiences?.length || 0;
+        toast.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
       } catch (extractionError) {
         console.error('CV extraction failed:', extractionError);
         toast.warning('CV uploaded but analysis failed');

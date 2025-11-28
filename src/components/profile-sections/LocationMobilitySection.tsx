@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Globe } from 'lucide-react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { MapPin, Globe, Building2, Home, Plane, Check } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { 
+  PremiumInput, 
+  PremiumLabel, 
+  PremiumSelectNative,
+  PremiumToggle,
+  SectionDivider,
+  FieldGroup,
+  SectionSkeleton
+} from '../profile/ui';
 
 interface SectionProps {
   onUpdate: (data: any) => void;
@@ -12,7 +22,6 @@ interface SectionProps {
 const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   
   const [formData, setFormData] = useState({
     city: '',
@@ -59,101 +68,117 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
   };
 
   const workPreferences = [
-    { id: 'onsite', label: 'On Site' },
-    { id: 'hybrid', label: 'Hybrid' },
-    { id: 'remote', label: 'Full Remote' },
-    { id: 'international', label: 'International' }
+    { id: 'onsite', label: 'On Site', icon: Building2, description: 'Work from office' },
+    { id: 'hybrid', label: 'Hybrid', icon: Home, description: 'Mix of both' },
+    { id: 'remote', label: 'Remote', icon: Globe, description: 'Work from anywhere' },
+    { id: 'international', label: 'International', icon: Plane, description: 'Global opportunities' }
   ];
 
+  const travelOptions = [
+    { value: '', label: 'Select preference' },
+    { value: 'no-travel', label: 'No travel' },
+    { value: 'occasional', label: 'Occasional (1-2 times/quarter)' },
+    { value: 'frequent', label: 'Frequent (1-2 times/month)' },
+    { value: 'very-frequent', label: 'Very frequent (weekly)' }
+  ];
+
+  if (isLoading) {
+    return <SectionSkeleton />;
+  }
+
   return (
-    <section id="location" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-      <div className="space-y-6">
-        {/* Current Location */}
+    <FieldGroup className="space-y-8">
+      {/* Current Location */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <MapPin className="w-4 h-4 text-gray-400" />
+          <PremiumLabel className="mb-0">Current Location</PremiumLabel>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Current City
-            </label>
-            <input
-              type="text"
-              value={formData.city}
-              onChange={(e) => handleChange('city', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              placeholder="Enter your city"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Country
-            </label>
-            <input
-              type="text"
-              value={formData.country}
-              onChange={(e) => handleChange('country', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              placeholder="Enter your country"
-            />
-          </div>
+          <PremiumInput
+            value={formData.city}
+            onChange={(e) => handleChange('city', e.target.value)}
+            placeholder="City"
+          />
+          <PremiumInput
+            value={formData.country}
+            onChange={(e) => handleChange('country', e.target.value)}
+            placeholder="Country"
+          />
         </div>
+      </div>
 
-        {/* Relocation Preference */}
-        <div>
-          <label className="flex items-center space-x-3 text-sm font-medium text-gray-700 dark:text-gray-200">
-            <input
-              type="checkbox"
-              checked={formData.willingToRelocate}
-              onChange={(e) => handleChange('willingToRelocate', e.target.checked)}
-              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-            />
-            <span>I am willing to relocate for the right opportunity</span>
-          </label>
-        </div>
+      <SectionDivider />
 
-        {/* Work Preferences */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
-            Work Location Preference
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {workPreferences.map((pref) => (
-              <button
+      {/* Work Location Preference */}
+      <div>
+        <PremiumLabel>Work Location Preference</PremiumLabel>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-3">
+          {workPreferences.map((pref) => {
+            const isSelected = formData.workPreference === pref.id;
+            
+            return (
+              <motion.button
                 key={pref.id}
                 onClick={() => handleChange('workPreference', pref.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className={`
-                  p-3 rounded-lg border-2 transition-all duration-200
-                  ${formData.workPreference === pref.id
-                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                  relative p-4 rounded-xl text-center transition-all duration-200
+                  ${isSelected
+                    ? 'bg-gray-100 dark:bg-gray-700/60 ring-1 ring-gray-900/10 dark:ring-white/10'
+                    : 'bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-700/40'
                   }
                 `}
               >
-                {pref.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Travel Preference */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Travel Preference
-          </label>
-          <select
-            value={formData.travelPreference}
-            onChange={(e) => handleChange('travelPreference', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-          >
-            <option value="">Select travel preference</option>
-            <option value="no-travel">No travel</option>
-            <option value="occasional">Occasional travel (1-2 times/quarter)</option>
-            <option value="frequent">Frequent travel (1-2 times/month)</option>
-            <option value="very-frequent">Very frequent travel (weekly)</option>
-          </select>
+                <pref.icon className={`w-5 h-5 mx-auto mb-2 ${
+                  isSelected ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'
+                }`} />
+                <span className={`block text-sm font-medium ${
+                  isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                }`}>
+                  {pref.label}
+                </span>
+                <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {pref.description}
+                </span>
+                {isSelected && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute top-2 right-2 w-5 h-5 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center"
+                  >
+                    <Check className="w-3 h-3 text-white dark:text-gray-900" />
+                  </motion.div>
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
-    </section>
+
+      {/* Relocation & Travel */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <PremiumToggle
+            checked={formData.willingToRelocate}
+            onChange={(checked) => handleChange('willingToRelocate', checked)}
+            label="Open to relocation"
+            description="Willing to move for the right opportunity"
+          />
+        </div>
+        
+        <div>
+          <PremiumSelectNative
+            label="Travel Preference"
+            value={formData.travelPreference}
+            onChange={(e) => handleChange('travelPreference', e.target.value)}
+            options={travelOptions}
+          />
+        </div>
+      </div>
+    </FieldGroup>
   );
 };
 
-export default LocationMobilitySection; 
+export default LocationMobilitySection;

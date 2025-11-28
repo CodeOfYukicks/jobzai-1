@@ -117,6 +117,35 @@ export interface CompleteUserData {
   city?: string;
   country?: string;
   
+  // Auto-Apply Fields (for automatic job applications)
+  fullAddress?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  workAuthorization?: 'citizen' | 'permanent_resident' | 'visa_sponsor_required' | 'visa_no_sponsor' | 'other';
+  workAuthorizationDetails?: string;
+  noticePeriod?: number; // days
+  noticePeriodUnit?: 'days' | 'weeks' | 'months';
+  
+  // EEO Fields (optional - for US applications)
+  veteranStatus?: 'veteran' | 'not_veteran' | 'prefer_not_say';
+  disabilityStatus?: 'yes' | 'no' | 'prefer_not_say';
+  genderIdentity?: string;
+  ethnicity?: string;
+  
+  // References
+  references?: Array<{
+    name: string;
+    title: string;
+    company: string;
+    email: string;
+    phone: string;
+    relationship: string;
+  }>;
+  
   // Données enrichies
   cvContent?: string | null;
   campaigns?: any[];

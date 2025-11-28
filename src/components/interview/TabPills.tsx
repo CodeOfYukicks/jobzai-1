@@ -28,11 +28,11 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 	return (
 		<div className={['w-full', className].join(' ')}>
 			{/* Container avec background subtil type Notion/Apple */}
-			<div className="relative rounded-lg border border-purple-200/40 bg-purple-50/30 p-1 dark:border-purple-500/20 dark:bg-purple-500/5">
+			<div className="relative rounded-lg border border-indigo-200/40 bg-indigo-50/30 p-1 dark:border-indigo-500/20 dark:bg-indigo-500/5">
 				{/* Indicateur de sélection animé avec CSS transitions */}
 				<div 
 					ref={indicatorRef}
-					className="absolute top-1 bottom-1 rounded-md border border-purple-200/60 bg-white shadow-sm shadow-purple-600/5 transition-all duration-300 ease-out dark:border-purple-500/30 dark:bg-[#1c1c1e]"
+					className="absolute top-1 bottom-1 rounded-md border border-indigo-200/60 bg-white shadow-sm shadow-indigo-600/5 transition-all duration-300 ease-out dark:border-indigo-500/30 dark:bg-[#1c1c1e]"
 					style={{
 						marginLeft: '2px',
 						marginRight: '2px',
@@ -53,7 +53,7 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 									'relative z-10 flex flex-1 items-center justify-center gap-2',
 									'rounded-md px-4 py-2.5 text-[13px] font-medium transition-all duration-200',
 									isActive
-										? 'text-purple-700 dark:text-purple-300'
+										? 'text-indigo-700 dark:text-indigo-300'
 										: 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
 								].join(' ')}
 							>
@@ -62,7 +62,7 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 										className={[
 											'transition-all duration-200',
 											isActive 
-												? 'scale-105 text-purple-600 dark:text-purple-400' 
+												? 'scale-105 text-indigo-600 dark:text-indigo-400' 
 												: 'scale-100 text-neutral-500 dark:text-neutral-500'
 										].join(' ')}
 									>

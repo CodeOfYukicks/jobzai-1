@@ -27,13 +27,13 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
 
   return (
     <article className="group rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300">
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-8">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 ring-1 ring-inset ring-blue-100 dark:ring-blue-500/20">
-            <TrendingUp className="w-6 h-6" />
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 ring-1 ring-inset ring-blue-100 dark:ring-blue-500/20">
+            <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white tracking-tight">
               Company Updates
             </h2>
             <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -96,7 +96,7 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
                 
                 <div className="flex-1 min-w-0 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <h4 className="text-base font-semibold text-gray-900 dark:text-white leading-snug group-hover/news:text-blue-600 dark:group-hover/news:text-blue-400 transition-colors">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-snug group-hover/news:text-blue-600 dark:group-hover/news:text-blue-400 transition-colors">
                       {news.title}
                     </h4>
                     <span className="text-xs font-medium text-gray-400 dark:text-gray-500 whitespace-nowrap">
@@ -113,7 +113,7 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center gap-2">
                       {news.source && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs font-normal text-gray-600 dark:text-gray-300">
                           <Newspaper className="h-3 w-3" />
                           {news.source}
                         </span>

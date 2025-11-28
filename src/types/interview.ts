@@ -49,6 +49,8 @@ export interface Interview {
   resourcesData?: {
     reviewedTips?: string[];
     savedLinks?: { id: string; title: string; url: string }[];
+    questionsToAsk?: string[];
+    elevatorPitch?: string;
   };
   freeFormNotes?: string;
   noteDocuments?: NoteDocument[];

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, FileText, Loader2, Info } from 'lucide-react';
+import { Upload, FileText, Loader2, Info, Briefcase } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { pdfToImages } from '../../../lib/pdfToImages';
-import { extractCVTextAndTags } from '../../../lib/cvTextExtraction';
+import { extractCVTextAndTags, ExtractedExperience } from '../../../lib/cvTextExtraction';
 
 interface CVUploadStepProps {
   cvUrl?: string;
@@ -17,6 +17,7 @@ interface CVUploadStepProps {
     cvText?: string;
     cvTechnologies?: string[];
     cvSkills?: string[];
+    professionalHistory?: ExtractedExperience[];
   }) => void;
   onBack: () => void;
 }
@@ -31,6 +32,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
   const [uploadedCvText, setUploadedCvText] = useState<string>('');
   const [uploadedCvTechnologies, setUploadedCvTechnologies] = useState<string[]>([]);
   const [uploadedCvSkills, setUploadedCvSkills] = useState<string[]>([]);
+  const [uploadedExperiences, setUploadedExperiences] = useState<ExtractedExperience[]>([]);
 
   // Update local state when props change
   useEffect(() => {
@@ -67,17 +69,21 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
       setUploadedCvUrl(downloadUrl);
       setUploadedCvName(selectedFile.name);
 
-      // Extract text and tags
+      // Extract text, tags, and experiences
       try {
         toast.info('Analyzing your CV...');
         const images = await pdfToImages(selectedFile, 2, 1.5);
-        const { text, technologies, skills } = await extractCVTextAndTags(images);
+        const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
 
         setUploadedCvText(text);
         setUploadedCvTechnologies(technologies);
         setUploadedCvSkills(skills);
+        if (experiences && experiences.length > 0) {
+          setUploadedExperiences(experiences);
+        }
 
-        toast.success(`CV analyzed! Found ${technologies.length} technologies and ${skills.length} skills`);
+        const expCount = experiences?.length || 0;
+        toast.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
       } catch (extractionError) {
         console.error('CV extraction failed:', extractionError);
         toast.warning('CV uploaded but analysis failed');
@@ -178,6 +184,30 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
               View CV
             </a>
           </div>
+
+          {/* Show extracted experiences summary */}
+          {uploadedExperiences.length > 0 && (
+            <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                <Briefcase className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {uploadedExperiences.length} experience{uploadedExperiences.length > 1 ? 's' : ''} extracted
+                </span>
+              </div>
+              <div className="mt-2 space-y-1">
+                {uploadedExperiences.slice(0, 3).map((exp, idx) => (
+                  <p key={idx} className="text-xs text-green-600 dark:text-green-400">
+                    • {exp.title} at {exp.company}
+                  </p>
+                ))}
+                {uploadedExperiences.length > 3 && (
+                  <p className="text-xs text-green-500 dark:text-green-500 italic">
+                    +{uploadedExperiences.length - 3} more...
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-center w-full">
@@ -261,7 +291,8 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
               cvName: uploadedCvName,
               cvText: uploadedCvText,
               cvTechnologies: uploadedCvTechnologies,
-              cvSkills: uploadedCvSkills
+              cvSkills: uploadedCvSkills,
+              professionalHistory: uploadedExperiences.length > 0 ? uploadedExperiences : undefined
             })}
             disabled={!uploadedCvUrl || !uploadedCvName}
             className="px-8 py-2 bg-[hsl(var(--primary))] text-white rounded-lg font-medium

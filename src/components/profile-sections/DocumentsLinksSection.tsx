@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileText, Link as LinkIcon, Github, Linkedin, Upload, X, ExternalLink } from 'lucide-react';
+import { FileText, Link as LinkIcon, Github, Linkedin, Upload, X, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +8,8 @@ import { db } from '../../lib/firebase';
 import { pdfToImages } from '../../lib/pdfToImages';
 import { extractCVTextAndTags } from '../../lib/cvTextExtraction';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { motion } from 'framer-motion';
+import { PremiumInput, PremiumLabel, SectionDivider, FieldGroup, SectionSkeleton } from '../profile/ui';
 
 interface SectionProps {
   onUpdate: (data: any) => void;
@@ -15,6 +17,7 @@ interface SectionProps {
 
 const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
   const { currentUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     cvName: '',
     cvUrl: '',
@@ -46,6 +49,8 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
         }
       } catch (error) {
         console.error('Error loading documents data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -64,13 +69,11 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
   const handleFileUpload = async (file: File) => {
     if (!file || !currentUser) return;
 
-    // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('CV must be less than 5MB');
       return;
     }
 
-    // Validate file type
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!allowedTypes.includes(file.type)) {
       toast.error('Please upload a PDF or Word document');
@@ -83,12 +86,11 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
       await uploadBytes(fileRef, file);
       const downloadUrl = await getDownloadURL(fileRef);
 
-      // Extract text and tags
-      let extractedData = {};
+      let extractedData: Record<string, any> = {};
       try {
         toast.info('Analyzing your CV...');
         const images = await pdfToImages(file, 2, 1.5);
-        const { text, technologies, skills } = await extractCVTextAndTags(images);
+        const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
 
         extractedData = {
           cvText: text,
@@ -96,7 +98,11 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
           cvSkills: skills
         };
 
-        // Update Firestore with extracted data
+        // Add experiences to professionalHistory if extracted
+        if (experiences && experiences.length > 0) {
+          extractedData.professionalHistory = experiences;
+        }
+
         if (currentUser?.uid) {
           await updateDoc(doc(db, 'users', currentUser.uid), {
             cvUrl: downloadUrl,
@@ -106,7 +112,8 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
           });
         }
 
-        toast.success(`CV analyzed! Found ${technologies.length} technologies and ${skills.length} skills`);
+        const expCount = experiences?.length || 0;
+        toast.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
       } catch (extractionError) {
         console.error('CV extraction failed:', extractionError);
         toast.warning('CV uploaded but analysis failed');
@@ -173,132 +180,138 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
     }
   };
 
+  if (isLoading) {
+    return <SectionSkeleton />;
+  }
+
   return (
-    <section id="documents" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-      <div className="space-y-6">
-        {/* CV Upload */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            CV / Resume
-          </label>
-          <div className="flex items-center gap-4">
-            {formData.cvUrl ? (
-              <div className="flex-1 flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-gray-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">{formData.cvName}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={formData.cvUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-purple-600 hover:text-purple-700"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                  <button
-                    onClick={() => handleChange('cvUrl', '')}
-                    className="text-red-500 hover:text-red-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <label
-                ref={dropZoneRef}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`flex-1 flex items-center justify-center p-6 border-2 border-dashed rounded-lg transition-all cursor-pointer bg-white dark:bg-gray-700 ${isDragging
-                    ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-400'
-                  }`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Upload className={`w-8 h-8 ${isUploading ? 'animate-bounce text-purple-600' : isDragging ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`} />
-                  <span className={`text-sm ${isDragging ? 'text-purple-600 dark:text-purple-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {isUploading ? 'Uploading...' : isDragging ? 'Drop your CV here' : 'Click to upload or drag and drop'}
-                  </span>
-                </div>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx"
-                  className="hidden"
-                  disabled={isUploading}
-                />
-              </label>
-            )}
-          </div>
+    <FieldGroup className="space-y-8">
+      {/* CV Upload */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className="w-4 h-4 text-gray-400" />
+          <PremiumLabel className="mb-0">CV / Resume</PremiumLabel>
         </div>
-
-        {/* Professional Links */}
-        <div className="space-y-4">
-          {/* LinkedIn */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              LinkedIn Profile
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Linkedin className="h-5 w-5 text-gray-400" />
+        
+        {formData.cvUrl ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200/60 dark:border-gray-700/50 rounded-xl"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </div>
-              <input
-                type="url"
-                value={formData.linkedinUrl}
-                onChange={(e) => handleChange('linkedinUrl', e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent
-                  ${!validateUrl(formData.linkedinUrl) ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'}`}
-                placeholder="https://linkedin.com/in/username"
-              />
-            </div>
-          </div>
-
-          {/* Portfolio */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Portfolio URL
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <LinkIcon className="h-5 w-5 text-gray-400" />
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{formData.cvName}</p>
+                <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Uploaded & analyzed
+                </div>
               </div>
-              <input
-                type="url"
-                value={formData.portfolioUrl}
-                onChange={(e) => handleChange('portfolioUrl', e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent
-                  ${!validateUrl(formData.portfolioUrl) ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'}`}
-                placeholder="https://yourportfolio.com"
-              />
             </div>
-          </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={formData.cvUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+              <button
+                onClick={() => {
+                  handleChange('cvUrl', '');
+                  handleChange('cvName', '');
+                }}
+                className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        ) : (
+          <label
+            ref={dropZoneRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`
+              flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all
+              ${isDragging
+                ? 'border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-800/50'
+                : 'border-gray-200/80 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800/30'
+              }
+            `}
+          >
+            <div className={`
+              w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors
+              ${isDragging 
+                ? 'bg-gray-200 dark:bg-gray-700' 
+                : 'bg-gray-100 dark:bg-gray-700/60'
+              }
+            `}>
+              <Upload className={`w-6 h-6 ${isUploading ? 'animate-bounce text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`} />
+            </div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+              {isUploading ? 'Uploading...' : isDragging ? 'Drop your CV here' : 'Upload your CV'}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              PDF or Word, max 5MB
+            </p>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+              disabled={isUploading}
+            />
+          </label>
+        )}
+      </div>
 
-          {/* GitHub */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              GitHub Profile
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Github className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="url"
-                value={formData.githubUrl}
-                onChange={(e) => handleChange('githubUrl', e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent
-                  ${!validateUrl(formData.githubUrl) ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'}`}
-                placeholder="https://github.com/username"
-              />
-            </div>
-          </div>
+      <SectionDivider title="Professional Links" />
+
+      {/* LinkedIn */}
+      <div>
+        <div className="relative">
+          <PremiumInput
+            label="LinkedIn Profile"
+            value={formData.linkedinUrl}
+            onChange={(e) => handleChange('linkedinUrl', e.target.value)}
+            placeholder="https://linkedin.com/in/username"
+            icon={<Linkedin className="w-4 h-4" />}
+            error={!validateUrl(formData.linkedinUrl) ? 'Please enter a valid URL' : undefined}
+          />
         </div>
       </div>
-    </section>
+
+      {/* Portfolio */}
+      <div>
+        <PremiumInput
+          label="Portfolio URL"
+          value={formData.portfolioUrl}
+          onChange={(e) => handleChange('portfolioUrl', e.target.value)}
+          placeholder="https://yourportfolio.com"
+          icon={<LinkIcon className="w-4 h-4" />}
+          error={!validateUrl(formData.portfolioUrl) ? 'Please enter a valid URL' : undefined}
+        />
+      </div>
+
+      {/* GitHub */}
+      <div>
+        <PremiumInput
+          label="GitHub Profile"
+          value={formData.githubUrl}
+          onChange={(e) => handleChange('githubUrl', e.target.value)}
+          placeholder="https://github.com/username"
+          icon={<Github className="w-4 h-4" />}
+          error={!validateUrl(formData.githubUrl) ? 'Please enter a valid URL' : undefined}
+        />
+      </div>
+    </FieldGroup>
   );
 };
 
-export default DocumentsLinksSection; 
+export default DocumentsLinksSection;

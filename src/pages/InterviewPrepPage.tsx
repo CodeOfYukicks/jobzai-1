@@ -91,6 +91,8 @@ interface Interview {
   resourcesData?: {
     reviewedTips?: string[];
     savedLinks?: { id: string; title: string; url: string }[];
+    questionsToAsk?: string[];
+    elevatorPitch?: string;
   };
   freeFormNotes?: string;
   noteDocuments?: NoteDocument[];
@@ -420,14 +422,14 @@ export default function InterviewPrepPage() {
   const [isNewsLoading, setIsNewsLoading] = useState(false);
   const [newsError, setNewsError] = useState<string | null>(null);
   const [skillCoach, setSkillCoach] = useState<Interview['skillCoach']>({ microTasks: {}, starStories: {}, readiness: {} });
-  const [resourcesData, setResourcesData] = useState<Interview['resourcesData']>({ reviewedTips: [], savedLinks: [] });
-  const [newResourceTitle, setNewResourceTitle] = useState('');
-  const [newResourceUrl, setNewResourceUrl] = useState('');
+  const [resourcesData, setResourcesData] = useState<Interview['resourcesData']>({ reviewedTips: [], savedLinks: [], questionsToAsk: [], elevatorPitch: '' });
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [isGeneratingPitch, setIsGeneratingPitch] = useState(false);
   const [activeQuestionFilter, setActiveQuestionFilter] = useState<QuestionFilter>('all');
   const [showAllChecklistItems, setShowAllChecklistItems] = useState(false);
   const [showAllNewsItems, setShowAllNewsItems] = useState(false);
   const [isJobSummaryOpen, setIsJobSummaryOpen] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState<'progress' | 'notes' | 'history'>('progress');
+  const [sidebarTab, setSidebarTab] = useState<'progress' | 'notes' | 'history' | 'coach'>('progress');
   const [freeFormNotes, setFreeFormNotes] = useState<string>('');
   const [noteDocuments, setNoteDocuments] = useState<NoteDocument[]>([]);
   const [activeNoteDocumentId, setActiveNoteDocumentId] = useState<string | null>(null);
@@ -3258,6 +3260,84 @@ Generate exactly ${count} questions.
     setInterview({ ...interview, resourcesData: sanitized });
   };
 
+  const generateQuestionsToAsk = async (): Promise<string[]> => {
+    if (!application || !interview) return [];
+    setIsGeneratingQuestions(true);
+    try {
+      const interviewType = interview.type === 'hr' ? 'HR/recruiter' : 
+                           interview.type === 'technical' ? 'technical' : 
+                           interview.type === 'manager' ? 'hiring manager' : 
+                           interview.type === 'final' ? 'final round' : 'general';
+      
+      const prompt = `Generate 6 smart, thoughtful questions that a candidate should ask during a ${interviewType} interview at ${application.companyName} for a ${application.position} position.
+
+Requirements:
+- Questions should show genuine curiosity and research
+- Mix of role-specific, team-related, and growth questions
+- Avoid generic questions that could apply to any company
+- Each question should help the candidate evaluate fit
+
+Return ONLY a JSON array of 6 question strings, no other text. Example format:
+["Question 1?", "Question 2?", ...]`;
+
+      const response = await queryPerplexity(prompt);
+      let questions: string[] = [];
+      
+      try {
+        // Try to parse the response as JSON
+        const text = response.text || '';
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          questions = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        // Fallback: split by newlines if JSON parsing fails
+        const lines = (response.text || '').split('\n').filter(line => line.trim().length > 10 && line.includes('?'));
+        questions = lines.slice(0, 6).map(q => q.replace(/^[\d\.\-\*]+\s*/, '').trim());
+      }
+      
+      return questions.slice(0, 6);
+    } catch (error) {
+      console.error('Error generating questions:', error);
+      toast.error('Failed to generate questions');
+      return [];
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
+  };
+
+  const generateElevatorPitch = async (): Promise<string> => {
+    if (!application) return '';
+    setIsGeneratingPitch(true);
+    try {
+      const skills = interview?.preparation?.requiredSkills?.slice(0, 5).join(', ') || '';
+      
+      const prompt = `Write a concise 30-second elevator pitch for someone interviewing for a ${application.position} position at ${application.companyName}.
+
+${skills ? `Relevant skills for this role: ${skills}` : ''}
+
+Requirements:
+- 75-120 words (30-45 seconds when spoken)
+- First person, conversational tone
+- Structure: Who you are → What you do → Why this role excites you
+- Specific and genuine, not generic
+- End with enthusiasm for the opportunity
+
+Return ONLY the pitch text, no explanations or formatting.`;
+
+      const response = await queryPerplexity(prompt);
+      const pitch = (response.text || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      
+      return pitch;
+    } catch (error) {
+      console.error('Error generating pitch:', error);
+      toast.error('Failed to generate elevator pitch');
+      return '';
+    } finally {
+      setIsGeneratingPitch(false);
+    }
+  };
+
   const saveFreeFormNotes = async (notes: string) => {
     if (!currentUser || !application || !interview || !applicationId) return;
     const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
@@ -3551,6 +3631,34 @@ Generate exactly ${count} questions.
         liveSessionHistory={liveSessionHistory}
         onViewHistorySession={setSelectedHistorySession}
         highlightedDocumentId={highlightedDocumentId}
+        // Chat props
+        chatMessages={chatMessages}
+        message={message}
+        setMessage={setMessage}
+        sendMessage={sendMessage}
+        isSending={isSending}
+        typingMessages={typingMessages}
+        isUserNearBottom={isUserNearBottom}
+        setIsUserNearBottom={setIsUserNearBottom}
+        chatEndRef={chatEndRef}
+        chatContainerRef={chatContainerRef}
+        onClearChat={async () => {
+          if (currentUser && application && interview && applicationId) {
+            try {
+              await saveChatHistory([]);
+              setChatMessages([]);
+              setMessage('');
+              toast.success('Chat cleared');
+            } catch (error) {
+              toast.error('Failed to clear chat');
+            }
+          } else {
+            setChatMessages([]);
+            setMessage('');
+          }
+        }}
+        position={application?.position}
+        userPhotoURL={currentUser?.photoURL}
       />
 
       <MotionConfig transition={{ duration: 0.2 }}>
@@ -3592,8 +3700,7 @@ Generate exactly ${count} questions.
                   { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
                   { id: 'questions', label: 'Questions', icon: <HelpCircle className="w-4 h-4" /> },
                   { id: 'skills', label: 'Skills', icon: <Briefcase className="w-4 h-4" /> },
-                  { id: 'resources', label: 'Resources', icon: <BookOpen className="w-4 h-4" /> },
-                  { id: 'chat', label: 'Practice', icon: <MessageSquare className="w-4 h-4" /> }
+                  { id: 'resources', label: 'Resources', icon: <BookOpen className="w-4 h-4" /> }
                 ]}
                 activeId={tab as any}
                 onChange={(id) => setTab(id as any)}
@@ -5035,14 +5142,14 @@ Generate exactly ${count} questions.
                       <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>}>
                         <ResourcesTab
                           application={application!}
+                          interview={interview}
                           resourcesData={resourcesData}
-                          newResourceTitle={newResourceTitle}
-                          newResourceUrl={newResourceUrl}
-                          setNewResourceTitle={setNewResourceTitle}
-                          setNewResourceUrl={setNewResourceUrl}
                           setResourcesData={setResourcesData}
                           saveResourcesData={saveResourcesData}
-                          shortenText={shortenText}
+                          onGenerateQuestions={generateQuestionsToAsk}
+                          onGeneratePitch={generateElevatorPitch}
+                          isGeneratingQuestions={isGeneratingQuestions}
+                          isGeneratingPitch={isGeneratingPitch}
                         />
                       </Suspense>
                     </motion.div>
@@ -5170,37 +5277,6 @@ Generate exactly ${count} questions.
                           </div>
                         </div>
                       </div>
-                    </motion.div>
-                  )}
-
-                  {tab === 'chat' && (
-                    <motion.div
-                      key="chat"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15, ease: "easeOut" }}
-                      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm"
-                    >
-                      <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>}>
-                        <ChatTab
-                          application={application!}
-                          interview={interview!}
-                          chatMessages={chatMessages}
-                          message={message}
-                          isSending={isSending}
-                          typingMessages={typingMessages}
-                          isUserNearBottom={isUserNearBottom}
-                          chatEndRef={chatEndRef}
-                          chatContainerRef={chatContainerRef}
-                          currentUser={currentUser}
-                          applicationId={applicationId!}
-                          setMessage={setMessage}
-                          sendMessage={sendMessage}
-                          saveChatHistory={saveChatHistory}
-                          setIsUserNearBottom={setIsUserNearBottom}
-                        />
-                      </Suspense>
                     </motion.div>
                   )}
 

@@ -1,7 +1,29 @@
 import { memo, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, FolderPlus, Edit2, Trash2, MoreHorizontal, Layers } from 'lucide-react';
+import { FileText, FolderPlus, Edit2, Trash2, MoreHorizontal, Layers, Folder as FolderIcon, Briefcase, Target, Star, Heart, Zap, Rocket, BookOpen, Code, Palette } from 'lucide-react';
 import { Folder } from './FolderCard';
+
+// Emoji options for folders
+const EMOJI_OPTIONS = ['📁', '💼', '🎯', '⭐', '🚀', '💡', '📚', '🎨', '💻', '🔥', '✨', '🎪'];
+
+// Lucide icon options mapping
+const LUCIDE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  'Folder': FolderIcon,
+  'Briefcase': Briefcase,
+  'Target': Target,
+  'Star': Star,
+  'Heart': Heart,
+  'Zap': Zap,
+  'Rocket': Rocket,
+  'BookOpen': BookOpen,
+  'Code': Code,
+  'Palette': Palette,
+};
+
+// Helper function to get Lucide icon component from icon name
+const getLucideIcon = (iconName: string): React.ComponentType<{ className?: string }> | null => {
+  return LUCIDE_ICON_MAP[iconName] || null;
+};
 
 // Selected folder type: 'all' for all resumes, null for uncategorized, string for specific folder
 export type SelectedFolderType = 'all' | string | null;
@@ -43,10 +65,12 @@ const AllResumesItem = memo(({
   return (
     <motion.button
       onClick={onClick}
-      className={`w-full px-3 py-2 rounded-lg flex items-center gap-3 transition-all duration-200 group relative
+      whileHover={{ scale: 1.02, x: 4 }}
+      whileTap={{ scale: 0.98 }}
+      className={`w-full px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 group relative
         ${isActive 
-          ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' 
-          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+          ? 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-700 dark:text-blue-400 shadow-lg shadow-blue-500/10' 
+          : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
         }`}
     >
       <div className={`w-5 h-5 flex items-center justify-center`}>
@@ -160,22 +184,36 @@ const FolderItem = memo(({
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`w-full px-3 py-2 rounded-lg flex items-center gap-3 transition-all duration-200 cursor-pointer group relative
+        whileHover={{ scale: 1.02, x: 4 }}
+        whileTap={{ scale: 0.98 }}
+        className={`w-full px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 cursor-pointer group relative
           ${isActive && !isDraggingOver
-            ? `bg-[${colorData.light}]/40 text-gray-900 dark:text-white dark:bg-[${colorData.dark}]/20` 
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+            ? 'text-gray-900 dark:text-white shadow-lg' 
+            : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
           }
           ${isDraggingOver 
-            ? 'ring-2 ring-inset ring-purple-500/50 bg-purple-50 dark:bg-purple-900/20' 
+            ? 'ring-2 ring-inset ring-purple-500/50 bg-purple-50/50 dark:bg-purple-900/20 backdrop-blur-sm' 
             : ''
           }
         `}
         style={{
-            backgroundColor: isActive && !isDraggingOver ? `${colorData.light}50` : undefined
+            backgroundColor: isActive && !isDraggingOver ? `${colorData.value}15` : undefined,
+            boxShadow: isActive && !isDraggingOver ? `0 4px 20px ${colorData.value}20` : undefined
         }}
       >
         <div className="flex items-center justify-center w-5 h-5 text-lg select-none">
-          {folder.icon}
+          {EMOJI_OPTIONS.includes(folder.icon) || folder.icon.length <= 2 || /^\p{Emoji}/u.test(folder.icon) ? (
+            <span>{folder.icon}</span>
+          ) : (
+            (() => {
+              const LucideIcon = getLucideIcon(folder.icon);
+              return LucideIcon ? (
+                <LucideIcon className="w-4 h-4" />
+              ) : (
+                <FolderIcon className="w-4 h-4" />
+              );
+            })()
+          )}
         </div>
 
         <span className="flex-1 text-left text-sm font-medium truncate">
@@ -384,13 +422,15 @@ const UncategorizedItem = memo(({
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`w-full px-3 py-2 rounded-lg flex items-center gap-3 transition-all duration-200 group relative
+      whileHover={{ scale: 1.02, x: 4 }}
+      whileTap={{ scale: 0.98 }}
+      className={`w-full px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 group relative
         ${isActive && !isDraggingOver
-          ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' 
-          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+          ? 'bg-gray-100/80 text-gray-900 dark:bg-gray-700/50 dark:text-white shadow-lg shadow-gray-500/10' 
+          : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
         }
         ${isDraggingOver 
-          ? 'ring-2 ring-inset ring-gray-400/50 bg-gray-50 dark:bg-gray-800' 
+          ? 'ring-2 ring-inset ring-gray-400/50 bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm' 
           : ''
         }
       `}
@@ -452,21 +492,25 @@ const FolderSidebar = memo(({
   totalCount
 }: FolderSidebarProps) => {
   return (
-    <div className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 
-      bg-white dark:bg-gray-800 flex flex-col h-full">
+    <div className="w-64 flex-shrink-0 
+      bg-white/60 dark:bg-black/40 backdrop-blur-xl
+      border-r border-white/20 dark:border-gray-700/20
+      flex flex-col h-full shadow-glass">
       
       {/* Header */}
-      <div className="px-4 py-5 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+      <div className="px-4 py-5 flex items-center justify-between border-b border-white/10 dark:border-gray-700/20">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-wide">
           Library
         </h3>
-        <button
+        <motion.button
             onClick={onNewFolder}
-            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-md transition-colors"
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            whileTap={{ scale: 0.9 }}
+            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
             title="New Folder"
         >
             <FolderPlus className="w-4 h-4" />
-        </button>
+        </motion.button>
       </div>
 
       {/* Scrollable Content */}
@@ -525,10 +569,12 @@ const FolderSidebar = memo(({
         )}
       </div>
       
-      {/* Footer Stats or Info could go here */}
-      <div className="p-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-400 dark:text-gray-500 flex justify-between">
-         <span>Storage</span>
-         <span>{totalCount} items</span>
+      {/* Footer Stats */}
+      <div className="p-4 border-t border-white/10 dark:border-gray-700/20 backdrop-blur-sm">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-gray-500 dark:text-gray-400 font-medium">Storage</span>
+          <span className="text-gray-700 dark:text-gray-300 font-semibold">{totalCount} {totalCount === 1 ? 'item' : 'items'}</span>
+        </div>
       </div>
     </div>
   );

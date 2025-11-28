@@ -174,7 +174,7 @@ export default function ResumeBuilderPage() {
   };
 
   // Create new resume
-  const createNewResume = async (name: string, template: CVTemplate) => {
+  const createNewResume = async (name: string, template: CVTemplate, folderId?: string) => {
     if (!currentUser) {
       toast.error('Please log in to create a resume');
       return;
@@ -194,7 +194,8 @@ export default function ResumeBuilderPage() {
         cvData: initialCVData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        template: template
+        template: template,
+        ...(folderId && { folderId })
       };
 
       // Save to Firestore
@@ -218,7 +219,11 @@ export default function ResumeBuilderPage() {
 
   // Handle create button click in modal
   const handleCreate = () => {
-    createNewResume(newResumeName, selectedTemplate);
+    // Pass folderId only if a specific folder is selected (not 'all' or null)
+    const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
+      ? selectedFolderId 
+      : undefined;
+    createNewResume(newResumeName, selectedTemplate, folderId);
   };
 
   // Delete resume
@@ -574,6 +579,13 @@ export default function ResumeBuilderPage() {
 
   return (
     <AuthLayout>
+      {/* Animated Gradient Background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-300/20 dark:bg-purple-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob" />
+        <div className="absolute top-0 -right-4 w-96 h-96 bg-indigo-300/20 dark:bg-indigo-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob animation-delay-2000" />
+        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-300/20 dark:bg-pink-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob animation-delay-4000" />
+      </div>
+
       <div className="flex h-full">
         {/* Sidebar */}
         <FolderSidebar
@@ -590,7 +602,7 @@ export default function ResumeBuilderPage() {
         />
 
         {/* Main Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto bg-white/30 dark:bg-black/20 backdrop-blur-sm">
           {/* Replaced Header with FolderHeader */}
           <FolderHeader
             folder={currentFolder}

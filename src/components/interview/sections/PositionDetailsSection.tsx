@@ -23,13 +23,13 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
 
   return (
     <article className="group rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300">
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-8">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 ring-1 ring-inset ring-purple-100 dark:ring-purple-500/20">
-            <Target className="w-6 h-6" />
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 ring-1 ring-inset ring-purple-100 dark:ring-purple-500/20">
+            <Target className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white tracking-tight">
               Position Details
             </h2>
             <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -43,7 +43,7 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
       <div className="space-y-8">
         {/* Headline */}
         <div className="relative pl-5 border-l-4 border-purple-500/30 dark:border-purple-400/30">
-          <p className="text-lg font-medium text-gray-900 dark:text-white leading-relaxed italic">
+          <p className="text-base font-medium text-gray-900 dark:text-white leading-relaxed italic">
             "{headline}."
           </p>
         </div>

@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Target, Calendar } from 'lucide-react';
+import { Target, Calendar, DollarSign, Briefcase, Check } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  PremiumInput, 
+  PremiumLabel,
+  PremiumSelectNative,
+  PremiumTagInput,
+  SectionDivider,
+  FieldGroup,
+  SectionSkeleton
+} from '../profile/ui';
 
 interface SectionProps {
   onUpdate: (data: any) => void;
@@ -10,6 +20,7 @@ interface SectionProps {
 
 const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
   const { currentUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     targetPosition: '',
     targetSectors: [] as string[],
@@ -30,7 +41,6 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          // Support both salaryRange (old) and salaryExpectations (new) for backward compatibility
           const salaryData = userData.salaryExpectations || userData.salaryRange || {
             min: '',
             max: '',
@@ -48,6 +58,8 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
         }
       } catch (error) {
         console.error('Error loading objectives data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -62,7 +74,11 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
     { id: 'apprenticeship', label: 'Alternance' }
   ];
 
-  const currencies = ['EUR', 'USD', 'GBP'];
+  const currencies = [
+    { value: 'EUR', label: '€ EUR' },
+    { value: 'USD', label: '$ USD' },
+    { value: 'GBP', label: '£ GBP' }
+  ];
 
   const handleChange = (field: string, value: any) => {
     const newFormData = {
@@ -73,140 +89,145 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
     onUpdate(newFormData);
   };
 
+  if (isLoading) {
+    return <SectionSkeleton />;
+  }
+
   return (
-    <section id="objectives" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-      <div className="space-y-6">
-        {/* Target Position */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Target Position
-          </label>
-          <input
-            type="text"
-            value={formData.targetPosition}
-            onChange={(e) => handleChange('targetPosition', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-            placeholder="e.g., Senior Product Manager"
-          />
+    <FieldGroup className="space-y-8">
+      {/* Target Position */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Target className="w-4 h-4 text-gray-400" />
+          <PremiumLabel className="mb-0">Target Position</PremiumLabel>
         </div>
+        <PremiumInput
+          value={formData.targetPosition}
+          onChange={(e) => handleChange('targetPosition', e.target.value)}
+          placeholder="e.g., Senior Product Manager"
+        />
+      </div>
 
-        {/* Target Sectors */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Target Sectors (Industries you're interested in)
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-              (e.g., FinTech, Healthcare, E-commerce)
-            </span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <input
-              type="text"
-              placeholder="Add a sector and press Enter"
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                  e.preventDefault();
-                  handleChange('targetSectors', [...formData.targetSectors, e.currentTarget.value.trim()]);
-                  e.currentTarget.value = '';
-                }
-              }}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {formData.targetSectors.map((sector, index) => (
-              <span
-                key={index}
-                className="px-3 py-1 bg-purple-50 text-purple-700 rounded-full flex items-center gap-2"
-              >
-                {sector}
-                <button
-                  onClick={() => handleChange('targetSectors', formData.targetSectors.filter((_, i) => i !== index))}
-                  className="hover:text-purple-900"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
+      {/* Target Sectors */}
+      <div>
+        <PremiumLabel description="Industries you're interested in">
+          Target Sectors
+        </PremiumLabel>
+        <PremiumTagInput
+          tags={formData.targetSectors}
+          onChange={(tags) => handleChange('targetSectors', tags)}
+          placeholder="Add sectors (e.g., FinTech, Healthcare)"
+          suggestions={[
+            'FinTech', 'Healthcare', 'E-commerce', 'SaaS', 'EdTech',
+            'AI/ML', 'Cybersecurity', 'Gaming', 'Logistics', 'Media'
+          ]}
+        />
+      </div>
+
+      <SectionDivider />
+
+      {/* Contract Type */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Briefcase className="w-4 h-4 text-gray-400" />
+          <PremiumLabel className="mb-0">Contract Type</PremiumLabel>
         </div>
-
-        {/* Contract Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Contract Type
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {contractTypes.map((type) => (
-              <button
+        <div className="flex flex-wrap gap-2">
+          {contractTypes.map((type) => {
+            const isSelected = formData.contractType === type.id;
+            
+            return (
+              <motion.button
                 key={type.id}
                 onClick={() => handleChange('contractType', type.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className={`
-                  p-2 rounded-lg border-2 transition-all duration-200 text-sm
-                  ${formData.contractType === type.id
-                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                  px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                  ${isSelected
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }
                 `}
               >
                 {type.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Salary Expectations */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Expected Salary Range
-          </label>
-          <div className="flex gap-3 items-start">
-            <div className="flex-1">
-              <input
-                type="number"
-                value={formData.salaryExpectations.min}
-                onChange={(e) => handleChange('salaryExpectations', { ...formData.salaryExpectations, min: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                placeholder="Min"
-              />
-            </div>
-            <div className="flex-1">
-              <input
-                type="number"
-                value={formData.salaryExpectations.max}
-                onChange={(e) => handleChange('salaryExpectations', { ...formData.salaryExpectations, max: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                placeholder="Max"
-              />
-            </div>
-            <div className="flex-1">
-              <select
-                value={formData.salaryExpectations.currency}
-                onChange={(e) => handleChange('salaryExpectations', { ...formData.salaryExpectations, currency: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              >
-                {currencies.map((currency) => (
-                  <option key={currency} value={currency}>{currency}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Availability Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Availability Date
-          </label>
-          <input
-            type="date"
-            value={formData.availabilityDate}
-            onChange={(e) => handleChange('availabilityDate', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-          />
+              </motion.button>
+            );
+          })}
         </div>
       </div>
-    </section>
+
+      {/* Salary Expectations */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <DollarSign className="w-4 h-4 text-gray-400" />
+          <PremiumLabel className="mb-0">Expected Salary Range (Annual)</PremiumLabel>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <input
+              type="number"
+              value={formData.salaryExpectations.min}
+              onChange={(e) => handleChange('salaryExpectations', { 
+                ...formData.salaryExpectations, 
+                min: e.target.value 
+              })}
+              placeholder="Min"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+            />
+          </div>
+          <div>
+            <input
+              type="number"
+              value={formData.salaryExpectations.max}
+              onChange={(e) => handleChange('salaryExpectations', { 
+                ...formData.salaryExpectations, 
+                max: e.target.value 
+              })}
+              placeholder="Max"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+            />
+          </div>
+          <div>
+            <select
+              value={formData.salaryExpectations.currency}
+              onChange={(e) => handleChange('salaryExpectations', { 
+                ...formData.salaryExpectations, 
+                currency: e.target.value 
+              })}
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
+            >
+              {currencies.map((curr) => (
+                <option key={curr.value} value={curr.value}>{curr.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          Your expectations are confidential and help match you with suitable opportunities
+        </p>
+      </div>
+
+      <SectionDivider />
+
+      {/* Availability Date */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <PremiumLabel className="mb-0">Availability Date</PremiumLabel>
+        </div>
+        <input
+          type="date"
+          value={formData.availabilityDate}
+          onChange={(e) => handleChange('availabilityDate', e.target.value)}
+          className="w-full md:w-auto px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+        />
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          When can you start a new position?
+        </p>
+      </div>
+    </FieldGroup>
   );
 };
 
-export default ProfessionalObjectivesSection; 
+export default ProfessionalObjectivesSection;

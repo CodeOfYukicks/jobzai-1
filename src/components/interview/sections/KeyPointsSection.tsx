@@ -15,13 +15,13 @@ const KeyPointsSection = memo(function KeyPointsSection({
 
   return (
     <article className="group rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300">
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-8">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 ring-1 ring-inset ring-amber-100 dark:ring-amber-500/20">
-            <Sparkles className="w-6 h-6" />
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 ring-1 ring-inset ring-amber-100 dark:ring-amber-500/20">
+            <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white tracking-tight">
               Key Points to Emphasize
             </h2>
             <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -48,7 +48,7 @@ const KeyPointsSection = memo(function KeyPointsSection({
                      </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-relaxed text-gray-800 dark:text-gray-200 font-medium">
+                    <p className="text-sm leading-relaxed text-gray-800 dark:text-gray-200 font-normal">
                       {point}
                     </p>
                   </div>

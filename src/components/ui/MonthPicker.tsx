@@ -11,25 +11,25 @@ interface MonthPickerProps {
 }
 
 const months = [
-  { value: '01', label: 'Janvier', short: 'janv.' },
-  { value: '02', label: 'Février', short: 'févr.' },
-  { value: '03', label: 'Mars', short: 'mars' },
-  { value: '04', label: 'Avril', short: 'avr.' },
-  { value: '05', label: 'Mai', short: 'mai' },
-  { value: '06', label: 'Juin', short: 'juin' },
-  { value: '07', label: 'Juillet', short: 'juil.' },
-  { value: '08', label: 'Août', short: 'août' },
-  { value: '09', label: 'Septembre', short: 'sept.' },
-  { value: '10', label: 'Octobre', short: 'oct.' },
-  { value: '11', label: 'Novembre', short: 'nov.' },
-  { value: '12', label: 'Décembre', short: 'déc.' },
+  { value: '01', label: 'January', short: 'Jan' },
+  { value: '02', label: 'February', short: 'Feb' },
+  { value: '03', label: 'March', short: 'Mar' },
+  { value: '04', label: 'April', short: 'Apr' },
+  { value: '05', label: 'May', short: 'May' },
+  { value: '06', label: 'June', short: 'Jun' },
+  { value: '07', label: 'July', short: 'Jul' },
+  { value: '08', label: 'August', short: 'Aug' },
+  { value: '09', label: 'September', short: 'Sep' },
+  { value: '10', label: 'October', short: 'Oct' },
+  { value: '11', label: 'November', short: 'Nov' },
+  { value: '12', label: 'December', short: 'Dec' },
 ];
 
 export default function MonthPicker({
   value,
   onChange,
   disabled = false,
-  placeholder = 'Sélectionner un mois',
+  placeholder = 'Select month',
   className = '',
 }: MonthPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -106,19 +106,19 @@ export default function MonthPicker({
         }}
         disabled={disabled}
         className={`
-          w-full px-4 py-2.5 rounded-lg border transition-all duration-200
-          bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+          w-full px-4 py-2.5 rounded-xl border transition-all duration-200
+          bg-white dark:bg-gray-800/80 text-gray-900 dark:text-white
           flex items-center justify-between
           ${disabled 
-            ? 'opacity-50 cursor-not-allowed border-gray-300 dark:border-gray-600' 
-            : 'border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500'
+            ? 'opacity-50 cursor-not-allowed border-gray-200/60 dark:border-gray-700/50' 
+            : 'border-gray-200/80 dark:border-gray-600/50 hover:border-gray-300 dark:hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10'
           }
-          ${isOpen ? 'ring-2 ring-purple-500 border-purple-500' : ''}
+          ${isOpen ? 'ring-2 ring-gray-900/5 dark:ring-white/10 border-gray-300 dark:border-gray-500' : ''}
         `}
       >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-          <span className={`text-left flex-1 truncate ${value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          <span className={`text-left flex-1 truncate text-[15px] ${value ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
             {value ? formatDisplayValue(value) : placeholder}
           </span>
         </div>
@@ -126,7 +126,7 @@ export default function MonthPicker({
           <button
             type="button"
             onClick={handleClear}
-            className="ml-2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
+            className="ml-2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
           >
             <X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
           </button>
@@ -141,74 +141,83 @@ export default function MonthPicker({
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-[9999] mt-2 w-full bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700"
+            transition={{ duration: 0.15 }}
+            className="absolute z-[9999] mt-2 w-full bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200/80 dark:border-gray-700/60 overflow-hidden"
             style={{ 
-              minWidth: '320px',
+              minWidth: '280px',
               maxWidth: 'calc(100vw - 2rem)'
             }}
           >
             {/* Year Navigation */}
-            <div className="flex items-center justify-between p-2.5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/20">
-              <button
+            <div className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/50">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
                 type="button"
                 onClick={() => setCurrentYear(currentYear - 1)}
-                className="p-1.5 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700/50 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-              </button>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </motion.button>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
                 {currentYear}
               </h3>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
                 type="button"
                 onClick={() => setCurrentYear(currentYear + 1)}
-                className="p-1.5 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700/50 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <ChevronRight className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-              </button>
+                <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </motion.button>
             </div>
 
             {/* Months Grid */}
-            <div className="p-2.5 pb-2">
+            <div className="p-3">
               <div className="grid grid-cols-4 gap-1.5">
                 {months.map((month) => {
                   const isSelected = selectedMonth === month.value && value?.startsWith(String(currentYear));
                   return (
-                    <button
+                    <motion.button
                       key={month.value}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       type="button"
                       onClick={() => handleMonthSelect(month.value)}
                       className={`
-                        px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                        px-2 py-2 rounded-lg text-xs font-medium transition-all duration-200
                         ${isSelected
-                          ? 'bg-purple-600 text-white shadow-md'
-                          : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-700 dark:hover:text-purple-300'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                          : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                         }
                       `}
                     >
                       {month.short}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
             </div>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-between p-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center justify-between px-3 py-2.5 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50/30 dark:bg-gray-800/30">
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                onClick={() => {
+                  onChange('');
+                  setIsOpen(false);
+                }}
+                className="px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                Effacer
+                Clear
               </button>
               <button
                 type="button"
                 onClick={goToCurrentMonth}
-                className="px-3 py-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                className="px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                Ce mois
+                Today
               </button>
             </div>
           </motion.div>
@@ -217,4 +226,3 @@ export default function MonthPicker({
     </div>
   );
 }
-

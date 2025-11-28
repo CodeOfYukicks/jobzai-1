@@ -124,12 +124,12 @@ export default function FolderManagementModal({
           className="bg-white dark:bg-[#121212] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
         >
           {/* Header */}
-          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl z-10 sticky top-0">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl z-10 sticky top-0">
             <div>
-              <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
+              <h2 className="font-semibold text-lg text-gray-900 dark:text-white tracking-tight">
                 {editingFolder ? 'Edit Folder' : 'Create New Folder'}
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0">
                 Organize your resumes with custom folders
               </p>
             </div>
@@ -143,10 +143,10 @@ export default function FolderManagementModal({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6 space-y-6">
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4">
             {/* Folder Name Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Folder Name
               </label>
               <input
@@ -159,7 +159,7 @@ export default function FolderManagementModal({
                   }
                 }}
                 placeholder="e.g., Software Engineering, Marketing, etc."
-                className="w-full px-4 py-2.5 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 
+                className="w-full px-3 py-2 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 
                   rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50
                   text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
                   transition-all shadow-sm"
@@ -169,13 +169,13 @@ export default function FolderManagementModal({
 
             {/* Icon Type Selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Choose Icon Type
               </label>
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mb-3">
                 <button
                   onClick={() => setIconType('emoji')}
-                  className={`flex-1 px-4 py-2.5 rounded-xl border-2 transition-all text-sm font-medium
+                  className={`flex-1 px-4 py-1.5 rounded-xl border-2 transition-all text-sm font-medium
                     ${
                       iconType === 'emoji'
                         ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 text-purple-700 dark:text-purple-300'
@@ -186,7 +186,7 @@ export default function FolderManagementModal({
                 </button>
                 <button
                   onClick={() => setIconType('lucide')}
-                  className={`flex-1 px-4 py-2.5 rounded-xl border-2 transition-all text-sm font-medium
+                  className={`flex-1 px-4 py-1.5 rounded-xl border-2 transition-all text-sm font-medium
                     ${
                       iconType === 'lucide'
                         ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 text-purple-700 dark:text-purple-300'
@@ -204,7 +204,7 @@ export default function FolderManagementModal({
                     <button
                       key={emoji}
                       onClick={() => setIcon(emoji)}
-                      className={`w-12 h-12 rounded-xl border-2 transition-all flex items-center justify-center text-2xl
+                      className={`w-10 h-10 rounded-xl border-2 transition-all flex items-center justify-center text-xl
                         ${
                           icon === emoji
                             ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 scale-110'
@@ -227,7 +227,7 @@ export default function FolderManagementModal({
                       <button
                         key={iconOption.name}
                         onClick={() => setSelectedLucideIcon(iconOption.name)}
-                        className={`w-12 h-12 rounded-xl border-2 transition-all flex items-center justify-center
+                        className={`w-10 h-10 rounded-xl border-2 transition-all flex items-center justify-center
                           ${
                             isSelected
                               ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10'
@@ -235,7 +235,7 @@ export default function FolderManagementModal({
                           }`}
                         style={isSelected ? { color: color } : {}}
                       >
-                        <IconComponent className="w-5 h-5" />
+                        <IconComponent className="w-4 h-4" />
                       </button>
                     );
                   })}
@@ -245,15 +245,15 @@ export default function FolderManagementModal({
 
             {/* Color Picker */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Choose Color
               </label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-2">
                 {COLOR_PALETTE.map((colorOption) => (
                   <button
                     key={colorOption.value}
                     onClick={() => setColor(colorOption.value)}
-                    className={`relative h-14 rounded-xl border-2 transition-all overflow-hidden group
+                    className={`relative h-10 rounded-xl border-2 transition-all overflow-hidden group
                       ${
                         color === colorOption.value
                           ? 'border-gray-900 dark:border-white ring-2 ring-offset-2 ring-purple-500 dark:ring-purple-400 shadow-md scale-105'
@@ -268,7 +268,7 @@ export default function FolderManagementModal({
                         animate={{ scale: 1 }}
                         className="absolute inset-0 flex items-center justify-center bg-black/20"
                       >
-                        <Check className="w-5 h-5 text-white" strokeWidth={3} />
+                        <Check className="w-4 h-4 text-white" strokeWidth={3} />
                       </motion.div>
                     )}
                   </button>
@@ -278,11 +278,11 @@ export default function FolderManagementModal({
 
             {/* Preview */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Preview
               </label>
               <div
-                className="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-800"
+                className="p-3 rounded-xl border-2 border-gray-200 dark:border-gray-800"
                 style={{
                   background: `linear-gradient(135deg, ${selectedColorData.light}20 0%, ${selectedColorData.dark}10 100%)`,
                   borderColor: color + '40'
@@ -290,12 +290,12 @@ export default function FolderManagementModal({
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
                     style={{ backgroundColor: color + '20', color: color }}
                   >
                     {iconType === 'emoji' ? icon : (() => {
                       const IconComponent = ICON_OPTIONS.find(i => i.name === selectedLucideIcon)?.component || Folder;
-                      return <IconComponent className="w-5 h-5" />;
+                      return <IconComponent className="w-4 h-4" />;
                     })()}
                   </div>
                   <div>
@@ -312,7 +312,7 @@ export default function FolderManagementModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl sticky bottom-0">
+          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl sticky bottom-0">
             <button
               onClick={onClose}
               disabled={isSaving}
@@ -325,18 +325,18 @@ export default function FolderManagementModal({
             <button
               onClick={handleSave}
               disabled={!name.trim() || isSaving}
-              className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700
+              className="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700
                 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed
                 flex items-center gap-2 shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30"
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4" />
+                  <Check className="w-3.5 h-3.5" />
                   {editingFolder ? 'Save Changes' : 'Create Folder'}
                 </>
               )}

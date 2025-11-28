@@ -51,7 +51,7 @@ export function ApplicationCard({
             className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
           />
           <h3
-            className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight flex-1 min-w-0"
+            className="text-base font-medium text-gray-900 dark:text-white leading-tight flex-1 min-w-0"
             style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
           >
             {app.position}
@@ -63,14 +63,14 @@ export function ApplicationCard({
           {/* Date d'application */}
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(app.appliedDate)}</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(app.appliedDate)}</span>
           </div>
 
           {/* Location */}
           {app.location && (
             <div className="flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
-              <span className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[120px]">{app.location}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{app.location}</span>
             </div>
           )}
 
@@ -78,7 +78,7 @@ export function ApplicationCard({
           {hasInterviews && (
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {interviewCount} {interviewCount === 1 ? 'interview' : 'interviews'}
               </span>
             </div>
@@ -87,9 +87,9 @@ export function ApplicationCard({
 
         {/* Section 3: Entreprise */}
         <div className="mb-3 flex-shrink-0">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700">
             <CompanyLogo companyName={app.companyName} size="md" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{app.companyName}</span>
+            <span className="text-sm font-normal text-gray-600 dark:text-gray-400">{app.companyName}</span>
           </div>
         </div>
 

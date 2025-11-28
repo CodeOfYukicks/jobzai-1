@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Edit2, X, Loader2, Sparkles, Check, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from 'sonner';
 import { getOpenAIInstance } from '../../lib/openai';
@@ -23,13 +23,14 @@ const AboutSection = ({ onUpdate }: AboutSectionProps) => {
   const [improvedText, setImprovedText] = useState('');
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!currentUser?.uid) return;
+    if (!currentUser?.uid) return;
 
-      try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
+    // Use onSnapshot to listen for real-time updates (e.g., from CV import)
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', currentUser.uid),
+      async (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data();
 
           // Charger professionalSummary, about, ou motivation (depuis l'inscription)
           let loadedSummary = userData.professionalSummary || userData.about || '';
@@ -47,21 +48,25 @@ const AboutSection = ({ onUpdate }: AboutSectionProps) => {
             }
           }
 
-          setSummary(loadedSummary);
-          setOriginalText(loadedSummary);
+          // Only update if not currently editing to avoid overwriting user input
+          if (!isEditing) {
+            setSummary(loadedSummary);
+            setOriginalText(loadedSummary);
+          }
           setHighlights(
             userData.highlights && userData.highlights.length > 0
               ? userData.highlights
               : ['']
           );
         }
-      } catch (error) {
+      },
+      (error) => {
         console.error('Error loading about data:', error);
       }
-    };
+    );
 
-    loadData();
-  }, [currentUser]);
+    return () => unsubscribe();
+  }, [currentUser, isEditing]);
 
   const improveWithAI = async () => {
     if (!summary.trim()) {

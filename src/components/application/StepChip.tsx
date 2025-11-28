@@ -20,7 +20,7 @@ export function StepChip({
   muted?: boolean;
 }) {
   const base =
-    'inline-flex items-center rounded-full border text-[10px] font-medium px-2 py-0.5 transition-colors';
+    'inline-flex items-center rounded-full border text-[10px] font-normal px-2 py-0.5 transition-colors';
   const active =
     'bg-[#F3F4F6] text-[#374151] border-[#E5E7EB]';
   const inactive = 'bg-[#F9FAFB] text-[#6B7280] border-[#E5E7EB]';

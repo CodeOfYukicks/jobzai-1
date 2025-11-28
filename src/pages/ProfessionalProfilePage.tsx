@@ -12,10 +12,10 @@ import {
   FileText,
   Target,
   Settings,
-  Search,
   GraduationCap,
   TrendingUp,
-  Building2
+  Building2,
+  Wrench
 } from 'lucide-react';
 import LocationMobilitySection from '../components/profile-sections/LocationMobilitySection';
 import ExperienceExpertiseSection from '../components/profile-sections/ExperienceExpertiseSection';
@@ -25,40 +25,37 @@ import EducationLanguagesSection from '../components/profile-sections/EducationL
 import ProfessionalHistorySection from '../components/profile-sections/ProfessionalHistorySection';
 import CareerDriversSection from '../components/profile-sections/CareerDriversSection';
 import RolePreferencesSection from '../components/profile-sections/RolePreferencesSection';
+import WorkAuthorizationSection from '../components/profile-sections/WorkAuthorizationSection';
 import ProfileWizard from '../components/profile-wizard/ProfileWizard';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import AboutSection from '../components/profile/AboutSection';
 import ProfileSectionCard from '../components/profile/ProfileSectionCard';
 import ProfileLandingPage from '../components/profile/ProfileLandingPage';
 import ProfileCompletionBanner from '../components/profile/ProfileCompletionBanner';
+import CommandPalette, { useCommandPalette } from '../components/profile/ui/CommandPalette';
 import { ProfileProvider } from '../contexts/ProfileContext';
 import debounce from 'lodash/debounce';
-
-// Définition des sections
-const sections = [
-  { id: 'personal', name: 'Personal Information', icon: User },
-  { id: 'job-search-context', name: 'Job Search Context', icon: Search },
-  { id: 'education-languages', name: 'Education & Languages', icon: GraduationCap },
-  { id: 'professional-history', name: 'Professional History', icon: Briefcase },
-  { id: 'career-drivers', name: 'Career Drivers', icon: TrendingUp },
-  { id: 'role-preferences', name: 'Role Preferences', icon: Building2 },
-  { id: 'location', name: 'Location & Mobility', icon: MapPin },
-  { id: 'experience', name: 'Experience & Expertise', icon: Briefcase },
-  { id: 'documents', name: 'Documents & Links', icon: FileText },
-  { id: 'objectives', name: 'Professional Objectives', icon: Target },
-  { id: 'preferences', name: 'Preferences & Priorities', icon: Settings },
-];
+import { extractFullProfileFromText } from '../lib/cvExperienceExtractor';
 
 const ProfessionalProfilePage = () => {
   const { currentUser, userData, loading: authLoading } = useAuth();
   const [completionPercentage, setCompletionPercentage] = useState(0);
-  const [useWizard, setUseWizard] = useState(false); // Toggle pour basculer entre wizard et vue complète
-  const [showLanding, setShowLanding] = useState(false); // Afficher la landing page
-  const [hasChosenMode, setHasChosenMode] = useState(false); // Si l'utilisateur a déjà choisi un mode
-  const isInitialMount = useRef(true); // Track si c'est le premier rendu
-  const [shouldAnimate, setShouldAnimate] = useState(false); // Contrôle si on doit animer
-  const prevUseWizard = useRef(useWizard); // Track la valeur précédente de useWizard
-  const prevShowLanding = useRef(showLanding); // Track la valeur précédente de showLanding
+  const [useWizard, setUseWizard] = useState(false);
+  const [showLanding, setShowLanding] = useState(false);
+  const [hasChosenMode, setHasChosenMode] = useState(false);
+  const [showLinkedInModal, setShowLinkedInModal] = useState(false);
+  const isInitialMount = useRef(true);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const prevUseWizard = useRef(useWizard);
+  const prevShowLanding = useRef(showLanding);
+  
+  // CV Import state
+  const [cvText, setCvText] = useState<string>('');
+  const [isImportingCV, setIsImportingCV] = useState(false);
+  
+  // Command palette hook
+  const commandPalette = useCommandPalette();
+
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -163,7 +160,25 @@ const ProfessionalProfilePage = () => {
     desiredCulture: [] as string[]
   });
 
-  // Calculer yearsOfExperience depuis professionalHistory
+  // Navigate to section
+  const navigateToSection = useCallback((sectionId: string) => {
+    const element = document.getElementById(`section-${sectionId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Flash effect to highlight the section
+      element.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2');
+      setTimeout(() => {
+        element.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2');
+      }, 2000);
+    }
+  }, []);
+
+  // Handle LinkedIn import
+  const handleLinkedInImport = useCallback(() => {
+    setShowLinkedInModal(true);
+  }, []);
+
+  // Calculate years of experience from professional history
   const calculateYearsOfExperience = (history: Array<{
     startDate: string;
     endDate: string;
@@ -177,7 +192,6 @@ const ProfessionalProfilePage = () => {
     history.forEach(exp => {
       if (!exp.startDate) return;
 
-      // Parse date in YYYY-MM format
       const startParts = exp.startDate.split('-');
       if (startParts.length !== 2) return;
 
@@ -202,56 +216,35 @@ const ProfessionalProfilePage = () => {
     return Math.round(totalMonths / 12);
   };
 
-  // Calculer le pourcentage de complétion
+  // Calculate completion percentage
   const calculateCompletionPercentage = (data: typeof formData) => {
     const requiredFields = [
-      // Personal Information
       'firstName',
       'lastName',
       'email',
       'gender',
-
-      // Job Search Context (Phase 1)
       'currentSituation',
       'searchUrgency',
-
-      // Education & Languages (Phase 1)
       'educationLevel',
       'languages',
-
-      // Professional History (Phase 2)
       'professionalHistory',
-
-      // Career Drivers (Phase 2)
       'careerPriorities',
       'primaryMotivator',
-
-      // Role Preferences (Phase 2)
       'roleType',
       'preferredEnvironment',
-
-      // Location & Mobility
       'city',
       'country',
       'willingToRelocate',
       'workPreference',
       'travelPreference',
-
-      // Experience & Expertise
       'yearsOfExperience',
       'skills',
       'tools',
-
-      // Documents & Links
       'cvUrl',
       'linkedinUrl',
-
-      // Professional Objectives
       'targetPosition',
       'targetSectors',
       'salaryExpectations',
-
-      // Preferences & Priorities
       'workLifeBalance',
       'companyCulture'
     ];
@@ -265,7 +258,6 @@ const ProfessionalProfilePage = () => {
       } else if (typeof value === 'object' && value !== null) {
         if (Object.values(value).some(v => v !== '' && v !== null && v !== undefined)) completedFields++;
       } else if (field === 'willingToRelocate') {
-        // willingToRelocate is a boolean, so it's complete if it's explicitly set
         if (value === true || value === false) completedFields++;
       } else if (value !== '' && value !== null && value !== undefined) {
         completedFields++;
@@ -275,7 +267,7 @@ const ProfessionalProfilePage = () => {
     return Math.round((completedFields / requiredFields.length) * 100);
   };
 
-  // Calculer yearsOfExperience depuis professionalHistory
+  // Calculate yearsOfExperience from professionalHistory
   useEffect(() => {
     if (formData.professionalHistory && formData.professionalHistory.length > 0) {
       const calculatedYears = calculateYearsOfExperience(formData.professionalHistory);
@@ -289,15 +281,14 @@ const ProfessionalProfilePage = () => {
     }
   }, [formData.professionalHistory]);
 
-  // Mettre à jour le pourcentage de complétion quand les données changent
+  // Update completion percentage when data changes
   useEffect(() => {
     const percentage = calculateCompletionPercentage(formData);
     setCompletionPercentage(percentage);
   }, [formData]);
 
-  // Gérer l'affichage de la landing page
+  // Handle landing page display
   useEffect(() => {
-    // Vérifier si l'utilisateur a déjà choisi un mode (localStorage)
     const savedChoice = localStorage.getItem('profileModeChosen');
     if (savedChoice === 'true') {
       setHasChosenMode(true);
@@ -305,8 +296,6 @@ const ProfessionalProfilePage = () => {
       return;
     }
 
-    // Afficher la landing si l'utilisateur n'a pas encore choisi un mode
-    // et si le profil est incomplet (< 80%)
     if (!hasChosenMode && completionPercentage < 80 && !authLoading) {
       setShowLanding(true);
     } else {
@@ -314,9 +303,13 @@ const ProfessionalProfilePage = () => {
     }
   }, [hasChosenMode, completionPercentage, authLoading]);
 
-  // Fonction pour mettre à jour formData depuis Firestore
+  // Update formData from Firestore
   const updateFormDataFromFirestore = useCallback((firestoreData: any) => {
-    // Extraire firstName et lastName depuis displayName ou name si nécessaire
+    // Store cvText for import functionality
+    if (firestoreData.cvText) {
+      setCvText(firestoreData.cvText);
+    }
+    
     let extractedFirstName = '';
     let extractedLastName = '';
     const fullName = currentUser?.displayName || firestoreData.name || userData?.name || '';
@@ -331,7 +324,6 @@ const ProfessionalProfilePage = () => {
       const newLastName = userData?.lastName || firestoreData.lastName || extractedLastName || prevData.lastName || '';
       const newEmail = currentUser?.email || userData?.email || firestoreData.email || prevData.email || '';
 
-      // Calculer yearsOfExperience depuis professionalHistory si disponible
       let calculatedYears = prevData.yearsOfExperience || '';
       if (firestoreData.professionalHistory && firestoreData.professionalHistory.length > 0) {
         calculatedYears = calculateYearsOfExperience(firestoreData.professionalHistory).toString();
@@ -339,57 +331,44 @@ const ProfessionalProfilePage = () => {
         calculatedYears = firestoreData.yearsOfExperience.toString();
       }
 
-      // Support both salaryRange (old) and salaryExpectations (new) for backward compatibility
       const salaryData = firestoreData.salaryExpectations || firestoreData.salaryRange || prevData.salaryExpectations || {
         min: '',
         max: '',
         currency: 'EUR'
       };
 
-      // Remove salaryRange from firestoreData to avoid conflicts
       const { salaryRange, ...cleanFirestoreData } = firestoreData;
 
       return {
         ...prevData,
-        // Autres données depuis Firestore
         ...cleanFirestoreData,
-        // Override salaryExpectations with migrated data
         salaryExpectations: salaryData,
-        // Utiliser userData du contexte AuthContext pour firstName, lastName, email (priorité)
         firstName: newFirstName,
         lastName: newLastName,
         email: newEmail,
-        // Calculer yearsOfExperience depuis professionalHistory
         yearsOfExperience: calculatedYears,
-        // Job Search Context (Phase 1)
         currentSituation: firestoreData.currentSituation || prevData.currentSituation || '',
         searchUrgency: firestoreData.searchUrgency || prevData.searchUrgency || '',
         searchReason: firestoreData.searchReason || prevData.searchReason || '',
         searchIntensity: firestoreData.searchIntensity || prevData.searchIntensity || '',
-        // Education & Languages (Phase 1)
         educationLevel: firestoreData.educationLevel || prevData.educationLevel || '',
         educationField: firestoreData.educationField || prevData.educationField || '',
         educationInstitution: firestoreData.educationInstitution || prevData.educationInstitution || '',
         graduationYear: firestoreData.graduationYear || prevData.graduationYear || '',
         educationMajor: firestoreData.educationMajor || prevData.educationMajor || '',
         languages: firestoreData.languages || prevData.languages || [],
-        // Professional History (Phase 2)
         professionalHistory: firestoreData.professionalHistory || prevData.professionalHistory || [],
-        // Career Drivers (Phase 2)
         careerPriorities: firestoreData.careerPriorities || prevData.careerPriorities || [],
         primaryMotivator: firestoreData.primaryMotivator || prevData.primaryMotivator || '',
         dealBreakers: firestoreData.dealBreakers || prevData.dealBreakers || [],
         niceToHaves: firestoreData.niceToHaves || prevData.niceToHaves || [],
-        // Role Preferences (Phase 2)
         roleType: firestoreData.roleType || prevData.roleType || '',
         preferredEnvironment: firestoreData.preferredEnvironment || prevData.preferredEnvironment || [],
         productType: firestoreData.productType || prevData.productType || [],
         functionalDomain: firestoreData.functionalDomain || prevData.functionalDomain || [],
-        // Salary Flexibility (Phase 3)
         salaryFlexibility: firestoreData.salaryFlexibility || prevData.salaryFlexibility || '',
         compensationPriorities: firestoreData.compensationPriorities || prevData.compensationPriorities || [],
         willingToTrade: firestoreData.willingToTrade || prevData.willingToTrade || [],
-        // Soft Skills & Leadership (Phase 3)
         softSkills: firestoreData.softSkills || prevData.softSkills || [],
         managementExperience: firestoreData.managementExperience || prevData.managementExperience || {
           hasExperience: false,
@@ -398,17 +377,14 @@ const ProfessionalProfilePage = () => {
         },
         mentoringExperience: firestoreData.mentoringExperience || prevData.mentoringExperience || false,
         recruitingExperience: firestoreData.recruitingExperience || prevData.recruitingExperience || false,
-        // Detailed Location (Phase 3)
         preferredCities: firestoreData.preferredCities || prevData.preferredCities || [],
         preferredCountries: firestoreData.preferredCountries || prevData.preferredCountries || [],
         geographicFlexibility: firestoreData.geographicFlexibility || prevData.geographicFlexibility || '',
-        // Location & Mobility
         city: firestoreData.city || prevData.city || '',
         country: firestoreData.country || prevData.country || '',
         willingToRelocate: firestoreData.willingToRelocate !== undefined ? firestoreData.willingToRelocate : prevData.willingToRelocate,
         workPreference: firestoreData.workPreference || prevData.workPreference || '',
         travelPreference: firestoreData.travelPreference || prevData.travelPreference || '',
-        // Documents & Links
         cvUrl: firestoreData.cvUrl || prevData.cvUrl || '',
         cvName: firestoreData.cvName || prevData.cvName || '',
         linkedinUrl: firestoreData.linkedinUrl || prevData.linkedinUrl || '',
@@ -418,12 +394,10 @@ const ProfessionalProfilePage = () => {
     });
   }, [currentUser, userData]);
 
-  // Charger les données initiales et écouter les changements en temps réel
+  // Load initial data and listen for real-time changes
   useEffect(() => {
-    // Attendre que l'authentification soit chargée
     if (authLoading || !currentUser?.uid) return;
 
-    // Charger les données initiales
     const loadInitialData = async () => {
       try {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
@@ -438,7 +412,6 @@ const ProfessionalProfilePage = () => {
 
     loadInitialData();
 
-    // Écouter les changements en temps réel
     const unsubscribe = onSnapshot(
       doc(db, 'users', currentUser.uid),
       (docSnapshot) => {
@@ -454,7 +427,7 @@ const ProfessionalProfilePage = () => {
     return () => unsubscribe();
   }, [currentUser, userData, authLoading, updateFormDataFromFirestore]);
 
-  // Créer une version debounced de la sauvegarde Firebase
+  // Debounced save to Firebase
   const saveToFirebase = useCallback(
     debounce(async (data: any) => {
       if (!currentUser?.uid) return;
@@ -465,17 +438,15 @@ const ProfessionalProfilePage = () => {
           ...data,
           lastUpdated: new Date().toISOString()
         });
-        // Toast uniquement pour les erreurs, pas pour les succès
       } catch (error) {
         console.error('Error saving changes:', error);
         toast.error('Failed to save changes');
       }
-    }, 1000), // Attendre 1 seconde d'inactivité avant de sauvegarder
+    }, 1000),
     [currentUser]
   );
 
   const updateFormData = async (sectionData: any) => {
-    // Migrer salaryRange vers salaryExpectations si nécessaire
     const cleanedData = { ...sectionData };
     if (cleanedData.salaryRange && !cleanedData.salaryExpectations) {
       cleanedData.salaryExpectations = cleanedData.salaryRange;
@@ -487,43 +458,35 @@ const ProfessionalProfilePage = () => {
       ...cleanedData
     }));
 
-    // Appeler la version debounced de la sauvegarde
     saveToFirebase(cleanedData);
   };
 
-
-
-  // Activer les animations après le premier rendu
+  // Enable animations after initial render
   useEffect(() => {
     if (isInitialMount.current) {
-      // Au premier rendu, désactiver l'animation
       isInitialMount.current = false;
       setShouldAnimate(false);
-      // Activer les animations après un court délai pour les transitions futures
       const timer = setTimeout(() => {
         setShouldAnimate(true);
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, []); // Seulement au montage du composant
+  }, []);
 
-  // Activer l'animation pour les changements internes (wizard <-> vue complète)
+  // Enable animation for internal changes (wizard <-> full view)
   useEffect(() => {
-    // Vérifier si les valeurs ont réellement changé (pas juste au premier rendu)
     const wizardChanged = prevUseWizard.current !== useWizard;
     const landingChanged = prevShowLanding.current !== showLanding;
 
     if ((wizardChanged || landingChanged) && !isInitialMount.current) {
-      // Activer l'animation seulement si les valeurs ont changé ET ce n'est pas le premier rendu
       setShouldAnimate(true);
     }
 
-    // Mettre à jour les refs
     prevUseWizard.current = useWizard;
     prevShowLanding.current = showLanding;
   }, [useWizard, showLanding]);
 
-  // Handlers pour les choix de la landing page
+  // Landing page handlers
   const handleChooseStepMode = () => {
     setHasChosenMode(true);
     setShowLanding(false);
@@ -538,9 +501,156 @@ const ProfessionalProfilePage = () => {
     localStorage.setItem('profileModeChosen', 'true');
   };
 
+  // Handle CV Import - Extract full profile from CV text
+  const handleImportFromCV = useCallback(async () => {
+    if (!currentUser?.uid || isImportingCV) return;
+    
+    try {
+      // Get fresh cvText from Firestore
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (!userDoc.exists()) {
+        toast.error('User data not found');
+        return;
+      }
+      
+      const userData = userDoc.data();
+      const storedCvText = userData.cvText;
+      
+      if (!storedCvText || storedCvText.length < 100) {
+        toast.error('No CV found. Please upload your CV first in the Documents section.');
+        return;
+      }
+      
+      setIsImportingCV(true);
+      toast.info('Extracting profile data from your CV...');
+      
+      // Extract full profile data
+      const extractedProfile = await extractFullProfileFromText(storedCvText);
+      
+      // Prepare update object
+      const updateData: Record<string, any> = {};
+      
+      // Personal info
+      if (extractedProfile.personalInfo.firstName) {
+        updateData.firstName = extractedProfile.personalInfo.firstName;
+      }
+      if (extractedProfile.personalInfo.lastName) {
+        updateData.lastName = extractedProfile.personalInfo.lastName;
+      }
+      if (extractedProfile.personalInfo.email) {
+        updateData.email = extractedProfile.personalInfo.email;
+      }
+      if (extractedProfile.personalInfo.phone) {
+        updateData.phone = extractedProfile.personalInfo.phone;
+      }
+      if (extractedProfile.personalInfo.city) {
+        updateData.city = extractedProfile.personalInfo.city;
+      }
+      if (extractedProfile.personalInfo.country) {
+        updateData.country = extractedProfile.personalInfo.country;
+      }
+      if (extractedProfile.personalInfo.headline) {
+        updateData.targetPosition = extractedProfile.personalInfo.headline;
+        updateData.headline = extractedProfile.personalInfo.headline;
+      }
+      
+      // Experiences
+      if (extractedProfile.experiences && extractedProfile.experiences.length > 0) {
+        // Convert experiences to the format expected by professionalHistory
+        const formattedExperiences = extractedProfile.experiences.map(exp => ({
+          title: exp.title,
+          company: exp.company,
+          companyLogo: '',
+          startDate: exp.startDate,
+          endDate: exp.endDate,
+          current: exp.current,
+          industry: exp.industry || '',
+          contractType: exp.contractType || 'full-time',
+          location: exp.location || '',
+          responsibilities: exp.responsibilities.length > 0 ? exp.responsibilities : [''],
+          achievements: []
+        }));
+        updateData.professionalHistory = formattedExperiences;
+      }
+      
+      // Educations (new format)
+      if (extractedProfile.educations && extractedProfile.educations.length > 0) {
+        updateData.educations = extractedProfile.educations;
+        
+        // Also set legacy fields for backwards compatibility
+        const firstEdu = extractedProfile.educations[0];
+        if (firstEdu) {
+          updateData.educationLevel = firstEdu.degree;
+          updateData.educationField = firstEdu.field;
+          updateData.educationInstitution = firstEdu.institution;
+          if (firstEdu.endDate) {
+            updateData.graduationYear = firstEdu.endDate.split('-')[0];
+          }
+        }
+      }
+      
+      // Skills (soft skills, methodologies)
+      if (extractedProfile.skills && extractedProfile.skills.length > 0) {
+        updateData.skills = extractedProfile.skills;
+      }
+      
+      // Tools & Technologies
+      if (extractedProfile.tools && extractedProfile.tools.length > 0) {
+        updateData.tools = extractedProfile.tools;
+      }
+      
+      // Languages
+      if (extractedProfile.languages && extractedProfile.languages.length > 0) {
+        updateData.languages = extractedProfile.languages;
+      }
+      
+      // Professional Summary
+      if (extractedProfile.summary) {
+        updateData.professionalSummary = extractedProfile.summary;
+      }
+      
+      // Save to Firestore
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        ...updateData,
+        lastUpdated: new Date().toISOString()
+      });
+      
+      // Update local state
+      setFormData(prev => ({
+        ...prev,
+        ...updateData
+      }));
+      
+      // Build success message
+      const counts = [];
+      if (extractedProfile.experiences?.length) counts.push(`${extractedProfile.experiences.length} experiences`);
+      if (extractedProfile.educations?.length) counts.push(`${extractedProfile.educations.length} educations`);
+      if (extractedProfile.skills?.length) counts.push(`${extractedProfile.skills.length} skills`);
+      if (extractedProfile.tools?.length) counts.push(`${extractedProfile.tools.length} tools`);
+      if (extractedProfile.languages?.length) counts.push(`${extractedProfile.languages.length} languages`);
+      if (extractedProfile.summary) counts.push('summary');
+      
+      toast.success(`Profile imported! Found ${counts.join(', ')}`);
+      
+    } catch (error) {
+      console.error('CV import failed:', error);
+      toast.error('Failed to import profile from CV');
+    } finally {
+      setIsImportingCV(false);
+    }
+  }, [currentUser, isImportingCV]);
+
   return (
     <ProfileProvider>
       <AuthLayout>
+        {/* Command Palette */}
+        <CommandPalette
+          isOpen={commandPalette.isOpen}
+          onClose={commandPalette.close}
+          onNavigateToSection={navigateToSection}
+          onImportLinkedIn={handleLinkedInImport}
+        />
+
         <AnimatePresence mode="wait">
           {showLanding ? (
             <motion.div
@@ -570,14 +680,8 @@ const ProfessionalProfilePage = () => {
               style={{ position: 'relative' }}
             >
               <ProfileWizard
-                onComplete={() => {
-                  // Quand l'utilisateur clique sur "Finish", basculer vers la vue complète
-                  setUseWizard(false);
-                }}
-                onUpdate={(data) => {
-                  // Sauvegarder les données du wizard
-                  updateFormData(data);
-                }}
+                onComplete={() => setUseWizard(false)}
+                onUpdate={(data) => updateFormData(data)}
               />
             </motion.div>
           ) : (
@@ -591,13 +695,33 @@ const ProfessionalProfilePage = () => {
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.3 }
               } : { duration: 0 }}
-              className="min-h-0 flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 relative"
+              className="min-h-0 flex-1 overflow-y-auto relative"
             >
+              {/* Keyboard shortcut hint */}
+              <div className="fixed bottom-4 right-4 z-40">
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1 }}
+                  onClick={commandPalette.open}
+                  className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">⌘K</kbd>
+                  <span>Quick actions</span>
+                </motion.button>
+              </div>
 
               {/* Main Content - Premium Layout */}
-              <div className="relative w-full max-w-[1400px] mx-auto space-y-4 pt-6 px-4 pb-20">
-                {/* Profile Header */}
-                <ProfileHeader onUpdate={updateFormData} />
+              <div className="relative w-full max-w-[1400px] mx-auto space-y-5 pt-6 px-4 pb-24">
+                {/* Profile Header - Pass completion percentage, LinkedIn handler, and CV import */}
+                <ProfileHeader 
+                  onUpdate={updateFormData} 
+                  completionPercentage={completionPercentage}
+                  onLinkedInClick={handleLinkedInImport}
+                  onImportCV={handleImportFromCV}
+                  isImportingCV={isImportingCV}
+                  hasCvText={cvText.length > 100}
+                />
 
                 {/* Completion Banner */}
                 <ProfileCompletionBanner
@@ -606,87 +730,115 @@ const ProfessionalProfilePage = () => {
                 />
 
                 {/* About Section */}
-                <AboutSection onUpdate={updateFormData} />
+                <div id="section-personal">
+                  <AboutSection onUpdate={updateFormData} />
+                </div>
 
                 {/* Experience Section */}
-                <ProfileSectionCard
-                  title="Experience"
-                  icon={<Briefcase className="w-5 h-5" />}
-                  completion={formData.professionalHistory?.length > 0 ? 100 : 0}
-                  isCollapsible={true}
-                >
-                  <ProfessionalHistorySection onUpdate={updateFormData} />
-                </ProfileSectionCard>
+                <div id="section-experience">
+                  <ProfileSectionCard
+                    title="Experience"
+                    icon={<Briefcase className="w-5 h-5" />}
+                    isCollapsible={true}
+                  >
+                    <ProfessionalHistorySection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
 
                 {/* Education & Languages */}
-                <ProfileSectionCard
-                  title="Education & Languages"
-                  icon={<GraduationCap className="w-5 h-5" />}
-                  completion={formData.educationLevel ? 100 : 0}
-                  isCollapsible={true}
-                >
-                  <EducationLanguagesSection onUpdate={updateFormData} />
-                </ProfileSectionCard>
+                <div id="section-education">
+                  <ProfileSectionCard
+                    title="Education & Languages"
+                    icon={<GraduationCap className="w-5 h-5" />}
+                    completion={formData.educationLevel ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <EducationLanguagesSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
 
                 {/* Skills & Expertise */}
-                <ProfileSectionCard
-                  title="Skills & Expertise"
-                  icon={<Briefcase className="w-5 h-5" />}
-                  completion={formData.skills?.length > 0 ? 100 : 0}
-                  isCollapsible={true}
-                >
-                  <ExperienceExpertiseSection onUpdate={updateFormData} />
-                </ProfileSectionCard>
+                <div id="section-skills">
+                  <ProfileSectionCard
+                    title="Skills & Expertise"
+                    icon={<Wrench className="w-5 h-5" />}
+                    isCollapsible={true}
+                  >
+                    <ExperienceExpertiseSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
 
                 {/* Career Objectives */}
-                <ProfileSectionCard
-                  title="Career Objectives"
-                  icon={<Target className="w-5 h-5" />}
-                  completion={formData.targetPosition ? 100 : 0}
-                  isCollapsible={true}
-                >
-                  <ProfessionalObjectivesSection onUpdate={updateFormData} />
-                </ProfileSectionCard>
+                <div id="section-objectives">
+                  <ProfileSectionCard
+                    title="Career Objectives"
+                    icon={<Target className="w-5 h-5" />}
+                    completion={formData.targetPosition ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <ProfessionalObjectivesSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
 
                 {/* Location & Mobility */}
-                <ProfileSectionCard
-                  title="Location & Mobility"
-                  icon={<MapPin className="w-5 h-5" />}
-                  completion={formData.city && formData.country ? 100 : 0}
-                  isCollapsible={true}
-                >
-                  <LocationMobilitySection onUpdate={updateFormData} />
-                </ProfileSectionCard>
+                <div id="section-location">
+                  <ProfileSectionCard
+                    title="Location & Mobility"
+                    icon={<MapPin className="w-5 h-5" />}
+                    completion={formData.city && formData.country ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <LocationMobilitySection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
 
                 {/* Career Drivers */}
-                <ProfileSectionCard
-                  title="Career Drivers"
-                  icon={<TrendingUp className="w-5 h-5" />}
-                  completion={formData.careerPriorities?.length > 0 ? 100 : 0}
-                  isCollapsible={true}
-                >
-                  <CareerDriversSection onUpdate={updateFormData} />
-                </ProfileSectionCard>
+                <div id="section-career-drivers">
+                  <ProfileSectionCard
+                    title="Career Drivers"
+                    icon={<TrendingUp className="w-5 h-5" />}
+                    completion={formData.careerPriorities?.length > 0 ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <CareerDriversSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
 
                 {/* Role Preferences */}
-                <ProfileSectionCard
-                  title="Role Preferences"
-                  icon={<Building2 className="w-5 h-5" />}
-                  completion={formData.roleType ? 100 : 0}
-                  isCollapsible={true}
-                >
-                  <RolePreferencesSection onUpdate={updateFormData} />
-                </ProfileSectionCard>
+                <div id="section-role-preferences">
+                  <ProfileSectionCard
+                    title="Role Preferences"
+                    icon={<Building2 className="w-5 h-5" />}
+                    completion={formData.roleType ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <RolePreferencesSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
 
                 {/* Documents & Links */}
-                <ProfileSectionCard
-                  title="Documents & Links"
-                  icon={<FileText className="w-5 h-5" />}
-                  completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
-                  isCollapsible={true}
-                >
-                  <DocumentsLinksSection onUpdate={updateFormData} />
-                </ProfileSectionCard>
+                <div id="section-documents">
+                  <ProfileSectionCard
+                    title="Documents & Links"
+                    icon={<FileText className="w-5 h-5" />}
+                    completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <DocumentsLinksSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Work Authorization & Auto-Apply Info */}
+                <div id="section-work-auth">
+                  <ProfileSectionCard
+                    title="Work Authorization & Contact"
+                    icon={<Settings className="w-5 h-5" />}
+                    isCollapsible={true}
+                    defaultCollapsed={true}
+                  >
+                    <WorkAuthorizationSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
               </div>
             </motion.div>
           )}
@@ -696,4 +848,4 @@ const ProfessionalProfilePage = () => {
   );
 };
 
-export default ProfessionalProfilePage; 
+export default ProfessionalProfilePage;

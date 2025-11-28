@@ -127,9 +127,9 @@ const SkeletonPreview = memo(() => (
 
     {/* Empty State Overlay */}
     <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
-       <div className="bg-white/90 backdrop-blur-sm px-4 py-3 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2">
-         <Sparkles className="w-4 h-4 text-purple-500" />
-         <span className="text-xs font-medium text-gray-600">Empty Template</span>
+       <div className="bg-white/90 backdrop-blur-sm px-10 py-8 rounded-2xl shadow-lg border-2 border-gray-200 flex items-center gap-6">
+         <Sparkles className="w-16 h-16 text-purple-500" />
+         <span className="text-8xl font-bold text-gray-900">Empty Template</span>
        </div>
     </div>
   </div>
@@ -275,7 +275,11 @@ const CVPreviewCard = memo(({
       ref={cardRef}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`group relative flex flex-col items-center p-4 rounded-xl transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50`}
+      whileHover={{ 
+        y: -8,
+        transition: { type: "spring", stiffness: 300, damping: 20 }
+      }}
+      className={`group relative flex flex-col items-center p-4 rounded-xl transition-all duration-300 cursor-pointer`}
       onClick={handleEdit}
       onContextMenu={handleContextMenu}
       draggable={draggable}
@@ -283,36 +287,66 @@ const CVPreviewCard = memo(({
     >
       {/* Document Preview */}
       <div 
-        className={`relative mb-4 transition-transform duration-200 ease-out group-hover:-translate-y-1`}
+        className={`relative mb-4`}
         style={{
           width: `${scaledWidth}px`,
           height: `${scaledHeight}px`,
         }}
       >
-        {/* Stack effect layers */}
-        <div className="absolute top-0 left-0 w-full h-full bg-gray-200 dark:bg-gray-700 rounded-[2px] transform translate-y-1 translate-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 -z-10" />
-        <div className="absolute top-0 left-0 w-full h-full bg-gray-300 dark:bg-gray-600 rounded-[2px] transform translate-y-2 translate-x-2 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20" />
+        {/* Colored Glow Effect */}
+        <div 
+          className="absolute -inset-4 rounded-lg opacity-0 group-hover:opacity-100 blur-2xl transition-all duration-500 -z-30"
+          style={{
+            background: `radial-gradient(circle at center, ${layoutSettings.accentColor === 'blue' ? 'rgba(59, 130, 246, 0.3)' : layoutSettings.accentColor === 'purple' ? 'rgba(168, 85, 247, 0.3)' : layoutSettings.accentColor === 'green' ? 'rgba(34, 197, 94, 0.3)' : layoutSettings.accentColor === 'orange' ? 'rgba(249, 115, 22, 0.3)' : 'rgba(139, 92, 246, 0.3)'}, transparent 70%)`
+          }}
+        />
+
+        {/* Enhanced Stack effect layers */}
+        <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-gray-700/80 rounded-[3px] transform translate-y-1.5 translate-x-1.5 opacity-0 group-hover:opacity-60 transition-all duration-300 -z-10 shadow-sm" />
+        <div className="absolute top-0 left-0 w-full h-full bg-white/60 dark:bg-gray-600/60 rounded-[3px] transform translate-y-3 translate-x-3 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20 shadow-sm" />
 
         <div
-          className="relative w-full h-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 overflow-hidden rounded-[2px]"
+          className="relative w-full h-full bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_32px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden rounded-[3px] ring-1 ring-black/5 group-hover:ring-black/10"
         >
-           {/* Hover Overlay Actions */}
-           <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors duration-200 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-              <button
-                onClick={(e) => { e.stopPropagation(); handleEdit(); }}
-                className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 transform scale-90 hover:scale-100 transition-all"
-                title="Edit"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
-                className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 transform scale-90 hover:scale-100 transition-all"
-                title="Delete"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-           </div>
+           {/* Glass Action Bar - Appears at bottom on hover */}
+           <motion.div 
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 0, y: 10 }}
+             whileHover={{ opacity: 1, y: 0 }}
+             className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300"
+           >
+             <div className="flex items-center gap-1 px-2 py-1.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-full shadow-xl border border-black/5 dark:border-white/10">
+               <motion.button
+                 onClick={(e) => { e.stopPropagation(); handleEdit(); }}
+                 whileHover={{ scale: 1.1 }}
+                 whileTap={{ scale: 0.9 }}
+                 className="p-1.5 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full transition-all"
+                 title="Edit"
+               >
+                 <Edit2 className="w-3.5 h-3.5" />
+               </motion.button>
+               <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+               <motion.button
+                 onClick={(e) => { e.stopPropagation(); handleNameClick(e); }}
+                 whileHover={{ scale: 1.1 }}
+                 whileTap={{ scale: 0.9 }}
+                 className="p-1.5 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all"
+                 title="Rename"
+               >
+                 <Sparkles className="w-3.5 h-3.5" />
+               </motion.button>
+               <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+               <motion.button
+                 onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
+                 whileHover={{ scale: 1.1 }}
+                 whileTap={{ scale: 0.9 }}
+                 className="p-1.5 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
+                 title="Delete"
+               >
+                 <Trash2 className="w-3.5 h-3.5" />
+               </motion.button>
+             </div>
+           </motion.div>
 
           <div
             style={{

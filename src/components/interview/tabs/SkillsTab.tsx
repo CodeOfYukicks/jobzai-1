@@ -317,7 +317,7 @@ const SkillsTab = memo(function SkillsTab({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-        className="group relative rounded-2xl bg-white/80 dark:bg-neutral-900/60 backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:shadow-md transition-all duration-300 overflow-hidden"
+        className="group relative rounded-2xl bg-white/80 dark:bg-[#1a1b1e] backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-300 overflow-hidden border border-transparent dark:border-white/[0.04]"
       >
         {/* Header Section */}
         <div className="px-6 pt-6 pb-4">
@@ -400,7 +400,7 @@ const SkillsTab = memo(function SkillsTab({
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: storyIndex * 0.05 }}
-                  className="group/story rounded-xl bg-neutral-50/80 dark:bg-neutral-800/50 p-4 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/70 transition-colors"
+                  className="group/story rounded-xl bg-neutral-50/80 dark:bg-[#141517] p-4 hover:bg-neutral-100/80 dark:hover:bg-[#1a1b1e] transition-colors border border-transparent dark:border-white/[0.03]"
                 >
                   {/* 3-Column Grid for S, A, R */}
                   <div className="grid grid-cols-3 gap-4 mb-3">
@@ -418,7 +418,7 @@ const SkillsTab = memo(function SkillsTab({
                           value={story[field.key as keyof typeof story] as string}
                           onChange={(e) => updateStarField(skill, story.id, field.key as 'situation' | 'action' | 'result', e.target.value)}
                           placeholder={field.placeholder}
-                          className="w-full rounded-lg border-0 bg-white dark:bg-neutral-900/60 px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 resize-none focus:ring-2 focus:ring-purple-500/30 focus:outline-none transition-all"
+                          className="w-full rounded-lg border-0 bg-white dark:bg-[#1a1b1e] px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 resize-none focus:ring-2 focus:ring-purple-500/30 focus:outline-none transition-all"
                       />
                     </div>
                     ))}
@@ -551,12 +551,12 @@ const SkillsTab = memo(function SkillsTab({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-          className="relative rounded-2xl bg-white/80 dark:bg-neutral-900/60 backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden"
+          className="relative rounded-2xl bg-white/80 dark:bg-[#1a1b1e] backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none overflow-hidden border border-transparent dark:border-white/[0.04]"
         >
           {/* Progress Bar Background */}
           <div className="absolute inset-x-0 bottom-0 h-1 bg-neutral-100 dark:bg-neutral-800">
             <motion.div
-              className="h-full bg-gradient-to-r from-purple-500 to-purple-600"
+              className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600"
               initial={{ width: 0 }}
               animate={{ width: `${summaryStats.readinessPercent}%` }}
               transition={{ delay: 0.3, duration: 0.8, ease: 'easeOut' }}
@@ -617,7 +617,7 @@ const SkillsTab = memo(function SkillsTab({
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center justify-center rounded-2xl bg-white/80 dark:bg-neutral-900/60 backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] px-8 py-12 text-center"
+          className="flex flex-col items-center justify-center rounded-2xl bg-white/80 dark:bg-[#1a1b1e] backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none px-8 py-12 text-center border border-transparent dark:border-white/[0.04]"
         >
           <div className="w-14 h-14 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-4">
             <Briefcase className="w-6 h-6 text-neutral-400 dark:text-neutral-500" />
