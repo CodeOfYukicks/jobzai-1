@@ -195,8 +195,8 @@ const LinkedInConnectButton = ({
   );
 };
 
-// Import Modal Component
-interface LinkedInImportModalProps {
+// Import Modal Component - Exported for use in other components
+export interface LinkedInImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -207,7 +207,7 @@ interface LinkedInImportModalProps {
   error: string | null;
 }
 
-const LinkedInImportModal = ({
+export const LinkedInImportModal = ({
   isOpen,
   onClose,
   onFileUpload,

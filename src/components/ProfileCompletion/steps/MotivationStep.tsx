@@ -107,7 +107,7 @@ Return only the improved text, nothing else.`
           placeholder="Example: I'm looking to transition from my current role in marketing to a product management position. I'm particularly interested in tech companies with strong mentorship programs..."
           className="w-full p-4 pr-32 border-2 border-gray-200 dark:border-gray-700 rounded-xl
             bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-            focus:ring-2 focus:ring-[hsl(var(--primary))]/20 focus:border-[hsl(var(--primary))]
+            focus:ring-2 focus:ring-[#8D75E6]/20 dark:focus:ring-[#7C3AED]/20 focus:border-[#8D75E6] dark:focus:border-[#7C3AED]
             transition-all duration-200 resize-none
             shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
             focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
@@ -124,14 +124,14 @@ Return only the improved text, nothing else.`
               text-gray-600 dark:text-gray-400 rounded-lg 
               text-xs font-medium transition-all duration-200
               disabled:opacity-50 disabled:cursor-not-allowed
-              hover:bg-[hsl(var(--primary))]/10 dark:hover:bg-[hsl(var(--primary))]/20
-              hover:border-[hsl(var(--primary))]/40 dark:hover:border-[hsl(var(--primary))]/50
-              hover:text-[hsl(var(--primary))] dark:hover:text-[hsl(var(--primary))]
+              hover:bg-[#8D75E6]/10 dark:hover:bg-[#8D75E6]/20
+              hover:border-[#8D75E6]/40 dark:hover:border-[#8D75E6]/50
+              hover:text-[#8D75E6] dark:hover:text-[#A78BFA]
               hover:shadow-md active:scale-[0.98]"
           >
             {isImproving ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-[hsl(var(--primary))]" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#8D75E6] dark:text-[#A78BFA]" />
                 <span>Improving...</span>
               </>
             ) : (
@@ -151,19 +151,19 @@ Return only the improved text, nothing else.`
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-gradient-to-br from-[hsl(var(--primary))]/10 to-[#7B64D3]/10 dark:from-[hsl(var(--primary))]/20 dark:to-[#7B64D3]/20 
-              border-2 border-[hsl(var(--primary))] dark:border-[hsl(var(--primary))]/50 rounded-xl p-4 space-y-3
+            className="bg-gradient-to-br from-[#8D75E6]/10 to-[#7B64D3]/10 dark:from-[#8D75E6]/20 dark:to-[#7B64D3]/20 
+              border-2 border-[#8D75E6] dark:border-[#7C3AED]/50 rounded-xl p-4 space-y-3
               shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.2)]"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[hsl(var(--primary))]" />
+                <Sparkles className="h-5 w-5 text-[#8D75E6] dark:text-[#A78BFA]" />
                 <h3 className="font-semibold text-gray-900 dark:text-white">AI Improved Version</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={acceptImproved}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-[hsl(var(--primary))] text-white rounded-lg 
+                  className="flex items-center gap-1 px-3 py-1.5 bg-[#8D75E6] dark:bg-[#7C3AED] text-white rounded-lg 
                     text-sm font-medium hover:bg-[#7B64D3] transition-all duration-200
                     shadow-sm hover:shadow-md"
                 >
@@ -209,9 +209,9 @@ Return only the improved text, nothing else.`
         <button
           onClick={() => motivation.trim() && onNext({ motivation: motivation.trim() })}
           disabled={!motivation.trim() || isSubmitting}
-          className="px-8 py-2 bg-[hsl(var(--primary))] text-white rounded-lg font-medium
+          className="px-8 py-2 bg-[#8D75E6] dark:bg-[#7C3AED] text-white rounded-lg font-medium
             disabled:opacity-50 disabled:cursor-not-allowed
-            hover:bg-[#7B64D3] transition-all duration-200
+            hover:bg-[#7D65D6] dark:hover:bg-[#6D28D9] transition-all duration-200
             shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
             hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]
             flex items-center gap-2"

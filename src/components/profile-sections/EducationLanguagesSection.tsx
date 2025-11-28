@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GraduationCap, Languages, Plus, X, Edit2, MoreVertical, Copy, Trash2, Check, Loader2, Info } from 'lucide-react';
+import { GraduationCap, Languages, Plus, X, Edit2, MoreVertical, Copy, Trash2 } from 'lucide-react';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,42 +7,12 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import MonthPicker from '../ui/MonthPicker';
 import { 
-  PremiumLabel,
   SectionDivider,
   FieldGroup,
-  SectionSkeleton,
-  CollapsibleSection
+  SectionSkeleton
 } from '../profile/ui';
+import { InstitutionLogo } from '../common/InstitutionLogo';
 import debounce from 'lodash/debounce';
-
-// Get flag emoji for a language
-const getLanguageFlag = (languageName: string): string => {
-  const languageMap: { [key: string]: string } = {
-    'english': '🇬🇧',
-    'french': '🇫🇷',
-    'spanish': '🇪🇸',
-    'german': '🇩🇪',
-    'italian': '🇮🇹',
-    'portuguese': '🇵🇹',
-    'chinese': '🇨🇳',
-    'japanese': '🇯🇵',
-    'korean': '🇰🇷',
-    'arabic': '🇸🇦',
-    'russian': '🇷🇺',
-    'dutch': '🇳🇱',
-    'swedish': '🇸🇪',
-    'norwegian': '🇳🇴',
-    'danish': '🇩🇰',
-    'polish': '🇵🇱',
-    'turkish': '🇹🇷',
-    'hindi': '🇮🇳',
-    'greek': '🇬🇷',
-    'hebrew': '🇮🇱'
-  };
-  
-  const normalized = languageName.toLowerCase().trim();
-  return languageMap[normalized] || '🌐';
-};
 
 interface SectionProps {
   onUpdate: (data: any) => void;
@@ -71,7 +41,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
   // Education editing states
   const [editingEducationIndex, setEditingEducationIndex] = useState<number | null>(null);
   const [openEducationMenuIndex, setOpenEducationMenuIndex] = useState<number | null>(null);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   // Auto-save with debounce
   const debouncedSave = useCallback(
@@ -283,56 +253,22 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
     <FieldGroup className="space-y-8">
       {/* Education Section - Multiple Entries */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-          <GraduationCap className="w-5 h-5 text-gray-400" />
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">Education</h3>
-        </div>
-
-          <div className="flex items-center gap-3">
-            {saveStatus !== 'idle' && (
-              <div className="flex items-center gap-2 text-xs">
-                {saveStatus === 'saving' && (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-300">Saving...</span>
-                  </>
-                )}
-                {saveStatus === 'saved' && (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="text-emerald-600 dark:text-emerald-300">Saved</span>
-                  </>
-                )}
-              </div>
-            )}
-            
-            <button
-              onClick={addEducation}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors text-sm font-semibold shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Education
-            </button>
-          </div>
-        </div>
-
         {/* Education List */}
         <div className="space-y-4">
           {formData.educations.length === 0 ? (
-            <div className="text-center py-10 px-6 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-800/30 rounded-2xl border border-gray-300 dark:border-gray-600">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center">
+            <div className="text-center py-10 px-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center">
                 <GraduationCap className="w-7 h-7 text-gray-400 dark:text-gray-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
                 Add Your Education
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 max-w-sm mx-auto">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-sm mx-auto">
                 Add your degrees, certifications, and educational background
               </p>
               <button
                 onClick={addEducation}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors font-semibold shadow-sm mx-auto"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#0A66C2] border border-[#0A66C2] hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add Education
@@ -344,26 +280,17 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
               const isMenuOpen = openEducationMenuIndex === index;
               
               return (
-                <div
-                  key={education.id}
-                  className={`
-                    relative rounded-xl transition-shadow duration-200
-                    ${isEditing 
-                      ? 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-lg' 
-                      : 'bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600 hover:shadow-md'
-                    }
-                  `}
-                >
+                <div key={education.id}>
                   {isEditing ? (
                     /* Edit Mode */
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+                    <div className="p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                           {education.institution || 'New Education'}
                         </h3>
                         <button
                           onClick={() => setEditingEducationIndex(null)}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors text-sm font-semibold"
+                          className="flex items-center gap-2 px-4 py-2 bg-[#0A66C2] text-white rounded-full hover:bg-[#004182] transition-colors text-sm font-semibold"
                         >
                           Done
                         </button>
@@ -372,8 +299,8 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                       <div className="space-y-4">
                         {/* Degree Level */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
-                            Degree Level <span className="text-red-400">*</span>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Degree Level <span className="text-red-500">*</span>
                           </label>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                             {degreeOptions.map((option) => (
@@ -381,9 +308,9 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                                 key={option.id}
                                 onClick={() => updateEducation(index, 'degree', option.id)}
                                 className={`
-                                  p-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                                  p-2.5 rounded-lg text-sm font-medium transition-all
                                   ${education.degree === option.id
-                                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                    ? 'bg-[#0A66C2] text-white'
                                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                   }
                                 `}
@@ -397,7 +324,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                         {/* Field of Study & Institution */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                               Field of Study
                             </label>
                             <select
@@ -411,15 +338,15 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
-                              Institution <span className="text-red-400">*</span>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                              Institution <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={education.institution}
                               onChange={(e) => updateEducation(index, 'institution', e.target.value)}
                               className={inputClass}
-                              placeholder="e.g., Harvard University"
+                              placeholder="e.g., KEDGE Business School"
                             />
                           </div>
         </div>
@@ -427,7 +354,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                         {/* Dates */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                               Start Date
                             </label>
                             <MonthPicker
@@ -437,7 +364,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                               End Date
                             </label>
                             <MonthPicker
@@ -447,24 +374,22 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                               placeholder="Select month"
                             />
                           </div>
-                          <div className="flex items-end pb-1">
-                            <label className="flex items-center gap-3 cursor-pointer group">
+                          <div className="flex items-end pb-1.5">
+                            <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={education.current}
                                 onChange={(e) => updateEducation(index, 'current', e.target.checked)}
-                                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-gray-900/10 dark:focus:ring-white/10"
+                                className="w-4 h-4 rounded border-gray-300 text-[#0A66C2] focus:ring-[#0A66C2]"
                               />
-                              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                                Currently studying
-                              </span>
+                              <span className="text-sm text-gray-700 dark:text-gray-300">Currently studying</span>
                             </label>
                           </div>
                         </div>
 
                         {/* Description */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                             Description (optional)
                           </label>
                           <textarea
@@ -478,72 +403,34 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                       </div>
                     </div>
                   ) : (
-                    /* View Mode */
-                    <div className="p-5 relative">
-                      {/* Actions */}
-                      <div className="absolute top-4 right-4 flex items-center gap-1">
-                        <button
-                          onClick={() => setEditingEducationIndex(index)}
-                          className="p-2 bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-colors shadow-sm"
-                          title="Edit"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        
-                        <div className="relative">
-                          <button
-                            onClick={() => setOpenEducationMenuIndex(isMenuOpen ? null : index)}
-                            className="p-2 bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-colors shadow-sm"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                          
-                          {isMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden z-10">
-                              <button
-                                onClick={() => duplicateEducation(index)}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                              >
-                                <Copy className="w-4 h-4" />
-                                Duplicate
-                              </button>
-                              <button
-                                onClick={() => removeEducation(index)}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                    /* View Mode - LinkedIn-style Layout */
+                    <div className="flex gap-4 group relative py-3">
+                      {/* Institution Logo */}
+                      <div className="flex-shrink-0">
+                        <InstitutionLogo 
+                          institutionName={education.institution} 
+                          size="lg"
+                        />
                       </div>
                       
-                      {/* Content */}
-                      <div className="pr-24">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg">🎓</span>
-                          <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-                            {degreeOptions.find(d => d.id === education.degree)?.label || education.degree || 'Degree'}
-                          </h4>
-                        </div>
-                        <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">
+                      {/* Info */}
+                      <div className="flex-1 min-w-0 pr-16">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                           {education.institution || 'Institution'}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {degreeOptions.find(d => d.id === education.degree)?.label || education.degree || 'Degree'}
+                          {education.field && `, ${education.field}`}
                         </p>
-                        {education.field && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                            {education.field}
-                          </p>
-                        )}
                         
                         {(education.startDate || education.endDate) && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {education.startDate && (
                               <span>
                                 {new Date(education.startDate + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                               </span>
                             )}
-                            {education.startDate && (education.endDate || education.current) && ' — '}
+                            {education.startDate && (education.endDate || education.current) && ' - '}
                             {education.current ? 'Present' : education.endDate && (
                               <span>
                                 {new Date(education.endDate + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
@@ -558,7 +445,51 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                           </p>
                         )}
                       </div>
+                      
+                      {/* Actions - Show on hover */}
+                      <div className="absolute top-3 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setEditingEducationIndex(index)}
+                          className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenEducationMenuIndex(isMenuOpen ? null : index)}
+                            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                          
+                          {isMenuOpen && (
+                            <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-20">
+                              <button
+                                onClick={() => duplicateEducation(index)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              >
+                                <Copy className="w-4 h-4" />
+                                Duplicate
+                              </button>
+                              <button
+                                onClick={() => removeEducation(index)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  )}
+                  
+                  {/* Separator */}
+                  {index < formData.educations.length - 1 && !isEditing && (
+                    <div className="border-b border-gray-100 dark:border-gray-700/50 my-2" />
                   )}
                 </div>
               );
@@ -571,10 +502,9 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
 
       {/* Languages Section */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Languages className="w-5 h-5 text-gray-400" />
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
-            Languages <span className="text-red-400">*</span>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+            Languages
           </h3>
         </div>
 
@@ -588,7 +518,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
               onKeyPress={(e) => e.key === 'Enter' && handleAddLanguage()}
               list="languages-list"
               placeholder="Type a language..."
-              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all"
             />
             <datalist id="languages-list">
               {commonLanguages.map((lang) => (
@@ -599,7 +529,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
           <select
             value={newLanguageLevel}
             onChange={(e) => setNewLanguageLevel(e.target.value)}
-            className="px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
+            className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
           >
             <option value="">Select level</option>
             {languageLevels.map((level) => (
@@ -611,46 +541,47 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
             whileTap={{ scale: 0.98 }}
             onClick={handleAddLanguage}
             disabled={!newLanguage.trim() || !newLanguageLevel}
-            className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-[#0A66C2] text-white rounded-full font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Add
           </motion.button>
         </div>
 
-        {/* Languages List */}
+        {/* Languages List - LinkedIn Style */}
         <AnimatePresence mode="popLayout">
           {formData.languages.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-1">
               {formData.languages.map((lang, index) => (
                 <motion.div
                   key={`${lang.language}-${index}`}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   layout
-                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-gray-100 dark:bg-gray-700/60 rounded-xl"
+                  className="group flex items-center justify-between py-2"
                 >
-                  <span className="text-lg">{getLanguageFlag(lang.language)}</span>
-                  <span className="font-medium text-gray-900 dark:text-white text-sm">
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
                     {lang.language}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 px-2 py-0.5 bg-gray-200/60 dark:bg-gray-600/60 rounded-full">
-                    {languageLevels.find(l => l.id === lang.level)?.label || lang.level}
-                  </span>
-                  <button
-                    onClick={() => handleRemoveLanguage(index)}
-                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />
-                  </button>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                      · {languageLevels.find(l => l.id === lang.level)?.label || lang.level}
+                    </span>
+                  </div>
+                    <button
+                      onClick={() => handleRemoveLanguage(index)}
+                    className="p-1.5 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all"
+                    >
+                    <X className="w-4 h-4" />
+                    </button>
                 </motion.div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-              <Languages className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Add your language skills</p>
+            <div className="text-center py-8 px-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+              <Languages className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">Add your language skills</p>
             </div>
           )}
         </AnimatePresence>

@@ -36,7 +36,7 @@ export default function ProfileBreadcrumbs({ steps, currentStep, onStepClick }: 
                   <motion.div
                     initial={{ width: '0%' }}
                     animate={{ width: '100%' }}
-                    className="h-full bg-[hsl(var(--primary))]"
+                    className="h-full bg-[#8D75E6] dark:bg-[#7C3AED]"
                   />
                 )}
               </div>
@@ -53,7 +53,7 @@ export default function ProfileBreadcrumbs({ steps, currentStep, onStepClick }: 
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--primary))]"
+                    className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[#8D75E6] dark:bg-[#7C3AED]"
                   >
                     <Check className="h-5 w-5 text-white" />
                   </motion.span>
@@ -61,13 +61,13 @@ export default function ProfileBreadcrumbs({ steps, currentStep, onStepClick }: 
                   <span
                     className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${
                       index === currentIndex
-                        ? 'border-[hsl(var(--primary))] bg-white'
-                        : 'border-gray-300 bg-white'
+                        ? 'border-[#8D75E6] dark:border-[#7C3AED] bg-white dark:bg-gray-800'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
                     }`}
                   >
                     <span
                       className={`h-2.5 w-2.5 rounded-full ${
-                        index === currentIndex ? 'bg-[hsl(var(--primary))]' : 'bg-transparent'
+                        index === currentIndex ? 'bg-[#8D75E6] dark:bg-[#7C3AED]' : 'bg-transparent'
                       }`}
                     />
                   </span>

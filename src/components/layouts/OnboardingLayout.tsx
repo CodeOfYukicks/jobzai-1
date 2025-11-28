@@ -103,7 +103,7 @@ export default function OnboardingLayout({
       </main>
 
       {/* Right Side Banner - Desktop only */}
-      <div className="hidden lg:block w-[35%] bg-[hsl(var(--primary))] fixed right-0 top-0 bottom-0">
+      <div className="hidden lg:block w-[35%] bg-[#8D75E6] dark:bg-[#6D28D9] fixed right-0 top-0 bottom-0">
         <div className="h-full flex flex-col justify-center px-12 text-white">
           <h2 className="text-4xl font-bold mb-6">
             LET'S SET UP YOUR

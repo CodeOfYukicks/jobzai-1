@@ -117,8 +117,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const userRef = doc(db, 'users', currentUser.uid);
+      // Filter out undefined values as Firebase doesn't accept them
+      const cleanProfileData = Object.fromEntries(
+        Object.entries(profileData).filter(([_, v]) => v !== undefined)
+      );
       await updateDoc(userRef, {
-        ...profileData,
+        ...cleanProfileData,
         profileCompleted: true,
         updatedAt: new Date().toISOString()
       });

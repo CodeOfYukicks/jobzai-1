@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
 import {
-  User,
   MapPin,
   Briefcase,
   FileText,
@@ -26,12 +25,9 @@ import ProfessionalHistorySection from '../components/profile-sections/Professio
 import CareerDriversSection from '../components/profile-sections/CareerDriversSection';
 import RolePreferencesSection from '../components/profile-sections/RolePreferencesSection';
 import WorkAuthorizationSection from '../components/profile-sections/WorkAuthorizationSection';
-import ProfileWizard from '../components/profile-wizard/ProfileWizard';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import AboutSection from '../components/profile/AboutSection';
 import ProfileSectionCard from '../components/profile/ProfileSectionCard';
-import ProfileLandingPage from '../components/profile/ProfileLandingPage';
-import ProfileCompletionBanner from '../components/profile/ProfileCompletionBanner';
 import CommandPalette, { useCommandPalette } from '../components/profile/ui/CommandPalette';
 import { ProfileProvider } from '../contexts/ProfileContext';
 import debounce from 'lodash/debounce';
@@ -40,14 +36,6 @@ import { extractFullProfileFromText } from '../lib/cvExperienceExtractor';
 const ProfessionalProfilePage = () => {
   const { currentUser, userData, loading: authLoading } = useAuth();
   const [completionPercentage, setCompletionPercentage] = useState(0);
-  const [useWizard, setUseWizard] = useState(false);
-  const [showLanding, setShowLanding] = useState(false);
-  const [hasChosenMode, setHasChosenMode] = useState(false);
-  const [showLinkedInModal, setShowLinkedInModal] = useState(false);
-  const isInitialMount = useRef(true);
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-  const prevUseWizard = useRef(useWizard);
-  const prevShowLanding = useRef(showLanding);
   
   // CV Import state
   const [cvText, setCvText] = useState<string>('');
@@ -173,11 +161,6 @@ const ProfessionalProfilePage = () => {
     }
   }, []);
 
-  // Handle LinkedIn import
-  const handleLinkedInImport = useCallback(() => {
-    setShowLinkedInModal(true);
-  }, []);
-
   // Calculate years of experience from professional history
   const calculateYearsOfExperience = (history: Array<{
     startDate: string;
@@ -286,22 +269,6 @@ const ProfessionalProfilePage = () => {
     const percentage = calculateCompletionPercentage(formData);
     setCompletionPercentage(percentage);
   }, [formData]);
-
-  // Handle landing page display
-  useEffect(() => {
-    const savedChoice = localStorage.getItem('profileModeChosen');
-    if (savedChoice === 'true') {
-      setHasChosenMode(true);
-      setShowLanding(false);
-      return;
-    }
-
-    if (!hasChosenMode && completionPercentage < 80 && !authLoading) {
-      setShowLanding(true);
-    } else {
-      setShowLanding(false);
-    }
-  }, [hasChosenMode, completionPercentage, authLoading]);
 
   // Update formData from Firestore
   const updateFormDataFromFirestore = useCallback((firestoreData: any) => {
@@ -461,46 +428,6 @@ const ProfessionalProfilePage = () => {
     saveToFirebase(cleanedData);
   };
 
-  // Enable animations after initial render
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      setShouldAnimate(false);
-      const timer = setTimeout(() => {
-        setShouldAnimate(true);
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  // Enable animation for internal changes (wizard <-> full view)
-  useEffect(() => {
-    const wizardChanged = prevUseWizard.current !== useWizard;
-    const landingChanged = prevShowLanding.current !== showLanding;
-
-    if ((wizardChanged || landingChanged) && !isInitialMount.current) {
-      setShouldAnimate(true);
-    }
-
-    prevUseWizard.current = useWizard;
-    prevShowLanding.current = showLanding;
-  }, [useWizard, showLanding]);
-
-  // Landing page handlers
-  const handleChooseStepMode = () => {
-    setHasChosenMode(true);
-    setShowLanding(false);
-    setUseWizard(true);
-    localStorage.setItem('profileModeChosen', 'true');
-  };
-
-  const handleChooseFullProfile = () => {
-    setHasChosenMode(true);
-    setShowLanding(false);
-    setUseWizard(false);
-    localStorage.setItem('profileModeChosen', 'true');
-  };
-
   // Handle CV Import - Extract full profile from CV text
   const handleImportFromCV = useCallback(async () => {
     if (!currentUser?.uid || isImportingCV) return;
@@ -515,9 +442,17 @@ const ProfessionalProfilePage = () => {
       
       const userData = userDoc.data();
       const storedCvText = userData.cvText;
+      const storedCvUrl = userData.cvUrl;
       
-      if (!storedCvText || storedCvText.length < 100) {
+      // Check if CV exists
+      if (!storedCvUrl) {
         toast.error('No CV found. Please upload your CV first in the Documents section.');
+        return;
+      }
+      
+      // Check if CV text was extracted properly
+      if (!storedCvText || storedCvText.length < 100) {
+        toast.error('CV analysis failed. Please try re-uploading your CV in the Documents section.');
         return;
       }
       
@@ -648,201 +583,145 @@ const ProfessionalProfilePage = () => {
           isOpen={commandPalette.isOpen}
           onClose={commandPalette.close}
           onNavigateToSection={navigateToSection}
-          onImportLinkedIn={handleLinkedInImport}
         />
 
-        <AnimatePresence mode="wait">
-          {showLanding ? (
-            <motion.div
-              key="landing"
-              initial={shouldAnimate ? { opacity: 0, scale: 0.95, y: 20 } : false}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={shouldAnimate ? { opacity: 0, scale: 0.95, y: -20 } : false}
-              transition={shouldAnimate ? { duration: 0.35, ease: [0.4, 0, 0.2, 1] } : { duration: 0 }}
+        <div className="min-h-0 flex-1 overflow-y-auto relative">
+          {/* Keyboard shortcut hint */}
+          <div className="fixed bottom-4 right-4 z-40">
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+              onClick={commandPalette.open}
+              className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
-              <ProfileLandingPage
-                completionPercentage={completionPercentage}
-                onChooseStepMode={handleChooseStepMode}
-                onChooseFullProfile={handleChooseFullProfile}
-              />
-            </motion.div>
-          ) : useWizard ? (
-            <motion.div
-              key="wizard"
-              initial={shouldAnimate ? { opacity: 0, x: 100, scale: 0.95 } : false}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={shouldAnimate ? { opacity: 0, x: -100, scale: 0.95 } : false}
-              transition={shouldAnimate ? {
-                duration: 0.5,
-                ease: [0.34, 1.56, 0.64, 1],
-                opacity: { duration: 0.3 }
-              } : { duration: 0 }}
-              style={{ position: 'relative' }}
-            >
-              <ProfileWizard
-                onComplete={() => setUseWizard(false)}
-                onUpdate={(data) => updateFormData(data)}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="profile"
-              initial={shouldAnimate ? { opacity: 0, x: -100, scale: 0.95 } : false}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={shouldAnimate ? { opacity: 0, x: 100, scale: 0.95 } : false}
-              transition={shouldAnimate ? {
-                duration: 0.5,
-                ease: [0.34, 1.56, 0.64, 1],
-                opacity: { duration: 0.3 }
-              } : { duration: 0 }}
-              className="min-h-0 flex-1 overflow-y-auto relative"
-            >
-              {/* Keyboard shortcut hint */}
-              <div className="fixed bottom-4 right-4 z-40">
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1 }}
-                  onClick={commandPalette.open}
-                  className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">⌘K</kbd>
-                  <span>Quick actions</span>
-                </motion.button>
-              </div>
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">⌘K</kbd>
+              <span>Quick actions</span>
+            </motion.button>
+          </div>
 
-              {/* Main Content - Premium Layout */}
-              <div className="relative w-full max-w-[1400px] mx-auto space-y-5 pt-6 px-4 pb-24">
-                {/* Profile Header - Pass completion percentage, LinkedIn handler, and CV import */}
-                <ProfileHeader 
-                  onUpdate={updateFormData} 
-                  completionPercentage={completionPercentage}
-                  onLinkedInClick={handleLinkedInImport}
-                  onImportCV={handleImportFromCV}
-                  isImportingCV={isImportingCV}
-                  hasCvText={cvText.length > 100}
-                />
+          {/* Main Content - Premium Layout */}
+          <div className="relative w-full max-w-[1400px] mx-auto space-y-5 pt-6 px-4 pb-24">
+            {/* Profile Header - Pass completion percentage and CV import */}
+            <ProfileHeader 
+              onUpdate={updateFormData} 
+              completionPercentage={completionPercentage}
+              onImportCV={handleImportFromCV}
+              isImportingCV={isImportingCV}
+            />
 
-                {/* Completion Banner */}
-                <ProfileCompletionBanner
-                  completionPercentage={completionPercentage}
-                  onStartStepMode={() => setUseWizard(true)}
-                />
+            {/* About Section */}
+            <div id="section-personal">
+              <AboutSection onUpdate={updateFormData} />
+            </div>
 
-                {/* About Section */}
-                <div id="section-personal">
-                  <AboutSection onUpdate={updateFormData} />
-                </div>
+            {/* Experience Section */}
+            <div id="section-experience">
+              <ProfileSectionCard
+                title="Experience"
+                icon={<Briefcase className="w-5 h-5" />}
+                isCollapsible={true}
+              >
+                <ProfessionalHistorySection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
 
-                {/* Experience Section */}
-                <div id="section-experience">
-                  <ProfileSectionCard
-                    title="Experience"
-                    icon={<Briefcase className="w-5 h-5" />}
-                    isCollapsible={true}
-                  >
-                    <ProfessionalHistorySection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
+            {/* Education & Languages */}
+            <div id="section-education">
+              <ProfileSectionCard
+                title="Education & Languages"
+                icon={<GraduationCap className="w-5 h-5" />}
+                completion={formData.educationLevel ? 100 : 0}
+                isCollapsible={true}
+              >
+                <EducationLanguagesSection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
 
-                {/* Education & Languages */}
-                <div id="section-education">
-                  <ProfileSectionCard
-                    title="Education & Languages"
-                    icon={<GraduationCap className="w-5 h-5" />}
-                    completion={formData.educationLevel ? 100 : 0}
-                    isCollapsible={true}
-                  >
-                    <EducationLanguagesSection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
+            {/* Skills & Expertise */}
+            <div id="section-skills">
+              <ProfileSectionCard
+                title="Skills & Expertise"
+                icon={<Wrench className="w-5 h-5" />}
+                isCollapsible={true}
+              >
+                <ExperienceExpertiseSection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
 
-                {/* Skills & Expertise */}
-                <div id="section-skills">
-                  <ProfileSectionCard
-                    title="Skills & Expertise"
-                    icon={<Wrench className="w-5 h-5" />}
-                    isCollapsible={true}
-                  >
-                    <ExperienceExpertiseSection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
+            {/* Career Objectives */}
+            <div id="section-objectives">
+              <ProfileSectionCard
+                title="Career Objectives"
+                icon={<Target className="w-5 h-5" />}
+                completion={formData.targetPosition ? 100 : 0}
+                isCollapsible={true}
+              >
+                <ProfessionalObjectivesSection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
 
-                {/* Career Objectives */}
-                <div id="section-objectives">
-                  <ProfileSectionCard
-                    title="Career Objectives"
-                    icon={<Target className="w-5 h-5" />}
-                    completion={formData.targetPosition ? 100 : 0}
-                    isCollapsible={true}
-                  >
-                    <ProfessionalObjectivesSection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
+            {/* Location & Mobility */}
+            <div id="section-location">
+              <ProfileSectionCard
+                title="Location & Mobility"
+                icon={<MapPin className="w-5 h-5" />}
+                completion={formData.city && formData.country ? 100 : 0}
+                isCollapsible={true}
+              >
+                <LocationMobilitySection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
 
-                {/* Location & Mobility */}
-                <div id="section-location">
-                  <ProfileSectionCard
-                    title="Location & Mobility"
-                    icon={<MapPin className="w-5 h-5" />}
-                    completion={formData.city && formData.country ? 100 : 0}
-                    isCollapsible={true}
-                  >
-                    <LocationMobilitySection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
+            {/* Career Drivers */}
+            <div id="section-career-drivers">
+              <ProfileSectionCard
+                title="Career Drivers"
+                icon={<TrendingUp className="w-5 h-5" />}
+                completion={formData.careerPriorities?.length > 0 ? 100 : 0}
+                isCollapsible={true}
+              >
+                <CareerDriversSection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
 
-                {/* Career Drivers */}
-                <div id="section-career-drivers">
-                  <ProfileSectionCard
-                    title="Career Drivers"
-                    icon={<TrendingUp className="w-5 h-5" />}
-                    completion={formData.careerPriorities?.length > 0 ? 100 : 0}
-                    isCollapsible={true}
-                  >
-                    <CareerDriversSection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
+            {/* Role Preferences */}
+            <div id="section-role-preferences">
+              <ProfileSectionCard
+                title="Role Preferences"
+                icon={<Building2 className="w-5 h-5" />}
+                completion={formData.roleType ? 100 : 0}
+                isCollapsible={true}
+              >
+                <RolePreferencesSection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
 
-                {/* Role Preferences */}
-                <div id="section-role-preferences">
-                  <ProfileSectionCard
-                    title="Role Preferences"
-                    icon={<Building2 className="w-5 h-5" />}
-                    completion={formData.roleType ? 100 : 0}
-                    isCollapsible={true}
-                  >
-                    <RolePreferencesSection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
+            {/* Documents & Links */}
+            <div id="section-documents">
+              <ProfileSectionCard
+                title="Documents & Links"
+                icon={<FileText className="w-5 h-5" />}
+                completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
+                isCollapsible={true}
+              >
+                <DocumentsLinksSection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
 
-                {/* Documents & Links */}
-                <div id="section-documents">
-                  <ProfileSectionCard
-                    title="Documents & Links"
-                    icon={<FileText className="w-5 h-5" />}
-                    completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
-                    isCollapsible={true}
-                  >
-                    <DocumentsLinksSection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
-
-                {/* Work Authorization & Auto-Apply Info */}
-                <div id="section-work-auth">
-                  <ProfileSectionCard
-                    title="Work Authorization & Contact"
-                    icon={<Settings className="w-5 h-5" />}
-                    isCollapsible={true}
-                    defaultCollapsed={true}
-                  >
-                    <WorkAuthorizationSection onUpdate={updateFormData} />
-                  </ProfileSectionCard>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {/* Work Authorization & Auto-Apply Info */}
+            <div id="section-work-auth">
+              <ProfileSectionCard
+                title="Work Authorization & Contact"
+                icon={<Settings className="w-5 h-5" />}
+                isCollapsible={true}
+                defaultCollapsed={true}
+              >
+                <WorkAuthorizationSection onUpdate={updateFormData} />
+              </ProfileSectionCard>
+            </div>
+          </div>
+        </div>
       </AuthLayout>
     </ProfileProvider>
   );

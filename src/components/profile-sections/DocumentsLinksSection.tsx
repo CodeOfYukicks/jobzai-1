@@ -222,8 +222,22 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
               </a>
               <button
                 onClick={() => {
-                  handleChange('cvUrl', '');
-                  handleChange('cvName', '');
+                  // Clear all CV-related fields in one update
+                  const clearedData = {
+                    ...formData,
+                    cvUrl: '',
+                    cvName: '',
+                  };
+                  setFormData(clearedData);
+                  // Also clear cvText and extracted data from Firestore
+                  onUpdate({
+                    cvUrl: '',
+                    cvName: '',
+                    cvText: '',
+                    cvTechnologies: [],
+                    cvSkills: []
+                  });
+                  toast.success('CV removed');
                 }}
                 className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
               >

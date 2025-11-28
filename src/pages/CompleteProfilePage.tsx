@@ -49,8 +49,12 @@ export default function CompleteProfilePage() {
     if (currentUser) {
       try {
         const userRef = doc(db, 'users', currentUser.uid);
+        // Filter out undefined values as Firebase doesn't accept them
+        const cleanData = Object.fromEntries(
+          Object.entries(data).filter(([_, v]) => v !== undefined)
+        );
         await updateDoc(userRef, {
-          ...data,
+          ...cleanData,
           lastUpdated: new Date()
         });
       } catch (error) {

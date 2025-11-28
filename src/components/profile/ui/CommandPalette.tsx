@@ -10,7 +10,6 @@ import {
   FileText, 
   Target,
   Settings,
-  Linkedin,
   ArrowRight,
   Keyboard
 } from 'lucide-react';
@@ -29,7 +28,6 @@ interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateToSection?: (sectionId: string) => void;
-  onImportLinkedIn?: () => void;
   customCommands?: CommandItem[];
 }
 
@@ -37,7 +35,6 @@ const CommandPalette = ({
   isOpen,
   onClose,
   onNavigateToSection,
-  onImportLinkedIn,
   customCommands = []
 }: CommandPaletteProps) => {
   const [query, setQuery] = useState('');
@@ -102,15 +99,6 @@ const CommandPalette = ({
       icon: <Target className="w-4 h-4" />,
       action: () => onNavigateToSection?.('objectives'),
       category: 'Navigate'
-    },
-    {
-      id: 'linkedin-import',
-      label: 'Import from LinkedIn',
-      description: 'Import your LinkedIn profile data',
-      icon: <Linkedin className="w-4 h-4" />,
-      action: () => onImportLinkedIn?.(),
-      category: 'Actions',
-      shortcut: '⌘L'
     }
   ];
 

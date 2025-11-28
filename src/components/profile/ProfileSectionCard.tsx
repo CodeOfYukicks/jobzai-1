@@ -60,52 +60,33 @@ const ProfileSectionCard = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={`
-        relative overflow-hidden
+        relative
         bg-white dark:bg-gray-800
-        rounded-2xl
-        border border-gray-300 dark:border-gray-600
-        shadow-sm
-        transition-shadow duration-300
-        ${isHovered ? 'shadow-md' : ''}
+        rounded-xl
+        border border-gray-200 dark:border-gray-700
+        transition-shadow duration-200
+        ${isHovered ? 'shadow-sm' : ''}
         ${className}
       `}
     >
-      {/* Subtle top border gradient for premium feel */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent opacity-50" />
-
-      {/* Header */}
+      {/* Header - LinkedIn style: simple with title and actions */}
       <div
         className={`
-          relative px-5 py-4
+          px-6 py-4
           ${isCollapsible ? 'cursor-pointer select-none' : ''}
           ${!isCollapsed ? 'border-b border-gray-100 dark:border-gray-700/50' : ''}
-          transition-colors duration-200
-          ${isCollapsible && isHovered ? 'bg-gray-50/50 dark:bg-gray-700/20' : ''}
+          transition-colors duration-150
+          ${isCollapsible && isHovered ? 'bg-gray-50/50 dark:bg-gray-700/10' : ''}
         `}
         onClick={() => isCollapsible && setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Icon with dynamic styling based on completion */}
-            {icon && (
-              <div
-                className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors duration-300"
-              >
-                {icon}
-              </div>
-            )}
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {title}
+          </h2>
 
-            {/* Title and completion */}
-            <div className="flex items-center gap-3">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
-              {title}
-            </h2>
-
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {/* Actions - LinkedIn style: icon buttons on the right */}
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             {/* Header actions slot */}
             {headerActions}
 
@@ -113,10 +94,10 @@ const ProfileSectionCard = ({
             {onAdd && (
               <button
                 onClick={onAdd}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                title="Add"
               >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add</span>
+                <Plus className="w-5 h-5" />
               </button>
             )}
 
@@ -124,10 +105,10 @@ const ProfileSectionCard = ({
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                 title="Edit section"
               >
-                <Edit2 className="w-4 h-4" />
+                <Edit2 className="w-5 h-5" />
               </button>
             )}
 
@@ -138,10 +119,12 @@ const ProfileSectionCard = ({
                   e.stopPropagation();
                   setIsCollapsed(!isCollapsed);
                 }}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.2s' }}
+                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
               >
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown 
+                  className="w-5 h-5 transition-transform duration-200" 
+                  style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}
+                />
               </button>
             )}
           </div>
@@ -149,71 +132,69 @@ const ProfileSectionCard = ({
       </div>
 
       {/* Content */}
-        {!isCollapsed && (
-          <div className="overflow-hidden">
-            <div className="relative px-5 py-4">
-              {/* AI Suggestion Banner */}
-                {aiSuggestion && (
-                  <div className="flex items-start gap-3 p-3 mb-4 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-200 dark:border-gray-700">
-                    <div className="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700">
-                      <Sparkles className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-800 dark:text-gray-200">{aiSuggestion}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        {onAcceptSuggestion && (
-                          <button
-                            onClick={onAcceptSuggestion}
-                            className="px-3 py-1 text-xs font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 rounded-lg transition-colors"
-                          >
-                            Apply
-                          </button>
-                        )}
-                        {onDismissSuggestion && (
-                          <button
-                            onClick={onDismissSuggestion}
-                            className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                          >
-                            Dismiss
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              {/* Empty State */}
-              {emptyState && isEmpty ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  {icon && (
-                    <div className="p-3 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 mb-3">
-                      {icon}
-                    </div>
-                  )}
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                    {emptyState.title}
-                  </p>
-                  {emptyState.description && (
-                    <p className="text-xs text-gray-600 dark:text-gray-300 max-w-xs mb-4">
-                      {emptyState.description}
-                    </p>
-                  )}
-                  {emptyState.actionLabel && emptyState.onAction && (
+      {!isCollapsed && (
+        <div className="px-6 py-4">
+          {/* AI Suggestion Banner */}
+          {aiSuggestion && (
+            <div className="flex items-start gap-3 p-3 mb-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30">
+              <div className="p-1.5 rounded bg-blue-100 dark:bg-blue-800/50">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-800 dark:text-gray-200">{aiSuggestion}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  {onAcceptSuggestion && (
                     <button
-                      onClick={emptyState.onAction}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 rounded-xl transition-colors"
+                      onClick={onAcceptSuggestion}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-[#0A66C2] hover:bg-[#004182] rounded-full transition-colors"
                     >
-                      <Plus className="w-4 h-4" />
-                      {emptyState.actionLabel}
+                      Apply
+                    </button>
+                  )}
+                  {onDismissSuggestion && (
+                    <button
+                      onClick={onDismissSuggestion}
+                      className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                    >
+                      Dismiss
                     </button>
                   )}
                 </div>
-              ) : (
-                children
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {emptyState && isEmpty ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              {icon && (
+                <div className="p-3 rounded-full bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 mb-4">
+                  {icon}
+                </div>
+              )}
+              <p className="text-base font-medium text-gray-700 dark:text-gray-200 mb-1">
+                {emptyState.title}
+              </p>
+              {emptyState.description && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-5">
+                  {emptyState.description}
+                </p>
+              )}
+              {emptyState.actionLabel && emptyState.onAction && (
+                <button
+                  onClick={emptyState.onAction}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#0A66C2] border border-[#0A66C2] hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  {emptyState.actionLabel}
+                </button>
               )}
             </div>
-          </div>
-        )}
+          ) : (
+            children
+          )}
+        </div>
+      )}
     </div>
   );
 };

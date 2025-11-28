@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, MapPin, Mail, Edit2, Camera, Image, Linkedin, Check, X, Sparkles, FileText, Loader2 } from 'lucide-react';
+import { User, MapPin, Edit2, Camera, Image, Check, X, Sparkles, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -11,17 +11,27 @@ import ProfilePhotoCropper from './ProfilePhotoCropper';
 import CoverPhotoCropper from './CoverPhotoCropper';
 import CoverPhotoGallery from './CoverPhotoGallery';
 import { CompactProgressRing } from './ui/ProgressRing';
+import { CompanyLogo } from '../common/CompanyLogo';
+import { InstitutionLogo } from '../common/InstitutionLogo';
 
 interface ProfileHeaderProps {
   onUpdate?: (data: any) => void;
   completionPercentage?: number;
-  onLinkedInClick?: () => void;
   onImportCV?: () => void;
   isImportingCV?: boolean;
-  hasCvText?: boolean;
 }
 
-const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, onImportCV, isImportingCV = false, hasCvText = false }: ProfileHeaderProps) => {
+interface CurrentPosition {
+  company: string;
+  title: string;
+}
+
+interface CurrentEducation {
+  institution: string;
+  degree: string;
+}
+
+const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImportingCV = false }: ProfileHeaderProps) => {
   const { currentUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -32,6 +42,8 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
   const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
   const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
   const [isHoveringPhoto, setIsHoveringPhoto] = useState(false);
+  const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
+  const [currentEducation, setCurrentEducation] = useState<CurrentEducation | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -66,6 +78,30 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
           };
           setFormData(newFormData);
           setEditFormData(newFormData);
+
+          // Get current position (first current experience or most recent)
+          if (userData.professionalHistory && userData.professionalHistory.length > 0) {
+            const currentExp = userData.professionalHistory.find((exp: any) => exp.current) 
+              || userData.professionalHistory[0];
+            if (currentExp) {
+              setCurrentPosition({
+                company: currentExp.company,
+                title: currentExp.title
+              });
+            }
+          }
+
+          // Get current education (first current or most recent)
+          if (userData.educations && userData.educations.length > 0) {
+            const currentEdu = userData.educations.find((edu: any) => edu.current)
+              || userData.educations[0];
+            if (currentEdu) {
+              setCurrentEducation({
+                institution: currentEdu.institution,
+                degree: currentEdu.degree
+              });
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading profile data:', error);
@@ -197,10 +233,10 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
-      className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/80 dark:border-gray-700/50 shadow-lg"
+      className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-800/95 border border-gray-200 dark:border-gray-700"
     >
-      {/* Cover Photo Area - Taller for more impact */}
-      <div className="relative h-44 sm:h-52 overflow-hidden group">
+      {/* Cover Photo Area */}
+      <div className="relative h-48 sm:h-52 overflow-hidden group">
         {/* Cover Photo or Premium Gradient Background */}
         {formData.coverPhoto ? (
           <>
@@ -212,22 +248,22 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
               alt="Cover"
               className="w-full h-full object-cover"
             />
-            {/* Premium gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+            {/* Subtle gradient overlay at bottom */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
           </>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-90">
-            {/* Animated gradient mesh */}
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute top-0 left-0 w-96 h-96 bg-white/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-              <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900">
+            {/* Subtle pattern */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
             </div>
           </div>
         )}
 
         {/* Cover Photo Controls */}
-        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-2">
-          <label className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-black/30 hover:bg-black/50 text-white text-xs font-medium rounded-xl backdrop-blur-md transition-all border border-white/10">
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-2 z-20">
+          <label className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-white/90 hover:bg-white text-gray-700 text-xs font-medium rounded-full backdrop-blur-md transition-all shadow-sm">
             <input
               type="file"
               accept="image/*"
@@ -236,64 +272,35 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
               disabled={isUploadingCover}
             />
             {isUploadingCover ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                <Image className="w-4 h-4" />
-                <span>{formData.coverPhoto ? 'Change Cover' : 'Add Cover'}</span>
+                <Camera className="w-4 h-4" />
+                <span>{formData.coverPhoto ? 'Change' : 'Add'}</span>
               </>
             )}
           </label>
           <button
             onClick={() => setIsCoverGalleryOpen(true)}
-            className="px-3 py-2 bg-black/30 hover:bg-black/50 text-white text-xs font-medium rounded-xl backdrop-blur-md transition-all border border-white/10"
+            className="px-3 py-2 bg-white/90 hover:bg-white text-gray-700 text-xs font-medium rounded-full backdrop-blur-md transition-all shadow-sm"
           >
-            Gallery
+            <Image className="w-4 h-4" />
           </button>
-        </div>
-
-        {/* Completion Badge - Top Left */}
-        <div className="absolute top-4 left-4">
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-            className={`
-              flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border
-              ${isComplete 
-                ? 'bg-green-500/20 border-green-400/30 text-white' 
-                : 'bg-black/30 border-white/10 text-white'
-              }
-            `}
-          >
-            {isComplete ? (
-              <>
-                <Check className="w-4 h-4 text-green-400" />
-                <span className="text-xs font-semibold">Profile Complete</span>
-              </>
-            ) : (
-              <>
-                <CompactProgressRing progress={completionPercentage} size={20} strokeWidth={2.5} />
-                <span className="text-xs font-semibold">{completionPercentage}% Complete</span>
-              </>
-            )}
-          </motion.div>
         </div>
       </div>
 
-      {/* Floating Profile Card */}
-      <div className="relative px-6 pb-6">
-        {/* Profile Photo - Floating over cover */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-16 sm:-mt-20">
+      {/* Profile Photo - LinkedIn style circular, overlapping cover - OUTSIDE the cover container */}
+      <div className="absolute top-32 sm:top-36 left-6 z-20">
           <motion.div
-            className="relative z-10 group/photo"
+            className="relative group/photo"
             onMouseEnter={() => setIsHoveringPhoto(true)}
             onMouseLeave={() => setIsHoveringPhoto(false)}
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl bg-white dark:bg-gray-800 p-1.5 shadow-xl ring-4 ring-white dark:ring-gray-800 overflow-hidden">
-              <div className="relative w-full h-full rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
+            {/* Circular profile photo with white ring - LinkedIn signature */}
+            <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white dark:bg-gray-800 p-1 shadow-lg ring-4 ring-white dark:ring-gray-800">
+              <div className="relative w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
                 {formData.profilePhoto ? (
                   <img
                     src={formData.profilePhoto}
@@ -313,7 +320,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer"
+                      className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer rounded-full"
                     >
                       <input
                         type="file"
@@ -327,7 +334,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
                       ) : (
                         <div className="flex flex-col items-center gap-1 text-white">
                           <Camera className="w-6 h-6" />
-                          <span className="text-xs font-medium">Change Photo</span>
+                          <span className="text-xs font-medium">Change</span>
                         </div>
                       )}
                     </motion.label>
@@ -337,7 +344,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
             </div>
             
             {/* Camera button - Always visible on mobile */}
-            <label className="absolute bottom-2 right-2 bg-indigo-600 text-white p-2 rounded-xl cursor-pointer hover:bg-indigo-700 transition-colors shadow-lg sm:opacity-0 sm:group-hover/photo:opacity-100">
+            <label className="absolute bottom-1 right-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 p-2 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors shadow-md border border-gray-200 dark:border-gray-600 sm:opacity-0 sm:group-hover/photo:opacity-100">
               <input
                 type="file"
                 accept="image/*"
@@ -348,13 +355,34 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
               <Camera className="w-4 h-4" />
             </label>
           </motion.div>
+      </div>
 
-          {/* Name and Info */}
-          <div className="flex-1 pt-2 sm:pt-0 sm:pb-2">
+      {/* Content below cover - LinkedIn style layout */}
+      <div className="relative pt-28 pb-5 px-6">
+        {/* Top right action button - Edit */}
+        <div className="absolute top-4 right-6">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleStartEdit}
+            className="p-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            title="Edit profile"
+          >
+            <Edit2 className="w-5 h-5" />
+          </motion.button>
+        </div>
+
+        {/* Main content area - Name, headline, location on left; Company/Education on right */}
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          {/* Left side - Profile info */}
+          <div className="flex-1 min-w-0">
             <AnimatePresence mode="wait">
               {isEditing ? (
-                <div
+                <motion.div
                   key="editing"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                   className="space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row gap-3">
@@ -363,156 +391,179 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onLinkedInClick, on
                       value={editFormData.firstName}
                       onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
                       placeholder="First Name"
-                      className="flex-1 px-4 py-2.5 rounded-xl text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-0 outline-none transition-all"
+                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                     />
                     <input
                       type="text"
                       value={editFormData.lastName}
                       onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
                       placeholder="Last Name"
-                      className="flex-1 px-4 py-2.5 rounded-xl text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-0 outline-none transition-all"
+                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                     />
                   </div>
                   <input
                     type="text"
                     value={editFormData.headline}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, headline: e.target.value }))}
-                    placeholder="Professional headline (e.g., Senior Product Manager)"
-                    className="w-full px-4 py-2.5 rounded-xl text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-0 outline-none transition-all"
+                    placeholder="Professional headline (e.g., Consultant at Accenture | CRM Specialist)"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                   />
                   <input
                     type="text"
                     value={editFormData.location}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="Location (e.g., Paris, France)"
-                    className="w-full px-4 py-2.5 rounded-xl text-sm border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-0 outline-none transition-all"
+                    placeholder="Location (e.g., Paris, Île-de-France, France)"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                   />
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 pt-2">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleSave}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-[#0A66C2] text-white text-sm font-semibold rounded-full hover:bg-[#004182] transition-colors"
                     >
                       <Check className="w-4 h-4" />
-                      Save Changes
+                      Save
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleCancelEdit}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <X className="w-4 h-4" />
                       Cancel
                     </motion.button>
                   </div>
-                </div>
+                </motion.div>
               ) : (
-                <div
+                <motion.div
                   key="display"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                 >
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                  {/* Name - Large and bold like LinkedIn */}
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {fullName}
                   </h1>
+                  
+                  {/* Headline - Normal weight, can wrap */}
                   {formData.headline && (
-                    <p className="text-base text-gray-700 dark:text-gray-200 mt-1 font-medium" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                    <p className="text-base text-gray-700 dark:text-gray-200 mt-1 leading-snug max-w-xl">
                       {formData.headline}
                     </p>
                   )}
-                  <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-600 dark:text-gray-300">
+                  
+                  {/* Location + Contact info link - LinkedIn style */}
+                  <div className="flex flex-wrap items-center gap-1 mt-2 text-sm text-gray-500 dark:text-gray-400">
                     {formData.location && (
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4" />
+                      <>
                         <span>{formData.location}</span>
-                      </div>
+                        <span className="mx-1">·</span>
+                      </>
                     )}
-                    {formData.email && (
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="w-4 h-4" />
-                        <span>{formData.email}</span>
-                      </div>
-                    )}
+                    <button className="text-[#0A66C2] hover:underline font-medium">
+                      Contact info
+                    </button>
                   </div>
-                </div>
+
+                  {/* Completion Badge - Inline like LinkedIn's "500+ connections" */}
+                  <div className="mt-2">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="inline-flex items-center gap-1.5"
+                    >
+                      {isComplete ? (
+                        <span className="text-sm text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
+                          <Check className="w-4 h-4" />
+                          Profile complete
+                        </span>
+                      ) : (
+                        <span className="text-sm text-[#0A66C2] font-medium flex items-center gap-1.5">
+                          <CompactProgressRing progress={completionPercentage} size={16} strokeWidth={2} />
+                          {completionPercentage}% complete
+                        </span>
+                      )}
+                    </motion.div>
+                  </div>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Action Buttons */}
-          {!isEditing && (
-            <div className="flex flex-wrap gap-2 sm:pb-2">
-              {/* Import from CV Button */}
-              {hasCvText && onImportCV && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onImportCV}
-                  disabled={isImportingCV}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isImportingCV ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="hidden sm:inline">Importing...</span>
-                      <span className="sm:hidden">...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4" />
-                      <span className="hidden sm:inline">Import from CV</span>
-                      <span className="sm:hidden">CV</span>
-                    </>
-                  )}
-                </motion.button>
+          {/* Right side - Current company and education (LinkedIn style) */}
+          {!isEditing && (currentPosition || currentEducation) && (
+            <div className="flex flex-col gap-3 lg:items-end lg:text-right">
+              {currentPosition && (
+                <div className="flex items-center gap-2">
+                  <CompanyLogo companyName={currentPosition.company} size="md" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {currentPosition.company}
+                  </span>
+                </div>
               )}
-              
-              {/* LinkedIn Import Button */}
-              {onLinkedInClick && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onLinkedInClick}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#0A66C2] text-white text-sm font-semibold rounded-xl hover:bg-[#004182] transition-colors shadow-sm"
-                >
-                  <Linkedin className="w-4 h-4" />
-                  <span className="hidden sm:inline">Import from LinkedIn</span>
-                  <span className="sm:hidden">LinkedIn</span>
-                </motion.button>
+              {currentEducation && (
+                <div className="flex items-center gap-2">
+                  <InstitutionLogo institutionName={currentEducation.institution} size="sm" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {currentEducation.institution}
+                  </span>
+                </div>
               )}
-              
-              {/* Edit Profile Button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleStartEdit}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                <Edit2 className="w-4 h-4" />
-                <span>Edit</span>
-              </motion.button>
             </div>
           )}
         </div>
 
+        {/* Action buttons row - Import buttons + Edit */}
+        {!isEditing && (
+          <div className="flex flex-wrap items-center gap-2 mt-5">
+            {/* Import from CV Button */}
+            {onImportCV && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onImportCV}
+                disabled={isImportingCV}
+                className="flex items-center gap-2 px-4 py-2 bg-[#0A66C2] text-white text-sm font-semibold rounded-full hover:bg-[#004182] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isImportingCV ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Importing...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4" />
+                    <span>Import from CV</span>
+                  </>
+                )}
+              </motion.button>
+            )}
+          </div>
+        )}
+
         {/* AI Suggestion Banner - Show when profile is incomplete */}
-        {completionPercentage < 50 && (
+        {completionPercentage < 50 && !isEditing && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-4 flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800/30"
+            className="mt-5 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
           >
-            <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-800/50">
-              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                Complete your profile to unlock AI-powered features
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                A complete profile helps us match you with better opportunities and generate personalized applications.
-              </p>
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-800/50">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  Complete your profile to unlock AI-powered features
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                  A complete profile helps us match you with better opportunities.
+                </p>
+              </div>
             </div>
           </motion.div>
         )}
