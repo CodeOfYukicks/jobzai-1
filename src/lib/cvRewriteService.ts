@@ -1,136 +1,343 @@
 /**
- * CV Rewrite Service
+ * CV Rewrite Service - Ultra Quality Edition
  * Generates AI-powered CV rewrites tailored to specific job descriptions
  * WITHOUT inventing false information
+ * 
+ * Uses the FULL richness of ATS analysis data for maximum impact
  */
 
 import { CVRewrite } from '../types/premiumATS';
 
+/**
+ * Enriched strength data from ATS analysis
+ */
+interface EnrichedStrength {
+  name: string;
+  example_from_resume?: string;
+  why_it_matters?: string;
+}
+
+/**
+ * Enriched gap data from ATS analysis
+ */
+interface EnrichedGap {
+  name: string;
+  severity?: 'Low' | 'Medium' | 'High';
+  how_to_fix?: string;
+  why_it_matters?: string;
+}
+
+/**
+ * Full ATS analysis data for ultra-quality rewriting
+ */
+interface EnrichedATSAnalysis {
+  // Core data
+  matchScore: number;
+  
+  // Enriched strengths with context
+  strengths: EnrichedStrength[];
+  
+  // Enriched gaps with resolution strategies
+  gaps: EnrichedGap[];
+  
+  // Keywords with priority distinction
+  keywords: {
+    missing: string[];
+    priority_missing?: string[];  // High-priority keywords to integrate first
+    found?: string[];             // Already present, to reinforce
+  };
+  
+  // Pre-generated CV fixes from analysis
+  cvFixes?: {
+    high_impact_bullets_to_add?: string[];
+    bullets_to_rewrite?: string[];
+    keywords_to_insert?: string[];
+    sections_to_reorder?: string[];
+    estimated_score_gain?: number;
+  };
+  
+  // Job understanding from analysis
+  jobSummary?: {
+    hidden_expectations?: string[];
+    core_requirements?: string[];
+    mission?: string;
+  };
+  
+  // Strategic positioning guidance
+  positioning?: string;
+}
+
+/**
+ * Input for CV rewriting - now with full ATS richness
+ */
 interface CVRewriteInput {
   cvText: string;
   jobDescription: string;
-  atsAnalysis: {
-    strengths: string[];
-    gaps: string[];
-    keywords: string[];
-    matchScore: number;
-  };
+  atsAnalysis: EnrichedATSAnalysis;
   jobTitle: string;
   company: string;
 }
 
 /**
- * Generate the ULTIMATE CV rewriting prompt
- * This prompt creates world-class CVs that get interviews
+ * Helper: Format enriched strengths for prompt
+ */
+function formatEnrichedStrengths(strengths: EnrichedStrength[]): string {
+  return strengths.map((s, i) => {
+    const lines = [`${i + 1}. **${s.name}**`];
+    if (s.example_from_resume) {
+      lines.push(`   📌 Proof in CV: "${s.example_from_resume}"`);
+    }
+    if (s.why_it_matters) {
+      lines.push(`   💡 Why it matters: ${s.why_it_matters}`);
+    }
+    return lines.join('\n');
+  }).join('\n\n');
+}
+
+/**
+ * Helper: Format enriched gaps with resolution strategies
+ */
+function formatEnrichedGaps(gaps: EnrichedGap[]): string {
+  return gaps.map((g, i) => {
+    const severity = g.severity || 'Medium';
+    const severityEmoji = severity === 'High' ? '🔴' : severity === 'Medium' ? '🟡' : '🟢';
+    const lines = [`${i + 1}. ${severityEmoji} **${g.name}** (${severity} priority)`];
+    if (g.how_to_fix) {
+      lines.push(`   ✅ HOW TO ADDRESS: ${g.how_to_fix}`);
+    }
+    if (g.why_it_matters) {
+      lines.push(`   ⚠️ Why it matters: ${g.why_it_matters}`);
+    }
+    return lines.join('\n');
+  }).join('\n\n');
+}
+
+/**
+ * Helper: Format CV fixes as actionable guidance
+ */
+function formatCVFixes(cvFixes: EnrichedATSAnalysis['cvFixes']): string {
+  if (!cvFixes) return 'No specific fixes provided.';
+  
+  const sections: string[] = [];
+  
+  if (cvFixes.high_impact_bullets_to_add?.length) {
+    sections.push(`**High-Impact Bullets to Add (use these as inspiration):**\n${cvFixes.high_impact_bullets_to_add.map(b => `• ${b}`).join('\n')}`);
+  }
+  
+  if (cvFixes.keywords_to_insert?.length) {
+    sections.push(`**Keywords to Insert Strategically:**\n${cvFixes.keywords_to_insert.join(', ')}`);
+  }
+  
+  if (cvFixes.bullets_to_rewrite?.length) {
+    sections.push(`**Bullets That Need Rewriting:**\n${cvFixes.bullets_to_rewrite.map(b => `• ${b}`).join('\n')}`);
+  }
+  
+  if (cvFixes.estimated_score_gain) {
+    sections.push(`**Estimated Score Gain if Implemented:** +${cvFixes.estimated_score_gain}%`);
+  }
+  
+  return sections.join('\n\n') || 'No specific fixes provided.';
+}
+
+/**
+ * Helper: Format job summary insights
+ */
+function formatJobSummaryInsights(jobSummary: EnrichedATSAnalysis['jobSummary']): string {
+  if (!jobSummary) return '';
+  
+  const sections: string[] = [];
+  
+  if (jobSummary.mission) {
+    sections.push(`**Mission of this Role:**\n${jobSummary.mission}`);
+  }
+  
+  if (jobSummary.core_requirements?.length) {
+    sections.push(`**Core Requirements (must address):**\n${jobSummary.core_requirements.map((r, i) => `${i + 1}. ${r}`).join('\n')}`);
+  }
+  
+  if (jobSummary.hidden_expectations?.length) {
+    sections.push(`**🎯 Hidden Expectations (what they REALLY want but don't say):**\n${jobSummary.hidden_expectations.map((e, i) => `${i + 1}. ${e}`).join('\n')}`);
+  }
+  
+  return sections.join('\n\n');
+}
+
+/**
+ * Generate the ULTRA-QUALITY CV rewriting prompt
+ * Uses a 3-Phase strategic approach with full ATS data richness
  */
 function generateCVRewritePrompt(input: CVRewriteInput): string {
-  return `You are THE WORLD'S BEST CV STRATEGIST - Elite headhunter with 20+ years placing candidates at FAANG, McKinsey, and Fortune 500 companies.
+  // Format enriched data
+  const formattedStrengths = formatEnrichedStrengths(input.atsAnalysis.strengths);
+  const formattedGaps = formatEnrichedGaps(input.atsAnalysis.gaps);
+  const formattedCVFixes = formatCVFixes(input.atsAnalysis.cvFixes);
+  const formattedJobInsights = formatJobSummaryInsights(input.atsAnalysis.jobSummary);
+  
+  // Prepare keywords
+  const priorityKeywords = input.atsAnalysis.keywords.priority_missing || [];
+  const otherMissingKeywords = input.atsAnalysis.keywords.missing.filter(k => !priorityKeywords.includes(k));
+  const foundKeywords = input.atsAnalysis.keywords.found || [];
+  
+  return `You are an ELITE CV STRATEGIST with 25+ years placing top executives at FAANG, McKinsey, Goldman Sachs, and Fortune 100 companies. Your CVs have a 94% interview callback rate.
 
-Your mission: Transform this CV into one that makes ${input.company} IMMEDIATELY call this candidate for the ${input.jobTitle} position.
+═══════════════════════════════════════════════════════════════════════════════
+                           PHASE 1: DEEP UNDERSTANDING
+═══════════════════════════════════════════════════════════════════════════════
 
-## CRITICAL CONTEXT:
-- **Target Company**: ${input.company}
-- **Target Position**: ${input.jobTitle}
+## 🎯 TARGET OPPORTUNITY
+- **Company**: ${input.company}
+- **Position**: ${input.jobTitle}
 - **Current Match Score**: ${input.atsAnalysis.matchScore}%
-- **YOUR GOAL**: Transform this into a 90%+ match that gets an interview
+- **Your Mission**: Transform this into a 90%+ match that GUARANTEES an interview
 
-## ORIGINAL CV:
-"""
-${input.cvText}
-"""
-
-## JOB DESCRIPTION (STUDY EVERY WORD):
+## 📋 JOB DESCRIPTION (Analyze EVERY requirement)
 """
 ${input.jobDescription}
 """
 
-## ATS ANALYSIS INSIGHTS:
-**Strengths to AMPLIFY (make these SHINE):**
-${input.atsAnalysis.strengths.map(s => `✓ ${s}`).join('\n')}
+${formattedJobInsights ? `## 🔍 DEEP JOB INSIGHTS (From ATS Analysis)\n${formattedJobInsights}\n` : ''}
 
-**Gaps to ADDRESS (without lying, use positioning):**
-${input.atsAnalysis.gaps.map(g => `⚠ ${g}`).join('\n')}
+${input.atsAnalysis.positioning ? `## 🧭 STRATEGIC POSITIONING GUIDANCE\n${input.atsAnalysis.positioning}\n` : ''}
 
-**Missing Keywords to INTEGRATE NATURALLY:**
-${input.atsAnalysis.keywords.slice(0, 30).join(', ')}
+## 📄 ORIGINAL CV (Your raw material)
+"""
+${input.cvText}
+"""
 
----
+═══════════════════════════════════════════════════════════════════════════════
+                        PHASE 2: STRATEGIC ANALYSIS
+═══════════════════════════════════════════════════════════════════════════════
 
-## YOUR WORLD-CLASS REWRITING STRATEGY:
+## 💪 STRENGTHS TO AMPLIFY (with proof points)
+${formattedStrengths}
 
-### 1. 🎯 PSYCHOLOGICAL POSITIONING (Most Critical!)
-- Identify the EXACT persona ${input.company} wants for ${input.jobTitle}
-- What's the ONE narrative that makes this candidate irresistible?
-- Lead with the strongest angle: Technical excellence? Leadership? Business impact? Innovation?
-- Position weaknesses as "opportunities for fresh perspective"
+## ⚠️ GAPS TO ADDRESS (with resolution strategies)
+${formattedGaps}
 
-### 2. 🔑 KEYWORD ALCHEMY (Not keyword stuffing!)
-- Weave missing keywords NATURALLY into existing achievements
-- Use the EXACT terminology that ${input.company} uses in the job description
-- Mirror the language patterns from the job posting
-- Create "keyword clusters" in Skills and Summary sections for maximum ATS impact
-- Repeat critical keywords 2-3 times across different sections (naturally!)
+## 🔧 PRE-ANALYZED CV FIXES
+${formattedCVFixes}
 
-### 3. 📊 QUANTIFICATION MAXIMIZATION
-- EVERY achievement MUST have a number, percentage, scale, or timeframe
-- Transform vague statements into powerful metrics:
-  * "Improved performance" → "Accelerated system response time by 73%, supporting 2.5M daily active users"
-  * "Led team" → "Led cross-functional team of 8 engineers, delivering $2M+ revenue features 3 weeks ahead of schedule"
-- Show business impact in: Revenue, Cost savings, Time saved, Users impacted, Efficiency gained
+## 🔑 KEYWORD STRATEGY
 
-### 4. ⚡ POWER VERB ARSENAL
-Replace ALL weak verbs with impact verbs:
+### 🔴 PRIORITY KEYWORDS (Must appear 2-3 times each)
+${priorityKeywords.length > 0 ? priorityKeywords.join(', ') : 'None specified - use keywords from job description'}
+
+### 🟡 SECONDARY KEYWORDS (Integrate where natural)
+${otherMissingKeywords.slice(0, 20).join(', ') || 'None'}
+
+### 🟢 KEYWORDS ALREADY PRESENT (Reinforce these)
+${foundKeywords.slice(0, 15).join(', ') || 'None identified'}
+
+═══════════════════════════════════════════════════════════════════════════════
+                         PHASE 3: EXECUTION EXCELLENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+## 📝 PROFESSIONAL SUMMARY FORMAT: Hook + Proof + Value (40-50 words)
+
+Create a summary using this precise structure:
+1. **HOOK (10 words)**: A compelling statement that creates urgency. Start with the candidate's strongest differentiator relevant to ${input.jobTitle}.
+2. **PROOF (20 words)**: ONE concrete achievement with a real metric FROM THE CV (not invented). This proves the hook.
+3. **VALUE (15 words)**: What unique value they bring to ${input.company}'s specific needs.
+
+**Example for Product Manager at Spotify:**
+"Music-obsessed Product Leader who scaled engagement features to 2M DAU. Delivered $4M ARR growth through data-driven experimentation. Ready to redefine audio experiences at Spotify."
+
+❌ AVOID: Generic phrases like "results-driven", "passionate", "team player", "motivated professional"
+✅ USE: Specific, memorable, job-relevant differentiators
+
+## 📊 QUANTIFICATION RULES (CAUTIOUS APPROACH)
+
+### ✅ ALLOWED Quantification:
+1. **Direct from CV**: If CV says "team of 5" → Use "team of 5"
+2. **Reasonable estimates with ~**: If CV says "several team members" → Use "~5-8 team members"
+3. **Calculable metrics**: If CV says "3 years at company, led 2 major projects/year" → Use "6+ major projects"
+4. **Industry standard ranges**: If CV says "managed large budget" for senior role → Use "~$500K-1M budget"
+
+### ❌ FORBIDDEN Quantification:
+1. **Never invent percentages**: If CV says "improved performance" → DON'T add "by 40%"
+2. **Never add revenue/cost numbers**: Unless CV explicitly mentions financial impact
+3. **Never guess user counts**: Unless CV mentions scale
+4. **Never fabricate timeframes**: Unless CV mentions them
+
+### 💡 Smart Alternative When No Metrics:
+Instead of inventing: "Improved system performance, reducing latency and enhancing user experience for enterprise clients"
+(Focus on WHAT was done and WHO benefited, without fake numbers)
+
+## ⚡ POWER VERB ARSENAL
+Replace ALL weak verbs immediately:
 - ❌ "Worked on" → ✅ "Architected", "Engineered", "Built", "Delivered"
-- ❌ "Helped" → ✅ "Enabled", "Facilitated", "Drove", "Catalyzed"
+- ❌ "Helped" → ✅ "Enabled", "Catalyzed", "Drove", "Empowered"
 - ❌ "Was responsible for" → ✅ "Owned", "Led", "Championed", "Spearheaded"
 - ❌ "Participated in" → ✅ "Contributed", "Collaborated", "Partnered with"
+- ❌ "Managed" (overused) → ✅ "Orchestrated", "Directed", "Steered", "Oversaw"
 
-### 5. 👔 SENIORITY ELEVATION (Make it Senior-Level)
-Transform EVERY statement to sound senior:
-- Emphasize LEADERSHIP and INFLUENCE, not just execution
-- Show STRATEGIC thinking and ARCHITECTURAL decisions
-- Highlight CROSS-FUNCTIONAL collaboration and stakeholder management
-- Demonstrate BUSINESS ACUMEN and ROI thinking
-- Feature MENTORSHIP, hiring, and team building
-- Example: "Coded features" → "Architected scalable microservices platform, establishing engineering patterns adopted across 5 product teams"
+## 👔 SENIORITY ELEVATION
+Transform EVERY statement to sound senior-level:
+- Show STRATEGIC thinking, not just execution
+- Emphasize LEADERSHIP and INFLUENCE over tasks
+- Highlight CROSS-FUNCTIONAL impact and stakeholder management
+- Demonstrate BUSINESS ACUMEN and ROI awareness
+- Feature MENTORSHIP and team development
+- Example: "Developed features" → "Architected strategic product initiatives, establishing engineering patterns adopted across 5 product teams"
 
-### 6. 🤖 ATS OPTIMIZATION SECRETS
-- Front-load keywords in first 1/3 of resume (Summary + first experience)
-- Create a "Core Competencies" or "Technical Expertise" section with keyword clusters
-- Use standard section headers that ATS systems recognize
-- Ensure critical keywords appear 2-3 times naturally across sections
-- No tables, no graphics, no fancy formatting - pure parseable text
+## 🤖 ATS OPTIMIZATION
+- Front-load PRIORITY keywords in Summary and first experience
+- Create "Core Competencies" section with keyword clusters
+- Use standard section headers ATS systems recognize
 - Include both acronyms AND full terms: "CI/CD (Continuous Integration/Continuous Deployment)"
+- Ensure PRIORITY keywords appear 2-3 times naturally
 
-### 7. 📖 NARRATIVE FLOW (Tell a Story)
-- Most impressive/relevant experience FIRST (even if not most recent)
-- Each bullet builds on the previous (crescendo effect)
-- Show progression: Individual Contributor → Tech Lead → Architect
-- Create a story of increasing impact and responsibility
-
-### 8. 🎨 FORMATTING EXCELLENCE
-- Use markdown headers: ## for sections, ### for job titles
-- Bullets with powerful opening words
-- Consistent date formats
-- Clean, scannable structure
-- Each bullet: [Action Verb] + [What you did] + [Quantified Result/Impact]
-
-### 9. 📏 ONE-PAGE CV OPTIMIZATION (Critical for A4 Format)
-- **Professional Summary**: Keep to 2-3 sentences maximum (50-60 words). Be concise and impactful.
-- **Bullet Points**: Limit to 3-5 bullets per experience, maximum 20 words per bullet. Prioritize most relevant achievements.
-- **Content Density**: Generate compact, impactful content that fits naturally on one A4 page (297mm height).
-- **Word Economy**: Use powerful, concise language. Remove filler words. Every word must add value.
-- **Section Balance**: Distribute content evenly. Don't let one section dominate. If content is extensive, condense less relevant parts.
-- **Goal**: The final CV should fit comfortably on one page without looking cramped or losing readability.
+## 📏 ONE-PAGE A4 OPTIMIZATION
+- **Summary**: 40-50 words maximum (Hook + Proof + Value format)
+- **Bullets**: 3-5 per experience, max 20 words each
+- **Content**: Compact, impactful, no filler words
+- **Goal**: Fit comfortably on one A4 page
 
 ---
 
-## ABSOLUTE RULES - NEVER VIOLATE:
+## 🚫 ABSOLUTE RULES - NEVER VIOLATE:
 1. ✅ ONLY use information that exists in the original CV
 2. ❌ NEVER invent jobs, dates, companies, metrics, degrees, or achievements
 3. ✅ Rephrase, restructure, amplify, and emphasize - but ALWAYS truthful
 4. ✅ If a metric isn't in the CV, don't invent it (but you can add "~" for estimates if reasonable)
 5. ✅ If there's a gap, address it through smart positioning, not fabrication
+
+## 🚫 CRITICAL: EXPERIENCE CREATION RULES - ABSOLUTE PROHIBITION
+⛔ **NEVER CREATE NEW EXPERIENCES** - This is the #1 rule you must NEVER break:
+1. ❌ NEVER create a new experience entry that doesn't exist in the original CV
+2. ❌ NEVER use the candidate's name (first name or full name) as a job title or company name
+3. ❌ NEVER add experiences like "Rouchdi Touil - 2018 - Present" or "Firstname Lastname - Date"
+4. ❌ NEVER invent freelance/consulting experiences that aren't in the original CV
+5. ✅ ONLY modify/enhance bullet points within EXISTING experiences
+6. ✅ If you want to add new skills/achievements, add them as NEW BULLETS to EXISTING experiences
+7. ✅ If a skill cannot fit into any existing experience, put it in "suggested_additions" (NOT as a new experience)
+
+## 🎓 CRITICAL: EDUCATION ≠ EXPERIENCE - NEVER CONFUSE THEM
+⛔ **EDUCATION entries are NOT work experiences** - This is a CRITICAL distinction:
+1. ❌ NEVER transform a degree/diploma/certification into a work experience entry
+2. ❌ "Master's in Management", "Bachelor's", "MBA", "Engineering Degree", "Master's" = EDUCATION ONLY
+3. ❌ Universities, Business Schools, Colleges, Institutes = NOT valid "company" names for experiences
+4. ❌ NEVER create experience bullet points for education/study periods
+5. ❌ NEVER add work achievements to a degree - degrees don't have "achievements", only courses/GPA/honors
+6. ✅ Education achievements (GPA, honors, thesis, relevant courses) go in the EDUCATION section ONLY
+7. ✅ A valid EXPERIENCE entry MUST have ALL of these:
+   - A REAL job title (Developer, Manager, Analyst, Consultant, Intern, etc.) - NOT a degree name
+   - A REAL company/business name (Accenture, Google, Danone, etc.) - NOT a school/university
+   - Actual WORK responsibilities - NOT academic projects (unless it's an internship at a company)
+
+**BEFORE ADDING ANY EXPERIENCE TO THE OUTPUT, ASK YOURSELF:**
+- Is the "company" field a real business/corporation (NOT a university/school)? If NO → This is NOT an experience
+- Is the "title" field a real job position (NOT a degree name like "Master's")? If NO → This is NOT an experience  
+- Did this exact experience exist in the ORIGINAL CV as a real JOB? If NO → This is NOT an experience
+- Would a recruiter see this as a real work experience? If NO → This is NOT an experience
+
+**VALIDATION CHECK**: Before returning, verify that:
+- The number of experiences in your output EXACTLY matches the original CV
+- No experience has the candidate's name as company or title
+- No new experience entries were created
+- ⚠️ NO education/degree was incorrectly placed in the experiences array
+- ⚠️ Every experience has a REAL company name (Accenture, Google, etc. - NOT a school/university)
+- ⚠️ Every experience has a REAL job title (Manager, Developer, etc. - NOT a degree name like "Master's")
 
 ## CRITICAL DATA PRESERVATION RULES:
 ⚠️ **MOST IMPORTANT**: You MUST preserve ALL experiences and ALL educations from the original CV
@@ -284,6 +491,19 @@ STEP 2: Generate structured JSON FIRST (before markdown) - THIS IS CRITICAL:
       "Ordered list of which experiences are MOST relevant to ${input.jobTitle} at ${input.company} and WHY",
       "This guides how to prioritize and structure the Experience section"
     ]
+  },
+  "suggested_additions": {
+    "description": "Skills, achievements, or bullets that are HIGHLY RELEVANT to ${input.jobTitle} but could NOT be naturally integrated into existing experiences. These will be shown to the user as suggestions they can manually add.",
+    "items": [
+      {
+        "bullet": "<A powerful, job-relevant bullet point that matches ${input.jobTitle} requirements>",
+        "reason": "<Why this skill/achievement is important for ${input.company}>",
+        "target_experience_id": "<exp-0 or exp-1 etc. - the experience ID where this could potentially be added>",
+        "target_experience_title": "<Title of the experience where this could be added>",
+        "priority": "<high/medium/low based on job relevance>"
+      }
+    ],
+    "note": "ONLY include bullets here if they CANNOT be naturally added to existing experience bullets. Prefer modifying existing bullets first. Maximum 5 suggestions."
   },
   "initial_cv": "The ULTIMATE rewritten CV in markdown format - this is your MASTERPIECE. Every word counts. Every achievement quantified. Every bullet powerful. This should be ready to copy-paste into an editor. Use ## for sections, ### for job titles, bullet points for achievements. MUST include ALL experiences from structured_data.experiences. CRITICAL: For experiences with a 'client' field (e.g., client='Ayvens', company='Accenture'), format the header as: ### Job Title - Client (via Company). Example: ### PO/PM - Ayvens (via Accenture). This ensures the client name is prominently displayed. IMPORTANT: Keep content compact and concise - Professional Summary: 2-3 sentences (50-60 words max), 3-5 bullets per experience (max 20 words each). The CV must fit comfortably on one A4 page.",
   "cv_templates": {
@@ -439,6 +659,17 @@ LinkedIn: https://linkedin.com/in/username
 ✅ All 6 templates are distinctly different in style and structure
 ✅ structured_data.experiences array contains ALL experiences from original CV
 ✅ validation.match is true (original count = rewritten count)
+
+## 🚫 FINAL EXPERIENCE VALIDATION (CRITICAL):
+⛔ VERIFY NO NEW EXPERIENCES WERE CREATED:
+✅ Count of experiences in output EQUALS count in original CV
+✅ NO experience has candidate's first name or full name as title/company
+✅ NO experience like "Firstname Lastname - 2018 - Present" exists
+✅ ALL experience titles/companies match EXACTLY with original CV
+✅ suggested_additions contains any skills that couldn't fit (max 5 items)
+✅ suggested_additions items have valid target_experience_id references
+
+If ANY of these checks fail, FIX THE OUTPUT before returning!
 
 ---
 
@@ -608,21 +839,64 @@ function rebuildMarkdownFromStructured(structuredData: any): string {
  * Main function to generate CV rewrite
  */
 export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrite> {
-  // Import parseCVData dynamically to avoid circular dependencies
+  // Import dependencies dynamically to avoid circular dependencies
   const { parseCVData } = await import('./cvSectionAI');
   const { rewriteSingleExperience } = await import('./experienceRewriter');
+  const { extractFullProfileFromText } = await import('./cvExperienceExtractor');
   
-  // 1. Génération initiale du CV réécrit
-  const prompt = generateCVRewritePrompt(input);
-  const result = await callOpenAIForRewrite(prompt);
+  // 1. STEP 1: Use AI to extract and structure the original CV properly
+  // This is CRITICAL for accurate before/after comparison
+  console.log('🔍 Step 1: Extracting original CV structure with AI...');
+  let extractedOriginal: any;
+  try {
+    extractedOriginal = await extractFullProfileFromText(input.cvText);
+    console.log(`✅ AI extraction complete:`, {
+      experiences: extractedOriginal.experiences?.length || 0,
+      educations: extractedOriginal.educations?.length || 0,
+      skills: extractedOriginal.skills?.length || 0,
+      summary: extractedOriginal.summary ? 'Yes' : 'No'
+    });
+  } catch (error) {
+    console.error('❌ AI extraction failed, falling back to regex parsing:', error);
+    // Fallback to regex parsing if AI fails
+    const parsed = parseCVData({ initial_cv: input.cvText });
+    extractedOriginal = {
+      personalInfo: parsed.personalInfo || {},
+      summary: parsed.summary || '',
+      experiences: (parsed.experience || []).map((exp: any) => ({
+        title: exp.title,
+        company: exp.company,
+        startDate: exp.startDate,
+        endDate: exp.endDate,
+        current: exp.isCurrent,
+        responsibilities: exp.bullets || exp.description || [],
+      })),
+      educations: parsed.education || [],
+      skills: parsed.skills || [],
+      languages: parsed.languages || [],
+    };
+  }
   
-  // 2. Parser le CV initial pour obtenir les expériences
-  const parsedInitial = parseCVData({ initial_cv: input.cvText });
-  const originalExperiences = parsedInitial.experience || [];
+  // Map extracted experiences to the format used by the rest of the code
+  const originalExperiences = (extractedOriginal.experiences || []).map((exp: any, idx: number) => ({
+    id: `exp-${idx}`,
+    title: exp.title || '',
+    company: exp.company || '',
+    startDate: exp.startDate || '',
+    endDate: exp.endDate || '',
+    isCurrent: exp.current || false,
+    bullets: exp.responsibilities || [],
+    description: exp.responsibilities || [],
+  }));
   
   console.log(`📊 CV Original: ${originalExperiences.length} expériences détectées`, 
     originalExperiences.map((exp: any) => `${exp.title} at ${exp.company}`)
   );
+  
+  // 2. STEP 2: Generate the AI-rewritten CV
+  console.log('✍️ Step 2: Generating AI-rewritten CV...');
+  const prompt = generateCVRewritePrompt(input);
+  const result = await callOpenAIForRewrite(prompt);
   
   // 3. Vérifier que toutes les expériences ont été réécrites
   let rewrittenExperiences: any[] = [];
@@ -671,7 +945,10 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
               jobTitle: input.jobTitle,
               company: input.company,
               jobDescription: input.jobDescription,
-              keywords: input.atsAnalysis.keywords,
+              keywords: [
+                ...(input.atsAnalysis.keywords.priority_missing || []),
+                ...input.atsAnalysis.keywords.missing.slice(0, 20)
+              ],
             },
             allExperiences: rewrittenExperiences,
           });
@@ -700,12 +977,9 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     }
   }
   
-  // 5. Reconstruire le markdown avec toutes les expériences
+  // 5. Parse the rewritten result for building structured_data
   const parsedRewritten = parseCVData(result);
-  const finalMarkdown = rebuildMarkdownFromStructured({
-    ...parsedRewritten,
-    experience: rewrittenExperiences,
-  });
+  // Note: finalMarkdown no longer used since we store original CV text directly
   
   // 6. Construire structured_data complet et robuste
   // Utiliser structured_data du résultat si disponible, sinon construire depuis parsedRewritten
@@ -716,56 +990,56 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     console.log('🔧 Construction de structured_data depuis les données parsées...');
     
     finalStructuredData = {
-      personalInfo: parsedRewritten.personalInfo || parsedInitial.personalInfo || {},
-      summary: parsedRewritten.summary || parsedInitial.summary || '',
+      personalInfo: parsedRewritten.personalInfo || extractedOriginal.personalInfo || {},
+      summary: parsedRewritten.summary || extractedOriginal.summary || '',
       experiences: rewrittenExperiences.map((exp: any) => ({
         id: exp.id || `exp-${rewrittenExperiences.indexOf(exp)}`,
         title: exp.title || '',
         company: exp.company || '',
-        client: exp.client || undefined,
+        client: exp.client || '',
         startDate: exp.startDate || '',
         endDate: exp.endDate || 'Present',
-        duration: exp.duration || undefined,
-        location: exp.location || undefined,
+        duration: exp.duration || '',
+        location: exp.location || '',
         bullets: Array.isArray(exp.bullets) ? exp.bullets : (exp.description || []),
       })),
-      educations: (parsedRewritten.education || parsedInitial.education || []).map((edu: any, idx: number) => ({
+      educations: (parsedRewritten.education || extractedOriginal.educations || []).map((edu: any, idx: number) => ({
         id: edu.id || `edu-${idx}`,
         degree: edu.degree || '',
         institution: edu.institution || '',
-        startDate: edu.startDate || undefined,
+        startDate: edu.startDate || '',
         endDate: edu.endDate || edu.year || '',
-        year: edu.year || edu.endDate || undefined,
-        gpa: edu.gpa || undefined,
-        honors: edu.honors || undefined,
+        year: edu.year || edu.endDate || '',
+        gpa: edu.gpa || '',
+        honors: edu.honors || '',
         details: edu.details || '',
       })),
-      skills: parsedRewritten.skills || parsedInitial.skills || [],
-      languages: (parsedRewritten.languages || parsedInitial.languages || []).map((lang: any) => {
+      skills: parsedRewritten.skills || extractedOriginal.skills || [],
+      languages: (parsedRewritten.languages || extractedOriginal.languages || []).map((lang: any) => {
         if (typeof lang === 'string') {
           // Parser "French | Native" ou "French - Native"
-          const parts = lang.split(/[|-]/).map(p => p.trim());
+          const parts = lang.split(/[|-]/).map((p: string) => p.trim());
           return { name: parts[0] || lang, level: parts[1] || 'Intermediate' };
         }
         return {
-          name: lang.name || lang,
+          name: lang.name || lang.language || lang,
           level: lang.level || lang.proficiency || 'Intermediate',
         };
       }),
-      certifications: (parsedRewritten.certifications || parsedInitial.certifications || []).map((cert: any) => {
+      certifications: (parsedRewritten.certifications || extractedOriginal.certifications || []).map((cert: any) => {
         if (typeof cert === 'string') {
           return { name: cert };
         }
         return {
           name: cert.name || cert,
-          issuer: cert.issuer || undefined,
-          date: cert.date || undefined,
-          year: cert.year || undefined,
-          credentialId: cert.credentialId || undefined,
-          details: cert.details || undefined,
+          issuer: cert.issuer || '',
+          date: cert.date || '',
+          year: cert.year || '',
+          credentialId: cert.credentialId || '',
+          details: cert.details || '',
         };
       }),
-      hobbies: parsedRewritten.hobbies || parsedInitial.hobbies || [],
+      hobbies: parsedRewritten.hobbies || [],
     };
     
     console.log(`✅ structured_data construit: ${finalStructuredData.experiences.length} expériences, ${finalStructuredData.educations.length} éducations`);
@@ -775,10 +1049,10 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
   const validation = {
     original_experiences_count: originalExperiences.length,
     rewritten_experiences_count: finalStructuredData.experiences.length,
-    original_educations_count: (parsedInitial.education || []).length,
+    original_educations_count: (extractedOriginal.educations || []).length,
     rewritten_educations_count: finalStructuredData.educations.length,
     match: originalExperiences.length === finalStructuredData.experiences.length &&
-           (parsedInitial.education || []).length === finalStructuredData.educations.length,
+           (extractedOriginal.educations || []).length === finalStructuredData.educations.length,
   };
   
   if (!validation.match) {
@@ -786,6 +1060,51 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
   } else {
     console.log('✅ Validation réussie:', validation);
   }
+  
+  // Build original structured data from AI-extracted data for before/after comparison
+  // Note: Firestore doesn't accept undefined values, so we use empty strings or omit fields
+  const originalStructuredData = {
+    personalInfo: extractedOriginal.personalInfo || {},
+    summary: extractedOriginal.summary || '',
+    experiences: originalExperiences.map((exp: any, idx: number) => {
+      const experience: any = {
+        id: exp.id || `orig-exp-${idx}`,
+        title: exp.title || '',
+        company: exp.company || '',
+        startDate: exp.startDate || '',
+        endDate: exp.endDate || 'Present',
+        bullets: Array.isArray(exp.bullets) ? exp.bullets : (exp.description || []),
+      };
+      // Only add optional fields if they have values
+      if (exp.client) experience.client = exp.client;
+      if (exp.location) experience.location = exp.location;
+      return experience;
+    }),
+    educations: (extractedOriginal.educations || []).map((edu: any, idx: number) => {
+      const education: any = {
+        id: edu.id || `orig-edu-${idx}`,
+        degree: edu.degree || '',
+        institution: edu.institution || '',
+        endDate: edu.endDate || edu.year || '',
+        details: edu.description || edu.details || '',
+      };
+      // Only add optional fields if they have values
+      if (edu.startDate) education.startDate = edu.startDate;
+      if (edu.year) education.year = edu.year;
+      if (edu.field) education.field = edu.field;
+      if (edu.gpa) education.gpa = edu.gpa;
+      return education;
+    }),
+    skills: extractedOriginal.skills || [],
+    tools: extractedOriginal.tools || [],
+    languages: (extractedOriginal.languages || []).map((lang: any) => {
+      if (typeof lang === 'string') return { name: lang, level: '' };
+      return { name: lang.language || lang.name || '', level: lang.level || '' };
+    }),
+    certifications: extractedOriginal.certifications || [],
+  };
+  
+  console.log(`✅ Original structured data built: ${originalStructuredData.experiences.length} experiences, ${originalStructuredData.educations.length} educations`);
   
   return {
     analysis: result.analysis || {
@@ -795,11 +1114,12 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
       recommended_keywords: [],
       experience_relevance: [],
     },
-    initial_cv: finalMarkdown || result.initial_cv,
+    initial_cv: input.cvText, // Raw original CV text (backup)
+    original_structured_data: originalStructuredData, // NEW: Original parsed structured data for comparison
     cv_templates: result.cv_templates || {},
     internal_prompt_used: prompt,
-    structured_data: finalStructuredData, // NOUVEAU: Structure JSON complète
-    validation: validation, // NOUVEAU: Validation des comptes
+    structured_data: finalStructuredData, // AI-rewritten structured data
+    validation: validation,
   };
 }
 

@@ -464,7 +464,7 @@ export async function generateEmailTemplate(options: GenerateOptions): Promise<G
          - STRICTLY respect the requested length: ${options.length === 'short' ? '3-4 lines' : options.length === 'medium' ? '5-7 lines' : '8-12 lines'}`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-5.1", // Updated from gpt-4o (Nov 2025)
       messages: [
         {
           role: "system",
@@ -708,7 +708,7 @@ export async function rewriteTextWithAI(options: {
       : '';
     
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-5.1", // Updated from gpt-4o (Nov 2025)
       messages: [
         {
           role: "system",

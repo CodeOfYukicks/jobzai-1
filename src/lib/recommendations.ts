@@ -9,7 +9,7 @@ async function analyzePDFWithVision(cvUrl: string): Promise<string> {
     const downloadURL = await getDownloadURL(ref(storage, cvUrl));
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-5.1", // Updated from gpt-4-vision-preview (Nov 2025)
       messages: [
         {
           role: "user",
@@ -224,7 +224,7 @@ Analyze networking opportunities and provide insights in this exact JSON format:
         try {
           console.log(`Attempt ${i + 1}: Sending request to OpenAI`);
           const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
+            model: "gpt-5.1", // Updated from gpt-3.5-turbo (Nov 2025)
             messages: [
               {
                 role: "system",
@@ -237,6 +237,7 @@ Analyze networking opportunities and provide insights in this exact JSON format:
             ],
             response_format: { type: "json_object" },
             temperature: 0.5,
+            reasoning_effort: "medium", // GPT-5.1 feature for recommendations
             max_tokens: 1000
           });
 

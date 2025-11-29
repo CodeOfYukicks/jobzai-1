@@ -9,6 +9,7 @@ import {
   Loader2
 } from 'lucide-react';
 import CVScoreComparison from './CVScoreComparison';
+import SuggestedAdditionsPanel from './SuggestedAdditionsPanel';
 import { PremiumATSAnalysis, CVRewrite } from '../../types/premiumATS';
 
 interface TailoredResumePanelProps {
@@ -159,6 +160,18 @@ export default function TailoredResumePanel({
           }}
           optimized={optimizedScore}
           premiumAnalysis={premiumAnalysis}
+        />
+      )}
+
+      {/* Suggested Additions - bullets that couldn't be integrated into existing experiences */}
+      {cvRewrite?.suggested_additions?.items && cvRewrite.suggested_additions.items.length > 0 && (
+        <SuggestedAdditionsPanel
+          suggestedAdditions={cvRewrite.suggested_additions}
+          experiences={cvRewrite.structured_data?.experiences?.map(exp => ({
+            id: exp.id,
+            title: exp.title,
+            company: exp.company
+          })) || []}
         />
       )}
     </div>

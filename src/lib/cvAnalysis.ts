@@ -433,7 +433,7 @@ async function callGptVisionApi(base64Image: string, jobDetails: {
         'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "gpt-4o", // Use the updated model
+        model: "gpt-5.1", // Updated to GPT-5.1 (Nov 2025)
         messages: [
           {
             role: "system",

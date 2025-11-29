@@ -139,6 +139,52 @@ export interface CVRewrite {
     experience_relevance: string[];
   };
   initial_cv: string;
+  // NEW: Original CV parsed into structured format for before/after comparison
+  original_structured_data?: {
+    personalInfo: {
+      name?: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      location?: string;
+      linkedin?: string;
+      title?: string;
+      jobTitle?: string;
+    };
+    summary: string;
+    experiences: Array<{
+      id: string;
+      title: string;
+      company: string;
+      client?: string;
+      startDate: string;
+      endDate: string;
+      location?: string;
+      bullets: string[];
+    }>;
+    educations: Array<{
+      id: string;
+      degree: string;
+      institution: string;
+      startDate?: string;
+      endDate?: string;
+      year?: string;
+      gpa?: string;
+      details?: string;
+    }>;
+    skills: string[];
+    languages: Array<{
+      name: string;
+      level: string;
+    }>;
+    certifications: Array<{
+      name: string;
+      issuer?: string;
+      date?: string;
+      year?: string;
+    }>;
+  };
   cv_templates: {
     harvard: string;
     tech_minimalist: string;
@@ -205,6 +251,18 @@ export interface CVRewrite {
     original_educations_count: number;
     rewritten_educations_count: number;
     match: boolean;
+  };
+  // NEW: Suggested additions that couldn't be naturally integrated into existing experiences
+  suggested_additions?: {
+    description: string;
+    items: Array<{
+      bullet: string;
+      reason: string;
+      target_experience_id: string; // e.g., "exp-0", "exp-1"
+      target_experience_title: string;
+      priority: 'high' | 'medium' | 'low';
+    }>;
+    note?: string;
   };
 }
 

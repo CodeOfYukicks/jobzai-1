@@ -4,7 +4,7 @@ import {
   Sparkles, RefreshCw, AlertTriangle, CheckCircle2, ChevronDown,
   User, FileText, Briefcase, GraduationCap, Code, Award,
   FolderOpen, Globe, X, Check, ChevronRight, MessageSquare,
-  LayoutGrid, ArrowDownWideNarrow, Info
+  LayoutGrid, ArrowDownWideNarrow, Info, Target, Lightbulb
 } from 'lucide-react';
 import { CVData } from '../../../types/cvEditor';
 import {
@@ -880,6 +880,107 @@ export default function AIReviewTab({
               </div>
             </div>
           </div>
+
+          {/* Missing for Job Section - Only show if job context was provided */}
+          {result.missing_for_job && (
+            <div className="mb-6 space-y-4">
+              {/* Match Summary */}
+              <div className="p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border border-orange-200 dark:border-orange-800/50">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    <span className="text-sm font-bold text-orange-900 dark:text-orange-200">
+                      Job Match Analysis
+                    </span>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                    result.missing_for_job.estimated_match_percentage >= 80 
+                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                      : result.missing_for_job.estimated_match_percentage >= 60
+                      ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                      : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+                  }`}>
+                    {result.missing_for_job.estimated_match_percentage}% Match
+                  </div>
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  {result.missing_for_job.match_summary}
+                </p>
+              </div>
+
+              {/* Critical Missing */}
+              {result.missing_for_job.critical_missing && result.missing_for_job.critical_missing.length > 0 && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <span className="text-sm font-bold text-red-900 dark:text-red-200">
+                      Critical Gaps (Deal-breakers)
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {result.missing_for_job.critical_missing.map((item, idx) => (
+                      <div key={idx} className="p-3 bg-white/60 dark:bg-gray-800/40 rounded-lg">
+                        <p className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+                          {item.item}
+                        </p>
+                        <p className="text-xs text-red-700 dark:text-red-300 mb-2">
+                          {item.why_critical}
+                        </p>
+                        <div className="flex items-start gap-2 p-2 bg-red-100/50 dark:bg-red-900/30 rounded-md">
+                          <Lightbulb className="w-3.5 h-3.5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-red-800 dark:text-red-200">
+                            <strong>How to fix:</strong> {item.how_to_address}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Important Missing */}
+              {result.missing_for_job.important_missing && result.missing_for_job.important_missing.length > 0 && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <span className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                      Important Gaps
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {result.missing_for_job.important_missing.map((item, idx) => (
+                      <div key={idx} className="p-2 bg-white/60 dark:bg-gray-800/40 rounded-lg">
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                          {item.item}
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                          {item.impact}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Nice to Have Missing */}
+              {result.missing_for_job.nice_to_have_missing && result.missing_for_job.nice_to_have_missing.length > 0 && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                      Nice to have:
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.missing_for_job.nice_to_have_missing.map((item, idx) => (
+                      <span key={idx} className="px-2 py-0.5 text-xs bg-white dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Suggestions List */}
           {groupBy === 'section' ? (

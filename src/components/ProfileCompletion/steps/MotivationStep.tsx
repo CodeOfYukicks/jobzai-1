@@ -31,7 +31,7 @@ export default function MotivationStep({ value, onNext, onBack, isSubmitting }: 
       const openai = await getOpenAIInstance();
       
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5.1", // Updated from gpt-4o (Nov 2025)
         messages: [
           {
             role: "system",

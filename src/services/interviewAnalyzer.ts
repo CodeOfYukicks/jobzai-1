@@ -142,11 +142,12 @@ Return your analysis as a JSON object with this EXACT structure:
 Be exceptionally thorough. This analysis should be worth $500 in coaching value.`;
 
     try {
-        // Use Perplexity or OpenAI for analysis
+        // Use Perplexity or OpenAI for analysis - Updated to GPT-5.1 (Nov 2025)
         const response = await queryPerplexity(prompt, {
-            model: 'gpt-4-turbo-preview', // or 'gpt-4' for best results
+            model: 'gpt-5.1', // Updated from gpt-4-turbo-preview (Nov 2025)
             temperature: 0.3, // Lower for more consistent analysis
             max_tokens: 4000,
+            reasoning_effort: 'high', // GPT-5.1 feature for thorough interview analysis
         });
 
         // Parse the JSON response

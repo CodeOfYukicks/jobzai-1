@@ -232,8 +232,8 @@ export async function extractExperiencesFromText(cvText: string): Promise<CVExpe
           }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 4000,
-        temperature: 0.1
+        max_completion_tokens: 4000,
+        temperature: 0.1,
       })
     });
 
@@ -347,8 +347,8 @@ export async function extractExperiencesFromImages(images: string[]): Promise<CV
           }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 4000,
-        temperature: 0.1
+        max_completion_tokens: 4000,
+        temperature: 0.1,
       })
     });
 
@@ -716,8 +716,8 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
           }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 6000,
-        temperature: 0.1
+        max_completion_tokens: 6000,
+        temperature: 0.1,
       })
     });
 

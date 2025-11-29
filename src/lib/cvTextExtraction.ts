@@ -277,7 +277,7 @@ export async function extractCVTextAndTags(images: string[]): Promise<CVExtracti
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: "gpt-4o",
+                model: "gpt-5.1",
                 messages: [
                     {
                         role: "system",
@@ -290,7 +290,8 @@ export async function extractCVTextAndTags(images: string[]): Promise<CVExtracti
                 ],
                 response_format: { type: "json_object" }, // Force JSON response
                 max_tokens: 6000, // Increased for text + tags + experiences
-                temperature: 0.1 // Low temperature for precise, consistent extraction
+                temperature: 0.1, // Low temperature for precise, consistent extraction
+                reasoning_effort: "medium" // GPT-5.1 feature for thorough CV text extraction
             })
         });
 

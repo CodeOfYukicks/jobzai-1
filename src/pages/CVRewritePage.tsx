@@ -880,14 +880,53 @@ const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('consulti
     
     setIsGenerating(true);
     try {
+      // Build FULL enriched ATS data for ultra-quality rewriting
+      const enrichedStrengths = (analysis.top_strengths || []).map(s => ({
+        name: s.name || '',
+        example_from_resume: s.example_from_resume || '',
+        why_it_matters: s.why_it_matters || '',
+      }));
+      
+      const enrichedGaps = (analysis.top_gaps || []).map(g => ({
+        name: g.name || '',
+        severity: g.severity || 'Medium' as const,
+        how_to_fix: g.how_to_fix || '',
+        why_it_matters: g.why_it_matters || '',
+      }));
+      
+      const keywordsBreakdown = {
+        missing: analysis.match_breakdown?.keywords?.missing || [],
+        priority_missing: analysis.match_breakdown?.keywords?.priority_missing || [],
+        found: analysis.match_breakdown?.keywords?.found || [],
+      };
+      
+      const cvFixes = analysis.cv_fixes ? {
+        high_impact_bullets_to_add: analysis.cv_fixes.high_impact_bullets_to_add || [],
+        bullets_to_rewrite: analysis.cv_fixes.bullets_to_rewrite || [],
+        keywords_to_insert: analysis.cv_fixes.keywords_to_insert || [],
+        sections_to_reorder: analysis.cv_fixes.sections_to_reorder || [],
+        estimated_score_gain: analysis.cv_fixes.estimated_score_gain || 0,
+      } : undefined;
+      
+      const jobSummary = analysis.job_summary ? {
+        hidden_expectations: analysis.job_summary.hidden_expectations || [],
+        core_requirements: analysis.job_summary.core_requirements || [],
+        mission: analysis.job_summary.mission || '',
+      } : undefined;
+      
+      const positioning = analysis.action_plan_48h?.job_specific_positioning || '';
+      
       const result = await generateCVRewrite({
         cvText: analysis.cvText,
         jobDescription: analysis.jobDescription,
         atsAnalysis: {
-          strengths: analysis.top_strengths.map(s => s.name),
-          gaps: analysis.top_gaps.map(g => g.name),
-          keywords: analysis.match_breakdown.keywords.missing || [],
           matchScore: analysis.matchScore,
+          strengths: enrichedStrengths,
+          gaps: enrichedGaps,
+          keywords: keywordsBreakdown,
+          cvFixes,
+          jobSummary,
+          positioning,
         },
         jobTitle: analysis.jobTitle,
         company: analysis.company,

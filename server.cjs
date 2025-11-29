@@ -467,8 +467,8 @@ app.post('/api/chatgpt', async (req, res) => {
         4000;
 
     // Select model based on task type
-    // Use gpt-4o-mini for translation to be faster and cheaper (and avoid rate limits)
-    const model = type === 'cv-translation' ? 'gpt-4o-mini' : 'gpt-4o';
+    // Use GPT-5.1 for all tasks - latest and most capable model (Nov 2025)
+    const model = 'gpt-5.1';
 
     try {
       openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -746,11 +746,12 @@ CRITICAL RULES:
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-5.1",
           messages: messages,
           response_format: { type: 'json_object' },
           max_tokens: 8000,
-          temperature: 0.3
+          temperature: 0.3,
+          reasoning_effort: "high" // GPT-5.1 feature for detailed CV review
         })
       });
 
@@ -959,7 +960,20 @@ ANALYSIS REQUIREMENTS:
    - List 2-3 key strengths
    - List 2-3 main issues to address
 
-2. SUGGESTIONS:
+2. **CRITICAL: MISSING FOR JOB (if job context provided)**:
+   - Analyze the job description and identify what's MISSING from the CV
+   - List specific skills, experiences, or qualifications that the job requires but the CV doesn't mention
+   - For each missing item, explain WHY it matters for this role
+   - Be BRUTALLY HONEST - if major requirements are missing, the score should reflect this
+   - This is the MOST important section for the user to understand their gaps
+   
+   Include a "missing_for_job" section in your response with:
+   - critical_missing: Skills/experience that are DEAL-BREAKERS if missing
+   - important_missing: Highly desirable qualifications not present
+   - nice_to_have_missing: Optional items that could boost the application
+   - estimated_match_percentage: How well the CV matches the job (0-100)
+
+3. SUGGESTIONS:
    For each issue found, create a suggestion with:
    - id: unique identifier (e.g., "contact-phone", "exp-metrics-1")
    - title: Short, actionable title (e.g., "Add Phone Number", "Quantify achievements at [Company]")
@@ -995,6 +1009,24 @@ Respond ONLY with valid JSON in this exact structure:
     "overallScore": number,
     "strengths": ["string"],
     "mainIssues": ["string"]
+  },
+  "missing_for_job": {
+    "critical_missing": [
+      {
+        "item": "string (skill, experience, or qualification)",
+        "why_critical": "string (why this is a deal-breaker for this role)",
+        "how_to_address": "string (concrete suggestion to address this gap)"
+      }
+    ],
+    "important_missing": [
+      {
+        "item": "string",
+        "impact": "string (how this affects the application)"
+      }
+    ],
+    "nice_to_have_missing": ["string"],
+    "estimated_match_percentage": number,
+    "match_summary": "string (2-3 sentence summary of how well CV matches the job)"
   },
   "suggestions": [
     {
@@ -1111,10 +1143,11 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
 
     // Prepare request body
     const requestBody = {
-      model: model || 'gpt-4o',
+      model: model || 'gpt-5.1',
       messages: messages,
       max_tokens: max_tokens || 6000, // Increased for more detailed analysis
       temperature: temperature || 0.1, // Lower temperature for more precise, consistent analysis
+      reasoning_effort: "high" // GPT-5.1 feature for comprehensive CV analysis
     };
 
     // Only add response_format if it's specified (required for json_object mode)
@@ -1417,7 +1450,7 @@ IMPORTANT INSTRUCTIONS:
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5.1',
         messages: [
           {
             role: 'system',
@@ -1430,6 +1463,7 @@ IMPORTANT INSTRUCTIONS:
         ],
         temperature: 0.7,
         max_tokens: 4000,
+        reasoning_effort: "high", // GPT-5.1 feature for thorough interview analysis
         response_format: { type: 'json_object' }
       })
     });
@@ -2323,7 +2357,7 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
             'Authorization': `Bearer ${finalOpenAIApiKey}`
           },
           body: JSON.stringify({
-            model: 'gpt-4-turbo',
+            model: 'gpt-5.1',
             messages: [
               {
                 role: 'system',
@@ -2334,6 +2368,7 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
                 content: prompt
               }
             ],
+            reasoning_effort: "medium", // GPT-5.1 feature for STAR story generation
             response_format: { type: 'json_object' },
             temperature: 0.3,
             max_tokens: 2000,
@@ -2512,12 +2547,13 @@ Job:
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.1',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.5
+        temperature: 0.5,
+        reasoning_effort: "low" // GPT-5.1 feature - low effort for quick job matching
       })
     });
     if (!response.ok) {

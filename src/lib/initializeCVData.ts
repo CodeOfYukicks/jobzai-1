@@ -202,10 +202,41 @@ export async function initializeCVData(
 export async function loadOrInitializeCVData(
   userId: string,
   analysisId?: string
-): Promise<{ cvData: CVData; jobContext?: any; editorState?: CVEditorSavedState }> {
+): Promise<{ 
+  cvData: CVData; 
+  jobContext?: any; 
+  editorState?: CVEditorSavedState;
+  /** Original CV markdown for before/after comparison (deprecated, use originalStructuredData) */
+  initialCVMarkdown?: string;
+  /** Original CV parsed into structured format for accurate before/after comparison */
+  originalStructuredData?: {
+    personalInfo: any;
+    summary: string;
+    experiences: Array<{
+      id: string;
+      title: string;
+      company: string;
+      startDate: string;
+      endDate: string;
+      location?: string;
+      bullets: string[];
+    }>;
+    educations: Array<{
+      id: string;
+      degree: string;
+      institution: string;
+      startDate?: string;
+      endDate?: string;
+      year?: string;
+    }>;
+    skills: string[];
+  };
+}> {
   let cvData: CVData;
   let jobContext: any = undefined;
   let editorState: CVEditorSavedState | undefined = undefined;
+  let initialCVMarkdown: string | undefined = undefined;
+  let originalStructuredData: any = undefined;
 
   if (analysisId) {
     try {
@@ -237,6 +268,21 @@ export async function loadOrInitializeCVData(
           const cvRewriteData = analysisData.cv_rewrite;
           console.log('CV Rewrite found in analysis:', cvRewriteData);
           
+          // Capture original structured data for before/after comparison (PREFERRED)
+          if (cvRewriteData.original_structured_data) {
+            originalStructuredData = cvRewriteData.original_structured_data;
+            console.log('Using original_structured_data for comparison (best source)');
+          }
+          
+          // Fallback: raw markdown for legacy data
+          if (analysisData.originalCV) {
+            initialCVMarkdown = analysisData.originalCV;
+            console.log('Fallback: Using originalCV from analysis for comparison');
+          } else if (cvRewriteData.initial_cv) {
+            initialCVMarkdown = cvRewriteData.initial_cv;
+            console.log('Fallback: Using initial_cv from cv_rewrite for comparison');
+          }
+          
           // Load editor state if it exists
           if (cvRewriteData.editor_state) {
             editorState = cvRewriteData.editor_state;
@@ -248,7 +294,7 @@ export async function loadOrInitializeCVData(
             console.log('Found structured_data, converting to CVData format');
             cvData = convertStructuredDataToCVData(cvRewriteData.structured_data);
             console.log('Converted CV data:', cvData);
-            return { cvData, jobContext, editorState };
+            return { cvData, jobContext, editorState, initialCVMarkdown, originalStructuredData };
           }
           
           // If no structured_data but has initial_cv, parse it
@@ -264,18 +310,20 @@ export async function loadOrInitializeCVData(
             });
             
             console.log('Parsed and saved structured CV data');
-            return { cvData, jobContext, editorState };
+            return { cvData, jobContext, editorState, initialCVMarkdown, originalStructuredData };
           }
         }
         
         // Fallback: check for original CV in analysis
         if (analysisData.originalCV) {
           console.log('No cv_rewrite, parsing originalCV from analysis');
+          // Use originalCV as the initial_cv for comparison
+          initialCVMarkdown = analysisData.originalCV;
           const { parseCVData } = await import('./cvSectionAI');
           const parsedData = await parseCVData({ initial_cv: analysisData.originalCV });
           cvData = parsedData;
           console.log('Parsed original CV data');
-          return { cvData, jobContext, editorState };
+          return { cvData, jobContext, editorState, initialCVMarkdown, originalStructuredData };
         }
       }
       
@@ -479,5 +527,5 @@ export async function loadOrInitializeCVData(
     cvData = await initializeCVData(userId, undefined, userDoc.data());
   }
 
-  return { cvData, jobContext, editorState };
+  return { cvData, jobContext, editorState, initialCVMarkdown, originalStructuredData };
 }

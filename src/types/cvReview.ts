@@ -48,8 +48,29 @@ export interface CVReviewSummary {
   mainIssues: string[];           // Key areas to improve
 }
 
+// NEW: What's missing for the target job
+export interface MissingCriticalItem {
+  item: string;                   // Skill, experience, or qualification
+  why_critical: string;           // Why this is a deal-breaker
+  how_to_address: string;         // Concrete suggestion
+}
+
+export interface MissingImportantItem {
+  item: string;
+  impact: string;                 // How this affects the application
+}
+
+export interface MissingForJob {
+  critical_missing: MissingCriticalItem[];   // Deal-breakers
+  important_missing: MissingImportantItem[]; // Highly desirable
+  nice_to_have_missing: string[];            // Optional items
+  estimated_match_percentage: number;         // 0-100
+  match_summary: string;                      // Summary of match quality
+}
+
 export interface CVReviewResult {
   summary: CVReviewSummary;
+  missing_for_job?: MissingForJob; // Only present if job context was provided
   suggestions: CVSuggestion[];
   analyzedAt: string;             // ISO timestamp
 }

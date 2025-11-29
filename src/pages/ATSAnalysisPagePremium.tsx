@@ -24,6 +24,7 @@ import MatchBreakdownPanel from '../components/ats-premium/MatchBreakdownPanel';
 import StrengthCard from '../components/ats-premium/StrengthCard';
 import GapCard from '../components/ats-premium/GapCard';
 import CVFixesPanel from '../components/ats-premium/CVFixesPanel';
+import SuggestedAdditionsPanel from '../components/ats-premium/SuggestedAdditionsPanel';
 import ActionPlan48H from '../components/ats-premium/ActionPlan48H';
 import LearningPathPanel from '../components/ats-premium/LearningPathPanel';
 import OpportunityFitPanel from '../components/ats-premium/OpportunityFitPanel';
@@ -638,17 +639,55 @@ export default function ATSAnalysisPagePremium() {
       setGenerationStep(0);
       setGenerationProgress(10);
 
-      // Extract data from analysis
+      // Extract FULL enriched data from analysis for ultra-quality rewriting
       const cvText = analysis.cvText || '';
-      const topStrengths = analysis.top_strengths?.map((s: any) => s.name) || [];
-      const topGaps = analysis.top_gaps?.map((g: any) => g.name) || [];
-      const missingKeywords = analysis.match_breakdown?.keywords?.missing || [];
       const matchScore = analysis.match_scores?.overall_score || 0;
+      
+      // Enriched strengths with full context
+      const enrichedStrengths = (analysis.top_strengths || []).map((s: any) => ({
+        name: s.name || '',
+        example_from_resume: s.example_from_resume || '',
+        why_it_matters: s.why_it_matters || '',
+      }));
+      
+      // Enriched gaps with severity and resolution strategies
+      const enrichedGaps = (analysis.top_gaps || []).map((g: any) => ({
+        name: g.name || '',
+        severity: g.severity || 'Medium',
+        how_to_fix: g.how_to_fix || '',
+        why_it_matters: g.why_it_matters || '',
+      }));
+      
+      // Full keywords breakdown
+      const keywordsBreakdown = {
+        missing: analysis.match_breakdown?.keywords?.missing || [],
+        priority_missing: analysis.match_breakdown?.keywords?.priority_missing || [],
+        found: analysis.match_breakdown?.keywords?.found || [],
+      };
+      
+      // Pre-analyzed CV fixes
+      const cvFixes = analysis.cv_fixes ? {
+        high_impact_bullets_to_add: analysis.cv_fixes.high_impact_bullets_to_add || [],
+        bullets_to_rewrite: analysis.cv_fixes.bullets_to_rewrite || [],
+        keywords_to_insert: analysis.cv_fixes.keywords_to_insert || [],
+        sections_to_reorder: analysis.cv_fixes.sections_to_reorder || [],
+        estimated_score_gain: analysis.cv_fixes.estimated_score_gain || 0,
+      } : undefined;
+      
+      // Job summary insights
+      const jobSummary = analysis.job_summary ? {
+        hidden_expectations: analysis.job_summary.hidden_expectations || [],
+        core_requirements: analysis.job_summary.core_requirements || [],
+        mission: analysis.job_summary.mission || '',
+      } : undefined;
+      
+      // Strategic positioning
+      const positioning = analysis.action_plan_48h?.job_specific_positioning || '';
 
       setGenerationStep(1);
       setGenerationProgress(30);
 
-      // Step 2: Generating
+      // Step 2: Generating with FULL enriched data
       setGenerationStep(2);
       setGenerationProgress(50);
 
@@ -656,10 +695,13 @@ export default function ATSAnalysisPagePremium() {
         cvText,
         jobDescription: analysis.jobDescription,
         atsAnalysis: {
-          strengths: topStrengths,
-          gaps: topGaps,
-          keywords: missingKeywords,
-          matchScore
+          matchScore,
+          strengths: enrichedStrengths,
+          gaps: enrichedGaps,
+          keywords: keywordsBreakdown,
+          cvFixes,
+          jobSummary,
+          positioning,
         },
         jobTitle: analysis.jobTitle,
         company: analysis.company,
@@ -1015,6 +1057,30 @@ export default function ATSAnalysisPagePremium() {
                   <CVFixesPanel cvFixes={analysis.cv_fixes} />
                 </Section>
               </div>
+
+              {/* Suggested Additions - Only show if CV has been generated and has suggestions */}
+              {cvRewrite?.suggested_additions && cvRewrite.suggested_additions.items?.length > 0 && (
+                <div ref={(el) => { sectionsRef.current['suggested-additions'] = el; }}>
+                  <Section
+                    id="suggested-additions"
+                    title="Suggested Additions"
+                    description="AI-recommended bullet points that couldn't be automatically integrated into your experiences"
+                  >
+                    <SuggestedAdditionsPanel 
+                      suggestions={cvRewrite.suggested_additions}
+                      onAddToExperience={(suggestion) => {
+                        // Navigate to CV editor with suggestion context
+                        navigate(`/ats-analysis/${analysis.id}/cv-editor`, {
+                          state: { 
+                            highlightExperience: suggestion.target_experience_id,
+                            suggestedBullet: suggestion.bullet 
+                          }
+                        });
+                      }}
+                    />
+                  </Section>
+                </div>
+              )}
 
               {/* 48H Action Plan */}
               <div ref={(el) => { sectionsRef.current['action-plan'] = el; }}>

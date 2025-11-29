@@ -28,9 +28,9 @@ export default async function handler(req, res) {
       apiKey: apiKey,
     });
 
-    // Appel à l'API OpenAI
+    // Appel à l'API OpenAI - Updated to GPT-5.1 (Nov 2025)
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-5.1", // Updated from gpt-4-turbo
       messages: [
         { 
           role: "system", 
@@ -38,7 +38,8 @@ export default async function handler(req, res) {
         },
         { role: "user", content: prompt }
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      reasoning_effort: "high" // GPT-5.1 feature for thorough CV analysis
     });
 
     // Extraire et parser la réponse

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2
+  Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -13,10 +13,13 @@ import PreviewContainer from '../components/cv-editor/PreviewContainer';
 import AICompanionPanel from '../components/cv-editor/AICompanionPanel';
 import CompanyHeader from '../components/cv-editor/CompanyHeader';
 import TranslationModal from '../components/cv-editor/TranslationModal';
+import BeforeAfterModal from '../components/cv-editor/BeforeAfterModal';
 import { CVData, CVTemplate, CVEditorState, CVLayoutSettings, SectionClickTarget } from '../types/cvEditor';
 import { HighlightTarget, CVSuggestion, CVReviewResult } from '../types/cvReview';
+import { ComparisonSectionType } from '../types/cvComparison';
 import { PreviousAnalysisContext } from '../types/cvReviewHistory';
 import { useCVEditor } from '../hooks/useCVEditor';
+import { useBeforeAfterComparison, useHasComparison } from '../hooks/useBeforeAfterComparison';
 import { exportToPDFEnhanced, generateId, A4_WIDTH_PX, A4_HEIGHT_PX } from '../lib/cvEditorUtils';
 import { parseCVData } from '../lib/cvSectionAI';
 import { loadOrInitializeCVData } from '../lib/initializeCVData';
@@ -128,6 +131,10 @@ export default function PremiumCVEditor() {
   // Store CV snapshot from last analysis for comparison
   const [lastAnalyzedCVSnapshot, setLastAnalyzedCVSnapshot] = useState<CVData | null>(null);
   
+  // Before/After comparison state - stores original CV data for diff
+  const [initialCVMarkdown, setInitialCVMarkdown] = useState<string | undefined>(undefined);
+  const [originalStructuredData, setOriginalStructuredData] = useState<any>(undefined);
+  
   // Layout settings state
   const [layoutSettings, setLayoutSettings] = useState<CVLayoutSettings>({
     fontSize: 10,
@@ -146,6 +153,23 @@ export default function PremiumCVEditor() {
     reorderSections,
     toggleSection
   } = useCVEditor(cvData, setCvData, setIsDirty);
+
+  // Before/After comparison hook
+  const hasComparison = useHasComparison(initialCVMarkdown, cvData, originalStructuredData);
+  const {
+    comparison,
+    modalState: comparisonModalState,
+    openModal: openComparisonModal,
+    closeModal: closeComparisonModal,
+    setViewMode: setComparisonViewMode,
+    selectSection: selectComparisonSection,
+    toggleExperienceExpanded,
+    toggleEducationExpanded,
+  } = useBeforeAfterComparison({
+    initialCVMarkdown,
+    originalStructuredData,
+    currentCVData: cvData,
+  });
 
   // Load data on mount
   useEffect(() => {
@@ -302,13 +326,30 @@ export default function PremiumCVEditor() {
     try {
       // Use the new unified loading function
       console.log('Loading CV data for analysis:', analysisId);
-      const { cvData: loadedCvData, jobContext: loadedJobContext, editorState } = await loadOrInitializeCVData(
+      const { 
+        cvData: loadedCvData, 
+        jobContext: loadedJobContext, 
+        editorState, 
+        initialCVMarkdown: loadedInitialCV,
+        originalStructuredData: loadedOriginalStructured
+      } = await loadOrInitializeCVData(
         currentUser.uid,
         analysisId
       );
       
       setCvData(loadedCvData);
       setJobContext(loadedJobContext);
+      
+      // Store original CV data for before/after comparison
+      // PRIORITY: Use structured data (more accurate) over raw markdown
+      if (loadedOriginalStructured) {
+        setOriginalStructuredData(loadedOriginalStructured);
+        console.log('Original structured data loaded for comparison');
+      }
+      if (loadedInitialCV) {
+        setInitialCVMarkdown(loadedInitialCV);
+        console.log('Initial CV markdown loaded for comparison (fallback)');
+      }
       
       // Restore editor state if it exists
       if (editorState) {
@@ -1106,6 +1147,24 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   </span>
                 </button>
 
+                {/* Before/After Comparison Button - Only visible when comparison data available */}
+                {hasComparison && (
+                  <button
+                    onClick={() => openComparisonModal()}
+                    className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-sm active:shadow-none transition-all duration-200 font-medium text-sm"
+                    title="View AI changes - Before/After comparison"
+                  >
+                    <GitCompare className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
+                    <span className="hidden md:inline">Compare</span>
+                    {comparison?.hasAnyChanges && (
+                      <span className="flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                    )}
+                  </button>
+                )}
+
                 {/* Save As button - Only visible in ATS analysis mode */}
                 {!isResumeBuilder && (
                   <button
@@ -1372,6 +1431,18 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
           onTranslate={handleTranslate}
           isTranslating={isTranslating}
           folders={folders}
+        />
+
+        {/* Before/After Comparison Modal */}
+        <BeforeAfterModal
+          isOpen={comparisonModalState.isOpen}
+          comparison={comparison}
+          modalState={comparisonModalState}
+          onClose={closeComparisonModal}
+          onSelectSection={selectComparisonSection}
+          onSetViewMode={setComparisonViewMode}
+          onToggleExperienceExpanded={toggleExperienceExpanded}
+          onToggleEducationExpanded={toggleEducationExpanded}
         />
       </div>
     </AuthLayout>

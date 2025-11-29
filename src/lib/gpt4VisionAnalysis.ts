@@ -1105,7 +1105,7 @@ export async function analyzeCVWithGPT4Vision(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-5.1",
         messages: [
           {
             role: "system",
@@ -1118,7 +1118,8 @@ export async function analyzeCVWithGPT4Vision(
         ],
         response_format: { type: "json_object" }, // Force JSON response
         max_tokens: 8000, // Increased for comprehensive analysis (visual + textual elements)
-        temperature: 0.1 // Lower temperature for more precise, consistent, evidence-based analysis
+        temperature: 0.1, // Lower temperature for more precise, consistent, evidence-based analysis
+        reasoning_effort: "high" // GPT-5.1 feature for comprehensive ATS analysis
       })
     });
     

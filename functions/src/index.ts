@@ -429,9 +429,9 @@ async function handlePremiumAnalysis(
       }
     }));
 
-    // Call OpenAI API with premium prompt
+    // Call OpenAI API with premium prompt - Updated to GPT-5.1 (Nov 2025)
     const completion = await openaiClient.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-5.1',
       messages: [
         {
           role: 'system',
@@ -448,13 +448,14 @@ async function handlePremiumAnalysis(
       response_format: { type: 'json_object' },
       max_tokens: 8000,
       temperature: 0.2,
+      reasoning_effort: 'high', // GPT-5.1 feature for premium analysis
     });
 
-    console.log('✅ Premium analysis received from GPT-4o');
+    console.log('✅ Premium analysis received from GPT-5.1');
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('Empty response from GPT-4o');
+      throw new Error('Empty response from GPT-5.1');
     }
 
     let parsedAnalysis = JSON.parse(content);
@@ -610,22 +611,23 @@ export const analyzeCVVision = onRequest({
     });
     console.log(`   Images: ${imageCount}`);
 
-    // Call OpenAI API
+    // Call OpenAI API - Updated to GPT-5.1 (Nov 2025)
     const completion = await openaiClient.chat.completions.create({
-      model: model || 'gpt-4o',
+      model: model || 'gpt-5.1',
       messages: messages,
       response_format: response_format || { type: 'json_object' },
       max_tokens: max_tokens || 6000, // Increased for more detailed analysis
       temperature: temperature || 0.1, // Lower temperature for more precise, consistent analysis
+      reasoning_effort: 'high', // GPT-5.1 feature for comprehensive analysis
     });
 
-    console.log('✅ GPT-4o Vision API response received');
+    console.log('✅ GPT-5.1 Vision API response received');
 
     // Extract content
     const content = completion.choices[0]?.message?.content;
 
     if (!content) {
-      throw new Error('Empty response from GPT-4o Vision API');
+      throw new Error('Empty response from GPT-5.1 Vision API');
     }
 
     // Parse JSON if needed
@@ -778,9 +780,9 @@ export const analyzeResumePremium = onRequest(
         }
       }));
 
-      // Call OpenAI API with premium prompt
+      // Call OpenAI API with premium prompt - Updated to GPT-5.1 (Nov 2025)
       const completion = await openaiClient.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5.1',
         messages: [
           {
             role: 'system',
@@ -800,15 +802,16 @@ export const analyzeResumePremium = onRequest(
         response_format: { type: 'json_object' },
         max_tokens: 8000, // Increased for comprehensive analysis
         temperature: 0.2, // Low for consistency and precision
+        reasoning_effort: 'high', // GPT-5.1 feature for premium analysis
       });
 
-      console.log('✅ Premium analysis received from GPT-4o');
+      console.log('✅ Premium analysis received from GPT-5.1');
 
       // Extract and parse content
       const content = completion.choices[0]?.message?.content;
 
       if (!content) {
-        throw new Error('Empty response from GPT-4o');
+        throw new Error('Empty response from GPT-5.1');
       }
 
       let parsedAnalysis;

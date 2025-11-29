@@ -115,17 +115,18 @@ export class PersonalizedGPT {
     - (Job position)`;
 
     const completion = await this.openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5.1",
       messages: [
         { role: "system", content: this.buildSystemPrompt() },
         ...this.buildConversationHistory(),
         { role: "user", content: prompt }
       ],
-      temperature: 0.7
+      temperature: 0.7,
+      reasoning_effort: "medium" // GPT-5.1 feature for personalized emails
     });
 
     const response = completion.choices[0]?.message?.content;
-    if (!response) throw new Error('No response from GPT-4');
+    if (!response) throw new Error('No response from GPT-5.1');
 
     this.updateContext({
       role: 'user',
@@ -148,17 +149,18 @@ export class PersonalizedGPT {
     Focus on actionable insights that can improve their job search success.`;
 
     const completion = await this.openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5.1",
       messages: [
         { role: "system", content: this.buildSystemPrompt() },
         ...this.buildConversationHistory(),
         { role: "user", content: prompt }
       ],
-      temperature: 0.7
+      temperature: 0.7,
+      reasoning_effort: "high" // GPT-5.1 feature for personalized recommendations
     });
 
     const response = completion.choices[0]?.message?.content;
-    if (!response) throw new Error('No response from GPT-4');
+    if (!response) throw new Error('No response from GPT-5.1');
 
     this.updateContext({
       role: 'user',
@@ -178,17 +180,18 @@ export class PersonalizedGPT {
     if (!this.openai) throw new Error('OpenAI not initialized');
 
     const completion = await this.openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5.1",
       messages: [
         { role: "system", content: this.buildSystemPrompt() },
         ...this.buildConversationHistory(),
         { role: "user", content: message }
       ],
-      temperature: 0.7
+      temperature: 0.7,
+      reasoning_effort: "medium" // GPT-5.1 feature for conversational chat
     });
 
     const response = completion.choices[0]?.message?.content;
-    if (!response) throw new Error('No response from GPT-4');
+    if (!response) throw new Error('No response from GPT-5.1');
 
     this.updateContext({
       role: 'user',

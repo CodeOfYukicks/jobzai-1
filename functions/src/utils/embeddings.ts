@@ -36,12 +36,13 @@ export async function extractSkillsWithLLM(text: string): Promise<string[]> {
 		const sys = 'You are an expert HR assistant. Extract up to 12 concise technical or domain skills from the text. Return ONLY a JSON array of strings. No commentary.';
 		const prompt = `Text:\n${text}\n\nReturn JSON array:`;
 		const res = await client.chat.completions.create({
-			model: 'gpt-4o-mini',
+			model: 'gpt-5.1',
 			messages: [
 				{ role: 'system', content: sys },
 				{ role: 'user', content: prompt },
 			],
 			temperature: 0.2,
+			reasoning_effort: 'low', // GPT-5.1 feature - low effort for quick skill extraction
 		});
 		const content = res.choices?.[0]?.message?.content || '[]';
 		const jsonStart = content.indexOf('[');

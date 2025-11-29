@@ -271,7 +271,7 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
       try {
         const openai = new OpenAI({ apiKey: openaiApiKey });
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4-turbo',
+          model: 'gpt-5.1', // Updated from gpt-4-turbo (Nov 2025)
           messages: [
             {
               role: 'system',
@@ -285,6 +285,7 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
           response_format: { type: 'json_object' },
           temperature: 0.3, // Lower temperature for more factual responses
           max_tokens: 2000, // Increased for more detailed responses
+          reasoning_effort: 'medium', // GPT-5.1 feature for STAR story generation
         });
 
         const responseText = completion.choices[0]?.message?.content || '';
