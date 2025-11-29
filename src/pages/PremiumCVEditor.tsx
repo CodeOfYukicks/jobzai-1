@@ -1090,20 +1090,23 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
               )}
               </div>
 
-              {/* Right: Actions */}
-              <div className="flex items-center gap-2">
-                {/* Auto-save indicator */}
-                {isSaving && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3 py-2">
-                    Saving...
-                  </span>
-                )}
-                {!isSaving && isDirty && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium px-3 py-2 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    Unsaved
-                  </span>
-                )}
+              {/* Right: Actions - Premium Grouped Toolbar */}
+              <div className="flex items-center gap-3">
+                {/* Status Indicator */}
+                <div className="flex items-center">
+                  {isSaving && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium px-2 py-1.5 flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span className="hidden sm:inline">Saving...</span>
+                    </span>
+                  )}
+                  {!isSaving && isDirty && (
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium px-2 py-1.5 flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200/50 dark:border-amber-700/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                      <span className="hidden sm:inline">Unsaved</span>
+                    </span>
+                  )}
+                </div>
 
                 {/* Toggle preview on mobile */}
                 <button
@@ -1118,72 +1121,134 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   )}
                 </button>
 
-                {/* Save button - Premium Google Material Design 3 style */}
-                <button
-                  onClick={handleSave}
-                  disabled={!isDirty || isSaving}
-                  className="group relative flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200/80 dark:border-gray-700/80 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/80 hover:shadow-sm active:shadow-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200/80 font-medium text-sm"
-                >
-                  <Save className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
-                  <span className="hidden md:inline">
-                    {isSaving ? 'Saving...' : 'Save'}
-                  </span>
-                </button>
+                {/* Separator */}
+                <div className="hidden md:block h-6 w-px bg-gray-200 dark:bg-gray-700" />
 
-                {/* Translate Button */}
-                <button
-                  onClick={() => setIsTranslationModalOpen(true)}
-                  disabled={isTranslating}
-                  className={`group relative flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200/80 dark:border-gray-700/80 hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 hover:shadow-sm active:shadow-none transition-all duration-200 font-medium text-sm ${isTranslating ? 'cursor-wait opacity-80' : ''}`}
-                  title="Translate CV"
-                >
-                  {isTranslating ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-                  ) : (
-                    <Languages className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+                {/* Group 1: Document Actions (Save / Save As) */}
+                <div className="flex items-center gap-1 px-1.5 py-1 bg-gray-50/80 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
+                  {/* Save Button */}
+                  <button
+                    onClick={handleSave}
+                    disabled={!isDirty || isSaving}
+                    className="group relative flex items-center gap-2 px-3.5 py-2 
+                      bg-white dark:bg-gray-800 
+                      text-gray-700 dark:text-gray-200 
+                      rounded-lg 
+                      border border-gray-200/80 dark:border-gray-700/80 
+                      hover:border-gray-300 dark:hover:border-gray-600 
+                      hover:bg-gray-50 dark:hover:bg-gray-750 
+                      hover:shadow-sm 
+                      active:scale-[0.98] 
+                      transition-all duration-200 
+                      disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200/80 disabled:active:scale-100
+                      font-medium text-sm"
+                    title="Save changes"
+                  >
+                    <Save className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <span className="hidden md:inline">Save</span>
+                  </button>
+
+                  {/* Save As Button - Only visible in ATS analysis mode */}
+                  {!isResumeBuilder && (
+                    <button
+                      onClick={() => setIsSaveAsModalOpen(true)}
+                      className="group relative flex items-center gap-2 px-3.5 py-2 
+                        bg-white dark:bg-gray-800 
+                        text-gray-700 dark:text-gray-200 
+                        rounded-lg 
+                        border border-gray-200/80 dark:border-gray-700/80 
+                        hover:border-gray-300 dark:hover:border-gray-600 
+                        hover:bg-gray-50 dark:hover:bg-gray-750 
+                        hover:shadow-sm 
+                        active:scale-[0.98] 
+                        transition-all duration-200 
+                        font-medium text-sm"
+                      title="Save to Resume Builder library"
+                    >
+                      <FolderOpen className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+                      <span className="hidden md:inline">Save As</span>
+                    </button>
                   )}
-                  <span className="hidden md:inline">
-                    {isTranslating ? 'Translating...' : 'Translate'}
-                  </span>
-                </button>
+                </div>
 
-                {/* Before/After Comparison Button - Only visible when comparison data available */}
-                {hasComparison && (
+                {/* Group 2: AI/Transform Actions (Translate / Compare) */}
+                <div className="flex items-center gap-1 px-1.5 py-1 bg-purple-50/50 dark:bg-purple-900/10 backdrop-blur-sm rounded-xl border border-purple-200/40 dark:border-purple-700/30">
+                  {/* Translate Button */}
                   <button
-                    onClick={() => openComparisonModal()}
-                    className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-sm active:shadow-none transition-all duration-200 font-medium text-sm"
-                    title="View AI changes - Before/After comparison"
+                    onClick={() => setIsTranslationModalOpen(true)}
+                    disabled={isTranslating}
+                    className={`group relative flex items-center gap-2 px-3.5 py-2 
+                      bg-white dark:bg-gray-800 
+                      text-gray-700 dark:text-gray-200 
+                      rounded-lg 
+                      border border-gray-200/80 dark:border-gray-700/80 
+                      hover:border-purple-300 dark:hover:border-purple-500 
+                      hover:bg-purple-50 dark:hover:bg-purple-900/20 
+                      hover:text-purple-700 dark:hover:text-purple-300 
+                      hover:shadow-sm hover:shadow-purple-500/10
+                      active:scale-[0.98] 
+                      transition-all duration-200 
+                      font-medium text-sm 
+                      ${isTranslating ? 'cursor-wait opacity-80 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700' : ''}`}
+                    title="Translate CV to another language"
                   >
-                    <GitCompare className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
-                    <span className="hidden md:inline">Compare</span>
-                    {comparison?.hasAnyChanges && (
-                      <span className="flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                      </span>
+                    {isTranslating ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-purple-600 dark:text-purple-400" />
+                    ) : (
+                      <Languages className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
                     )}
+                    <span className="hidden md:inline">
+                      {isTranslating ? 'Translating...' : 'Translate'}
+                    </span>
                   </button>
-                )}
 
-                {/* Save As button - Only visible in ATS analysis mode */}
-                {!isResumeBuilder && (
-                  <button
-                    onClick={() => setIsSaveAsModalOpen(true)}
-                    className="group relative flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200/80 dark:border-gray-700/80 hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 hover:shadow-sm active:shadow-none transition-all duration-200 font-medium text-sm"
-                    title="Save to Resume Builder library"
-                  >
-                    <FolderOpen className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
-                    <span className="hidden md:inline">Save As</span>
-                  </button>
-                )}
+                  {/* Compare Button - Only visible when comparison data available */}
+                  {hasComparison && (
+                    <button
+                      onClick={() => openComparisonModal()}
+                      className="group relative flex items-center gap-2 px-3.5 py-2 
+                        bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 
+                        text-emerald-700 dark:text-emerald-300 
+                        rounded-lg 
+                        border border-emerald-200/80 dark:border-emerald-700/50 
+                        hover:border-emerald-300 dark:hover:border-emerald-500 
+                        hover:shadow-sm hover:shadow-emerald-500/15
+                        active:scale-[0.98] 
+                        transition-all duration-200 
+                        font-medium text-sm"
+                      title="View AI changes - Before/After comparison"
+                    >
+                      <GitCompare className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
+                      <span className="hidden md:inline">Compare</span>
+                      {comparison?.hasAnyChanges && (
+                        <span className="relative flex h-2 w-2 ml-0.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </div>
 
-                {/* Export button - Premium Google Material Design 3 style */}
+                {/* Group 3: Primary Export Action */}
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="group relative flex items-center gap-2 px-5 py-2 bg-[#1a73e8] hover:bg-[#1557b0] active:bg-[#1557b0] text-white rounded-lg shadow-sm hover:shadow-md active:shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#1a73e8] font-medium text-sm"
+                  className="group relative flex items-center gap-2 px-5 py-2.5 
+                    bg-gradient-to-r from-blue-600 to-indigo-600 
+                    hover:from-blue-500 hover:to-indigo-500 
+                    active:from-blue-700 active:to-indigo-700
+                    text-white 
+                    rounded-xl 
+                    shadow-lg shadow-blue-500/25 
+                    hover:shadow-xl hover:shadow-blue-500/30 
+                    active:scale-[0.98] 
+                    transition-all duration-200 
+                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-indigo-600 disabled:hover:shadow-lg disabled:active:scale-100
+                    font-semibold text-sm"
+                  title="Export as PDF"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4 group-hover:animate-bounce" style={{ animationDuration: '0.6s', animationIterationCount: '1' }} />
                   <span className="hidden md:inline">
                     {isExporting ? 'Exporting...' : 'Export PDF'}
                   </span>

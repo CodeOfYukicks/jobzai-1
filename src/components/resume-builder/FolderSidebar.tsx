@@ -36,6 +36,7 @@ interface FolderSidebarProps {
   onDeleteFolder: (folderId: string) => void;
   onNewFolder: () => void;
   onDropResume: (resumeId: string, folderId: string | null) => void;
+  onDropDocument?: (documentId: string, folderId: string | null) => void;
   folderCounts: Record<string, number>;
   uncategorizedCount: number;
   totalCount: number;
@@ -100,7 +101,8 @@ const FolderItem = memo(({
   onClick,
   onEdit,
   onDelete,
-  onDrop
+  onDropResume,
+  onDropDocument
 }: { 
   folder: Folder; 
   isActive: boolean; 
@@ -108,7 +110,8 @@ const FolderItem = memo(({
   onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onDrop: (resumeId: string) => void;
+  onDropResume: (resumeId: string) => void;
+  onDropDocument?: (documentId: string) => void;
 }) => {
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -160,9 +163,24 @@ const FolderItem = memo(({
     e.stopPropagation();
     setIsDraggingOver(false);
     
-    const resumeId = e.dataTransfer.getData('application/x-resume-id') || e.dataTransfer.getData('text/plain');
+    // Check for resume ID first
+    const resumeId = e.dataTransfer.getData('application/x-resume-id');
     if (resumeId) {
-      onDrop(resumeId);
+      onDropResume(resumeId);
+      return;
+    }
+    
+    // Check for document ID
+    const documentId = e.dataTransfer.getData('application/x-document-id');
+    if (documentId && onDropDocument) {
+      onDropDocument(documentId);
+      return;
+    }
+    
+    // Fallback to plain text (legacy)
+    const plainId = e.dataTransfer.getData('text/plain');
+    if (plainId) {
+      onDropResume(plainId);
     }
   };
 
@@ -362,12 +380,14 @@ const UncategorizedItem = memo(({
   isActive, 
   count, 
   onClick,
-  onDrop
+  onDropResume,
+  onDropDocument
 }: { 
   isActive: boolean; 
   count: number; 
   onClick: () => void;
-  onDrop: (resumeId: string) => void;
+  onDropResume: (resumeId: string) => void;
+  onDropDocument?: (documentId: string) => void;
 }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const cardRef = useRef<HTMLButtonElement>(null);
@@ -408,9 +428,24 @@ const UncategorizedItem = memo(({
     e.stopPropagation();
     setIsDraggingOver(false);
     
-    const resumeId = e.dataTransfer.getData('application/x-resume-id') || e.dataTransfer.getData('text/plain');
+    // Check for resume ID first
+    const resumeId = e.dataTransfer.getData('application/x-resume-id');
     if (resumeId) {
-      onDrop(resumeId);
+      onDropResume(resumeId);
+      return;
+    }
+    
+    // Check for document ID
+    const documentId = e.dataTransfer.getData('application/x-document-id');
+    if (documentId && onDropDocument) {
+      onDropDocument(documentId);
+      return;
+    }
+    
+    // Fallback to plain text (legacy)
+    const plainId = e.dataTransfer.getData('text/plain');
+    if (plainId) {
+      onDropResume(plainId);
     }
   };
 
@@ -487,6 +522,7 @@ const FolderSidebar = memo(({
   onDeleteFolder,
   onNewFolder,
   onDropResume,
+  onDropDocument,
   folderCounts,
   uncategorizedCount,
   totalCount
@@ -526,7 +562,8 @@ const FolderSidebar = memo(({
           isActive={selectedFolderId === null}
           count={uncategorizedCount}
           onClick={() => onSelectFolder(null)}
-          onDrop={(resumeId) => onDropResume(resumeId, null)}
+          onDropResume={(resumeId) => onDropResume(resumeId, null)}
+          onDropDocument={onDropDocument ? (docId) => onDropDocument(docId, null) : undefined}
         />
 
         {/* Folders Header */}
@@ -549,7 +586,8 @@ const FolderSidebar = memo(({
               onClick={() => onSelectFolder(folder.id)}
               onEdit={() => onEditFolder(folder)}
               onDelete={() => onDeleteFolder(folder.id)}
-              onDrop={(resumeId) => onDropResume(resumeId, folder.id)}
+              onDropResume={(resumeId) => onDropResume(resumeId, folder.id)}
+              onDropDocument={onDropDocument ? (docId) => onDropDocument(docId, folder.id) : undefined}
             />
           ))}
         </div>

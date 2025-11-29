@@ -74,6 +74,11 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
       
+      // Documents subcollection (for imported PDFs in Resume Builder)
+      match /documents/{documentId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
       // Credit History subcollection
       match /creditHistory/{historyId} {
         allow read, write: if isSignedIn() && isOwner(userId);

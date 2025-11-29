@@ -1,4 +1,5 @@
-import { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect, useCallback } from 'react';
+import { flushSync, createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, Calendar, Trash2, Edit2, Eye, Check, Tag
@@ -149,10 +150,10 @@ const CVPreviewCard = memo(({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(resume.name);
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
-  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
   const nameInputRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   // Calculate scale factor - A4 page preview
   const targetWidth = compact ? 140 : 220; 
@@ -208,28 +209,52 @@ const CVPreviewCard = memo(({
     }
   };
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenuPosition({ x: e.clientX, y: e.clientY });
-    setContextMenuOpen(true);
-  };
+    
+    // Calculate position ensuring menu stays on screen
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Adjust if menu would go off-screen (assuming menu is ~160px wide and ~200px tall)
+    const menuWidth = 160;
+    const menuHeight = 200;
+    const adjustedX = Math.min(x, window.innerWidth - menuWidth - 10);
+    const adjustedY = Math.min(y, window.innerHeight - menuHeight - 10);
+    
+    flushSync(() => {
+      setContextMenu({ open: true, x: adjustedX, y: adjustedY });
+    });
+  }, []);
 
-  const handleDeleteFromContext = () => {
-    setContextMenuOpen(false);
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(prev => ({ ...prev, open: false }));
+  }, []);
+
+  const handleDeleteFromContext = useCallback(() => {
+    closeContextMenu();
     setIsDeleteDialogOpen(true);
-  };
+  }, [closeContextMenu]);
 
+  // Handle click outside to close context menu
   useEffect(() => {
-    const handleClickOutside = () => {
-      setContextMenuOpen(false);
+    if (!contextMenu.open) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        closeContextMenu();
+      }
     };
 
-    if (contextMenuOpen) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [contextMenuOpen]);
+    window.document.addEventListener('mousedown', handleClickOutside, true);
+    window.document.addEventListener('contextmenu', closeContextMenu, true);
+    
+    return () => {
+      window.document.removeEventListener('mousedown', handleClickOutside, true);
+      window.document.removeEventListener('contextmenu', closeContextMenu, true);
+    };
+  }, [contextMenu.open, closeContextMenu]);
 
   useEffect(() => {
     if (isEditingName && nameInputRef.current) {
@@ -427,73 +452,72 @@ const CVPreviewCard = memo(({
         )}
       </div>
 
-      {/* Context Menu */}
-      <AnimatePresence>
-        {contextMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl
-              border border-gray-200 dark:border-gray-700 py-1 min-w-[140px]"
-            style={{
-              left: `${contextMenuPosition.x}px`,
-              top: `${contextMenuPosition.y}px`
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {onUpdateTags && (
-              <>
-                <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
-                  <div className="flex items-center justify-between gap-1">
-                    {TAG_COLORS.map((tag) => (
-                      <button
-                        key={tag.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleTag(tag.id);
-                        }}
-                        className={`w-4 h-4 rounded-full transition-transform hover:scale-110 flex items-center justify-center
-                          ${resume.tags?.includes(tag.id) ? 'ring-1 ring-offset-1 ring-gray-400 dark:ring-gray-500' : ''}`}
-                        style={{ backgroundColor: tag.color }}
-                        title={tag.label}
-                      >
-                        {resume.tags?.includes(tag.id) && (
-                          <div className="w-1.5 h-1.5 bg-white rounded-full shadow-sm" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
+      {/* Context Menu - Using Portal to escape transform hierarchy */}
+      {contextMenu.open && typeof window !== 'undefined' && window.document?.body && createPortal(
+        <div
+          ref={contextMenuRef}
+          className="fixed z-[9999] bg-white dark:bg-gray-800 rounded-lg shadow-xl
+            border border-gray-200 dark:border-gray-700 py-1 min-w-[140px]"
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {onUpdateTags && (
+            <>
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-1">
+                  {TAG_COLORS.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleToggleTag(tag.id);
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className={`w-4 h-4 rounded-full transition-transform hover:scale-110 flex items-center justify-center
+                        ${resume.tags?.includes(tag.id) ? 'ring-1 ring-offset-1 ring-gray-400 dark:ring-gray-500' : ''}`}
+                      style={{ backgroundColor: tag.color }}
+                      title={tag.label}
+                    >
+                      {resume.tags?.includes(tag.id) && (
+                        <div className="w-1.5 h-1.5 bg-white rounded-full shadow-sm" />
+                      )}
+                    </button>
+                  ))}
                 </div>
-              </>
-            )}
+              </div>
+            </>
+          )}
 
-             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setContextMenuOpen(false);
-                handleEdit();
-              }}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200
-                hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-              Edit
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteFromContext();
-              }}
-              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400
-                hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+           <button
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              closeContextMenu();
+              handleEdit();
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200
+              hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            Edit
+          </button>
+          <button
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              handleDeleteFromContext();
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400
+              hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+        </div>,
+        window.document.body
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AnimatePresence>

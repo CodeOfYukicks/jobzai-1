@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info
+  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,6 +17,9 @@ import { Folder } from '../components/resume-builder/FolderCard';
 import FolderManagementModal from '../components/resume-builder/FolderManagementModal';
 import FolderSidebar, { SelectedFolderType } from '../components/resume-builder/FolderSidebar';
 import FolderHeader from '../components/resume-builder/FolderHeader';
+import PDFPreviewCard, { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
+import PremiumPDFViewer from '../components/resume-builder/PremiumPDFViewer';
+import DropZone from '../components/resume-builder/DropZone';
 
 export interface Resume {
   id: string;
@@ -79,6 +82,12 @@ export default function ResumeBuilderPage() {
   const [isSavingFolder, setIsSavingFolder] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<SelectedFolderType>('all');
   const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  
+  // PDF Documents state
+  const [documents, setDocuments] = useState<ImportedDocument[]>([]);
+  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<ImportedDocument | null>(null);
 
   // Fetch folders from Firestore
   const fetchFolders = useCallback(async () => {
@@ -151,12 +160,43 @@ export default function ResumeBuilderPage() {
     }
   }, [currentUser]);
 
+  // Fetch documents (PDFs) from Firestore
+  const fetchDocuments = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const documentsRef = collection(db, 'users', currentUser.uid, 'documents');
+      const q = query(documentsRef, orderBy('updatedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+
+      const documentsList: ImportedDocument[] = [];
+      querySnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
+        documentsList.push({
+          id: docSnapshot.id,
+          name: data.name || 'Untitled Document',
+          fileUrl: data.fileUrl,
+          fileSize: data.fileSize || 0,
+          pageCount: data.pageCount,
+          folderId: data.folderId,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt
+        });
+      });
+
+      setDocuments(documentsList);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     if (currentUser) {
       fetchFolders();
       fetchResumes();
+      fetchDocuments();
     }
-  }, [currentUser, fetchFolders, fetchResumes]);
+  }, [currentUser, fetchFolders, fetchResumes, fetchDocuments]);
 
   // Templates available
   const templates: { value: CVTemplate; label: string; description: string }[] = [
@@ -426,6 +466,130 @@ export default function ResumeBuilderPage() {
     }
   };
 
+  // PDF Document management functions
+  const uploadPDFFiles = async (files: File[], targetFolderId?: string | null) => {
+    if (!currentUser || files.length === 0) return;
+
+    setIsUploadingPDF(true);
+    const uploadPromises = files.map(async (file) => {
+      try {
+        const documentId = generateId();
+        const fileName = `${documentId}_${file.name}`;
+        const fileRef = ref(storage, `cvs/${currentUser.uid}/${fileName}`);
+        
+        await uploadBytes(fileRef, file, { contentType: 'application/pdf' });
+        const downloadUrl = await getDownloadURL(fileRef);
+
+        const newDocument: Omit<ImportedDocument, 'id'> = {
+          name: file.name,
+          fileUrl: downloadUrl,
+          fileSize: file.size,
+          folderId: targetFolderId || undefined,
+          createdAt: serverTimestamp() as any,
+          updatedAt: serverTimestamp() as any
+        };
+
+        const docRef = doc(db, 'users', currentUser.uid, 'documents', documentId);
+        await setDoc(docRef, newDocument);
+
+        return {
+          id: documentId,
+          ...newDocument,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } as ImportedDocument;
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        toast.error(`Failed to upload ${file.name}`);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const successfulUploads = results.filter((r): r is ImportedDocument => r !== null);
+    
+    if (successfulUploads.length > 0) {
+      setDocuments(prev => [...successfulUploads, ...prev]);
+      toast.success(`${successfulUploads.length} PDF${successfulUploads.length > 1 ? 's' : ''} uploaded successfully`);
+    }
+
+    setIsUploadingPDF(false);
+  };
+
+  const handleFileDrop = useCallback((files: File[]) => {
+    const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
+      ? selectedFolderId 
+      : null;
+    uploadPDFFiles(files, folderId);
+  }, [selectedFolderId, currentUser]);
+
+  const deleteDocument = async (documentId: string) => {
+    if (!currentUser) return;
+
+    const document = documents.find(d => d.id === documentId);
+    if (!document) return;
+
+    try {
+      // Delete from Firestore
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'documents', documentId));
+      
+      // Try to delete from Storage (might fail if URL format changed)
+      try {
+        const fileRef = ref(storage, document.fileUrl);
+        await deleteObject(fileRef);
+      } catch (e) {
+        console.warn('Could not delete file from storage', e);
+      }
+
+      setDocuments(prev => prev.filter(d => d.id !== documentId));
+      toast.success('Document deleted');
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('Failed to delete document');
+    }
+  };
+
+  const handleViewDocument = useCallback((document: ImportedDocument) => {
+    setSelectedDocument(document);
+    setPdfViewerOpen(true);
+  }, []);
+
+  const handleCloseViewer = useCallback(() => {
+    setPdfViewerOpen(false);
+    setSelectedDocument(null);
+  }, []);
+
+  // Move document to folder
+  const handleDropDocument = async (documentId: string, folderId: string | null) => {
+    if (!currentUser || !documentId) return;
+
+    const document = documents.find(d => d.id === documentId);
+    if (!document) return;
+
+    const currentFolder = document.folderId || null;
+    if (currentFolder === folderId) return;
+
+    try {
+      const docRef = doc(db, 'users', currentUser.uid, 'documents', documentId);
+      await updateDoc(docRef, {
+        folderId: folderId || null,
+        updatedAt: serverTimestamp()
+      });
+      
+      setDocuments(prev => prev.map(d => 
+        d.id === documentId ? { ...d, folderId: folderId || undefined } : d
+      ));
+
+      const folderName = folderId 
+        ? folders.find(f => f.id === folderId)?.name || 'folder'
+        : 'Uncategorized';
+      toast.success(`Moved "${document.name}" to ${folderName}`);
+    } catch (error) {
+      console.error('Error moving document:', error);
+      toast.error('Failed to move document');
+    }
+  };
+
   const handleUpdateCover = async (blob: Blob) => {
     if (!currentUser || !selectedFolderId || typeof selectedFolderId !== 'string' || selectedFolderId === 'all') return;
     
@@ -506,44 +670,79 @@ export default function ResumeBuilderPage() {
 
   const filteredResumes = filteredAndSortedResumes();
 
-  // Group resumes by folder and calculate counts
-  const groupedResumes = () => {
-    const grouped: Record<string, Resume[]> = {};
-    const uncategorized: Resume[] = [];
+  // Filter documents by search
+  const filteredDocuments = searchQuery 
+    ? documents.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : documents;
+
+  // Group resumes and documents by folder and calculate counts
+  const groupedItems = () => {
+    const groupedResumes: Record<string, Resume[]> = {};
+    const groupedDocs: Record<string, ImportedDocument[]> = {};
+    const uncategorizedResumes: Resume[] = [];
+    const uncategorizedDocs: ImportedDocument[] = [];
     const folderCounts: Record<string, number> = {};
 
     // Initialize counts for all folders
     folders.forEach(f => {
       folderCounts[f.id] = 0;
-      grouped[f.id] = [];
+      groupedResumes[f.id] = [];
+      groupedDocs[f.id] = [];
     });
 
+    // Group resumes
     filteredResumes.forEach(resume => {
-      if (resume.folderId && grouped[resume.folderId] !== undefined) {
-        grouped[resume.folderId].push(resume);
+      if (resume.folderId && groupedResumes[resume.folderId] !== undefined) {
+        groupedResumes[resume.folderId].push(resume);
         folderCounts[resume.folderId]++;
       } else {
-        uncategorized.push(resume);
+        uncategorizedResumes.push(resume);
       }
     });
 
-    return { grouped, uncategorized, folderCounts };
+    // Group documents
+    filteredDocuments.forEach(doc => {
+      if (doc.folderId && groupedDocs[doc.folderId] !== undefined) {
+        groupedDocs[doc.folderId].push(doc);
+        folderCounts[doc.folderId]++;
+      } else {
+        uncategorizedDocs.push(doc);
+      }
+    });
+
+    return { 
+      groupedResumes, 
+      groupedDocs, 
+      uncategorizedResumes, 
+      uncategorizedDocs, 
+      folderCounts 
+    };
   };
 
-  const { grouped, uncategorized, folderCounts } = groupedResumes();
+  const { 
+    groupedResumes: grouped, 
+    groupedDocs, 
+    uncategorizedResumes: uncategorized, 
+    uncategorizedDocs,
+    folderCounts 
+  } = groupedItems();
 
-  // Get resumes to display based on selected folder
-  const getDisplayedResumes = (): Resume[] => {
+  // Get items to display based on selected folder
+  const getDisplayedItems = (): { resumes: Resume[]; documents: ImportedDocument[] } => {
     if (selectedFolderId === 'all') {
-      return filteredResumes;
+      return { resumes: filteredResumes, documents: filteredDocuments };
     } else if (selectedFolderId === null) {
-      return uncategorized;
+      return { resumes: uncategorized, documents: uncategorizedDocs };
     } else {
-      return grouped[selectedFolderId] || [];
+      return { 
+        resumes: grouped[selectedFolderId] || [], 
+        documents: groupedDocs[selectedFolderId] || [] 
+      };
     }
   };
 
-  const displayedResumes = getDisplayedResumes();
+  const { resumes: displayedResumes, documents: displayedDocuments } = getDisplayedItems();
+  const totalDisplayedItems = displayedResumes.length + displayedDocuments.length;
 
   // Determine current folder object for header
   const currentFolder = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
@@ -551,16 +750,18 @@ export default function ResumeBuilderPage() {
     : null;
 
   const getHeaderProps = () => {
+    const itemLabel = totalDisplayedItems === 1 ? 'item' : 'items';
+    
     if (selectedFolderId === 'all') {
       return {
-        title: 'All Resumes',
-        subtitle: `${displayedResumes.length} ${displayedResumes.length === 1 ? 'resume' : 'resumes'}`,
+        title: 'All Documents',
+        subtitle: `${totalDisplayedItems} ${itemLabel}`,
         icon: <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
       };
     } else if (selectedFolderId === null) {
       return {
         title: 'Uncategorized',
-        subtitle: `${displayedResumes.length} ${displayedResumes.length === 1 ? 'resume' : 'resumes'}`,
+        subtitle: `${totalDisplayedItems} ${itemLabel}`,
         icon: <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
       };
     } else {
@@ -569,13 +770,17 @@ export default function ResumeBuilderPage() {
       return {
         folder,
         title: folder?.name || 'Folder',
-        subtitle: `${displayedResumes.length} ${displayedResumes.length === 1 ? 'resume' : 'resumes'}`,
+        subtitle: `${totalDisplayedItems} ${itemLabel}`,
         icon: null // Icon is handled inside FolderHeader via folder prop
       };
     }
   };
 
   const headerProps = getHeaderProps();
+  
+  // Total counts for sidebar
+  const totalUncategorized = uncategorized.length + uncategorizedDocs.length;
+  const totalItems = filteredResumes.length + filteredDocuments.length;
 
   return (
     <AuthLayout>
@@ -596,13 +801,19 @@ export default function ResumeBuilderPage() {
           onDeleteFolder={deleteFolder}
           onNewFolder={() => openFolderModal()}
           onDropResume={handleDropResume}
+          onDropDocument={handleDropDocument}
           folderCounts={folderCounts}
-          uncategorizedCount={uncategorized.length}
-          totalCount={filteredResumes.length}
+          uncategorizedCount={totalUncategorized}
+          totalCount={totalItems}
         />
 
         {/* Main Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto bg-white/30 dark:bg-black/20 backdrop-blur-sm">
+        <DropZone
+          onFileDrop={handleFileDrop}
+          acceptedTypes={['application/pdf']}
+          maxFileSize={10 * 1024 * 1024}
+          className="flex-1 min-h-0 overflow-y-auto bg-white/30 dark:bg-black/20 backdrop-blur-sm"
+        >
           {/* Replaced Header with FolderHeader */}
           <FolderHeader
             folder={currentFolder}
@@ -671,49 +882,64 @@ export default function ResumeBuilderPage() {
               </div>
             )}
 
-            {/* Empty State - No resumes at all */}
-            {!isLoading && resumes.length === 0 && (
+            {/* Uploading indicator */}
+            {isUploadingPDF && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center gap-3"
+              >
+                <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+                <span className="text-sm text-purple-700 dark:text-purple-300">Uploading PDF files...</span>
+              </motion.div>
+            )}
+
+            {/* Empty State - No items at all */}
+            {!isLoading && resumes.length === 0 && documents.length === 0 && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="py-20 text-center"
               >
-                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 
                   flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <Upload className="w-7 h-7 text-purple-500 dark:text-purple-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5">
-                  No resumes yet
+                  No documents yet
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-6">
-                  Create your first professional resume to get started.
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
+                  Create a resume or drag & drop PDF files here to get started.
                 </p>
-                <button
-                  onClick={openCreateModal}
-                  disabled={isCreating}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                    text-gray-700 dark:text-gray-200 
-                    bg-white dark:bg-gray-800 
-                    border border-gray-200 dark:border-gray-700 rounded-lg
-                    hover:bg-gray-50 dark:hover:bg-gray-700 
-                    hover:border-gray-300 dark:hover:border-gray-600
-                    shadow-sm transition-all duration-200
-                    disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>New Resume</span>
-                </button>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={openCreateModal}
+                    disabled={isCreating}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                      text-gray-700 dark:text-gray-200 
+                      bg-white dark:bg-gray-800 
+                      border border-gray-200 dark:border-gray-700 rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-gray-700 
+                      hover:border-gray-300 dark:hover:border-gray-600
+                      shadow-sm transition-all duration-200
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>New Resume</span>
+                  </button>
+                </div>
               </motion.div>
             )}
 
-            {/* Resumes Grid */}
-            {!isLoading && resumes.length > 0 && (
+            {/* Items Grid */}
+            {!isLoading && (resumes.length > 0 || documents.length > 0) && (
               <>
-                {displayedResumes.length > 0 ? (
+                {totalDisplayedItems > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {/* Resumes */}
                     {displayedResumes.map((resume) => (
                       <CVPreviewCard
-                        key={resume.id}
+                        key={`resume-${resume.id}`}
                         resume={resume}
                         onDelete={deleteResume}
                         onRename={renameResume}
@@ -723,28 +949,46 @@ export default function ResumeBuilderPage() {
                         draggable
                       />
                     ))}
+                    {/* PDFs */}
+                    {displayedDocuments.map((document) => (
+                      <PDFPreviewCard
+                        key={`doc-${document.id}`}
+                        document={document}
+                        onDelete={deleteDocument}
+                        onView={handleViewDocument}
+                        compact
+                        draggable
+                      />
+                    ))}
                   </div>
                 ) : (
                   <div className="py-16 text-center">
-                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 
                       flex items-center justify-center mx-auto mb-3">
-                      <FileText className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-                      {searchQuery ? 'No results found' : 'No resumes in this folder'}
+                      {searchQuery ? 'No results found' : 'This folder is empty'}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {searchQuery 
                         ? 'Try adjusting your search' 
-                        : 'Drag resumes here or create a new one'}
+                        : 'Drag documents here or create a new resume'}
                     </p>
                   </div>
                 )}
               </>
             )}
           </div>
-        </div>
+        </DropZone>
       </div>
+
+      {/* Premium PDF Viewer Modal */}
+      <PremiumPDFViewer
+        pdfDocument={selectedDocument}
+        isOpen={pdfViewerOpen}
+        onClose={handleCloseViewer}
+      />
 
       {/* Create Resume Modal */}
       <AnimatePresence>
