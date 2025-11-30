@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { GraduationCap } from 'lucide-react';
-import { getSchoolDomain, getClearbitUrl, getGoogleFaviconUrl, getSchoolInitials } from '../../utils/logo';
+import { getSchoolDomainVariants, getClearbitUrl, getGoogleFaviconUrl, getSchoolInitials } from '../../utils/logo';
 
 interface InstitutionLogoProps {
   institutionName: string;
@@ -20,25 +20,25 @@ interface CacheEntry {
 const urlCache = new Map<string, CacheEntry>();
 
 // Helper function to get initial state from cache
-const getInitialLogoState = (institutionName: string): { logoSrc: string | null; isLoading: boolean } => {
+const getInitialLogoState = (institutionName: string): { logoSrc: string | null; isLoading: boolean; domainIndex: number } => {
   if (!institutionName) {
-    return { logoSrc: null, isLoading: false };
+    return { logoSrc: null, isLoading: false, domainIndex: 0 };
   }
   
   const cacheKey = institutionName.toLowerCase().trim();
   const cached = urlCache.get(cacheKey);
   
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return { logoSrc: cached.url, isLoading: false };
+    return { logoSrc: cached.url, isLoading: false, domainIndex: 0 };
   }
   
-  const schoolDomain = getSchoolDomain(institutionName);
-  if (!schoolDomain) {
-    return { logoSrc: null, isLoading: false };
+  const domains = getSchoolDomainVariants(institutionName);
+  if (domains.length === 0) {
+    return { logoSrc: null, isLoading: false, domainIndex: 0 };
   }
   
-  // Return Clearbit URL to try first
-  return { logoSrc: getClearbitUrl(schoolDomain), isLoading: true };
+  // Return Clearbit URL for first domain to try
+  return { logoSrc: getClearbitUrl(domains[0]), isLoading: true, domainIndex: 0 };
 };
 
 export function InstitutionLogo({
@@ -51,37 +51,39 @@ export function InstitutionLogo({
   const initialState = getInitialLogoState(institutionName);
   const [logoSrc, setLogoSrc] = useState<string | null>(initialState.logoSrc);
   const [isLoading, setIsLoading] = useState(initialState.isLoading);
-  const triedGoogle = useRef(false);
+  const [currentDomainIndex, setCurrentDomainIndex] = useState(initialState.domainIndex);
+  const triedGoogleForCurrentDomain = useRef(false);
   const isMounted = useRef(true);
   const prevInstitutionName = useRef(institutionName);
+  const domainsRef = useRef<string[]>([]);
 
-  // Size configurations for premium look
-  const containerSizes = {
-    sm: 'h-8 w-8',
-    md: 'h-10 w-10',
-    lg: 'h-12 w-12',
+  // Size configurations - matching CompanyLogo style
+  const sizeClasses = {
+    sm: 'h-6 w-6',
+    md: 'h-8 w-8',
+    lg: 'h-10 w-10',
     xl: 'h-16 w-16',
   };
 
-  const logoSizes = {
+  const logoSizeClasses = {
     sm: 'h-5 w-5',
     md: 'h-7 w-7',
-    lg: 'h-9 w-9',
+    lg: 'h-8 w-8',
     xl: 'h-12 w-12',
   };
 
-  const iconSizes = {
-    sm: 'w-4 h-4',
-    md: 'w-5 h-5',
-    lg: 'w-6 h-6',
-    xl: 'w-8 h-8',
+  const textSizeClasses = {
+    sm: 'text-[8px]',
+    md: 'text-[10px]',
+    lg: 'text-sm',
+    xl: 'text-xl',
   };
 
-  const textSizes = {
-    sm: 'text-[10px]',
-    md: 'text-xs',
-    lg: 'text-sm',
-    xl: 'text-lg',
+  const iconSizes = {
+    sm: 'w-3 h-3',
+    md: 'w-4 h-4',
+    lg: 'w-5 h-5',
+    xl: 'w-8 h-8',
   };
 
   useEffect(() => {
@@ -101,6 +103,8 @@ export function InstitutionLogo({
     if (!institutionName) {
       setIsLoading(false);
       setLogoSrc(null);
+      setCurrentDomainIndex(0);
+      domainsRef.current = [];
       return;
     }
 
@@ -114,40 +118,61 @@ export function InstitutionLogo({
       return;
     }
 
-    // Reset state for new load
-    triedGoogle.current = false;
-    setIsLoading(true);
-
-    const schoolDomain = getSchoolDomain(institutionName);
-    if (!schoolDomain) {
+    // Get all possible domains to try
+    const domains = getSchoolDomainVariants(institutionName);
+    domainsRef.current = domains;
+    
+    if (domains.length === 0) {
       setLogoSrc(null);
       setIsLoading(false);
       urlCache.set(cacheKey, { url: null, timestamp: Date.now() });
       return;
     }
 
-    // Try Clearbit first
-    const clearbitUrl = getClearbitUrl(schoolDomain);
+    // Reset state for new load
+    triedGoogleForCurrentDomain.current = false;
+    setCurrentDomainIndex(0);
+    setIsLoading(true);
+
+    // Try Clearbit first with the first domain
+    const clearbitUrl = getClearbitUrl(domains[0]);
     setLogoSrc(clearbitUrl);
   }, [institutionName]);
 
   const handleLogoError = () => {
     if (!isMounted.current) return;
 
-    const schoolDomain = getSchoolDomain(institutionName);
-    if (!schoolDomain) {
+    const domains = domainsRef.current;
+    const currentDomain = domains[currentDomainIndex];
+    
+    if (!currentDomain) {
+      // No more domains to try
       setLogoSrc(null);
       setIsLoading(false);
+      const cacheKey = institutionName.toLowerCase().trim();
+      urlCache.set(cacheKey, { url: null, timestamp: Date.now() });
       return;
     }
 
-    // If haven't tried Google Favicon yet, try it
-    if (!triedGoogle.current) {
-      triedGoogle.current = true;
-      const googleUrl = getGoogleFaviconUrl(schoolDomain);
+    // If haven't tried Google Favicon for current domain yet, try it
+    if (!triedGoogleForCurrentDomain.current) {
+      triedGoogleForCurrentDomain.current = true;
+      const googleUrl = getGoogleFaviconUrl(currentDomain);
       setLogoSrc(googleUrl);
+      return;
+    }
+
+    // Google also failed for this domain, try next domain
+    const nextIndex = currentDomainIndex + 1;
+    
+    if (nextIndex < domains.length) {
+      // Reset google flag and try next domain with Clearbit
+      triedGoogleForCurrentDomain.current = false;
+      setCurrentDomainIndex(nextIndex);
+      const clearbitUrl = getClearbitUrl(domains[nextIndex]);
+      setLogoSrc(clearbitUrl);
     } else {
-      // Both APIs failed, use fallback
+      // All domains exhausted, use fallback
       setLogoSrc(null);
       setIsLoading(false);
       
@@ -173,19 +198,7 @@ export function InstitutionLogo({
 
   return (
     <div
-      className={`
-        ${containerSizes[size]} 
-        rounded-xl 
-        flex items-center justify-center 
-        flex-shrink-0 
-        transition-all duration-200
-        ${logoSrc 
-          ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm' 
-          : 'bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700'
-        }
-        ${isLoading ? 'animate-pulse' : ''}
-        ${className}
-      `}
+      className={`${sizeClasses[size]} rounded flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-[#2A2A2E] ${className}`}
     >
       {logoSrc ? (
         <img
@@ -193,23 +206,19 @@ export function InstitutionLogo({
           alt={`${institutionName} logo`}
           onError={handleLogoError}
           onLoad={handleLogoLoad}
-          className={`${logoSizes[size]} rounded-lg object-contain`}
+          className={`${logoSizeClasses[size]} rounded object-contain`}
         />
       ) : showFallbackIcon ? (
-        <div className="flex items-center justify-center">
-          {initials.length <= 3 ? (
-            <span className={`${textSizes[size]} font-bold text-white tracking-tight`}>
-              {initials}
-            </span>
-          ) : (
-            <GraduationCap className={`${iconSizes[size]} text-white`} />
-          )}
-        </div>
+        initials.length <= 3 ? (
+          <span className={`${textSizeClasses[size]} font-semibold text-gray-600 dark:text-gray-400`}>
+            {initials}
+          </span>
+        ) : (
+          <GraduationCap className={`${iconSizes[size]} text-gray-600 dark:text-gray-400`} />
+        )
       ) : null}
     </div>
   );
 }
 
 export default InstitutionLogo;
-
-

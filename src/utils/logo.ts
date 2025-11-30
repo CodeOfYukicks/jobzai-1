@@ -148,18 +148,120 @@ const KNOWN_SCHOOL_DOMAIN_MAP: Record<string, string> = {
   'university of texas': 'utexas.edu',
   'ut austin': 'utexas.edu',
   
-  // French Schools
+  // French Business Schools
   'polytechnique': 'polytechnique.edu',
   'ecole polytechnique': 'polytechnique.edu',
   'x': 'polytechnique.edu',
   'hec': 'hec.edu',
   'hec paris': 'hec.edu',
   'essec': 'essec.edu',
+  'essec business school': 'essec.edu',
   'escp': 'escp.eu',
   'escp business school': 'escp.eu',
   'edhec': 'edhec.edu',
+  'edhec business school': 'edhec.edu',
   'em lyon': 'em-lyon.com',
   'emlyon': 'em-lyon.com',
+  'emlyon business school': 'em-lyon.com',
+  'em lyon business school': 'em-lyon.com',
+  
+  // KEDGE Business School
+  'kedge': 'kedge.edu',
+  'kedge business school': 'kedge.edu',
+  'kedge bs': 'kedge.edu',
+  
+  // SKEMA Business School
+  'skema': 'skema.edu',
+  'skema business school': 'skema.edu',
+  'skema bs': 'skema.edu',
+  
+  // Audencia
+  'audencia': 'audencia.com',
+  'audencia business school': 'audencia.com',
+  'audencia nantes': 'audencia.com',
+  
+  // NEOMA Business School
+  'neoma': 'neoma-bs.fr',
+  'neoma business school': 'neoma-bs.fr',
+  'neoma bs': 'neoma-bs.fr',
+  
+  // ICN Business School
+  'icn': 'icn-artem.com',
+  'icn business school': 'icn-artem.com',
+  
+  // Rennes School of Business
+  'rennes sb': 'rennes-sb.com',
+  'rennes school of business': 'rennes-sb.com',
+  'esc rennes': 'rennes-sb.com',
+  
+  // Montpellier Business School
+  'montpellier bs': 'montpellier-bs.com',
+  'montpellier business school': 'montpellier-bs.com',
+  'mbs': 'montpellier-bs.com',
+  
+  // Grenoble Ecole de Management
+  'grenoble em': 'grenoble-em.com',
+  'grenoble ecole de management': 'grenoble-em.com',
+  'gem': 'grenoble-em.com',
+  
+  // ISC Paris
+  'isc paris': 'iscparis.com',
+  'isc': 'iscparis.com',
+  
+  // INSEEC
+  'inseec': 'inseec.com',
+  'inseec business school': 'inseec.com',
+  
+  // IESEG
+  'ieseg': 'ieseg.fr',
+  'ieseg school of management': 'ieseg.fr',
+  'iéseg': 'ieseg.fr',
+  
+  // TBS (Toulouse Business School)
+  'tbs': 'tbs-education.com',
+  'tbs education': 'tbs-education.com',
+  'toulouse business school': 'tbs-education.com',
+  
+  // BSB (Burgundy School of Business)
+  'bsb': 'bsb-education.com',
+  'burgundy school of business': 'bsb-education.com',
+  'esc dijon': 'bsb-education.com',
+  
+  // EM Strasbourg
+  'em strasbourg': 'em-strasbourg.com',
+  'em strasbourg business school': 'em-strasbourg.com',
+  
+  // EM Normandie
+  'em normandie': 'em-normandie.com',
+  'em normandie business school': 'em-normandie.com',
+  
+  // ESSCA
+  'essca': 'essca.fr',
+  'essca school of management': 'essca.fr',
+  
+  // ESCE
+  'esce': 'esce.fr',
+  'esce international business school': 'esce.fr',
+  
+  // PSB Paris School of Business
+  'psb': 'psbedu.paris',
+  'psb paris school of business': 'psbedu.paris',
+  'paris school of business': 'psbedu.paris',
+  
+  // IPAG Business School
+  'ipag': 'ipag.edu',
+  'ipag business school': 'ipag.edu',
+  
+  // EDC Paris Business School
+  'edc': 'edcparis.edu',
+  'edc paris': 'edcparis.edu',
+  'edc paris business school': 'edcparis.edu',
+  
+  // ISG
+  'isg': 'isg.fr',
+  'isg international business school': 'isg.fr',
+  
+  // French Universities & Engineering Schools
   'sciences po': 'sciencespo.fr',
   'sciences po paris': 'sciencespo.fr',
   'iep paris': 'sciencespo.fr',
@@ -179,12 +281,37 @@ const KNOWN_SCHOOL_DOMAIN_MAP: Record<string, string> = {
   'ecole normale superieure': 'ens.psl.eu',
   'dauphine': 'dauphine.psl.eu',
   'paris dauphine': 'dauphine.psl.eu',
+  'université paris dauphine': 'dauphine.psl.eu',
   'insead': 'insead.edu',
   'epita': 'epita.fr',
   'epitech': 'epitech.eu',
   '42': '42.fr',
   'ecole 42': '42.fr',
   'supinfo': 'supinfo.com',
+  
+  // INSA
+  'insa': 'insa-lyon.fr',
+  'insa lyon': 'insa-lyon.fr',
+  'insa toulouse': 'insa-toulouse.fr',
+  'insa rennes': 'insa-rennes.fr',
+  
+  // Arts et Métiers
+  'arts et metiers': 'artsetmetiers.fr',
+  'arts et métiers': 'artsetmetiers.fr',
+  'ensam': 'artsetmetiers.fr',
+  
+  // ENSTA
+  'ensta': 'ensta-paris.fr',
+  'ensta paris': 'ensta-paris.fr',
+  
+  // Ponts ParisTech
+  'ponts': 'ecoledesponts.fr',
+  'ponts paristech': 'ecoledesponts.fr',
+  'ecole des ponts': 'ecoledesponts.fr',
+  
+  // AgroParisTech
+  'agroparistech': 'agroparistech.fr',
+  'agro paris tech': 'agroparistech.fr',
   
   // UK Universities
   'oxford': 'ox.ac.uk',
@@ -263,37 +390,130 @@ const KNOWN_SCHOOL_DOMAIN_MAP: Record<string, string> = {
   'australian national university': 'anu.edu.au',
 };
 
-export function getSchoolDomain(institutionName: string | undefined | null): string | null {
-  if (!institutionName) return null;
-  const normalized = institutionName.trim().toLowerCase();
-  
-  // Check direct match
-  if (KNOWN_SCHOOL_DOMAIN_MAP[normalized]) return KNOWN_SCHOOL_DOMAIN_MAP[normalized];
+// Common suffixes to remove when extracting brand name
+const SCHOOL_SUFFIXES = [
+  'business school',
+  'school of business',
+  'school of management',
+  'ecole de management',
+  'école de management',
+  'graduate school',
+  'university',
+  'université',
+  'institute',
+  'institut',
+  'college',
+  'school',
+  'ecole',
+  'école',
+  'bs',
+  'sb',
+];
 
-  // Try to strip common suffixes and variations
+// Common prefixes to remove
+const SCHOOL_PREFIXES = [
+  'the',
+  "l'",
+  'le',
+  'la',
+  'université',
+  'university',
+  'ecole',
+  'école',
+  'institut',
+  'institute',
+];
+
+/**
+ * Extract the brand/significant name from an institution name
+ * e.g., "KEDGE Business School" -> "kedge"
+ * e.g., "EM Lyon Business School" -> "em lyon" or "emlyon"
+ */
+export function extractBrandName(institutionName: string): string {
+  if (!institutionName) return '';
+  
+  let name = institutionName.trim().toLowerCase();
+  
+  // Remove suffixes (longest first to avoid partial matches)
+  const sortedSuffixes = [...SCHOOL_SUFFIXES].sort((a, b) => b.length - a.length);
+  for (const suffix of sortedSuffixes) {
+    const pattern = new RegExp(`\\s*${suffix}\\s*$`, 'i');
+    name = name.replace(pattern, '').trim();
+  }
+  
+  // Remove prefixes
+  for (const prefix of SCHOOL_PREFIXES) {
+    const pattern = new RegExp(`^${prefix}\\s+`, 'i');
+    name = name.replace(pattern, '').trim();
+  }
+  
+  return name.trim();
+}
+
+/**
+ * Generate multiple possible domains for a school name
+ * Returns an array of domains to try in order
+ */
+export function getSchoolDomainVariants(institutionName: string | undefined | null): string[] {
+  if (!institutionName) return [];
+  
+  const normalized = institutionName.trim().toLowerCase();
+  const variants: string[] = [];
+  
+  // 1. Check direct match in known map
+  if (KNOWN_SCHOOL_DOMAIN_MAP[normalized]) {
+    variants.push(KNOWN_SCHOOL_DOMAIN_MAP[normalized]);
+  }
+  
+  // 2. Try cleaned version
   const cleaned = normalized
     .replace(/[^\p{L}\p{N}\s.'-]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
-  if (KNOWN_SCHOOL_DOMAIN_MAP[cleaned]) return KNOWN_SCHOOL_DOMAIN_MAP[cleaned];
-
-  // Try without common prefixes/suffixes
-  const withoutPrefix = cleaned
-    .replace(/^(the|l'|le|la|université|university|ecole|école|institut|institute)\s+/i, '')
-    .trim();
-  if (KNOWN_SCHOOL_DOMAIN_MAP[withoutPrefix]) return KNOWN_SCHOOL_DOMAIN_MAP[withoutPrefix];
-
-  // If it already looks like a domain, return it
-  if (cleaned.includes('.')) return cleaned;
-
-  // Heuristic for universities: try .edu domain
-  const compact = cleaned.replace(/\s+/g, '');
-  if (compact.length >= 3) {
-    // Try common patterns
-    return `${compact}.edu`;
+  if (cleaned !== normalized && KNOWN_SCHOOL_DOMAIN_MAP[cleaned]) {
+    variants.push(KNOWN_SCHOOL_DOMAIN_MAP[cleaned]);
   }
+  
+  // 3. Extract brand name and check
+  const brandName = extractBrandName(institutionName);
+  if (brandName && KNOWN_SCHOOL_DOMAIN_MAP[brandName]) {
+    variants.push(KNOWN_SCHOOL_DOMAIN_MAP[brandName]);
+  }
+  
+  // 4. If already a domain, add it
+  if (cleaned.includes('.')) {
+    variants.push(cleaned);
+  }
+  
+  // 5. Generate heuristic domains from brand name
+  if (brandName && brandName.length >= 2) {
+    const compactBrand = brandName.replace(/\s+/g, '');
+    const hyphenBrand = brandName.replace(/\s+/g, '-');
+    
+    // Try various extensions
+    if (!variants.some(v => v.includes(compactBrand))) {
+      variants.push(`${compactBrand}.edu`);
+      variants.push(`${compactBrand}.fr`);
+      variants.push(`${compactBrand}.com`);
+      variants.push(`${hyphenBrand}.com`);
+      variants.push(`${compactBrand}-bs.com`); // Business school pattern
+      variants.push(`${compactBrand}-bs.fr`);
+    }
+  }
+  
+  // 6. Fallback: compact full name
+  const compact = cleaned.replace(/\s+/g, '');
+  if (compact.length >= 3 && !variants.some(v => v.startsWith(compact))) {
+    variants.push(`${compact}.edu`);
+  }
+  
+  // Remove duplicates while preserving order
+  return [...new Set(variants)];
+}
 
-  return null;
+export function getSchoolDomain(institutionName: string | undefined | null): string | null {
+  const variants = getSchoolDomainVariants(institutionName);
+  return variants.length > 0 ? variants[0] : null;
 }
 
 export function getSchoolInitials(institutionName: string): string {

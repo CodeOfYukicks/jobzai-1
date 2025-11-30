@@ -495,19 +495,19 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
 
           {/* Right side - Current company and education (LinkedIn style) */}
           {!isEditing && (currentPosition || currentEducation) && (
-            <div className="flex flex-col gap-3 lg:items-end lg:text-right">
+            <div className="flex flex-col gap-4 lg:items-end lg:text-right">
               {currentPosition && (
-                <div className="flex items-center gap-2">
-                  <CompanyLogo companyName={currentPosition.company} size="md" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                <div className="flex items-center gap-3">
+                  <CompanyLogo companyName={currentPosition.company} size="lg" />
+                  <span className="text-base font-semibold text-gray-700 dark:text-gray-200">
                     {currentPosition.company}
                   </span>
                 </div>
               )}
               {currentEducation && (
-                <div className="flex items-center gap-2">
-                  <InstitutionLogo institutionName={currentEducation.institution} size="sm" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                <div className="flex items-center gap-3">
+                  <InstitutionLogo institutionName={currentEducation.institution} size="md" />
+                  <span className="text-base font-semibold text-gray-700 dark:text-gray-200">
                     {currentEducation.institution}
                   </span>
                 </div>

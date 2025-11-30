@@ -229,6 +229,60 @@ export async function exportToPDFEnhanced(
   await exportWithCanvas(cvData, template, quality);
 }
 
+// Generate PDF as Blob for upload to library (does not download)
+export async function exportToPDFBlob(
+  cvData: CVData, 
+  template: CVTemplate,
+  quality: 'high' | 'medium' | 'low' = 'high'
+): Promise<{ blob: Blob; fileName: string }> {
+  const element = document.getElementById('cv-preview-content');
+  if (!element) {
+    throw new Error('Preview element not found');
+  }
+
+  // Determine scale based on quality
+  const canvasScale = quality === 'high' ? 2.5 : quality === 'medium' ? 2 : 1.5;
+  const jpegQuality = quality === 'high' ? 0.95 : quality === 'medium' ? 0.92 : 0.88;
+
+  // Create canvas from the preview element
+  const canvas = await html2canvas(element, {
+    scale: canvasScale,
+    useCORS: true,
+    logging: false,
+    backgroundColor: '#ffffff'
+  });
+
+  // Convert canvas to image
+  const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
+  
+  // Create PDF
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // A4 dimensions
+  const pageWidth = 210;
+  
+  // Calculate image dimensions to fit A4
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * pageWidth) / canvas.width;
+  
+  // Add image to PDF (x, y, width, height)
+  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+
+  // Generate filename
+  const firstName = cvData.personalInfo.firstName || 'CV';
+  const lastName = cvData.personalInfo.lastName || '';
+  const fileName = `${firstName}_${lastName}_CV_${new Date().toISOString().split('T')[0]}.pdf`.replace(/\s+/g, '_');
+  
+  // Get blob from PDF
+  const blob = pdf.output('blob');
+  
+  return { blob, fileName };
+}
+
 // Copy CV content to clipboard
 export async function copyToClipboard(cvData: CVData): Promise<void> {
   const text = formatCVAsText(cvData);

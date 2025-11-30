@@ -484,7 +484,7 @@ export default function ResumeBuilderPage() {
           name: file.name,
           fileUrl: downloadUrl,
           fileSize: file.size,
-          folderId: targetFolderId || undefined,
+          ...(targetFolderId ? { folderId: targetFolderId } : {}),
           createdAt: serverTimestamp() as any,
           updatedAt: serverTimestamp() as any
         };

@@ -51,7 +51,10 @@ import { analyzeCVWithGPT4Vision } from '../lib/gpt4VisionAnalysis';
 import { pdfToBase64Images, analyzePDFWithPremiumATS } from '../lib/premiumATSAnalysis';
 // Add this import
 import CVSelectionModal from '../components/CVSelectionModal';
-import CVPreviewModal from '../components/CVPreviewModal';
+import PremiumPDFViewer from '../components/resume-builder/PremiumPDFViewer';
+import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
+import { Resume } from './ResumeBuilderPage';
+import jsPDF from 'jspdf';
 // Import Perplexity for job extraction
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
 
@@ -2508,6 +2511,14 @@ export default function CVAnalysisPage() {
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'company'>('date');
   const [filterScore, setFilterScore] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
+  // States for Resume Builder CV selector
+  const [builderCVs, setBuilderCVs] = useState<Resume[]>([]);
+  const [builderDocs, setBuilderDocs] = useState<ImportedDocument[]>([]);
+  const [showCVSelector, setShowCVSelector] = useState(false);
+  const [cvSelectorSearch, setCvSelectorSearch] = useState('');
+  const [selectedBuilderItem, setSelectedBuilderItem] = useState<{ type: 'resume' | 'document'; item: Resume | ImportedDocument } | null>(null);
+  const [isLoadingBuilderCVs, setIsLoadingBuilderCVs] = useState(false);
+
   // Fonction pour charger le CV depuis le profil utilisateur
   const fetchUserCV = useCallback(async () => {
     if (!currentUser) {
@@ -2552,6 +2563,72 @@ export default function CVAnalysisPage() {
       fetchUserCV();
     }
   }, [isModalOpen, currentUser, fetchUserCV]);
+
+  // Fetch CVs from Resume Builder (both structured CVs and imported PDFs)
+  const fetchBuilderCVs = useCallback(async () => {
+    if (!currentUser) return;
+
+    setIsLoadingBuilderCVs(true);
+    try {
+      // Fetch structured CVs
+      const cvsRef = collection(db, 'users', currentUser.uid, 'cvs');
+      const cvsQuery = query(cvsRef, orderBy('updatedAt', 'desc'));
+      const cvsSnapshot = await getDocs(cvsQuery);
+
+      const cvsList: Resume[] = [];
+      cvsSnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
+        if (docSnapshot.id !== 'default' && data.cvData) {
+          cvsList.push({
+            id: docSnapshot.id,
+            name: data.name || 'Untitled Resume',
+            cvData: data.cvData,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            template: data.template,
+            layoutSettings: data.layoutSettings,
+            folderId: data.folderId,
+            tags: data.tags || []
+          });
+        }
+      });
+
+      setBuilderCVs(cvsList);
+
+      // Fetch imported PDF documents
+      const docsRef = collection(db, 'users', currentUser.uid, 'documents');
+      const docsQuery = query(docsRef, orderBy('updatedAt', 'desc'));
+      const docsSnapshot = await getDocs(docsQuery);
+
+      const docsList: ImportedDocument[] = [];
+      docsSnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
+        docsList.push({
+          id: docSnapshot.id,
+          name: data.name || 'Untitled Document',
+          fileUrl: data.fileUrl,
+          fileSize: data.fileSize || 0,
+          pageCount: data.pageCount,
+          folderId: data.folderId,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt
+        });
+      });
+
+      setBuilderDocs(docsList);
+    } catch (error) {
+      console.error('Error fetching builder CVs:', error);
+    } finally {
+      setIsLoadingBuilderCVs(false);
+    }
+  }, [currentUser]);
+
+  // Load builder CVs when CV selector is opened or modal opens
+  useEffect(() => {
+    if ((showCVSelector || isModalOpen) && currentUser) {
+      fetchBuilderCVs();
+    }
+  }, [showCVSelector, isModalOpen, currentUser, fetchBuilderCVs]);
 
   // Charger les job applications depuis Firestore
   useEffect(() => {
@@ -3261,6 +3338,7 @@ export default function CVAnalysisPage() {
 
     setCvFile(fileToProcess);
     setUsingSavedCV(false); // Reset saved CV flag when uploading new file
+    setSelectedBuilderItem(null); // Reset builder item when uploading new file
     toast.success('CV selected successfully');
   };
 
@@ -3272,6 +3350,7 @@ export default function CVAnalysisPage() {
       const file = await downloadCVFromUrl(userCV.url, userCV.name);
       setCvFile(file);
       setUsingSavedCV(true);
+      setSelectedBuilderItem(null); // Reset builder item when using saved CV
       toast.success('Saved CV selected successfully');
     } catch (error) {
       console.error('Error using saved CV:', error);
@@ -3908,9 +3987,197 @@ URL to visit: ${jobUrl}
       // Fermer le modal immédiatement
       setIsModalOpen(false);
 
-      if (!cvFile && !selectedCV) {
+      if (!cvFile && !selectedCV && !selectedBuilderItem) {
         toast.error('Please select a resume');
         return;
+      }
+
+      // Handle selected builder item (convert to cvFile)
+      let effectiveCvFile = cvFile;
+      if (selectedBuilderItem && !cvFile) {
+        if (selectedBuilderItem.type === 'document') {
+          // It's an imported PDF - fetch it as a File
+          const doc = selectedBuilderItem.item as ImportedDocument;
+          try {
+            console.log('📥 Fetching PDF from Resume Builder:', doc.name);
+            const response = await fetch(doc.fileUrl);
+            const blob = await response.blob();
+            effectiveCvFile = new File([blob], doc.name, { type: 'application/pdf' });
+            console.log('✅ PDF fetched successfully:', effectiveCvFile.name);
+          } catch (fetchError) {
+            console.error('❌ Error fetching PDF:', fetchError);
+            toast.error('Failed to load the selected PDF');
+            return;
+          }
+        } else {
+          // It's a structured Resume - convert CVData to text and create a mock PDF
+          const resume = selectedBuilderItem.item as Resume;
+          console.log('📝 Converting Resume Builder CV to text:', resume.name);
+          
+          // Convert CVData to structured text
+          const cvData = resume.cvData;
+          let textContent = '';
+          
+          // Personal Info
+          if (cvData.personalInfo) {
+            const p = cvData.personalInfo;
+            textContent += `${p.firstName || ''} ${p.lastName || ''}\n`;
+            if (p.title) textContent += `${p.title}\n`;
+            if (p.email) textContent += `Email: ${p.email}\n`;
+            if (p.phone) textContent += `Phone: ${p.phone}\n`;
+            if (p.location) textContent += `Location: ${p.location}\n`;
+            if (p.linkedin) textContent += `LinkedIn: ${p.linkedin}\n`;
+            if (p.portfolio) textContent += `Portfolio: ${p.portfolio}\n`;
+            if (p.github) textContent += `GitHub: ${p.github}\n`;
+            textContent += '\n';
+          }
+          
+          // Summary
+          if (cvData.summary) {
+            textContent += `PROFESSIONAL SUMMARY\n${cvData.summary}\n\n`;
+          }
+          
+          // Experience
+          if (cvData.experiences && cvData.experiences.length > 0) {
+            textContent += 'WORK EXPERIENCE\n';
+            for (const exp of cvData.experiences) {
+              textContent += `${exp.title || ''} at ${exp.company || ''}\n`;
+              textContent += `${exp.startDate || ''} - ${exp.current ? 'Present' : exp.endDate || ''}\n`;
+              if (exp.location) textContent += `${exp.location}\n`;
+              if (exp.description) textContent += `${exp.description}\n`;
+              if (exp.achievements && exp.achievements.length > 0) {
+                for (const achievement of exp.achievements) {
+                  textContent += `• ${achievement}\n`;
+                }
+              }
+              textContent += '\n';
+            }
+          }
+          
+          // Education
+          if (cvData.education && cvData.education.length > 0) {
+            textContent += 'EDUCATION\n';
+            for (const edu of cvData.education) {
+              textContent += `${edu.degree || ''} in ${edu.field || ''}\n`;
+              textContent += `${edu.institution || ''}\n`;
+              textContent += `${edu.startDate || ''} - ${edu.endDate || ''}\n`;
+              if (edu.gpa) textContent += `GPA: ${edu.gpa}\n`;
+              if (edu.achievements && edu.achievements.length > 0) {
+                for (const achievement of edu.achievements) {
+                  textContent += `• ${achievement}\n`;
+                }
+              }
+              textContent += '\n';
+            }
+          }
+          
+          // Skills
+          if (cvData.skills && cvData.skills.length > 0) {
+            textContent += 'SKILLS\n';
+            const skillsByCategory: Record<string, string[]> = {};
+            for (const skill of cvData.skills) {
+              const category = skill.category || 'Other';
+              if (!skillsByCategory[category]) skillsByCategory[category] = [];
+              skillsByCategory[category].push(skill.name);
+            }
+            for (const [category, skills] of Object.entries(skillsByCategory)) {
+              textContent += `${category}: ${skills.join(', ')}\n`;
+            }
+            textContent += '\n';
+          }
+          
+          // Certifications
+          if (cvData.certifications && cvData.certifications.length > 0) {
+            textContent += 'CERTIFICATIONS\n';
+            for (const cert of cvData.certifications) {
+              textContent += `${cert.name || ''} - ${cert.issuer || ''}\n`;
+              if (cert.date) textContent += `Issued: ${cert.date}\n`;
+              textContent += '\n';
+            }
+          }
+          
+          // Languages
+          if (cvData.languages && cvData.languages.length > 0) {
+            textContent += 'LANGUAGES\n';
+            for (const lang of cvData.languages) {
+              textContent += `${lang.name}: ${lang.proficiency || 'N/A'}\n`;
+            }
+            textContent += '\n';
+          }
+          
+          // Projects
+          if (cvData.projects && cvData.projects.length > 0) {
+            textContent += 'PROJECTS\n';
+            for (const proj of cvData.projects) {
+              textContent += `${proj.name || ''}\n`;
+              if (proj.description) textContent += `${proj.description}\n`;
+              if (proj.technologies && proj.technologies.length > 0) {
+                textContent += `Technologies: ${proj.technologies.join(', ')}\n`;
+              }
+              if (proj.url) textContent += `URL: ${proj.url}\n`;
+              textContent += '\n';
+            }
+          }
+
+          console.log('📄 CV text content generated, length:', textContent.length);
+          
+          // Create a PDF from the text content using jsPDF
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
+          
+          // Configure PDF styling
+          pdf.setFont('helvetica');
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 15;
+          const maxWidth = pageWidth - (margin * 2);
+          let yPosition = margin;
+          const lineHeight = 5;
+          
+          // Split text into lines and add to PDF
+          const lines = textContent.split('\n');
+          for (const line of lines) {
+            // Check if we need a new page
+            if (yPosition > pageHeight - margin) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+            
+            // Check if it's a header (all caps)
+            const isHeader = line === line.toUpperCase() && line.length > 3 && !line.includes(':');
+            
+            if (isHeader) {
+              pdf.setFontSize(12);
+              pdf.setFont('helvetica', 'bold');
+              yPosition += 3; // Add some space before headers
+            } else if (line.startsWith('•')) {
+              pdf.setFontSize(10);
+              pdf.setFont('helvetica', 'normal');
+            } else {
+              pdf.setFontSize(10);
+              pdf.setFont('helvetica', 'normal');
+            }
+            
+            // Wrap long lines
+            const wrappedLines = pdf.splitTextToSize(line, maxWidth);
+            for (const wrappedLine of wrappedLines) {
+              if (yPosition > pageHeight - margin) {
+                pdf.addPage();
+                yPosition = margin;
+              }
+              pdf.text(wrappedLine, margin, yPosition);
+              yPosition += lineHeight;
+            }
+          }
+          
+          // Convert PDF to blob and then to File
+          const pdfBlob = pdf.output('blob');
+          effectiveCvFile = new File([pdfBlob], `${resume.name}.pdf`, { type: 'application/pdf' });
+          console.log('✅ PDF created from Resume Builder CV:', effectiveCvFile.name);
+        }
       }
 
       // Créer une carte placeholder immédiatement pour une expérience non-bloquante
@@ -3963,8 +4230,8 @@ URL to visit: ${jobUrl}
       });
 
       // Use PDF file for PREMIUM ATS Analysis
-      if (cvFile && cvFile.type === 'application/pdf') {
-        console.log('🎯 Using PREMIUM ATS Analysis for PDF:', cvFile.name);
+      if (effectiveCvFile && effectiveCvFile.type === 'application/pdf') {
+        console.log('🎯 Using PREMIUM ATS Analysis for PDF:', effectiveCvFile.name);
 
         try {
           // Prepare job details - use actual formData values
@@ -3995,7 +4262,7 @@ URL to visit: ${jobUrl}
           console.log('📸 Converting PDF to images for premium analysis...');
 
           const result = await analyzePDFWithPremiumATS(
-            cvFile,
+            effectiveCvFile,
             {
               jobTitle,
               company,
@@ -4138,6 +4405,9 @@ URL to visit: ${jobUrl}
           setSelectedSavedJob(null);
           setJobSearchQuery('');
           setShowJobDropdown(false);
+          setSelectedBuilderItem(null);
+          setShowCVSelector(false);
+          setCvSelectorSearch('');
 
           // Notification de succès
           toast.success(`Analysis complete! Match score: ${fullAnalysis.matchScore}%`, {
@@ -5748,8 +6018,7 @@ URL to visit: ${jobUrl}
           </div>
         )}
 
-        {/* Divider - Only show if user has saved CV */}
-        {userCV && userCV.url && (
+        {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
@@ -5760,7 +6029,228 @@ URL to visit: ${jobUrl}
               </span>
             </div>
           </div>
-        )}
+
+        {/* Choose from My CVs (Resume Builder) */}
+        <motion.div
+          initial={false}
+          animate={{ height: showCVSelector ? 'auto' : 'auto' }}
+          className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${
+            selectedBuilderItem
+              ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
+              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+          }`}
+        >
+          {/* Header - Always visible */}
+          <button
+            onClick={() => setShowCVSelector(!showCVSelector)}
+            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                selectedBuilderItem
+                  ? 'bg-indigo-600 dark:bg-indigo-500'
+                  : 'bg-indigo-100 dark:bg-indigo-900/30'
+              }`}>
+                <FileText className={`w-5 h-5 ${
+                  selectedBuilderItem
+                    ? 'text-white'
+                    : 'text-indigo-600 dark:text-indigo-400'
+                }`} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {selectedBuilderItem ? (
+                    selectedBuilderItem.type === 'resume' 
+                      ? (selectedBuilderItem.item as Resume).name
+                      : (selectedBuilderItem.item as ImportedDocument).name
+                  ) : 'Choose from My CVs'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {selectedBuilderItem 
+                    ? `${selectedBuilderItem.type === 'resume' ? 'Resume Builder CV' : 'Imported PDF'} selected`
+                    : `${builderCVs.length} resumes, ${builderDocs.length} documents`}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedBuilderItem && (
+                <span className="px-2 py-1 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded-full flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Selected
+                </span>
+              )}
+              <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${showCVSelector ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {/* Expandable Content */}
+          <AnimatePresence>
+            {showCVSelector && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="border-t border-gray-200 dark:border-gray-700"
+              >
+                {/* Search Input */}
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700/50">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={cvSelectorSearch}
+                      onChange={(e) => setCvSelectorSearch(e.target.value)}
+                      placeholder="Search your CVs..."
+                      className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 text-gray-900 dark:text-white placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+
+                {/* CV List */}
+                <div className="max-h-64 overflow-y-auto">
+                  {isLoadingBuilderCVs ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Resume Builder CVs */}
+                      {builderCVs
+                        .filter(cv => cv.name.toLowerCase().includes(cvSelectorSearch.toLowerCase()))
+                        .map((cv) => {
+                          const isSelected = selectedBuilderItem?.type === 'resume' && selectedBuilderItem.item.id === cv.id;
+                          const displayDate = cv.updatedAt?.toDate ? cv.updatedAt.toDate() : new Date(cv.updatedAt || Date.now());
+                          
+                          return (
+                            <div
+                              key={`cv-${cv.id}`}
+                              onClick={() => {
+                                setSelectedBuilderItem({ type: 'resume', item: cv });
+                                setUsingSavedCV(false);
+                                setCvFile(null);
+                              }}
+                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                              }`}
+                            >
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                isSelected
+                                  ? 'bg-indigo-600 dark:bg-indigo-500'
+                                  : 'bg-purple-100 dark:bg-purple-900/30'
+                              }`}>
+                                <FileText className={`w-4 h-4 ${
+                                  isSelected ? 'text-white' : 'text-purple-600 dark:text-purple-400'
+                                }`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${
+                                  isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
+                                }`}>
+                                  {cv.name}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Resume Builder • {displayDate.toLocaleDateString()}
+                                </p>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                              )}
+                            </div>
+                          );
+                        })}
+
+                      {/* Imported PDF Documents */}
+                      {builderDocs
+                        .filter(doc => doc.name.toLowerCase().includes(cvSelectorSearch.toLowerCase()))
+                        .map((doc) => {
+                          const isSelected = selectedBuilderItem?.type === 'document' && selectedBuilderItem.item.id === doc.id;
+                          const displayDate = doc.updatedAt?.toDate ? doc.updatedAt.toDate() : new Date(doc.updatedAt || Date.now());
+                          
+                          return (
+                            <div
+                              key={`doc-${doc.id}`}
+                              onClick={() => {
+                                setSelectedBuilderItem({ type: 'document', item: doc });
+                                setUsingSavedCV(false);
+                                setCvFile(null);
+                              }}
+                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                              }`}
+                            >
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                isSelected
+                                  ? 'bg-indigo-600 dark:bg-indigo-500'
+                                  : 'bg-red-100 dark:bg-red-900/30'
+                              }`}>
+                                <FileText className={`w-4 h-4 ${
+                                  isSelected ? 'text-white' : 'text-red-600 dark:text-red-400'
+                                }`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${
+                                  isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
+                                }`}>
+                                  {doc.name}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  PDF • {displayDate.toLocaleDateString()}
+                                </p>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                              )}
+                            </div>
+                          );
+                        })}
+
+                      {/* Empty State */}
+                      {builderCVs.length === 0 && builderDocs.length === 0 && (
+                        <div className="py-8 text-center">
+                          <FileText className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            No CVs in Resume Builder yet
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            Create one in the Resume Builder
+                          </p>
+                        </div>
+                      )}
+
+                      {/* No results */}
+                      {cvSelectorSearch && 
+                        builderCVs.filter(cv => cv.name.toLowerCase().includes(cvSelectorSearch.toLowerCase())).length === 0 &&
+                        builderDocs.filter(doc => doc.name.toLowerCase().includes(cvSelectorSearch.toLowerCase())).length === 0 && (
+                        <div className="py-6 text-center">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            No results for "{cvSelectorSearch}"
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white dark:bg-gray-800 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+              OR
+            </span>
+          </div>
+        </div>
 
         {/* Upload New CV Option */}
         <div
@@ -6246,19 +6736,226 @@ URL to visit: ${jobUrl}
             </div>
           )}
 
-          {/* Divider - Only show if user has saved CV */}
-          {userCV && userCV.url && (
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white dark:bg-gray-800 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                  OR
-                </span>
-              </div>
+          {/* Divider */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
             </div>
-          )}
+            <div className="relative flex justify-center">
+              <span className="bg-white dark:bg-[#121212] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                OR
+              </span>
+            </div>
+          </div>
+
+          {/* Choose from My CVs (Resume Builder) */}
+          <div
+            className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${
+              selectedBuilderItem
+                ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A]'
+            }`}
+          >
+            {/* Header - Always visible */}
+            <button
+              onClick={() => setShowCVSelector(!showCVSelector)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  selectedBuilderItem
+                    ? 'bg-indigo-600 dark:bg-indigo-500'
+                    : 'bg-indigo-100 dark:bg-indigo-900/30'
+                }`}>
+                  <FileText className={`w-5 h-5 ${
+                    selectedBuilderItem
+                      ? 'text-white'
+                      : 'text-indigo-600 dark:text-indigo-400'
+                  }`} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {selectedBuilderItem ? (
+                      selectedBuilderItem.type === 'resume' 
+                        ? (selectedBuilderItem.item as Resume).name
+                        : (selectedBuilderItem.item as ImportedDocument).name
+                    ) : 'Choose from My CVs'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {selectedBuilderItem 
+                      ? `${selectedBuilderItem.type === 'resume' ? 'Resume Builder CV' : 'Imported PDF'} selected`
+                      : 'Select from Resume Builder'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {selectedBuilderItem && (
+                  <span className="px-2 py-1 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded-full flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    Selected
+                  </span>
+                )}
+                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${showCVSelector ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {/* Expandable Content */}
+            {showCVSelector && (
+              <div className="border-t border-gray-200 dark:border-gray-700">
+                {/* Search Input */}
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700/50">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={cvSelectorSearch}
+                      onChange={(e) => setCvSelectorSearch(e.target.value)}
+                      placeholder="Search your CVs..."
+                      className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 text-gray-900 dark:text-white placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+
+                {/* CV List */}
+                <div className="max-h-48 overflow-y-auto">
+                  {isLoadingBuilderCVs ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Resume Builder CVs */}
+                      {builderCVs
+                        .filter(cv => cv.name.toLowerCase().includes(cvSelectorSearch.toLowerCase()))
+                        .map((cv) => {
+                          const isSelected = selectedBuilderItem?.type === 'resume' && selectedBuilderItem.item.id === cv.id;
+                          const displayDate = cv.updatedAt?.toDate ? cv.updatedAt.toDate() : new Date(cv.updatedAt || Date.now());
+                          
+                          return (
+                            <div
+                              key={`cv-${cv.id}`}
+                              onClick={() => {
+                                setSelectedBuilderItem({ type: 'resume', item: cv });
+                                setUsingSavedCV(false);
+                                setCvFile(null);
+                              }}
+                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                              }`}
+                            >
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                isSelected
+                                  ? 'bg-indigo-600 dark:bg-indigo-500'
+                                  : 'bg-purple-100 dark:bg-purple-900/30'
+                              }`}>
+                                <FileText className={`w-4 h-4 ${
+                                  isSelected ? 'text-white' : 'text-purple-600 dark:text-purple-400'
+                                }`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${
+                                  isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
+                                }`}>
+                                  {cv.name}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Resume Builder • {displayDate.toLocaleDateString()}
+                                </p>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                              )}
+                            </div>
+                          );
+                        })}
+
+                      {/* Imported PDF Documents */}
+                      {builderDocs
+                        .filter(doc => doc.name.toLowerCase().includes(cvSelectorSearch.toLowerCase()))
+                        .map((doc) => {
+                          const isSelected = selectedBuilderItem?.type === 'document' && selectedBuilderItem.item.id === doc.id;
+                          const displayDate = doc.updatedAt?.toDate ? doc.updatedAt.toDate() : new Date(doc.updatedAt || Date.now());
+                          
+                          return (
+                            <div
+                              key={`doc-${doc.id}`}
+                              onClick={() => {
+                                setSelectedBuilderItem({ type: 'document', item: doc });
+                                setUsingSavedCV(false);
+                                setCvFile(null);
+                              }}
+                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                              }`}
+                            >
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                isSelected
+                                  ? 'bg-indigo-600 dark:bg-indigo-500'
+                                  : 'bg-red-100 dark:bg-red-900/30'
+                              }`}>
+                                <FileText className={`w-4 h-4 ${
+                                  isSelected ? 'text-white' : 'text-red-600 dark:text-red-400'
+                                }`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${
+                                  isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
+                                }`}>
+                                  {doc.name}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  PDF • {displayDate.toLocaleDateString()}
+                                </p>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                              )}
+                            </div>
+                          );
+                        })}
+
+                      {/* Empty State */}
+                      {builderCVs.length === 0 && builderDocs.length === 0 && (
+                        <div className="py-6 text-center">
+                          <FileText className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            No CVs in Resume Builder yet
+                          </p>
+                        </div>
+                      )}
+
+                      {/* No results */}
+                      {cvSelectorSearch && 
+                        builderCVs.filter(cv => cv.name.toLowerCase().includes(cvSelectorSearch.toLowerCase())).length === 0 &&
+                        builderDocs.filter(doc => doc.name.toLowerCase().includes(cvSelectorSearch.toLowerCase())).length === 0 && (
+                        <div className="py-4 text-center">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            No results for "{cvSelectorSearch}"
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white dark:bg-[#121212] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                OR
+              </span>
+            </div>
+          </div>
 
           {/* Upload New CV Option */}
           <div className="mb-4">
@@ -7122,7 +7819,7 @@ URL to visit: ${jobUrl}
                     }
                   }}
                   disabled={
-                    (currentStep === 1 && !cvFile && !usingSavedCV) ||
+                    (currentStep === 1 && !cvFile && !usingSavedCV && !selectedBuilderItem) ||
                     (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
                     isDownloadingCV
                   }
@@ -7169,14 +7866,19 @@ URL to visit: ${jobUrl}
         />
       )}
 
-      {/* CV Preview Modal */}
-      {showCVPreview && userCV && (
-        <CVPreviewModal
-          cvUrl={userCV.url}
-          cvName={userCV.name}
+      {/* CV Preview Modal - Using Premium PDF Viewer */}
+      <PremiumPDFViewer
+        pdfDocument={userCV ? {
+          id: 'preview-cv',
+          name: userCV.name,
+          fileUrl: userCV.url,
+          fileSize: 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } : null}
+        isOpen={showCVPreview && !!userCV}
           onClose={() => setShowCVPreview(false)}
         />
-      )}
 
       {/* Input file global pour s'assurer qu'il est toujours accessible */}
       <input

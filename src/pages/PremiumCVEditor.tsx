@@ -7,7 +7,8 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { getDoc, doc, updateDoc, serverTimestamp, collection, query, orderBy, getDocs, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import EditorPanel from '../components/cv-editor/EditorPanel';
 import PreviewContainer from '../components/cv-editor/PreviewContainer';
 import AICompanionPanel from '../components/cv-editor/AICompanionPanel';
@@ -20,13 +21,14 @@ import { ComparisonSectionType } from '../types/cvComparison';
 import { PreviousAnalysisContext } from '../types/cvReviewHistory';
 import { useCVEditor } from '../hooks/useCVEditor';
 import { useBeforeAfterComparison, useHasComparison } from '../hooks/useBeforeAfterComparison';
-import { exportToPDFEnhanced, generateId, A4_WIDTH_PX, A4_HEIGHT_PX } from '../lib/cvEditorUtils';
+import { exportToPDFEnhanced, exportToPDFBlob, generateId, A4_WIDTH_PX, A4_HEIGHT_PX } from '../lib/cvEditorUtils';
 import { parseCVData } from '../lib/cvSectionAI';
 import { loadOrInitializeCVData } from '../lib/initializeCVData';
 import { analyzeCVWithAI } from '../services/cvReviewAI';
 import { compareCVData, detectAppliedSuggestions } from '../lib/cvComparison';
 import AuthLayout from '../components/AuthLayout';
 import SaveAsModal, { Folder } from '../components/cv-editor/SaveAsModal';
+import ExportPDFModal from '../components/cv-editor/ExportPDFModal';
 import ModernProfessional from '../components/cv-editor/templates/ModernProfessional';
 import ExecutiveClassic from '../components/cv-editor/templates/ExecutiveClassic';
 import TechMinimalist from '../components/cv-editor/templates/TechMinimalist';
@@ -111,6 +113,9 @@ export default function PremiumCVEditor() {
   // Translation state
   const [isTranslationModalOpen, setIsTranslationModalOpen] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  
+  // Export PDF modal state
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   
   // Click-to-edit from preview
   const [activeSectionTarget, setActiveSectionTarget] = useState<SectionClickTarget | null>(null);
@@ -278,8 +283,6 @@ export default function PremiumCVEditor() {
         } else {
           toast.success('Analysis complete!');
         }
-      } else {
-        toast.success('AI review analysis completed!');
       }
       
       console.log('✅ AI review analysis completed');
@@ -363,11 +366,6 @@ export default function PremiumCVEditor() {
         if (editorState.zoom) {
           setZoom(editorState.zoom);
         }
-        toast.success('CV, preferences, and job context loaded successfully');
-      } else if (loadedJobContext) {
-        toast.success('CV and job context loaded successfully');
-      } else {
-        toast.info('CV loaded. Add job context for AI features.');
       }
       
       return; // Exit early since we've handled everything
@@ -802,14 +800,20 @@ export default function PremiumCVEditor() {
     }
   };
 
-  // Handle export
-  const handleExport = async () => {
+  // Handle export - opens the export modal
+  const handleExport = () => {
+    setIsExportModalOpen(true);
+  };
+
+  // Handle direct download export
+  const handleExportDownload = async () => {
     setIsExporting(true);
     try {
       await exportToPDFEnhanced(cvData, template, layoutSettings, {
         quality: 'high',
         compression: true
       });
+      setIsExportModalOpen(false);
       toast.success('CV exported successfully! High-quality PDF generated.');
     } catch (error) {
       console.error('Error exporting CV:', error);
@@ -817,6 +821,70 @@ export default function PremiumCVEditor() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Handle export to library - generates PDF and uploads to documents collection
+  const handleExportToLibrary = async (fileName: string, folderId: string | null) => {
+    if (!currentUser) {
+      toast.error('Please sign in to save to library');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      // Generate PDF as blob
+      const { blob } = await exportToPDFBlob(cvData, template, 'high');
+      
+      // Use custom filename (ensure it ends with .pdf)
+      const finalFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+      
+      // Generate unique document ID
+      const documentId = generateId();
+      const storageFileName = `${documentId}_${finalFileName}`;
+      const fileRef = ref(storage, `cvs/${currentUser.uid}/${storageFileName}`);
+      
+      // Upload to Firebase Storage
+      await uploadBytes(fileRef, blob, { contentType: 'application/pdf' });
+      const downloadUrl = await getDownloadURL(fileRef);
+
+      // Create document entry in Firestore
+      const docRef = doc(db, 'users', currentUser.uid, 'documents', documentId);
+      await setDoc(docRef, {
+        name: finalFileName,
+        fileUrl: downloadUrl,
+        fileSize: blob.size,
+        folderId: folderId || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      setIsExportModalOpen(false);
+      
+      toast.success(
+        <div className="flex flex-col gap-1">
+          <span>PDF saved to library!</span>
+          <button 
+            onClick={() => navigate('/resume-builder')}
+            className="text-xs text-purple-600 dark:text-purple-400 hover:underline text-left"
+          >
+            View in Resume Builder →
+          </button>
+        </div>,
+        { duration: 5000 }
+      );
+    } catch (error) {
+      console.error('Error saving PDF to library:', error);
+      toast.error('Failed to save PDF to library. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Generate default filename for export
+  const getDefaultExportFileName = () => {
+    const firstName = cvData.personalInfo.firstName || 'CV';
+    const lastName = cvData.personalInfo.lastName || '';
+    return `${firstName}_${lastName}_CV_${new Date().toISOString().split('T')[0]}.pdf`.replace(/\s+/g, '_');
   };
 
   // Handle share
@@ -1508,6 +1576,17 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
           onSetViewMode={setComparisonViewMode}
           onToggleExperienceExpanded={toggleExperienceExpanded}
           onToggleEducationExpanded={toggleEducationExpanded}
+        />
+
+        {/* Export PDF Modal */}
+        <ExportPDFModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          onDownload={handleExportDownload}
+          onSaveToLibrary={handleExportToLibrary}
+          defaultFileName={getDefaultExportFileName()}
+          folders={folders}
+          isExporting={isExporting}
         />
       </div>
     </AuthLayout>
