@@ -4,6 +4,7 @@ import { collection, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/fi
 import { ref, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
 import { analyzeJobPost, JobPostAnalysisResult } from '../services/jobPostAnalyzer';
@@ -341,6 +342,7 @@ const CANVAS_MIN_Y = -1000;
 export default function InterviewPrepPage() {
   const { applicationId, interviewId } = useParams<{ applicationId: string, interviewId: string }>();
   const { currentUser } = useAuth();
+  const { profile: userProfile } = useUserProfile();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -3312,14 +3314,37 @@ Return ONLY a JSON array of 6 question strings, no other text. Example format:
     try {
       const skills = interview?.preparation?.requiredSkills?.slice(0, 5).join(', ') || '';
       
+      // Build user profile context for personalization
+      const userName = userProfile?.firstName 
+        ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
+        : '';
+      const userSkills = userProfile?.skills?.slice(0, 8).join(', ') 
+        || userProfile?.cvSkills?.slice(0, 8).join(', ') 
+        || '';
+      const userBackground = userProfile?.cvText 
+        ? userProfile.cvText.slice(0, 800) 
+        : '';
+      
+      const userInfo = userProfile ? `
+About the candidate (use this to personalize the pitch):
+${userName ? `- Name: ${userName}` : ''}
+${userProfile.currentJobTitle ? `- Current role: ${userProfile.currentJobTitle}${userProfile.currentCompany ? ' at ' + userProfile.currentCompany : ''}` : ''}
+${userProfile.yearsOfExperience ? `- Years of experience: ${userProfile.yearsOfExperience}` : ''}
+${userSkills ? `- Key skills: ${userSkills}` : ''}
+${userProfile.professionalSummary ? `- Professional summary: ${userProfile.professionalSummary}` : ''}
+${userBackground ? `- Background from CV: ${userBackground}...` : ''}
+` : '';
+      
       const prompt = `Write a concise 30-second elevator pitch for someone interviewing for a ${application.position} position at ${application.companyName}.
-
-${skills ? `Relevant skills for this role: ${skills}` : ''}
+${userInfo}
+${skills ? `Relevant skills required for this role: ${skills}` : ''}
 
 Requirements:
 - 75-120 words (30-45 seconds when spoken)
 - First person, conversational tone
 - Structure: Who you are → What you do → Why this role excites you
+- Use the candidate's ACTUAL background and experience from the profile data provided
+- Highlight specific skills and achievements that match the role
 - Specific and genuine, not generic
 - End with enthusiasm for the opportunity
 
