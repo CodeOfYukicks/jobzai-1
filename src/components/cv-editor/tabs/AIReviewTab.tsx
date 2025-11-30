@@ -843,44 +843,6 @@ export default function AIReviewTab({
             </div>
           )}
           
-          {/* Review Summary Card */}
-          <div className="mb-6 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
-            <div className="flex items-start gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <ATSScoreRing score={result.summary.overallScore} />
-                {/* Show improvement badge if this is a re-analysis with history */}
-                {reviewState?.result && result.analyzedAt !== reviewState.result.analyzedAt && (
-                  <ScoreImprovementBadge 
-                    improvement={result.summary.overallScore - reviewState.result.summary.overallScore} 
-                  />
-                )}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                    AI Review
-                  </span>
-                </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {typeof result.summary.greeting === 'string' ? result.summary.greeting : String(result.summary.greeting)}
-                </p>
-                
-                {result.summary.strengths.length > 0 && (
-                  <div className="mt-3">
-                    <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                      Strengths:
-                    </span>
-                    <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
-                      {result.summary.strengths.map(s => typeof s === 'string' ? s : String(s)).join(' • ')}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Missing for Job Section - Only show if job context was provided */}
           {result.missing_for_job && (
             <div className="mb-6 space-y-4">

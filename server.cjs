@@ -481,7 +481,7 @@ app.post('/api/chatgpt', async (req, res) => {
           model: model,
           messages: messages,
           response_format: { type: 'json_object' },
-          max_tokens: maxTokens,
+          max_completion_tokens: maxTokens,
           temperature: 0.3 // Lower temperature for more consistent, structured responses
         })
       });
@@ -746,12 +746,11 @@ CRITICAL RULES:
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "gpt-5.1",
+          model: "gpt-4o",
           messages: messages,
           response_format: { type: 'json_object' },
-          max_tokens: 8000,
-          temperature: 0.3,
-          reasoning_effort: "high" // GPT-5.1 feature for detailed CV review
+          max_completion_tokens: 8000,
+          temperature: 0.3
         })
       });
 
@@ -1143,11 +1142,10 @@ app.post('/api/analyze-cv-vision', async (req, res) => {
 
     // Prepare request body
     const requestBody = {
-      model: model || 'gpt-5.1',
+      model: model || 'gpt-4o',
       messages: messages,
-      max_tokens: max_tokens || 6000, // Increased for more detailed analysis
-      temperature: temperature || 0.1, // Lower temperature for more precise, consistent analysis
-      reasoning_effort: "high" // GPT-5.1 feature for comprehensive CV analysis
+      max_completion_tokens: max_tokens || 6000, // Increased for more detailed analysis
+      temperature: temperature || 0.1 // Lower temperature for more precise, consistent analysis
     };
 
     // Only add response_format if it's specified (required for json_object mode)
@@ -1462,8 +1460,7 @@ IMPORTANT INSTRUCTIONS:
           }
         ],
         temperature: 0.7,
-        max_tokens: 4000,
-        reasoning_effort: "high", // GPT-5.1 feature for thorough interview analysis
+        max_completion_tokens: 4000,
         response_format: { type: 'json_object' }
       })
     });
@@ -2357,7 +2354,7 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
             'Authorization': `Bearer ${finalOpenAIApiKey}`
           },
           body: JSON.stringify({
-            model: 'gpt-5.1',
+            model: 'gpt-4o',
             messages: [
               {
                 role: 'system',
@@ -2368,10 +2365,9 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
                 content: prompt
               }
             ],
-            reasoning_effort: "medium", // GPT-5.1 feature for STAR story generation
             response_format: { type: 'json_object' },
             temperature: 0.3,
-            max_tokens: 2000,
+            max_completion_tokens: 2000,
           })
         });
 
@@ -2397,10 +2393,22 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
             }
           }
         } else {
-          throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+          // Read the error response body to get detailed error message
+          const errorBody = await openaiResponse.text();
+          let errorMessage = `OpenAI API error: ${openaiResponse.status}`;
+          try {
+            const errorJson = JSON.parse(errorBody);
+            if (errorJson.error?.message) {
+              errorMessage = `OpenAI API error (${openaiResponse.status}): ${errorJson.error.message}`;
+            }
+            console.error('❌ OpenAI API error response:', errorJson);
+          } catch (parseError) {
+            console.error('❌ OpenAI API raw error:', errorBody);
+          }
+          throw new Error(errorMessage);
         }
       } catch (error) {
-        console.error('OpenAI error:', error);
+        console.error('❌ OpenAI error:', error.message);
         // Fall through to Claude
         if (!finalAnthropicApiKey) throw error;
       }
@@ -2457,10 +2465,22 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
               throw new Error('Could not parse Claude response');
             }
           } else {
-            throw new Error(`Claude API error: ${claudeResponse.status}`);
+            // Read the error response body to get detailed error message
+            const errorBody = await claudeResponse.text();
+            let errorMessage = `Claude API error: ${claudeResponse.status}`;
+            try {
+              const errorJson = JSON.parse(errorBody);
+              if (errorJson.error?.message) {
+                errorMessage = `Claude API error (${claudeResponse.status}): ${errorJson.error.message}`;
+              }
+              console.error('❌ Claude API error response:', errorJson);
+            } catch (parseError) {
+              console.error('❌ Claude API raw error:', errorBody);
+            }
+            throw new Error(errorMessage);
           }
       } catch (error) {
-        console.error('Claude error:', error);
+        console.error('❌ Claude error:', error.message);
         throw error;
       }
     }
@@ -2547,13 +2567,12 @@ Job:
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-5.1',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.5,
-        reasoning_effort: "low" // GPT-5.1 feature - low effort for quick job matching
+        temperature: 0.5
       })
     });
     if (!response.ok) {

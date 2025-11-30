@@ -16,6 +16,7 @@ export interface CVExperience {
   id: string;
   title: string;
   company: string;
+  client?: string; // Client company for consulting roles (e.g., "Danone" when working via Accenture)
   location?: string;
   startDate: string;
   endDate: string;

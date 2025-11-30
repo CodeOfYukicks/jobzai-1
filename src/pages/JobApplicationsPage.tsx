@@ -1174,10 +1174,16 @@ END:VCALENDAR`;
                 setShowLookupDropdown(false);
                 setNewApplicationModal(true);
               }}
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm border border-gray-200 dark:border-gray-700"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                text-gray-700 dark:text-gray-200 
+                bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
+                border border-gray-200 dark:border-gray-700 rounded-lg
+                hover:bg-gray-50 dark:hover:bg-gray-700/80 
+                hover:border-gray-300 dark:hover:border-gray-600
+                shadow-sm hover:shadow transition-all duration-200"
             >
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Add Application
+              <Plus className="w-4 h-4" />
+              <span>Add Application</span>
             </motion.button>
           </div>
 
@@ -2636,7 +2642,7 @@ END:VCALENDAR`;
                         )}
 
                         <AnimatePresence>
-                          {(eventType !== 'application' || showFullForm) && (
+                          {((eventType === 'application' && showFullForm) || (eventType === 'interview' && lookupSelectedApplication !== null)) && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}

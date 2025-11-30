@@ -77,15 +77,67 @@ export function useBeforeAfterComparison({
   const [modalState, setModalState] = useState<ComparisonModalState>(initialModalState);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Detect if structured data looks corrupted (all content in one experience)
+  const isDataCorrupted = useCallback((data: OriginalStructuredData | undefined): boolean => {
+    if (!data?.experiences) return false;
+    
+    // If only 1 experience with way too many bullets, data is likely corrupted
+    if (data.experiences.length === 1 && data.experiences[0]?.bullets?.length > 15) {
+      console.warn('⚠️ DATA CORRUPTION DETECTED: Single experience with', data.experiences[0].bullets.length, 'bullets');
+      console.warn('   First 3 bullets:', data.experiences[0].bullets.slice(0, 3));
+      return true;
+    }
+    
+    // If any experience has more than 20 bullets, that's suspicious
+    const suspiciousExp = data.experiences.find(exp => (exp.bullets?.length || 0) > 20);
+    if (suspiciousExp) {
+      console.warn('⚠️ DATA CORRUPTION DETECTED: Experience has', suspiciousExp.bullets?.length, 'bullets');
+      console.warn('   Experience:', suspiciousExp.title, 'at', suspiciousExp.company);
+      return true;
+    }
+    
+    return false;
+  }, []);
+
   // Get original CV data - PRIORITIZE structured data over markdown parsing
   const originalCV = useMemo((): OriginalCVData | null => {
-    // PRIORITY 1: Use originalStructuredData if available (most accurate)
+    console.log('🔄 useBeforeAfterComparison: Computing originalCV...');
+    console.log('   Has originalStructuredData:', !!originalStructuredData);
+    console.log('   Has initialCVMarkdown:', !!initialCVMarkdown, initialCVMarkdown?.length || 0, 'chars');
+    
+    // Debug: Log raw structured data to identify issues
     if (originalStructuredData) {
+      console.log('   📋 Raw originalStructuredData:', {
+        experiencesCount: originalStructuredData.experiences?.length || 0,
+        experiences: originalStructuredData.experiences?.map((exp, idx) => ({
+          idx,
+          id: exp.id,
+          title: exp.title?.substring(0, 30),
+          company: exp.company?.substring(0, 30),
+          bulletsCount: exp.bullets?.length || 0,
+        })),
+      });
+    }
+    
+    // Check for data corruption BEFORE using structured data
+    const dataIsCorrupted = isDataCorrupted(originalStructuredData);
+    
+    // PRIORITY 1: Use originalStructuredData if available AND not corrupted
+    if (originalStructuredData && !dataIsCorrupted) {
       try {
         const converted = convertStructuredDataToOriginalCVData(originalStructuredData);
         console.log('✅ Using original_structured_data for comparison:', {
           experiences: converted.experiences?.length || 0,
           education: converted.education?.length || 0,
+          summary: converted.summary?.length || 0,
+          skills: converted.skills?.length || 0,
+        });
+        // Debug: Log experience details with bullet counts
+        converted.experiences?.forEach((exp, idx) => {
+          console.log(`   Original exp[${idx}]: ID=${exp.id}, "${exp.title}" at "${exp.company}" - ${exp.bullets?.length || 0} bullets`);
+          if (exp.bullets && exp.bullets.length > 0) {
+            console.log(`      First bullet: "${exp.bullets[0]?.substring(0, 50)}..."`);
+          }
         });
         return converted;
       } catch (error) {
@@ -93,27 +145,63 @@ export function useBeforeAfterComparison({
       }
     }
     
-    // PRIORITY 2: Fallback to parsing markdown (legacy data)
+    // PRIORITY 2: Fallback to parsing markdown (legacy data OR corrupted structured data)
     if (initialCVMarkdown && initialCVMarkdown.trim().length > 0) {
       try {
-        console.log('⚠️ Falling back to markdown parsing for comparison');
-        return parseOriginalCVMarkdown(initialCVMarkdown);
+        if (dataIsCorrupted) {
+          console.log('🔧 Re-parsing from markdown due to corrupted structured data...');
+        } else {
+          console.log('⚠️ Falling back to markdown parsing for comparison');
+        }
+        const parsed = parseOriginalCVMarkdown(initialCVMarkdown);
+        console.log('   Parsed from markdown:', {
+          experiences: parsed.experiences?.length || 0,
+          education: parsed.education?.length || 0,
+        });
+        // Debug: Log each parsed experience
+        parsed.experiences?.forEach((exp, idx) => {
+          console.log(`   Parsed exp[${idx}]: "${exp.title}" at "${exp.company}" - ${exp.bullets?.length || 0} bullets`);
+        });
+        return parsed;
       } catch (error) {
         console.error('Error parsing original CV markdown:', error);
       }
     }
     
+    console.log('❌ No original CV data available for comparison');
     return null;
-  }, [originalStructuredData, initialCVMarkdown]);
+  }, [originalStructuredData, initialCVMarkdown, isDataCorrupted]);
 
   // Compute comparison when both original and current data are available
   const comparison = useMemo((): CVComparisonResult | null => {
     if (!originalCV || !currentCVData) {
+      console.log('⚠️ Cannot compute comparison:', {
+        hasOriginalCV: !!originalCV,
+        hasCurrentCVData: !!currentCVData,
+      });
       return null;
     }
 
+    console.log('📊 Computing CV comparison...');
+    console.log('   Current CV:', {
+      experiences: currentCVData.experiences?.length || 0,
+      education: currentCVData.education?.length || 0,
+      summary: currentCVData.summary?.length || 0,
+    });
+    // Debug: Log current experience details
+    currentCVData.experiences?.forEach((exp, idx) => {
+      console.log(`   Current exp[${idx}]: ID=${exp.id}, "${exp.title}" at "${exp.company}" - ${exp.bullets?.length || 0} bullets`);
+    });
+
     try {
-      return computeFullCVComparison(originalCV, currentCVData);
+      const result = computeFullCVComparison(originalCV, currentCVData);
+      console.log('✅ Comparison result:', {
+        hasAnyChanges: result.hasAnyChanges,
+        experiencesHasChanges: result.experiences?.hasChanges,
+        summaryHasChanges: result.summary?.hasChanges,
+        totalStats: result.totalStats,
+      });
+      return result;
     } catch (error) {
       console.error('Error computing CV comparison:', error);
       return null;

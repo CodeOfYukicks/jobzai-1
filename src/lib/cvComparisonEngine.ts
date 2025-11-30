@@ -22,19 +22,74 @@ import {
 import { CVData } from '../types/cvEditor';
 
 // ============================================================================
+// HOBBY DETECTION
+// ============================================================================
+
+/**
+ * Patterns that indicate a bullet is about hobbies/interests, not professional work
+ */
+const HOBBY_PATTERNS = [
+  // Sports & Games
+  /^(Chess|Tennis|Football|Soccer|Basketball|Golf|Running|Yoga|Swimming|Cycling|Hiking|Skiing|Surfing|Climbing|Martial Arts|Boxing|Fitness|CrossFit|Marathon|Triathlon)\s*[:|-]/i,
+  // Arts & Entertainment  
+  /^(Cinema|Film|Movies|Photography|Painting|Drawing|Music|Guitar|Piano|Drums|Singing|Dancing|Theater|Theatre|Acting|Writing|Poetry|Art|Design|Sculpture)\s*[:|-]/i,
+  // Competitive gaming/ratings
+  /\b(ELO|rating|ranked|competitive player|tournament)\b/i,
+  // Personal projects that are clearly hobbies
+  /^(Hobby|Interest|Passion|Side project|Personal project|Amateur|Enthusiast)\s*[:|-]/i,
+  // Filmmaker/writer hobbies
+  /\b(screenplay|filmmaker|screenwriter|amateur filmmaker)\b/i,
+  // Gaming
+  /^(Gaming|Video games|Esports|Twitch|Streaming)\s*[:|-]/i,
+  // Travel/Lifestyle
+  /^(Travel|Cooking|Reading|Gardening|DIY|Volunteering|Charity)\s*[:|-]/i,
+];
+
+/**
+ * Check if a bullet point looks like a hobby/interest rather than professional work
+ */
+function isHobbyBullet(bullet: string): boolean {
+  if (!bullet || typeof bullet !== 'string') return false;
+  
+  const trimmed = bullet.trim();
+  
+  // Check against hobby patterns
+  for (const pattern of HOBBY_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      console.log(`   🎯 Detected hobby bullet: "${trimmed.substring(0, 50)}..."`);
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// ============================================================================
 // STRUCTURED DATA CONVERTER
 // ============================================================================
 
 /**
  * Convert original_structured_data from cv_rewrite to OriginalCVData format
  * This is more accurate than parsing raw markdown
+ * 
+ * IMPORTANT: Handles multiple field name variations for backwards compatibility
  */
 export function convertStructuredDataToOriginalCVData(structuredData: any): OriginalCVData {
   if (!structuredData) {
+    console.warn('⚠️ convertStructuredDataToOriginalCVData: No structured data provided');
     return {};
   }
 
-  return {
+  console.log('🔄 Converting original_structured_data to OriginalCVData...');
+  console.log('   Raw data keys:', Object.keys(structuredData));
+  
+  // Debug: Log experience structure
+  if (structuredData.experiences?.length > 0) {
+    console.log('   First experience keys:', Object.keys(structuredData.experiences[0]));
+    console.log('   First experience:', JSON.stringify(structuredData.experiences[0], null, 2).substring(0, 500));
+  }
+
+  const result: OriginalCVData = {
     personalInfo: structuredData.personalInfo ? {
       firstName: structuredData.personalInfo.firstName || structuredData.personalInfo.name?.split(' ')[0],
       lastName: structuredData.personalInfo.lastName || structuredData.personalInfo.name?.split(' ').slice(1).join(' '),
@@ -47,17 +102,38 @@ export function convertStructuredDataToOriginalCVData(structuredData: any): Orig
     
     summary: structuredData.summary || '',
     
-    experiences: (structuredData.experiences || []).map((exp: any, idx: number) => ({
-      id: exp.id || `orig-exp-${idx}`,
-      title: exp.title || '',
-      company: exp.company || '',
-      location: exp.location || '',
-      startDate: exp.startDate || '',
-      endDate: exp.endDate || '',
-      bullets: Array.isArray(exp.bullets) ? exp.bullets : [],
-    })),
+    experiences: (structuredData.experiences || []).map((exp: any, idx: number) => {
+      // Handle multiple possible field names for bullets
+      const bullets = exp.bullets || exp.responsibilities || exp.description || exp.achievements || [];
+      const allBullets = Array.isArray(bullets) ? bullets.filter((b: any) => b && typeof b === 'string' && b.trim()) : [];
+      
+      // Filter out hobby-like bullets that shouldn't be in professional experiences
+      const normalizedBullets = allBullets.filter((bullet: string) => !isHobbyBullet(bullet));
+      const filteredCount = allBullets.length - normalizedBullets.length;
+      
+      if (filteredCount > 0) {
+        console.log(`   Experience[${idx}] "${exp.title}": Filtered ${filteredCount} hobby-like bullets`);
+      }
+      
+      console.log(`   Experience[${idx}] "${exp.title}" bullets:`, {
+        hasBullets: !!exp.bullets,
+        hasResponsibilities: !!exp.responsibilities,
+        totalBullets: allBullets.length,
+        afterFiltering: normalizedBullets.length
+      });
+      
+      return {
+        id: exp.id || `orig-exp-${idx}`,
+        title: exp.title || '',
+        company: exp.company || '',
+        location: exp.location || '',
+        startDate: exp.startDate || '',
+        endDate: exp.endDate || '',
+        bullets: normalizedBullets,
+      };
+    }),
     
-    education: (structuredData.educations || []).map((edu: any, idx: number) => ({
+    education: (structuredData.educations || structuredData.education || []).map((edu: any, idx: number) => ({
       id: edu.id || `orig-edu-${idx}`,
       degree: edu.degree || '',
       institution: edu.institution || '',
@@ -80,6 +156,15 @@ export function convertStructuredDataToOriginalCVData(structuredData: any): Orig
       level: typeof lang === 'object' ? (lang.level || '') : '',
     })),
   };
+  
+  console.log('✅ Conversion complete:', {
+    experiences: result.experiences?.length || 0,
+    experiencesWithBullets: result.experiences?.filter(e => e.bullets && e.bullets.length > 0).length || 0,
+    education: result.education?.length || 0,
+    skills: result.skills?.length || 0,
+  });
+  
+  return result;
 }
 
 // ============================================================================
@@ -323,12 +408,16 @@ function detectSectionType(line: string): string | null {
 /**
  * Check if a line looks like an experience/job entry header
  * (Title at Company, Company - Title, etc.)
+ * Enhanced to detect more formats including French patterns
  */
 function isExperienceHeader(line: string): { title: string; company: string; location?: string } | null {
   const trimmed = line.trim();
   
-  // Pattern: ### Title - Company or ### Title at Company
-  const mdPattern = /^#+\s*(.+?)(?:\s*[-–@]\s*|\s+at\s+)(.+?)(?:\s*[-–•]\s*(.+))?$/i;
+  // Skip if too short or looks like a bullet
+  if (trimmed.length < 5 || /^[•\-*]\s/.test(trimmed)) return null;
+  
+  // Pattern 1: ### Title - Company or ### Title at Company
+  const mdPattern = /^#+\s*(.+?)(?:\s*[-–@]\s*|\s+at\s+|\s+chez\s+)(.+?)(?:\s*[-–•]\s*(.+))?$/i;
   const mdMatch = trimmed.match(mdPattern);
   if (mdMatch) {
     return {
@@ -338,7 +427,7 @@ function isExperienceHeader(line: string): { title: string; company: string; loc
     };
   }
 
-  // Pattern: Title | Company or Title • Company
+  // Pattern 2: Title | Company or Title • Company
   const pipePattern = /^(.+?)\s*[|•]\s*(.+?)(?:\s*[|•]\s*(.+))?$/;
   const pipeMatch = trimmed.match(pipePattern);
   if (pipeMatch && !trimmed.startsWith('#')) {
@@ -350,11 +439,37 @@ function isExperienceHeader(line: string): { title: string; company: string; loc
     }
   }
 
-  // Pattern: **Title** at Company or **Title** - Company
-  const boldPattern = /^\*\*(.+?)\*\*\s*(?:at|[-–@])\s*(.+?)$/i;
+  // Pattern 3: **Title** at Company or **Title** - Company
+  const boldPattern = /^\*\*(.+?)\*\*\s*(?:at|chez|[-–@,])\s*(.+?)$/i;
   const boldMatch = trimmed.match(boldPattern);
   if (boldMatch) {
     return { title: boldMatch[1].trim(), company: boldMatch[2].trim() };
+  }
+  
+  // Pattern 4: Title, Company (comma separated)
+  const commaPattern = /^([A-Z][^,]+?),\s*([A-Z][^,]+?)(?:,\s*(.+))?$/;
+  const commaMatch = trimmed.match(commaPattern);
+  if (commaMatch && isLikelyJobTitle(commaMatch[1])) {
+    return { 
+      title: commaMatch[1].trim(), 
+      company: commaMatch[2].trim(),
+      location: commaMatch[3]?.trim()
+    };
+  }
+  
+  // Pattern 5: Just a bold title followed by company on next line (detect title only)
+  // This will be handled in the main parsing logic
+  const boldOnlyPattern = /^\*\*(.+?)\*\*\s*$/;
+  const boldOnlyMatch = trimmed.match(boldOnlyPattern);
+  if (boldOnlyMatch && isLikelyJobTitle(boldOnlyMatch[1])) {
+    return { title: boldOnlyMatch[1].trim(), company: '' };
+  }
+  
+  // Pattern 6: Title followed by date range (like "Senior Developer 2020-2023")
+  const titleDatePattern = /^([A-Z][^0-9]+?)\s+(\d{4}\s*[-–]\s*(?:\d{4}|Present|Aujourd'hui|Current))/i;
+  const titleDateMatch = trimmed.match(titleDatePattern);
+  if (titleDateMatch && isLikelyJobTitle(titleDateMatch[1])) {
+    return { title: titleDateMatch[1].trim(), company: '' };
   }
 
   return null;
@@ -365,6 +480,7 @@ function isExperienceHeader(line: string): { title: string; company: string; loc
  */
 function isLikelyJobTitle(text: string): boolean {
   const jobTitleKeywords = [
+    // English titles
     'manager', 'developer', 'engineer', 'analyst', 'consultant', 'director',
     'lead', 'senior', 'junior', 'associate', 'specialist', 'coordinator',
     'architect', 'designer', 'head', 'chief', 'vp', 'president', 'officer',
@@ -372,10 +488,44 @@ function isLikelyJobTitle(text: string): boolean {
     'founder', 'ceo', 'cto', 'cfo', 'coo', 'cio', 'product', 'project',
     'customer success', 'business', 'data', 'software', 'full stack', 'frontend',
     'backend', 'devops', 'qa', 'test', 'marketing', 'sales', 'hr', 'finance',
-    'success', 'support', 'technician', 'supervisor', 'strategist'
+    'success', 'support', 'technician', 'supervisor', 'strategist', 'scientist',
+    'researcher', 'partner', 'principal', 'fellow', 'scrum master', 'agile',
+    // French titles
+    'responsable', 'directeur', 'directrice', 'chef', 'ingénieur', 'développeur',
+    'développeuse', 'analyste', 'conseiller', 'conseillère', 'gestionnaire',
+    'chargé', 'chargée', 'stagiaire', 'alternant', 'alternante', 'technicien',
+    'technicienne', 'coordinateur', 'coordinatrice', 'assistant', 'assistante'
   ];
   const lower = text.toLowerCase();
   return jobTitleKeywords.some(kw => lower.includes(kw));
+}
+
+/**
+ * Check if a line looks like it starts a new experience entry
+ * More aggressive detection than isExperienceHeader
+ */
+function looksLikeNewExperience(line: string, prevLine: string): boolean {
+  const trimmed = line.trim();
+  
+  // Empty line followed by title-like content
+  if (!prevLine.trim() && trimmed.length > 5) {
+    // Check if it looks like a job title on its own line
+    if (isLikelyJobTitle(trimmed) && !trimmed.startsWith('-') && !trimmed.startsWith('•')) {
+      return true;
+    }
+  }
+  
+  // Line starts with markdown header and contains job title
+  if (/^#+\s+/.test(trimmed) && isLikelyJobTitle(trimmed)) {
+    return true;
+  }
+  
+  // Bold text that looks like a title
+  if (/^\*\*[^*]+\*\*/.test(trimmed) && isLikelyJobTitle(trimmed)) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -613,7 +763,7 @@ export function parseOriginalCVMarkdown(markdown: string): OriginalCVData {
     // Process based on current section
     switch (currentSection) {
       case 'experience': {
-        // Check for new experience entry
+        // Check for new experience entry (full header with title and company)
         const expHeader = isExperienceHeader(trimmedLine);
         if (expHeader) {
           flushExperience();
@@ -628,8 +778,26 @@ export function parseOriginalCVMarkdown(markdown: string): OriginalCVData {
           };
           continue;
         }
+        
+        // NEW: Check if current line looks like start of new experience
+        // This catches cases where experiences are separated by blank lines + title
+        const prevLine = i > 0 ? lines[i - 1] : '';
+        if (currentExperience && looksLikeNewExperience(trimmedLine, prevLine)) {
+          // This looks like a new experience, flush the current one
+          flushExperience();
+          currentExperience = {
+            id: `orig-exp-${expIdCounter++}`,
+            title: trimmedLine.replace(/^#+\s*|\*\*/g, '').trim(),
+            company: '',
+            location: '',
+            startDate: '',
+            endDate: '',
+            bullets: [],
+          };
+          continue;
+        }
 
-        // Check for standalone job title (bold or ### header)
+        // Check for standalone job title (bold or ### header) - only if no current experience
         const titleMatch = trimmedLine.match(/^(?:#+\s*|\*\*)?([^*#]+?)(?:\*\*)?$/);
         if (titleMatch && !currentExperience && isLikelyJobTitle(titleMatch[1])) {
           flushExperience();
@@ -665,6 +833,23 @@ export function parseOriginalCVMarkdown(markdown: string): OriginalCVData {
         // Check for bullet points
         const bullet = isBulletPoint(trimmedLine);
         if (bullet && currentExperience) {
+          // Safety check: if we already have many bullets and this looks like a new section
+          // it might be corrupted data bleeding into bullets
+          if (bulletBuffer.length > 12 && isLikelyJobTitle(bullet)) {
+            console.warn(`⚠️ Parsing: Detected job title in bullet #${bulletBuffer.length}: "${bullet.substring(0, 50)}"`);
+            // Start new experience with this title
+            flushExperience();
+            currentExperience = {
+              id: `orig-exp-${expIdCounter++}`,
+              title: bullet,
+              company: '',
+              location: '',
+              startDate: '',
+              endDate: '',
+              bullets: [],
+            };
+            continue;
+          }
           bulletBuffer.push(bullet);
           continue;
         }
@@ -758,9 +943,59 @@ export function parseOriginalCVMarkdown(markdown: string): OriginalCVData {
     result.summary = '';
   }
 
+  // POST-PROCESSING: Validate and fix corrupted experiences
+  // If any experience has way too many bullets, try to split it
+  const MAX_REASONABLE_BULLETS = 15;
+  const fixedExperiences: typeof result.experiences = [];
+  
+  for (const exp of result.experiences || []) {
+    if (!exp.bullets || exp.bullets.length <= MAX_REASONABLE_BULLETS) {
+      fixedExperiences.push(exp);
+      continue;
+    }
+    
+    console.warn(`⚠️ Experience "${exp.title}" has ${exp.bullets.length} bullets - attempting to split...`);
+    
+    // Try to split the experience by finding job titles in bullets
+    let currentExp = { ...exp, bullets: [] as string[] };
+    let splitCount = 0;
+    
+    for (const bullet of exp.bullets) {
+      // Check if this bullet looks like a new job title
+      if (isLikelyJobTitle(bullet) && currentExp.bullets.length > 3) {
+        // Save current experience and start a new one
+        fixedExperiences.push(currentExp);
+        splitCount++;
+        currentExp = {
+          id: `orig-exp-${expIdCounter++}`,
+          title: bullet,
+          company: '',
+          location: '',
+          startDate: '',
+          endDate: '',
+          bullets: [],
+        };
+      } else {
+        currentExp.bullets.push(bullet);
+      }
+    }
+    
+    // Push the last experience
+    fixedExperiences.push(currentExp);
+    
+    if (splitCount > 0) {
+      console.log(`   ✓ Split into ${splitCount + 1} experiences`);
+    }
+  }
+  
+  result.experiences = fixedExperiences;
+
   console.log('✅ Original CV parsing complete:');
   console.log(`   Summary: ${result.summary?.length || 0} chars`);
   console.log(`   Experiences: ${result.experiences?.length || 0}`);
+  result.experiences?.forEach((exp, idx) => {
+    console.log(`      [${idx}] "${exp.title}" at "${exp.company}" - ${exp.bullets?.length || 0} bullets`);
+  });
   console.log(`   Education: ${result.education?.length || 0}`);
   console.log(`   Skills: ${result.skills?.length || 0}`);
 
@@ -773,6 +1008,7 @@ export function parseOriginalCVMarkdown(markdown: string): OriginalCVData {
 
 /**
  * Match experiences between original and modified CVs by company/title similarity
+ * Uses multiple strategies with position-based fallback for reliable matching
  */
 function matchExperiencesByCompany(
   original: OriginalCVData['experiences'],
@@ -780,23 +1016,29 @@ function matchExperiencesByCompany(
 ): Map<string, string> {
   const matches = new Map<string, string>();
   
-  if (!original || !modified) return matches;
+  if (!original || !modified) {
+    console.log('⚠️ matchExperiencesByCompany: Missing original or modified experiences');
+    return matches;
+  }
+
+  console.log(`🔍 Matching ${original.length} original experiences with ${modified.length} modified experiences`);
 
   const usedModifiedIds = new Set<string>();
 
-  // First pass: exact company match
+  // First pass: exact company match (normalized)
   original.forEach(origExp => {
     const match = modified.find(modExp => 
       !usedModifiedIds.has(modExp.id) &&
       normalizeString(modExp.company) === normalizeString(origExp.company)
     );
     if (match) {
+      console.log(`   ✓ Exact company match: "${origExp.company}" -> "${match.company}"`);
       matches.set(origExp.id, match.id);
       usedModifiedIds.add(match.id);
     }
   });
 
-  // Second pass: fuzzy company match
+  // Second pass: fuzzy company match (partial match)
   original.forEach(origExp => {
     if (matches.has(origExp.id)) return;
 
@@ -805,6 +1047,7 @@ function matchExperiencesByCompany(
       fuzzyMatch(modExp.company, origExp.company)
     );
     if (match) {
+      console.log(`   ✓ Fuzzy company match: "${origExp.company}" -> "${match.company}"`);
       matches.set(origExp.id, match.id);
       usedModifiedIds.add(match.id);
     }
@@ -819,28 +1062,115 @@ function matchExperiencesByCompany(
       fuzzyMatch(modExp.title, origExp.title)
     );
     if (match) {
+      console.log(`   ✓ Title match: "${origExp.title}" -> "${match.title}"`);
       matches.set(origExp.id, match.id);
       usedModifiedIds.add(match.id);
     }
   });
 
+  // Fourth pass: combined company + title similarity score
+  original.forEach(origExp => {
+    if (matches.has(origExp.id)) return;
+
+    let bestMatch: typeof modified[0] | null = null;
+    let bestScore = 0;
+
+    modified.forEach(modExp => {
+      if (usedModifiedIds.has(modExp.id)) return;
+      
+      const companyScore = computeStringSimilarity(origExp.company, modExp.company);
+      const titleScore = computeStringSimilarity(origExp.title, modExp.title);
+      const combinedScore = (companyScore * 0.6) + (titleScore * 0.4);
+      
+      if (combinedScore > bestScore && combinedScore >= 0.3) {
+        bestScore = combinedScore;
+        bestMatch = modExp;
+      }
+    });
+
+    if (bestMatch) {
+      console.log(`   ✓ Similarity match (score: ${bestScore.toFixed(2)}): "${origExp.company}" -> "${bestMatch.company}"`);
+      matches.set(origExp.id, bestMatch.id);
+      usedModifiedIds.add(bestMatch.id);
+    }
+  });
+
+  // Fifth pass: FALLBACK by position/index
+  // If same number of experiences and some are unmatched, match by position
+  if (original.length === modified.length) {
+    original.forEach((origExp, index) => {
+      if (matches.has(origExp.id)) return;
+      
+      const modExp = modified[index];
+      if (modExp && !usedModifiedIds.has(modExp.id)) {
+        console.log(`   ✓ Position fallback [${index}]: "${origExp.company}" -> "${modExp.company}"`);
+        matches.set(origExp.id, modExp.id);
+        usedModifiedIds.add(modExp.id);
+      }
+    });
+  }
+
+  // Sixth pass: match remaining by order of appearance
+  // For any still unmatched, pair them in order
+  const unmatchedOriginal = original.filter(o => !matches.has(o.id));
+  const unmatchedModified = modified.filter(m => !usedModifiedIds.has(m.id));
+  
+  unmatchedOriginal.forEach((origExp, idx) => {
+    if (idx < unmatchedModified.length) {
+      const modExp = unmatchedModified[idx];
+      console.log(`   ✓ Order fallback: "${origExp.company}" -> "${modExp.company}"`);
+      matches.set(origExp.id, modExp.id);
+      usedModifiedIds.add(modExp.id);
+    }
+  });
+
+  console.log(`   📊 Final matches: ${matches.size}/${original.length} original experiences matched`);
+  
   return matches;
 }
 
 /**
- * Normalize string for comparison
+ * Normalize string for comparison - handles accents and special characters
  */
 function normalizeString(str: string): string {
-  return (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return (str || '')
+    .toLowerCase()
+    // Normalize unicode (NFD) and remove diacritics/accents
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    // Remove all non-alphanumeric characters
+    .replace(/[^a-z0-9]/g, '');
 }
 
 /**
- * Simple fuzzy matching
+ * Simple fuzzy matching - checks if strings contain each other
  */
 function fuzzyMatch(a: string, b: string): boolean {
   const normA = normalizeString(a);
   const normB = normalizeString(b);
+  if (!normA || !normB) return false;
   return normA.includes(normB) || normB.includes(normA);
+}
+
+/**
+ * Compute similarity score between two strings (0-1) using word overlap
+ */
+function computeStringSimilarity(a: string, b: string): number {
+  const wordsA = normalizeString(a).match(/[a-z0-9]+/g) || [];
+  const wordsB = normalizeString(b).match(/[a-z0-9]+/g) || [];
+  
+  if (wordsA.length === 0 || wordsB.length === 0) return 0;
+  
+  const setA = new Set(wordsA);
+  const setB = new Set(wordsB);
+  
+  let intersection = 0;
+  setA.forEach(word => {
+    if (setB.has(word)) intersection++;
+  });
+  
+  const union = setA.size + setB.size - intersection;
+  return union > 0 ? intersection / union : 0;
 }
 
 // ============================================================================
@@ -1120,7 +1450,58 @@ function compareExperiences(
 }
 
 /**
- * Compare education sections
+ * Helper function to process a matched education pair
+ */
+function processEducationMatch(
+  origEdu: NonNullable<OriginalCVData['education']>[0],
+  match: NonNullable<CVData['education']>[0],
+  items: EducationComparisonItem[],
+  counters: { totalModified: () => void; totalUnchanged: () => void }
+) {
+  const hasChanges =
+    origEdu.degree !== match.degree ||
+    origEdu.institution !== match.institution ||
+    origEdu.field !== match.field;
+
+  items.push({
+    id: origEdu.id,
+    status: hasChanges ? 'modified' : 'unchanged',
+    original: {
+      degree: origEdu.degree,
+      institution: origEdu.institution,
+      field: origEdu.field,
+      startDate: origEdu.startDate,
+      endDate: origEdu.endDate,
+      gpa: origEdu.gpa,
+    },
+    modified: {
+      degree: match.degree,
+      institution: match.institution,
+      field: match.field,
+      startDate: match.startDate,
+      endDate: match.endDate,
+      gpa: match.gpa,
+    },
+    degreeDiff: origEdu.degree !== match.degree
+      ? computeWordLevelDiff(origEdu.degree, match.degree)
+      : undefined,
+    institutionDiff: origEdu.institution !== match.institution
+      ? computeWordLevelDiff(origEdu.institution, match.institution)
+      : undefined,
+    fieldDiff: origEdu.field !== match.field
+      ? computeWordLevelDiff(origEdu.field || '', match.field || '')
+      : undefined,
+  });
+
+  if (hasChanges) {
+    counters.totalModified();
+  } else {
+    counters.totalUnchanged();
+  }
+}
+
+/**
+ * Compare education sections with improved matching including position fallback
  */
 function compareEducation(
   original: OriginalCVData['education'],
@@ -1128,13 +1509,16 @@ function compareEducation(
 ): EducationComparison {
   const items: EducationComparisonItem[] = [];
   const usedModifiedIds = new Set<string>();
+  const matchedOriginalIds = new Set<string>();
 
   let totalAdded = 0;
   let totalRemoved = 0;
   let totalModified = 0;
   let totalUnchanged = 0;
 
-  // Match by institution name
+  console.log(`🎓 Matching ${original?.length || 0} original education with ${modified?.length || 0} modified education`);
+
+  // First pass: Match by institution or degree name
   original?.forEach(origEdu => {
     const match = modified?.find(modEdu =>
       !usedModifiedIds.has(modEdu.id) &&
@@ -1143,63 +1527,59 @@ function compareEducation(
     );
 
     if (match) {
+      console.log(`   ✓ Education match: "${origEdu.institution}" -> "${match.institution}"`);
       usedModifiedIds.add(match.id);
-
-      const hasChanges =
-        origEdu.degree !== match.degree ||
-        origEdu.institution !== match.institution ||
-        origEdu.field !== match.field;
-
-      items.push({
-        id: origEdu.id,
-        status: hasChanges ? 'modified' : 'unchanged',
-        original: {
-          degree: origEdu.degree,
-          institution: origEdu.institution,
-          field: origEdu.field,
-          startDate: origEdu.startDate,
-          endDate: origEdu.endDate,
-          gpa: origEdu.gpa,
-        },
-        modified: {
-          degree: match.degree,
-          institution: match.institution,
-          field: match.field,
-          startDate: match.startDate,
-          endDate: match.endDate,
-          gpa: match.gpa,
-        },
-        degreeDiff: origEdu.degree !== match.degree
-          ? computeWordLevelDiff(origEdu.degree, match.degree)
-          : undefined,
-        institutionDiff: origEdu.institution !== match.institution
-          ? computeWordLevelDiff(origEdu.institution, match.institution)
-          : undefined,
-        fieldDiff: origEdu.field !== match.field
-          ? computeWordLevelDiff(origEdu.field || '', match.field || '')
-          : undefined,
-      });
-
-      if (hasChanges) {
-        totalModified++;
-      } else {
-        totalUnchanged++;
-      }
-    } else {
-      items.push({
-        id: origEdu.id,
-        status: 'removed',
-        original: {
-          degree: origEdu.degree,
-          institution: origEdu.institution,
-          field: origEdu.field,
-          startDate: origEdu.startDate,
-          endDate: origEdu.endDate,
-          gpa: origEdu.gpa,
-        },
-      });
-      totalRemoved++;
+      matchedOriginalIds.add(origEdu.id);
+      processEducationMatch(origEdu, match, items, { totalModified: () => totalModified++, totalUnchanged: () => totalUnchanged++ });
     }
+  });
+
+  // Second pass: Position-based fallback for unmatched education
+  if (original && modified && original.length === modified.length) {
+    original.forEach((origEdu, index) => {
+      if (matchedOriginalIds.has(origEdu.id)) return;
+      
+      const modEdu = modified[index];
+      if (modEdu && !usedModifiedIds.has(modEdu.id)) {
+        console.log(`   ✓ Education position fallback [${index}]: "${origEdu.institution}" -> "${modEdu.institution}"`);
+        usedModifiedIds.add(modEdu.id);
+        matchedOriginalIds.add(origEdu.id);
+        processEducationMatch(origEdu, modEdu, items, { totalModified: () => totalModified++, totalUnchanged: () => totalUnchanged++ });
+      }
+    });
+  }
+
+  // Third pass: Order-based fallback for remaining unmatched
+  const unmatchedOriginal = original?.filter(o => !matchedOriginalIds.has(o.id)) || [];
+  const unmatchedModified = modified?.filter(m => !usedModifiedIds.has(m.id)) || [];
+  
+  unmatchedOriginal.forEach((origEdu, idx) => {
+    if (idx < unmatchedModified.length) {
+      const modEdu = unmatchedModified[idx];
+      console.log(`   ✓ Education order fallback: "${origEdu.institution}" -> "${modEdu.institution}"`);
+      usedModifiedIds.add(modEdu.id);
+      matchedOriginalIds.add(origEdu.id);
+      processEducationMatch(origEdu, modEdu, items, { totalModified: () => totalModified++, totalUnchanged: () => totalUnchanged++ });
+    }
+  });
+
+  // Add remaining unmatched original as removed
+  original?.forEach(origEdu => {
+    if (matchedOriginalIds.has(origEdu.id)) return;
+    
+    items.push({
+      id: origEdu.id,
+      status: 'removed',
+      original: {
+        degree: origEdu.degree,
+        institution: origEdu.institution,
+        field: origEdu.field,
+        startDate: origEdu.startDate,
+        endDate: origEdu.endDate,
+        gpa: origEdu.gpa,
+      },
+    });
+    totalRemoved++;
   });
 
   // Add new education entries

@@ -17,7 +17,7 @@ async function configureCORS() {
     // CORS configuration
     const corsConfiguration = [
       {
-        origin: ['http://localhost:5173', 'http://localhost:5178', 'https://jobzai.web.app', 'https://jobzai.firebaseapp.com'],
+        origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5178', 'https://jobzai.web.app', 'https://jobzai.firebaseapp.com'],
         method: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
         responseHeader: ['Content-Type', 'Authorization', 'Content-Length', 'Access-Control-Allow-Origin'],
         maxAgeSeconds: 3600

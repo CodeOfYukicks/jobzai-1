@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 export interface ExtractedExperience {
   title: string;
   company: string;
+  client: string;    // Client company for consulting roles (e.g., "Danone" when working via Accenture)
   startDate: string; // YYYY-MM format
   endDate: string;   // YYYY-MM format or empty if current
   current: boolean;
@@ -68,6 +69,7 @@ export interface CVFullProfileExtractionResult {
   skills: string[];
   tools: string[];
   languages: ExtractedLanguage[];
+  hobbies: string[];
   summary?: string;
 }
 
@@ -100,14 +102,25 @@ Extract ALL professional experiences from the CV text and structure them in a st
 
 ### For EACH work experience, extract:
 1. **Job Title** - The exact position/role title
-2. **Company Name** - The employer's name
-3. **Start Date** - In YYYY-MM format (e.g., "2020-01" for January 2020)
-4. **End Date** - In YYYY-MM format, or empty string if currently employed
-5. **Current** - Boolean: true if this is the current position
-6. **Location** - City, Country or Remote
-7. **Industry** - The industry sector (Technology, Finance, Healthcare, Consulting, etc.)
-8. **Contract Type** - One of: full-time, part-time, contract, freelance, internship
-9. **Responsibilities** - Array of bullet points describing key duties and achievements
+2. **Company Name** - The employer's name (the company you are employed by)
+3. **Client** - For consulting roles: the client company name (if different from employer)
+4. **Start Date** - In YYYY-MM format (e.g., "2020-01" for January 2020)
+5. **End Date** - In YYYY-MM format, or empty string if currently employed
+6. **Current** - Boolean: true if this is the current position
+7. **Location** - City, Country or Remote
+8. **Industry** - The industry sector (Technology, Finance, Healthcare, Consulting, etc.)
+9. **Contract Type** - One of: full-time, part-time, contract, freelance, internship
+10. **Responsibilities** - Array of bullet points describing key duties and achievements
+
+### 🎯 CONSULTING/CLIENT HANDLING (CRITICAL!)
+For consultants who work for a firm (like Accenture, Capgemini, Deloitte, BCG, McKinsey) but do projects for different clients:
+- "company" = the consulting firm (e.g., "Accenture")
+- "client" = the client company (e.g., "Danone", "Technicolor", "Ayvens", "BNP Paribas")
+- Create SEPARATE experience entries for EACH client project
+- Example: If someone worked at Accenture on 3 different client projects (Danone, Technicolor, Ayvens), create 3 separate experience entries with:
+  - company: "Accenture" (same for all 3)
+  - client: "Danone" / "Technicolor" / "Ayvens" (different for each)
+- Look for patterns like: "Client: Danone", "Mission chez Danone", "Projet Danone", "(38 months)" indicating duration
 
 ### DATE PARSING RULES:
 - "January 2020" → "2020-01"
@@ -119,7 +132,7 @@ Extract ALL professional experiences from the CV text and structure them in a st
 ### EXPERIENCE IDENTIFICATION:
 - Look for section headers like: "Experience", "Work Experience", "Professional Experience", "Employment History", "Expérience Professionnelle"
 - Each job entry typically has: title, company, dates, and description
-- Consulting roles with multiple clients should be separated into distinct experiences
+- Consulting roles with multiple clients MUST be separated into distinct experiences
 - Include ALL experiences, even internships and short-term positions
 
 ### RESPONSIBILITIES EXTRACTION:
@@ -137,6 +150,7 @@ Return ONLY this JSON structure:
     {
       "title": "Senior Product Manager",
       "company": "Google",
+      "client": "",
       "startDate": "2022-01",
       "endDate": "",
       "current": true,
@@ -150,17 +164,33 @@ Return ONLY this JSON structure:
       ]
     },
     {
-      "title": "Product Manager",
-      "company": "Meta",
-      "startDate": "2019-06",
-      "endDate": "2021-12",
+      "title": "Consultant - Customer Success",
+      "company": "Accenture",
+      "client": "Danone",
+      "startDate": "2020-03",
+      "endDate": "2021-06",
       "current": false,
-      "industry": "Technology / IT",
+      "industry": "Consulting",
       "contractType": "full-time",
-      "location": "London, UK",
+      "location": "Paris, France",
       "responsibilities": [
-        "Owned roadmap for advertising platform features",
-        "Collaborated with data science team on ML-powered recommendations"
+        "Led CRM transformation for European markets",
+        "Implemented Salesforce solution across 5 business units"
+      ]
+    },
+    {
+      "title": "Consultant - Customer Success",
+      "company": "Accenture",
+      "client": "Technicolor",
+      "startDate": "2019-01",
+      "endDate": "2020-02",
+      "current": false,
+      "industry": "Consulting",
+      "contractType": "full-time",
+      "location": "Paris, France",
+      "responsibilities": [
+        "Managed digital transformation project",
+        "Coordinated with C-level stakeholders"
       ]
     }
   ],
@@ -415,6 +445,7 @@ function normalizeExperiences(experiences: any[]): ExtractedExperience[] {
     .map(exp => ({
       title: cleanString(exp.title) || 'Unknown Position',
       company: cleanString(exp.company) || 'Unknown Company',
+      client: cleanString(exp.client) || '', // Client company for consulting roles
       startDate: normalizeDate(exp.startDate || exp.start_date),
       endDate: exp.current ? '' : normalizeDate(exp.endDate || exp.end_date),
       current: Boolean(exp.current),
@@ -581,7 +612,8 @@ Extract:
 ### 2. PROFESSIONAL EXPERIENCES
 For EACH work experience:
 - Job Title
-- Company Name
+- Company Name (the employer)
+- Client (for consulting roles: the client company name - CRITICAL!)
 - Start Date (YYYY-MM format)
 - End Date (YYYY-MM or empty if current)
 - Current (true/false)
@@ -589,6 +621,23 @@ For EACH work experience:
 - Industry
 - Contract Type (full-time, part-time, contract, freelance, internship)
 - Responsibilities (array of bullet points, max 5-7 per job)
+
+### 🎯 CONSULTING/CLIENT HANDLING (CRITICAL!)
+For consultants who work for a firm (like Accenture, Capgemini, Deloitte, BCG, McKinsey) but do projects for different clients:
+- "company" = the consulting firm (e.g., "Accenture")
+- "client" = the client company (e.g., "Danone", "Technicolor", "Ayvens", "BNP Paribas")
+- Create SEPARATE experience entries for EACH client project
+- Example: If someone worked at Accenture on 3 different client projects (Danone, Technicolor, Ayvens), create 3 separate experience entries with:
+  - company: "Accenture" (same for all 3)
+  - client: "Danone" / "Technicolor" / "Ayvens" (different for each)
+- Look for patterns like: "Client: Danone", "Mission chez Danone", "Projet Danone", "(38 months)" indicating duration
+
+⚠️ IMPORTANT: Responsibilities must be PROFESSIONAL work duties only!
+DO NOT include in responsibilities:
+- Hobbies (Chess, Cinema, Music, Sports, etc.)
+- Personal interests or side projects
+- Non-work related activities
+These go in the "hobbies" array instead!
 
 ### 3. EDUCATION
 For EACH education entry:
@@ -614,6 +663,18 @@ For EACH spoken language:
 - Language name
 - Proficiency level: native, fluent, intermediate, beginner
 
+### 7. HOBBIES & INTERESTS (SEPARATE FROM EXPERIENCES!)
+CRITICAL: Hobbies, interests, and personal projects are NOT work experiences!
+Extract ANY hobbies, interests, side projects, or personal activities mentioned in the CV as a SEPARATE array.
+Examples of hobbies/interests to extract:
+- Sports: "Chess", "Tennis", "Football", "Running", "Yoga"
+- Arts: "Cinema", "Photography", "Painting", "Music", "Writing"
+- Side projects: Personal apps, Open source contributions, Blogs
+- Other interests: Travel, Cooking, Reading, Gaming
+
+⚠️ NEVER put hobbies or personal interests in the "experiences" array!
+⚠️ If a bullet point starts with a hobby keyword (Chess:, Cinema:, Music:, etc.), it goes in "hobbies", NOT in experience responsibilities!
+
 ## DATE PARSING
 - "January 2020" or "Jan 2020" → "2020-01"
 - "2020" → "2020-01"
@@ -636,6 +697,7 @@ For EACH spoken language:
     {
       "title": "Senior Product Manager",
       "company": "Google",
+      "client": "",
       "startDate": "2022-01",
       "endDate": "",
       "current": true,
@@ -643,6 +705,30 @@ For EACH spoken language:
       "contractType": "full-time",
       "location": "Paris, France",
       "responsibilities": ["Led product strategy...", "Managed team..."]
+    },
+    {
+      "title": "Consultant - Customer Success",
+      "company": "Accenture",
+      "client": "Danone",
+      "startDate": "2020-03",
+      "endDate": "2021-12",
+      "current": false,
+      "industry": "Consulting",
+      "contractType": "full-time",
+      "location": "Paris, France",
+      "responsibilities": ["Led CRM transformation...", "Implemented Salesforce..."]
+    },
+    {
+      "title": "Consultant - Customer Success",
+      "company": "Accenture",
+      "client": "Technicolor",
+      "startDate": "2018-06",
+      "endDate": "2020-02",
+      "current": false,
+      "industry": "Consulting",
+      "contractType": "full-time",
+      "location": "Paris, France",
+      "responsibilities": ["Managed digital transformation...", "Coordinated stakeholders..."]
     }
   ],
   "educations": [
@@ -661,6 +747,11 @@ For EACH spoken language:
   "languages": [
     { "language": "French", "level": "native" },
     { "language": "English", "level": "fluent" }
+  ],
+  "hobbies": [
+    "Chess: Competitive player with ELO rating 1500",
+    "Cinema: Amateur filmmaker and screenwriter",
+    "Open Source: Contributor to React ecosystem"
   ]
 }
 
@@ -672,6 +763,8 @@ For EACH spoken language:
 5. Do not fabricate information not present in the CV
 6. IMPORTANT: Separate soft skills from technical tools - they go in different arrays
 7. Extract the professional summary/objective if present at the top of the CV
+8. CRITICAL: Put hobbies, interests, and personal projects in the "hobbies" array, NEVER in "experiences"!
+9. Experience responsibilities should ONLY contain professional work duties, achievements, and metrics
 `;
 }
 
@@ -754,6 +847,9 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
       }
 
       // Normalize all extracted data
+      // Normalize hobbies array
+      const hobbies = normalizeHobbies(parsedContent.hobbies || []);
+      
       const result: CVFullProfileExtractionResult = {
         personalInfo: normalizePersonalInfo(parsedContent.personalInfo || {}),
         experiences: normalizeExperiences(parsedContent.experiences || []),
@@ -761,6 +857,7 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
         skills: normalizeSkills(parsedContent.skills || []),
         tools: normalizeTools(parsedContent.tools || []),
         languages: normalizeLanguages(parsedContent.languages || []),
+        hobbies: hobbies,
         summary: cleanString(parsedContent.summary) || ''
       };
       
@@ -770,6 +867,7 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
       console.log(`   ✓ Skills: ${result.skills.length}`);
       console.log(`   ✓ Tools: ${result.tools.length}`);
       console.log(`   ✓ Languages: ${result.languages.length}`);
+      console.log(`   ✓ Hobbies: ${result.hobbies.length}`);
       console.log(`   ✓ Summary: ${result.summary ? 'Yes' : 'No'}`);
 
       return result;
@@ -928,5 +1026,24 @@ function normalizeLanguageLevel(level: any): string {
   }
   
   return 'intermediate';
+}
+
+/**
+ * Normalize hobbies array
+ */
+function normalizeHobbies(hobbies: any[]): string[] {
+  if (!Array.isArray(hobbies)) return [];
+  
+  return hobbies
+    .map(hobby => {
+      if (typeof hobby === 'string') {
+        return cleanString(hobby);
+      }
+      if (hobby && typeof hobby === 'object') {
+        return cleanString(hobby.name || hobby.description || hobby.hobby || '');
+      }
+      return '';
+    })
+    .filter(hobby => hobby && hobby.length > 0);
 }
 

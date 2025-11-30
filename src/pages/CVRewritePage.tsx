@@ -11,8 +11,9 @@ import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { CVRewrite, PremiumATSAnalysis } from '../types/premiumATS';
+import { CVRewrite, PremiumATSAnalysis, AdaptationLevel } from '../types/premiumATS';
 import { generateCVRewrite, translateCV } from '../lib/cvRewriteService';
+import AdaptationLevelModal from '../components/ats-premium/AdaptationLevelModal';
 import { rewriteSection, parseCVData } from '../lib/cvSectionAI';
 import { validateParsedCV } from '../lib/cvParsingValidator';
 import { checkCVQuality } from '../lib/cvQualityChecker';
@@ -361,7 +362,8 @@ export default function CVRewritePage() {
   const [cvRewrite, setCvRewrite] = useState<CVRewrite | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('consulting');
+  const [showLevelModal, setShowLevelModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('consulting');
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'fr'>('en');
   const [isCopied, setIsCopied] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -867,8 +869,8 @@ const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('consulti
     setCvData(buildPreviewData(initialCvData, cvSections, showSkillsOnCV));
   }, [cvSections, initialCvData, isDragging, showSkillsOnCV]);
 
-  // Generate CV rewrite
-  const handleGenerateRewrite = async () => {
+  // Open level selection modal
+  const handleOpenLevelModal = () => {
     if (!analysis) return;
     
     if (!analysis.cvText || !analysis.jobDescription) {
@@ -878,7 +880,24 @@ const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('consulti
       return;
     }
     
+    setShowLevelModal(true);
+  };
+
+  // Generate CV rewrite with selected adaptation level
+  const handleGenerateRewrite = async (adaptationLevel: AdaptationLevel = 'balanced') => {
+    if (!analysis) return;
+    
+    if (!analysis.cvText || !analysis.jobDescription) {
+      toast.error('This analysis is missing required data. Please run a new analysis.', {
+        duration: 6000
+      });
+      return;
+    }
+    
+    setShowLevelModal(false);
     setIsGenerating(true);
+    console.log(`🎚️ Starting CV Rewrite with adaptation level: ${adaptationLevel}`);
+    
     try {
       // Build FULL enriched ATS data for ultra-quality rewriting
       const enrichedStrengths = (analysis.top_strengths || []).map(s => ({
@@ -930,6 +949,7 @@ const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('consulti
         },
         jobTitle: analysis.jobTitle,
         company: analysis.company,
+        adaptationLevel, // Pass the selected adaptation level
       });
       
       setCvRewrite(result);
@@ -1501,7 +1521,7 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
               </div>
 
               <button
-                onClick={handleGenerateRewrite}
+                onClick={handleOpenLevelModal}
                 disabled={isGenerating}
                 className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/40 hover:scale-105 dark:shadow-purple-500/50"
               >
@@ -1517,6 +1537,14 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
                   </>
                 )}
             </button>
+            
+            {/* Adaptation Level Modal */}
+            <AdaptationLevelModal
+              isOpen={showLevelModal}
+              onClose={() => setShowLevelModal(false)}
+              onConfirm={handleGenerateRewrite}
+              isLoading={isGenerating}
+            />
           </motion.div>
         </div>
       </div>

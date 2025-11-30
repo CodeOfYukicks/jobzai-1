@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
   ArrowRight,
@@ -6,17 +7,22 @@ import {
   Sparkles,
   Wand2,
   ChevronRight,
-  Loader2
+  Loader2,
+  Shield,
+  Scale,
+  Rocket,
+  Check,
+  ChevronLeft
 } from 'lucide-react';
 import CVScoreComparison from './CVScoreComparison';
 import SuggestedAdditionsPanel from './SuggestedAdditionsPanel';
-import { PremiumATSAnalysis, CVRewrite } from '../../types/premiumATS';
+import { PremiumATSAnalysis, CVRewrite, AdaptationLevel } from '../../types/premiumATS';
 
 interface TailoredResumePanelProps {
   analysis: PremiumATSAnalysis | null;
   cvRewrite: CVRewrite | null;
   isGenerating: boolean;
-  onGenerate: () => void;
+  onGenerate: (level: AdaptationLevel) => void;
   onViewFull: () => void;
   optimizedScore?: {
     overall: number;
@@ -25,6 +31,86 @@ interface TailoredResumePanelProps {
   };
   premiumAnalysis?: any;
 }
+
+// Get adaptation level display info
+const getLevelInfo = (level: AdaptationLevel) => {
+  const icons = { conservative: Shield, balanced: Scale, optimized: Rocket };
+  const colors = {
+    conservative: 'text-blue-600 dark:text-blue-400',
+    balanced: 'text-purple-600 dark:text-purple-400',
+    optimized: 'text-amber-600 dark:text-amber-400',
+  };
+  const names = {
+    conservative: 'Conservative',
+    balanced: 'Balanced',
+    optimized: 'Maximum',
+  };
+  return {
+    Icon: icons[level],
+    color: colors[level],
+    name: names[level],
+  };
+};
+
+// Level data for inline selector
+const levelData: Record<AdaptationLevel, {
+  name: string;
+  description: string;
+  features: string[];
+  scoreGain: string;
+}> = {
+  conservative: {
+    name: 'Conservative',
+    description: 'Light edits, keeps your voice',
+    features: ['Grammar fixes', 'Formatting', '3-5 keywords'],
+    scoreGain: '+5-10%',
+  },
+  balanced: {
+    name: 'Balanced',
+    description: 'Moderate optimization',
+    features: ['Enhanced bullets', '10-15 keywords', 'Better summary'],
+    scoreGain: '+15-25%',
+  },
+  optimized: {
+    name: 'Maximum',
+    description: 'Full transformation',
+    features: ['Complete rewrite', '20+ keywords', 'Senior tone'],
+    scoreGain: '+30-40%',
+  },
+};
+
+const levelIcons = {
+  conservative: Shield,
+  balanced: Scale,
+  optimized: Rocket,
+};
+
+const levelColors = {
+  conservative: {
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/30',
+    selectedBorder: 'border-blue-500',
+    icon: 'text-blue-500',
+    iconBg: 'bg-blue-500/20',
+    badge: 'bg-blue-500/20 text-blue-400',
+  },
+  balanced: {
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/30',
+    selectedBorder: 'border-purple-500',
+    icon: 'text-purple-500',
+    iconBg: 'bg-purple-500/20',
+    badge: 'bg-purple-500/20 text-purple-400',
+  },
+  optimized: {
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/30',
+    selectedBorder: 'border-amber-500',
+    icon: 'text-amber-500',
+    iconBg: 'bg-amber-500/20',
+    badge: 'bg-amber-500/20 text-amber-400',
+  },
+};
 
 export default function TailoredResumePanel({
   analysis,
@@ -35,47 +121,166 @@ export default function TailoredResumePanel({
   optimizedScore,
   premiumAnalysis
 }: TailoredResumePanelProps) {
+  const [showLevelSelector, setShowLevelSelector] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<AdaptationLevel>('balanced');
+
+  const handleConfirmLevel = () => {
+    onGenerate(selectedLevel);
+  };
 
   // Empty State - Not generated yet
   if (!cvRewrite && !isGenerating) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-8">
-        <div className="relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
-          <div className="relative w-20 h-20 rounded-3xl bg-white dark:bg-[#26262B] border border-gray-100 dark:border-[#2A2A2E] flex items-center justify-center shadow-xl">
-            <Wand2 className="w-10 h-10 text-purple-600 dark:text-purple-400" />
-          </div>
-        </div>
+      <div className="h-full flex flex-col">
+        <AnimatePresence mode="wait">
+          {!showLevelSelector ? (
+            // Initial View - Generate Button
+            <motion.div
+              key="initial"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="h-full flex flex-col items-center justify-center p-6 text-center"
+            >
+              <div className="relative group mb-6">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
+                <div className="relative w-16 h-16 rounded-2xl bg-white dark:bg-[#26262B] border border-gray-100 dark:border-[#2A2A2E] flex items-center justify-center shadow-xl">
+                  <Wand2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
 
-        <div className="space-y-3 max-w-[280px]">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-            Tailor Your Resume
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-            Generate a version of your CV specifically optimized for this job description using our advanced AI.
-          </p>
-        </div>
+              <div className="space-y-2 max-w-[260px] mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                  Tailor Your Resume
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Generate a CV optimized for this job using AI
+                </p>
+              </div>
 
-        <div className="w-full max-w-xs space-y-4">
-          <button
-            onClick={onGenerate}
-            className="w-full group relative inline-flex items-center justify-center gap-2 px-6 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500 opacity-0 group-hover:opacity-10 transition-opacity" />
-            <Sparkles className="w-4 h-4" />
-            <span>Generate Tailored CV</span>
-            <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-1 transition-transform" />
-          </button>
+              <div className="w-full space-y-3">
+                <button
+                  onClick={() => setShowLevelSelector(true)}
+                  className="w-full group relative inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+                  <Sparkles className="w-4 h-4" />
+                  <span>Generate Tailored CV</span>
+                  <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-1 transition-transform" />
+                </button>
 
-          <div className="flex items-center justify-center gap-4 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> ATS Optimized
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> Keyword Rich
-            </span>
-          </div>
-        </div>
+                <div className="flex items-center justify-center gap-3 text-[10px] font-medium text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" /> ATS Ready
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" /> Keywords
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            // Level Selection View - Full Panel
+            <motion.div
+              key="levels"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="h-full flex flex-col"
+            >
+              {/* Compact Header */}
+              <div className="flex items-center gap-2 px-4 py-2">
+                <button
+                  onClick={() => setShowLevelSelector(false)}
+                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-500" />
+                </button>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                  Choose Intensity
+                </h3>
+              </div>
+
+              {/* Level Cards - Centered with flex-1 and justify-center */}
+              <div className="flex-1 flex flex-col justify-center px-3 py-2 gap-2">
+                {(['conservative', 'balanced', 'optimized'] as AdaptationLevel[]).map((levelKey) => {
+                  const level = levelData[levelKey];
+                  const Icon = levelIcons[levelKey];
+                  const colors = levelColors[levelKey];
+                  const isSelected = selectedLevel === levelKey;
+
+                  return (
+                    <motion.button
+                      key={levelKey}
+                      onClick={() => setSelectedLevel(levelKey)}
+                      whileTap={{ scale: 0.98 }}
+                      className={`w-full text-left p-3 rounded-xl border transition-all duration-200 ${
+                        isSelected
+                          ? `${colors.bg} ${colors.selectedBorder} border-2`
+                          : `bg-transparent ${colors.border} border hover:${colors.bg}`
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${colors.iconBg} flex-shrink-0`}>
+                          <Icon className={`w-4 h-4 ${colors.icon}`} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">
+                              {level.name}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${colors.badge}`}>
+                              {level.scoreGain}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                            {level.description}
+                          </p>
+                        </div>
+
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="p-1 bg-green-500 rounded-full flex-shrink-0"
+                          >
+                            <Check className="w-2.5 h-2.5 text-white" />
+                          </motion.div>
+                        )}
+                      </div>
+
+                      {/* Features - inline */}
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 ml-11">
+                        {level.features.map((feature, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1"
+                          >
+                            <span className={`w-1 h-1 rounded-full ${colors.icon.replace('text-', 'bg-')}`} />
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Generate Button - Sticky at bottom */}
+              <div className="px-3 pb-3 pt-2">
+                <button
+                  onClick={handleConfirmLevel}
+                  className="w-full group flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-semibold hover:shadow-lg transition-all"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Generate CV</span>
+                  <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -103,6 +308,9 @@ export default function TailoredResumePanel({
     );
   }
 
+  // Get level info if available
+  const levelInfo = cvRewrite?.adaptationLevel ? getLevelInfo(cvRewrite.adaptationLevel) : null;
+
   // Generated State
   return (
     <div className="space-y-6 pb-6">
@@ -116,10 +324,18 @@ export default function TailoredResumePanel({
           <div className="p-2.5 bg-green-100 dark:bg-green-900/30 rounded-xl shadow-sm">
             <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-green-900 dark:text-green-100">
-              Optimization Complete
-            </h3>
+          <div className="flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-green-900 dark:text-green-100">
+                Optimization Complete
+              </h3>
+              {levelInfo && (
+                <span className={`flex items-center gap-1.5 text-xs font-medium ${levelInfo.color}`}>
+                  <levelInfo.Icon className="w-3.5 h-3.5" />
+                  {levelInfo.name}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-green-700 dark:text-green-300 mt-1.5 leading-relaxed">
               Your CV has been rewritten to better match the job description while maintaining your authentic voice.
             </p>

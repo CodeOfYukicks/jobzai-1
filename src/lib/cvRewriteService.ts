@@ -6,7 +6,7 @@
  * Uses the FULL richness of ATS analysis data for maximum impact
  */
 
-import { CVRewrite } from '../types/premiumATS';
+import { CVRewrite, AdaptationLevel } from '../types/premiumATS';
 
 /**
  * Enriched strength data from ATS analysis
@@ -76,6 +76,7 @@ interface CVRewriteInput {
   atsAnalysis: EnrichedATSAnalysis;
   jobTitle: string;
   company: string;
+  adaptationLevel?: AdaptationLevel; // Controls rewriting intensity
 }
 
 /**
@@ -163,6 +164,134 @@ function formatJobSummaryInsights(jobSummary: EnrichedATSAnalysis['jobSummary'])
 }
 
 /**
+ * Generate level-specific instructions for the AI prompt
+ * These control how aggressively the AI rewrites the CV
+ */
+function getAdaptationLevelInstructions(level: AdaptationLevel): {
+  missionStatement: string;
+  rewritingIntensity: string;
+  keywordStrategy: string;
+  styleGuidance: string;
+} {
+  switch (level) {
+    case 'conservative':
+      return {
+        missionStatement: `Your mission is to make MINIMAL, targeted improvements while preserving the candidate's authentic voice and original style. Focus on corrections and subtle enhancements.`,
+        rewritingIntensity: `
+## 🎚️ ADAPTATION LEVEL: CONSERVATIVE (Level 1)
+
+**Rewriting Intensity: LOW - Preserve Original Voice**
+
+Your approach for this level:
+1. **PRESERVE** the original tone, writing style, and sentence structure as much as possible
+2. **CORRECT** only grammatical errors, typos, and formatting issues
+3. **SUBTLY ADD** 3-5 priority keywords where they fit NATURALLY (don't force them)
+4. **MINIMAL REPHRASING** - only change wording if it's clearly weak or unclear
+5. **KEEP** the original summary structure - just polish it slightly
+6. **DON'T** use aggressive power verbs unless the original already has a strong tone
+7. **PRIORITIZE** authenticity over optimization - the CV should still "sound like" the candidate
+
+The goal is a 5-10% improvement in match score, NOT a complete transformation.
+`,
+        keywordStrategy: `
+### 🔑 CONSERVATIVE KEYWORD APPROACH
+- Add only 3-5 of the most critical keywords
+- Keywords should blend in naturally with existing content
+- Don't restructure sentences to accommodate keywords
+- If a keyword doesn't fit naturally, skip it
+`,
+        styleGuidance: `
+### ✍️ STYLE PRESERVATION
+- Keep the candidate's original vocabulary and tone
+- Minor grammar/spelling corrections only
+- Light formatting improvements
+- Preserve original bullet structure and length
+`
+      };
+
+    case 'balanced':
+      return {
+        missionStatement: `Your mission is to create a BALANCED optimization that improves job match while maintaining the candidate's professional identity. Aim for noticeable improvement without losing authenticity.`,
+        rewritingIntensity: `
+## 🎚️ ADAPTATION LEVEL: BALANCED (Level 2)
+
+**Rewriting Intensity: MODERATE - Thoughtful Optimization**
+
+Your approach for this level:
+1. **ENHANCE** bullet points with stronger action verbs and clearer impact statements
+2. **INTEGRATE** 10-15 priority keywords naturally throughout the CV
+3. **IMPROVE** the professional summary with better structure (Hook + Proof + Value)
+4. **REORDER** experiences if needed to highlight most relevant ones first
+5. **ADD QUANTIFICATION** where data exists in the original (use ~ for reasonable estimates)
+6. **MAINTAIN** the overall structure and format of the original CV
+7. **BALANCE** optimization with authenticity - improve but don't transform completely
+
+The goal is a 15-25% improvement in match score with natural-sounding content.
+`,
+        keywordStrategy: `
+### 🔑 BALANCED KEYWORD APPROACH
+- Integrate 10-15 priority keywords across all sections
+- Rephrase sentences to include keywords naturally
+- Add a Skills/Core Competencies section if missing
+- Keywords should appear 1-2 times each
+`,
+        styleGuidance: `
+### ✍️ STYLE ENHANCEMENT
+- Upgrade weak verbs to stronger alternatives
+- Improve sentence structure for impact
+- Add relevant context to bullet points
+- Maintain professional but enhanced tone
+`
+      };
+
+    case 'optimized':
+      return {
+        missionStatement: `Your mission is to MAXIMIZE job match potential through comprehensive optimization. Transform this CV into the strongest possible match while keeping core experiences and achievements intact.`,
+        rewritingIntensity: `
+## 🎚️ ADAPTATION LEVEL: OPTIMIZED (Level 3)
+
+**Rewriting Intensity: HIGH - Maximum Impact**
+
+Your approach for this level:
+1. **TRANSFORM** every bullet point to use powerful action verbs and quantified results
+2. **SATURATE** the CV with 20+ priority keywords, each appearing 2-3 times
+3. **REWRITE** the professional summary to directly address the job's core requirements
+4. **RESTRUCTURE** content to front-load the most relevant experiences and skills
+5. **AMPLIFY** all achievements to their maximum truthful potential
+6. **CREATE** a comprehensive Skills/Core Competencies section with keyword clusters
+7. **ELEVATE** language to senior-level tone throughout
+8. **OPTIMIZE** for ATS with strategic keyword placement and formatting
+
+The goal is a 30-40%+ improvement in match score - create the STRONGEST possible CV.
+
+⚠️ IMPORTANT: Even at maximum intensity, NEVER invent experiences, metrics, or achievements.
+Transform what exists, don't fabricate what doesn't.
+`,
+        keywordStrategy: `
+### 🔑 OPTIMIZED KEYWORD APPROACH
+- Saturate with 20+ keywords across all sections
+- Each priority keyword should appear 2-3 times
+- Add keyword variations and synonyms
+- Create dedicated skills clusters by category
+- Front-load keywords in summary and recent experiences
+`,
+        styleGuidance: `
+### ✍️ STYLE TRANSFORMATION
+- Use the most powerful action verbs available
+- Add maximum impact to every statement
+- Elevate all language to senior executive level
+- Create compelling, memorable achievements
+- Ensure every bullet demonstrates value
+`
+      };
+
+    default:
+      // Default to balanced if unknown level
+      return getAdaptationLevelInstructions('balanced');
+  }
+}
+
+/**
  * Generate the ULTRA-QUALITY CV rewriting prompt
  * Uses a 3-Phase strategic approach with full ATS data richness
  */
@@ -178,7 +307,15 @@ function generateCVRewritePrompt(input: CVRewriteInput): string {
   const otherMissingKeywords = input.atsAnalysis.keywords.missing.filter(k => !priorityKeywords.includes(k));
   const foundKeywords = input.atsAnalysis.keywords.found || [];
   
+  // Get level-specific instructions (default to balanced)
+  const adaptationLevel = input.adaptationLevel || 'balanced';
+  const levelInstructions = getAdaptationLevelInstructions(adaptationLevel);
+  
   return `You are an ELITE CV STRATEGIST with 25+ years placing top executives at FAANG, McKinsey, Goldman Sachs, and Fortune 100 companies. Your CVs have a 94% interview callback rate.
+
+${levelInstructions.missionStatement}
+
+${levelInstructions.rewritingIntensity}
 
 ═══════════════════════════════════════════════════════════════════════════════
                            PHASE 1: DEEP UNDERSTANDING
@@ -188,7 +325,7 @@ function generateCVRewritePrompt(input: CVRewriteInput): string {
 - **Company**: ${input.company}
 - **Position**: ${input.jobTitle}
 - **Current Match Score**: ${input.atsAnalysis.matchScore}%
-- **Your Mission**: Transform this into a 90%+ match that GUARANTEES an interview
+- **Adaptation Level**: ${adaptationLevel.toUpperCase()}
 
 ## 📋 JOB DESCRIPTION (Analyze EVERY requirement)
 """
@@ -219,14 +356,18 @@ ${formattedCVFixes}
 
 ## 🔑 KEYWORD STRATEGY
 
-### 🔴 PRIORITY KEYWORDS (Must appear 2-3 times each)
+### 🔴 PRIORITY KEYWORDS
 ${priorityKeywords.length > 0 ? priorityKeywords.join(', ') : 'None specified - use keywords from job description'}
 
-### 🟡 SECONDARY KEYWORDS (Integrate where natural)
+### 🟡 SECONDARY KEYWORDS
 ${otherMissingKeywords.slice(0, 20).join(', ') || 'None'}
 
-### 🟢 KEYWORDS ALREADY PRESENT (Reinforce these)
+### 🟢 KEYWORDS ALREADY PRESENT
 ${foundKeywords.slice(0, 15).join(', ') || 'None identified'}
+
+${levelInstructions.keywordStrategy}
+
+${levelInstructions.styleGuidance}
 
 ═══════════════════════════════════════════════════════════════════════════════
                          PHASE 3: EXECUTION EXCELLENCE
@@ -844,6 +985,10 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
   const { rewriteSingleExperience } = await import('./experienceRewriter');
   const { extractFullProfileFromText } = await import('./cvExperienceExtractor');
   
+  // Get adaptation level (default to balanced)
+  const adaptationLevel = input.adaptationLevel || 'balanced';
+  console.log(`🎚️ Adaptation Level: ${adaptationLevel.toUpperCase()}`);
+  
   // 1. STEP 1: Use AI to extract and structure the original CV properly
   // This is CRITICAL for accurate before/after comparison
   console.log('🔍 Step 1: Extracting original CV structure with AI...');
@@ -885,13 +1030,14 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     startDate: exp.startDate || '',
     endDate: exp.endDate || '',
     isCurrent: exp.current || false,
-    bullets: exp.responsibilities || [],
-    description: exp.responsibilities || [],
+    bullets: exp.responsibilities || exp.bullets || [],
+    description: exp.responsibilities || exp.bullets || [],
   }));
   
-  console.log(`📊 CV Original: ${originalExperiences.length} expériences détectées`, 
-    originalExperiences.map((exp: any) => `${exp.title} at ${exp.company}`)
-  );
+  console.log(`📊 CV Original: ${originalExperiences.length} expériences détectées`);
+  originalExperiences.forEach((exp: any, idx: number) => {
+    console.log(`   [${idx}] ${exp.title} at ${exp.company} - ${exp.bullets?.length || 0} bullets`);
+  });
   
   // 2. STEP 2: Generate the AI-rewritten CV
   console.log('✍️ Step 2: Generating AI-rewritten CV...');
@@ -1062,27 +1208,42 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
   }
   
   // Build original structured data from AI-extracted data for before/after comparison
+  // IMPORTANT: Use the SAME IDs as finalStructuredData for reliable matching in comparison
   // Note: Firestore doesn't accept undefined values, so we use empty strings or omit fields
   const originalStructuredData = {
     personalInfo: extractedOriginal.personalInfo || {},
     summary: extractedOriginal.summary || '',
     experiences: originalExperiences.map((exp: any, idx: number) => {
+      // Use the same ID as the corresponding rewritten experience for perfect matching
+      const matchingRewrittenId = finalStructuredData.experiences[idx]?.id || `exp-${idx}`;
+      // Get bullets from multiple possible sources
+      const bulletsArray = Array.isArray(exp.bullets) ? exp.bullets : 
+                          Array.isArray(exp.responsibilities) ? exp.responsibilities :
+                          Array.isArray(exp.description) ? exp.description : [];
       const experience: any = {
-        id: exp.id || `orig-exp-${idx}`,
+        id: matchingRewrittenId, // Same ID as rewritten for comparison matching
         title: exp.title || '',
         company: exp.company || '',
         startDate: exp.startDate || '',
         endDate: exp.endDate || 'Present',
-        bullets: Array.isArray(exp.bullets) ? exp.bullets : (exp.description || []),
+        // Store in BOTH formats for backwards compatibility
+        bullets: bulletsArray,
+        responsibilities: bulletsArray, // Keep this for legacy code that reads responsibilities
       };
       // Only add optional fields if they have values
       if (exp.client) experience.client = exp.client;
       if (exp.location) experience.location = exp.location;
+      
+      // Debug log
+      console.log(`   Building original exp[${idx}]: "${experience.title}" - ${experience.bullets.length} bullets`);
+      
       return experience;
     }),
     educations: (extractedOriginal.educations || []).map((edu: any, idx: number) => {
+      // Use the same ID as the corresponding rewritten education for perfect matching
+      const matchingRewrittenId = finalStructuredData.educations[idx]?.id || `edu-${idx}`;
       const education: any = {
-        id: edu.id || `orig-edu-${idx}`,
+        id: matchingRewrittenId, // Same ID as rewritten for comparison matching
         degree: edu.degree || '',
         institution: edu.institution || '',
         endDate: edu.endDate || edu.year || '',
@@ -1102,11 +1263,20 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
       return { name: lang.language || lang.name || '', level: lang.level || '' };
     }),
     certifications: extractedOriginal.certifications || [],
+    hobbies: extractedOriginal.hobbies || [], // Store hobbies separately from experiences
   };
   
   console.log(`✅ Original structured data built: ${originalStructuredData.experiences.length} experiences, ${originalStructuredData.educations.length} educations`);
+  // Debug: Log bullet counts for comparison debugging
+  originalStructuredData.experiences.forEach((exp: any, idx: number) => {
+    console.log(`   Original[${idx}] ID: ${exp.id}, "${exp.title}" at "${exp.company}" - ${exp.bullets?.length || 0} bullets`);
+  });
+  finalStructuredData.experiences.forEach((exp: any, idx: number) => {
+    console.log(`   Rewritten[${idx}] ID: ${exp.id}, "${exp.title}" at "${exp.company}" - ${exp.bullets?.length || 0} bullets`);
+  });
   
   return {
+    adaptationLevel, // Track which level was used for this rewrite
     analysis: result.analysis || {
       positioning_strategy: '',
       strengths: [],

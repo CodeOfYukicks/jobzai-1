@@ -146,7 +146,7 @@ export function PremiumHeroSection({
           {/* Left: Identity */}
           <div className="flex items-start gap-6 flex-1 min-w-0">
             {/* Large Transparent Logo */}
-            <div className="flex-shrink-0 relative group">
+            <div className="flex-shrink-0 relative group mt-8">
               <div className="h-24 w-24 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
                 {logoSrc ? (
                   <img

@@ -30,7 +30,7 @@ import LearningPathPanel from '../components/ats-premium/LearningPathPanel';
 import OpportunityFitPanel from '../components/ats-premium/OpportunityFitPanel';
 
 // Types
-import type { PremiumATSAnalysis } from '../types/premiumATS';
+import type { PremiumATSAnalysis, AdaptationLevel } from '../types/premiumATS';
 
 // Helper function to get company initials
 function getInitials(name: string): string {
@@ -124,7 +124,7 @@ function RightSidebarPanel({
   analysis: PremiumATSAnalysis;
   activeSection: string;
   onNavigate: (section: string) => void;
-  onGenerateCVRewrite: () => void;
+  onGenerateCVRewrite: (level: AdaptationLevel) => void;
   isGeneratingCV: boolean;
   navigate: (path: string) => void;
   optimizedScore: { overall: number; skills: number; experience: number } | null;
@@ -587,7 +587,7 @@ export default function ATSAnalysisPagePremium() {
   };
 
   // Generate CV Rewrite with AI
-  const handleGenerateCVRewrite = async () => {
+  const handleGenerateCVRewrite = async (adaptationLevel: AdaptationLevel = 'balanced') => {
     if (!analysis || !id || !currentUser) {
       toast.error('Analysis data not available');
       return;
@@ -606,6 +606,8 @@ export default function ATSAnalysisPagePremium() {
       });
       return;
     }
+
+    console.log(`🎚️ Starting CV Rewrite with adaptation level: ${adaptationLevel}`);
 
     setIsGeneratingCV(true);
     setGenerationProgress(0);
@@ -705,6 +707,7 @@ export default function ATSAnalysisPagePremium() {
         },
         jobTitle: analysis.jobTitle,
         company: analysis.company,
+        adaptationLevel, // Pass the selected adaptation level
       });
 
       setGenerationStep(3);

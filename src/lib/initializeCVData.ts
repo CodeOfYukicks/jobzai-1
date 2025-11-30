@@ -27,6 +27,7 @@ function convertStructuredDataToCVData(structuredData: any): CVData {
       id: exp.id || generateId(),
       title: exp.title || exp.position || '',
       company: exp.company || '',
+      client: exp.client || '', // Client company for consulting roles
       location: exp.location || '',
       startDate: exp.startDate || exp.start_date || '',
       endDate: exp.endDate || exp.end_date || '',
@@ -136,6 +137,7 @@ export async function initializeCVData(
       id: exp.id || generateId(),
       title: exp.title || exp.position || '',
       company: exp.company || exp.employer || '',
+      client: exp.client || '', // Client company for consulting roles
       location: exp.location || '',
       startDate: exp.startDate || '',
       endDate: exp.endDate || (exp.current ? 'Present' : ''),
@@ -281,6 +283,145 @@ export async function loadOrInitializeCVData(
           } else if (cvRewriteData.initial_cv) {
             initialCVMarkdown = cvRewriteData.initial_cv;
             console.log('Fallback: Using initial_cv from cv_rewrite for comparison');
+          }
+          
+          // FALLBACK: If original_structured_data is missing but initial_cv exists,
+          // generate structured data from initial_cv for better comparison
+          if (!originalStructuredData && initialCVMarkdown) {
+            console.log('⚠️ Generating original_structured_data from initial_cv (legacy data migration)...');
+            try {
+              const { parseOriginalCVMarkdown } = await import('./cvComparisonEngine');
+              const parsedOriginal = parseOriginalCVMarkdown(initialCVMarkdown);
+              
+              // Convert to the format expected by original_structured_data
+              originalStructuredData = {
+                personalInfo: parsedOriginal.personalInfo || {},
+                summary: parsedOriginal.summary || '',
+                experiences: (parsedOriginal.experiences || []).map((exp: any, idx: number) => ({
+                  id: exp.id || `orig-exp-${idx}`,
+                  title: exp.title || '',
+                  company: exp.company || '',
+                  startDate: exp.startDate || '',
+                  endDate: exp.endDate || '',
+                  bullets: exp.bullets || [],
+                  responsibilities: exp.bullets || [], // Also store as responsibilities
+                })),
+                educations: (parsedOriginal.education || []).map((edu: any, idx: number) => ({
+                  id: edu.id || `orig-edu-${idx}`,
+                  degree: edu.degree || '',
+                  institution: edu.institution || '',
+                  startDate: edu.startDate || '',
+                  endDate: edu.endDate || '',
+                })),
+                skills: parsedOriginal.skills || [],
+              };
+              
+              console.log('✅ Generated original_structured_data from initial_cv:', {
+                experiences: originalStructuredData.experiences.length,
+                educations: originalStructuredData.educations.length,
+              });
+              
+              // Save it back to Firestore for future use (non-blocking)
+              updateDoc(analysisRef, {
+                'cv_rewrite.original_structured_data': originalStructuredData
+              }).then(() => {
+                console.log('✅ Saved generated original_structured_data to Firestore');
+              }).catch((err) => {
+                console.warn('Failed to save generated original_structured_data:', err);
+              });
+            } catch (parseError) {
+              console.error('Failed to generate original_structured_data from initial_cv:', parseError);
+            }
+          }
+          
+          // CORRUPTION CHECK: Detect if original_structured_data has all content in one experience
+          const isDataCorrupted = (data: any): boolean => {
+            if (!data?.experiences || data.experiences.length === 0) return false;
+            
+            // Single experience with too many bullets = corruption
+            if (data.experiences.length === 1 && (data.experiences[0]?.bullets?.length || 0) > 15) {
+              return true;
+            }
+            
+            // Any experience with more than 20 bullets = corruption
+            return data.experiences.some((exp: any) => (exp.bullets?.length || 0) > 20);
+          };
+          
+          if (originalStructuredData && isDataCorrupted(originalStructuredData)) {
+            console.warn('⚠️ CORRUPTION DETECTED: original_structured_data has too many bullets in one experience');
+            console.warn('   Experience count:', originalStructuredData.experiences.length);
+            originalStructuredData.experiences.forEach((exp: any, idx: number) => {
+              console.warn(`   [${idx}] "${exp.title}" - ${exp.bullets?.length || 0} bullets`);
+            });
+            
+            // Force re-parse from markdown if available
+            if (initialCVMarkdown) {
+              console.log('🔧 Re-parsing from initial_cv to fix corrupted data...');
+              try {
+                const { parseOriginalCVMarkdown } = await import('./cvComparisonEngine');
+                const parsedOriginal = parseOriginalCVMarkdown(initialCVMarkdown);
+                
+                // Replace with corrected data
+                originalStructuredData = {
+                  personalInfo: parsedOriginal.personalInfo || {},
+                  summary: parsedOriginal.summary || '',
+                  experiences: (parsedOriginal.experiences || []).map((exp: any, idx: number) => ({
+                    id: exp.id || `orig-exp-${idx}`,
+                    title: exp.title || '',
+                    company: exp.company || '',
+                    startDate: exp.startDate || '',
+                    endDate: exp.endDate || '',
+                    bullets: exp.bullets || [],
+                    responsibilities: exp.bullets || [],
+                  })),
+                  educations: (parsedOriginal.education || []).map((edu: any, idx: number) => ({
+                    id: edu.id || `orig-edu-${idx}`,
+                    degree: edu.degree || '',
+                    institution: edu.institution || '',
+                    startDate: edu.startDate || '',
+                    endDate: edu.endDate || '',
+                  })),
+                  skills: parsedOriginal.skills || [],
+                };
+                
+                console.log('✅ Fixed corrupted data:', {
+                  experiences: originalStructuredData.experiences.length,
+                  educations: originalStructuredData.educations.length,
+                });
+                
+                // Save corrected data back to Firestore
+                updateDoc(analysisRef, {
+                  'cv_rewrite.original_structured_data': originalStructuredData
+                }).then(() => {
+                  console.log('✅ Saved corrected original_structured_data to Firestore');
+                }).catch((err) => {
+                  console.warn('Failed to save corrected original_structured_data:', err);
+                });
+              } catch (fixError) {
+                console.error('Failed to fix corrupted data:', fixError);
+              }
+            }
+          }
+          
+          // SECOND FALLBACK: If original_structured_data exists but has empty bullets,
+          // check if we can recover from responsibilities field
+          if (originalStructuredData && originalStructuredData.experiences) {
+            let hasMissingBullets = false;
+            originalStructuredData.experiences = originalStructuredData.experiences.map((exp: any) => {
+              const bullets = exp.bullets || exp.responsibilities || [];
+              if ((!exp.bullets || exp.bullets.length === 0) && bullets.length > 0) {
+                hasMissingBullets = true;
+              }
+              return {
+                ...exp,
+                bullets: Array.isArray(bullets) ? bullets : [],
+                responsibilities: Array.isArray(bullets) ? bullets : [],
+              };
+            });
+            
+            if (hasMissingBullets) {
+              console.log('🔧 Recovered missing bullets from responsibilities field');
+            }
           }
           
           // Load editor state if it exists

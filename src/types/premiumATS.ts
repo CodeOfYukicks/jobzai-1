@@ -3,6 +3,41 @@
  * TypeScript definitions for the premium analysis structure
  */
 
+/**
+ * CV Adaptation Level - Controls how aggressively the AI rewrites the CV
+ * - conservative: Light corrections, formatting, subtle keyword additions
+ * - balanced: Moderate rewriting, natural keyword integration, summary improvement
+ * - optimized: Aggressive rewriting, maximum keywords, complete restructuring while keeping identity
+ */
+export type AdaptationLevel = 'conservative' | 'balanced' | 'optimized';
+
+export const ADAPTATION_LEVELS = {
+  conservative: {
+    id: 'conservative' as const,
+    name: 'Niveau 1 - Conservateur',
+    nameEn: 'Level 1 - Conservative',
+    description: 'Corrections légères et mise en forme. Garde le ton original avec ajout subtil de mots-clés.',
+    descriptionEn: 'Light corrections and formatting. Keeps original tone with subtle keyword additions.',
+    icon: 'shield',
+  },
+  balanced: {
+    id: 'balanced' as const,
+    name: 'Niveau 2 - Équilibré',
+    nameEn: 'Level 2 - Balanced',
+    description: 'Réécriture modérée des bullets, intégration naturelle des mots-clés, amélioration du résumé.',
+    descriptionEn: 'Moderate bullet rewriting, natural keyword integration, summary improvement.',
+    icon: 'scale',
+  },
+  optimized: {
+    id: 'optimized' as const,
+    name: 'Niveau 3 - Optimisé',
+    nameEn: 'Level 3 - Optimized',
+    description: 'Réécriture maximale pour matcher le poste. Restructuration complète tout en gardant votre identité.',
+    descriptionEn: 'Maximum rewriting to match the position. Complete restructuring while keeping your identity.',
+    icon: 'rocket',
+  },
+} as const;
+
 export interface PremiumATSAnalysis {
   // Metadata
   id: string;
@@ -131,6 +166,8 @@ export interface OpportunityFit {
 }
 
 export interface CVRewrite {
+  // Adaptation level used to generate this rewrite
+  adaptationLevel?: AdaptationLevel;
   analysis: {
     strengths: string[];
     gaps: string[];
