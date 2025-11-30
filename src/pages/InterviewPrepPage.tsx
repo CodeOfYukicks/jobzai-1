@@ -751,45 +751,55 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
   };
 
   // Create a note from a news item
-  const createNoteFromNews = (news: NewsItem) => {
+  const createNoteFromNews = async (news: NewsItem) => {
     if (!currentUser || !application || !interview || !applicationId) return;
 
-    const content = `Talking Points for Interview:
+    // Format news content as HTML
+    const htmlContent = `
+      <h2>Company Update: ${news.title}</h2>
+      ${news.summary ? `<p>${news.summary}</p>` : ''}
+      ${news.source ? `<p><strong>Source:</strong> ${news.source}</p>` : ''}
+      ${news.url ? `<p><strong>Link:</strong> <a href="${news.url}" target="_blank" rel="noopener noreferrer">${news.url}</a></p>` : ''}
+      <h3>Key Points to Mention:</h3>
+      <ul>
+        <li>${news.title}</li>
+        ${news.summary ? `<li>${news.summary.split('.')[0]}</li>` : ''}
+      </ul>
+    `.trim();
 
-${news.title}
+    // Extract preview text
+    const previewText = `${news.title} ${news.summary || ''}`.trim().substring(0, 100);
 
-${news.summary}
-
-${news.source ? `Source: ${news.source}` : ''}
-${news.url ? `Link: ${news.url}` : ''}
-
-Key points to mention:
-- ${news.title}
-- ${news.summary.split('.')[0]}`;
-
-    const newNoteId = uuidv4();
-    const newNote: Note = {
-      id: newNoteId,
-      title: `Talking Points: ${news.title.substring(0, 30)}${news.title.length > 30 ? '...' : ''}`,
-      content,
-      color: '#4fc3f7',
+    // Create new note document
+    const newDoc: NoteDocument = {
+      id: uuidv4(),
+      title: `Company Update: ${news.title.substring(0, 50)}${news.title.length > 50 ? '...' : ''}`,
+      content: htmlContent,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      position: { x: 50, y: 50 }
+      preview: previewText,
     };
 
-    const updatedNotes = [...stickyNotes, newNote];
-    setStickyNotes(updatedNotes);
-    setNotePositions(prev => ({
-      ...prev,
-      [newNoteId]: { x: 50, y: 50 }
-    }));
-    setNoteSizes(prev => ({
-      ...prev,
-      [newNoteId]: { width: 250, height: 200 }
-    }));
-    updateInterviewNotes(updatedNotes);
-    toast.success('Talking points note created');
+    // Add to documents and set as active
+    const updatedDocs = [...noteDocuments, newDoc];
+    setNoteDocuments(updatedDocs);
+    setActiveNoteDocumentId(newDoc.id);
+    
+    // Highlight the newly created document
+    setHighlightedDocumentId(newDoc.id);
+    
+    // Clear highlight after 3 seconds
+    setTimeout(() => {
+      setHighlightedDocumentId(null);
+    }, 3000);
+    
+    // Open notes tab
+    setSidebarTab('notes');
+
+    // Save to Firebase
+    await saveNoteDocuments(updatedDocs, newDoc.id);
+    
+    toast.success('Company update saved to Notes');
   };
 
   // Filter notes by color
