@@ -314,6 +314,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
     location.pathname.startsWith('/notes/');
 
+  // Check if we are in "Builder Mode" (flush sidebar, no floating)
+  const isBuilderMode = location.pathname.startsWith('/resume-builder') || 
+    location.pathname.startsWith('/notes/');
+
   // Check if we need full width (no max-width constraint) - includes all ats-analysis pages, cv-analysis, professional-profile, and notes
   const needsFullWidth = needsFullHeight || 
     location.pathname.startsWith('/ats-analysis/') ||
@@ -325,9 +329,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden`}>
       {/* Sidebar desktop */}
-      <div className={`hidden md:fixed md:inset-y-0 md:flex z-50 md:pl-3 lg:pl-4 md:py-3 transition-all duration-300 ${isCollapsed ? 'md:w-20 lg:w-20' : 'md:w-72 lg:w-80'}`}>
+      <div className={`hidden md:fixed md:inset-y-0 md:flex z-50 ${isBuilderMode ? '' : 'md:pl-3 lg:pl-4 md:py-3'} transition-all duration-300 ${isCollapsed ? 'md:w-20 lg:w-20' : 'md:w-72 lg:w-80'}`}>
         <div 
-          className="relative flex flex-col h-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl"
+          className={`relative flex flex-col h-full bg-white dark:bg-gray-800 ${isBuilderMode ? 'border-r border-gray-200 dark:border-gray-700' : 'shadow-xl rounded-2xl'}`}
           onMouseEnter={() => setIsHoveringCollapsedSidebar(true)}
           onMouseLeave={() => setIsHoveringCollapsedSidebar(false)}
         >
@@ -976,7 +980,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className={`flex flex-col flex-1 min-h-0 transition-all duration-300 overflow-x-hidden ${isCollapsed ? 'md:pl-24 lg:pl-24' : 'md:pl-[19rem] lg:pl-[21rem]'}`}>
+      <div className={`flex flex-col flex-1 min-h-0 transition-all duration-300 overflow-x-hidden ${
+        isCollapsed 
+          ? (isBuilderMode ? 'md:pl-20 lg:pl-20' : 'md:pl-24 lg:pl-24') 
+          : (isBuilderMode ? 'md:pl-72 lg:pl-80' : 'md:pl-[19rem] lg:pl-[21rem]')
+      }`}>
         <main className="flex-1 min-h-0 flex flex-col">
           <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : 'pt-6 md:py-6 pb-6'}`}>
             {needsFullWidth ? (

@@ -794,16 +794,10 @@ const FolderSidebar = memo(({
         exit={{ width: 0, opacity: 0 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="flex-shrink-0 relative z-20
-          bg-white/60 dark:bg-black/40 backdrop-blur-xl
-          border-r border-white/20 dark:border-gray-700/20
-          flex flex-col h-full shadow-glass"
+          bg-gray-50/80 dark:bg-gray-800 backdrop-blur-xl
+          border-r border-gray-200 dark:border-gray-700
+          flex flex-col h-full"
       >
-        {/* Subtle shadow transition from AuthLayout sidebar */}
-        <div className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none z-10
-          bg-gradient-to-r from-black/[0.08] to-transparent
-          dark:from-black/20 dark:to-transparent" 
-        />
-        
         {/* Expand button */}
         <div className="flex-1 flex flex-col items-center py-4">
           <motion.button
@@ -855,18 +849,12 @@ const FolderSidebar = memo(({
       animate={{ width: 256, opacity: 1 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
       className="w-64 flex-shrink-0 relative z-20
-        bg-white/60 dark:bg-black/40 backdrop-blur-xl
-        border-r border-white/20 dark:border-gray-700/20
-        flex flex-col h-full shadow-glass"
+        bg-gray-50/80 dark:bg-gray-800 backdrop-blur-xl
+        border-r border-gray-200 dark:border-gray-700
+        flex flex-col h-full"
     >
-      {/* Subtle shadow transition from AuthLayout sidebar */}
-      <div className="absolute left-0 top-0 bottom-0 w-8 pointer-events-none z-10
-        bg-gradient-to-r from-black/[0.06] to-transparent
-        dark:from-black/15 dark:to-transparent" 
-      />
-      
       {/* Header */}
-      <div className="px-4 py-5 flex items-center justify-between border-b border-white/10 dark:border-gray-700/20">
+      <div className="px-4 py-5 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-wide">
           Library
         </h3>
@@ -965,7 +953,7 @@ const FolderSidebar = memo(({
       </div>
       
       {/* Footer Stats */}
-      <div className="p-4 border-t border-white/10 dark:border-gray-700/20 backdrop-blur-sm">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 backdrop-blur-sm">
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-500 dark:text-gray-400 font-medium">Storage</span>
           <span className="text-gray-700 dark:text-gray-300 font-semibold">{totalCount} {totalCount === 1 ? 'item' : 'items'}</span>

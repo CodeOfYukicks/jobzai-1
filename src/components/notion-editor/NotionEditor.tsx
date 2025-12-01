@@ -1,5 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import {
@@ -49,6 +51,7 @@ const NotionEditor = ({
   // Slash menu state
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({ top: 0, left: 0 });
+  const [slashSelectionPos, setSlashSelectionPos] = useState<number | null>(null);
   const [slashQuery, setSlashQuery] = useState('');
   const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
 
@@ -106,6 +109,7 @@ const NotionEditor = ({
       if (slashMatch) {
         const coords = editor.view.coordsAtPos(selection.from);
         setSlashMenuPosition({ top: coords.bottom + 5, left: coords.left });
+        setSlashSelectionPos(selection.from); // Store position for scroll updates
         setSlashQuery(slashMatch[1].toLowerCase());
         setShowSlashMenu(true);
         setSlashSelectedIndex(0);
@@ -123,6 +127,7 @@ const NotionEditor = ({
       } else {
         setShowSlashMenu(false);
         setSlashQuery('');
+        setSlashSelectionPos(null);
         setShowMentionMenu(false);
         setMentionQuery('');
         setMentionSelectionPos(null);
@@ -285,9 +290,18 @@ const NotionEditor = ({
       attrs: embedData,
     }).run();
 
+    // CRITICAL: Trigger onChange immediately after inserting mention embed
+    // This ensures the content with the mention embed is saved
+    setTimeout(() => {
+      if (editor) {
+        const jsonContent = editor.getJSON();
+        onChange?.(jsonContent);
+      }
+    }, 100);
+
     setShowMentionMenu(false);
     activeMenuRef.current = null;
-  }, [editor]);
+  }, [editor, onChange]);
 
   // Handle mention menu close
   const handleMentionMenuClose = useCallback(() => {
@@ -326,6 +340,62 @@ const NotionEditor = ({
     hasInitialContentRef.current = false;
   }, [editor]);
 
+  // Update slash menu position on scroll to keep it visible
+  useEffect(() => {
+    if (!showSlashMenu || !editor || slashSelectionPos === null) return;
+
+    const updatePosition = () => {
+      try {
+        const coords = editor.view.coordsAtPos(slashSelectionPos);
+        const viewportHeight = window.innerHeight;
+        const menuHeight = 400; // Approximate menu height
+        const spaceBelow = viewportHeight - coords.bottom;
+        const spaceAbove = coords.top;
+        
+        // Determine if we should show above or below
+        const shouldShowAbove = spaceBelow < menuHeight && spaceAbove > spaceBelow;
+        
+        if (shouldShowAbove) {
+          setSlashMenuPosition({
+            top: coords.top - menuHeight - 5,
+            left: Math.max(10, Math.min(coords.left, window.innerWidth - 320)),
+          });
+        } else {
+          setSlashMenuPosition({
+            top: coords.bottom + 5,
+            left: Math.max(10, Math.min(coords.left, window.innerWidth - 320)),
+          });
+        }
+      } catch (e) {
+        // Position might be invalid if content changed
+        console.warn('Could not update slash menu position:', e);
+      }
+    };
+
+    // Initial position
+    updatePosition();
+
+    // Update on scroll
+    const handleScroll = () => {
+      updatePosition();
+    };
+
+    // Update on window resize
+    const handleResize = () => {
+      updatePosition();
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
+    editor.view.dom.addEventListener('scroll', handleScroll, true);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
+      editor.view.dom.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [showSlashMenu, editor, slashSelectionPos]);
+
   // Close menus when clicking outside
   useEffect(() => {
     const handleClick = () => {
@@ -347,48 +417,60 @@ const NotionEditor = ({
       <BubbleMenuBar editor={editor} />
       <EditorContent editor={editor} />
       
-      {/* Slash Command Menu */}
-      {showSlashMenu && filteredSlashItems.length > 0 && (
-        <div
-          className="fixed z-50 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden min-w-[300px] max-h-[400px] overflow-y-auto"
+      {/* Slash Command Menu - Using Portal for better positioning */}
+      {showSlashMenu && filteredSlashItems.length > 0 && typeof window !== 'undefined' && document?.body && createPortal(
+        <motion.div
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          transition={{ duration: 0.15 }}
+          className="fixed z-[9999] bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden min-w-[300px] max-w-[320px] max-h-[400px] overflow-y-auto"
           style={{
-            top: `${slashMenuPosition.top}px`,
+            top: `${Math.max(10, Math.min(slashMenuPosition.top, window.innerHeight - 410))}px`,
             left: `${slashMenuPosition.left}px`,
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-1.5">
-            <div className="px-3 py-2">
-              <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+          <div className="p-2">
+            <div className="px-3 py-2 mb-1">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Basic blocks
               </span>
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {filteredSlashItems.map((item, index) => (
                 <button
                   key={item.title}
                   onClick={() => executeSlashCommand(item)}
                   onMouseEnter={() => setSlashSelectedIndex(index)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150
                     ${index === slashSelectedIndex
-                      ? 'bg-gray-100 dark:bg-gray-800'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-700 dark:text-gray-300'
                     }`}
                 >
                   <div
-                    className={`flex items-center justify-center w-10 h-10 rounded-lg 
+                    className={`flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0 transition-colors
                       ${index === slashSelectedIndex
-                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                       }`}
                   >
                     {item.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    <p className={`text-sm font-medium truncate
+                      ${index === slashSelectedIndex
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-gray-800 dark:text-gray-200'
+                      }`}>
                       {item.title}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <p className={`text-xs truncate mt-0.5
+                      ${index === slashSelectedIndex
+                        ? 'text-gray-600 dark:text-gray-400'
+                        : 'text-gray-500 dark:text-gray-500'
+                      }`}>
                       {item.description}
                     </p>
                   </div>
@@ -396,7 +478,8 @@ const NotionEditor = ({
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>,
+        document.body
       )}
 
       {/* Mention Menu */}

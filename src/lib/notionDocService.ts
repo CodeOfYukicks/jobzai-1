@@ -113,6 +113,29 @@ export const getNotes = async (userId: string): Promise<NotionDocument[]> => {
   return notes;
 };
 
+// Helper function to remove undefined values from objects (Firestore doesn't support undefined)
+const removeUndefined = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined).filter(item => item !== undefined);
+  }
+  
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = removeUndefined(value);
+      }
+    }
+    return cleaned;
+  }
+  
+  return obj;
+};
+
 // Update a note
 export const updateNote = async ({
   userId,
@@ -121,8 +144,11 @@ export const updateNote = async ({
 }: UpdateNoteParams): Promise<void> => {
   const noteRef = doc(db, 'users', userId, 'notes', noteId);
 
+  // Clean updates to remove undefined values (Firestore doesn't support undefined)
+  const cleanedUpdates = removeUndefined(updates);
+
   await updateDoc(noteRef, {
-    ...updates,
+    ...cleanedUpdates,
     updatedAt: serverTimestamp(),
   });
 };
@@ -176,7 +202,8 @@ export const createAutoSaver = (
 
   return {
     queueSave: (content: any) => {
-      pendingContent = content;
+      // Clean content to remove undefined values before saving
+      pendingContent = removeUndefined(content);
 
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -184,12 +211,31 @@ export const createAutoSaver = (
 
       timeoutId = setTimeout(save, debounceMs);
     },
-    saveNow: async () => {
+    saveNow: async (content?: any) => {
       if (timeoutId) {
         clearTimeout(timeoutId);
         timeoutId = null;
       }
-      await save();
+      
+      // Use provided content or pending content
+      const contentToSave = content !== undefined ? content : pendingContent;
+      
+      if (contentToSave !== null) {
+        try {
+          // Clean content to remove undefined values (Firestore doesn't support undefined)
+          const cleanedContent = removeUndefined(contentToSave);
+          
+          await updateNote({
+            userId,
+            noteId,
+            updates: { content: cleanedContent },
+          });
+          pendingContent = null; // Clear after successful save
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+          throw error;
+        }
+      }
     },
     cancel: () => {
       if (timeoutId) {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { collection, query, onSnapshot, doc, updateDoc, orderBy, addDoc, deleteDoc, serverTimestamp, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -51,6 +52,7 @@ import { JobDetailPanel } from '../components/job-detail-panel';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -137,6 +139,21 @@ export default function JobApplicationsPage() {
 
     return () => unsubscribe();
   }, [currentUser]);
+
+  // Handle highlight parameter from URL to open application modal
+  useEffect(() => {
+    const highlightId = searchParams.get('highlight');
+    if (highlightId && applications.length > 0 && !isLoading) {
+      const app = applications.find(a => a.id === highlightId);
+      if (app && (!selectedApplication || selectedApplication.id !== highlightId)) {
+        setSelectedApplication(app);
+        setTimelineModal(true);
+        // Remove highlight from URL after opening
+        searchParams.delete('highlight');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, applications, isLoading, selectedApplication, setSearchParams]);
 
   // Charger les candidatures existantes quand on sélectionne "interview" dans le modal
   useEffect(() => {
@@ -3405,6 +3422,7 @@ END:VCALENDAR`;
           onClose={() => {
             setTimelineModal(false);
             setShowAddInterviewForm(false);
+            setSelectedApplication(null);
             setNewInterview({
               date: new Date().toISOString().split('T')[0],
               time: '09:00',
@@ -3413,6 +3431,11 @@ END:VCALENDAR`;
               location: '',
               notes: ''
             });
+            // Remove highlight from URL if present
+            if (searchParams.get('highlight')) {
+              searchParams.delete('highlight');
+              setSearchParams(searchParams, { replace: true });
+            }
           }}
           onUpdate={async (updates) => {
             if (!currentUser || !selectedApplication) return;

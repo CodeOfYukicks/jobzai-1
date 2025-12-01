@@ -367,11 +367,46 @@ export default function NotionEditorPage() {
     fetchData();
   }, [currentUser, activeNoteId, navigate, fetchFolders, fetchResumes, fetchDocuments, fetchAllNotes]);
 
+  // Helper to check if content contains mention embeds
+  const hasMentionEmbeds = (content: any): boolean => {
+    if (!content || !content.content) return false;
+    
+    const checkNode = (node: any): boolean => {
+      if (node.type === 'mentionEmbed') return true;
+      if (node.content && Array.isArray(node.content)) {
+        return node.content.some(checkNode);
+      }
+      return false;
+    };
+    
+    return content.content.some(checkNode);
+  };
+
   // Handle content changes with auto-save
   const handleContentChange = useCallback(
-    (content: any) => {
+    async (content: any) => {
       setHasUnsavedChanges(true);
-      autoSaverRef.current?.queueSave(content);
+      
+      // Debug: Log content with mention embeds
+      if (hasMentionEmbeds(content)) {
+        console.log('Content with mention embeds detected:', JSON.stringify(content, null, 2));
+      }
+      
+      // If content contains mention embeds, save immediately
+      // Otherwise use debounced save
+      if (hasMentionEmbeds(content)) {
+        // Force immediate save for mention embeds with the current content
+        try {
+          await autoSaverRef.current?.saveNow(content);
+          console.log('Mention embed saved immediately');
+        } catch (error) {
+          console.error('Error saving mention embed:', error);
+          toast.error('Failed to save mention embed');
+        }
+      } else {
+        // Use debounced save for regular content
+        autoSaverRef.current?.queueSave(content);
+      }
 
       setNote((prev) =>
         prev ? { ...prev, content } : null
@@ -934,7 +969,7 @@ export default function NotionEditorPage() {
               </div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 pb-8">
+            <div className="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 pb-48">
               {/* Large Emoji - Notion style, straddling the cover */}
               <div className={`relative ${note.coverImage ? '-mt-12' : 'mt-6'}`} ref={emojiPickerRef}>
                 <motion.button
