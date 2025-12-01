@@ -182,16 +182,42 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
           {/* Actions */}
           <div className="flex items-center gap-3 pt-2">
             {interview.status === 'scheduled' && (
-              <button
+              <motion.button
                 onClick={handlePrepareInterview}
-                className="flex-1 relative overflow-hidden group bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2.5 rounded-xl font-medium text-sm transition-all hover:shadow-lg hover:shadow-gray-200 dark:hover:shadow-none flex items-center justify-center gap-2"
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex-1 relative overflow-hidden group bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-gray-900/20 dark:shadow-white/10 group-hover:shadow-2xl group-hover:shadow-gray-900/40 dark:group-hover:shadow-gray-800/40"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                {/* Subtle brightness overlay on hover */}
+                <motion.div 
+                  className="absolute inset-0 bg-white/5 dark:bg-gray-900/5"
+                  initial={{ opacity: 0 }}
+                  whileHover={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                />
+                
+                {/* Premium shimmer effect */}
+                <motion.div 
+                  className="absolute inset-0"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: '100%' }}
+                  transition={{ duration: 0.7, ease: 'easeInOut' }}
+                >
+                  <div className="h-full w-full bg-gradient-to-r from-transparent via-white/20 dark:via-gray-100/10 to-transparent skew-x-12" />
+                </motion.div>
+                
+                {/* Content */}
                 <span className="relative z-10 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  Prepare with AI
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                    whileHover={{ rotate: [0, 15, -15, 0], scale: 1.15 }}
+                  >
+                    <Sparkles className="w-4 h-4 transition-transform duration-300" />
+                  </motion.div>
+                  <span className="group-hover:font-semibold transition-all duration-300">Prepare with AI</span>
                 </span>
-              </button>
+              </motion.button>
             )}
 
             {interview.status === 'completed' && (

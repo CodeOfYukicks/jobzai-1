@@ -90,6 +90,8 @@ export interface JobApplication {
   };
   cvAnalysisId?: string;  // ID of linked CV analysis from CV Analysis page
   linkedNoteIds?: string[];  // IDs of linked NotionDocuments from AI-generated content
+  linkedResumeIds?: string[];  // IDs of linked CVs/Resumes from Resume Builder
+  linkedDocumentIds?: string[];  // IDs of linked PDF Documents from Resume Builder
 }
 
 

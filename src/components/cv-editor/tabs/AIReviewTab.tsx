@@ -641,6 +641,30 @@ export default function AIReviewTab({
   // Calculate remaining suggestions count
   const remainingCount = activeSuggestions.length - Array.from(selectedIds).length;
 
+  // Check if CV is empty or almost empty - MUST be before any early returns
+  const isCVEmptyOrMinimal = useMemo(() => {
+    const hasName = !!(cvData.personalInfo?.firstName || cvData.personalInfo?.lastName);
+    const hasSummary = !!cvData.summary && cvData.summary.trim().length > 0;
+    const hasExperiences = cvData.experiences && cvData.experiences.length > 0;
+    const hasEducation = cvData.education && cvData.education.length > 0;
+    const hasSkills = cvData.skills && cvData.skills.length > 0;
+    
+    // Count how many sections have content
+    const filledSections = [
+      hasName,
+      hasSummary,
+      hasExperiences,
+      hasEducation,
+      hasSkills
+    ].filter(Boolean).length;
+    
+    // Consider CV empty/minimal if:
+    // - No name AND no summary AND no experiences AND no education AND no skills
+    // OR
+    // - Less than 2 sections filled
+    return filledSections === 0 || filledSections < 2;
+  }, [cvData]);
+
   // Loading state
   if (isAnalyzing) {
     return (
@@ -681,30 +705,6 @@ export default function AIReviewTab({
       </div>
     );
   }
-
-  // Check if CV is empty or almost empty
-  const isCVEmptyOrMinimal = useMemo(() => {
-    const hasName = !!(cvData.personalInfo?.firstName || cvData.personalInfo?.lastName);
-    const hasSummary = !!cvData.summary && cvData.summary.trim().length > 0;
-    const hasExperiences = cvData.experiences && cvData.experiences.length > 0;
-    const hasEducation = cvData.education && cvData.education.length > 0;
-    const hasSkills = cvData.skills && cvData.skills.length > 0;
-    
-    // Count how many sections have content
-    const filledSections = [
-      hasName,
-      hasSummary,
-      hasExperiences,
-      hasEducation,
-      hasSkills
-    ].filter(Boolean).length;
-    
-    // Consider CV empty/minimal if:
-    // - No name AND no summary AND no experiences AND no education AND no skills
-    // OR
-    // - Less than 2 sections filled
-    return filledSections === 0 || filledSections < 2;
-  }, [cvData]);
 
   // Show empty CV message if CV is empty/minimal and no result yet
   if (!result && isCVEmptyOrMinimal) {

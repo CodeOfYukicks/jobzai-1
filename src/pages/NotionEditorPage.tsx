@@ -86,6 +86,7 @@ export default function NotionEditorPage() {
   const autoSaverRef = useRef<ReturnType<typeof createAutoSaver> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const editorScrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Auto-resize title textarea on mount and when title changes
   useEffect(() => {
@@ -273,6 +274,18 @@ export default function NotionEditorPage() {
     if (!currentUser) return;
     
     setIsLoadingNote(true);
+    
+    // Scroll to top immediately when switching notes
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (editorScrollContainerRef.current) {
+        editorScrollContainerRef.current.scrollTop = 0;
+      }
+    };
+    scrollToTop();
+    
     try {
       // Cancel any pending auto-save from previous note
       autoSaverRef.current?.cancel();
@@ -289,6 +302,14 @@ export default function NotionEditorPage() {
         }
         // Create new auto-saver for this note
         autoSaverRef.current = createAutoSaver(currentUser.uid, noteIdToLoad, 2000);
+        
+        // Scroll to top again after content is set (wait for cards to render)
+        setTimeout(() => {
+          scrollToTop();
+          requestAnimationFrame(() => {
+            scrollToTop();
+          });
+        }, 250);
       } else {
         toast.error('Note not found');
         navigate('/resume-builder');
@@ -327,6 +348,46 @@ export default function NotionEditorPage() {
       setActiveNoteId(urlNoteId);
     }
   }, [urlNoteId]);
+
+  // Scroll to top on initial mount and whenever activeNoteId changes (when opening/switching notes)
+  useEffect(() => {
+    const scrollToTop = () => {
+      // Scroll window to top
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Scroll the main editor container to top
+      if (editorScrollContainerRef.current) {
+        editorScrollContainerRef.current.scrollTop = 0;
+      }
+    };
+    
+    // Immediate scroll
+    scrollToTop();
+    
+    // Also scroll after a delay to ensure cards are rendered
+    setTimeout(() => {
+      scrollToTop();
+      requestAnimationFrame(() => {
+        scrollToTop();
+      });
+    }, 250);
+  }, [activeNoteId]);
+
+  // Also scroll to top on initial page load
+  useEffect(() => {
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (editorScrollContainerRef.current) {
+        editorScrollContainerRef.current.scrollTop = 0;
+      }
+    };
+    scrollToTop();
+    setTimeout(() => scrollToTop(), 100);
+  }, []);
 
   // Fetch note and folders on mount
   useEffect(() => {
@@ -846,7 +907,7 @@ export default function NotionEditorPage() {
           </header>
 
           {/* Editor Content - Notion style with emoji and title in content */}
-          <div className="flex-1 overflow-y-auto relative">
+          <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto relative">
             {/* Loading overlay for soft navigation between notes */}
             <AnimatePresence>
               {isLoadingNote && (

@@ -8,14 +8,21 @@ import {
   Edit3,
   MoreHorizontal,
   Type,
+  Image,
+  Camera,
+  X,
 } from 'lucide-react';
 import { NotionDocument, extractTextPreview } from '../../lib/notionDocService';
+import CoverPhotoCropper from '../profile/CoverPhotoCropper';
+import CoverPhotoGallery from '../profile/CoverPhotoGallery';
 
 interface NotionPreviewCardProps {
   note: NotionDocument;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
   onRename?: (id: string, newTitle: string) => void;
+  onUpdateCover?: (blob: Blob) => void;
+  onRemoveCover?: () => void;
   compact?: boolean;
   draggable?: boolean;
 }
@@ -57,12 +64,19 @@ const NotionPreviewCard = memo(
     onDelete,
     onEdit,
     onRename,
+    onUpdateCover,
+    onRemoveCover,
     compact = false,
     draggable = true,
   }: NotionPreviewCardProps) => {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isRenaming, setIsRenaming] = useState(false);
     const [newTitle, setNewTitle] = useState(note.title);
+    const [isCoverHovering, setIsCoverHovering] = useState(false);
+    const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
+    const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
+    const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+    const [isUpdatingCover, setIsUpdatingCover] = useState(false);
     const [contextMenu, setContextMenu] = useState<{
       open: boolean;
       x: number;
@@ -71,6 +85,7 @@ const NotionPreviewCard = memo(
     const cardRef = useRef<HTMLDivElement>(null);
     const contextMenuRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const coverInputRef = useRef<HTMLInputElement>(null);
 
     // Card dimensions
     const targetWidth = compact ? 140 : 220;
@@ -175,6 +190,36 @@ const NotionPreviewCard = memo(
       [note.id, note.emoji]
     );
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        setSelectedCoverFile(file);
+        setIsCoverCropperOpen(true);
+      }
+      if (coverInputRef.current) {
+        coverInputRef.current.value = '';
+      }
+    };
+
+    const handleCroppedCover = async (blob: Blob) => {
+      if (onUpdateCover) {
+        setIsUpdatingCover(true);
+        try {
+          await onUpdateCover(blob);
+        } finally {
+          setIsUpdatingCover(false);
+        }
+      }
+      setIsCoverCropperOpen(false);
+      setSelectedCoverFile(null);
+    };
+
+    const handleGallerySelect = (blob: Blob) => {
+      setSelectedCoverFile(blob);
+      setIsCoverGalleryOpen(false);
+      setIsCoverCropperOpen(true);
+    };
+
     return (
       <motion.div
         ref={cardRef}
@@ -212,10 +257,97 @@ const NotionPreviewCard = memo(
           <div className="absolute top-0 left-0 w-full h-full bg-white/60 dark:bg-gray-600/60 rounded-lg transform translate-y-3 translate-x-3 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20 shadow-sm" />
 
           <div className="relative w-full h-full bg-white dark:bg-gray-900 shadow-[0_4px_12px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_32px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden rounded-lg ring-1 ring-black/5 group-hover:ring-purple-500/20 flex flex-col">
-            {/* Header with emoji and cover */}
-            <div className="relative h-16 bg-gradient-to-br from-purple-100 via-indigo-50 to-pink-100 dark:from-purple-900/30 dark:via-indigo-900/20 dark:to-pink-900/20 flex items-center justify-center">
-              <span className="text-3xl">{note.emoji || '📝'}</span>
+            {/* Header with cover image or gradient */}
+            <div 
+              className="relative group/cover"
+              onMouseEnter={() => setIsCoverHovering(true)}
+              onMouseLeave={() => setIsCoverHovering(false)}
+            >
+              {note.coverImage ? (
+                <div className="relative h-20 overflow-hidden">
+                  <img
+                    src={note.coverImage}
+                    alt="Note cover"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/5 dark:bg-black/20" />
+                  {/* Emoji badge over cover */}
+                  <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                    <span className="text-lg">{note.emoji || '📝'}</span>
+                  </div>
+                  {/* Cover controls on hover */}
+                  {onUpdateCover && (isCoverHovering || isUpdatingCover) && (
+                    <AnimatePresence>
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="absolute top-2 right-2 flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg z-10"
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsCoverGalleryOpen(true);
+                          }}
+                          className="p-1.5 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                          title="Change cover"
+                        >
+                          <Image className="w-3 h-3" />
+                        </button>
+                        {onRemoveCover && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemoveCover();
+                            }}
+                            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                            title="Remove cover"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+                </div>
+              ) : (
+                <div className="relative h-16 bg-gradient-to-br from-purple-100 via-indigo-50 to-pink-100 dark:from-purple-900/30 dark:via-indigo-900/20 dark:to-pink-900/20 flex items-center justify-center">
+                  <span className="text-3xl">{note.emoji || '📝'}</span>
+                  {/* Add cover button on hover */}
+                  {onUpdateCover && isCoverHovering && (
+                    <AnimatePresence>
+                      <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCoverGalleryOpen(true);
+                        }}
+                        className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors z-10"
+                        title="Add cover"
+                      >
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg shadow-sm">
+                          <Image className="w-4 h-4 text-gray-700 dark:text-gray-200" />
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-200">Add cover</span>
+                        </div>
+                      </motion.button>
+                    </AnimatePresence>
+                  )}
+                </div>
+              )}
             </div>
+            
+            {/* Hidden file input for cover */}
+            {onUpdateCover && (
+              <input
+                type="file"
+                ref={coverInputRef}
+                className="hidden"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFileSelect}
+              />
+            )}
 
             {/* Content preview */}
             <div className="flex-1 p-3 overflow-hidden">
@@ -383,6 +515,31 @@ const NotionPreviewCard = memo(
             </div>,
             document.body
           )}
+
+        {/* Cover Photo Modals */}
+        {onUpdateCover && (
+          <>
+            <CoverPhotoCropper
+              isOpen={isCoverCropperOpen}
+              file={selectedCoverFile}
+              onClose={() => {
+                setIsCoverCropperOpen(false);
+                setSelectedCoverFile(null);
+              }}
+              onCropped={handleCroppedCover}
+              exportWidth={1584}
+              exportHeight={396}
+            />
+            
+            <CoverPhotoGallery
+              isOpen={isCoverGalleryOpen}
+              onClose={() => setIsCoverGalleryOpen(false)}
+              onSelectBlob={handleGallerySelect}
+              onRemove={onRemoveCover}
+              currentCover={note.coverImage}
+            />
+          </>
+        )}
 
         {/* Delete Confirmation Dialog */}
         <AnimatePresence>

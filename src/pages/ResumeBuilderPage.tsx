@@ -606,6 +606,8 @@ export default function ResumeBuilderPage() {
 
       setNotes(prev => [newNote, ...prev]);
       toast.success('Note created!');
+      // Scroll to top before navigating to ensure note opens at top of page
+      window.scrollTo({ top: 0, behavior: 'instant' });
       navigate(`/notes/${newNote.id}`);
     } catch (error) {
       console.error('Error creating note:', error);
@@ -616,6 +618,8 @@ export default function ResumeBuilderPage() {
   }, [currentUser, selectedFolderId, navigate]);
 
   const handleEditNote = useCallback((noteId: string) => {
+    // Scroll to top before navigating to ensure note opens at top of page
+    window.scrollTo({ top: 0, behavior: 'instant' });
     navigate(`/notes/${noteId}`);
   }, [navigate]);
 
@@ -678,6 +682,68 @@ export default function ResumeBuilderPage() {
       toast.error('Failed to move note');
     }
   }, [currentUser, notes, folders]);
+
+  // Update note cover photo
+  const handleUpdateNoteCover = useCallback(async (noteId: string, blob: Blob) => {
+    if (!currentUser || !noteId) return;
+
+    try {
+      const timestamp = Date.now();
+      const fileName = `note_${noteId}_cover_${timestamp}.jpg`;
+      const noteCoverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
+      
+      await uploadBytes(noteCoverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(noteCoverRef);
+      
+      await updateNote({
+        userId: currentUser.uid,
+        noteId,
+        updates: { coverImage: coverUrl },
+      });
+      
+      setNotes(prev => prev.map(n => 
+        n.id === noteId ? { ...n, coverImage: coverUrl } : n
+      ));
+      
+      toast.success('Note cover updated');
+    } catch (error) {
+      console.error('Error updating note cover:', error);
+      toast.error('Failed to update cover');
+    }
+  }, [currentUser]);
+
+  // Remove note cover photo
+  const handleRemoveNoteCover = useCallback(async (noteId: string) => {
+    if (!currentUser || !noteId) return;
+
+    const note = notes.find(n => n.id === noteId);
+    if (!note || !note.coverImage) return;
+
+    try {
+      await updateNote({
+        userId: currentUser.uid,
+        noteId,
+        updates: { coverImage: null },
+      });
+      
+      // Try to delete from Storage
+      try {
+        const coverRef = ref(storage, note.coverImage);
+        await deleteObject(coverRef);
+      } catch (e) {
+        console.warn('Could not delete old cover photo from storage', e);
+      }
+      
+      setNotes(prev => prev.map(n => 
+        n.id === noteId ? { ...n, coverImage: undefined } : n
+      ));
+      
+      toast.success('Note cover removed');
+    } catch (error) {
+      console.error('Error removing note cover:', error);
+      toast.error('Failed to remove cover');
+    }
+  }, [currentUser, notes]);
 
   // Move document to folder
   const handleDropDocument = async (documentId: string, folderId: string | null) => {
@@ -1115,6 +1181,8 @@ export default function ResumeBuilderPage() {
                         onDelete={handleDeleteNote}
                         onEdit={handleEditNote}
                         onRename={handleRenameNote}
+                        onUpdateCover={(blob) => handleUpdateNoteCover(note.id, blob)}
+                        onRemoveCover={() => handleRemoveNoteCover(note.id)}
                         compact
                         draggable
                       />

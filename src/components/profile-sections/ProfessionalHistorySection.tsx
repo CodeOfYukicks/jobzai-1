@@ -61,6 +61,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+  const [expandedResponsibilities, setExpandedResponsibilities] = useState<Set<number>>(new Set());
   const companyInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
   const logoFetchTimeouts = useRef<{ [key: number]: NodeJS.Timeout }>({});
 
@@ -114,6 +115,18 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
         newSet.delete(company);
       } else {
         newSet.add(company);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleResponsibilitiesExpansion = (expIndex: number) => {
+    setExpandedResponsibilities(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(expIndex)) {
+        newSet.delete(expIndex);
+      } else {
+        newSet.add(expIndex);
       }
       return newSet;
     });
@@ -608,17 +621,34 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
 
                                   {experience.responsibilities.filter(r => r.trim()).length > 0 && (
                                     <div className="mt-2.5">
-                                      <ul className="space-y-1">
-                                        {experience.responsibilities.filter(r => r.trim()).slice(0, 2).map((resp, i) => (
-                                          <li key={i} className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                                            {resp}
-                                          </li>
-                                        ))}
-                                        {experience.responsibilities.filter(r => r.trim()).length > 2 && (
-                                          <li className="text-xs text-gray-500 dark:text-gray-400">
-                                            ...see more
-                                          </li>
-                                        )}
+                                      <ul className="space-y-1.5 list-disc pl-5">
+                                        {(() => {
+                                          const filteredResponsibilities = experience.responsibilities.filter(r => r.trim());
+                                          const isExpanded = expandedResponsibilities.has(experience.originalIndex);
+                                          const visibleResponsibilities = isExpanded 
+                                            ? filteredResponsibilities 
+                                            : filteredResponsibilities.slice(0, 2);
+                                          
+                                          return (
+                                            <>
+                                              {visibleResponsibilities.map((resp, i) => (
+                                                <li key={i} className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                                  {resp}
+                                                </li>
+                                              ))}
+                                              {filteredResponsibilities.length > 2 && (
+                                                <li className="list-none -ml-5">
+                                                  <button
+                                                    onClick={() => toggleResponsibilitiesExpansion(experience.originalIndex)}
+                                                    className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
+                                                  >
+                                                    {isExpanded ? 'Show less' : `...see more (${filteredResponsibilities.length - 2} more)`}
+                                                  </button>
+                                                </li>
+                                              )}
+                                            </>
+                                          );
+                                        })()}
                                       </ul>
                                     </div>
                                   )}

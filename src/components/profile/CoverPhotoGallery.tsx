@@ -8,8 +8,16 @@ import {
   Loader2, 
   Check,
   AlertCircle,
-  Trash2
+  Trash2,
+  Search,
+  RefreshCw
 } from 'lucide-react';
+import { 
+  searchUnsplashPhotos, 
+  getRandomUnsplashPhotos, 
+  fetchImageAsBlob as fetchUnsplashImageAsBlob,
+  type UnsplashPhoto 
+} from '../../lib/unsplash';
 
 interface CoverPhotoGalleryProps {
   isOpen: boolean;
@@ -19,7 +27,7 @@ interface CoverPhotoGalleryProps {
   currentCover?: string;
 }
 
-type TabType = 'gallery' | 'upload' | 'link';
+type TabType = 'gallery' | 'unsplash' | 'upload' | 'link';
 
 const THUMB_W = 640;
 const THUMB_H = 160; // 4:1 for preview
@@ -55,30 +63,30 @@ const COLOR_OPTIONS: ColorOption[] = [
 ];
 
 // ============================================================================
-// IMAGE COLLECTIONS
+// IMAGE COLLECTIONS (Using Unsplash categories)
 // ============================================================================
 
 interface ImageCollection {
   id: string;
   label: string;
-  seeds: string[]; // Picsum seeds for consistent images
+  query: string; // Unsplash search query
 }
 
 const IMAGE_COLLECTIONS: ImageCollection[] = [
   {
     id: 'abstract',
     label: 'Abstract',
-    seeds: ['abstract-1', 'geometric-2', 'texture-3', 'mesh-4'],
+    query: 'abstract geometric',
   },
   {
     id: 'nature',
     label: 'Nature',
-    seeds: ['nature-mountain', 'forest-green', 'ocean-blue', 'sky-sunset'],
+    query: 'nature landscape',
   },
   {
     id: 'architecture',
     label: 'Architecture',
-    seeds: ['building-modern', 'interior-minimal', 'urban-city', 'bridge-steel'],
+    query: 'architecture building',
   },
 ];
 
@@ -93,6 +101,29 @@ interface GalleryTabProps {
 }
 
 const GalleryTab = ({ onSelectColor, onSelectImage, isFetching }: GalleryTabProps) => {
+  const [collections, setCollections] = useState<Record<string, UnsplashPhoto[]>>({});
+  const [loadingCollections, setLoadingCollections] = useState<Record<string, boolean>>({});
+
+  // Load Unsplash photos for each collection
+  useEffect(() => {
+    const loadCollections = async () => {
+      for (const collection of IMAGE_COLLECTIONS) {
+        if (!collections[collection.id] && !loadingCollections[collection.id]) {
+          setLoadingCollections(prev => ({ ...prev, [collection.id]: true }));
+          try {
+            const photos = await getRandomUnsplashPhotos(4, collection.query);
+            setCollections(prev => ({ ...prev, [collection.id]: photos }));
+          } catch (error) {
+            console.error(`Error loading ${collection.label} photos:`, error);
+          } finally {
+            setLoadingCollections(prev => ({ ...prev, [collection.id]: false }));
+          }
+        }
+      }
+    };
+    loadCollections();
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Color & Gradient Section */}
@@ -123,42 +154,53 @@ const GalleryTab = ({ onSelectColor, onSelectImage, isFetching }: GalleryTabProp
       </div>
 
       {/* Image Collections */}
-      {IMAGE_COLLECTIONS.map((collection) => (
-        <div key={collection.id}>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
-            {collection.label}
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {collection.seeds.map((seed) => {
-              const thumbUrl = `https://picsum.photos/seed/${encodeURIComponent(seed)}/${THUMB_W}/${THUMB_H}`;
-              const fullUrl = `https://picsum.photos/seed/${encodeURIComponent(seed)}/${FULL_W}/${FULL_H}`;
-              
-              return (
-                <motion.button
-                  key={seed}
-                  onClick={() => onSelectImage(fullUrl)}
-                  disabled={isFetching}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-gray-800"
-                >
-                  <img
-                    src={thumbUrl}
-                    alt={seed}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
+      {IMAGE_COLLECTIONS.map((collection) => {
+        const photos = collections[collection.id] || [];
+        const isLoading = loadingCollections[collection.id];
+
+        return (
+          <div key={collection.id}>
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+              {collection.label}
+            </h4>
+            {isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="aspect-[4/1] rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
-                    <span className="px-3 py-1.5 bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white text-sm font-medium rounded-lg backdrop-blur-sm shadow-lg">
-                      Select
-                    </span>
-                  </div>
-                </motion.button>
-              );
-            })}
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {photos.map((photo) => (
+                  <motion.button
+                    key={photo.id}
+                    onClick={() => onSelectImage(photo.urls.regular)}
+                    disabled={isFetching}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-gray-800"
+                  >
+                    <img
+                      src={photo.urls.thumb}
+                      alt={photo.alt_description || photo.description || collection.label}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
+                      <span className="px-3 py-1.5 bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white text-sm font-medium rounded-lg backdrop-blur-sm shadow-lg">
+                        Select
+                      </span>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
@@ -264,6 +306,252 @@ const UploadTab = ({ onFileSelect, isFetching }: UploadTabProps) => {
           </p>
         </div>
       </motion.div>
+    </div>
+  );
+};
+
+interface UnsplashTabProps {
+  onSelectPhoto: (photoUrl: string) => void;
+  isFetching: boolean;
+}
+
+const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<UnsplashPhoto[]>([]);
+  const [defaultPhotos, setDefaultPhotos] = useState<UnsplashPhoto[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingDefaults, setIsLoadingDefaults] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+
+  const handleSearch = useCallback(async (query: string, pageNum: number = 1) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    setError(null);
+    try {
+      const response = await searchUnsplashPhotos(query, pageNum, 20);
+      if (pageNum === 1) {
+        setSearchResults(response.results);
+      } else {
+        setSearchResults(prev => [...prev, ...response.results]);
+      }
+      setHasMore(pageNum < response.total_pages);
+      setPage(pageNum);
+    } catch (err) {
+      console.error('Error searching Unsplash:', err);
+      setError(err instanceof Error ? err.message : 'Failed to search photos');
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    handleSearch(searchQuery, 1);
+  }, [searchQuery, handleSearch]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!isSearching && hasMore) {
+      handleSearch(searchQuery, page + 1);
+    }
+  }, [searchQuery, page, hasMore, isSearching, handleSearch]);
+
+  const handleSelectPhoto = useCallback((photo: UnsplashPhoto) => {
+    onSelectPhoto(photo.urls.regular);
+  }, [onSelectPhoto]);
+
+  // Load default photos function
+  const loadDefaultPhotos = useCallback(async () => {
+    setIsLoadingDefaults(true);
+    setError(null);
+    try {
+      // Load random photos with popular queries for cover images
+      const photos = await getRandomUnsplashPhotos(12);
+      setDefaultPhotos(photos);
+    } catch (err) {
+      console.error('Error loading default Unsplash photos:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load photos');
+    } finally {
+      setIsLoadingDefaults(false);
+    }
+  }, []);
+
+  // Load default photos when component mounts
+  useEffect(() => {
+    loadDefaultPhotos();
+  }, [loadDefaultPhotos]);
+
+  // Handle refresh
+  const handleRefresh = useCallback(() => {
+    loadDefaultPhotos();
+  }, [loadDefaultPhotos]);
+
+  // Show default photos when no search query
+  const displayPhotos = searchQuery.trim() ? searchResults : defaultPhotos;
+  const showDefaultSection = !searchQuery.trim() && !isLoadingDefaults && defaultPhotos.length > 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Search Bar */}
+      <form onSubmit={handleSearchSubmit} className="relative">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search Unsplash photos..."
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+            disabled={isSearching || isFetching}
+          />
+          {isSearching && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+            </div>
+          )}
+        </div>
+        {error && (
+          <div className="flex items-center gap-2 mt-2 text-sm text-red-600 dark:text-red-400">
+            <AlertCircle className="w-4 h-4" />
+            {error}
+          </div>
+        )}
+      </form>
+
+      {/* Default Photos Section */}
+      {showDefaultSection && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Suggested Photos
+            </h4>
+            <motion.button
+              onClick={handleRefresh}
+              disabled={isLoadingDefaults || isFetching}
+              whileHover={{ scale: 1.05, rotate: 180 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh photos"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoadingDefaults ? 'animate-spin' : ''}`} />
+            </motion.button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {defaultPhotos.map((photo) => (
+              <motion.button
+                key={photo.id}
+                onClick={() => handleSelectPhoto(photo)}
+                disabled={isFetching}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-gray-800"
+              >
+                <img
+                  src={photo.urls.thumb}
+                  alt={photo.alt_description || photo.description || 'Unsplash photo'}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
+                  <span className="px-3 py-1.5 bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white text-sm font-medium rounded-lg backdrop-blur-sm shadow-lg">
+                    Select
+                  </span>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Loading Default Photos */}
+      {isLoadingDefaults && !searchQuery && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Suggested Photos
+            </h4>
+            <div className="p-1.5 text-gray-400">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div
+                key={i}
+                className="aspect-[4/1] rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Search Results */}
+      {searchQuery.trim() && searchResults.length > 0 && (
+        <div className={showDefaultSection ? 'mt-8' : ''}>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+            Search Results
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {searchResults.map((photo) => (
+              <motion.button
+                key={photo.id}
+                onClick={() => handleSelectPhoto(photo)}
+                disabled={isFetching}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-gray-800"
+              >
+                <img
+                  src={photo.urls.thumb}
+                  alt={photo.alt_description || photo.description || 'Unsplash photo'}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
+                  <span className="px-3 py-1.5 bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white text-sm font-medium rounded-lg backdrop-blur-sm shadow-lg">
+                    Select
+                  </span>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+          {hasMore && (
+            <div className="mt-4 text-center">
+              <motion.button
+                onClick={handleLoadMore}
+                disabled={isSearching || isFetching}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSearching ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading...
+                  </span>
+                ) : (
+                  'Load More'
+                )}
+              </motion.button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty Search Results */}
+      {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400">
+            No photos found. Try a different search term.
+          </p>
+        </div>
+      )}
     </div>
   );
 };
@@ -557,8 +845,23 @@ const CoverPhotoGallery = ({
     }
   }, [onRemove, onClose]);
 
+  // Handle Unsplash photo selection
+  const handleSelectUnsplashPhoto = useCallback(async (photoUrl: string) => {
+    setIsFetching(true);
+    try {
+      const blob = await fetchImageAsBlob(photoUrl);
+      onSelectBlob(blob);
+      onClose();
+    } catch (error) {
+      console.error('Error fetching Unsplash photo:', error);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [fetchImageAsBlob, onSelectBlob, onClose]);
+
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'gallery', label: 'Gallery', icon: <Image className="w-4 h-4" /> },
+    { id: 'unsplash', label: 'Unsplash', icon: <Search className="w-4 h-4" /> },
     { id: 'upload', label: 'Upload', icon: <Upload className="w-4 h-4" /> },
     { id: 'link', label: 'Link', icon: <Link2 className="w-4 h-4" /> },
   ];
@@ -649,6 +952,21 @@ const CoverPhotoGallery = ({
                   <GalleryTab
                     onSelectColor={handleSelectColor}
                     onSelectImage={handleSelectImage}
+                    isFetching={isFetching}
+                  />
+                </motion.div>
+              )}
+
+              {activeTab === 'unsplash' && (
+                <motion.div
+                  key="unsplash"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <UnsplashTab
+                    onSelectPhoto={handleSelectUnsplashPhoto}
                     isFetching={isFetching}
                   />
                 </motion.div>

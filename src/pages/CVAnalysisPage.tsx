@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Briefcase, Building, Target,
@@ -2470,6 +2470,7 @@ async function createMockPdfFromText(text: string): Promise<string> {
 export default function CVAnalysisPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedCV, setSelectedCV] = useState<string | null>('');
@@ -2633,7 +2634,7 @@ export default function CVAnalysisPage() {
   // Charger les job applications depuis Firestore
   useEffect(() => {
     const fetchSavedJobs = async () => {
-      if (!currentUser || !isModalOpen) return;
+      if (!currentUser) return;
 
       setIsLoadingSavedJobs(true);
       try {
@@ -2661,7 +2662,88 @@ export default function CVAnalysisPage() {
     };
 
     fetchSavedJobs();
-  }, [currentUser, isModalOpen]);
+  }, [currentUser]);
+
+  // Handle prefill from location.state (when navigating from JobDetailPanel)
+  useEffect(() => {
+    const state = location.state as {
+      jobTitle?: string;
+      company?: string;
+      jobDescription?: string;
+      jobUrl?: string;
+      fromApplication?: boolean;
+      jobId?: string;
+    } | null;
+
+    if (!state || !state.fromApplication || !currentUser) return;
+
+    // Wait for savedJobs to be loaded (or proceed if we have state data)
+    const handlePrefill = () => {
+      if (savedJobs.length > 0) {
+        // Find matching job application
+        const matchingJob = savedJobs.find(
+          job => job.id === state.jobId
+        ) || savedJobs.find(
+          job => 
+            job.position?.toLowerCase() === state.jobTitle?.toLowerCase() &&
+            job.companyName?.toLowerCase() === state.company?.toLowerCase()
+        );
+
+        if (matchingJob) {
+          // Set the selected job
+          setSelectedSavedJob(matchingJob);
+          setJobSearchQuery(`${matchingJob.companyName} - ${matchingJob.position}`);
+          setJobInputMode('saved');
+
+          // Prefill form data (but don't navigate to step 2 yet - user must choose CV first)
+          setFormData({
+            jobTitle: matchingJob.position,
+            company: matchingJob.companyName,
+            jobDescription: matchingJob.fullJobDescription || matchingJob.description || state.jobDescription || '',
+            jobUrl: matchingJob.url || state.jobUrl || '',
+          });
+
+          // Open modal at step 1 (user must choose CV first)
+          setIsModalOpen(true);
+          setCurrentStep(1);
+
+          // Clear location.state to prevent re-triggering
+          window.history.replaceState({}, document.title);
+          return;
+        }
+      }
+
+      // If job not found in saved jobs or savedJobs not loaded yet, prefill with state data
+      if (state.jobTitle && state.company) {
+        setFormData({
+          jobTitle: state.jobTitle,
+          company: state.company,
+          jobDescription: state.jobDescription || '',
+          jobUrl: state.jobUrl || '',
+        });
+        setJobInputMode('manual');
+
+        // Open modal at step 1 (user must choose CV first)
+        setIsModalOpen(true);
+        setCurrentStep(1);
+
+        // Clear location.state to prevent re-triggering
+        window.history.replaceState({}, document.title);
+      }
+    };
+
+    // If savedJobs are already loaded, handle immediately
+    // Otherwise, wait a bit for them to load (they're fetched on mount)
+    if (savedJobs.length > 0 || !isLoadingSavedJobs) {
+      handlePrefill();
+    } else {
+      // Wait a bit for savedJobs to load
+      const timeout = setTimeout(() => {
+        handlePrefill();
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [location.state, currentUser, savedJobs, isLoadingSavedJobs]);
 
   // Calculer la position du dropdown pour éviter qu'il soit coupé
   useEffect(() => {

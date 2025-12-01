@@ -93,7 +93,7 @@ const NotionEditor = ({
       ],
     },
     editable,
-    autofocus: autofocus ? 'end' : false,
+    autofocus: autofocus ? 'start' : false,
     onUpdate: ({ editor }) => {
       onChange?.(editor.getJSON());
       
@@ -323,6 +323,7 @@ const NotionEditor = ({
 
   // Track if initial content has been set
   const hasInitialContentRef = useRef(false);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
 
   // Only sync content on initial load, not on every change
   // The editor is the source of truth after initial load
@@ -332,6 +333,59 @@ const NotionEditor = ({
       // Only set content on initial mount
       editor.commands.setContent(content);
       hasInitialContentRef.current = true;
+      
+      // Scroll to top and set cursor to start after content loads
+      // Use multiple timeouts to ensure cards are fully rendered
+      const scrollToTop = () => {
+        // Scroll window to top
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        
+        // Scroll document body and html to top
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        
+        // Scroll editor container to top if it exists
+        if (editorContainerRef.current) {
+          editorContainerRef.current.scrollTop = 0;
+        }
+        
+        // Scroll editor view and all parent containers to top
+        if (editor.view?.dom) {
+          let element: HTMLElement | null = editor.view.dom;
+          while (element) {
+            element.scrollTop = 0;
+            element = element.parentElement;
+          }
+        }
+        
+        // Also scroll the ProseMirror editor viewport
+        if (editor.view?.dom?.parentElement) {
+          editor.view.dom.parentElement.scrollTop = 0;
+        }
+      };
+      
+      // Wait for content to render, especially mention embed cards
+      setTimeout(() => {
+        scrollToTop();
+        // Use requestAnimationFrame to ensure DOM is updated
+        requestAnimationFrame(() => {
+          scrollToTop();
+          // Set cursor to the very beginning AFTER scrolling
+          setTimeout(() => {
+            try {
+              const docSize = editor.state.doc.content.size;
+              if (docSize > 0) {
+                // Set selection to position 1 (start of document content)
+                editor.commands.setTextSelection({ from: 1, to: 1 });
+              }
+              editor.commands.focus();
+            } catch (e) {
+              // Fallback: just focus without setting selection
+              editor.commands.focus();
+            }
+          }, 0);
+        });
+      }, 200); // Longer delay to ensure mention embed cards are rendered
     }
   }, [editor, content]);
 
@@ -413,7 +467,7 @@ const NotionEditor = ({
   }
 
   return (
-    <div className="notion-editor relative">
+    <div ref={editorContainerRef} className="notion-editor relative">
       <BubbleMenuBar editor={editor} />
       <EditorContent editor={editor} />
       

@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
 import {
   X,
@@ -36,6 +37,7 @@ import { AIToolsTab } from './AIToolsTab';
 import { NotesTab } from './NotesTab';
 import { EnhancedJobSummary } from './EnhancedJobSummary';
 import { ResumeLab } from './ResumeLab';
+import { LinkedDocumentsTab } from './LinkedDocumentsTab';
 import { toast } from 'sonner';
 import { CompanyLogo } from '../common/CompanyLogo';
 
@@ -130,10 +132,11 @@ const statusConfig = {
 };
 
 export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDetailPanelProps) => {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editedJob, setEditedJob] = useState<Partial<JobApplication>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab' | 'linked-documents'>('overview');
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
   // Logo states removed - now using CompanyLogo component
 
@@ -368,6 +371,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                           { id: 'ai-tools', label: 'AI Tools', icon: Sparkles, badge: 'New' },
                           { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
                           { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: job.cvAnalysisId ? null : 'link' },
+                          { id: 'linked-documents', label: 'Linked Documents', icon: FileText, badge: ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0)) > 0 ? ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0)) : null },
                         ] as const).map((tab) => (
                           <button
                             key={tab.id}
@@ -404,9 +408,9 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
 
                     {/* Two-Column Layout */}
                     <div className="flex-1 px-8 py-6">
-                      <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
+                      <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'linked-documents' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
                         {/* Left Column - Main Content */}
-                        <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
+                        <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'linked-documents' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
                           {activeTab === 'overview' && (
                             <div className="space-y-8">
                               {/* Quick Stats / Highlights */}
@@ -603,38 +607,83 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                             job.cvAnalysisId ? (
                               <ResumeLab cvAnalysisId={job.cvAnalysisId} />
                             ) : (
-                              <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-8 text-center shadow-sm group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4 }}
+                                className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+                              >
+                                <div className="px-12 py-16 text-center">
+                                  {/* Premium Icon */}
+                                  <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ duration: 0.5, delay: 0.1 }}
+                                    className="relative inline-flex items-center justify-center mb-8"
+                                  >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-100/50 to-indigo-100/50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl blur-2xl" />
+                                    <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center border border-purple-100 dark:border-purple-800/30 shadow-sm">
+                                      <Target className="w-12 h-12 text-purple-600 dark:text-purple-400" strokeWidth={1.5} />
+                                    </div>
+                                  </motion.div>
 
-                                <div className="relative z-10">
-                                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-500">
-                                    <Target className="w-10 h-10 text-purple-600 dark:text-purple-400" />
-                                  </div>
-
-                                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                                  {/* Title */}
+                                  <motion.h3
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ duration: 0.5, delay: 0.2 }}
+                                    className="text-3xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight"
+                                  >
                                     Unlock Your Application Potential
-                                  </h3>
+                                  </motion.h3>
 
-                                  <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
+                                  {/* Description */}
+                                  <motion.p
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ duration: 0.5, delay: 0.3 }}
+                                    className="text-base text-gray-600 dark:text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed"
+                                  >
                                     Get a detailed AI analysis of how well your CV matches this job.
                                     Identify gaps, optimize keywords, and boost your interview chances.
-                                  </p>
+                                  </motion.p>
 
-                                  <button
-                                    onClick={() => window.location.href = '/cv-analysis'}
-                                    className="relative inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-purple-500/25 transform hover:-translate-y-0.5"
+                                  {/* Premium Button */}
+                                  <motion.button
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.5, delay: 0.4 }}
+                                    whileHover={{ scale: 1.02, y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => {
+                                      navigate('/cv-analysis', {
+                                        state: {
+                                          jobTitle: job.position,
+                                          company: job.companyName,
+                                          jobDescription: job.fullJobDescription || job.description || '',
+                                          jobUrl: job.url || '',
+                                          fromApplication: true,
+                                          jobId: job.id,
+                                        }
+                                      });
+                                    }}
+                                    className="relative inline-flex items-center gap-2.5 px-6 py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium text-sm transition-all duration-300 shadow-lg shadow-gray-900/10 dark:shadow-white/10 hover:shadow-xl hover:shadow-gray-900/20 dark:hover:shadow-white/20"
                                   >
-                                    <Sparkles className="w-5 h-5" />
+                                    <Sparkles className="w-4 h-4" strokeWidth={2} />
                                     <span>Start CV Analysis</span>
-                                  </button>
+                                  </motion.button>
                                 </div>
-                              </div>
+                              </motion.div>
                             )
+                          )}
+
+                          {activeTab === 'linked-documents' && (
+                            <LinkedDocumentsTab job={job} onUpdate={onUpdate} />
                           )}
                         </div>
 
-                        {/* Right Column - Sidebar (hidden for AI Tools, Notes, and Resume Lab tabs) */}
-                        {activeTab !== 'ai-tools' && activeTab !== 'notes' && activeTab !== 'resume-lab' && (
+                        {/* Right Column - Sidebar (hidden for AI Tools, Notes, Resume Lab, and Linked Documents tabs) */}
+                        {activeTab !== 'ai-tools' && activeTab !== 'notes' && activeTab !== 'resume-lab' && activeTab !== 'linked-documents' && (
                           <div className="lg:col-span-1 space-y-4">
                             {/* Status Card */}
                             <SectionCard title="Application Status">
