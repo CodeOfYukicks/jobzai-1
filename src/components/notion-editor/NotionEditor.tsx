@@ -1,5 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import {
@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 
 import BubbleMenuBar from './menus/BubbleMenuBar';
+import MentionEmbed, { MentionEmbedData } from './extensions/MentionEmbed';
+import MentionMenu from './MentionMenu';
+import MentionDetailModal from './MentionDetailModal';
+import { MentionSearchResult, searchResultToEmbedData } from '../../lib/mentionSearchService';
 
 import './notion-editor.css';
 
@@ -37,15 +41,30 @@ interface SlashMenuItem {
 const NotionEditor = ({
   content,
   onChange,
-  placeholder = "Type '/' for commands...",
+  placeholder = "Type '/' for commands or '@' to mention...",
   editable = true,
   className = '',
   autofocus = false,
 }: NotionEditorProps) => {
+  // Slash menu state
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({ top: 0, left: 0 });
   const [slashQuery, setSlashQuery] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
+
+  // Mention menu state
+  const [showMentionMenu, setShowMentionMenu] = useState(false);
+  const [mentionMenuPosition, setMentionMenuPosition] = useState({ top: 0, left: 0 });
+  const [mentionSelectionPos, setMentionSelectionPos] = useState<number | null>(null);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
+
+  // Detail modal state
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailModalData, setDetailModalData] = useState<MentionEmbedData | null>(null);
+
+  // Ref for tracking active menu for keyboard handling
+  const activeMenuRef = useRef<'slash' | 'mention' | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -60,6 +79,7 @@ const NotionEditor = ({
         emptyEditorClass: 'is-editor-empty',
         emptyNodeClass: 'is-empty',
       }),
+      MentionEmbed,
     ],
     content: content || {
       type: 'doc',
@@ -74,22 +94,39 @@ const NotionEditor = ({
     onUpdate: ({ editor }) => {
       onChange?.(editor.getJSON());
       
-      // Check for slash command
       const { selection } = editor.state;
       const { $anchor } = selection;
       const textBefore = $anchor.parent.textContent.slice(0, $anchor.parentOffset);
       
+      // Check for slash command
       const slashMatch = textBefore.match(/\/([a-zA-Z0-9]*)$/);
+      // Check for @ mention (but not after other text on the same word)
+      const mentionMatch = textBefore.match(/@([a-zA-Z0-9\s]*)$/);
       
       if (slashMatch) {
         const coords = editor.view.coordsAtPos(selection.from);
         setSlashMenuPosition({ top: coords.bottom + 5, left: coords.left });
         setSlashQuery(slashMatch[1].toLowerCase());
         setShowSlashMenu(true);
-        setSelectedIndex(0);
+        setSlashSelectedIndex(0);
+        setShowMentionMenu(false);
+        activeMenuRef.current = 'slash';
+      } else if (mentionMatch) {
+        const coords = editor.view.coordsAtPos(selection.from);
+        setMentionMenuPosition({ top: coords.bottom + 5, left: coords.left });
+        setMentionSelectionPos(selection.from); // Store position for scroll updates
+        setMentionQuery(mentionMatch[1].trim());
+        setShowMentionMenu(true);
+        setMentionSelectedIndex(0);
+        setShowSlashMenu(false);
+        activeMenuRef.current = 'mention';
       } else {
         setShowSlashMenu(false);
         setSlashQuery('');
+        setShowMentionMenu(false);
+        setMentionQuery('');
+        setMentionSelectionPos(null);
+        activeMenuRef.current = null;
       }
     },
     editorProps: {
@@ -97,31 +134,43 @@ const NotionEditor = ({
         class: `notion-editor-content prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[200px] ${className}`.trim(),
       },
       handleKeyDown: (view, event) => {
-        if (!showSlashMenu) return false;
-        
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          setSelectedIndex(prev => Math.min(prev + 1, filteredItems.length - 1));
-          return true;
-        }
-        
-        if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          setSelectedIndex(prev => Math.max(prev - 1, 0));
-          return true;
-        }
-        
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          if (filteredItems[selectedIndex]) {
-            executeCommand(filteredItems[selectedIndex]);
+        // Handle slash menu keyboard navigation
+        if (showSlashMenu && activeMenuRef.current === 'slash') {
+          if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setSlashSelectedIndex(prev => Math.min(prev + 1, filteredSlashItems.length - 1));
+            return true;
           }
-          return true;
+          
+          if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setSlashSelectedIndex(prev => Math.max(prev - 1, 0));
+            return true;
+          }
+          
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            if (filteredSlashItems[slashSelectedIndex]) {
+              executeSlashCommand(filteredSlashItems[slashSelectedIndex]);
+            }
+            return true;
+          }
+          
+          if (event.key === 'Escape') {
+            setShowSlashMenu(false);
+            activeMenuRef.current = null;
+            return true;
+          }
         }
-        
-        if (event.key === 'Escape') {
-          setShowSlashMenu(false);
-          return true;
+
+        // Handle mention menu keyboard navigation
+        if (showMentionMenu && activeMenuRef.current === 'mention') {
+          if (event.key === 'Escape') {
+            setShowMentionMenu(false);
+            activeMenuRef.current = null;
+            return true;
+          }
+          // Arrow keys and Enter are handled within MentionMenu component
         }
         
         return false;
@@ -186,13 +235,13 @@ const NotionEditor = ({
     },
   ] : [];
 
-  const filteredItems = slashMenuItems.filter(
+  const filteredSlashItems = slashMenuItems.filter(
     item =>
       item.title.toLowerCase().includes(slashQuery) ||
       item.description.toLowerCase().includes(slashQuery)
   );
 
-  const executeCommand = useCallback((item: SlashMenuItem) => {
+  const executeSlashCommand = useCallback((item: SlashMenuItem) => {
     if (!editor) return;
     
     // Delete the slash and query
@@ -210,22 +259,79 @@ const NotionEditor = ({
     // Execute the command
     item.command();
     setShowSlashMenu(false);
+    activeMenuRef.current = null;
   }, [editor]);
 
-  // Sync content when prop changes (important for note isolation)
+  // Handle mention selection
+  const handleMentionSelect = useCallback((result: MentionSearchResult) => {
+    if (!editor) return;
+
+    // Delete the @ and query
+    const { selection } = editor.state;
+    const { $anchor } = selection;
+    const textBefore = $anchor.parent.textContent.slice(0, $anchor.parentOffset);
+    const mentionMatch = textBefore.match(/@([a-zA-Z0-9\s]*)$/);
+    
+    if (mentionMatch) {
+      const from = selection.from - mentionMatch[0].length;
+      const to = selection.from;
+      editor.chain().focus().deleteRange({ from, to }).run();
+    }
+
+    // Insert the mention embed node
+    const embedData = searchResultToEmbedData(result);
+    editor.chain().focus().insertContent({
+      type: 'mentionEmbed',
+      attrs: embedData,
+    }).run();
+
+    setShowMentionMenu(false);
+    activeMenuRef.current = null;
+  }, [editor]);
+
+  // Handle mention menu close
+  const handleMentionMenuClose = useCallback(() => {
+    setShowMentionMenu(false);
+    activeMenuRef.current = null;
+    editor?.chain().focus().run();
+  }, [editor]);
+
+  // Listen for mention embed click events (from the embedded cards)
   useEffect(() => {
-    if (editor && content) {
-      const currentContent = editor.getJSON();
-      // Only update if content is actually different to avoid cursor jumping
-      if (JSON.stringify(currentContent) !== JSON.stringify(content)) {
-        editor.commands.setContent(content);
-      }
+    const handleMentionClick = (event: CustomEvent<{ type: string; id: string; data: MentionEmbedData }>) => {
+      setDetailModalData(event.detail.data);
+      setShowDetailModal(true);
+    };
+
+    window.addEventListener('mention-embed-click' as any, handleMentionClick);
+    return () => window.removeEventListener('mention-embed-click' as any, handleMentionClick);
+  }, []);
+
+  // Track if initial content has been set
+  const hasInitialContentRef = useRef(false);
+
+  // Only sync content on initial load, not on every change
+  // The editor is the source of truth after initial load
+  // Note: key={noteId} on the component handles note switching by remounting
+  useEffect(() => {
+    if (editor && content && !hasInitialContentRef.current) {
+      // Only set content on initial mount
+      editor.commands.setContent(content);
+      hasInitialContentRef.current = true;
     }
   }, [editor, content]);
 
-  // Close menu when clicking outside
+  // Reset the flag when editor changes (new mount)
   useEffect(() => {
-    const handleClick = () => setShowSlashMenu(false);
+    hasInitialContentRef.current = false;
+  }, [editor]);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClick = () => {
+      setShowSlashMenu(false);
+      // Note: MentionMenu handles its own click outside
+    };
     if (showSlashMenu) {
       document.addEventListener('click', handleClick);
       return () => document.removeEventListener('click', handleClick);
@@ -242,7 +348,7 @@ const NotionEditor = ({
       <EditorContent editor={editor} />
       
       {/* Slash Command Menu */}
-      {showSlashMenu && filteredItems.length > 0 && (
+      {showSlashMenu && filteredSlashItems.length > 0 && (
         <div
           className="fixed z-50 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden min-w-[300px] max-h-[400px] overflow-y-auto"
           style={{
@@ -258,20 +364,20 @@ const NotionEditor = ({
               </span>
             </div>
             <div className="space-y-0.5">
-              {filteredItems.map((item, index) => (
+              {filteredSlashItems.map((item, index) => (
                 <button
                   key={item.title}
-                  onClick={() => executeCommand(item)}
-                  onMouseEnter={() => setSelectedIndex(index)}
+                  onClick={() => executeSlashCommand(item)}
+                  onMouseEnter={() => setSlashSelectedIndex(index)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors
-                    ${index === selectedIndex
+                    ${index === slashSelectedIndex
                       ? 'bg-gray-100 dark:bg-gray-800'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                     }`}
                 >
                   <div
                     className={`flex items-center justify-center w-10 h-10 rounded-lg 
-                      ${index === selectedIndex
+                      ${index === slashSelectedIndex
                         ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                       }`}
@@ -292,6 +398,26 @@ const NotionEditor = ({
           </div>
         </div>
       )}
+
+      {/* Mention Menu */}
+      <MentionMenu
+        isOpen={showMentionMenu}
+        position={mentionMenuPosition}
+        query={mentionQuery}
+        onSelect={handleMentionSelect}
+        onClose={handleMentionMenuClose}
+        selectedIndex={mentionSelectedIndex}
+        onSelectedIndexChange={setMentionSelectedIndex}
+        editorView={editor.view}
+        selectionPos={mentionSelectionPos}
+      />
+
+      {/* Detail Modal */}
+      <MentionDetailModal
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        data={detailModalData}
+      />
     </div>
   );
 };

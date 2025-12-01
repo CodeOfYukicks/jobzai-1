@@ -27,6 +27,7 @@ export interface GeneratedEmail {
   type: 'cover_letter' | 'follow_up';
   content: string;
   createdAt: string;
+  noteId?: string;  // ID of linked NotionDocument in notes collection
 }
 
 export interface StickyNote {
@@ -88,6 +89,7 @@ export interface JobApplication {
     growthOpportunities?: string;
   };
   cvAnalysisId?: string;  // ID of linked CV analysis from CV Analysis page
+  linkedNoteIds?: string[];  // IDs of linked NotionDocuments from AI-generated content
 }
 
 

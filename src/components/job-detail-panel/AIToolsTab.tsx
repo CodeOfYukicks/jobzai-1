@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Send, HelpCircle, MessageSquare, FileText, ChevronUp } from 'lucide-react';
 import { JobApplication, GeneratedEmail } from '../../types/job';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { useAuth } from '../../contexts/AuthContext';
 import { StatusBadge } from './StatusBadge';
 import { ToolCard } from './ToolCard';
 import { EmailGenerator } from './EmailGenerator';
@@ -10,6 +11,8 @@ import { GenerationLoadingScreen } from './GenerationLoadingScreen';
 import { GeneratedHistoryModal } from './GeneratedHistoryModal';
 import { GeneratedContentView } from './GeneratedContentView';
 import { toast } from 'sonner';
+import { createNote } from '../../lib/notionDocService';
+import { convertTextToTiptapContent } from '../../lib/textToTiptap';
 
 interface AIToolsTabProps {
   job: JobApplication;
@@ -20,6 +23,7 @@ type ToolType = 'cover_letter' | 'follow_up' | 'interview_prep' | 'questions_to_
 
 export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
   const { profile, loading: profileLoading } = useUserProfile();
+  const { currentUser } = useAuth();
   const [expandedSections, setExpandedSections] = useState({
     application: true,
     interview: true,
@@ -32,14 +36,50 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
     isOpen: false,
   });
 
+  /**
+   * Save generated content as both:
+   * 1. A NotionDocument in the notes collection
+   * 2. A GeneratedEmail entry linked to this job application
+   */
   const handleSaveEmail = async (email: GeneratedEmail) => {
-    if (!onUpdate) return;
+    if (!onUpdate || !currentUser) return;
 
-    const updatedEmails = [...(job.generatedEmails || []), email];
-    
-    await onUpdate({
-      generatedEmails: updatedEmails,
-    });
+    try {
+      // 1. Create NotionDocument in notes collection
+      const toolTypeName = email.type === 'cover_letter' ? 'Cover Letter' : 'Follow Up';
+      const noteTitle = `${toolTypeName} - ${job.companyName} (${job.position})`;
+      const tiptapContent = convertTextToTiptapContent(email.content);
+      
+      const noteEmoji = email.type === 'cover_letter' ? '✉️' : '📧';
+      
+      const newNote = await createNote({
+        userId: currentUser.uid,
+        title: noteTitle,
+        content: tiptapContent,
+        emoji: noteEmoji,
+      });
+
+      // 2. Update email with noteId
+      const emailWithNoteId: GeneratedEmail = {
+        ...email,
+        noteId: newNote.id,
+      };
+
+      // 3. Update job application with both generatedEmails and linkedNoteIds
+      const updatedEmails = [...(job.generatedEmails || []), emailWithNoteId];
+      const updatedLinkedNoteIds = [...(job.linkedNoteIds || []), newNote.id];
+
+      await onUpdate({
+        generatedEmails: updatedEmails,
+        linkedNoteIds: updatedLinkedNoteIds,
+      });
+
+      toast.success('Saved as note! You can access it from your Documents page.');
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast.error('Failed to save as note');
+      throw error;
+    }
   };
 
   const handleDeleteEmail = async (emailId: string) => {
