@@ -1,0 +1,193 @@
+/* Notion Editor Styles */
+
+.notion-editor {
+  @apply relative;
+}
+
+.notion-editor-content {
+  @apply px-4 py-2;
+}
+
+/* Placeholder styles */
+.notion-editor-content .is-editor-empty:first-child::before,
+.notion-editor-content .is-empty::before {
+  @apply text-gray-400 dark:text-gray-500 pointer-events-none float-left h-0;
+  content: attr(data-placeholder);
+}
+
+/* Heading styles */
+.notion-editor-content h1 {
+  @apply text-3xl font-bold mt-8 mb-4 text-gray-900 dark:text-white;
+}
+
+.notion-editor-content h2 {
+  @apply text-2xl font-semibold mt-6 mb-3 text-gray-900 dark:text-white;
+}
+
+.notion-editor-content h3 {
+  @apply text-xl font-medium mt-4 mb-2 text-gray-900 dark:text-white;
+}
+
+/* Paragraph spacing */
+.notion-editor-content p {
+  @apply my-3 text-gray-700 dark:text-gray-300 leading-relaxed;
+}
+
+/* List styles */
+.notion-editor-content ul {
+  @apply my-3 pl-6 list-disc;
+}
+
+.notion-editor-content ol {
+  @apply my-3 pl-6 list-decimal;
+}
+
+.notion-editor-content li {
+  @apply my-1;
+}
+
+.notion-editor-content li p {
+  @apply my-0;
+}
+
+/* Task list styles */
+.notion-editor-content .task-list {
+  @apply list-none pl-0;
+}
+
+.notion-editor-content .task-item {
+  @apply flex items-start gap-2 my-1;
+}
+
+.notion-editor-content .task-item > label {
+  @apply flex items-center;
+}
+
+.notion-editor-content .task-item > label > input[type="checkbox"] {
+  @apply w-4 h-4 rounded border-gray-300 dark:border-gray-600 
+    text-purple-600 focus:ring-purple-500 cursor-pointer mt-1;
+}
+
+.notion-editor-content .task-item > div {
+  @apply flex-1;
+}
+
+.notion-editor-content .task-item[data-checked="true"] > div {
+  @apply line-through text-gray-400 dark:text-gray-500;
+}
+
+/* Blockquote styles */
+.notion-editor-content blockquote {
+  @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-4 
+    text-gray-600 dark:text-gray-400 italic;
+}
+
+/* Code block styles */
+.notion-editor-content .notion-code-block {
+  @apply bg-gray-900 dark:bg-gray-950 text-gray-100 rounded-lg p-4 my-4 
+    overflow-x-auto text-sm font-mono;
+}
+
+.notion-editor-content .notion-code-block code {
+  @apply bg-transparent;
+  color: inherit;
+  font: inherit;
+}
+
+/* Inline code */
+.notion-editor-content code:not(.notion-code-block code) {
+  @apply bg-gray-100 dark:bg-gray-800 text-purple-600 dark:text-purple-400 
+    px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+/* Table styles */
+.notion-editor-content .notion-table {
+  @apply w-full my-4 border-collapse;
+}
+
+.notion-editor-content .notion-table-cell {
+  @apply border border-gray-200 dark:border-gray-700 p-2 min-w-[100px];
+}
+
+.notion-editor-content .notion-table-header {
+  @apply border border-gray-200 dark:border-gray-700 p-2 min-w-[100px]
+    bg-gray-50 dark:bg-gray-800 font-semibold;
+}
+
+/* Image styles */
+.notion-editor-content .notion-image {
+  @apply max-w-full h-auto rounded-lg my-4;
+}
+
+/* Divider styles */
+.notion-editor-content .notion-divider {
+  @apply border-0 border-t-2 border-gray-200 dark:border-gray-700 my-8;
+}
+
+/* Selection styles */
+.notion-editor-content ::selection {
+  @apply bg-purple-200 dark:bg-purple-500/30;
+}
+
+/* Focus styles for blocks */
+.notion-editor-content [data-type="toggle"]:focus-within,
+.notion-editor-content [data-type="callout"]:focus-within,
+.notion-editor-content [data-type="columns"]:focus-within {
+  @apply ring-2 ring-purple-500/20 rounded-lg;
+}
+
+/* Tippy themes for menus */
+.tippy-box[data-theme~='notion-slash'] {
+  @apply bg-transparent p-0 shadow-none;
+}
+
+.tippy-box[data-theme~='notion-slash'] .tippy-content {
+  @apply p-0;
+}
+
+.tippy-box[data-theme~='notion-bubble'] {
+  @apply bg-transparent p-0 shadow-none;
+}
+
+.tippy-box[data-theme~='notion-bubble'] .tippy-content {
+  @apply p-0;
+}
+
+/* Drag handle styles */
+.drag-handle-wrapper {
+  transition: opacity 0.15s ease;
+}
+
+.drag-handle-wrapper.dragging {
+  opacity: 0.5;
+}
+
+/* Print styles */
+@media print {
+  .notion-editor-content {
+    @apply text-black;
+  }
+  
+  .bubble-menu,
+  .floating-menu,
+  .drag-handle-wrapper {
+    display: none !important;
+  }
+}
+
+/* Animation for blocks */
+.notion-editor-content > * {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

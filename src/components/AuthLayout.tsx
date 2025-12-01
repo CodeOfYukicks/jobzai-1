@@ -152,14 +152,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/interview-prep/') ||
     location.pathname.startsWith('/ats-analysis/') ||
     location.pathname === '/resume-builder' ||
-    (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'))
+    (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
+    location.pathname.startsWith('/notes/')
   );
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [hasScrolled, setHasScrolled] = useState<boolean>(false);
   const [isHoveringCollapsedSidebar, setIsHoveringCollapsedSidebar] = useState(false);
 
   useEffect(() => {
-    // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Upcoming Interviews page, Calendar page, Interview Prep pages, Resume Builder, and Resume Builder editor for full-width editing
+    // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Upcoming Interviews page, Calendar page, Interview Prep pages, Resume Builder, Resume Builder editor, and Notes for full-width editing
     if (location.pathname.startsWith('/cv-optimizer/') || 
         location.pathname === '/applications' || 
         location.pathname === '/jobs' ||
@@ -168,7 +169,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         location.pathname.startsWith('/interview-prep/') ||
         location.pathname.startsWith('/ats-analysis/') ||
         location.pathname === '/resume-builder' ||
-        (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'))) {
+        (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
+        location.pathname.startsWith('/notes/')) {
       setIsCollapsed(true);
     }
   }, [location.pathname]);
@@ -309,14 +311,16 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/interview-prep/') || 
     location.pathname === '/resume-builder' ||
     (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor')) ||
-    (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'));
+    (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
+    location.pathname.startsWith('/notes/');
 
-  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages, cv-analysis and professional-profile
+  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages, cv-analysis, professional-profile, and notes
   const needsFullWidth = needsFullHeight || 
     location.pathname.startsWith('/ats-analysis/') ||
     location.pathname === '/cv-analysis' ||
     location.pathname.startsWith('/resume-builder') ||
-    location.pathname === '/professional-profile';
+    location.pathname === '/professional-profile' ||
+    location.pathname.startsWith('/notes/');
 
   return (
     <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden`}>
@@ -341,8 +345,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               )}
             </Link>
             
-            {/* Bouton collapse - positionné à droite - désactivé sur /applications, /jobs, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis, /resume-builder et resume-builder editor */}
-            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/calendar' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && location.pathname !== '/resume-builder' && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && (
+            {/* Bouton collapse - positionné à droite - désactivé sur /applications, /jobs, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis, /resume-builder, resume-builder editor et notes */}
+            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/calendar' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && location.pathname !== '/resume-builder' && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && !location.pathname.startsWith('/notes/') && (
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className={`absolute right-3 group flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200
@@ -360,8 +364,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               </button>
             )}
 
-            {/* Bouton collapse pour /applications, /jobs, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis, /resume-builder et resume-builder editor - visible quand expanded */}
-            {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || location.pathname === '/resume-builder' || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'))) && !isCollapsed && (
+            {/* Bouton collapse pour /applications, /jobs, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis, /resume-builder, resume-builder editor et notes - visible quand expanded */}
+            {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || location.pathname === '/resume-builder' || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) || location.pathname.startsWith('/notes/')) && !isCollapsed && (
               <button
                 onClick={() => setIsCollapsed(true)}
                 className={`absolute right-3 group flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200
@@ -376,11 +380,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             )}
           </div>
 
-          {/* Bouton flottant d'expansion - apparaît au hover sur sidebar compacte pour /applications, /jobs, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis, /resume-builder et resume-builder editor */}
+          {/* Bouton flottant d'expansion - apparaît au hover sur sidebar compacte pour /applications, /jobs, /upcoming-interviews, /calendar, /interview-prep, /ats-analysis, /resume-builder, resume-builder editor et notes */}
           <AnimatePresence>
             {isCollapsed && 
              isHoveringCollapsedSidebar && 
-             (location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || location.pathname === '/resume-builder' || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor'))) && (
+             (location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/upcoming-interviews' || location.pathname === '/calendar' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || location.pathname === '/resume-builder' || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) || location.pathname.startsWith('/notes/')) && (
               <motion.button
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}

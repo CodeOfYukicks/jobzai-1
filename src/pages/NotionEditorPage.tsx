@@ -1,0 +1,976 @@
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Save,
+  Cloud,
+  CloudOff,
+  Loader2,
+  MoreHorizontal,
+  Download,
+  FileText,
+  Code,
+  Trash2,
+  Image,
+  Camera,
+  X,
+} from 'lucide-react';
+import AuthLayout from '../components/AuthLayout';
+import { useAuth } from '../contexts/AuthContext';
+import NotionEditor from '../components/notion-editor/NotionEditor';
+import FolderSidebar, { SelectedFolderType } from '../components/resume-builder/FolderSidebar';
+import { Folder } from '../components/resume-builder/FolderCard';
+import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
+import { Resume } from './ResumeBuilderPage';
+import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
+import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
+import {
+  getNote,
+  getNotes,
+  updateNote,
+  deleteNote,
+  createAutoSaver,
+  NotionDocument,
+} from '../lib/notionDocService';
+import { toast } from 'sonner';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { db, storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+
+// Common emojis for quick selection
+const commonEmojis = [
+  '📝', '📄', '📋', '📌', '🎯', '💡', '🚀', '⭐',
+  '📚', '💼', '🎨', '🔧', '📊', '🗂️', '✅', '❤️',
+];
+
+export default function NotionEditorPage() {
+  const { noteId } = useParams<{ noteId: string }>();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
+  const [note, setNote] = useState<NotionDocument | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [title, setTitle] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Sidebar state
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<SelectedFolderType>('all');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true); // Default collapsed for note editor
+
+  // Items for folder counts
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [documents, setDocuments] = useState<ImportedDocument[]>([]);
+  const [notes, setNotes] = useState<NotionDocument[]>([]);
+
+  // Cover image state
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  const [isCoverHovering, setIsCoverHovering] = useState(false);
+  const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
+  const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const autoSaverRef = useRef<ReturnType<typeof createAutoSaver> | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch folders
+  const fetchFolders = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const foldersRef = collection(db, 'users', currentUser.uid, 'folders');
+      const q = query(foldersRef, orderBy('order', 'asc'));
+      const querySnapshot = await getDocs(q);
+
+      const foldersList: Folder[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        foldersList.push({
+          id: doc.id,
+          name: data.name,
+          icon: data.icon || '📁',
+          color: data.color || '#8B5CF6',
+          coverPhoto: data.coverPhoto,
+          order: data.order || 0,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt
+        });
+      });
+
+      setFolders(foldersList);
+    } catch (error) {
+      console.error('Error fetching folders:', error);
+    }
+  }, [currentUser]);
+
+  // Fetch resumes for folder counts
+  const fetchResumes = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const resumesRef = collection(db, 'users', currentUser.uid, 'cvs');
+      const q = query(resumesRef, orderBy('updatedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+
+      const resumesList: Resume[] = [];
+      querySnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
+        if (docSnapshot.id !== 'default' && data.cvData) {
+          resumesList.push({
+            id: docSnapshot.id,
+            name: data.name || 'Untitled Resume',
+            cvData: data.cvData,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            template: data.template,
+            layoutSettings: data.layoutSettings,
+            folderId: data.folderId,
+            tags: data.tags || []
+          });
+        }
+      });
+
+      setResumes(resumesList);
+    } catch (error) {
+      console.error('Error fetching resumes:', error);
+    }
+  }, [currentUser]);
+
+  // Fetch documents for folder counts
+  const fetchDocuments = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const documentsRef = collection(db, 'users', currentUser.uid, 'documents');
+      const q = query(documentsRef, orderBy('updatedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+
+      const documentsList: ImportedDocument[] = [];
+      querySnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
+        documentsList.push({
+          id: docSnapshot.id,
+          name: data.name || 'Untitled Document',
+          fileUrl: data.fileUrl,
+          fileSize: data.fileSize || 0,
+          pageCount: data.pageCount,
+          folderId: data.folderId,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt
+        });
+      });
+
+      setDocuments(documentsList);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  }, [currentUser]);
+
+  // Fetch all notes for folder counts
+  const fetchAllNotes = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const notesList = await getNotes(currentUser.uid);
+      setNotes(notesList);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    }
+  }, [currentUser]);
+
+  // Calculate folder counts and grouped items
+  const { folderCounts, uncategorizedCount, totalCount, groupedResumes, groupedDocuments, groupedNotes } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const resumesByFolder: Record<string, Resume[]> = {};
+    const documentsByFolder: Record<string, ImportedDocument[]> = {};
+    const notesByFolder: Record<string, NotionDocument[]> = {};
+    let uncategorized = 0;
+
+    // Initialize counts for all folders
+    folders.forEach(f => {
+      counts[f.id] = 0;
+      resumesByFolder[f.id] = [];
+      documentsByFolder[f.id] = [];
+      notesByFolder[f.id] = [];
+    });
+
+    // Count and group resumes
+    resumes.forEach(resume => {
+      if (resume.folderId && counts[resume.folderId] !== undefined) {
+        counts[resume.folderId]++;
+        resumesByFolder[resume.folderId].push(resume);
+      } else {
+        uncategorized++;
+      }
+    });
+
+    // Count and group documents
+    documents.forEach(doc => {
+      if (doc.folderId && counts[doc.folderId] !== undefined) {
+        counts[doc.folderId]++;
+        documentsByFolder[doc.folderId].push(doc);
+      } else {
+        uncategorized++;
+      }
+    });
+
+    // Count and group notes
+    notes.forEach(n => {
+      if (n.folderId && counts[n.folderId] !== undefined) {
+        counts[n.folderId]++;
+        notesByFolder[n.folderId].push(n);
+      } else {
+        uncategorized++;
+      }
+    });
+
+    const total = resumes.length + documents.length + notes.length;
+
+    return { 
+      folderCounts: counts, 
+      uncategorizedCount: uncategorized, 
+      totalCount: total,
+      groupedResumes: resumesByFolder,
+      groupedDocuments: documentsByFolder,
+      groupedNotes: notesByFolder
+    };
+  }, [folders, resumes, documents, notes]);
+
+  // Handlers for opening items from sidebar
+  const handleEditResume = useCallback((resumeId: string) => {
+    navigate(`/resume-builder/${resumeId}/cv-editor`);
+  }, [navigate]);
+
+  const handleViewDocument = useCallback((document: ImportedDocument) => {
+    // Navigate to resume builder with document selected (or could open PDF viewer)
+    navigate('/resume-builder');
+  }, [navigate]);
+
+  const handleEditNote = useCallback((noteIdToEdit: string) => {
+    if (noteIdToEdit !== noteId) {
+      navigate(`/notes/${noteIdToEdit}`);
+    }
+  }, [navigate, noteId]);
+
+  // Initialize auto-saver
+  useEffect(() => {
+    if (currentUser && noteId) {
+      autoSaverRef.current = createAutoSaver(currentUser.uid, noteId, 2000);
+    }
+
+    return () => {
+      autoSaverRef.current?.cancel();
+    };
+  }, [currentUser, noteId]);
+
+  // Fetch note and folders on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!currentUser || !noteId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Fetch all data in parallel
+        await Promise.all([
+          fetchFolders(),
+          fetchResumes(),
+          fetchDocuments(),
+          fetchAllNotes(),
+        ]);
+        
+        const fetchedNote = await getNote(currentUser.uid, noteId);
+        if (fetchedNote) {
+          setNote(fetchedNote);
+          setTitle(fetchedNote.title || '');
+          if (fetchedNote.folderId) {
+            setSelectedFolderId(fetchedNote.folderId);
+          }
+        } else {
+          toast.error('Note not found');
+          navigate('/resume-builder');
+        }
+      } catch (error) {
+        console.error('Error fetching note:', error);
+        toast.error('Failed to load note');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [currentUser, noteId, navigate, fetchFolders, fetchResumes, fetchDocuments, fetchAllNotes]);
+
+  // Handle content changes with auto-save
+  const handleContentChange = useCallback(
+    (content: any) => {
+      setHasUnsavedChanges(true);
+      autoSaverRef.current?.queueSave(content);
+
+      setNote((prev) =>
+        prev ? { ...prev, content } : null
+      );
+
+      setTimeout(() => {
+        setHasUnsavedChanges(false);
+        setLastSaved(new Date());
+      }, 2100);
+    },
+    []
+  );
+
+  // Handle title change
+  const handleTitleChange = useCallback(
+    async (newTitle: string) => {
+      setTitle(newTitle);
+
+      if (!currentUser || !noteId) return;
+
+      try {
+        await updateNote({
+          userId: currentUser.uid,
+          noteId,
+          updates: { title: newTitle },
+        });
+        setNote((prev) =>
+          prev ? { ...prev, title: newTitle } : null
+        );
+      } catch (error) {
+        console.error('Error updating title:', error);
+      }
+    },
+    [currentUser, noteId]
+  );
+
+  // Handle emoji change
+  const handleEmojiChange = useCallback(
+    async (emoji: string) => {
+      if (!currentUser || !noteId) return;
+
+      try {
+        await updateNote({
+          userId: currentUser.uid,
+          noteId,
+          updates: { emoji },
+        });
+        setNote((prev) =>
+          prev ? { ...prev, emoji } : null
+        );
+        setShowEmojiPicker(false);
+      } catch (error) {
+        console.error('Error updating emoji:', error);
+      }
+    },
+    [currentUser, noteId]
+  );
+
+  // Handle file selection for cover
+  const handleCoverFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedCoverFile(file);
+      setIsCoverCropperOpen(true);
+    }
+    // Reset input
+    if (coverInputRef.current) {
+      coverInputRef.current.value = '';
+    }
+  }, []);
+
+  // Handle gallery selection
+  const handleGallerySelect = useCallback((blob: Blob) => {
+    setSelectedCoverFile(blob);
+    setIsCoverGalleryOpen(false);
+    setIsCoverCropperOpen(true);
+  }, []);
+
+  // Handle cropped cover upload
+  const handleCroppedCover = useCallback(async (blob: Blob) => {
+    if (!currentUser || !noteId) return;
+
+    setIsUpdatingCover(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `note_${noteId}_cover_${timestamp}.jpg`;
+      const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
+      
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(coverRef);
+      
+      await updateNote({
+        userId: currentUser.uid,
+        noteId,
+        updates: { coverImage: coverUrl },
+      });
+      
+      setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
+      toast.success('Cover image updated');
+    } catch (error) {
+      console.error('Error updating cover:', error);
+      toast.error('Failed to update cover image');
+    } finally {
+      setIsUpdatingCover(false);
+      setIsCoverCropperOpen(false);
+      setSelectedCoverFile(null);
+    }
+  }, [currentUser, noteId]);
+
+  // Handle cover image remove
+  const handleRemoveCover = useCallback(async () => {
+    if (!currentUser || !noteId || !note?.coverImage) return;
+
+    setIsUpdatingCover(true);
+    try {
+      // Update note to remove cover
+      await updateNote({
+        userId: currentUser.uid,
+        noteId,
+        updates: { coverImage: '' },
+      });
+      
+      // Try to delete from storage
+      try {
+        const coverRef = ref(storage, note.coverImage);
+        await deleteObject(coverRef);
+      } catch (e) {
+        console.warn('Could not delete old cover from storage', e);
+      }
+      
+      setNote((prev) => prev ? { ...prev, coverImage: undefined } : null);
+      toast.success('Cover image removed');
+    } catch (error) {
+      console.error('Error removing cover:', error);
+      toast.error('Failed to remove cover image');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  }, [currentUser, noteId, note?.coverImage]);
+
+  // Manual save
+  const handleManualSave = useCallback(async () => {
+    if (!autoSaverRef.current) return;
+
+    setIsSaving(true);
+    try {
+      await autoSaverRef.current.saveNow();
+      setHasUnsavedChanges(false);
+      setLastSaved(new Date());
+      toast.success('Saved');
+    } catch (error) {
+      toast.error('Failed to save');
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  // Export as Markdown
+  const handleExportMarkdown = useCallback(() => {
+    if (!note) return;
+
+    const content = note.content;
+    let markdown = `# ${note.title || 'Untitled'}\n\n`;
+
+    const nodeToMarkdown = (node: any): string => {
+      switch (node.type) {
+        case 'paragraph':
+          return (node.content?.map(nodeToMarkdown).join('') || '') + '\n\n';
+        case 'heading':
+          const level = '#'.repeat(node.attrs?.level || 1);
+          return `${level} ${node.content?.map(nodeToMarkdown).join('') || ''}\n\n`;
+        case 'bulletList':
+          return (node.content?.map((item: any) => `- ${nodeToMarkdown(item)}`).join('') || '') + '\n';
+        case 'orderedList':
+          return (node.content?.map((item: any, i: number) => `${i + 1}. ${nodeToMarkdown(item)}`).join('') || '') + '\n';
+        case 'listItem':
+          return node.content?.map(nodeToMarkdown).join('').trim() + '\n';
+        case 'blockquote':
+          return `> ${node.content?.map(nodeToMarkdown).join('') || ''}\n`;
+        case 'codeBlock':
+          return `\`\`\`\n${node.content?.map(nodeToMarkdown).join('') || ''}\`\`\`\n\n`;
+        case 'horizontalRule':
+          return '---\n\n';
+        case 'text':
+          let text = node.text || '';
+          if (node.marks) {
+            node.marks.forEach((mark: any) => {
+              switch (mark.type) {
+                case 'bold': text = `**${text}**`; break;
+                case 'italic': text = `*${text}*`; break;
+                case 'code': text = `\`${text}\``; break;
+                case 'link': text = `[${text}](${mark.attrs?.href || ''})`; break;
+              }
+            });
+          }
+          return text;
+        default:
+          return node.content?.map(nodeToMarkdown).join('') || '';
+      }
+    };
+
+    if (content?.content) {
+      content.content.forEach((node: any) => {
+        markdown += nodeToMarkdown(node);
+      });
+    }
+
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${note.title || 'untitled'}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success('Exported as Markdown');
+    setShowMenu(false);
+  }, [note]);
+
+  // Export as JSON
+  const handleExportJSON = useCallback(() => {
+    if (!note) return;
+
+    const blob = new Blob([JSON.stringify(note.content, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${note.title || 'untitled'}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success('Exported as JSON');
+    setShowMenu(false);
+  }, [note]);
+
+  // Delete note
+  const handleDelete = useCallback(async () => {
+    if (!currentUser || !noteId) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteNote(currentUser.uid, noteId);
+      toast.success('Note deleted');
+      navigate('/resume-builder');
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  }, [currentUser, noteId, navigate]);
+
+  // Click outside handlers
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleManualSave();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleManualSave]);
+
+  const handleSelectFolder = (folderId: SelectedFolderType) => {
+    setSelectedFolderId(folderId);
+    navigate('/resume-builder');
+  };
+
+  if (isLoading) {
+    return (
+      <AuthLayout>
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  if (!note) {
+    return (
+      <AuthLayout>
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <FileText className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+          <p className="text-gray-500 dark:text-gray-400">Note not found</p>
+          <button
+            onClick={() => navigate('/resume-builder')}
+            className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors"
+          >
+            Go back
+          </button>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  return (
+    <AuthLayout>
+      <div className="flex h-full">
+        {/* Sidebar */}
+        <FolderSidebar
+          folders={folders}
+          selectedFolderId={selectedFolderId}
+          onSelectFolder={handleSelectFolder}
+          onEditFolder={() => {}}
+          onDeleteFolder={() => {}}
+          onNewFolder={() => navigate('/resume-builder')}
+          onDropResume={() => {}}
+          onDropDocument={() => {}}
+          onDropNote={() => {}}
+          folderCounts={folderCounts}
+          uncategorizedCount={uncategorizedCount}
+          totalCount={totalCount}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          groupedResumes={groupedResumes}
+          groupedDocuments={groupedDocuments}
+          groupedNotes={groupedNotes}
+          onEditResume={handleEditResume}
+          onViewDocument={handleViewDocument}
+          onEditNote={handleEditNote}
+        />
+
+        {/* Main Editor Area */}
+        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-950">
+          {/* Minimal Header - Notion style */}
+          <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl">
+            <div className="flex items-center gap-2">
+              {/* Save status */}
+              {hasUnsavedChanges ? (
+                <div className="flex items-center gap-1.5 text-amber-500 text-xs">
+                  <CloudOff className="w-3.5 h-3.5" />
+                  <span>Editing...</span>
+                </div>
+              ) : lastSaved ? (
+                <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-xs">
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>Saved</span>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleManualSave}
+                disabled={isSaving || !hasUnsavedChanges}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                <span>Save</span>
+              </button>
+
+              {/* More menu */}
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+
+                <AnimatePresence>
+                  {showMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-1 z-50"
+                    >
+                      <button
+                        onClick={handleExportMarkdown}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export Markdown
+                      </button>
+                      <button
+                        onClick={handleExportJSON}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <Code className="w-4 h-4" />
+                        Export JSON
+                      </button>
+                      <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Note
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </header>
+
+          {/* Editor Content - Notion style with emoji and title in content */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Cover Image Section - FolderHeader style */}
+            <div 
+              className="relative w-full group/cover"
+              onMouseEnter={() => setIsCoverHovering(true)}
+              onMouseLeave={() => setIsCoverHovering(false)}
+            >
+              <div className={`relative w-full transition-all duration-300 ease-in-out ${note.coverImage ? 'h-48 sm:h-64' : 'h-24 sm:h-32'}`}>
+                {note.coverImage ? (
+                  <div className="absolute inset-0 w-full h-full overflow-hidden">
+                    <img 
+                      src={note.coverImage} 
+                      alt="Note cover" 
+                      className="w-full h-full object-cover animate-in fade-in duration-500"
+                    />
+                    <div className="absolute inset-0 bg-black/5 dark:bg-black/20 transition-colors duration-300 group-hover/cover:bg-black/10 dark:group-hover/cover:bg-black/30" />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
+                    <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
+                       style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                    />
+                    {/* Subtle animated gradient orbs */}
+                    <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
+                    <div className="absolute bottom-10 left-20 w-64 h-64 bg-indigo-200/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
+                  </div>
+                )}
+
+                {/* Cover Controls - Visible on hover */}
+                <AnimatePresence>
+                  {(isCoverHovering || !note.coverImage) && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className={`absolute ${note.coverImage ? 'top-4 right-4' : 'bottom-4 right-4'} flex items-center gap-2 z-20`}
+                    >
+                      {!note.coverImage ? (
+                        // "Add Cover" button when no cover exists
+                        <button
+                          onClick={() => setIsCoverGalleryOpen(true)}
+                          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
+                            bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
+                            border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                            hover:shadow-md group"
+                        >
+                          <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                          <span>Add cover</span>
+                        </button>
+                      ) : (
+                        // Controls when cover exists
+                        <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                          <button
+                            onClick={() => setIsCoverGalleryOpen(true)}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                              hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                          >
+                            <Image className="w-3.5 h-3.5" />
+                            Change cover
+                          </button>
+                          
+                          <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                          
+                          <button
+                            onClick={() => coverInputRef.current?.click()}
+                            disabled={isUpdatingCover}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                              hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                          >
+                            {isUpdatingCover ? (
+                              <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Camera className="w-3.5 h-3.5" />
+                            )}
+                            Upload
+                          </button>
+                          
+                          <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                          
+                          <button
+                            onClick={handleRemoveCover}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
+                              hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                            title="Remove cover"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={coverInputRef}
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleCoverFileSelect}
+                />
+              </div>
+            </div>
+
+            <div className="max-w-3xl ml-12 sm:ml-24 lg:ml-32 px-6 py-8">
+              {/* Large Emoji - Notion style */}
+              <div className="mb-4" ref={emojiPickerRef}>
+                <motion.button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="text-7xl hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-xl p-2 -ml-2 transition-colors cursor-pointer"
+                >
+                  {note.emoji || '📝'}
+                </motion.button>
+
+                <AnimatePresence>
+                  {showEmojiPicker && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute mt-2 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
+                    >
+                      <div className="grid grid-cols-8 gap-1">
+                        {commonEmojis.map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleEmojiChange(emoji)}
+                            className={`p-2 text-2xl rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
+                              note.emoji === emoji ? 'bg-purple-100 dark:bg-purple-900/30' : ''
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Large Title Input - Notion style */}
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="Untitled"
+                className="w-full text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600 mb-8"
+              />
+
+              {/* Editor - key forces remount when noteId changes to ensure isolated content */}
+              <NotionEditor
+                key={noteId}
+                content={note.content}
+                onChange={handleContentChange}
+                placeholder="Type '/' for commands..."
+                autofocus
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        <AnimatePresence>
+          {showDeleteConfirm && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Note?</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone.</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+                  "{note.title || 'Untitled'}" will be permanently deleted.
+                </p>
+                <div className="flex items-center gap-3 justify-end">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-lg shadow-red-600/25 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Delete
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Cover Photo Modals */}
+        <CoverPhotoCropper
+          isOpen={isCoverCropperOpen}
+          file={selectedCoverFile}
+          onClose={() => {
+            setIsCoverCropperOpen(false);
+            setSelectedCoverFile(null);
+          }}
+          onCropped={handleCroppedCover}
+          exportWidth={1584}
+          exportHeight={396}
+        />
+        
+        <CoverPhotoGallery
+          isOpen={isCoverGalleryOpen}
+          onClose={() => setIsCoverGalleryOpen(false)}
+          onSelectBlob={handleGallerySelect}
+        />
+      </div>
+    </AuthLayout>
+  );
+}

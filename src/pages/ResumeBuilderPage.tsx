@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload
+  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload, StickyNote
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +20,15 @@ import FolderHeader from '../components/resume-builder/FolderHeader';
 import PDFPreviewCard, { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
 import PremiumPDFViewer from '../components/resume-builder/PremiumPDFViewer';
 import DropZone from '../components/resume-builder/DropZone';
+import NotionPreviewCard from '../components/notion-editor/NotionPreviewCard';
+import { 
+  NotionDocument, 
+  getNotes, 
+  createNote, 
+  deleteNote as deleteNoteService,
+  updateNote,
+  moveNoteToFolder
+} from '../lib/notionDocService';
 
 export interface Resume {
   id: string;
@@ -88,6 +97,10 @@ export default function ResumeBuilderPage() {
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<ImportedDocument | null>(null);
+
+  // Notes state
+  const [notes, setNotes] = useState<NotionDocument[]>([]);
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
 
   // Fetch folders from Firestore
   const fetchFolders = useCallback(async () => {
@@ -190,13 +203,26 @@ export default function ResumeBuilderPage() {
     }
   }, [currentUser]);
 
+  // Fetch notes from Firestore
+  const fetchNotes = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const notesList = await getNotes(currentUser.uid);
+      setNotes(notesList);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     if (currentUser) {
       fetchFolders();
       fetchResumes();
       fetchDocuments();
+      fetchNotes();
     }
-  }, [currentUser, fetchFolders, fetchResumes, fetchDocuments]);
+  }, [currentUser, fetchFolders, fetchResumes, fetchDocuments, fetchNotes]);
 
   // Templates available
   const templates: { value: CVTemplate; label: string; description: string }[] = [
@@ -559,6 +585,100 @@ export default function ResumeBuilderPage() {
     setSelectedDocument(null);
   }, []);
 
+  // Note management functions
+  const handleCreateNote = useCallback(async () => {
+    if (!currentUser) {
+      toast.error('Please log in to create a note');
+      return;
+    }
+
+    setIsCreatingNote(true);
+    try {
+      const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
+        ? selectedFolderId 
+        : undefined;
+
+      const newNote = await createNote({
+        userId: currentUser.uid,
+        title: 'Untitled',
+        folderId,
+      });
+
+      setNotes(prev => [newNote, ...prev]);
+      toast.success('Note created!');
+      navigate(`/notes/${newNote.id}`);
+    } catch (error) {
+      console.error('Error creating note:', error);
+      toast.error('Failed to create note');
+    } finally {
+      setIsCreatingNote(false);
+    }
+  }, [currentUser, selectedFolderId, navigate]);
+
+  const handleEditNote = useCallback((noteId: string) => {
+    navigate(`/notes/${noteId}`);
+  }, [navigate]);
+
+  const handleDeleteNote = useCallback(async (noteId: string) => {
+    if (!currentUser) return;
+
+    try {
+      await deleteNoteService(currentUser.uid, noteId);
+      setNotes(prev => prev.filter(n => n.id !== noteId));
+      toast.success('Note deleted');
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
+    }
+  }, [currentUser]);
+
+  const handleRenameNote = useCallback(async (noteId: string, newTitle: string) => {
+    if (!currentUser) return;
+
+    try {
+      await updateNote({
+        userId: currentUser.uid,
+        noteId,
+        updates: { title: newTitle },
+      });
+      
+      setNotes(prev => prev.map(n => 
+        n.id === noteId ? { ...n, title: newTitle } : n
+      ));
+      toast.success('Note renamed');
+    } catch (error) {
+      console.error('Error renaming note:', error);
+      toast.error('Failed to rename note');
+    }
+  }, [currentUser]);
+
+  // Move note to folder
+  const handleDropNote = useCallback(async (noteId: string, folderId: string | null) => {
+    if (!currentUser || !noteId) return;
+
+    const note = notes.find(n => n.id === noteId);
+    if (!note) return;
+
+    const currentFolder = note.folderId || null;
+    if (currentFolder === folderId) return;
+
+    try {
+      await moveNoteToFolder(currentUser.uid, noteId, folderId);
+      
+      setNotes(prev => prev.map(n => 
+        n.id === noteId ? { ...n, folderId: folderId || undefined } : n
+      ));
+
+      const folderName = folderId 
+        ? folders.find(f => f.id === folderId)?.name || 'folder'
+        : 'Uncategorized';
+      toast.success(`Moved "${note.title}" to ${folderName}`);
+    } catch (error) {
+      console.error('Error moving note:', error);
+      toast.error('Failed to move note');
+    }
+  }, [currentUser, notes, folders]);
+
   // Move document to folder
   const handleDropDocument = async (documentId: string, folderId: string | null) => {
     if (!currentUser || !documentId) return;
@@ -675,12 +795,19 @@ export default function ResumeBuilderPage() {
     ? documents.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : documents;
 
-  // Group resumes and documents by folder and calculate counts
+  // Filter notes by search
+  const filteredNotes = searchQuery 
+    ? notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : notes;
+
+  // Group resumes, documents, and notes by folder and calculate counts
   const groupedItems = () => {
     const groupedResumes: Record<string, Resume[]> = {};
     const groupedDocs: Record<string, ImportedDocument[]> = {};
+    const groupedNotes: Record<string, NotionDocument[]> = {};
     const uncategorizedResumes: Resume[] = [];
     const uncategorizedDocs: ImportedDocument[] = [];
+    const uncategorizedNotes: NotionDocument[] = [];
     const folderCounts: Record<string, number> = {};
 
     // Initialize counts for all folders
@@ -688,6 +815,7 @@ export default function ResumeBuilderPage() {
       folderCounts[f.id] = 0;
       groupedResumes[f.id] = [];
       groupedDocs[f.id] = [];
+      groupedNotes[f.id] = [];
     });
 
     // Group resumes
@@ -710,39 +838,54 @@ export default function ResumeBuilderPage() {
       }
     });
 
+    // Group notes
+    filteredNotes.forEach(note => {
+      if (note.folderId && groupedNotes[note.folderId] !== undefined) {
+        groupedNotes[note.folderId].push(note);
+        folderCounts[note.folderId]++;
+      } else {
+        uncategorizedNotes.push(note);
+      }
+    });
+
     return { 
       groupedResumes, 
       groupedDocs, 
+      groupedNotes,
       uncategorizedResumes, 
-      uncategorizedDocs, 
+      uncategorizedDocs,
+      uncategorizedNotes, 
       folderCounts 
     };
   };
 
   const { 
     groupedResumes: grouped, 
-    groupedDocs, 
+    groupedDocs,
+    groupedNotes, 
     uncategorizedResumes: uncategorized, 
     uncategorizedDocs,
+    uncategorizedNotes,
     folderCounts 
   } = groupedItems();
 
   // Get items to display based on selected folder
-  const getDisplayedItems = (): { resumes: Resume[]; documents: ImportedDocument[] } => {
+  const getDisplayedItems = (): { resumes: Resume[]; documents: ImportedDocument[]; notes: NotionDocument[] } => {
     if (selectedFolderId === 'all') {
-      return { resumes: filteredResumes, documents: filteredDocuments };
+      return { resumes: filteredResumes, documents: filteredDocuments, notes: filteredNotes };
     } else if (selectedFolderId === null) {
-      return { resumes: uncategorized, documents: uncategorizedDocs };
+      return { resumes: uncategorized, documents: uncategorizedDocs, notes: uncategorizedNotes };
     } else {
       return { 
         resumes: grouped[selectedFolderId] || [], 
-        documents: groupedDocs[selectedFolderId] || [] 
+        documents: groupedDocs[selectedFolderId] || [],
+        notes: groupedNotes[selectedFolderId] || []
       };
     }
   };
 
-  const { resumes: displayedResumes, documents: displayedDocuments } = getDisplayedItems();
-  const totalDisplayedItems = displayedResumes.length + displayedDocuments.length;
+  const { resumes: displayedResumes, documents: displayedDocuments, notes: displayedNotes } = getDisplayedItems();
+  const totalDisplayedItems = displayedResumes.length + displayedDocuments.length + displayedNotes.length;
 
   // Determine current folder object for header
   const currentFolder = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
@@ -779,8 +922,8 @@ export default function ResumeBuilderPage() {
   const headerProps = getHeaderProps();
   
   // Total counts for sidebar
-  const totalUncategorized = uncategorized.length + uncategorizedDocs.length;
-  const totalItems = filteredResumes.length + filteredDocuments.length;
+  const totalUncategorized = uncategorized.length + uncategorizedDocs.length + uncategorizedNotes.length;
+  const totalItems = filteredResumes.length + filteredDocuments.length + filteredNotes.length;
 
   return (
     <AuthLayout>
@@ -802,9 +945,16 @@ export default function ResumeBuilderPage() {
           onNewFolder={() => openFolderModal()}
           onDropResume={handleDropResume}
           onDropDocument={handleDropDocument}
+          onDropNote={handleDropNote}
           folderCounts={folderCounts}
           uncategorizedCount={totalUncategorized}
           totalCount={totalItems}
+          groupedResumes={grouped}
+          groupedDocuments={groupedDocs}
+          groupedNotes={groupedNotes}
+          onEditResume={handleEditResume}
+          onViewDocument={handleViewDocument}
+          onEditNote={handleEditNote}
         />
 
         {/* Main Content */}
@@ -824,9 +974,10 @@ export default function ResumeBuilderPage() {
             onRemoveCover={currentFolder ? handleRemoveCover : undefined}
             isUpdating={isUpdatingCover}
           >
-            <button
-                onClick={openCreateModal}
-                disabled={isCreating}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCreateNote}
+                disabled={isCreatingNote}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                   text-gray-700 dark:text-gray-200 
                   bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
@@ -836,9 +987,29 @@ export default function ResumeBuilderPage() {
                   shadow-sm hover:shadow transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>New Resume</span>
-            </button>
+                {isCreatingNote ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <StickyNote className="w-4 h-4" />
+                )}
+                <span>New Note</span>
+              </button>
+              <button
+                  onClick={openCreateModal}
+                  disabled={isCreating}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                    text-gray-700 dark:text-gray-200 
+                    bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
+                    border border-gray-200 dark:border-gray-700 rounded-lg
+                    hover:bg-gray-50 dark:hover:bg-gray-700/80 
+                    hover:border-gray-300 dark:hover:border-gray-600
+                    shadow-sm hover:shadow transition-all duration-200
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>New Resume</span>
+              </button>
+            </div>
           </FolderHeader>
 
           <div className="p-6 pt-4">
@@ -895,7 +1066,7 @@ export default function ResumeBuilderPage() {
             )}
 
             {/* Empty State - No items at all */}
-            {!isLoading && resumes.length === 0 && documents.length === 0 && (
+            {!isLoading && resumes.length === 0 && documents.length === 0 && notes.length === 0 && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -932,10 +1103,22 @@ export default function ResumeBuilderPage() {
             )}
 
             {/* Items Grid */}
-            {!isLoading && (resumes.length > 0 || documents.length > 0) && (
+            {!isLoading && (resumes.length > 0 || documents.length > 0 || notes.length > 0) && (
               <>
                 {totalDisplayedItems > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {/* Notes */}
+                    {displayedNotes.map((note) => (
+                      <NotionPreviewCard
+                        key={`note-${note.id}`}
+                        note={note}
+                        onDelete={handleDeleteNote}
+                        onEdit={handleEditNote}
+                        onRename={handleRenameNote}
+                        compact
+                        draggable
+                      />
+                    ))}
                     {/* Resumes */}
                     {displayedResumes.map((resume) => (
                       <CVPreviewCard

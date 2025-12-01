@@ -79,6 +79,11 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
       
+      // Notes subcollection (for Notion-like documents)
+      match /notes/{noteId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
       // Credit History subcollection
       match /creditHistory/{historyId} {
         allow read, write: if isSignedIn() && isOwner(userId);

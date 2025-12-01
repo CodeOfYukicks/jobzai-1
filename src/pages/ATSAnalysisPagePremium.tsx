@@ -28,6 +28,7 @@ import SuggestedAdditionsPanel from '../components/ats-premium/SuggestedAddition
 import ActionPlan48H from '../components/ats-premium/ActionPlan48H';
 import LearningPathPanel from '../components/ats-premium/LearningPathPanel';
 import OpportunityFitPanel from '../components/ats-premium/OpportunityFitPanel';
+import ScoreCalculationPanel from '../components/ats-premium/ScoreCalculationPanel';
 
 // Types
 import type { PremiumATSAnalysis, AdaptationLevel } from '../types/premiumATS';
@@ -986,23 +987,12 @@ export default function ATSAnalysisPagePremium() {
                   </p>
 
                   {/* Scoring Rationale - How This Score Was Calculated */}
-                  {analysis.scoring_rationale && (
-                    <div className="mt-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Activity className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                            How This Score Was Calculated
-                          </h3>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                            {analysis.scoring_rationale}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <div className="mt-6">
+                    <ScoreCalculationPanel
+                      matchScores={analysis.match_scores}
+                      scoringRationale={analysis.scoring_rationale}
+                    />
+                  </div>
                 </div>
               </div>
 
