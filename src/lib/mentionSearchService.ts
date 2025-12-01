@@ -2,9 +2,7 @@ import {
   collection,
   query,
   getDocs,
-  orderBy,
   limit,
-  where,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { MentionEmbedType, MentionEmbedData } from '../components/notion-editor/extensions/MentionEmbed';
@@ -47,7 +45,8 @@ export const fetchJobApplications = async (
 ): Promise<MentionSearchResult[]> => {
   try {
     const applicationsRef = collection(db, 'users', userId, 'jobApplications');
-    const q = query(applicationsRef, orderBy('createdAt', 'desc'), limit(maxResults));
+    // Try without orderBy to avoid index issues
+    const q = query(applicationsRef, limit(maxResults));
     const querySnapshot = await getDocs(q);
 
     const results: MentionSearchResult[] = [];
@@ -95,7 +94,8 @@ export const fetchResumes = async (
 ): Promise<MentionSearchResult[]> => {
   try {
     const resumesRef = collection(db, 'users', userId, 'cvs');
-    const q = query(resumesRef, orderBy('updatedAt', 'desc'), limit(maxResults));
+    // Try without orderBy to avoid index issues
+    const q = query(resumesRef, limit(maxResults));
     const querySnapshot = await getDocs(q);
 
     const results: MentionSearchResult[] = [];
@@ -197,7 +197,8 @@ export const fetchInterviews = async (
 ): Promise<MentionSearchResult[]> => {
   try {
     const applicationsRef = collection(db, 'users', userId, 'jobApplications');
-    const q = query(applicationsRef, orderBy('createdAt', 'desc'), limit(50)); // Get more to find interviews
+    // Try without orderBy to avoid index issues
+    const q = query(applicationsRef, limit(50)); // Get more to find interviews
     const querySnapshot = await getDocs(q);
 
     const results: MentionSearchResult[] = [];

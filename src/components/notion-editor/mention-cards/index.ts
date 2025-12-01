@@ -8,3 +8,4 @@ export type { ResumeData } from './MentionCardResume';
 export type { CVAnalysisData } from './MentionCardCVAnalysis';
 export type { InterviewData } from './MentionCardInterview';
 
+

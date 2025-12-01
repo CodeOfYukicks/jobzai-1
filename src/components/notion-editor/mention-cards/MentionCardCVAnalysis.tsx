@@ -6,6 +6,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import { CompanyLogo } from '../../common/CompanyLogo';
 
 interface CVAnalysisData {
   id: string;
@@ -70,10 +71,13 @@ export default function MentionCardCVAnalysis({ data, onClick, compact = false, 
         shadow-sm hover:shadow-md
       `}
     >
-      {/* Left: Score Box */}
-      <div className={`flex-shrink-0 w-10 h-10 rounded-lg ${scoreColors.bg} ${scoreColors.border} border flex flex-col items-center justify-center`}>
-        <span className={`text-xs font-bold ${scoreColors.text}`}>{data.matchScore}</span>
-        <span className={`text-[8px] font-medium uppercase opacity-70 ${scoreColors.text}`}>Match</span>
+      {/* Left: Company Logo */}
+      <div className="flex-shrink-0">
+        <CompanyLogo 
+          companyName={data.company} 
+          size="lg" 
+          className="rounded-lg shadow-sm border border-gray-100 dark:border-gray-700" 
+        />
       </div>
 
       {/* Middle: Info */}
@@ -82,21 +86,19 @@ export default function MentionCardCVAnalysis({ data, onClick, compact = false, 
           <h3 className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
             {data.jobTitle}
           </h3>
-          {matchingSkills.length > 0 && (
-            <div className="flex items-center gap-1 opacity-60">
-              <CheckCircle className="w-3 h-3 text-emerald-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                {matchingSkills.length} matched
-              </span>
-            </div>
-          )}
+          {/* Score Badge */}
+          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border ${scoreColors.bg} ${scoreColors.border} ${scoreColors.text}`}>
+            <span className="text-[10px] font-bold">{data.matchScore}% Match</span>
+          </div>
         </div>
         
         <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span className="flex items-center gap-1 truncate opacity-80">
-            <Building2 className="w-3 h-3" />
-            {data.company}
-          </span>
+          {matchingSkills.length > 0 && (
+            <span className="flex items-center gap-1 truncate opacity-80">
+              <CheckCircle className="w-3 h-3 text-emerald-500" />
+              {matchingSkills.length} skills matched
+            </span>
+          )}
           {data.date && (
             <span className="flex items-center gap-1 truncate opacity-80">
               <BarChart3 className="w-3 h-3" />

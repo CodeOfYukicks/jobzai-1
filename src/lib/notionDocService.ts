@@ -244,3 +244,4 @@ export const getWordCount = (content: any): number => {
   return text.split(/\s+/).filter((word) => word.length > 0).length;
 };
 
+

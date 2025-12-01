@@ -13,6 +13,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import { CompanyLogo } from '../../common/CompanyLogo';
 
 interface InterviewData {
   id: string;
@@ -78,12 +79,13 @@ export default function MentionCardInterview({ data, onClick, compact = false, s
         shadow-sm hover:shadow-md
       `}
     >
-      {/* Left: Date Box */}
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 flex flex-col items-center justify-center text-amber-600 dark:text-amber-400">
-        <span className="text-xs font-bold">{data.date ? new Date(data.date).getDate() : '--'}</span>
-        <span className="text-[8px] font-medium uppercase opacity-80">
-          {data.date ? new Date(data.date).toLocaleDateString('en-US', { month: 'short' }) : ''}
-        </span>
+      {/* Left: Company Logo */}
+      <div className="flex-shrink-0">
+        <CompanyLogo 
+          companyName={data.companyName} 
+          size="lg" 
+          className="rounded-lg shadow-sm border border-gray-100 dark:border-gray-700" 
+        />
       </div>
 
       {/* Middle: Info */}
@@ -100,8 +102,8 @@ export default function MentionCardInterview({ data, onClick, compact = false, s
         
         <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1 truncate opacity-80">
-            <Clock className="w-3 h-3" />
-            {data.time}
+            <Calendar className="w-3 h-3" />
+            {formatDate(data.date)} • {data.time}
           </span>
           <span className={`flex items-center gap-1 truncate opacity-80 font-medium ${status.color}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />

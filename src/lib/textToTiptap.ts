@@ -239,3 +239,4 @@ export function getTiptapPreview(doc: TiptapDocument, maxLength: number = 150): 
   return fullText.substring(0, maxLength - 3) + '...';
 }
 
+

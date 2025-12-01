@@ -219,8 +219,8 @@ export default function MentionMenu({
   // Calculate menu style based on position and direction
   const getMenuStyle = () => {
     const baseStyle = {
-      left: `${Math.max(10, Math.min(currentPosition.left, window.innerWidth - 420))}px`,
-      width: '400px',
+      left: `${Math.max(10, Math.min(currentPosition.left, window.innerWidth - 540))}px`,
+      width: '520px',
       maxHeight: `${MENU_HEIGHT}px`,
     };
 
@@ -371,7 +371,7 @@ export default function MentionMenu({
                     )}
                   </div>
 
-                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2">
                     {result.title}
                   </h4>
 

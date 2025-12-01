@@ -76,10 +76,19 @@ export default function NotionEditorPage() {
   const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
   const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
 
   const autoSaverRef = useRef<ReturnType<typeof createAutoSaver> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-resize title textarea on mount and when title changes
+  useEffect(() => {
+    if (titleRef.current) {
+      titleRef.current.style.height = 'auto';
+      titleRef.current.style.height = titleRef.current.scrollHeight + 'px';
+    }
+  }, [title]);
 
   // Fetch folders
   const fetchFolders = useCallback(async () => {
@@ -843,9 +852,9 @@ export default function NotionEditorPage() {
               </div>
             </div>
 
-            <div className="max-w-3xl ml-12 sm:ml-24 lg:ml-32 px-6 py-8">
-              {/* Large Emoji - Notion style */}
-              <div className="mb-4" ref={emojiPickerRef}>
+            <div className="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 pb-8">
+              {/* Large Emoji - Notion style, straddling the cover */}
+              <div className={`relative ${note.coverImage ? '-mt-12' : 'mt-6'}`} ref={emojiPickerRef}>
                 <motion.button
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                   whileHover={{ scale: 1.05 }}
@@ -882,12 +891,19 @@ export default function NotionEditorPage() {
               </div>
 
               {/* Large Title Input - Notion style */}
-              <input
-                type="text"
+              <textarea
+                ref={titleRef}
                 value={title}
                 onChange={(e) => handleTitleChange(e.target.value)}
+                onKeyDown={(e) => {
+                  // Prevent Enter from creating new lines - move focus to editor instead
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                  }
+                }}
                 placeholder="Untitled"
-                className="w-full text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600 mb-8"
+                rows={1}
+                className="w-full text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600 mt-2 mb-6 resize-none overflow-hidden leading-tight"
               />
 
               {/* Editor - key forces remount when noteId changes to ensure isolated content */}
