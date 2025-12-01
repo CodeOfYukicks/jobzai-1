@@ -600,6 +600,19 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
         setIsCoverGalleryOpen(false);
         setIsCoverCropperOpen(true);
       }}
+      onRemove={async () => {
+        if (!currentUser?.uid) return;
+        try {
+          await updateDoc(doc(db, 'users', currentUser.uid), { coverPhoto: '' });
+          setFormData(prev => ({ ...prev, coverPhoto: '' }));
+          if (onUpdate) onUpdate({ coverPhoto: '' });
+          toast.success('Cover photo removed');
+        } catch (error) {
+          console.error('Error removing cover:', error);
+          toast.error('Failed to remove cover photo');
+        }
+      }}
+      currentCover={formData.coverPhoto}
     />
     </>
   );

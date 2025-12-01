@@ -44,9 +44,14 @@ const commonEmojis = [
 ];
 
 export default function NotionEditorPage() {
-  const { noteId } = useParams<{ noteId: string }>();
+  const { noteId: urlNoteId } = useParams<{ noteId: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+
+  // Active note ID - can differ from URL during soft navigation
+  const [activeNoteId, setActiveNoteId] = useState<string | undefined>(urlNoteId);
+  // Loading state specifically for note content (soft navigation)
+  const [isLoadingNote, setIsLoadingNote] = useState(false);
 
   const [note, setNote] = useState<NotionDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -263,27 +268,70 @@ export default function NotionEditorPage() {
     navigate('/resume-builder');
   }, [navigate]);
 
-  const handleEditNote = useCallback((noteIdToEdit: string) => {
-    if (noteIdToEdit !== noteId) {
-      navigate(`/notes/${noteIdToEdit}`);
+  // Soft navigation to another note - keeps sidebar fixed, only reloads content
+  const loadNote = useCallback(async (noteIdToLoad: string) => {
+    if (!currentUser) return;
+    
+    setIsLoadingNote(true);
+    try {
+      // Cancel any pending auto-save from previous note
+      autoSaverRef.current?.cancel();
+      
+      const fetchedNote = await getNote(currentUser.uid, noteIdToLoad);
+      if (fetchedNote) {
+        setNote(fetchedNote);
+        setTitle(fetchedNote.title || '');
+        setActiveNoteId(noteIdToLoad);
+        setHasUnsavedChanges(false);
+        setLastSaved(null);
+        if (fetchedNote.folderId) {
+          setSelectedFolderId(fetchedNote.folderId);
+        }
+        // Create new auto-saver for this note
+        autoSaverRef.current = createAutoSaver(currentUser.uid, noteIdToLoad, 2000);
+      } else {
+        toast.error('Note not found');
+        navigate('/resume-builder');
+      }
+    } catch (error) {
+      console.error('Error loading note:', error);
+      toast.error('Failed to load note');
+    } finally {
+      setIsLoadingNote(false);
     }
-  }, [navigate, noteId]);
+  }, [currentUser, navigate]);
+
+  const handleEditNote = useCallback((noteIdToEdit: string) => {
+    if (noteIdToEdit !== activeNoteId) {
+      // Update URL without triggering full React Router navigation
+      window.history.pushState({ noteId: noteIdToEdit }, '', `/notes/${noteIdToEdit}`);
+      // Load the new note with soft navigation
+      loadNote(noteIdToEdit);
+    }
+  }, [activeNoteId, loadNote]);
 
   // Initialize auto-saver
   useEffect(() => {
-    if (currentUser && noteId) {
-      autoSaverRef.current = createAutoSaver(currentUser.uid, noteId, 2000);
+    if (currentUser && activeNoteId) {
+      autoSaverRef.current = createAutoSaver(currentUser.uid, activeNoteId, 2000);
     }
 
     return () => {
       autoSaverRef.current?.cancel();
     };
-  }, [currentUser, noteId]);
+  }, [currentUser, activeNoteId]);
+
+  // Sync activeNoteId from URL on initial mount
+  useEffect(() => {
+    if (urlNoteId && urlNoteId !== activeNoteId) {
+      setActiveNoteId(urlNoteId);
+    }
+  }, [urlNoteId]);
 
   // Fetch note and folders on mount
   useEffect(() => {
     const fetchData = async () => {
-      if (!currentUser || !noteId) {
+      if (!currentUser || !activeNoteId) {
         setIsLoading(false);
         return;
       }
@@ -297,7 +345,7 @@ export default function NotionEditorPage() {
           fetchAllNotes(),
         ]);
         
-        const fetchedNote = await getNote(currentUser.uid, noteId);
+        const fetchedNote = await getNote(currentUser.uid, activeNoteId);
         if (fetchedNote) {
           setNote(fetchedNote);
           setTitle(fetchedNote.title || '');
@@ -317,7 +365,7 @@ export default function NotionEditorPage() {
     };
 
     fetchData();
-  }, [currentUser, noteId, navigate, fetchFolders, fetchResumes, fetchDocuments, fetchAllNotes]);
+  }, [currentUser, activeNoteId, navigate, fetchFolders, fetchResumes, fetchDocuments, fetchAllNotes]);
 
   // Handle content changes with auto-save
   const handleContentChange = useCallback(
@@ -342,12 +390,12 @@ export default function NotionEditorPage() {
     async (newTitle: string) => {
       setTitle(newTitle);
 
-      if (!currentUser || !noteId) return;
+      if (!currentUser || !activeNoteId) return;
 
       try {
         await updateNote({
           userId: currentUser.uid,
-          noteId,
+          noteId: activeNoteId,
           updates: { title: newTitle },
         });
         setNote((prev) =>
@@ -357,18 +405,18 @@ export default function NotionEditorPage() {
         console.error('Error updating title:', error);
       }
     },
-    [currentUser, noteId]
+    [currentUser, activeNoteId]
   );
 
   // Handle emoji change
   const handleEmojiChange = useCallback(
     async (emoji: string) => {
-      if (!currentUser || !noteId) return;
+      if (!currentUser || !activeNoteId) return;
 
       try {
         await updateNote({
           userId: currentUser.uid,
-          noteId,
+          noteId: activeNoteId,
           updates: { emoji },
         });
         setNote((prev) =>
@@ -379,7 +427,7 @@ export default function NotionEditorPage() {
         console.error('Error updating emoji:', error);
       }
     },
-    [currentUser, noteId]
+    [currentUser, activeNoteId]
   );
 
   // Handle file selection for cover
@@ -404,12 +452,12 @@ export default function NotionEditorPage() {
 
   // Handle cropped cover upload
   const handleCroppedCover = useCallback(async (blob: Blob) => {
-    if (!currentUser || !noteId) return;
+    if (!currentUser || !activeNoteId) return;
 
     setIsUpdatingCover(true);
     try {
       const timestamp = Date.now();
-      const fileName = `note_${noteId}_cover_${timestamp}.jpg`;
+      const fileName = `note_${activeNoteId}_cover_${timestamp}.jpg`;
       const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
       
       await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
@@ -417,7 +465,7 @@ export default function NotionEditorPage() {
       
       await updateNote({
         userId: currentUser.uid,
-        noteId,
+        noteId: activeNoteId,
         updates: { coverImage: coverUrl },
       });
       
@@ -431,18 +479,18 @@ export default function NotionEditorPage() {
       setIsCoverCropperOpen(false);
       setSelectedCoverFile(null);
     }
-  }, [currentUser, noteId]);
+  }, [currentUser, activeNoteId]);
 
   // Handle cover image remove
   const handleRemoveCover = useCallback(async () => {
-    if (!currentUser || !noteId || !note?.coverImage) return;
+    if (!currentUser || !activeNoteId || !note?.coverImage) return;
 
     setIsUpdatingCover(true);
     try {
       // Update note to remove cover
       await updateNote({
         userId: currentUser.uid,
-        noteId,
+        noteId: activeNoteId,
         updates: { coverImage: '' },
       });
       
@@ -462,7 +510,7 @@ export default function NotionEditorPage() {
     } finally {
       setIsUpdatingCover(false);
     }
-  }, [currentUser, noteId, note?.coverImage]);
+  }, [currentUser, activeNoteId, note?.coverImage]);
 
   // Manual save
   const handleManualSave = useCallback(async () => {
@@ -565,11 +613,11 @@ export default function NotionEditorPage() {
 
   // Delete note
   const handleDelete = useCallback(async () => {
-    if (!currentUser || !noteId) return;
+    if (!currentUser || !activeNoteId) return;
 
     setIsDeleting(true);
     try {
-      await deleteNote(currentUser.uid, noteId);
+      await deleteNote(currentUser.uid, activeNoteId);
       toast.success('Note deleted');
       navigate('/resume-builder');
     } catch (error) {
@@ -579,7 +627,7 @@ export default function NotionEditorPage() {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
-  }, [currentUser, noteId, navigate]);
+  }, [currentUser, activeNoteId, navigate]);
 
   // Click outside handlers
   useEffect(() => {
@@ -608,6 +656,22 @@ export default function NotionEditorPage() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleManualSave]);
+
+  // Handle browser back/forward buttons (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      // Extract noteId from current URL
+      const match = window.location.pathname.match(/^\/notes\/([^/]+)/);
+      const newNoteId = match?.[1];
+      
+      if (newNoteId && newNoteId !== activeNoteId) {
+        loadNote(newNoteId);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeNoteId, loadNote]);
 
   const handleSelectFolder = (folderId: SelectedFolderType) => {
     setSelectedFolderId(folderId);
@@ -747,7 +811,25 @@ export default function NotionEditorPage() {
           </header>
 
           {/* Editor Content - Notion style with emoji and title in content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto relative">
+            {/* Loading overlay for soft navigation between notes */}
+            <AnimatePresence>
+              {isLoadingNote && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute inset-0 z-30 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm flex items-center justify-center"
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Loading note...</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Cover Image Section - FolderHeader style */}
             <div 
               className="relative w-full group/cover"
@@ -906,9 +988,9 @@ export default function NotionEditorPage() {
                 className="w-full text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600 mt-2 mb-6 resize-none overflow-hidden leading-tight"
               />
 
-              {/* Editor - key forces remount when noteId changes to ensure isolated content */}
+              {/* Editor - key forces remount when activeNoteId changes to ensure isolated content */}
               <NotionEditor
-                key={noteId}
+                key={activeNoteId}
                 content={note.content}
                 onChange={handleContentChange}
                 placeholder="Type '/' for commands..."
@@ -985,6 +1067,8 @@ export default function NotionEditorPage() {
           isOpen={isCoverGalleryOpen}
           onClose={() => setIsCoverGalleryOpen(false)}
           onSelectBlob={handleGallerySelect}
+          onRemove={handleRemoveCover}
+          currentCover={note?.coverImage}
         />
       </div>
     </AuthLayout>

@@ -260,6 +260,8 @@ export default function FolderHeader({
         isOpen={isCoverGalleryOpen}
         onClose={() => setIsCoverGalleryOpen(false)}
         onSelectBlob={handleGallerySelect}
+        onRemove={onRemoveCover}
+        currentCover={coverPhoto}
       />
     </div>
   );
