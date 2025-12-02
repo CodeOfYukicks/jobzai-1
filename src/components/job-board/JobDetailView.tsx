@@ -1,23 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { Job } from '../../types/job-board';
-import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Sparkles, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users } from 'lucide-react';
+import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Sparkles, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from 'sonner';
 import { extractJobInfo, DetailedJobInfo } from '../../lib/jobExtractor';
+import { useJobInteractions } from '../../hooks/useJobInteractions';
 
 interface JobDetailViewProps {
     job: Job | null;
+    onDismiss?: (jobId: string) => void;
 }
 
-export function JobDetailView({ job }: JobDetailViewProps) {
+export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
     const { currentUser } = useAuth();
     const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
     const [isInWishlist, setIsInWishlist] = useState(false);
+    
+    // Job Interactions (V5.0 - Feedback Loop)
+    const { isJobSaved, toggleSave, trackView, trackApply } = useJobInteractions();
+    const viewStartTime = useRef<number | null>(null);
+    const lastTrackedJobId = useRef<string | null>(null);
+
+    // Track view time when job changes
+    useEffect(() => {
+        if (job?.id) {
+            // Track previous job view duration
+            if (viewStartTime.current && lastTrackedJobId.current && lastTrackedJobId.current !== job.id) {
+                const timeSpent = Date.now() - viewStartTime.current;
+                trackView(lastTrackedJobId.current, { timeSpentMs: timeSpent });
+            }
+            
+            // Start tracking new job
+            viewStartTime.current = Date.now();
+            lastTrackedJobId.current = job.id;
+        }
+
+        // Cleanup on unmount
+        return () => {
+            if (viewStartTime.current && lastTrackedJobId.current) {
+                const timeSpent = Date.now() - viewStartTime.current;
+                trackView(lastTrackedJobId.current, { timeSpentMs: timeSpent });
+            }
+        };
+    }, [job?.id, trackView]);
 
     // Check if job is already in wishlist on mount and when job changes
     useEffect(() => {
@@ -194,9 +224,32 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                             <button className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                                 <Share2 className="w-5 h-5" />
                             </button>
-                            <button className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                                <Bookmark className="w-5 h-5" />
+                            <button 
+                                onClick={() => {
+                                    toggleSave(job.id, { matchScore: job.matchScore });
+                                    toast.success(isJobSaved(job.id) ? 'Removed from saved jobs' : 'Saved for later');
+                                }}
+                                className={`p-2.5 rounded-xl border transition-colors ${
+                                    isJobSaved(job.id)
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                                        : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                }`}
+                                title={isJobSaved(job.id) ? 'Remove from saved' : 'Save for later'}
+                            >
+                                <Bookmark className={`w-5 h-5 ${isJobSaved(job.id) ? 'fill-current' : ''}`} />
                             </button>
+                            {onDismiss && (
+                                <button 
+                                    onClick={() => {
+                                        onDismiss(job.id);
+                                        toast.success('Job hidden from your feed');
+                                    }}
+                                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                                    title="Not interested"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -224,7 +277,10 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
                     <div className="flex gap-3">
                         <button
-                            onClick={() => window.open(job.applyUrl, '_blank')}
+                            onClick={() => {
+                                trackApply(job.id, { matchScore: job.matchScore });
+                                window.open(job.applyUrl, '_blank');
+                            }}
                             className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-indigo-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
                             Apply Now

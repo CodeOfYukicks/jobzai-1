@@ -34,23 +34,30 @@ function computeCountdown(target?: Date | null) {
   return { isPast, days, hours, minutes };
 }
 
-// Minimal Tag - Notion Style
+// Google-style colored tags
+type TagVariant = 'default' | 'green' | 'blue' | 'yellow' | 'red';
+
 function MinimalTag({ 
   children, 
-  accent = false 
+  variant = 'default'
 }: { 
   children: React.ReactNode; 
-  accent?: boolean;
+  variant?: TagVariant;
 }) {
+  const variants: Record<TagVariant, string> = {
+    default: 'border border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600',
+    green: 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800',
+    blue: 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800',
+    yellow: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800',
+    red: 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800',
+  };
+
   return (
     <span 
       className={`
         inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium
         transition-colors duration-200
-        ${accent 
-          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800' 
-          : 'border border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
-        }
+        ${variants[variant]}
       `}
     >
       {children}
@@ -179,15 +186,15 @@ export function PremiumHeroSection({
                 {position}
               </h1>
 
-              {/* Tags Row - Minimal */}
+              {/* Tags Row - Google-style colors */}
               <div className="flex items-center flex-wrap gap-2">
                 {status && (
-                  <MinimalTag accent={status === 'scheduled'}>
+                  <MinimalTag variant={status === 'scheduled' ? 'green' : status === 'completed' ? 'blue' : 'red'}>
                     {getStatusLabel(status)}
                   </MinimalTag>
                 )}
                 {interviewType && (
-                  <MinimalTag>
+                  <MinimalTag variant={interviewType === 'technical' ? 'blue' : interviewType === 'hr' ? 'yellow' : 'default'}>
                     {getInterviewTypeLabel(interviewType)}
                   </MinimalTag>
                 )}

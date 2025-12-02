@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { RefreshCw, Filter, SlidersHorizontal } from 'lucide-react';
+import { ReactNode, useRef, useState, useEffect } from 'react';
+import { RefreshCw, Play } from 'lucide-react';
 
 type FilterOption<T extends string> = {
   id: T;
@@ -12,7 +12,6 @@ export interface InterviewQuestionsHeaderProps<T extends string = string> {
   filters: FilterOption<T>[];
   activeFilter: T;
   onFilterChange: (value: T) => void;
-
   onRegenerate?: () => void;
   isRegenerating?: boolean;
   subtitle?: string;
@@ -27,74 +26,114 @@ export function InterviewQuestionsHeader<T extends string = string>({
   onFilterChange,
   onRegenerate,
   isRegenerating,
-  subtitle = 'Tailored questions for this interview',
   actionSlot,
 }: InterviewQuestionsHeaderProps<T>) {
-  const canInteract = Boolean(onRegenerate);
-  const countLabel =
-    activeFilter === 'all' || filteredCount === totalCount
-      ? `${totalCount}`
-      : `${filteredCount}/${totalCount}`;
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  // Calculate underline position
+  useEffect(() => {
+    if (tabsRef.current) {
+      const activeButton = tabsRef.current.querySelector(`[data-filter-id="${activeFilter}"]`) as HTMLButtonElement;
+      if (activeButton) {
+        const containerRect = tabsRef.current.getBoundingClientRect();
+        const buttonRect = activeButton.getBoundingClientRect();
+        setIndicatorStyle({
+          left: buttonRect.left - containerRect.left,
+          width: buttonRect.width,
+        });
+      }
+    }
+  }, [activeFilter, filters]);
 
   return (
-    <section className="flex flex-col gap-6">
-      {/* Top Row: Title & Main Actions */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
-            Interview Questions
-            <span className="inline-flex items-center justify-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-              {countLabel}
-            </span>
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed">
-            {subtitle}
-          </p>
+    <section className="space-y-6">
+      {/* Top Row: Count Hero + Actions */}
+      <div className="flex items-start justify-between">
+        {/* Left: Count + Label - More balanced */}
+        <div className="flex items-baseline gap-3">
+          <span className="text-3xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-white">
+            {totalCount}
+          </span>
+          <span className="text-lg font-medium text-slate-600 dark:text-slate-300">
+            Questions
+          </span>
         </div>
-        
-        <div className="flex items-center gap-3 self-start md:self-auto">
-           {canInteract && (
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3">
+          {onRegenerate && (
             <button
-              onClick={onRegenerate!}
+              onClick={onRegenerate}
               disabled={isRegenerating}
-              className="group inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
-              aria-label="Regenerate questions"
+              className="
+                inline-flex items-center gap-2 px-4 py-2.5 rounded-lg
+                text-sm font-medium
+                border border-slate-200 dark:border-slate-700
+                text-slate-600 dark:text-slate-300
+                hover:bg-slate-50 dark:hover:bg-slate-800
+                hover:text-slate-900 dark:hover:text-white
+                disabled:opacity-40 disabled:cursor-not-allowed
+                transition-colors duration-200
+              "
             >
-              <RefreshCw 
-                className={`h-4 w-4 text-gray-500 transition-all group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200 ${isRegenerating ? 'animate-spin' : ''}`} 
-              />
-              <span>{isRegenerating ? 'Generating...' : 'Regenerate'}</span>
+              <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+              {isRegenerating ? 'Generating...' : 'Regenerate'}
             </button>
           )}
           {actionSlot}
         </div>
       </div>
 
-      {/* Bottom Row: Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-        <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
-            <SlidersHorizontal className="h-4 w-4" />
-        </div>
-        <div className="h-6 w-px bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
-        <div className="flex items-center gap-2">
+      {/* Bottom Row: Filter Tabs with Underline */}
+      <div className="relative" ref={tabsRef}>
+        {/* Tab Buttons */}
+        <div className="flex items-center gap-1">
           {filters.map((filter) => {
             const isActive = filter.id === activeFilter;
+            const count = filter.id === 'all' ? totalCount : 
+              filter.id === activeFilter ? filteredCount : null;
+            
             return (
               <button
                 key={filter.id}
+                data-filter-id={filter.id}
                 onClick={() => onFilterChange(filter.id)}
-                className={[
-                  'relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap',
-                  isActive
-                    ? 'bg-gray-900 text-white shadow-md dark:bg-white dark:text-gray-900'
-                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200',
-                ].join(' ')}
+                className={`
+                  relative px-4 py-3 text-sm font-medium
+                  transition-colors duration-200
+                  ${isActive
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                  }
+                `}
               >
                 {filter.label}
+                {count !== null && isActive && (
+                  <span className="ml-1.5 text-slate-300 dark:text-slate-600">
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
+
+        {/* Subtle bottom border */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-slate-100 dark:bg-slate-800" />
+
+        {/* Animated underline indicator - Google Blue */}
+        <div
+          className="
+            absolute bottom-0 h-0.5
+            bg-blue-600 dark:bg-blue-400
+            transition-all duration-300 ease-out
+          "
+          style={{
+            left: indicatorStyle.left,
+            width: indicatorStyle.width,
+          }}
+        />
       </div>
     </section>
   );

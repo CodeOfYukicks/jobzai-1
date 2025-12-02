@@ -11,8 +11,8 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAggregatorsManual = exports.fetchFromAggregators = exports.activateDiscoveredCompany = exports.getDiscoveredCompanies = exports.manualDiscovery = exports.scheduledDiscovery = exports.getDatabaseStats = exports.manualCleanup = exports.scheduledCleanup = exports.processDynamicBatch = exports.retryFailedTasks = exports.processTaskManual = exports.processFetchTask = exports.getQueueStatus = exports.createFetchTasksManual = exports.createFetchTasks = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.getMatchedJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
-exports.downloadCV = void 0;
+exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAggregatorsManual = exports.fetchFromAggregators = exports.activateDiscoveredCompany = exports.getDiscoveredCompanies = exports.manualDiscovery = exports.scheduledDiscovery = exports.getDatabaseStats = exports.manualCleanup = exports.scheduledCleanup = exports.processDynamicBatch = exports.retryFailedTasks = exports.processTaskManual = exports.processFetchTask = exports.getQueueStatus = exports.createFetchTasksManual = exports.createFetchTasks = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.backfillUserEmbeddings = exports.backfillJobsV5Manual = exports.getUserInteractionStats = exports.getSavedJobs = exports.trackJobInteraction = exports.getMatchedJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.updateJobEmbeddingOnEnrichment = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
+exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = void 0;
 // Version 3.0 - Scalable Queue-based Architecture (Dec 2025)
 // Supports 1000+ companies with distributed task processing
 const admin = require("firebase-admin");
@@ -23,12 +23,24 @@ var fetchJobs_1 = require("./fetchJobs");
 Object.defineProperty(exports, "fetchJobsFromATS", { enumerable: true, get: function () { return fetchJobs_1.fetchJobsFromATS; } });
 var generateJobEmbedding_1 = require("./generateJobEmbedding");
 Object.defineProperty(exports, "generateJobEmbedding", { enumerable: true, get: function () { return generateJobEmbedding_1.generateJobEmbedding; } });
+Object.defineProperty(exports, "updateJobEmbeddingOnEnrichment", { enumerable: true, get: function () { return generateJobEmbedding_1.updateJobEmbeddingOnEnrichment; } });
 var generateUserEmbedding_1 = require("./generateUserEmbedding");
 Object.defineProperty(exports, "generateUserEmbedding", { enumerable: true, get: function () { return generateUserEmbedding_1.generateUserEmbedding; } });
 var matchJobsForUsers_1 = require("./matchJobsForUsers");
 Object.defineProperty(exports, "matchJobsForUsers", { enumerable: true, get: function () { return matchJobsForUsers_1.matchJobsForUsers; } });
 var getMatchedJobs_1 = require("./getMatchedJobs");
 Object.defineProperty(exports, "getMatchedJobs", { enumerable: true, get: function () { return getMatchedJobs_1.getMatchedJobs; } });
+// 📊 USER JOB INTERACTIONS (V5.0 - Feedback Loop)
+// Track user interactions for improved matching
+var trackJobInteraction_1 = require("./trackJobInteraction");
+Object.defineProperty(exports, "trackJobInteraction", { enumerable: true, get: function () { return trackJobInteraction_1.trackJobInteraction; } });
+Object.defineProperty(exports, "getSavedJobs", { enumerable: true, get: function () { return trackJobInteraction_1.getSavedJobs; } });
+Object.defineProperty(exports, "getUserInteractionStats", { enumerable: true, get: function () { return trackJobInteraction_1.getUserInteractionStats; } });
+// 🔄 BACKFILL & MIGRATION (V5.0)
+// Re-enrich jobs with new fields and generate embeddings
+var backfillJobsV5_1 = require("./backfillJobsV5");
+Object.defineProperty(exports, "backfillJobsV5Manual", { enumerable: true, get: function () { return backfillJobsV5_1.backfillJobsV5Manual; } });
+Object.defineProperty(exports, "backfillUserEmbeddings", { enumerable: true, get: function () { return backfillJobsV5_1.backfillUserEmbeddings; } });
 // 🚀 NEW: Queue-based ATS job fetching architecture
 // Scalable, fault-tolerant system for fetching jobs from multiple ATS sources
 var fetchJobsScheduler_1 = require("./schedulers/fetchJobsScheduler");

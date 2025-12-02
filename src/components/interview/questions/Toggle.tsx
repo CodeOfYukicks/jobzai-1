@@ -1,5 +1,5 @@
-import { memo, useMemo, ReactNode } from 'react';
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { memo, ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
 
 interface ToggleProps {
   label: string;
@@ -10,41 +10,47 @@ interface ToggleProps {
   children: ReactNode;
 }
 
-export const Toggle = memo(function Toggle({ label, description, icon, isOpen, onToggle, children }: ToggleProps) {
-  const renderIcon = useMemo(() => {
-    if (typeof icon === 'string') {
-      return (
-        <span className="text-sm leading-none" aria-hidden>
-          {icon}
-        </span>
-      );
-    }
-    return icon;
-  }, [icon]);
-
+export const Toggle = memo(function Toggle({ 
+  label, 
+  isOpen, 
+  onToggle, 
+  children 
+}: ToggleProps) {
   return (
-    <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 transition-colors hover:bg-gray-100/80 dark:hover:bg-gray-800 overflow-hidden">
+    <div className="group">
+      {/* Toggle Button - Minimal */}
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-3 px-4 py-3.5 text-left focus-visible:outline-none"
+        className="
+          flex items-center gap-2 
+          text-sm font-medium
+          text-slate-500 dark:text-slate-400
+          hover:text-slate-700 dark:hover:text-slate-200
+          transition-colors duration-200
+        "
       >
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white dark:bg-gray-700 shadow-sm border border-gray-100 dark:border-gray-600">
-          <Sparkles className="h-4 w-4 text-amber-400 fill-current" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">{label}</p>
-          {description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>}
-        </div>
-        <ChevronDown
-          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+        <ChevronRight 
+          className={`
+            w-4 h-4 
+            transition-transform duration-200
+            ${isOpen ? 'rotate-90' : ''}
+          `} 
         />
+        <span>{label}</span>
       </button>
+
+      {/* Content - Clean reveal */}
       {isOpen && (
-        <div className="animate-slideDown px-4 pb-4 pt-0">
-            <div className="pl-[44px]">
-                {children}
-            </div>
+        <div className="mt-4 pl-6 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="
+            p-5 rounded-xl
+            bg-slate-50 dark:bg-slate-800/50
+            border border-slate-100 dark:border-slate-800
+            text-sm leading-relaxed text-slate-700 dark:text-slate-300
+          ">
+            {children}
+          </div>
         </div>
       )}
     </div>

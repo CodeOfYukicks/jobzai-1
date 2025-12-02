@@ -24,13 +24,13 @@ const QuestionsVirtualizedList = memo(function QuestionsVirtualizedList({
 }: QuestionsVirtualizedListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Estimate size based on whether suggestion is open (larger) or closed (smaller)
+  // Estimate size based on whether suggestion is open
   const estimateSize = useMemo(() => {
     return (index: number) => {
       const entry = questions[index];
       const isOpen = collapsedQuestions[entry.id] === false;
-      // Base height + extra if suggestion is open
-      return isOpen ? 400 : 150;
+      // Compact heights for list items
+      return isOpen ? 320 : 120;
     };
   }, [questions, collapsedQuestions]);
 
@@ -43,10 +43,10 @@ const QuestionsVirtualizedList = memo(function QuestionsVirtualizedList({
 
   const items = virtualizer.getVirtualItems();
 
-  // Only virtualize if we have more than 10 questions for better UX
-  if (questions.length <= 10) {
+  // Don't virtualize for small lists - better UX
+  if (questions.length <= 15) {
     return (
-      <div className="space-y-5">
+      <div>
         {questions.map((entry, displayIndex) => (
           <QuestionCard
             key={entry.id}
@@ -71,9 +71,9 @@ const QuestionsVirtualizedList = memo(function QuestionsVirtualizedList({
       ref={parentRef}
       className="overflow-auto"
       style={{
-        height: 'calc(100vh - 400px)',
-        minHeight: '500px',
-        maxHeight: '800px',
+        height: 'calc(100vh - 350px)',
+        minHeight: '400px',
+        maxHeight: '700px',
       }}
     >
       <div
@@ -97,7 +97,6 @@ const QuestionsVirtualizedList = memo(function QuestionsVirtualizedList({
                 width: '100%',
                 height: `${virtualItem.size}px`,
                 transform: `translateY(${virtualItem.start}px)`,
-                paddingBottom: '1.25rem',
               }}
             >
               <QuestionCard
@@ -121,4 +120,3 @@ const QuestionsVirtualizedList = memo(function QuestionsVirtualizedList({
 });
 
 export default QuestionsVirtualizedList;
-

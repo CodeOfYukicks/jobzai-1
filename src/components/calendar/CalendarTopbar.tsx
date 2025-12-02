@@ -74,31 +74,33 @@ export const CalendarTopbar = ({
 
   return (
     <div className="flex items-center justify-between pb-6 border-b border-gray-200 dark:border-gray-800">
+      {/* Left: Date Display */}
       <div className="flex items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {getDateDisplay()}
           </h1>
           {getSubtitle() && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-[#635BFF] dark:text-[#a5a0ff] mt-1 font-medium">
               {getSubtitle()}
             </p>
           )}
         </div>
       </div>
 
+      {/* Right: Controls */}
       <div className="flex items-center gap-2">
-        {/* View Switcher - Notion Style */}
+        {/* View Switcher - Transparent Style */}
         {onViewChange && (
-          <div className="hidden sm:flex items-center border border-gray-200 dark:border-gray-700 rounded-lg p-0.5">
+          <div className="hidden sm:flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
             {viewOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => onViewChange(option.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   selectedView === option.value
-                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    ? 'bg-white dark:bg-gray-700 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff]'
                 }`}
               >
                 {option.icon}
@@ -108,21 +110,21 @@ export const CalendarTopbar = ({
           </div>
         )}
 
-        {/* Filter Button - Notion Style */}
+        {/* Filter Button - Transparent Style */}
         {onToggleApplications && onToggleInterviews && (
           <div className="relative">
             <button
               onClick={() => setShowFilterMenu(!showFilterMenu)}
-              className={`relative flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${
-                showFilterMenu
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+              className={`relative inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showFilterMenu || activeFilters > 0
+                  ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20 text-[#635BFF] dark:text-[#a5a0ff] border border-[#635BFF]/30 dark:border-[#a5a0ff]/30'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">Filter</span>
               {activeFilters > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[10px] font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full">
+                <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#635BFF] dark:bg-[#7c75ff] px-1 text-xs font-semibold text-white">
                   {activeFilters}
                 </span>
               )}
@@ -135,56 +137,60 @@ export const CalendarTopbar = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[220px]"
+                  className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[240px]"
                 >
-                  <div className="px-3 py-2 text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <div className="px-4 py-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     Event Types
                   </div>
+                  
+                  {/* Applications Toggle */}
                   <button
                     onClick={onToggleApplications}
-                    className="w-full px-3 py-2 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-sm bg-[#635BFF]" />
                       <span className={`font-medium ${showApplications ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'}`}>
                         Applications
                       </span>
                     </div>
                     <div
-                      className={`w-8 h-[18px] rounded-full transition-colors ${
-                        showApplications ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'
+                      className={`w-10 h-[22px] rounded-full transition-all duration-200 relative ${
+                        showApplications 
+                          ? 'bg-[#635BFF] dark:bg-[#7c75ff]' 
+                          : 'bg-gray-200 dark:bg-gray-700'
                       }`}
                     >
-                      <div
-                        className={`w-3.5 h-3.5 rounded-full transition-transform transform ${
-                          showApplications 
-                            ? 'translate-x-[14px] bg-white dark:bg-gray-900' 
-                            : 'translate-x-0.5 bg-white dark:bg-gray-500'
-                        } mt-[2px]`}
+                      <motion.div
+                        animate={{ x: showApplications ? 20 : 2 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute top-[3px] w-4 h-4 rounded-full shadow-sm bg-white"
                       />
                     </div>
                   </button>
+                  
+                  {/* Interviews Toggle */}
                   <button
                     onClick={onToggleInterviews}
-                    className="w-full px-3 py-2 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-sm bg-emerald-500" />
                       <span className={`font-medium ${showInterviews ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'}`}>
                         Interviews
                       </span>
                     </div>
                     <div
-                      className={`w-8 h-[18px] rounded-full transition-colors ${
-                        showInterviews ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'
+                      className={`w-10 h-[22px] rounded-full transition-all duration-200 relative ${
+                        showInterviews 
+                          ? 'bg-emerald-500 dark:bg-emerald-500' 
+                          : 'bg-gray-200 dark:bg-gray-700'
                       }`}
                     >
-                      <div
-                        className={`w-3.5 h-3.5 rounded-full transition-transform transform ${
-                          showInterviews 
-                            ? 'translate-x-[14px] bg-white dark:bg-gray-900' 
-                            : 'translate-x-0.5 bg-white dark:bg-gray-500'
-                        } mt-[2px]`}
+                      <motion.div
+                        animate={{ x: showInterviews ? 20 : 2 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute top-[3px] w-4 h-4 rounded-full shadow-sm bg-white"
                       />
                     </div>
                   </button>
@@ -194,41 +200,49 @@ export const CalendarTopbar = ({
           </div>
         )}
 
-        {/* Today Button - Notion Style */}
+        {/* Today Button - Transparent Style */}
         <button
           onClick={onToday}
-          className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-150"
+          className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
         >
           Today
         </button>
 
-        {/* Navigation Buttons - Notion Style */}
+        {/* Navigation Buttons - Transparent Style */}
         <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg">
           <button
             onClick={onPrevious}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-500 dark:text-gray-400 transition-colors rounded-l-lg border-r border-gray-200 dark:border-gray-700"
+            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors rounded-l-lg border-r border-gray-200 dark:border-gray-700"
             aria-label="Previous"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={onNext}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-500 dark:text-gray-400 transition-colors rounded-r-lg"
+            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors rounded-r-lg"
             aria-label="Next"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Add Event Button - Notion Style */}
+        {/* Add Event Button - Transparent Style like JobApplicationsPage */}
         {onAddEvent && (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onAddEvent}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-lg transition-all duration-150"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+              text-gray-700 dark:text-gray-200 
+              bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
+              border border-gray-200 dark:border-gray-700 rounded-lg
+              hover:bg-gray-50 dark:hover:bg-gray-700/80 
+              hover:border-gray-300 dark:hover:border-gray-600
+              shadow-sm hover:shadow transition-all duration-200"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">New</span>
-          </button>
+          </motion.button>
         )}
       </div>
     </div>

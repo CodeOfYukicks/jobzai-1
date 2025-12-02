@@ -114,5 +114,13 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if false;
     }
+
+    // User Job Interactions collection (V5.0 - Feedback Loop)
+    // Users can read/write their own interactions
+    match /userJobInteractions/{interactionId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false; // Interactions are immutable
+    }
   }
 } 

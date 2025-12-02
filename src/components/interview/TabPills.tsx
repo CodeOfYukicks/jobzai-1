@@ -34,10 +34,10 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 
 	return (
 		<div className={`w-full max-w-7xl mx-auto ${className}`}>
-			{/* Tabs container - minimal with bottom border */}
+			{/* Full-width container with centered content */}
 			<div className="relative" ref={containerRef}>
-				{/* Tab buttons */}
-				<div className="flex items-center gap-1">
+				{/* Tab buttons - evenly distributed */}
+				<nav className="flex items-center justify-center border-b border-slate-200 dark:border-slate-800">
 					{items.map((item) => {
 						const isActive = activeId === item.id;
 						return (
@@ -46,12 +46,14 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 								data-tab-id={item.id}
 								onClick={() => onChange(item.id)}
 								className={`
-									relative flex items-center gap-2 px-4 py-3
+									relative flex items-center justify-center gap-2.5
+									px-8 py-4
 									text-sm font-medium
-									transition-colors duration-200
+									transition-all duration-200
+									border-b-2 -mb-px
 									${isActive
-										? 'text-slate-900 dark:text-white'
-										: 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+										? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
+										: 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
 									}
 								`}
 							>
@@ -60,7 +62,7 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 										className={`
 											transition-colors duration-200
 											${isActive 
-												? 'text-slate-900 dark:text-white' 
+												? 'text-blue-600 dark:text-blue-400' 
 												: 'text-slate-400 dark:text-slate-500'
 											}
 										`}
@@ -72,23 +74,7 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 							</button>
 						);
 					})}
-				</div>
-
-				{/* Subtle bottom border line */}
-				<div className="absolute bottom-0 left-0 right-0 h-px bg-slate-200 dark:bg-slate-800" />
-
-				{/* Animated underline indicator */}
-				<div
-					className="
-						absolute bottom-0 h-0.5
-						bg-slate-900 dark:bg-white
-						transition-all duration-300 ease-out
-					"
-					style={{
-						left: indicatorStyle.left,
-						width: indicatorStyle.width,
-					}}
-				/>
+				</nav>
 			</div>
 		</div>
 	);

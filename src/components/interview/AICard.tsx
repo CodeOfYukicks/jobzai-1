@@ -61,7 +61,7 @@ export function AICard({
 						/>
 					</div>
 
-					{/* Analyze Button - Minimal dark */}
+					{/* Analyze Button - Google Blue */}
 					<button
 						onClick={onAnalyze}
 						disabled={isAnalyzing || !jobUrl}
@@ -69,12 +69,13 @@ export function AICard({
 							inline-flex items-center justify-center gap-2
 							px-5 py-2.5 rounded-lg
 							text-sm font-medium
-							bg-slate-900 dark:bg-white
-							text-white dark:text-slate-900
-							hover:bg-slate-800 dark:hover:bg-slate-100
+							bg-blue-600 dark:bg-blue-500
+							text-white
+							hover:bg-blue-700 dark:hover:bg-blue-600
 							disabled:opacity-40 disabled:cursor-not-allowed
 							transition-all duration-200
 							flex-shrink-0
+							shadow-sm hover:shadow-md
 						"
 					>
 						{isAnalyzing ? (

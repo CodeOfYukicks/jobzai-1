@@ -21,14 +21,18 @@
 
 import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { cosineSimilarity } from './utils/cosine';
 
 const REGION = 'us-central1';
+
+// V5.0 Semantic matching weight
+const SEMANTIC_WEIGHT = 0.4; // 40% semantic, 60% rule-based
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-type RoleFunction = 'engineering' | 'sales' | 'marketing' | 'operations' | 'hr' | 'finance' | 'design' | 'data' | 'product' | 'consulting' | 'support' | 'legal' | 'other';
+type RoleFunction = 'engineering' | 'sales' | 'marketing' | 'operations' | 'hr' | 'finance' | 'design' | 'data' | 'product' | 'consulting' | 'support' | 'legal' | 'project' | 'customer_success' | 'account_management' | 'business_analysis' | 'other';
 
 interface UserProfileData {
     // Personal info
@@ -97,6 +101,19 @@ interface UserProfileData {
         max: string;
         currency: string;
     };
+
+    // Job Search Context (V5.0 - New fields for improved matching)
+    searchUrgency?: string; // 'actively_searching' | 'open_to_opportunities' | 'not_looking'
+    searchIntensity?: string; // 'high' | 'medium' | 'low'
+    currentSituation?: string; // 'employed' | 'unemployed' | 'student' | 'freelance'
+
+    // V5.0 Feedback Loop - User's job preferences from interactions
+    savedJobs?: string[];
+    dismissedJobs?: string[];
+    appliedJobs?: string[];
+
+    // V5.0 Semantic Matching - User profile embedding
+    embedding?: number[];
 }
 
 interface EnrichedJob {
@@ -125,6 +142,9 @@ interface EnrichedJob {
     employmentTypes?: string[];
     salaryRange?: string;
     seniority?: string;
+    
+    // V5.0 Semantic Matching - Job embedding
+    embedding?: number[];
     remote?: string;
 }
 
@@ -137,9 +157,23 @@ interface MatchBreakdown {
     titleScore: number;
     historyBonus: number;
     environmentBonus: number;
+    // V5.0 new scores
+    salaryScore: number;
+    recencyBonus: number;
+    careerPrioritiesScore: number;
+    feedbackScore: number;
+    semanticScore: number;
+    collaborativeScore: number;
+    // Penalties
     dataQualityPenalty: number;
     dealBreakerPenalty: number;
     sectorAvoidPenalty: number;
+}
+
+// Collaborative data structure
+interface CollaborativeData {
+    popularJobIds: Set<string>;
+    popularCompanies: Set<string>;
 }
 
 interface MatchedJob extends EnrichedJob {
@@ -187,45 +221,85 @@ function calculateStringSimilarity(str1: string, str2: string): number {
 
 /**
  * Infer user's role function from professional history
+ * V5.0 - Extended role types for better precision
  */
 function inferUserRoleFunction(user: UserProfileData): RoleFunction {
+    const inferFromTitle = (title: string): RoleFunction | null => {
+        const t = title.toLowerCase();
+        
+        // Project Management - MUST come before 'product' to avoid PM confusion
+        if (/project manager|program manager|pmo\b|project lead|project coordinator/i.test(t)) return 'project';
+        
+        // Customer Success - MUST come before generic 'support'
+        if (/customer success|csm\b|client success|success manager/i.test(t)) return 'customer_success';
+        
+        // Account Management - distinct from sales
+        if (/account manager|key account|client manager|relationship manager/i.test(t) && !/account executive/i.test(t)) return 'account_management';
+        
+        // Business Analysis - MUST come before data to avoid 'analyst' confusion
+        if (/business analyst|ba\b|functional analyst|requirements analyst|process analyst/i.test(t)) return 'business_analysis';
+        
+        // Engineering/Development
+        if (/engineer|developer|devops|sre|software|backend|frontend|fullstack|programmer|architect/i.test(t)) return 'engineering';
+        
+        // Consulting
+        if (/consultant|advisory|implementation specialist/i.test(t)) return 'consulting';
+        
+        // Sales
+        if (/sales|account executive|bdr\b|sdr\b|business development|commercial/i.test(t)) return 'sales';
+        
+        // Data (scientist, engineer, analyst in data context)
+        if (/data scientist|data engineer|data analyst|ml engineer|machine learning|ai engineer|analytics engineer/i.test(t)) return 'data';
+        
+        // Product Management
+        if (/product manager|product owner|product lead|head of product/i.test(t)) return 'product';
+        
+        // Design
+        if (/designer|ux|ui|creative director|art director|visual design/i.test(t)) return 'design';
+        
+        // Marketing
+        if (/marketing|growth|content|seo|brand|digital marketing|demand gen/i.test(t)) return 'marketing';
+        
+        // Operations
+        if (/operations|ops manager|supply chain|logistics|procurement|facilities/i.test(t)) return 'operations';
+        
+        // HR
+        if (/hr\b|human resources|recruiter|talent|people ops|people partner/i.test(t)) return 'hr';
+        
+        // Finance
+        if (/finance|accountant|controller|cfo|financial analyst|treasury/i.test(t)) return 'finance';
+        
+        // Support (generic)
+        if (/support|helpdesk|technical support|customer support/i.test(t)) return 'support';
+        
+        // Legal
+        if (/legal|lawyer|counsel|attorney|paralegal|compliance/i.test(t)) return 'legal';
+        
+        return null;
+    };
+
     // Check target position first
     if (user.targetPosition) {
-        const target = user.targetPosition.toLowerCase();
-        if (/engineer|developer|devops|sre|software|backend|frontend|fullstack/i.test(target)) return 'engineering';
-        if (/consultant|advisory/i.test(target)) return 'consulting';
-        if (/sales|account executive|bdr|sdr|ae\b/i.test(target)) return 'sales';
-        if (/data scientist|data engineer|ml|ai|analyst/i.test(target)) return 'data';
-        if (/product manager|product owner|pm\b/i.test(target)) return 'product';
-        if (/designer|ux|ui|creative/i.test(target)) return 'design';
-        if (/marketing|growth|content|seo/i.test(target)) return 'marketing';
+        const role = inferFromTitle(user.targetPosition);
+        if (role) return role;
     }
 
     // Check most recent job in professional history
     if (user.professionalHistory && user.professionalHistory.length > 0) {
         const currentJob = user.professionalHistory.find(h => h.current) || user.professionalHistory[0];
-        const title = currentJob.title.toLowerCase();
-
-        if (/engineer|developer|devops|sre|software|backend|frontend|fullstack/i.test(title)) return 'engineering';
-        if (/consultant|advisory/i.test(title)) return 'consulting';
-        if (/sales|account executive|bdr|sdr|ae\b/i.test(title)) return 'sales';
-        if (/data scientist|data engineer|ml|ai|analyst/i.test(title)) return 'data';
-        if (/product manager|product owner|pm\b/i.test(title)) return 'product';
-        if (/designer|ux|ui|creative/i.test(title)) return 'design';
-        if (/marketing|growth|content|seo/i.test(title)) return 'marketing';
-        if (/operations|ops\b|supply chain|logistics/i.test(title)) return 'operations';
-        if (/hr\b|recruiter|people/i.test(title)) return 'hr';
-        if (/finance|accountant|controller/i.test(title)) return 'finance';
-        if (/support|customer success/i.test(title)) return 'support';
-        if (/legal|lawyer|counsel/i.test(title)) return 'legal';
+        const role = inferFromTitle(currentJob.title);
+        if (role) return role;
     }
 
     // Check skills/tools for tech signals
     const allSkills = [...(user.skills || []), ...(user.tools || [])].join(' ').toLowerCase();
-    if (/salesforce|apex|lightning|sfdc|crm implementation/i.test(allSkills)) return 'consulting';
-    if (/python|javascript|react|node|java|aws|azure|docker|kubernetes/i.test(allSkills)) return 'engineering';
-    if (/tableau|powerbi|sql|analytics|looker/i.test(allSkills)) return 'data';
-    if (/figma|sketch|adobe|ux|ui/i.test(allSkills)) return 'design';
+    if (/salesforce|apex|lightning|sfdc|crm implementation|netsuite|sap/i.test(allSkills)) return 'consulting';
+    if (/python|javascript|react|node|java|aws|azure|docker|kubernetes|terraform/i.test(allSkills)) return 'engineering';
+    if (/tableau|powerbi|sql|analytics|looker|snowflake|dbt/i.test(allSkills)) return 'data';
+    if (/figma|sketch|adobe|invision|principle/i.test(allSkills)) return 'design';
+    if (/hubspot|marketo|salesforce marketing|mailchimp/i.test(allSkills)) return 'marketing';
+    if (/gainsight|totango|churnzero/i.test(allSkills)) return 'customer_success';
+    if (/jira|asana|monday|ms project|smartsheet/i.test(allSkills)) return 'project';
 
     return 'other';
 }
@@ -315,17 +389,21 @@ function calculateRoleFunctionScore(user: UserProfileData, job: EnrichedJob): { 
     // Adjacent/related roles (reduced score but not penalty)
     const adjacentRoles: Record<RoleFunction, RoleFunction[]> = {
         'engineering': ['data', 'product', 'consulting'],
-        'consulting': ['engineering', 'product', 'data', 'operations'],
-        'data': ['engineering', 'product', 'consulting'],
-        'product': ['engineering', 'data', 'design'],
+        'consulting': ['engineering', 'product', 'data', 'operations', 'business_analysis', 'project'],
+        'data': ['engineering', 'product', 'consulting', 'business_analysis'],
+        'product': ['engineering', 'data', 'design', 'project'],
         'design': ['product', 'marketing'],
         'marketing': ['sales', 'design', 'product'],
-        'sales': ['marketing', 'support'],
-        'support': ['sales', 'operations'],
-        'operations': ['support', 'finance', 'consulting'],
-        'finance': ['operations'],
+        'sales': ['marketing', 'account_management', 'customer_success'],
+        'support': ['customer_success', 'operations'],
+        'operations': ['support', 'finance', 'consulting', 'project'],
+        'finance': ['operations', 'business_analysis'],
         'hr': ['operations'],
         'legal': ['operations', 'finance'],
+        'project': ['operations', 'product', 'consulting', 'business_analysis'],
+        'customer_success': ['account_management', 'sales', 'support'],
+        'account_management': ['sales', 'customer_success'],
+        'business_analysis': ['consulting', 'data', 'project', 'product'],
         'other': []
     };
 
@@ -636,6 +714,324 @@ function calculateEnvironmentBonus(user: UserProfileData, job: EnrichedJob): { s
 }
 
 /**
+ * Salary Match Score (max +10) - V5.0 NEW
+ * Compares user salary expectations with job salary range
+ */
+function calculateSalaryScore(user: UserProfileData, job: EnrichedJob): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    
+    // If user hasn't set expectations, neutral
+    if (!user.salaryExpectations || (!user.salaryExpectations.min && !user.salaryExpectations.max)) {
+        return { score: 3, reasons: [] };
+    }
+    
+    // If job has no salary info, slight penalty (transparency matters)
+    if (!job.salaryRange) {
+        return { score: 0, reasons: ['No salary info'] };
+    }
+    
+    // Parse job salary range (e.g., "$120k - $150k", "€80,000 - €100,000", "100000-150000")
+    const salaryText = job.salaryRange.toLowerCase().replace(/[,$€£k]/g, (match) => {
+        if (match === 'k') return '000';
+        return '';
+    });
+    
+    const salaryNumbers = salaryText.match(/\d+/g);
+    if (!salaryNumbers || salaryNumbers.length === 0) {
+        return { score: 2, reasons: [] };
+    }
+    
+    const jobMinSalary = parseInt(salaryNumbers[0]);
+    const jobMaxSalary = salaryNumbers.length > 1 ? parseInt(salaryNumbers[1]) : jobMinSalary;
+    
+    // Parse user expectations
+    const userMin = parseInt(user.salaryExpectations.min?.replace(/\D/g, '') || '0');
+    const userMax = parseInt(user.salaryExpectations.max?.replace(/\D/g, '') || '999999999');
+    
+    // Check overlap
+    if (jobMaxSalary >= userMin && jobMinSalary <= userMax) {
+        // Good overlap
+        if (jobMinSalary >= userMin) {
+            reasons.push(`Salary: ${job.salaryRange}`);
+            return { score: 10, reasons };
+        } else {
+            reasons.push('Salary in range');
+            return { score: 7, reasons };
+        }
+    }
+    
+    // Job pays less than user minimum
+    if (jobMaxSalary < userMin) {
+        return { score: 0, reasons: ['Below salary expectations'] };
+    }
+    
+    return { score: 3, reasons: [] };
+}
+
+/**
+ * Recency Bonus for Urgent Searchers (max +5) - V5.0 NEW
+ * Boosts recently posted jobs for users actively searching
+ */
+function calculateRecencyBonus(user: UserProfileData, job: EnrichedJob): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    
+    // Check if user is urgently searching
+    const isUrgent = user.searchUrgency === 'actively_searching' || user.searchIntensity === 'high';
+    
+    if (!isUrgent) {
+        return { score: 0, reasons: [] };
+    }
+    
+    // Check job posting date
+    if (!job.postedAt) {
+        return { score: 0, reasons: [] };
+    }
+    
+    const postedDate = job.postedAt.toDate ? job.postedAt.toDate() : new Date(job.postedAt);
+    const daysSincePosted = Math.floor((Date.now() - postedDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysSincePosted <= 1) {
+        reasons.push('Posted today');
+        return { score: 5, reasons };
+    }
+    if (daysSincePosted <= 3) {
+        reasons.push('Posted recently');
+        return { score: 3, reasons };
+    }
+    if (daysSincePosted <= 7) {
+        return { score: 1, reasons: [] };
+    }
+    
+    return { score: 0, reasons: [] };
+}
+
+/**
+ * Career Priorities Match (max +8) - V5.0 NEW
+ * Matches user's stated career priorities with job signals
+ */
+function calculateCareerPrioritiesScore(user: UserProfileData, job: EnrichedJob): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    let score = 0;
+    
+    if (!user.careerPriorities || user.careerPriorities.length === 0) {
+        return { score: 2, reasons: [] };
+    }
+    
+    const jobText = `${job.title} ${job.description || ''} ${job.company}`.toLowerCase();
+    
+    const priorityKeywords: Record<string, string[]> = {
+        'work-life balance': ['flexible', 'remote', 'work-life', 'unlimited pto', 'flexible hours', 'hybrid'],
+        'career growth': ['growth', 'career path', 'development', 'learning', 'promotion', 'leadership'],
+        'compensation': ['competitive salary', 'equity', 'stock', 'bonus', 'compensation'],
+        'impact': ['impact', 'mission', 'meaningful', 'change the world', 'make a difference'],
+        'innovation': ['innovative', 'cutting-edge', 'startup', 'disrupt', 'technology'],
+        'stability': ['established', 'fortune 500', 'stable', 'enterprise', 'global company'],
+        'team culture': ['culture', 'team', 'collaborative', 'inclusive', 'diversity'],
+        'learning': ['learning', 'training', 'development', 'mentorship', 'grow'],
+        'autonomy': ['autonomous', 'ownership', 'independent', 'self-directed'],
+        'remote work': ['remote', 'work from home', 'distributed', 'anywhere'],
+    };
+    
+    for (const priority of user.careerPriorities) {
+        const priorityLower = priority.toLowerCase();
+        
+        // Find matching keywords for this priority
+        for (const [key, keywords] of Object.entries(priorityKeywords)) {
+            if (priorityLower.includes(key) || key.includes(priorityLower)) {
+                const matched = keywords.some(kw => jobText.includes(kw));
+                if (matched) {
+                    score += 2;
+                    if (!reasons.includes(`Matches: ${priority}`)) {
+                        reasons.push(`Matches: ${priority}`);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Also check primary motivator
+    if (user.primaryMotivator) {
+        const motivator = user.primaryMotivator.toLowerCase();
+        for (const [key, keywords] of Object.entries(priorityKeywords)) {
+            if (motivator.includes(key) || key.includes(motivator)) {
+                const matched = keywords.some(kw => jobText.includes(kw));
+                if (matched) {
+                    score += 3;
+                    reasons.push(`Aligns with: ${user.primaryMotivator}`);
+                    break;
+                }
+            }
+        }
+    }
+    
+    return { score: Math.min(score, 8), reasons: reasons.slice(0, 2) };
+}
+
+/**
+ * Feedback Boost/Penalty (V5.0 - Feedback Loop)
+ * - Boost jobs similar to saved jobs
+ * - Already applied jobs get a small boost (proven interest)
+ */
+function calculateFeedbackScore(
+    user: UserProfileData, 
+    job: EnrichedJob, 
+    savedJobsData: EnrichedJob[]
+): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    let score = 0;
+
+    // If user has applied to this company before, small boost
+    if (user.appliedJobs?.some(appliedId => {
+        // Check if appliedId contains similar company (we don't have full data, so just check ID prefix patterns)
+        return false; // TODO: Implement proper applied company matching
+    })) {
+        score += 2;
+        reasons.push('Applied to similar jobs');
+    }
+
+    // If no saved jobs, neutral
+    if (!savedJobsData || savedJobsData.length === 0) {
+        return { score: 0, reasons: [] };
+    }
+
+    // Check similarity to saved jobs
+    let similarityBonus = 0;
+    const jobTitle = normalizeString(job.title);
+    const jobTechs = (job.technologies || []).map(normalizeString);
+    const jobIndustries = (job.industries || []).map(normalizeString);
+
+    for (const savedJob of savedJobsData.slice(0, 10)) { // Check against last 10 saved
+        let matchPoints = 0;
+
+        // Title similarity
+        const savedTitle = normalizeString(savedJob.title || '');
+        if (calculateStringSimilarity(jobTitle, savedTitle) > 0.6) {
+            matchPoints += 3;
+        }
+
+        // Same company
+        if (fuzzyMatch(job.company, savedJob.company || '')) {
+            matchPoints += 3;
+            if (!reasons.includes('From companies you like')) {
+                reasons.push('From companies you like');
+            }
+        }
+
+        // Overlapping technologies
+        const savedTechs = (savedJob.technologies || []).map(normalizeString);
+        const techOverlap = jobTechs.filter(t => savedTechs.some(st => fuzzyMatch(t, st))).length;
+        if (techOverlap >= 2) {
+            matchPoints += 2;
+        }
+
+        // Same industry
+        const savedIndustries = (savedJob.industries || []).map(normalizeString);
+        const industryMatch = jobIndustries.some(ind => 
+            savedIndustries.some(sInd => fuzzyMatch(ind, sInd))
+        );
+        if (industryMatch) {
+            matchPoints += 2;
+        }
+
+        similarityBonus = Math.max(similarityBonus, matchPoints);
+    }
+
+    if (similarityBonus >= 5) {
+        score += 8;
+        if (reasons.length === 0) reasons.push('Similar to jobs you saved');
+    } else if (similarityBonus >= 3) {
+        score += 5;
+        if (reasons.length === 0) reasons.push('Related to your interests');
+    } else if (similarityBonus >= 2) {
+        score += 2;
+    }
+
+    return { score: Math.min(score, 10), reasons: reasons.slice(0, 1) };
+}
+
+/**
+ * Collaborative Score (V5.0 - Based on similar users' behavior)
+ * Boosts jobs that users with similar profiles have saved/applied to
+ * Max score: 8 points
+ */
+function calculateCollaborativeScore(
+    job: EnrichedJob,
+    collaborativeData: { popularJobIds: Set<string>; popularCompanies: Set<string> }
+): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    let score = 0;
+
+    // If no collaborative data, return neutral
+    if (!collaborativeData.popularJobIds.size && !collaborativeData.popularCompanies.size) {
+        return { score: 0, reasons: [] };
+    }
+
+    // Check if this exact job is popular among similar users
+    if (collaborativeData.popularJobIds.has(job.id)) {
+        score += 5;
+        reasons.push('Popular with similar professionals');
+    }
+
+    // Check if this company is popular among similar users
+    const companyLower = (job.company || '').toLowerCase();
+    if (collaborativeData.popularCompanies.has(companyLower)) {
+        score += 3;
+        if (reasons.length === 0) {
+            reasons.push('Company popular with your peers');
+        }
+    }
+
+    return { score: Math.min(score, 8), reasons: reasons.slice(0, 1) };
+}
+
+/**
+ * Semantic Similarity Score (V5.0 - Embedding-based matching)
+ * Uses cosine similarity between user and job embeddings
+ * Max score: 40 points (significant weight in hybrid scoring)
+ */
+function calculateSemanticScore(
+    userEmbedding: number[] | undefined,
+    jobEmbedding: number[] | undefined
+): { score: number; reasons: string[] } {
+    // If either embedding is missing, return neutral score
+    if (!userEmbedding || !jobEmbedding || 
+        userEmbedding.length === 0 || jobEmbedding.length === 0) {
+        return { score: 0, reasons: [] };
+    }
+
+    // Calculate cosine similarity (-1 to 1, but typically 0 to 1 for embeddings)
+    const similarity = cosineSimilarity(userEmbedding, jobEmbedding);
+    
+    // Convert similarity to score (0-40 range)
+    // Typical similarity scores for related content: 0.5-0.9
+    // We use a threshold-based scoring:
+    const reasons: string[] = [];
+    let score = 0;
+
+    if (similarity >= 0.85) {
+        score = 40;
+        reasons.push('Excellent profile match');
+    } else if (similarity >= 0.75) {
+        score = 35;
+        reasons.push('Strong profile match');
+    } else if (similarity >= 0.65) {
+        score = 28;
+        reasons.push('Good profile alignment');
+    } else if (similarity >= 0.55) {
+        score = 20;
+        reasons.push('Moderate profile match');
+    } else if (similarity >= 0.45) {
+        score = 12;
+    } else if (similarity >= 0.35) {
+        score = 5;
+    }
+    // Below 0.35 similarity = 0 points (not a good match)
+
+    return { score, reasons };
+}
+
+/**
  * Data Quality Penalty (-15 if enrichment quality < 50%)
  */
 function calculateDataQualityPenalty(job: EnrichedJob): { penalty: number; reasons: string[] } {
@@ -720,17 +1116,22 @@ function calculateSectorAvoidPenalty(user: UserProfileData, job: EnrichedJob): {
 }
 
 // =============================================================================
-// MAIN MATCHING FUNCTION V4.0
+// MAIN MATCHING FUNCTION V5.0
 // =============================================================================
 
-function calculateMatchScore(user: UserProfileData, job: EnrichedJob): { matched: MatchedJob | null; excluded: boolean; excludeReason?: string } {
+function calculateMatchScore(
+    user: UserProfileData, 
+    job: EnrichedJob,
+    savedJobsData: EnrichedJob[] = [],
+    collaborativeData: CollaborativeData = { popularJobIds: new Set(), popularCompanies: new Set() }
+): { matched: MatchedJob | null; excluded: boolean; excludeReason?: string } {
     // HARD FILTER: Language requirements
     const langCheck = shouldExcludeByLanguage(user, job);
     if (langCheck.exclude) {
         return { matched: null, excluded: true, excludeReason: langCheck.reason };
     }
 
-    // Calculate all scores
+    // Calculate all rule-based scores
     const roleFunction = calculateRoleFunctionScore(user, job);
     const skills = calculateSkillsScore(user, job);
     const location = calculateLocationScore(user, job);
@@ -739,26 +1140,67 @@ function calculateMatchScore(user: UserProfileData, job: EnrichedJob): { matched
     const title = calculateTitleScore(user, job);
     const history = calculateHistoryBonus(user, job);
     const environment = calculateEnvironmentBonus(user, job);
+    
+    // V5.0 new scores
+    const salary = calculateSalaryScore(user, job);
+    const recency = calculateRecencyBonus(user, job);
+    const careerPriorities = calculateCareerPrioritiesScore(user, job);
+    const feedback = calculateFeedbackScore(user, job, savedJobsData);
+    
+    // V5.0 Semantic Score (embedding-based)
+    const semantic = calculateSemanticScore(user.embedding, job.embedding);
+    
+    // V5.0 Collaborative Score (based on similar users)
+    const collaborative = calculateCollaborativeScore(job, collaborativeData);
 
     // Penalties
     const dataQuality = calculateDataQualityPenalty(job);
     const dealBreaker = calculateDealBreakerPenalty(user, job);
     const sectorAvoid = calculateSectorAvoidPenalty(user, job);
 
-    // Calculate total
-    // Positive max: 25 + 30 + 15 + 10 + 10 + 10 + 10 + 5 = 115
-    const rawPositive = 
+    // =============================================================================
+    // V5.0 HYBRID SCORING: 60% Rule-based + 40% Semantic
+    // =============================================================================
+    
+    // Calculate rule-based score (max 156 points before semantic, including collaborative)
+    const ruleBasedPositive = 
         roleFunction.score + skills.score + location.score + 
         experience.score + industry.score + title.score + 
-        history.score + environment.score;
+        history.score + environment.score +
+        salary.score + recency.score + careerPriorities.score +
+        feedback.score + collaborative.score;
+    
+    // Scale rule-based to 100 (max 156 points with collaborative)
+    const ruleBasedScore = Math.round((Math.max(ruleBasedPositive, 0) / 156) * 100);
+    
+    // Semantic score is already 0-40, scale to 0-100
+    const semanticScore100 = Math.round((semantic.score / 40) * 100);
+    
+    // Hybrid score: 60% rule-based + 40% semantic
+    // If no embeddings available, use 100% rule-based
+    let hybridScore: number;
+    if (semantic.score > 0) {
+        hybridScore = Math.round(
+            (1 - SEMANTIC_WEIGHT) * ruleBasedScore + 
+            SEMANTIC_WEIGHT * semanticScore100
+        );
+    } else {
+        // No semantic data available - use rule-based only
+        hybridScore = ruleBasedScore;
+    }
 
-    // Scale to 100 and apply penalties
+    // Apply penalties
     const totalPenalty = dataQuality.penalty + dealBreaker.penalty + sectorAvoid.penalty;
-    const scaledScore = Math.round((Math.max(rawPositive, 0) / 115) * 100);
-    const finalScore = Math.max(0, Math.min(100, scaledScore - totalPenalty));
+    const finalScore = Math.max(0, Math.min(100, hybridScore - totalPenalty));
 
     // Collect reasons
     const allReasons: string[] = [];
+    // Prioritize collaborative reasons (social proof)
+    if (collaborative.score > 3) allReasons.push(...collaborative.reasons);
+    // Then semantic match reasons (if strong)
+    if (semantic.score >= 28) allReasons.push(...semantic.reasons);
+    // Then feedback reasons (user interest signal)
+    if (feedback.score > 3) allReasons.push(...feedback.reasons);
     if (roleFunction.score > 0) allReasons.push(...roleFunction.reasons);
     if (skills.score > 0) allReasons.push(...skills.reasons);
     if (location.score > 0) allReasons.push(...location.reasons);
@@ -767,11 +1209,16 @@ function calculateMatchScore(user: UserProfileData, job: EnrichedJob): { matched
     if (title.score > 0) allReasons.push(...title.reasons);
     if (history.score > 0) allReasons.push(...history.reasons);
     if (environment.score > 0) allReasons.push(...environment.reasons);
+    // V5.0 new reasons
+    if (salary.score > 5) allReasons.push(...salary.reasons);
+    if (recency.score > 0) allReasons.push(...recency.reasons);
+    if (careerPriorities.score > 2) allReasons.push(...careerPriorities.reasons);
 
     // Add negative reasons if significant
     const negativeReasons: string[] = [];
     if (roleFunction.score < 0) negativeReasons.push(...roleFunction.reasons);
     if (skills.score < 0) negativeReasons.push(...skills.reasons);
+    if (salary.score === 0 && salary.reasons.length > 0) negativeReasons.push(...salary.reasons);
     if (dataQuality.penalty > 0) negativeReasons.push(...dataQuality.reasons);
     if (dealBreaker.penalty > 0) negativeReasons.push(...dealBreaker.reasons);
     if (sectorAvoid.penalty > 0) negativeReasons.push(...sectorAvoid.reasons);
@@ -788,6 +1235,14 @@ function calculateMatchScore(user: UserProfileData, job: EnrichedJob): { matched
             titleScore: title.score,
             historyBonus: history.score,
             environmentBonus: environment.score,
+            // V5.0 new scores
+            salaryScore: salary.score,
+            recencyBonus: recency.score,
+            careerPrioritiesScore: careerPriorities.score,
+            feedbackScore: feedback.score,
+            semanticScore: semantic.score,
+            collaborativeScore: collaborative.score,
+            // Penalties
             dataQualityPenalty: dataQuality.penalty,
             dealBreakerPenalty: dealBreaker.penalty,
             sectorAvoidPenalty: sectorAvoid.penalty,
@@ -870,16 +1325,107 @@ export const getMatchedJobs = onRequest({
             return;
         }
 
+        // V5.0: Get user's dismissed jobs to filter out
+        const dismissedJobIds = new Set(userData.dismissedJobs || []);
+        
+        // V5.0: Fetch saved jobs for feedback scoring
+        let savedJobsData: EnrichedJob[] = [];
+        if (userData.savedJobs && userData.savedJobs.length > 0) {
+            const savedJobIds = userData.savedJobs.slice(0, 20); // Max 20 for performance
+            const savedJobsPromises = savedJobIds.map(id => 
+                db.collection('jobs').doc(id).get()
+            );
+            const savedJobsDocs = await Promise.all(savedJobsPromises);
+            savedJobsData = savedJobsDocs
+                .filter(doc => doc.exists)
+                .map(doc => ({ id: doc.id, ...doc.data() } as EnrichedJob));
+        }
+
+        // V5.0: Fetch collaborative data - find popular jobs among similar users
+        const collaborativeData: CollaborativeData = { 
+            popularJobIds: new Set(), 
+            popularCompanies: new Set() 
+        };
+        
+        try {
+            // Get user's inferred role function
+            const userRoleFn = inferUserRoleFunction(userData);
+            
+            // Query recent interactions from users with same role function
+            // This is a simplified collaborative approach
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            
+            const interactionsQuery = db.collection('userJobInteractions')
+                .where('action', 'in', ['save', 'apply'])
+                .where('timestamp', '>=', sevenDaysAgo)
+                .limit(200);
+            
+            const interactionsSnap = await interactionsQuery.get();
+            
+            // Count job and company occurrences
+            const jobCounts: Record<string, number> = {};
+            const companyCounts: Record<string, number> = {};
+            
+            for (const intDoc of interactionsSnap.docs) {
+                const interaction = intDoc.data();
+                const jobId = interaction.jobId;
+                
+                jobCounts[jobId] = (jobCounts[jobId] || 0) + 1;
+                
+                // Get company name if score is in metadata
+                if (interaction.metadata?.matchScore && interaction.metadata.matchScore >= 60) {
+                    // This interaction came from a good match, boost it
+                    jobCounts[jobId] += 1;
+                }
+            }
+            
+            // Get popular jobs (saved/applied by 3+ users)
+            for (const [jobId, count] of Object.entries(jobCounts)) {
+                if (count >= 3) {
+                    collaborativeData.popularJobIds.add(jobId);
+                    
+                    // Also get the company for these popular jobs
+                    const jobDoc = await db.collection('jobs').doc(jobId).get();
+                    if (jobDoc.exists) {
+                        const company = (jobDoc.data()?.company || '').toLowerCase();
+                        if (company) {
+                            companyCounts[company] = (companyCounts[company] || 0) + count;
+                        }
+                    }
+                }
+            }
+            
+            // Get popular companies
+            for (const [company, count] of Object.entries(companyCounts)) {
+                if (count >= 5) {
+                    collaborativeData.popularCompanies.add(company);
+                }
+            }
+            
+            console.log(`📊 Collaborative: ${collaborativeData.popularJobIds.size} popular jobs, ${collaborativeData.popularCompanies.size} popular companies`);
+            
+        } catch (collabError) {
+            console.log('Collaborative data fetch failed (non-critical):', collabError);
+        }
+
         // Calculate match scores with hard filters
         const matchedJobs: MatchedJob[] = [];
         let excludedByLanguage = 0;
         let excludedByScore = 0;
+        let excludedByDismiss = 0;
 
         for (const doc of jobsSnapshot.docs) {
             const jobData = doc.data() as EnrichedJob;
             const job: EnrichedJob = { id: doc.id, ...jobData };
 
-            const result = calculateMatchScore(userData, job);
+            // V5.0: Skip dismissed jobs
+            if (dismissedJobIds.has(doc.id)) {
+                excludedByDismiss++;
+                continue;
+            }
+
+            const result = calculateMatchScore(userData, job, savedJobsData, collaborativeData);
 
             if (result.excluded) {
                 excludedByLanguage++;
@@ -940,14 +1486,21 @@ export const getMatchedJobs = onRequest({
             locationsCount: (userData.preferredCities?.length || 0) + (userData.preferredCountries?.length || 0) + (userData.city ? 1 : 0),
             dealBreakersCount: userData.dealBreakers?.length || 0,
             sectorsToAvoidCount: userData.sectorsToAvoid?.length || 0,
+            // V5.0 Feedback stats
+            savedJobsCount: userData.savedJobs?.length || 0,
+            dismissedJobsCount: userData.dismissedJobs?.length || 0,
+            appliedJobsCount: userData.appliedJobs?.length || 0,
         };
 
         const stats = {
             totalJobsAnalyzed: jobsSnapshot.size,
             excludedByLanguage,
             excludedByScore,
+            excludedByDismiss,
             matchedJobs: matchedJobs.length,
             returned: formattedJobs.length,
+            // V5.0 Feedback influence
+            savedJobsUsedForScoring: savedJobsData.length,
         };
 
         res.status(200).json({

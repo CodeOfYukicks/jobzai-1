@@ -1,9 +1,24 @@
 import * as admin from 'firebase-admin';
+import OpenAI from 'openai';
 
 /**
  * Cloud Function to enrich job posts with structured tags for filtering
  * This analyzes existing job descriptions and adds missing filter fields
+ * 
+ * V5.0: Added GPT-based role classification for complex cases
  */
+
+// Lazy-initialized OpenAI client
+let openaiClient: OpenAI | null = null;
+
+function getOpenAI(): OpenAI | null {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return null;
+    if (!openaiClient) {
+        openaiClient = new OpenAI({ apiKey });
+    }
+    return openaiClient;
+}
 
 interface JobDoc {
     id: string;
@@ -24,19 +39,48 @@ interface JobDoc {
     compensation?: string;
 }
 
-// Role function type for job classification
-type RoleFunction = 'engineering' | 'sales' | 'marketing' | 'operations' | 'hr' | 'finance' | 'design' | 'data' | 'product' | 'consulting' | 'support' | 'legal' | 'other';
+// Role function type for job classification - V5.0 Extended
+type RoleFunction = 'engineering' | 'sales' | 'marketing' | 'operations' | 'hr' | 'finance' | 'design' | 'data' | 'product' | 'consulting' | 'support' | 'legal' | 'project' | 'customer_success' | 'account_management' | 'business_analysis' | 'other';
+
+// Valid role function values for validation
+const VALID_ROLE_FUNCTIONS: RoleFunction[] = [
+    'engineering', 'sales', 'marketing', 'operations', 'hr', 'finance', 
+    'design', 'data', 'product', 'consulting', 'support', 'legal',
+    'project', 'customer_success', 'account_management', 'business_analysis', 'other'
+];
 
 /**
  * CRITICAL: Extract role function from job title
  * This determines the job family/department type
+ * V5.0: Extended with project, customer_success, account_management, business_analysis
  */
 function extractRoleFunction(job: JobDoc): RoleFunction {
     const title = (job.title || '').toLowerCase();
     const text = `${job.title || ''} ${job.description || ''}`.toLowerCase();
 
+    // PROJECT MANAGEMENT - Must come before product to avoid PM confusion
+    if (/\b(project manager|program manager|pmo\b|project lead|project coordinator|project director|scrum master)\b/i.test(title)) {
+        return 'project';
+    }
+
+    // CUSTOMER SUCCESS - Must come before generic support
+    if (/\b(customer success|csm\b|client success|success manager|success lead|success director)\b/i.test(title)) {
+        return 'customer_success';
+    }
+
+    // ACCOUNT MANAGEMENT - Distinct from sales (not account executive)
+    if (/\b(account manager|key account|client manager|relationship manager|client partner|strategic account)\b/i.test(title) && 
+        !/\b(account executive|ae\b)\b/i.test(title)) {
+        return 'account_management';
+    }
+
+    // BUSINESS ANALYSIS - Must come before data to avoid analyst confusion
+    if (/\b(business analyst|ba\b|functional analyst|requirements analyst|process analyst|systems analyst|business systems)\b/i.test(title)) {
+        return 'business_analysis';
+    }
+
     // SALES - Account Executives, BDRs, SDRs, Sales Managers
-    if (/\b(account executive|ae\b|sales|bdr|sdr|business development representative|sales representative|sales manager|revenue|partnerships|account manager|client executive|commercial|quota)\b/i.test(title)) {
+    if (/\b(account executive|ae\b|sales|bdr|sdr|business development representative|sales representative|sales manager|revenue|partnerships|client executive|commercial|quota)\b/i.test(title)) {
         return 'sales';
     }
 
@@ -51,7 +95,7 @@ function extractRoleFunction(job: JobDoc): RoleFunction {
     }
 
     // PRODUCT - Product Managers, Product Owners
-    if (/\b(product manager|product owner|product lead|pm\b|chief product|vp product|head of product)\b/i.test(title)) {
+    if (/\b(product manager|product owner|product lead|chief product|vp product|head of product)\b/i.test(title)) {
         return 'product';
     }
 
@@ -81,12 +125,12 @@ function extractRoleFunction(job: JobDoc): RoleFunction {
     }
 
     // OPERATIONS - Operations Managers, Supply Chain
-    if (/\b(operations|ops\b|supply chain|logistics|warehouse|procurement|vendor|sourcing|fleet|delivery)\b/i.test(title)) {
+    if (/\b(operations|ops manager|supply chain|logistics|warehouse|procurement|vendor|sourcing|fleet|delivery|facilities)\b/i.test(title)) {
         return 'operations';
     }
 
-    // SUPPORT - Customer Support, Success, Service
-    if (/\b(customer support|customer service|support specialist|customer success|cs\b|helpdesk|technical support|support engineer)\b/i.test(title)) {
+    // SUPPORT - Customer Support, Service
+    if (/\b(customer support|customer service|support specialist|helpdesk|technical support|support engineer)\b/i.test(title)) {
         return 'support';
     }
 
@@ -106,6 +150,91 @@ function extractRoleFunction(job: JobDoc): RoleFunction {
     }
 
     return 'other';
+}
+
+/**
+ * V5.0: GPT-based role function classification
+ * Used when regex-based extraction returns 'other' or for ambiguous titles
+ * Falls back to 'other' if API unavailable or fails
+ */
+async function classifyRoleFunctionWithGPT(job: JobDoc): Promise<RoleFunction> {
+    const openai = getOpenAI();
+    if (!openai) {
+        console.log('OpenAI not configured, using regex-based classification');
+        return extractRoleFunction(job);
+    }
+
+    const title = job.title || 'Unknown';
+    const description = (job.description || '').slice(0, 1500); // Limit for token efficiency
+    
+    const prompt = `Classify this job into ONE of these role functions:
+- engineering: Software engineers, developers, DevOps, architects
+- sales: Account executives, BDRs, SDRs, sales managers
+- marketing: Marketing managers, growth, content, SEO
+- product: Product managers, product owners
+- design: UX/UI designers, graphic designers
+- data: Data scientists, data engineers, ML engineers, data analysts
+- consulting: Consultants, implementation specialists, advisors
+- operations: Operations managers, supply chain, logistics
+- hr: HR managers, recruiters, talent acquisition
+- finance: Financial analysts, accountants, controllers
+- support: Customer support, technical support
+- legal: Legal counsel, lawyers, compliance
+- project: Project managers, program managers, PMO
+- customer_success: Customer success managers, CSM
+- account_management: Account managers, client managers, relationship managers
+- business_analysis: Business analysts, functional analysts, requirements analysts
+- other: If none of the above fit
+
+Job Title: ${title}
+
+Job Description Preview:
+${description}
+
+Return ONLY the role function (one word from the list above), nothing else.`;
+
+    try {
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                { role: 'system', content: 'You are a job classification expert. Return only the role function category, nothing else.' },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.1,
+            max_tokens: 20
+        });
+
+        const result = response.choices?.[0]?.message?.content?.trim().toLowerCase() as RoleFunction;
+        
+        // Validate the response
+        if (VALID_ROLE_FUNCTIONS.includes(result)) {
+            console.log(`GPT classified "${title}" as: ${result}`);
+            return result;
+        }
+        
+        console.log(`GPT returned invalid role function: ${result}, falling back to regex`);
+        return extractRoleFunction(job);
+    } catch (error) {
+        console.error('GPT role classification failed:', error);
+        return extractRoleFunction(job);
+    }
+}
+
+/**
+ * V5.0: Smart role function extraction
+ * Uses regex first, then GPT for 'other' results
+ */
+async function extractRoleFunctionSmart(job: JobDoc): Promise<RoleFunction> {
+    // First try regex-based extraction
+    const regexResult = extractRoleFunction(job);
+    
+    // If regex gives a clear answer, use it
+    if (regexResult !== 'other') {
+        return regexResult;
+    }
+    
+    // For 'other' results, try GPT classification
+    return classifyRoleFunctionWithGPT(job);
 }
 
 /**
@@ -912,10 +1041,13 @@ export {
     extractExperienceLevel, 
     extractWorkLocation, 
     extractEmploymentType,
-    // NEW V4.0 exports
+    // V4.0 exports
     extractRoleFunction,
     extractLanguageRequirements,
     calculateEnrichmentQuality,
+    // V5.0 exports - GPT-based classification
+    classifyRoleFunctionWithGPT,
+    extractRoleFunctionSmart,
 };
 
 // Export types

@@ -7,10 +7,18 @@ if (!admin.apps.length) {
 }
 
 export { fetchJobsFromATS } from './fetchJobs';
-export { generateJobEmbedding } from './generateJobEmbedding';
+export { generateJobEmbedding, updateJobEmbeddingOnEnrichment } from './generateJobEmbedding';
 export { generateUserEmbedding } from './generateUserEmbedding';
 export { matchJobsForUsers } from './matchJobsForUsers';
 export { getMatchedJobs } from './getMatchedJobs';
+
+// 📊 USER JOB INTERACTIONS (V5.0 - Feedback Loop)
+// Track user interactions for improved matching
+export { trackJobInteraction, getSavedJobs, getUserInteractionStats } from './trackJobInteraction';
+
+// 🔄 BACKFILL & MIGRATION (V5.0)
+// Re-enrich jobs with new fields and generate embeddings
+export { backfillJobsV5Manual, backfillUserEmbeddings } from './backfillJobsV5';
 
 // 🚀 NEW: Queue-based ATS job fetching architecture
 // Scalable, fault-tolerant system for fetching jobs from multiple ATS sources

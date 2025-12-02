@@ -12,6 +12,7 @@ import { JobSkeleton } from '../components/job-board/JobSkeleton';
 import { FilterState, Job } from '../types/job-board';
 import { GoogleLoader } from '../components/ui/GoogleLoader';
 import { useScrollCollapse } from '../hooks/useScrollCollapse';
+import { useJobInteractions } from '../hooks/useJobInteractions';
 import { toast } from 'sonner';
 import { parseSearchQuery, toSearchAPIParams } from '../lib/searchParser';
 import '../components/job-board/premium-search.css';
@@ -68,6 +69,17 @@ const mapJobFromDoc = (d: any) => {
 export default function JobBoardPage() {
 	const { currentUser } = useAuth();
 	const PAGE_SIZE = 20;
+
+	// Job Interactions Hook (V5.0 - Feedback Loop)
+	const { 
+		savedJobs, 
+		dismissedJobs, 
+		toggleSave, 
+		dismissJob, 
+		isJobSaved, 
+		isJobDismissed,
+		trackClick 
+	} = useJobInteractions();
 
 	// State
 	const [mode, setMode] = useState<'explore' | 'matches'>('explore');
@@ -170,7 +182,9 @@ export default function JobBoardPage() {
 					matchDetails: job.matchDetails
 				}));
 				setJobs(mappedJobs);
-				setHasMore(false); // Matched jobs are pre-limited
+				setVisibleCount(PAGE_SIZE);
+				// Enable infinite scroll if there are more jobs than PAGE_SIZE
+				setHasMore(mappedJobs.length > PAGE_SIZE);
 				if (mappedJobs.length > 0) setSelectedJob(mappedJobs[0]);
 			} else {
 				setJobs([]);
@@ -293,6 +307,16 @@ export default function JobBoardPage() {
 	// Load More
 	const loadMore = useCallback(async () => {
 		if (loading) return;
+
+		// In-memory pagination for matches mode (For You)
+		if (mode === 'matches') {
+			if (visibleCount < jobs.length) {
+				setVisibleCount(prev => prev + PAGE_SIZE);
+			} else {
+				setHasMore(false);
+			}
+			return;
+		}
 
 		if (hasFilters && mode === 'explore') {
 			// In-memory pagination for search results
@@ -512,13 +536,36 @@ export default function JobBoardPage() {
 								</div>
 							) : (
 								<>
-									{displayedJobs.map((job) => (
+									{displayedJobs
+										.filter(job => !isJobDismissed(job.id))
+										.map((job, index) => (
 										<JobCard
 											key={job.id}
 											job={job}
 											isSelected={selectedJob?.id === job.id}
-											onClick={() => setSelectedJob(job)}
+											onClick={() => {
+												setSelectedJob(job);
+												trackClick(job.id, { 
+													source: mode === 'matches' ? 'for_you' : 'explore',
+													matchScore: job.matchScore,
+													position: index
+												});
+											}}
 											showMatchScore={mode === 'matches'}
+											isSaved={isJobSaved(job.id)}
+											onSave={(jobId) => {
+												toggleSave(jobId, {
+													source: mode === 'matches' ? 'for_you' : 'explore',
+													matchScore: job.matchScore
+												});
+											}}
+											onDismiss={(jobId) => {
+												dismissJob(jobId, {
+													source: mode === 'matches' ? 'for_you' : 'explore',
+													matchScore: job.matchScore
+												});
+												toast.success('Job hidden from your feed');
+											}}
 										/>
 									))}
 
@@ -535,7 +582,19 @@ export default function JobBoardPage() {
 
 					{/* Job Detail View (Right Panel) */}
 					<div className="hidden lg:flex flex-1 overflow-hidden">
-						<JobDetailView job={selectedJob} />
+						<JobDetailView 
+							job={selectedJob} 
+							onDismiss={(jobId) => {
+								dismissJob(jobId, {
+									source: mode === 'matches' ? 'for_you' : 'explore',
+									matchScore: selectedJob?.matchScore
+								});
+								// Select next job if current one is dismissed
+								const currentIndex = jobs.findIndex(j => j.id === jobId);
+								const nextJob = jobs.find((j, i) => i > currentIndex && !isJobDismissed(j.id));
+								setSelectedJob(nextJob || null);
+							}}
+						/>
 					</div>
 				</div>
 			</div>

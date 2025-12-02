@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { MessageSquare, Play, Sparkles } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { InterviewQuestionsHeader } from '../questions/InterviewQuestionsHeader';
 import { QuestionEntry } from '../../../types/interview';
 import QuestionsVirtualizedList from './QuestionsVirtualizedList';
@@ -41,8 +41,6 @@ const QuestionsTab = memo(function QuestionsTab({
   regeneratingMessage,
   savedQuestionsState,
   collapsedQuestions,
-  focusedQuestion,
-  application,
   setActiveQuestionFilter,
   regenerateQuestions,
   handleToggleSuggestionVisibility,
@@ -52,27 +50,29 @@ const QuestionsTab = memo(function QuestionsTab({
   onStartLiveSession,
 }: QuestionsTabProps) {
   return (
-    <div className="space-y-6 relative">
-      {/* Loading Overlay - Simplified for performance */}
+    <div className="max-w-4xl mx-auto">
+      {/* Loading Overlay - Minimal */}
       {isRegeneratingQuestions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="flex flex-col items-center text-center px-6">
-            <div className="w-[min(60vw,520px)] h-2 rounded-full bg-white/20 dark:bg-white/15 overflow-hidden mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center text-center px-6 max-w-md">
+            {/* Progress Bar */}
+            <div className="w-full h-1 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden mb-6">
               <div
-                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 transition-all duration-300"
+                className="h-full bg-slate-900 dark:bg-white transition-all duration-500 ease-out"
                 style={{ width: `${Math.min(100, Math.max(0, regeneratingProgress))}%` }}
               />
             </div>
-            <p className="text-base font-semibold text-white">
+            <p className="text-lg font-medium text-slate-900 dark:text-white">
               {regeneratingMessage}
             </p>
-            <p className="mt-2 text-sm text-white/80">
-              This may take up to 2 minutes.
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              This may take a moment
             </p>
           </div>
         </div>
       )}
 
+      {/* Header */}
       <InterviewQuestionsHeader
         totalCount={questionEntries.length}
         filteredCount={filteredQuestions.length}
@@ -81,61 +81,78 @@ const QuestionsTab = memo(function QuestionsTab({
         onFilterChange={setActiveQuestionFilter}
         onRegenerate={regenerateQuestions}
         isRegenerating={isRegeneratingQuestions}
-        subtitle={application?.position ? `Tailored questions for your ${application.position} interview` : undefined}
         actionSlot={
           <button
             onClick={onStartLiveSession}
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-neutral-900 px-6 py-2.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-neutral-800 hover:shadow-xl dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
+            className="
+              inline-flex items-center gap-2
+              px-5 py-2.5 rounded-lg
+              text-sm font-medium
+              bg-slate-900 dark:bg-white
+              text-white dark:text-slate-900
+              hover:bg-slate-800 dark:hover:bg-slate-100
+              transition-colors duration-200
+            "
           >
-            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-300 group-hover:opacity-10 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 dark:group-hover:opacity-20" />
-            <Play className="h-4 w-4 fill-current" />
-            <span className="relative">Prepare Live</span>
-            <Sparkles className="h-3.5 w-3.5 text-purple-400 dark:text-purple-600" />
+            <Play className="w-4 h-4 fill-current" />
+            Practice Live
           </button>
         }
       />
 
+      {/* Content */}
       {!isRegeneratingQuestions && (
-        <div className="mt-8 space-y-5">
+        <div className="mt-8">
+          {/* Empty State - No Questions */}
           {questionEntries.length === 0 && (
-            <div className="rounded-[20px] border border-dashed border-black/10 bg-white/70 px-6 py-12 text-center shadow-[0_20px_40px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
-              <MessageSquare className="mx-auto h-12 w-12 text-neutral-300 dark:text-neutral-600" />
-              <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-white">No suggested questions yet</h3>
-              <p className="mt-2 text-sm text-neutral-500">
-                Analyze a job posting to let the AI craft premium interview questions for you.
+            <div className="py-20 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 mb-6">
+                <span className="text-2xl">?</span>
+              </div>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                No questions yet
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                Analyze a job posting to generate tailored interview questions
               </p>
             </div>
           )}
 
+          {/* Empty State - No Filter Results */}
           {questionEntries.length > 0 && filteredQuestions.length === 0 && (
-            <div className="rounded-[20px] border border-black/5 bg-white/80 px-6 py-10 text-center shadow-[0_16px_30px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/5">
-              <MessageSquare className="mx-auto h-12 w-12 text-neutral-200 dark:text-neutral-600" />
-              <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-white">
-                No {QUESTION_FILTERS.find(filter => filter.id === activeQuestionFilter)?.label?.toLowerCase() || 'selected'} questions found
-              </h3>
-              <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-300">
-                Try another filter or show all questions to continue practicing.
+            <div className="py-16 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                No {QUESTION_FILTERS.find(f => f.id === activeQuestionFilter)?.label?.toLowerCase()} questions found
               </p>
               <button
                 type="button"
                 onClick={() => setActiveQuestionFilter('all')}
-                className="mt-4 inline-flex items-center justify-center rounded-full border border-black/10 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+                className="
+                  text-sm font-medium
+                  text-slate-900 dark:text-white
+                  underline underline-offset-4
+                  hover:no-underline
+                  transition-all
+                "
               >
                 Show all questions
               </button>
             </div>
           )}
 
+          {/* Questions List */}
           {filteredQuestions.length > 0 && (
-            <QuestionsVirtualizedList
-              questions={filteredQuestions}
-              collapsedQuestions={collapsedQuestions}
-              savedQuestionsState={savedQuestionsState}
-              handleToggleSuggestionVisibility={handleToggleSuggestionVisibility}
-              handleToggleSaveQuestion={handleToggleSaveQuestion}
-              handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
-              setFocusedQuestion={setFocusedQuestion}
-            />
+            <div className="divide-y-0">
+              <QuestionsVirtualizedList
+                questions={filteredQuestions}
+                collapsedQuestions={collapsedQuestions}
+                savedQuestionsState={savedQuestionsState}
+                handleToggleSuggestionVisibility={handleToggleSuggestionVisibility}
+                handleToggleSaveQuestion={handleToggleSaveQuestion}
+                handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
+                setFocusedQuestion={setFocusedQuestion}
+              />
+            </div>
           )}
         </div>
       )}
