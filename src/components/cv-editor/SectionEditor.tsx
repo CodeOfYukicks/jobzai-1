@@ -554,7 +554,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Experience</span>
@@ -622,7 +622,7 @@ export default function SectionEditor({
               {data.education?.map((edu: CVEducation) => (
                 <div
                   key={edu.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(edu.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -663,7 +663,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Education</span>
@@ -693,7 +693,7 @@ export default function SectionEditor({
             <input
               type="text"
               placeholder="Add a skill..."
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-[#635BFF] focus:border-[#635BFF]"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   const input = e.currentTarget;
@@ -713,7 +713,7 @@ export default function SectionEditor({
               onClick={() => {
                 // TODO: Open skill suggestions
               }}
-              className="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              className="px-3 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5249e6] transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -779,7 +779,7 @@ export default function SectionEditor({
               {data.certifications?.map((cert: CVCertification) => (
                 <div
                   key={cert.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(cert.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -820,7 +820,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Certification</span>
@@ -912,7 +912,7 @@ export default function SectionEditor({
               {data.projects?.map((project: CVProject) => (
                 <div
                   key={project.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(project.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -926,7 +926,7 @@ export default function SectionEditor({
                       {project.technologies.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {project.technologies.slice(0, 3).map((tech, idx) => (
-                            <span key={idx} className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded">
+                            <span key={idx} className="text-xs px-2 py-0.5 bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff] rounded">
                               {tech}
                             </span>
                           ))}
@@ -964,7 +964,7 @@ export default function SectionEditor({
 
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Project</span>
@@ -1032,7 +1032,7 @@ export default function SectionEditor({
               {data.languages?.map((language: CVLanguage) => (
                 <div
                   key={language.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(language.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -1070,7 +1070,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-2 border-dashed border-emerald-300 dark:border-emerald-600/50 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Language</span>
@@ -1092,11 +1092,11 @@ export default function SectionEditor({
 // SkillChip component
 function SkillChip({ skill, onDelete }: { skill: CVSkill; onDelete: () => void }) {
   return (
-    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-full text-sm">
+    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#635BFF]/5 dark:bg-[#5249e6]/20 text-[#635BFF] dark:text-[#a5a0ff] rounded-full text-sm">
       <span>{skill.name}</span>
       <button
         onClick={onDelete}
-        className="ml-1 p-0.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/30 rounded-full transition-colors"
+        className="ml-1 p-0.5 hover:bg-[#635BFF]/10 dark:hover:bg-[#5249e6]/30 rounded-full transition-colors"
       >
         <X className="w-3 h-3" />
       </button>

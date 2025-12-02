@@ -1261,8 +1261,8 @@ END:VCALENDAR`;
               <button
                 onClick={() => setView('kanban')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${view === 'kanban'
-                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
+                    ? 'bg-gradient-to-r from-[#635BFF]/10 to-[#7c75ff]/10 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-[#635BFF] dark:hover:text-[#a5a0ff]'
                   }`}
               >
                 <PieChart className="w-4 h-4" />
@@ -1271,8 +1271,8 @@ END:VCALENDAR`;
               <button
                 onClick={() => setView('analytics')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${view === 'analytics'
-                    ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
+                    ? 'bg-gradient-to-r from-[#635BFF]/10 to-[#7c75ff]/10 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-[#635BFF] dark:hover:text-[#a5a0ff]'
                   }`}
               >
                 <LineChart className="w-4 h-4" />

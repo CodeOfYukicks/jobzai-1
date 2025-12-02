@@ -66,6 +66,7 @@ interface FolderSidebarProps {
   onDropResume: (resumeId: string, folderId: string | null) => void;
   onDropDocument?: (documentId: string, folderId: string | null) => void;
   onDropNote?: (noteId: string, folderId: string | null) => void;
+  onDropWhiteboard?: (whiteboardId: string, folderId: string | null) => void;
   folderCounts: Record<string, number>;
   uncategorizedCount: number;
   totalCount: number;
@@ -230,6 +231,7 @@ const FolderItem = memo(({
   onDropResume,
   onDropDocument,
   onDropNote,
+  onDropWhiteboard,
   isMenuOpen,
   onMenuOpen,
   isExpanded,
@@ -250,6 +252,7 @@ const FolderItem = memo(({
   onDropResume: (resumeId: string) => void;
   onDropDocument?: (documentId: string) => void;
   onDropNote?: (noteId: string) => void;
+  onDropWhiteboard?: (whiteboardId: string) => void;
   isMenuOpen: boolean;
   onMenuOpen: (folderId: string | null) => void;
   isExpanded: boolean;
@@ -335,6 +338,13 @@ const FolderItem = memo(({
     const noteId = e.dataTransfer.getData('application/x-note-id');
     if (noteId && onDropNote) {
       onDropNote(noteId);
+      return;
+    }
+    
+    // Check for whiteboard ID
+    const whiteboardId = e.dataTransfer.getData('application/x-whiteboard-id');
+    if (whiteboardId && onDropWhiteboard) {
+      onDropWhiteboard(whiteboardId);
       return;
     }
     
@@ -605,7 +615,8 @@ const UncategorizedItem = memo(({
   onClick,
   onDropResume,
   onDropDocument,
-  onDropNote
+  onDropNote,
+  onDropWhiteboard
 }: { 
   isActive: boolean; 
   count: number; 
@@ -613,6 +624,7 @@ const UncategorizedItem = memo(({
   onDropResume: (resumeId: string) => void;
   onDropDocument?: (documentId: string) => void;
   onDropNote?: (noteId: string) => void;
+  onDropWhiteboard?: (whiteboardId: string) => void;
 }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const cardRef = useRef<HTMLButtonElement>(null);
@@ -671,6 +683,13 @@ const UncategorizedItem = memo(({
     const noteId = e.dataTransfer.getData('application/x-note-id');
     if (noteId && onDropNote) {
       onDropNote(noteId);
+      return;
+    }
+    
+    // Check for whiteboard ID
+    const whiteboardId = e.dataTransfer.getData('application/x-whiteboard-id');
+    if (whiteboardId && onDropWhiteboard) {
+      onDropWhiteboard(whiteboardId);
       return;
     }
     
@@ -756,6 +775,7 @@ const FolderSidebar = memo(({
   onDropResume,
   onDropDocument,
   onDropNote,
+  onDropWhiteboard,
   folderCounts,
   uncategorizedCount,
   totalCount,
@@ -794,7 +814,7 @@ const FolderSidebar = memo(({
         exit={{ width: 0, opacity: 0 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="flex-shrink-0 relative z-20
-          bg-gray-50/80 dark:bg-gray-800 backdrop-blur-xl
+          bg-white dark:bg-gray-800
           border-r border-gray-200 dark:border-gray-700
           flex flex-col h-full"
       >
@@ -849,12 +869,12 @@ const FolderSidebar = memo(({
       animate={{ width: 256, opacity: 1 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
       className="w-64 flex-shrink-0 relative z-20
-        bg-gray-50/80 dark:bg-gray-800 backdrop-blur-xl
+        bg-white dark:bg-gray-800
         border-r border-gray-200 dark:border-gray-700
         flex flex-col h-full"
     >
       {/* Header */}
-      <div className="px-4 py-5 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 py-5 flex items-center justify-between border-b border-gray-100 dark:border-gray-700/50">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-wide">
           Library
         </h3>
@@ -898,6 +918,7 @@ const FolderSidebar = memo(({
           onDropResume={(resumeId) => onDropResume(resumeId, null)}
           onDropDocument={onDropDocument ? (docId) => onDropDocument(docId, null) : undefined}
           onDropNote={onDropNote ? (noteId) => onDropNote(noteId, null) : undefined}
+          onDropWhiteboard={onDropWhiteboard ? (wbId) => onDropWhiteboard(wbId, null) : undefined}
         />
 
         {/* Folders Header */}
@@ -923,6 +944,7 @@ const FolderSidebar = memo(({
               onDropResume={(resumeId) => onDropResume(resumeId, folder.id)}
               onDropDocument={onDropDocument ? (docId) => onDropDocument(docId, folder.id) : undefined}
               onDropNote={onDropNote ? (noteId) => onDropNote(noteId, folder.id) : undefined}
+              onDropWhiteboard={onDropWhiteboard ? (wbId) => onDropWhiteboard(wbId, folder.id) : undefined}
               isMenuOpen={activeMenuFolderId === folder.id}
               onMenuOpen={setActiveMenuFolderId}
               isExpanded={expandedFolders.has(folder.id)}
@@ -953,7 +975,7 @@ const FolderSidebar = memo(({
       </div>
       
       {/* Footer Stats */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700 backdrop-blur-sm">
+      <div className="p-4 border-t border-gray-100 dark:border-gray-700/50">
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-500 dark:text-gray-400 font-medium">Storage</span>
           <span className="text-gray-700 dark:text-gray-300 font-semibold">{totalCount} {totalCount === 1 ? 'item' : 'items'}</span>

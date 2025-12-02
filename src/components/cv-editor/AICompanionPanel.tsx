@@ -172,7 +172,7 @@ export default function AICompanionPanel({
       case 'warning':
         return <AlertCircle className="w-4 h-4 text-orange-500" />;
       case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-4 h-4 text-[#635BFF]" />;
     }
   };
 
@@ -183,7 +183,7 @@ export default function AICompanionPanel({
       case 'medium':
         return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
       case 'low':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
+        return 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff]';
     }
   };
 
@@ -212,8 +212,8 @@ export default function AICompanionPanel({
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                    <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  <div className="p-2 bg-[#635BFF]/10 dark:bg-[#5249e6]/30 rounded-lg">
+                    <Brain className="w-5 h-5 text-[#5249e6] dark:text-[#a5a0ff]" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -257,7 +257,7 @@ export default function AICompanionPanel({
                     transition={{ duration: 1, ease: 'easeOut' }}
                     className={`h-full ${
                       atsScore >= 80 
-                        ? 'bg-green-500' 
+                        ? 'bg-[#635BFF]' 
                         : atsScore >= 60 
                         ? 'bg-yellow-500' 
                         : 'bg-red-500'
@@ -275,8 +275,8 @@ export default function AICompanionPanel({
               </div>
 
               {jobContext && (
-                <div className="mt-3 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                <div className="mt-3 p-2 bg-[#635BFF]/5 dark:bg-[#5249e6]/20 rounded-lg">
+                  <p className="text-xs text-[#635BFF] dark:text-[#a5a0ff]">
                     Optimized for: <span className="font-medium">{jobContext.jobTitle}</span> at {jobContext.company}
                   </p>
                 </div>
@@ -291,7 +291,7 @@ export default function AICompanionPanel({
 
               {isAnalyzing ? (
                 <div className="flex flex-col items-center justify-center py-8">
-                  <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin mb-3" />
+                  <div className="w-8 h-8 border-3 border-[#635BFF] border-t-transparent rounded-full animate-spin mb-3" />
                   <p className="text-sm text-gray-500 dark:text-gray-400">Analyzing your CV...</p>
                 </div>
               ) : (
@@ -318,7 +318,7 @@ export default function AICompanionPanel({
                             {suggestion.description}
                           </p>
                           {suggestion.action && (
-                            <button className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium">
+                            <button className="flex items-center gap-1 text-xs text-[#5249e6] dark:text-[#a5a0ff] hover:text-[#635BFF] dark:hover:text-[#a5a0ff] font-medium">
                               <Sparkles className="w-3 h-3" />
                               {suggestion.action}
                               <ChevronRight className="w-3 h-3" />
@@ -331,7 +331,7 @@ export default function AICompanionPanel({
 
                   {suggestions.length === 0 && (
                     <div className="text-center py-8">
-                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                      <CheckCircle className="w-12 h-12 text-[#635BFF] mx-auto mb-3" />
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Your CV looks great! No major improvements needed.
                       </p>

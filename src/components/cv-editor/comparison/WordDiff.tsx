@@ -69,9 +69,9 @@ function DiffSegmentRenderer({ segment, index, showAnimations }: DiffSegmentRend
         initial={showAnimations ? { opacity: 0, y: 2, scale: 0.95 } : false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ delay: baseDelay, duration: 0.25, type: 'spring', stiffness: 200 }}
-        className="inline-block bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 
+        className="inline-block bg-[#635BFF]/10 dark:bg-[#5249e6]/40 text-[#635BFF] dark:text-[#a5a0ff] 
                    font-medium px-0.5 mx-0.5 rounded-sm
-                   border-b-2 border-emerald-400 dark:border-emerald-600"
+                   border-b-2 border-[#7c75ff] dark:border-[#a5a0ff]"
       >
         {segment.value}
       </motion.span>
@@ -116,7 +116,7 @@ export function WordDiffCompact({ diff, className = '' }: WordDiffProps) {
           return (
             <span
               key={index}
-              className="bg-emerald-100/60 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 
+              className="bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#5249e6] dark:text-[#a5a0ff] 
                          font-medium text-xs px-0.5 rounded"
             >
               {segment.value}

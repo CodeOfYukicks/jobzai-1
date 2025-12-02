@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload, StickyNote
+  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload, StickyNote, Palette
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +29,15 @@ import {
   updateNote,
   moveNoteToFolder
 } from '../lib/notionDocService';
+import {
+  WhiteboardDocument,
+  getWhiteboards,
+  createWhiteboard,
+  deleteWhiteboard as deleteWhiteboardService,
+  updateWhiteboard,
+  moveWhiteboardToFolder
+} from '../lib/whiteboardDocService';
+import WhiteboardPreviewCard from '../components/whiteboard/WhiteboardPreviewCard';
 
 export interface Resume {
   id: string;
@@ -101,6 +110,10 @@ export default function ResumeBuilderPage() {
   // Notes state
   const [notes, setNotes] = useState<NotionDocument[]>([]);
   const [isCreatingNote, setIsCreatingNote] = useState(false);
+
+  // Whiteboards state
+  const [whiteboards, setWhiteboards] = useState<WhiteboardDocument[]>([]);
+  const [isCreatingWhiteboard, setIsCreatingWhiteboard] = useState(false);
 
   // View preferences state (for 'all' and 'uncategorized')
   interface ViewPreferences {
@@ -228,6 +241,18 @@ export default function ResumeBuilderPage() {
     }
   }, [currentUser]);
 
+  // Fetch whiteboards from Firestore
+  const fetchWhiteboards = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const whiteboardsList = await getWhiteboards(currentUser.uid);
+      setWhiteboards(whiteboardsList);
+    } catch (error) {
+      console.error('Error fetching whiteboards:', error);
+    }
+  }, [currentUser]);
+
   // Fetch view preferences from Firestore
   const fetchViewPreferences = useCallback(async () => {
     if (!currentUser) return;
@@ -285,9 +310,10 @@ export default function ResumeBuilderPage() {
       fetchResumes();
       fetchDocuments();
       fetchNotes();
+      fetchWhiteboards();
       fetchViewPreferences();
     }
-  }, [currentUser, fetchFolders, fetchResumes, fetchDocuments, fetchNotes, fetchViewPreferences]);
+  }, [currentUser, fetchFolders, fetchResumes, fetchDocuments, fetchNotes, fetchWhiteboards, fetchViewPreferences]);
 
   // Templates available
   const templates: { value: CVTemplate; label: string; description: string }[] = [
@@ -810,6 +836,102 @@ export default function ResumeBuilderPage() {
     }
   }, [currentUser, notes]);
 
+  // Whiteboard management functions
+  const handleCreateWhiteboard = useCallback(async () => {
+    if (!currentUser) {
+      toast.error('Please log in to create a whiteboard');
+      return;
+    }
+
+    setIsCreatingWhiteboard(true);
+    try {
+      const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
+        ? selectedFolderId 
+        : undefined;
+
+      const newWhiteboard = await createWhiteboard({
+        userId: currentUser.uid,
+        title: 'Untitled Whiteboard',
+        folderId,
+      });
+
+      setWhiteboards(prev => [newWhiteboard, ...prev]);
+      toast.success('Whiteboard created!');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      navigate(`/whiteboard/${newWhiteboard.id}`);
+    } catch (error) {
+      console.error('Error creating whiteboard:', error);
+      toast.error('Failed to create whiteboard');
+    } finally {
+      setIsCreatingWhiteboard(false);
+    }
+  }, [currentUser, selectedFolderId, navigate]);
+
+  const handleEditWhiteboard = useCallback((whiteboardId: string) => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    navigate(`/whiteboard/${whiteboardId}`);
+  }, [navigate]);
+
+  const handleDeleteWhiteboard = useCallback(async (whiteboardId: string) => {
+    if (!currentUser) return;
+
+    try {
+      await deleteWhiteboardService(currentUser.uid, whiteboardId);
+      setWhiteboards(prev => prev.filter(w => w.id !== whiteboardId));
+      toast.success('Whiteboard deleted');
+    } catch (error) {
+      console.error('Error deleting whiteboard:', error);
+      toast.error('Failed to delete whiteboard');
+    }
+  }, [currentUser]);
+
+  const handleRenameWhiteboard = useCallback(async (whiteboardId: string, newTitle: string) => {
+    if (!currentUser) return;
+
+    try {
+      await updateWhiteboard({
+        userId: currentUser.uid,
+        whiteboardId,
+        updates: { title: newTitle },
+      });
+      
+      setWhiteboards(prev => prev.map(w => 
+        w.id === whiteboardId ? { ...w, title: newTitle } : w
+      ));
+      toast.success('Whiteboard renamed');
+    } catch (error) {
+      console.error('Error renaming whiteboard:', error);
+      toast.error('Failed to rename whiteboard');
+    }
+  }, [currentUser]);
+
+  // Move whiteboard to folder
+  const handleDropWhiteboard = useCallback(async (whiteboardId: string, folderId: string | null) => {
+    if (!currentUser || !whiteboardId) return;
+
+    const whiteboard = whiteboards.find(w => w.id === whiteboardId);
+    if (!whiteboard) return;
+
+    const currentFolder = whiteboard.folderId || null;
+    if (currentFolder === folderId) return;
+
+    try {
+      await moveWhiteboardToFolder(currentUser.uid, whiteboardId, folderId);
+      
+      setWhiteboards(prev => prev.map(w => 
+        w.id === whiteboardId ? { ...w, folderId: folderId || undefined } : w
+      ));
+
+      const folderName = folderId 
+        ? folders.find(f => f.id === folderId)?.name || 'folder'
+        : 'Uncategorized';
+      toast.success(`Moved "${whiteboard.title}" to ${folderName}`);
+    } catch (error) {
+      console.error('Error moving whiteboard:', error);
+      toast.error('Failed to move whiteboard');
+    }
+  }, [currentUser, whiteboards, folders]);
+
   // Move document to folder
   const handleDropDocument = async (documentId: string, folderId: string | null) => {
     if (!currentUser || !documentId) return;
@@ -989,14 +1111,21 @@ export default function ResumeBuilderPage() {
     ? notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : notes;
 
-  // Group resumes, documents, and notes by folder and calculate counts
+  // Filter whiteboards by search
+  const filteredWhiteboards = searchQuery 
+    ? whiteboards.filter(w => w.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : whiteboards;
+
+  // Group resumes, documents, notes, and whiteboards by folder and calculate counts
   const groupedItems = () => {
     const groupedResumes: Record<string, Resume[]> = {};
     const groupedDocs: Record<string, ImportedDocument[]> = {};
     const groupedNotes: Record<string, NotionDocument[]> = {};
+    const groupedWhiteboards: Record<string, WhiteboardDocument[]> = {};
     const uncategorizedResumes: Resume[] = [];
     const uncategorizedDocs: ImportedDocument[] = [];
     const uncategorizedNotes: NotionDocument[] = [];
+    const uncategorizedWhiteboards: WhiteboardDocument[] = [];
     const folderCounts: Record<string, number> = {};
 
     // Initialize counts for all folders
@@ -1005,6 +1134,7 @@ export default function ResumeBuilderPage() {
       groupedResumes[f.id] = [];
       groupedDocs[f.id] = [];
       groupedNotes[f.id] = [];
+      groupedWhiteboards[f.id] = [];
     });
 
     // Group resumes
@@ -1037,13 +1167,25 @@ export default function ResumeBuilderPage() {
       }
     });
 
+    // Group whiteboards
+    filteredWhiteboards.forEach(whiteboard => {
+      if (whiteboard.folderId && groupedWhiteboards[whiteboard.folderId] !== undefined) {
+        groupedWhiteboards[whiteboard.folderId].push(whiteboard);
+        folderCounts[whiteboard.folderId]++;
+      } else {
+        uncategorizedWhiteboards.push(whiteboard);
+      }
+    });
+
     return { 
       groupedResumes, 
       groupedDocs, 
       groupedNotes,
+      groupedWhiteboards,
       uncategorizedResumes, 
       uncategorizedDocs,
-      uncategorizedNotes, 
+      uncategorizedNotes,
+      uncategorizedWhiteboards, 
       folderCounts 
     };
   };
@@ -1051,30 +1193,33 @@ export default function ResumeBuilderPage() {
   const { 
     groupedResumes: grouped, 
     groupedDocs,
-    groupedNotes, 
+    groupedNotes,
+    groupedWhiteboards, 
     uncategorizedResumes: uncategorized, 
     uncategorizedDocs,
     uncategorizedNotes,
+    uncategorizedWhiteboards,
     folderCounts 
   } = groupedItems();
 
   // Get items to display based on selected folder
-  const getDisplayedItems = (): { resumes: Resume[]; documents: ImportedDocument[]; notes: NotionDocument[] } => {
+  const getDisplayedItems = (): { resumes: Resume[]; documents: ImportedDocument[]; notes: NotionDocument[]; whiteboards: WhiteboardDocument[] } => {
     if (selectedFolderId === 'all') {
-      return { resumes: filteredResumes, documents: filteredDocuments, notes: filteredNotes };
+      return { resumes: filteredResumes, documents: filteredDocuments, notes: filteredNotes, whiteboards: filteredWhiteboards };
     } else if (selectedFolderId === null) {
-      return { resumes: uncategorized, documents: uncategorizedDocs, notes: uncategorizedNotes };
+      return { resumes: uncategorized, documents: uncategorizedDocs, notes: uncategorizedNotes, whiteboards: uncategorizedWhiteboards };
     } else {
       return { 
         resumes: grouped[selectedFolderId] || [], 
         documents: groupedDocs[selectedFolderId] || [],
-        notes: groupedNotes[selectedFolderId] || []
+        notes: groupedNotes[selectedFolderId] || [],
+        whiteboards: groupedWhiteboards[selectedFolderId] || []
       };
     }
   };
 
-  const { resumes: displayedResumes, documents: displayedDocuments, notes: displayedNotes } = getDisplayedItems();
-  const totalDisplayedItems = displayedResumes.length + displayedDocuments.length + displayedNotes.length;
+  const { resumes: displayedResumes, documents: displayedDocuments, notes: displayedNotes, whiteboards: displayedWhiteboards } = getDisplayedItems();
+  const totalDisplayedItems = displayedResumes.length + displayedDocuments.length + displayedNotes.length + displayedWhiteboards.length;
 
   // Determine current folder object for header
   const currentFolder = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
@@ -1121,8 +1266,8 @@ export default function ResumeBuilderPage() {
   const headerProps = useMemo(() => getHeaderProps(), [selectedFolderId, viewPreferences, totalDisplayedItems, folders]);
   
   // Total counts for sidebar
-  const totalUncategorized = uncategorized.length + uncategorizedDocs.length + uncategorizedNotes.length;
-  const totalItems = filteredResumes.length + filteredDocuments.length + filteredNotes.length;
+  const totalUncategorized = uncategorized.length + uncategorizedDocs.length + uncategorizedNotes.length + uncategorizedWhiteboards.length;
+  const totalItems = filteredResumes.length + filteredDocuments.length + filteredNotes.length + filteredWhiteboards.length;
 
   return (
     <AuthLayout>
@@ -1145,6 +1290,7 @@ export default function ResumeBuilderPage() {
           onDropResume={handleDropResume}
           onDropDocument={handleDropDocument}
           onDropNote={handleDropNote}
+          onDropWhiteboard={handleDropWhiteboard}
           folderCounts={folderCounts}
           uncategorizedCount={totalUncategorized}
           totalCount={totalItems}
@@ -1196,6 +1342,25 @@ export default function ResumeBuilderPage() {
                   <StickyNote className="w-4 h-4" />
                 )}
                 <span>New Note</span>
+              </button>
+              <button
+                onClick={handleCreateWhiteboard}
+                disabled={isCreatingWhiteboard}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                  text-gray-700 dark:text-gray-200 
+                  bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
+                  border border-gray-200 dark:border-gray-700 rounded-lg
+                  hover:bg-gray-50 dark:hover:bg-gray-700/80 
+                  hover:border-gray-300 dark:hover:border-gray-600
+                  shadow-sm hover:shadow transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCreatingWhiteboard ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Palette className="w-4 h-4" />
+                )}
+                <span>New Board</span>
               </button>
               <button
                   onClick={openCreateModal}
@@ -1306,7 +1471,7 @@ export default function ResumeBuilderPage() {
             )}
 
             {/* Items Grid */}
-            {!isLoading && (resumes.length > 0 || documents.length > 0 || notes.length > 0) && (
+            {!isLoading && (resumes.length > 0 || documents.length > 0 || notes.length > 0 || whiteboards.length > 0) && (
               <>
                 {totalDisplayedItems > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -1320,6 +1485,18 @@ export default function ResumeBuilderPage() {
                         onRename={handleRenameNote}
                         onUpdateCover={(blob) => handleUpdateNoteCover(note.id, blob)}
                         onRemoveCover={() => handleRemoveNoteCover(note.id)}
+                        compact
+                        draggable
+                      />
+                    ))}
+                    {/* Whiteboards */}
+                    {displayedWhiteboards.map((whiteboard) => (
+                      <WhiteboardPreviewCard
+                        key={`whiteboard-${whiteboard.id}`}
+                        whiteboard={whiteboard}
+                        onDelete={handleDeleteWhiteboard}
+                        onEdit={handleEditWhiteboard}
+                        onRename={handleRenameWhiteboard}
                         compact
                         draggable
                       />

@@ -58,7 +58,7 @@ export default function DiffStats({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
-          className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400"
+          className="inline-flex items-center gap-0.5 text-[#5249e6] dark:text-[#a5a0ff]"
         >
           <Plus className={iconSizes[size]} />
           <span>{added}</span>

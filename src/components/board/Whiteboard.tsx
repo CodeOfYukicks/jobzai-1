@@ -1,3 +1,8 @@
+/**
+ * @deprecated This component has been replaced by tldraw.
+ * See src/components/interview/TldrawWhiteboard.tsx
+ * This file is kept for reference only.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, Minimize2 } from 'lucide-react';

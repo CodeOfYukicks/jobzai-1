@@ -101,7 +101,7 @@ function ExperienceItemDiff({
 }: ExperienceItemDiffProps) {
   const data = item.modified || item.original;
   const statusColors = {
-    added: 'border-l-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/10',
+    added: 'border-l-[#635BFF] bg-[#635BFF]/5 dark:bg-[#5249e6]/10',
     removed: 'border-l-red-500 bg-red-50/30 dark:bg-red-900/10',
     modified: 'border-l-amber-500 bg-amber-50/30 dark:bg-amber-900/10',
     unchanged: 'border-l-gray-300 dark:border-l-gray-600 bg-gray-50/50 dark:bg-gray-800/30',
@@ -131,7 +131,7 @@ function ExperienceItemDiff({
         <div className="flex items-center gap-3 min-w-0">
           {StatusIcon && (
             <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
-                            ${item.status === 'added' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' : ''}
+                            ${item.status === 'added' ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/40 text-[#5249e6] dark:text-[#a5a0ff]' : ''}
                             ${item.status === 'removed' ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : ''}
                             ${item.status === 'modified' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400' : ''}`}>
               <StatusIcon className="w-3.5 h-3.5" />
@@ -228,14 +228,14 @@ function BulletsDiffView({ bulletComparisons }: { bulletComparisons: BulletCompa
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.03 }}
           className={`flex items-start gap-2 text-sm ${
-            bullet.status === 'added' ? 'text-emerald-700 dark:text-emerald-300' :
+            bullet.status === 'added' ? 'text-[#635BFF] dark:text-[#a5a0ff]' :
             bullet.status === 'removed' ? 'text-red-600 dark:text-red-400 line-through opacity-60' :
             bullet.status === 'modified' ? '' :
             'text-gray-600 dark:text-gray-400'
           }`}
         >
           <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-            bullet.status === 'added' ? 'bg-emerald-500' :
+            bullet.status === 'added' ? 'bg-[#635BFF]' :
             bullet.status === 'removed' ? 'bg-red-500' :
             bullet.status === 'modified' ? 'bg-amber-500' :
             'bg-gray-400'
@@ -243,7 +243,7 @@ function BulletsDiffView({ bulletComparisons }: { bulletComparisons: BulletCompa
           <span className="flex-1">
             {bullet.status === 'added' && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase 
-                             text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 
+                             text-[#5249e6] dark:text-[#a5a0ff] bg-[#635BFF]/10 dark:bg-[#5249e6]/30 
                              px-1.5 py-0.5 rounded mr-2">
                 New
               </span>
@@ -397,8 +397,8 @@ function AfterTextWithHighlight({ original, modified }: { original: string | nul
   if (!original) {
     // Fully added - show entire text as added
     return (
-      <span className="bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 
-                       font-medium px-1 rounded border-b-2 border-emerald-400 dark:border-emerald-600">
+      <span className="bg-[#635BFF]/10 dark:bg-[#5249e6]/40 text-[#635BFF] dark:text-[#a5a0ff] 
+                       font-medium px-1 rounded border-b-2 border-[#7c75ff] dark:border-[#a5a0ff]">
         {modified}
       </span>
     );
@@ -416,8 +416,8 @@ function AfterTextWithHighlight({ original, modified }: { original: string | nul
           return (
             <span 
               key={idx} 
-              className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 
-                         font-medium px-0.5 rounded-sm mx-0.5 border-b border-emerald-400 dark:border-emerald-600"
+              className="bg-[#635BFF]/10 dark:bg-[#5249e6]/50 text-[#635BFF] dark:text-[#a5a0ff] 
+                         font-medium px-0.5 rounded-sm mx-0.5 border-b border-[#7c75ff] dark:border-[#a5a0ff]"
             >
               {segment.value}
             </span>
@@ -480,10 +480,10 @@ function BulletsSplitView({ original, modified }: { original: string[]; modified
       {/* After Column */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#5249e6] dark:text-[#a5a0ff]">
             After
           </span>
-          <span className="flex-1 h-px bg-emerald-200 dark:bg-emerald-800" />
+          <span className="flex-1 h-px bg-[#635BFF]/20 dark:bg-[#5249e6]/50" />
         </div>
         <ul className="space-y-3">
           {matchedBullets.map((match, i) => (
@@ -497,7 +497,7 @@ function BulletsSplitView({ original, modified }: { original: string[]; modified
               {match.modified ? (
                 <>
                   <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                    match.original ? 'bg-emerald-500' : 'bg-emerald-500'
+                    match.original ? 'bg-[#635BFF]' : 'bg-[#635BFF]'
                   }`} />
                   <span className="flex-1 leading-relaxed">
                     <AfterTextWithHighlight 
@@ -543,7 +543,7 @@ function BulletsAfterView({ bullets }: { bullets: string[] }) {
     <ul className="space-y-1.5">
       {bullets.map((bullet, i) => (
         <li key={i} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#635BFF] flex-shrink-0" />
           {bullet}
         </li>
       ))}

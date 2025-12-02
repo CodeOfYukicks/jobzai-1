@@ -33,7 +33,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { fetchFromATS } from './utils/atsFetchers';
 import { ATSProviderConfig, JobDocument, NormalizedATSJob } from './types';
 import { extractSkillsWithLLM } from './utils/embeddings';
-import { cleanDescription } from './utils/cleanDescription';
+// cleanDescription is called in normalizeATSJob (normalize.ts) - no need to import here
 import { enrichJob } from './utils/jobEnrichment';
 import { ATS_SOURCES } from './config';
 
@@ -202,8 +202,8 @@ export const fetchJobsFromATS = onSchedule(
 					const ref = db.collection('jobs').doc(docId);
 					const normalized = normalizeJob(j);
 
-					// Clean HTML description → Markdown
-					normalized.description = cleanDescription(normalized.description || '');
+					// NOTE: cleanDescription is already called in normalizeATSJob (normalize.ts)
+					// Do NOT call it again here as it would double-escape Markdown characters
 
 					// NO LLM enrichment here (too slow) - will be done separately
 

@@ -373,7 +373,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       {/* Sidebar desktop */}
       <div className={`hidden md:fixed md:inset-y-0 md:flex z-50 ${isBuilderMode ? '' : 'md:pl-3 lg:pl-4 md:py-3'} transition-all duration-300 ${isCollapsed ? 'md:w-20 lg:w-20' : 'md:w-72 lg:w-80'}`}>
         <div 
-          className={`relative flex flex-col h-full bg-white dark:bg-gray-800 ${isBuilderMode ? 'border-r border-gray-200 dark:border-gray-700' : 'shadow-xl rounded-2xl'}`}
+          className={`relative flex flex-col h-full bg-white dark:bg-gray-800 ${isBuilderMode ? '' : 'shadow-xl rounded-2xl'}`}
           onMouseEnter={() => setIsHoveringCollapsedSidebar(true)}
           onMouseLeave={() => setIsHoveringCollapsedSidebar(false)}
         >
@@ -1036,7 +1036,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         isCollapsed 
           ? (isBuilderMode ? 'md:pl-20 lg:pl-20' : 'md:pl-24 lg:pl-24') 
           : (isBuilderMode ? 'md:pl-72 lg:pl-80' : 'md:pl-[19rem] lg:pl-[21rem]')
-      }`}>
+      } ${isBuilderMode ? 'bg-white dark:bg-gray-800' : ''}`}>
         <main className="flex-1 min-h-0 flex flex-col">
           <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : 'pt-6 md:py-6 pb-6'}`}>
             {needsFullWidth ? (

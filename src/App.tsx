@@ -54,6 +54,7 @@ import OptimizedCVEditPage from './pages/OptimizedCVEditPage';
 import CVCreatorPage from './pages/CVCreatorPage';
 import ResumeBuilderPage from './pages/ResumeBuilderPage';
 import NotionEditorPage from './pages/NotionEditorPage';
+import WhiteboardEditorPage from './pages/WhiteboardEditorPage';
 
 import { initNotificationService } from './services/notificationService';
 import { BackgroundTaskIndicator, useBackgroundTasks } from './hooks/useBackgroundTasks';
@@ -185,6 +186,7 @@ function AppContent() {
           <Route path="/resume-builder" element={<ResumeBuilderPage />} />
           <Route path="/resume-builder/:id/cv-editor" element={<PremiumCVEditor />} />
           <Route path="/notes/:noteId" element={<NotionEditorPage />} />
+          <Route path="/whiteboard/:whiteboardId" element={<WhiteboardEditorPage />} />
           <Route path="/cv-optimizer" element={<CVOptimizerPage />} />
           <Route path="/cv-optimizer/:id" element={<OptimizedCVEditPage />} />
           <Route path="/cv-creator" element={<CVCreatorPage />} />

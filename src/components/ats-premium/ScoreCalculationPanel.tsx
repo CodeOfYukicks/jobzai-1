@@ -5,6 +5,7 @@ import type { MatchScores } from '../../types/premiumATS';
 interface ScoreCalculationPanelProps {
   matchScores: MatchScores;
   scoringRationale?: string;
+  hideScores?: boolean;
 }
 
 interface ScoreBreakdown {
@@ -77,28 +78,28 @@ interface ScoreCardProps {
 
 function ScoreCard({ title, score, points, maxPoints, icon, description }: ScoreCardProps) {
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-emerald-600 dark:text-emerald-400';
+    if (score >= 80) return 'text-[#635BFF] dark:text-[#a5a0ff]';
     if (score >= 60) return 'text-blue-600 dark:text-blue-400';
     if (score >= 40) return 'text-amber-600 dark:text-amber-400';
     return 'text-rose-600 dark:text-rose-400';
   };
 
   const getProgressColor = (score: number) => {
-    if (score >= 80) return 'bg-emerald-500';
+    if (score >= 80) return 'bg-gradient-to-r from-[#635BFF] to-[#7c75ff]';
     if (score >= 60) return 'bg-blue-500';
     if (score >= 40) return 'bg-amber-500';
     return 'bg-rose-500';
   };
 
   const getIconBgColor = (score: number) => {
-    if (score >= 80) return 'bg-emerald-100 dark:bg-emerald-950/30';
+    if (score >= 80) return 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20';
     if (score >= 60) return 'bg-blue-100 dark:bg-blue-950/30';
     if (score >= 40) return 'bg-amber-100 dark:bg-amber-950/30';
     return 'bg-rose-100 dark:bg-rose-950/30';
   };
 
   const getIconColor = (score: number) => {
-    if (score >= 80) return 'text-emerald-600 dark:text-emerald-400';
+    if (score >= 80) return 'text-[#635BFF] dark:text-[#a5a0ff]';
     if (score >= 60) return 'text-blue-600 dark:text-blue-400';
     if (score >= 40) return 'text-amber-600 dark:text-amber-400';
     return 'text-rose-600 dark:text-rose-400';
@@ -150,7 +151,7 @@ function ScoreCard({ title, score, points, maxPoints, icon, description }: Score
   );
 }
 
-export default function ScoreCalculationPanel({ matchScores, scoringRationale }: ScoreCalculationPanelProps) {
+export default function ScoreCalculationPanel({ matchScores, scoringRationale, hideScores = false }: ScoreCalculationPanelProps) {
   const parsed = scoringRationale ? parseScoringRationale(scoringRationale) : null;
 
   // Map categories to match scores
@@ -172,8 +173,8 @@ export default function ScoreCalculationPanel({ matchScores, scoringRationale }:
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-950/30 dark:to-purple-950/30 flex items-center justify-center flex-shrink-0 shadow-sm">
-          <Activity className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#635BFF]/10 to-[#7c75ff]/10 dark:from-[#635BFF]/20 dark:to-[#7c75ff]/20 flex items-center justify-center flex-shrink-0 shadow-sm">
+          <Activity className="w-5 h-5 text-[#635BFF] dark:text-[#a5a0ff]" />
         </div>
         <div className="flex-1">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -185,35 +186,37 @@ export default function ScoreCalculationPanel({ matchScores, scoringRationale }:
         </div>
       </div>
 
-      {/* Score Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <ScoreCard
-          title="Skills"
-          score={matchScores.skills_score}
-          points={skillsBreakdown?.points}
-          maxPoints={skillsBreakdown?.maxPoints}
-          icon={<Zap className="w-6 h-6" />}
-        />
-        <ScoreCard
-          title="Experience"
-          score={matchScores.experience_score}
-          points={experienceBreakdown?.points}
-          maxPoints={experienceBreakdown?.maxPoints}
-          icon={<TrendingUp className="w-6 h-6" />}
-        />
-        <ScoreCard
-          title="Education"
-          score={matchScores.education_score}
-          points={educationBreakdown?.points}
-          maxPoints={educationBreakdown?.maxPoints}
-          icon={<GraduationCap className="w-6 h-6" />}
-        />
-        <ScoreCard
-          title="Industry Fit"
-          score={matchScores.industry_fit_score}
-          icon={<Building2 className="w-6 h-6" />}
-        />
-      </div>
+      {/* Score Cards Grid - Only show if hideScores is false */}
+      {!hideScores && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <ScoreCard
+            title="Skills"
+            score={matchScores.skills_score}
+            points={skillsBreakdown?.points}
+            maxPoints={skillsBreakdown?.maxPoints}
+            icon={<Zap className="w-6 h-6" />}
+          />
+          <ScoreCard
+            title="Experience"
+            score={matchScores.experience_score}
+            points={experienceBreakdown?.points}
+            maxPoints={experienceBreakdown?.maxPoints}
+            icon={<TrendingUp className="w-6 h-6" />}
+          />
+          <ScoreCard
+            title="Education"
+            score={matchScores.education_score}
+            points={educationBreakdown?.points}
+            maxPoints={educationBreakdown?.maxPoints}
+            icon={<GraduationCap className="w-6 h-6" />}
+          />
+          <ScoreCard
+            title="Industry Fit"
+            score={matchScores.industry_fit_score}
+            icon={<Building2 className="w-6 h-6" />}
+          />
+        </div>
+      )}
 
       {/* Gate Triggers */}
       {parsed && parsed.gateTriggers.length > 0 && (
@@ -238,9 +241,9 @@ export default function ScoreCalculationPanel({ matchScores, scoringRationale }:
 
       {/* Key Factors */}
       {parsed && parsed.keyFactors.length > 0 && (
-        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border border-indigo-200 dark:border-indigo-900/50 rounded-xl p-5">
+        <div className="bg-gradient-to-br from-[#635BFF]/5 to-[#7c75ff]/5 dark:from-[#635BFF]/10 dark:to-[#7c75ff]/10 border border-[#635BFF]/20 dark:border-[#635BFF]/30 rounded-xl p-5">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-[#635BFF] dark:text-[#a5a0ff] flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
                 Key Factors
@@ -248,7 +251,7 @@ export default function ScoreCalculationPanel({ matchScores, scoringRationale }:
               <div className="space-y-2">
                 {parsed.keyFactors.map((factor, index) => (
                   <div key={index} className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 mt-2 flex-shrink-0"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#635BFF] dark:bg-[#a5a0ff] mt-2 flex-shrink-0"></div>
                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed flex-1">
                       {factor}
                     </p>

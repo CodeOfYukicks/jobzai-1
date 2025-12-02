@@ -1,3 +1,8 @@
+/**
+ * @deprecated This store has been replaced by tldraw's built-in state management.
+ * See src/components/interview/TldrawWhiteboard.tsx
+ * This file is kept for reference only.
+ */
 import { create } from 'zustand';
 import { BoardObject, CanvasState, ToolType, HistoryState, WhiteboardState } from '../types/whiteboard';
 import { v4 as uuidv4 } from 'uuid';

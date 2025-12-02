@@ -378,7 +378,7 @@ export default function TemplateCard({
       className={`
         relative cursor-pointer rounded-lg overflow-hidden transition-all duration-200
         ${isSelected 
-          ? 'ring-2 ring-emerald-500 shadow-md' 
+          ? 'ring-2 ring-[#635BFF] shadow-md' 
           : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-600 hover:shadow-sm'
         }
         bg-white dark:bg-gray-800
@@ -389,7 +389,7 @@ export default function TemplateCard({
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="absolute top-1 right-1 z-10 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center shadow-md"
+          className="absolute top-1 right-1 z-10 w-3.5 h-3.5 rounded-full bg-[#635BFF] flex items-center justify-center shadow-md"
         >
           <Check className="w-2 h-2 text-white" />
         </motion.div>

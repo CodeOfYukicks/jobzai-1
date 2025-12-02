@@ -12,10 +12,12 @@ import {
   Plus,
   ExternalLink,
   File,
+  LayoutDashboard,
 } from 'lucide-react';
 import { JobApplication } from '../../types/job';
 import { Resume } from '../../pages/ResumeBuilderPage';
 import { NotionDocument, getNotes } from '../../lib/notionDocService';
+import { WhiteboardDocument, getWhiteboards } from '../../lib/whiteboardDocService';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,6 +25,7 @@ import { toast } from 'sonner';
 import CVPreviewCard from '../resume-builder/CVPreviewCard';
 import NotionPreviewCard from '../notion-editor/NotionPreviewCard';
 import PDFPreviewCard, { ImportedDocument } from '../resume-builder/PDFPreviewCard';
+import WhiteboardPreviewCard from '../whiteboard/WhiteboardPreviewCard';
 import { CVData } from '../../types/cvEditor';
 
 // Initial empty CV data structure
@@ -70,6 +73,7 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [notes, setNotes] = useState<NotionDocument[]>([]);
   const [documents, setDocuments] = useState<ImportedDocument[]>([]);
+  const [whiteboards, setWhiteboards] = useState<WhiteboardDocument[]>([]);
   const [activeSection, setActiveSection] = useState<'linked' | 'available'>('linked');
 
   // Fetch CVs and Notes
@@ -129,6 +133,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         });
 
         setDocuments(documentsList);
+
+        // Fetch Whiteboards
+        const whiteboardsList = await getWhiteboards(currentUser.uid);
+        setWhiteboards(whiteboardsList);
       } catch (error) {
         console.error('Error fetching documents:', error);
         toast.error('Failed to load documents');
@@ -144,15 +152,18 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
   const linkedResumeIds = job.linkedResumeIds || [];
   const linkedNoteIds = job.linkedNoteIds || [];
   const linkedDocumentIds = job.linkedDocumentIds || [];
+  const linkedWhiteboardIds = job.linkedWhiteboardIds || [];
 
   const linkedResumes = resumes.filter((r) => linkedResumeIds.includes(r.id));
   const linkedNotes = notes.filter((n) => linkedNoteIds.includes(n.id));
   const linkedDocuments = documents.filter((d) => linkedDocumentIds.includes(d.id));
+  const linkedWhiteboards = whiteboards.filter((w) => linkedWhiteboardIds.includes(w.id));
 
   // Get available (unlinked) items
   const availableResumes = resumes.filter((r) => !linkedResumeIds.includes(r.id));
   const availableNotes = notes.filter((n) => !linkedNoteIds.includes(n.id));
   const availableDocuments = documents.filter((d) => !linkedDocumentIds.includes(d.id));
+  const availableWhiteboards = whiteboards.filter((w) => !linkedWhiteboardIds.includes(w.id));
 
   // Filter by search query
   const filterItems = <T extends { name?: string; title?: string }>(
@@ -171,9 +182,11 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
   const filteredLinkedResumes = filterItems(linkedResumes, searchQuery);
   const filteredLinkedNotes = filterItems(linkedNotes, searchQuery);
   const filteredLinkedDocuments = filterItems(linkedDocuments, searchQuery);
+  const filteredLinkedWhiteboards = filterItems(linkedWhiteboards, searchQuery);
   const filteredAvailableResumes = filterItems(availableResumes, searchQuery);
   const filteredAvailableNotes = filterItems(availableNotes, searchQuery);
   const filteredAvailableDocuments = filterItems(availableDocuments, searchQuery);
+  const filteredAvailableWhiteboards = filterItems(availableWhiteboards, searchQuery);
 
   // Link handlers
   const handleLinkResume = useCallback(
@@ -296,6 +309,46 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
     [job.linkedDocumentIds, onUpdate]
   );
 
+  const handleLinkWhiteboard = useCallback(
+    async (whiteboardId: string) => {
+      if (!onUpdate) return;
+
+      const currentLinked = job.linkedWhiteboardIds || [];
+      if (currentLinked.includes(whiteboardId)) return;
+
+      try {
+        await onUpdate({
+          linkedWhiteboardIds: [...currentLinked, whiteboardId],
+        });
+        toast.success('Whiteboard linked successfully');
+      } catch (error) {
+        console.error('Error linking whiteboard:', error);
+        toast.error('Failed to link whiteboard');
+      }
+    },
+    [job.linkedWhiteboardIds, onUpdate]
+  );
+
+  const handleUnlinkWhiteboard = useCallback(
+    async (whiteboardId: string) => {
+      if (!onUpdate) return;
+
+      const currentLinked = job.linkedWhiteboardIds || [];
+      if (!currentLinked.includes(whiteboardId)) return;
+
+      try {
+        await onUpdate({
+          linkedWhiteboardIds: currentLinked.filter((id) => id !== whiteboardId),
+        });
+        toast.success('Whiteboard unlinked successfully');
+      } catch (error) {
+        console.error('Error unlinking whiteboard:', error);
+        toast.error('Failed to unlink whiteboard');
+      }
+    },
+    [job.linkedWhiteboardIds, onUpdate]
+  );
+
   // Navigation handlers
   const handleResumeClick = useCallback(
     (resumeId: string) => {
@@ -307,6 +360,13 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
   const handleNoteClick = useCallback(
     (noteId: string) => {
       navigate(`/notes/${noteId}`);
+    },
+    [navigate]
+  );
+
+  const handleWhiteboardClick = useCallback(
+    (whiteboardId: string) => {
+      navigate(`/whiteboard/${whiteboardId}`);
     },
     [navigate]
   );
@@ -340,6 +400,14 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
     // Not used in this context
   };
 
+  const handleWhiteboardDelete = () => {
+    // Not used in this context
+  };
+
+  const handleWhiteboardRename = () => {
+    // Not used in this context
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -348,8 +416,8 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
     );
   }
 
-  const totalLinked = linkedResumes.length + linkedNotes.length + linkedDocuments.length;
-  const totalAvailable = availableResumes.length + availableNotes.length + availableDocuments.length;
+  const totalLinked = linkedResumes.length + linkedNotes.length + linkedDocuments.length + linkedWhiteboards.length;
+  const totalAvailable = availableResumes.length + availableNotes.length + availableDocuments.length + availableWhiteboards.length;
 
   return (
     <div className="space-y-6">
@@ -384,7 +452,7 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search CVs and Notes..."
+          placeholder="Search CVs, Notes, Documents, and Whiteboards..."
           className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 text-sm text-gray-900 dark:text-white placeholder-gray-400"
         />
         {searchQuery && (
@@ -521,8 +589,49 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
             </div>
           )}
 
+          {/* Linked Whiteboards */}
+          {filteredLinkedWhiteboards.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <LayoutDashboard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Linked Whiteboards ({filteredLinkedWhiteboards.length})
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {filteredLinkedWhiteboards.map((whiteboard) => (
+                  <div key={whiteboard.id} className="relative group">
+                    <div
+                      onClick={() => handleWhiteboardClick(whiteboard.id)}
+                      className="cursor-pointer"
+                    >
+                      <WhiteboardPreviewCard
+                        whiteboard={whiteboard}
+                        onDelete={handleWhiteboardDelete}
+                        onEdit={handleWhiteboardClick}
+                        onRename={handleWhiteboardRename}
+                        compact
+                        draggable={false}
+                      />
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnlinkWhiteboard(whiteboard.id);
+                      }}
+                      className="absolute top-2 right-2 z-10 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                      title="Unlink"
+                    >
+                      <Unlink className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Empty State - Linked */}
-          {filteredLinkedResumes.length === 0 && filteredLinkedNotes.length === 0 && filteredLinkedDocuments.length === 0 && (
+          {filteredLinkedResumes.length === 0 && filteredLinkedNotes.length === 0 && filteredLinkedDocuments.length === 0 && filteredLinkedWhiteboards.length === 0 && (
             <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
               <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
                 <Link2 className="w-8 h-8 text-gray-400 dark:text-gray-500" />
@@ -673,8 +782,49 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
             </div>
           )}
 
+          {/* Available Whiteboards */}
+          {filteredAvailableWhiteboards.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <LayoutDashboard className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Available Whiteboards ({filteredAvailableWhiteboards.length})
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {filteredAvailableWhiteboards.map((whiteboard) => (
+                  <div key={whiteboard.id} className="relative group">
+                    <div
+                      onClick={() => handleWhiteboardClick(whiteboard.id)}
+                      className="cursor-pointer"
+                    >
+                      <WhiteboardPreviewCard
+                        whiteboard={whiteboard}
+                        onDelete={handleWhiteboardDelete}
+                        onEdit={handleWhiteboardClick}
+                        onRename={handleWhiteboardRename}
+                        compact
+                        draggable={false}
+                      />
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLinkWhiteboard(whiteboard.id);
+                      }}
+                      className="absolute top-2 right-2 z-10 p-1.5 bg-purple-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-purple-600"
+                      title="Link to this application"
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Empty State - Available */}
-          {filteredAvailableResumes.length === 0 && filteredAvailableNotes.length === 0 && filteredAvailableDocuments.length === 0 && (
+          {filteredAvailableResumes.length === 0 && filteredAvailableNotes.length === 0 && filteredAvailableDocuments.length === 0 && filteredAvailableWhiteboards.length === 0 && (
             <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
               <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
                 <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />

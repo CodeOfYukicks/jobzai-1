@@ -28,37 +28,37 @@ function FixSection({ title, items, icon, defaultOpen = false }: FixSectionProps
   if (items.length === 0) return null;
 
   return (
-    <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+    <div className="border border-gray-200/60 dark:border-gray-800/60 rounded-xl overflow-hidden shadow-sm">
       {/* Header */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+        className="w-full flex items-center justify-between p-5 bg-gray-50/80 dark:bg-gray-900/30 hover:bg-gray-100 dark:hover:bg-gray-900/50 transition-colors"
       >
         <div className="flex items-center gap-3">
           {icon}
           <span className="font-semibold text-gray-900 dark:text-white">
             {title}
           </span>
-          <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-xs font-bold">
+          <span className="px-2.5 py-1 rounded-full bg-[#635BFF]/10 dark:bg-[#635BFF]/20 text-[#635BFF] dark:text-[#a5a0ff] text-xs font-bold border border-[#635BFF]/20 dark:border-[#635BFF]/30">
             {items.length}
           </span>
         </div>
         {isOpen ? (
-          <ChevronDown className="w-5 h-5 text-gray-500" />
+          <ChevronDown className="w-5 h-5 text-gray-500 transition-transform" />
         ) : (
-          <ChevronRight className="w-5 h-5 text-gray-500" />
+          <ChevronRight className="w-5 h-5 text-gray-500 transition-transform" />
         )}
       </button>
 
       {/* Content */}
       {isOpen && (
-        <div className="p-4 space-y-3 bg-white dark:bg-[#1A1A1D]">
+        <div className="p-5 space-y-3 bg-white dark:bg-[#1A1A1D]">
           {items.map((item, index) => (
             <div
               key={index}
-              className="group relative flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+              className="group relative flex items-start gap-3 p-4 bg-gray-50/80 dark:bg-gray-900/30 rounded-lg border border-gray-200/60 dark:border-gray-800/60 hover:border-[#635BFF]/30 dark:hover:border-[#635BFF]/40 transition-all duration-200"
             >
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-400">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#635BFF]/10 dark:bg-[#635BFF]/20 flex items-center justify-center text-xs font-bold text-[#635BFF] dark:text-[#a5a0ff]">
                 {index + 1}
               </div>
               <p className="flex-1 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
@@ -87,18 +87,18 @@ export default function CVFixesPanel({ cvFixes }: CVFixesPanelProps) {
   return (
     <div className="space-y-6">
       {/* Score Gain Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-8 text-white shadow-xl">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#635BFF] to-[#7c75ff] rounded-2xl p-8 text-white shadow-xl">
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-indigo-100">Potential Score Improvement</p>
+              <p className="text-sm font-medium text-white/90">Potential Score Improvement</p>
               <p className="text-4xl font-bold">+{cvFixes.estimated_score_gain} points</p>
             </div>
           </div>
-          <p className="text-sm text-indigo-100 leading-relaxed">
+          <p className="text-sm text-white/90 leading-relaxed">
             By implementing these CV improvements, you could significantly increase your match score and ATS performance.
           </p>
         </div>
@@ -126,7 +126,7 @@ export default function CVFixesPanel({ cvFixes }: CVFixesPanelProps) {
         <FixSection
           title="Keywords to Insert"
           items={cvFixes.keywords_to_insert}
-          icon={<FileEdit className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+          icon={<FileEdit className="w-5 h-5 text-[#635BFF] dark:text-[#a5a0ff]" />}
         />
         
         <FixSection

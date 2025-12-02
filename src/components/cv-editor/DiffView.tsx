@@ -85,12 +85,12 @@ export default function DiffView({
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="bg-emerald-50/50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border border-emerald-200 dark:border-gray-700"
+      className="bg-[#635BFF]/5 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border border-[#635BFF]/20 dark:border-gray-700"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <GitCompare className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <GitCompare className="w-5 h-5 text-[#5249e6] dark:text-[#a5a0ff]" />
           <h4 className="font-medium text-gray-900 dark:text-white">
             AI Suggestion for {sectionName}
           </h4>
@@ -102,7 +102,7 @@ export default function DiffView({
             onClick={() => setViewMode('diff')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               viewMode === 'diff'
-                ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/50 text-[#635BFF] dark:text-[#a5a0ff]'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
@@ -124,7 +124,7 @@ export default function DiffView({
             onClick={() => setViewMode('modified')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               viewMode === 'modified'
-                ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
+                ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/50 text-[#635BFF] dark:text-[#a5a0ff]'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
@@ -157,7 +157,7 @@ export default function DiffView({
             <span className="text-gray-600 dark:text-gray-400">Removed</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="inline-block w-3 h-3 bg-green-100 dark:bg-green-900/30 rounded"></span>
+            <span className="inline-block w-3 h-3 bg-[#635BFF]/10 dark:bg-[#5249e6]/30 rounded"></span>
             <span className="text-gray-600 dark:text-gray-400">Added</span>
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function DiffView({
         </button>
         <button
           onClick={onAccept}
-          className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+          className="px-4 py-2 text-sm font-medium text-white bg-[#635BFF] hover:bg-[#5249e6] rounded-lg transition-all shadow-sm hover:shadow-md flex items-center gap-2"
         >
           <Check className="w-4 h-4" />
           Accept Changes

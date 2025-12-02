@@ -129,8 +129,8 @@ function SplitView({ original, modified }: { original: string; modified: string 
     if (!modified) return <span className="text-gray-400 italic">No summary</span>;
     if (!original) {
       return (
-        <span className="bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 
-                         font-medium border-b-2 border-emerald-400">
+        <span className="bg-[#635BFF]/10 dark:bg-[#5249e6]/40 text-[#635BFF] dark:text-[#a5a0ff] 
+                         font-medium border-b-2 border-[#7c75ff]">
           {modified}
         </span>
       );
@@ -144,8 +144,8 @@ function SplitView({ original, modified }: { original: string; modified: string 
         return (
           <span 
             key={idx} 
-            className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 
-                       font-medium px-0.5 rounded-sm border-b border-emerald-400 dark:border-emerald-600"
+            className="bg-[#635BFF]/10 dark:bg-[#5249e6]/50 text-[#635BFF] dark:text-[#a5a0ff] 
+                       font-medium px-0.5 rounded-sm border-b border-[#7c75ff] dark:border-[#a5a0ff]"
           >
             {segment.value}
           </span>
@@ -173,13 +173,13 @@ function SplitView({ original, modified }: { original: string; modified: string 
       </div>
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#5249e6] dark:text-[#a5a0ff]">
             After
           </span>
-          <span className="flex-1 h-px bg-emerald-200 dark:bg-emerald-800" />
+          <span className="flex-1 h-px bg-[#635BFF]/20 dark:bg-[#5249e6]/50" />
         </div>
-        <div className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl 
-                        border border-emerald-200/80 dark:border-emerald-800/50">
+        <div className="p-4 bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rounded-xl 
+                        border border-[#635BFF]/20 dark:border-[#5249e6]/50">
           <p className="text-sm leading-relaxed">
             {renderAfterText()}
           </p>
@@ -207,10 +207,10 @@ function BeforeView({ original }: { original: string }) {
 
 function AfterView({ modified }: { modified: string }) {
   return (
-    <div className="p-4 bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl 
-                    border border-emerald-200/50 dark:border-emerald-800/30">
+    <div className="p-4 bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rounded-xl 
+                    border border-[#635BFF]/20 dark:border-[#5249e6]/30">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[#5249e6] dark:text-[#a5a0ff]">
           AI-Optimized Version
         </span>
       </div>

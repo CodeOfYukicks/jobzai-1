@@ -161,7 +161,7 @@ export default function PreviewContainer({
                   className={`
                     px-3 py-1 text-xs font-medium rounded-md transition-colors
                     ${zoom === preset
-                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                      ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff]'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }
                   `}

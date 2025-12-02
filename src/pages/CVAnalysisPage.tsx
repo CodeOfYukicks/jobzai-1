@@ -4789,10 +4789,10 @@ URL to visit: ${jobUrl}
     // Get score color based on match score
     const getScoreBadgeStyles = (score: number) => {
       if (score >= 80) return {
-        bg: 'bg-emerald-50 dark:bg-emerald-500/10',
-        text: 'text-emerald-700 dark:text-emerald-400',
-        border: 'border-emerald-200 dark:border-emerald-500/20',
-        glow: 'group-hover:shadow-emerald-500/20'
+        bg: 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10',
+        text: 'text-[#635BFF] dark:text-[#a5a0ff]',
+        border: 'border-[#635BFF]/20 dark:border-[#635BFF]/20',
+        glow: 'group-hover:shadow-[#635BFF]/20'
       };
       if (score >= 65) return {
         bg: 'bg-blue-50 dark:bg-blue-500/10',
@@ -5042,7 +5042,7 @@ URL to visit: ${jobUrl}
                     className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <div className="flex items-center">
-                      <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+                      <CheckCircle className="w-5 h-5 mr-2 text-[#635BFF]" />
                       <span className="font-medium">Matching Skills</span>
                     </div>
                     {expandedSection === 'skills' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -5184,15 +5184,15 @@ URL to visit: ${jobUrl}
                                 <div
                                   key={idx}
                                   className={`p-4 rounded-lg border-2 ${req.found
-                                    ? 'bg-green-50 dark:bg-green-900/10 border-green-300 dark:border-green-800'
+                                    ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/30 dark:border-[#5249e6]/50'
                                     : 'bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-800'
-                                    }`}
+                                  }`}
                                 >
                                   <div className="flex items-start justify-between mb-2">
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 mb-1">
                                         {req.found ? (
-                                          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                          <CheckCircle className="w-5 h-5 text-[#5249e6] dark:text-[#a5a0ff] flex-shrink-0" />
                                         ) : (
                                           <X className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
                                         )}
@@ -5216,7 +5216,7 @@ URL to visit: ${jobUrl}
                                     </div>
                                   </div>
                                   {req.found && req.location && (
-                                    <p className="text-xs text-green-700 dark:text-green-400 mt-2">
+                                    <p className="text-xs text-[#635BFF] dark:text-[#a5a0ff] mt-2">
                                       ✓ Found in: {req.location}
                                     </p>
                                   )}
@@ -5243,14 +5243,14 @@ URL to visit: ${jobUrl}
                                 <div
                                   key={idx}
                                   className={`p-3 rounded-lg border ${req.found
-                                    ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                                    ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/20 dark:border-[#5249e6]/50'
                                     : 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800'
-                                    }`}
+                                  }`}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                       {req.found ? (
-                                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                        <CheckCircle className="w-4 h-4 text-[#5249e6] dark:text-[#a5a0ff]" />
                                       ) : (
                                         <X className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                       )}
@@ -5263,7 +5263,7 @@ URL to visit: ${jobUrl}
                                     )}
                                   </div>
                                   {req.found && req.location && (
-                                    <p className="text-xs text-green-700 dark:text-green-400 mt-1 ml-6">
+                                    <p className="text-xs text-[#635BFF] dark:text-[#a5a0ff] mt-1 ml-6">
                                       Found in: {req.location}
                                     </p>
                                   )}
@@ -5285,13 +5285,13 @@ URL to visit: ${jobUrl}
                                 <div
                                   key={idx}
                                   className={`p-2 rounded-lg border text-sm ${req.found
-                                    ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                                    ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/20 dark:border-[#5249e6]/50'
                                     : 'bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700'
-                                    }`}
+                                  }`}
                                 >
                                   <div className="flex items-center gap-2">
                                     {req.found ? (
-                                      <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                      <CheckCircle className="w-3.5 h-3.5 text-[#5249e6] dark:text-[#a5a0ff] flex-shrink-0" />
                                     ) : (
                                       <span className="w-3.5 h-3.5 flex-shrink-0">•</span>
                                     )}
@@ -5587,7 +5587,7 @@ URL to visit: ${jobUrl}
                                       <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
                                         <div className="flex items-center">
                                           {kw.found ? (
-                                            <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                                            <CheckCircle className="w-4 h-4 text-[#635BFF] mr-2" />
                                           ) : (
                                             <X className="w-4 h-4 text-red-500 mr-2" />
                                           )}
@@ -5601,7 +5601,7 @@ URL to visit: ${jobUrl}
                                           )}
                                           <span className={`text-xs px-2 py-0.5 rounded-full ${kw.found
                                             ? kw.frequency >= kw.optimalFrequency
-                                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                              ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff]'
                                               : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
                                             : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                             }`}>
@@ -5646,7 +5646,7 @@ URL to visit: ${jobUrl}
                                   <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
                                     <div className="flex items-center">
                                       {section.present ? (
-                                        <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                                        <CheckCircle className="w-4 h-4 text-[#635BFF] mr-2" />
                                       ) : (
                                         <X className="w-4 h-4 text-red-500 mr-2" />
                                       )}
@@ -5744,9 +5744,9 @@ URL to visit: ${jobUrl}
                     {expandedSection === 'marketPositioning' && (
                       <div className="p-4 bg-white dark:bg-gray-800">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 dark:bg-green-900/10 rounded-lg p-3">
+                          <div className="bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rounded-lg p-3">
                             <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
-                              <TrendingUp className="w-4 h-4 mr-1.5 text-green-500" />
+                              <TrendingUp className="w-4 h-4 mr-1.5 text-[#635BFF]" />
                               Your Competitive Advantages
                             </h4>
                             <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
@@ -6368,9 +6368,9 @@ URL to visit: ${jobUrl}
         {/* Upload New CV Option */}
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${cvFile && !usingSavedCV
-            ? 'border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/20'
+            ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#5249e6]/20'
             : 'border-gray-300 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}
+          }`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -6388,8 +6388,8 @@ URL to visit: ${jobUrl}
               animate={{ opacity: 1, scale: 1 }}
               className="flex flex-col items-center w-full"
             >
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-                <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
+              <div className="w-16 h-16 bg-[#635BFF]/10 dark:bg-[#5249e6]/30 rounded-full flex items-center justify-center mb-4">
+                <Check className="w-8 h-8 text-[#5249e6] dark:text-[#a5a0ff]" />
               </div>
               <p className="text-base font-semibold text-gray-900 dark:text-white mb-1 break-words text-center max-w-md">
                 {cvFile.name}
@@ -6397,8 +6397,8 @@ URL to visit: ${jobUrl}
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 {(cvFile.size / 1024).toFixed(1)} KB
               </p>
-              <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <p className="text-xs font-medium text-green-700 dark:text-green-400">
+              <div className="px-3 py-1 bg-[#635BFF]/10 dark:bg-[#5249e6]/30 rounded-full">
+                <p className="text-xs font-medium text-[#635BFF] dark:text-[#a5a0ff]">
                   ✓ Resume selected successfully
                 </p>
               </div>
@@ -6561,12 +6561,12 @@ URL to visit: ${jobUrl}
   const SkillTag = ({ skill, matched, relevance }: { skill: string; matched: boolean; relevance?: number }) => (
     <div
       className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 backdrop-blur-sm ${matched
-        ? "bg-green-50/60 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200/50 dark:border-green-800/30 hover:bg-green-100/80 dark:hover:bg-green-900/30"
+        ? "bg-[#635BFF]/5 dark:bg-[#5249e6]/20 text-[#635BFF] dark:text-[#a5a0ff] border border-[#635BFF]/20 dark:border-[#5249e6]/30 hover:bg-[#635BFF]/10 dark:hover:bg-[#5249e6]/30"
         : "bg-red-50/60 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-800/30 hover:bg-red-100/80 dark:hover:bg-red-900/30"
-        }`}
+      }`}
     >
       {matched ? (
-        <Check className="w-3 h-3 mr-1.5 text-green-600 dark:text-green-500 flex-shrink-0" />
+        <Check className="w-3 h-3 mr-1.5 text-[#5249e6] dark:text-[#a5a0ff] flex-shrink-0" />
       ) : (
         <X className="w-3 h-3 mr-1.5 text-red-600 dark:text-red-500 flex-shrink-0" />
       )}
@@ -7085,7 +7085,7 @@ URL to visit: ${jobUrl}
                 ${isDragging
                   ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
                   : cvFile && !usingSavedCV
-                    ? 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
+                    ? 'border-[#635BFF]/30 dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#5249e6]/10'
                     : 'border-gray-200/60 dark:border-gray-700/50 hover:border-purple-400/60 dark:hover:border-purple-600/60 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-[#1A1A1A]'
                 }`}
             >
@@ -7097,7 +7097,7 @@ URL to visit: ${jobUrl}
                     : 'bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 group-hover:scale-105'
                 }`}>
                 {cvFile && !usingSavedCV ?
-                  <Check className="w-6 h-6 text-green-600 dark:text-green-400" /> :
+                  <Check className="w-6 h-6 text-[#5249e6] dark:text-[#a5a0ff]" /> :
                   <Upload className={`w-6 h-6 ${isDragging ? 'text-purple-600 dark:text-purple-400' : 'text-purple-600 dark:text-purple-400'}`} />
                 }
               </div>
@@ -7127,8 +7127,8 @@ URL to visit: ${jobUrl}
                 )}
               </div>
               {cvFile && !usingSavedCV && (
-                <span className="ml-3 flex-shrink-0 rounded-full bg-green-100/60 dark:bg-green-900/30 backdrop-blur-sm p-2 border border-green-200/50 dark:border-green-800/30">
-                  <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="ml-3 flex-shrink-0 rounded-full bg-[#635BFF]/10 dark:bg-[#5249e6]/30 backdrop-blur-sm p-2 border border-[#635BFF]/20 dark:border-[#5249e6]/30">
+                  <Check className="w-4 h-4 text-[#5249e6] dark:text-[#a5a0ff]" />
                 </span>
               )}
               <input
@@ -7501,7 +7501,7 @@ URL to visit: ${jobUrl}
                                     </div>
                                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                       {job.fullJobDescription ? (
-                                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff]">
                                           Complete
                                         </span>
                                       ) : job.description ? (

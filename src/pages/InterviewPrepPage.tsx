@@ -33,7 +33,7 @@ import SectionCard from '../components/interview/SectionCard';
 import { InterviewQuestionsHeader } from '../components/interview/questions/InterviewQuestionsHeader';
 import { QuestionCard, QuestionTag } from '../components/interview/questions/QuestionCard';
 import { FocusQuestionModal } from '../components/interview/questions/FocusQuestionModal';
-import { InterviewWhiteboard } from '../components/board/InterviewWhiteboard';
+import { TldrawWhiteboard } from '../components/interview/TldrawWhiteboard';
 import { Suspense } from 'react';
 import { OverviewTab, QuestionsTab, SkillsTab, ResourcesTab, ChatTab } from '../components/interview/tabs';
 import { LazySection } from '../components/interview/utils/LazySection';
@@ -5776,14 +5776,13 @@ Return ONLY the pitch text, no explanations or formatting.`;
                   </button>
                 </div>
 
-                {/* Whiteboard Content */}
+                {/* Whiteboard Content - Using tldraw */}
                 <div className="h-[600px] bg-gray-50/50 dark:bg-neutral-950/30">
                   {applicationId && interviewId && (
-                    <InterviewWhiteboard
+                    <TldrawWhiteboard
                       applicationId={applicationId}
                       interviewId={interviewId}
-                      initialNotes={stickyNotes}
-                      initialConnections={connections}
+                      height={600}
                     />
                   )}
                 </div>
@@ -5802,56 +5801,75 @@ Return ONLY the pitch text, no explanations or formatting.`;
                   }`}
               >
                 {/* Header with title and buttons */}
-                <div className={`flex justify-between items-center ${isNotesExpanded ? 'p-6 border-b border-gray-200 dark:border-gray-700' : 'mb-6'}`}>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <StickyNote className="w-5 h-5 text-amber-500" />
-                    Interview Notes
-                    {filteredNotes.length !== stickyNotes.length && (
-                      <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                        ({filteredNotes.length}/{stickyNotes.length})
-                      </span>
-                    )}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={filterColor || ''}
-                      onChange={(e) => setFilterColor(e.target.value || null)}
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jobzai-500"
-                    >
-                      <option value="">All Colors</option>
-                      <option value="#ffeb3b">Yellow</option>
-                      <option value="#4fc3f7">Blue</option>
-                      <option value="#81c784">Green</option>
-                      <option value="#ff8a65">Orange</option>
-                      <option value="#f48fb1">Pink</option>
-                      <option value="#ba68c8">Purple</option>
-                    </select>
-                    {filterColor && (
-                      <button
-                        onClick={() => setFilterColor(null)}
-                        className="px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        title="Clear filter"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={createNewNote}
-                      className="px-3 py-2 bg-gradient-to-r from-jobzai-500 to-jobzai-600 text-white rounded-lg hover:from-jobzai-600 hover:to-jobzai-700 transition-colors text-sm flex items-center gap-1.5 shadow-sm"
-                    >
-                      <Plus className="w-4 h-4" />
-                      New Note
-                    </button>
-                    <button
-                      onClick={toggleNotesExpanded}
-                      className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      {isNotesExpanded ? (
-                        <Minimize2 className="w-5 h-5" />
-                      ) : (
-                        <Maximize2 className="w-5 h-5" />
+                <div className={`flex items-center ${isNotesExpanded ? 'p-6 border-b border-gray-200 dark:border-gray-700 relative z-[60] bg-white dark:bg-gray-800' : 'mb-6'}`}>
+                  {/* Left: Title */}
+                  <div className="flex-1 flex items-center gap-3">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <StickyNote className="w-5 h-5 text-amber-500" />
+                      Interview Notes
+                      {filteredNotes.length !== stickyNotes.length && (
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          ({filteredNotes.length}/{stickyNotes.length})
+                        </span>
                       )}
-                    </button>
+                    </h3>
+                  </div>
+                  
+                  {/* Center: Collapse button (only when expanded) */}
+                  {isNotesExpanded && (
+                    <div className="absolute left-1/2 transform -translate-x-1/2">
+                      <button
+                        onClick={() => setIsNotesExpanded(false)}
+                        className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors bg-gray-50 dark:bg-gray-700/50"
+                        title="Collapse"
+                      >
+                        <Minimize2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Right: Other buttons */}
+                  <div className="flex-1 flex items-center justify-end gap-2">
+                    {!isNotesExpanded && (
+                      <>
+                        <select
+                          value={filterColor || ''}
+                          onChange={(e) => setFilterColor(e.target.value || null)}
+                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jobzai-500"
+                        >
+                          <option value="">All Colors</option>
+                          <option value="#ffeb3b">Yellow</option>
+                          <option value="#4fc3f7">Blue</option>
+                          <option value="#81c784">Green</option>
+                          <option value="#ff8a65">Orange</option>
+                          <option value="#f48fb1">Pink</option>
+                          <option value="#ba68c8">Purple</option>
+                        </select>
+                        {filterColor && (
+                          <button
+                            onClick={() => setFilterColor(null)}
+                            className="px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="Clear filter"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={createNewNote}
+                          className="px-3 py-2 bg-gradient-to-r from-jobzai-500 to-jobzai-600 text-white rounded-lg hover:from-jobzai-600 hover:to-jobzai-700 transition-colors text-sm flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Plus className="w-4 h-4" />
+                          New Note
+                        </button>
+                        <button
+                          onClick={toggleNotesExpanded}
+                          className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          title="Expand"
+                        >
+                          <Maximize2 className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -5944,9 +5962,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         {/* Submenu for pen tool */}
                         {showToolSubmenu && selectedTool === 'pen' && (
                           <motion.div
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="tool-submenu absolute left-full ml-2 top-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 min-w-[100px]"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="tool-submenu absolute left-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 min-w-[100px] z-50"
                           >
                             <div className="space-y-1.5">
                               {/* Color options */}

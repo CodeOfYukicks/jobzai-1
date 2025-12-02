@@ -150,7 +150,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             className={`
                               flex items-center gap-3 px-4 py-3.5 bg-white dark:bg-gray-800 rounded-lg border transition-all
                               ${snapshot.isDragging 
-                                ? 'shadow-xl scale-[1.02] ring-2 ring-emerald-500' 
+                                ? 'shadow-xl scale-[1.02] ring-2 ring-[#635BFF]' 
                                 : 'shadow-sm border-gray-200 dark:border-gray-700'
                               }
                               ${isLocked ? 'opacity-60' : ''}
@@ -189,14 +189,14 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   onBlur={saveTitle}
                                   onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
                                   autoFocus
-                                  className="w-full px-3 py-1.5 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-emerald-300 dark:border-emerald-500/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                  className="w-full px-3 py-1.5 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-[#7c75ff] dark:border-[#a5a0ff]/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]"
                                 />
                               ) : (
                                 <button
                                   onClick={() => !isLocked && startEditingTitle(section.id, section.title)}
                                   className={`
                                     w-full text-left text-sm font-semibold text-gray-900 dark:text-white truncate
-                                    ${!isLocked && 'hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors'}
+                                    ${!isLocked && 'hover:text-[#5249e6] dark:hover:text-[#a5a0ff] transition-colors'}
                                   `}
                                   disabled={isLocked}
                                 >
@@ -270,7 +270,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                       max="14"
                       value={layoutSettings.fontSize}
                       onChange={(e) => onSettingsChange({ fontSize: Number(e.target.value) })}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#635BFF]"
                     />
                   </div>
                 </div>
@@ -300,7 +300,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.fontFamily}
                   onChange={(e) => onSettingsChange({ fontFamily: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#635BFF] focus:border-transparent appearance-none cursor-pointer transition-all"
                   style={{ fontFamily: layoutSettings.fontFamily }}
                 >
                   <optgroup label="Sans-Serif">
@@ -335,7 +335,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.dateFormat}
                   onChange={(e) => onSettingsChange({ dateFormat: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#635BFF] focus:border-transparent appearance-none cursor-pointer transition-all"
                 >
                   <option value="jan-24">Jan '24 (Short Name & Year)</option>
                   <option value="january-2024">January 2024 (Full Name & Year)</option>
@@ -361,7 +361,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                 <select
                   value={layoutSettings.lineHeight}
                   onChange={(e) => onSettingsChange({ lineHeight: Number(e.target.value) })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none cursor-pointer transition-all"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#635BFF] focus:border-transparent appearance-none cursor-pointer transition-all"
                 >
                   <option value="1.0">1.0 (Compact)</option>
                   <option value="1.3">1.3 (Standard)</option>
@@ -394,7 +394,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                       max="12"
                       value={layoutSettings.experienceSpacing ?? 6}
                       onChange={(e) => onSettingsChange({ experienceSpacing: Number(e.target.value) })}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#635BFF]"
                     />
                   </div>
                 </div>

@@ -268,31 +268,31 @@ export default function RightSidebarPanel({
       
       {/* Tab Headers - Premium Jobzai style */}
       <div className="flex-shrink-0 border-b border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
-        <div className="flex items-center px-2 pt-2">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = sidebarTab === tab.id;
-            return (
-              <motion.button
-                key={tab.id}
-                onClick={() => setSidebarTab(tab.id as any)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`
-                  flex-1 flex items-center justify-center gap-2 py-3.5 mx-0.5 rounded-t-xl
-                  text-sm font-medium transition-all duration-200
-                  ${isActive
-                    ? 'text-jobzai-600 dark:text-jobzai-400 bg-jobzai-50/80 dark:bg-jobzai-950/30 border-b-2 border-jobzai-500'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-b-2 border-transparent'
-                  }
-                `}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-jobzai-500' : ''}`} />
-                <span className="hidden xl:inline">{tab.label}</span>
-              </motion.button>
-            );
-          })}
-        </div>
+              <div className="flex items-center px-2 pt-2">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = sidebarTab === tab.id;
+                  return (
+                    <motion.button
+                      key={tab.id}
+                      onClick={() => setSidebarTab(tab.id as any)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`
+                        flex-1 flex items-center justify-center gap-2 py-3.5 mx-0.5 rounded-t-xl
+                        text-sm font-medium transition-all duration-200
+                        ${isActive
+                          ? 'text-jobzai-600 dark:text-jobzai-400 bg-jobzai-50/80 dark:bg-jobzai-950/30 border-b-2 border-jobzai-500'
+                          : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-b-2 border-transparent'
+                        }
+                      `}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-jobzai-500' : ''}`} />
+                      <span className="hidden xl:inline">{tab.label}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
       </div>
 
       {/* Tab Content */}

@@ -1,3 +1,8 @@
+/**
+ * @deprecated These types were for the custom whiteboard, now replaced by tldraw.
+ * See src/components/interview/TldrawWhiteboard.tsx
+ * This file is kept for reference only.
+ */
 export type BoardObjectType =
   | 'sticky'
   | 'text'

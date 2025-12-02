@@ -70,8 +70,8 @@ const sectionConfig: Record<ComparisonSectionType, {
   languages: { 
     icon: FileText, 
     label: 'Languages', 
-    color: 'text-green-600 dark:text-green-400',
-    bgColor: 'bg-green-100 dark:bg-green-900/30'
+    color: 'text-[#5249e6] dark:text-[#a5a0ff]',
+    bgColor: 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30'
   },
   projects: { 
     icon: FileText, 
@@ -209,8 +209,8 @@ export default function BeforeAfterModal({
                             bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-[#1a1a1d]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 
-                                  flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
+                                  flex items-center justify-center shadow-lg shadow-[#635BFF]/20">
                     <Sparkles className="w-6 h-6 text-white" />
                   </div>
                   <div>
@@ -274,7 +274,7 @@ export default function BeforeAfterModal({
                 {viewMode === 'diff' && (
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700" />
+                      <span className="w-3 h-3 rounded bg-[#635BFF]/10 dark:bg-[#5249e6]/40 border border-[#7c75ff] dark:border-[#a5a0ff]" />
                       <span className="text-gray-500 dark:text-gray-400">Added</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -402,9 +402,9 @@ export default function BeforeAfterModal({
                     onClick={onClose}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-xl
                                text-sm font-semibold text-white
-                               bg-gradient-to-r from-emerald-500 to-teal-600
-                               hover:from-emerald-600 hover:to-teal-700
-                               shadow-lg shadow-emerald-500/20
+                               bg-gradient-to-r from-[#635BFF] to-[#7c75ff]
+                               hover:from-[#5249e6] hover:to-[#7c75ff]
+                               shadow-lg shadow-[#635BFF]/20
                                transition-all duration-200"
                   >
                     Done

@@ -1,3 +1,8 @@
+/**
+ * @deprecated This component has been replaced by TldrawWhiteboard.
+ * See src/components/interview/TldrawWhiteboard.tsx
+ * This file is kept for reference only.
+ */
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Whiteboard } from './Whiteboard';
 import { useWhiteboardStore } from '../../stores/whiteboardStore';

@@ -81,7 +81,7 @@ function EducationItemDiff({ item, index, viewMode }: EducationItemDiffProps) {
   const data = item.modified || item.original;
   
   const statusColors = {
-    added: 'border-l-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/10',
+    added: 'border-l-[#635BFF] bg-[#635BFF]/5 dark:bg-[#5249e6]/10',
     removed: 'border-l-red-500 bg-red-50/30 dark:bg-red-900/10',
     modified: 'border-l-amber-500 bg-amber-50/30 dark:bg-amber-900/10',
     unchanged: 'border-l-gray-300 dark:border-l-gray-600 bg-gray-50/50 dark:bg-gray-800/30',
@@ -134,8 +134,8 @@ function EducationItemDiff({ item, index, viewMode }: EducationItemDiffProps) {
         }
         if (segment.type === 'added') {
           return (
-            <span key={idx} className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 
-                                       font-medium px-0.5 rounded-sm border-b border-emerald-400 dark:border-emerald-600">
+            <span key={idx} className="bg-[#635BFF]/10 dark:bg-[#5249e6]/50 text-[#635BFF] dark:text-[#a5a0ff] 
+                                       font-medium px-0.5 rounded-sm border-b border-[#7c75ff] dark:border-[#a5a0ff]">
               {segment.value}
             </span>
           );
@@ -183,12 +183,12 @@ function EducationItemDiff({ item, index, viewMode }: EducationItemDiffProps) {
         {/* After */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#5249e6] dark:text-[#a5a0ff]">
               After
             </span>
-            <span className="flex-1 h-px bg-emerald-200 dark:bg-emerald-800" />
+            <span className="flex-1 h-px bg-[#635BFF]/20 dark:bg-[#5249e6]/50" />
           </div>
-          <div className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200/80 dark:border-emerald-800/50">
+          <div className="p-4 bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rounded-xl border border-[#635BFF]/20 dark:border-[#5249e6]/50">
             {item.modified ? (
               <>
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white leading-relaxed">
@@ -224,7 +224,7 @@ function EducationItemDiff({ item, index, viewMode }: EducationItemDiffProps) {
         <div className="flex items-start gap-3 min-w-0">
           {StatusIcon && (
             <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5
-                            ${item.status === 'added' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' : ''}
+                            ${item.status === 'added' ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/40 text-[#5249e6] dark:text-[#a5a0ff]' : ''}
                             ${item.status === 'removed' ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : ''}
                             ${item.status === 'modified' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400' : ''}`}>
               <StatusIcon className="w-3.5 h-3.5" />

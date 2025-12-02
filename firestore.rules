@@ -84,6 +84,11 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
       
+      // Whiteboards subcollection (for tldraw whiteboards)
+      match /whiteboards/{whiteboardId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
       // Credit History subcollection
       match /creditHistory/{historyId} {
         allow read, write: if isSignedIn() && isOwner(userId);

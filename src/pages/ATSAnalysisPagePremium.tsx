@@ -88,10 +88,10 @@ interface SectionProps {
 function Section({ id, title, description, children }: SectionProps) {
   return (
     <section id={id} className="scroll-mt-24">
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-8 space-y-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm hover:shadow-md transition-all duration-300 p-8 space-y-6">
         {/* Section Header with subtle separator */}
-        <div className="space-y-3 pb-6 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+        <div className="space-y-3 pb-6 border-b border-gray-200/60 dark:border-gray-800/60">
+          <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
             {title}
           </h2>
           {description && (
@@ -946,20 +946,20 @@ export default function ATSAnalysisPagePremium() {
 
               {/* Right: Overall Match Score - Styled Card */}
               <div className="flex-shrink-0">
-                <div className={`bg-white dark:bg-gray-900 rounded-2xl border-2 shadow-lg px-8 py-6 ${
+                <div className={`bg-white dark:bg-gray-900 rounded-2xl border-2 shadow-sm hover:shadow-lg transition-all duration-300 px-8 py-6 ${
                   analysis.match_scores.overall_score >= 80 
-                    ? 'border-purple-200 dark:border-purple-800/50' 
+                    ? 'border-[#635BFF]/20 dark:border-[#635BFF]/30' 
                     : analysis.match_scores.overall_score >= 60 
-                      ? 'border-blue-200 dark:border-blue-800/50' 
-                      : 'border-pink-200 dark:border-pink-800/50'
+                      ? 'border-blue-200/60 dark:border-blue-800/40' 
+                      : 'border-pink-200/60 dark:border-pink-800/40'
                 }`}>
                   <div className="text-center">
                     <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                       Match Score
                     </div>
-                    <div className={`text-5xl font-black leading-none mb-2 ${
+                    <div className={`text-5xl font-black leading-none mb-3 ${
                       analysis.match_scores.overall_score >= 80 
-                        ? 'text-purple-600 dark:text-purple-400' 
+                        ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                         : analysis.match_scores.overall_score >= 60 
                           ? 'text-blue-600 dark:text-blue-400' 
                           : 'text-pink-600 dark:text-pink-400'
@@ -967,69 +967,18 @@ export default function ATSAnalysisPagePremium() {
                       {analysis.match_scores.overall_score}
                       <span className="text-3xl">%</span>
                     </div>
-                    <div className={`text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full inline-block ${
+                    <div className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-full inline-block border ${
                       analysis.match_scores.overall_score >= 80 
-                        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' 
+                        ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 text-[#635BFF] dark:text-[#a5a0ff] border-[#635BFF]/20 dark:border-[#635BFF]/30' 
                         : analysis.match_scores.overall_score >= 60 
-                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' 
-                          : 'bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300'
+                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200/60 dark:border-blue-800/40' 
+                          : 'bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300 border-pink-200/60 dark:border-pink-800/40'
                     }`}>
                       {analysis.match_scores.category}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Stats Row - Minimalist Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                {
-                  label: 'Skills',
-                  value: `${analysis.match_scores.skills_score}%`,
-                  iconColor: analysis.match_scores.skills_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.skills_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
-                  valueColor: analysis.match_scores.skills_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.skills_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
-                  icon: <Zap className="w-4 h-4" />
-                },
-                {
-                  label: 'Experience',
-                  value: `${analysis.match_scores.experience_score}%`,
-                  iconColor: analysis.match_scores.experience_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.experience_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
-                  valueColor: analysis.match_scores.experience_score >= 80 ? 'text-purple-600 dark:text-purple-400' : analysis.match_scores.experience_score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400',
-                  icon: <TrendingUp className="w-4 h-4" />
-                },
-                {
-                  label: 'Strengths',
-                  value: analysis.top_strengths.length,
-                  iconColor: 'text-green-600 dark:text-green-400',
-                  valueColor: 'text-green-600 dark:text-green-400',
-                  icon: <Check className="w-4 h-4" />
-                },
-                {
-                  label: 'Gaps',
-                  value: analysis.top_gaps.length,
-                  iconColor: 'text-red-600 dark:text-red-400',
-                  valueColor: 'text-red-600 dark:text-red-400',
-                  icon: <AlertCircle className="w-4 h-4" />
-                }
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={stat.iconColor}>
-                      {stat.icon}
-                    </div>
-                    <div className={`text-xl font-bold ${stat.valueColor}`}>
-                      {stat.value}
-                    </div>
-                  </div>
-                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -1043,24 +992,28 @@ export default function ATSAnalysisPagePremium() {
                 ref={(el) => { sectionsRef.current['overview'] = el; }}
                 className="scroll-mt-24"
               >
-                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-8 space-y-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+                  {/* Header with subtle gradient background */}
+                  <div className="bg-gradient-to-br from-[#635BFF]/5 to-[#7c75ff]/5 dark:from-[#635BFF]/10 dark:to-[#7c75ff]/10 p-8 pb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#635BFF] to-[#7c75ff] flex items-center justify-center shadow-sm">
+                        <FileText className="w-5 h-5 text-white" />
+                      </div>
+                      <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        Executive Summary
+                      </h2>
                     </div>
-                    <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                      Executive Summary
-                    </h2>
+                    <p className="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {analysis.executive_summary}
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {analysis.executive_summary}
-                  </p>
 
                   {/* Scoring Rationale - How This Score Was Calculated */}
-                  <div className="mt-6">
+                  <div className="p-8 pt-6">
                     <ScoreCalculationPanel
                       matchScores={analysis.match_scores}
                       scoringRationale={analysis.scoring_rationale}
+                      hideScores={true}
                     />
                   </div>
                 </div>
