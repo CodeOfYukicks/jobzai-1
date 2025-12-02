@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 
 export interface TabItem {
 	id: string;
@@ -36,24 +37,26 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 		<div className={`w-full max-w-7xl mx-auto ${className}`}>
 			{/* Full-width container with centered content */}
 			<div className="relative" ref={containerRef}>
-				{/* Tab buttons - evenly distributed */}
-				<nav className="flex items-center justify-center border-b border-slate-200 dark:border-slate-800">
+				{/* Tab buttons - evenly distributed with premium styling */}
+				<nav className="flex items-center justify-center border-b border-slate-200/60 dark:border-slate-800/60">
 					{items.map((item) => {
 						const isActive = activeId === item.id;
 						return (
-							<button
+							<motion.button
 								key={item.id}
 								data-tab-id={item.id}
 								onClick={() => onChange(item.id)}
+								whileHover={{ scale: 1.02 }}
+								whileTap={{ scale: 0.98 }}
 								className={`
 									relative flex items-center justify-center gap-2.5
 									px-8 py-4
 									text-sm font-medium
-									transition-all duration-200
+									transition-colors duration-200
 									border-b-2 -mb-px
 									${isActive
-										? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
-										: 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
+										? 'text-jobzai-500 dark:text-jobzai-400 border-jobzai-500 dark:border-jobzai-400'
+										: 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
 									}
 								`}
 							>
@@ -62,7 +65,7 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 										className={`
 											transition-colors duration-200
 											${isActive 
-												? 'text-blue-600 dark:text-blue-400' 
+												? 'text-jobzai-500 dark:text-jobzai-400' 
 												: 'text-slate-400 dark:text-slate-500'
 											}
 										`}
@@ -71,10 +74,32 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 									</span>
 								)}
 								<span>{item.label}</span>
-							</button>
+								
+								{/* Active indicator glow effect */}
+								{isActive && (
+									<motion.div
+										layoutId="activeTabGlow"
+										className="absolute inset-0 bg-jobzai-500/5 dark:bg-jobzai-400/10 rounded-t-lg -z-10"
+										initial={false}
+										transition={{ type: "spring", stiffness: 500, damping: 35 }}
+									/>
+								)}
+							</motion.button>
 						);
 					})}
 				</nav>
+
+				{/* Animated underline indicator */}
+				<motion.div
+					className="absolute bottom-0 h-0.5 rounded-full"
+					style={{ background: 'linear-gradient(90deg, #635BFF 0%, #7c75ff 100%)' }}
+					initial={false}
+					animate={{
+						left: indicatorStyle.left,
+						width: indicatorStyle.width,
+					}}
+					transition={{ type: "spring", stiffness: 500, damping: 35 }}
+				/>
 			</div>
 		</div>
 	);

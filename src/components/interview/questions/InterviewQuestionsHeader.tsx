@@ -1,4 +1,5 @@
 import { ReactNode, useRef, useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { RefreshCw, Play } from 'lucide-react';
 
 type FilterOption<T extends string> = {
@@ -50,12 +51,17 @@ export function InterviewQuestionsHeader<T extends string = string>({
     <section className="space-y-6">
       {/* Top Row: Count Hero + Actions */}
       <div className="flex items-start justify-between">
-        {/* Left: Count + Label - More balanced */}
+        {/* Left: Count + Label - Premium typography */}
         <div className="flex items-baseline gap-3">
-          <span className="text-3xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-white">
+          <motion.span 
+            key={totalCount}
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-4xl font-bold tabular-nums tracking-tight text-slate-900 dark:text-white"
+          >
             {totalCount}
-          </span>
-          <span className="text-lg font-medium text-slate-600 dark:text-slate-300">
+          </motion.span>
+          <span className="text-lg font-medium text-slate-500 dark:text-slate-400">
             Questions
           </span>
         </div>
@@ -63,29 +69,33 @@ export function InterviewQuestionsHeader<T extends string = string>({
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
           {onRegenerate && (
-            <button
+            <motion.button
               onClick={onRegenerate}
               disabled={isRegenerating}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               className="
-                inline-flex items-center gap-2 px-4 py-2.5 rounded-lg
-                text-sm font-medium
-                border border-slate-200 dark:border-slate-700
+                inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
+                text-sm font-semibold
+                ring-1 ring-slate-200/60 dark:ring-slate-700/60
+                bg-white dark:bg-slate-800
                 text-slate-600 dark:text-slate-300
-                hover:bg-slate-50 dark:hover:bg-slate-800
-                hover:text-slate-900 dark:hover:text-white
+                hover:ring-jobzai-300/50 dark:hover:ring-jobzai-700/50
+                hover:text-jobzai-600 dark:hover:text-jobzai-400
+                hover:shadow-premium-soft
                 disabled:opacity-40 disabled:cursor-not-allowed
-                transition-colors duration-200
+                transition-all duration-200
               "
             >
               <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
               {isRegenerating ? 'Generating...' : 'Regenerate'}
-            </button>
+            </motion.button>
           )}
           {actionSlot}
         </div>
       </div>
 
-      {/* Bottom Row: Filter Tabs with Underline */}
+      {/* Bottom Row: Filter Tabs with Premium Underline */}
       <div className="relative" ref={tabsRef}>
         {/* Tab Buttons */}
         <div className="flex items-center gap-1">
@@ -95,44 +105,45 @@ export function InterviewQuestionsHeader<T extends string = string>({
               filter.id === activeFilter ? filteredCount : null;
             
             return (
-              <button
+              <motion.button
                 key={filter.id}
                 data-filter-id={filter.id}
                 onClick={() => onFilterChange(filter.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className={`
-                  relative px-4 py-3 text-sm font-medium
-                  transition-colors duration-200
+                  relative px-4 py-3 text-sm font-medium rounded-t-lg
+                  transition-all duration-200
                   ${isActive
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                    ? 'text-jobzai-600 dark:text-jobzai-400 bg-jobzai-50/50 dark:bg-jobzai-950/20'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
                   }
                 `}
               >
                 {filter.label}
                 {count !== null && isActive && (
-                  <span className="ml-1.5 text-slate-300 dark:text-slate-600">
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-jobzai-100 dark:bg-jobzai-900/50 text-jobzai-600 dark:text-jobzai-400">
                     {count}
                   </span>
                 )}
-              </button>
+              </motion.button>
             );
           })}
         </div>
 
         {/* Subtle bottom border */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-slate-100 dark:bg-slate-800" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-slate-200/60 dark:bg-slate-800/60" />
 
-        {/* Animated underline indicator - Google Blue */}
-        <div
-          className="
-            absolute bottom-0 h-0.5
-            bg-blue-600 dark:bg-blue-400
-            transition-all duration-300 ease-out
-          "
-          style={{
+        {/* Animated underline indicator - Jobzai Violet gradient */}
+        <motion.div
+          className="absolute bottom-0 h-0.5 rounded-full"
+          style={{ background: 'linear-gradient(90deg, #635BFF 0%, #5249e6 100%)' }}
+          initial={false}
+          animate={{
             left: indicatorStyle.left,
             width: indicatorStyle.width,
           }}
+          transition={{ type: "spring", stiffness: 500, damping: 35 }}
         />
       </div>
     </section>

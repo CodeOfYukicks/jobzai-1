@@ -34,16 +34,16 @@ const ConfidenceSlider = memo(function ConfidenceSlider({
   const [isDragging, setIsDragging] = useState(false);
   
   const getTrackGradient = (val: number) => {
-    if (val === 0) return 'from-neutral-300 to-neutral-300 dark:from-neutral-600 dark:to-neutral-600';
-    if (val <= 2) return 'from-amber-400 to-orange-500';
-    if (val <= 3) return 'from-yellow-400 to-amber-500';
-    return 'from-emerald-400 to-teal-500';
+    if (val === 0) return 'from-slate-300 to-slate-300 dark:from-slate-600 dark:to-slate-600';
+    if (val <= 2) return 'from-amber-400 to-amber-500';
+    if (val <= 3) return 'from-jobzai-400 to-jobzai-500';
+    return 'from-emerald-400 to-emerald-500';
   };
 
   const getThumbColor = (val: number) => {
-    if (val === 0) return 'bg-neutral-400 dark:bg-neutral-500';
-    if (val <= 2) return 'bg-orange-500';
-    if (val <= 3) return 'bg-amber-500';
+    if (val === 0) return 'bg-slate-400 dark:bg-slate-500';
+    if (val <= 2) return 'bg-amber-500';
+    if (val <= 3) return 'bg-jobzai-500';
     return 'bg-emerald-500';
   };
 
@@ -332,9 +332,10 @@ const SkillsTab = memo(function SkillsTab({
                   onClick={() => practiceInChat(skill)}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="group/btn relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white shadow-md transition-all hover:shadow-lg dark:bg-white dark:text-neutral-900"
+                  className="group/btn relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg px-3 py-1.5 text-xs font-medium text-white shadow-md transition-all hover:shadow-lg"
+                style={{ background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)', boxShadow: '0 4px 10px rgba(99, 91, 255, 0.3)' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-300 group-hover/btn:opacity-20" />
+                  <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover/btn:opacity-10" />
                   <MessageSquare className="w-3 h-3 relative z-10" />
                   <span className="relative z-10">Practice</span>
                   </motion.button>
@@ -379,7 +380,7 @@ const SkillsTab = memo(function SkillsTab({
         <div className="border-t border-neutral-100 dark:border-neutral-800 px-6 py-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-purple-500" />
+              <Award className="w-4 h-4 text-jobzai-500" />
               <h4 className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                 STAR Stories
               </h4>
@@ -418,7 +419,7 @@ const SkillsTab = memo(function SkillsTab({
                           value={story[field.key as keyof typeof story] as string}
                           onChange={(e) => updateStarField(skill, story.id, field.key as 'situation' | 'action' | 'result', e.target.value)}
                           placeholder={field.placeholder}
-                          className="w-full rounded-lg border-0 bg-white dark:bg-[#1a1b1e] px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 resize-none focus:ring-2 focus:ring-purple-500/30 focus:outline-none transition-all"
+                          className="w-full rounded-lg border-0 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:ring-2 focus:ring-jobzai-500/30 focus:outline-none transition-all"
                       />
                     </div>
                     ))}
@@ -457,9 +458,10 @@ const SkillsTab = memo(function SkillsTab({
               disabled={generatingForSkill === skill}
               whileHover={{ scale: generatingForSkill === skill ? 1 : 1.02 }}
               whileTap={{ scale: generatingForSkill === skill ? 1 : 0.98 }}
-              className="group/gen relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none dark:bg-white dark:text-neutral-900"
+              className="group/gen relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
+              style={{ background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)', boxShadow: '0 4px 14px rgba(99, 91, 255, 0.35)' }}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-300 group-hover/gen:opacity-20" />
+              <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover/gen:opacity-10" />
               
               {generatingForSkill === skill ? (
                 <>
@@ -470,7 +472,7 @@ const SkillsTab = memo(function SkillsTab({
                 <>
                   <Wand2 className="w-3.5 h-3.5 relative z-10" />
                   <span className="relative z-10">Generate with AI</span>
-                  <Sparkles className="w-3 h-3 text-purple-400 dark:text-purple-600 relative z-10" />
+                  <Sparkles className="w-3 h-3 text-jobzai-200 relative z-10" />
                 </>
               )}
             </motion.button>
@@ -478,7 +480,7 @@ const SkillsTab = memo(function SkillsTab({
               onClick={() => addStarStory(skill)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="group/add relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2.5 text-sm font-medium text-neutral-600 dark:text-neutral-300 transition-all hover:border-purple-300 hover:text-purple-600 dark:hover:border-purple-600 dark:hover:text-purple-400"
+              className="group/add relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 transition-all hover:border-jobzai-300 hover:text-jobzai-600 dark:hover:border-jobzai-600 dark:hover:text-jobzai-400"
             >
               <Plus className="w-3.5 h-3.5 transition-transform duration-200 group-hover/add:rotate-90" />
               <span>Add Manually</span>
@@ -556,7 +558,7 @@ const SkillsTab = memo(function SkillsTab({
           {/* Progress Bar Background */}
           <div className="absolute inset-x-0 bottom-0 h-1 bg-neutral-100 dark:bg-neutral-800">
             <motion.div
-              className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600"
+              className="h-full bg-gradient-to-r from-jobzai-500 to-jobzai-600"
               initial={{ width: 0 }}
               animate={{ width: `${summaryStats.readinessPercent}%` }}
               transition={{ delay: 0.3, duration: 0.8, ease: 'easeOut' }}
@@ -633,12 +635,13 @@ const SkillsTab = memo(function SkillsTab({
             }
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="group/analyze relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl dark:bg-white dark:text-neutral-900"
+            className="group/analyze relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+            style={{ background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)', boxShadow: '0 4px 14px rgba(99, 91, 255, 0.35)' }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 transition-opacity duration-300 group-hover/analyze:opacity-20" />
+            <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover/analyze:opacity-10" />
             <ArrowUp className="w-4 h-4 relative z-10" />
             <span className="relative z-10">Analyze Job Posting</span>
-            <Sparkles className="w-3.5 h-3.5 text-purple-400 dark:text-purple-600 relative z-10" />
+            <Sparkles className="w-3.5 h-3.5 text-jobzai-200 relative z-10" />
           </motion.button>
         </motion.div>
       )}

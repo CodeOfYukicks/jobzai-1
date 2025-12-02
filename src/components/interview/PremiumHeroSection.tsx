@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Calendar, Clock, CheckCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Calendar, Clock, MapPin, Building2 } from 'lucide-react';
 import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl } from '../../utils/logo';
 
 type InterviewType = 'technical' | 'hr' | 'manager' | 'final' | 'other';
@@ -34,10 +35,10 @@ function computeCountdown(target?: Date | null) {
   return { isPast, days, hours, minutes };
 }
 
-// Google-style colored tags
-type TagVariant = 'default' | 'green' | 'blue' | 'yellow' | 'red';
+// Premium minimal tags with Jobzai violet accent
+type TagVariant = 'default' | 'success' | 'violet' | 'warning' | 'error';
 
-function MinimalTag({ 
+function PremiumTag({ 
   children, 
   variant = 'default'
 }: { 
@@ -45,23 +46,25 @@ function MinimalTag({
   variant?: TagVariant;
 }) {
   const variants: Record<TagVariant, string> = {
-    default: 'border border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600',
-    green: 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800',
-    blue: 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800',
-    yellow: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800',
-    red: 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800',
+    default: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+    success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400',
+    violet: 'bg-jobzai-50 text-jobzai-600 dark:bg-jobzai-950/50 dark:text-jobzai-400',
+    warning: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
+    error: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400',
   };
 
   return (
-    <span 
+    <motion.span 
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
       className={`
-        inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium
-        transition-colors duration-200
+        inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium
+        transition-all duration-200 hover:scale-105
         ${variants[variant]}
       `}
     >
       {children}
-    </span>
+    </motion.span>
   );
 }
 
@@ -120,25 +123,35 @@ export function PremiumHeroSection({
   }) : null;
 
   return (
-    <div className={`w-full py-12 px-8 ${className}`}>
+    <motion.div 
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      className={`w-full py-8 px-6 lg:px-8 ${className}`}
+    >
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row items-start justify-between gap-10">
+        <div className="flex flex-col lg:flex-row items-start justify-between gap-8">
           
           {/* Left Section: Logo + Content */}
-          <div className="flex items-start gap-8 flex-1 min-w-0">
+          <div className="flex items-start gap-6 flex-1 min-w-0">
             
-            {/* Logo Container - Glassmorphism */}
-            <div className="flex-shrink-0 mt-2">
+            {/* Logo Container - Premium glassmorphism */}
+            <motion.div 
+              className="flex-shrink-0"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
               <div className="relative group">
                 <div 
                   className="
-                    h-20 w-20 rounded-2xl 
-                    backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 
+                    h-16 w-16 rounded-2xl 
+                    backdrop-blur-xl bg-white/90 dark:bg-slate-800/90 
                     ring-1 ring-slate-200/50 dark:ring-slate-700/50
                     flex items-center justify-center
                     transition-all duration-300 
-                    group-hover:ring-slate-300 dark:group-hover:ring-slate-600
-                    group-hover:shadow-lg group-hover:shadow-slate-200/50 dark:group-hover:shadow-slate-900/50
+                    group-hover:ring-jobzai-300/50 dark:group-hover:ring-jobzai-600/50
+                    group-hover:shadow-lg group-hover:shadow-jobzai-500/10
+                    overflow-hidden
                   "
                 >
                   {logoSrc ? (
@@ -146,109 +159,137 @@ export function PremiumHeroSection({
                       src={logoSrc}
                       alt={`${companyName} logo`}
                       onError={handleLogoError}
-                      className="h-12 w-12 object-contain"
+                      className="h-10 w-10 object-contain"
                     />
                   ) : (
-                    <span className="text-xl font-semibold text-slate-400 dark:text-slate-500 tracking-tight">
+                    <span className="text-lg font-semibold text-slate-500 dark:text-slate-400 tracking-tight">
                       {getInitials(companyName)}
                     </span>
                   )}
                 </div>
+                {/* Subtle glow on hover */}
+                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-jobzai-500/0 to-jobzai-light/0 group-hover:from-jobzai-500/10 group-hover:to-jobzai-light/10 blur-xl transition-all duration-500 -z-10" />
               </div>
-            </div>
+            </motion.div>
 
             {/* Text Content */}
             <div className="flex-1 min-w-0">
               
-              {/* Breadcrumb - Minimal uppercase */}
-              <div className="mb-3">
-                <span className="text-[11px] font-medium tracking-[0.1em] uppercase text-slate-500 dark:text-slate-400">
+              {/* Breadcrumb - Elegant uppercase */}
+              <div className="mb-2 flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Building2 className="w-3 h-3" />
                   {companyName}
-                  {location && (
-                    <>
-                      <span className="mx-2 text-slate-300 dark:text-slate-600">·</span>
-                      {location}
-                    </>
-                  )}
                 </span>
+                {location && (
+                  <>
+                    <span className="text-slate-300 dark:text-slate-600">·</span>
+                    <span className="text-[11px] font-medium tracking-wide uppercase text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {location}
+                    </span>
+                  </>
+                )}
               </div>
 
-              {/* Main Title - Display Serif */}
+              {/* Main Title - Bold, modern sans-serif */}
               <h1 
                 className="
-                  font-display text-[2.75rem] md:text-[3.25rem] lg:text-[3.5rem]
-                  font-normal leading-[1.1] tracking-[-0.02em]
+                  text-2xl md:text-3xl lg:text-[2.5rem]
+                  font-bold leading-[1.15] tracking-[-0.02em]
                   text-slate-900 dark:text-white
-                  mb-5
+                  mb-4
                   line-clamp-2
                 "
               >
                 {position}
               </h1>
 
-              {/* Tags Row - Google-style colors */}
+              {/* Tags Row - Premium pills */}
               <div className="flex items-center flex-wrap gap-2">
                 {status && (
-                  <MinimalTag variant={status === 'scheduled' ? 'green' : status === 'completed' ? 'blue' : 'red'}>
+                  <PremiumTag variant={status === 'scheduled' ? 'success' : status === 'completed' ? 'violet' : 'error'}>
                     {getStatusLabel(status)}
-                  </MinimalTag>
+                  </PremiumTag>
                 )}
                 {interviewType && (
-                  <MinimalTag variant={interviewType === 'technical' ? 'blue' : interviewType === 'hr' ? 'yellow' : 'default'}>
+                  <PremiumTag variant="default">
                     {getInterviewTypeLabel(interviewType)}
-                  </MinimalTag>
+                  </PremiumTag>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right Section: Countdown Block */}
-          <div className="flex-shrink-0 lg:text-right">
+          {/* Right Section: Countdown Block - Premium card */}
+          <div className="flex-shrink-0">
             {!isPast && (date || time) ? (
-              <div className="inline-flex flex-col items-end">
-                {/* Countdown Numbers */}
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-4xl md:text-5xl font-light tabular-nums text-slate-900 dark:text-white tracking-tight">
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="
+                  inline-flex flex-col items-end
+                  bg-white/80 dark:bg-slate-800/80
+                  backdrop-blur-xl
+                  rounded-2xl
+                  px-5 py-4
+                  border border-slate-200/60 dark:border-slate-700/60
+                  shadow-premium-soft
+                "
+              >
+                {/* Countdown Numbers - Tabular */}
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-3xl md:text-4xl font-bold tabular-nums text-slate-900 dark:text-white tracking-tight">
                     {days}
                   </span>
-                  <span className="text-sm font-medium text-slate-400 dark:text-slate-500 mr-3">d</span>
-                  <span className="text-4xl md:text-5xl font-light tabular-nums text-slate-900 dark:text-white tracking-tight">
+                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 mr-2">d</span>
+                  <span className="text-3xl md:text-4xl font-bold tabular-nums text-slate-900 dark:text-white tracking-tight">
                     {hours}
                   </span>
-                  <span className="text-sm font-medium text-slate-400 dark:text-slate-500">h</span>
+                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">h</span>
                 </div>
                 
-                {/* "left" label */}
-                <span className="text-[10px] font-medium tracking-[0.15em] uppercase text-slate-400 dark:text-slate-500 mb-4">
+                {/* "remaining" label */}
+                <span className="text-[10px] font-semibold tracking-[0.15em] uppercase text-slate-400 dark:text-slate-500 mb-3">
                   remaining
                 </span>
 
-                {/* Date & Time */}
-                <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+                {/* Date & Time - Compact */}
+                <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                   {formattedDate && (
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" />
+                      <Calendar className="w-3.5 h-3.5 text-jobzai-500" />
                       {formattedDate}
                     </span>
                   )}
                   {time && (
                     <span className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5" />
+                      <Clock className="w-3.5 h-3.5 text-jobzai-500" />
                       {time}
                     </span>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ) : isPast ? (
-              <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                <span className="text-sm font-medium">Completed</span>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="
+                  inline-flex items-center gap-2 
+                  px-4 py-2 rounded-xl
+                  bg-emerald-50 dark:bg-emerald-950/30
+                  text-emerald-700 dark:text-emerald-400
+                "
+              >
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-sm font-medium">Interview Completed</span>
+              </motion.div>
             ) : null}
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

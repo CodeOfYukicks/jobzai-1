@@ -6,10 +6,10 @@ import { RecommendationsProvider } from './contexts/RecommendationsContext';
 import { RecommendationsLoadingProvider } from './contexts/RecommendationsLoadingContext';
 import App from './App';
 import './index.css';
-import { forceLightMode } from './lib/theme';
+import { initializeTheme } from './lib/theme';
 
-// Force light mode on startup (dark mode only works when logged in)
-forceLightMode();
+// Initialize theme from localStorage on startup
+initializeTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

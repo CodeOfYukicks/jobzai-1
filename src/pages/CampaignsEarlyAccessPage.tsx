@@ -205,97 +205,65 @@ export default function CampaignsEarlyAccessPage() {
             </motion.div>
           )}
 
-          {/* Visual Element - Job Application Card Preview with Animation */}
+          {/* Visual Element - Job Application Card Preview */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="relative max-w-md mx-auto h-[130px]"
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="relative max-w-md mx-auto"
           >
-            <div className="relative w-full h-full">
-              {/* Background stacked cards (static) */}
-              <div className="absolute top-3 left-3 w-full h-full bg-gray-100 dark:bg-gray-800 rounded-2xl transform rotate-1 opacity-40 transition-all duration-500" />
-              <div className="absolute top-1.5 left-1.5 w-full h-full bg-gray-200 dark:bg-gray-700 rounded-2xl transform -rotate-0.5 opacity-60 transition-all duration-500" />
-              
-              {/* Animated card stack */}
-              <AnimatePresence mode="wait">
-                {jobCards.map((card, index) => {
-                  if (index !== currentCardIndex) return null;
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`card-${currentCardIndex}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  {/* Icon */}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#635BFF] to-[#7c75ff] flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-sm">{jobCards[currentCardIndex].icon}</span>
+                  </div>
                   
-                  return (
-                    <motion.div
-                      key={index}
-                      initial={{ 
-                        opacity: 0, 
-                        scale: 0.95,
-                        y: 20,
-                        rotate: -2
-                      }}
-                      animate={{ 
-                        opacity: 1, 
-                        scale: 1,
-                        y: 0,
-                        rotate: 0
-                      }}
-                      exit={{ 
-                        opacity: 0, 
-                        scale: 0.95,
-                        y: -20,
-                        rotate: 2,
-                        transition: { duration: 0.4 }
-                      }}
-                      transition={{ 
-                        duration: 0.6,
-                        ease: [0.16, 1, 0.3, 1] // Custom easing for smooth Apple-like animation
-                      }}
-                      className="absolute inset-0 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-xl border border-gray-200 dark:border-gray-700"
-                    >
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <motion.div 
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: 0.2, duration: 0.4 }}
-                          className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0"
-                        >
-                          <span className="text-white font-bold text-sm">{card.icon}</span>
-                        </motion.div>
-                        <motion.div 
-                          initial={{ x: -10, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 0.3, duration: 0.4 }}
-                          className="flex-1 min-w-0"
-                        >
+                  {/* Job Info */}
+                  <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
-                            {card.title}
+                      {jobCards[currentCardIndex].title}
                           </h3>
-                          <p className="text-gray-600 dark:text-gray-400 text-xs truncate">
-                            {card.company}
-                          </p>
-                        </motion.div>
-                        <motion.div 
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: 0.4, duration: 0.4 }}
-                          className="flex items-center gap-1.5 text-green-600 dark:text-green-400 flex-shrink-0"
-                        >
-                          <Check className="h-3.5 w-3.5" />
+                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                      {jobCards[currentCardIndex].company}
+                    </p>
+                  </div>
+                  
+                  {/* Applied Badge */}
+                  <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 flex-shrink-0">
+                    <Check className="h-4 w-4" />
                           <span className="text-xs font-medium">Applied</span>
-                        </motion.div>
+                  </div>
                       </div>
-                      <motion.div 
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.5, duration: 0.4 }}
-                        className="pt-2 border-t border-gray-200 dark:border-gray-700"
-                      >
+                
+                <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           AI-powered application sent automatically
                         </p>
-                      </motion.div>
+                </div>
                     </motion.div>
-                  );
-                })}
               </AnimatePresence>
+            
+            {/* Dots indicator */}
+            <div className="flex justify-center gap-1.5 mt-4">
+              {jobCards.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                    index === currentCardIndex 
+                      ? 'bg-[#635BFF] w-4' 
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                />
+              ))}
             </div>
           </motion.div>
         </motion.div>

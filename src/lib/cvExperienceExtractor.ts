@@ -71,6 +71,7 @@ export interface CVFullProfileExtractionResult {
   languages: ExtractedLanguage[];
   hobbies: string[];
   summary?: string;
+  profileTags: string[]; // 15-20 tags summarizing the profile for job matching
 }
 
 /**
@@ -675,6 +676,47 @@ Examples of hobbies/interests to extract:
 ⚠️ NEVER put hobbies or personal interests in the "experiences" array!
 ⚠️ If a bullet point starts with a hobby keyword (Chess:, Cinema:, Music:, etc.), it goes in "hobbies", NOT in experience responsibilities!
 
+### 8. PROFILE TAGS (CRITICAL FOR JOB MATCHING!)
+Generate exactly 15-20 lowercase, hyphenated tags that summarize this candidate's profile for job matching.
+
+**TAG CATEGORIES TO INCLUDE:**
+
+1. **Seniority (1-2 tags)**: Based on years of experience and job titles
+   - 0-2 years: "junior", "entry-level"
+   - 2-5 years: "mid-level"
+   - 5-8 years: "senior"
+   - 8-12 years: "lead", "staff"
+   - 12+ years: "principal", "executive", "director"
+
+2. **Top Technologies (5-6 tags)**: Most important/prominent tools and technologies
+   - Examples: "react", "python", "aws", "typescript", "docker", "kubernetes"
+
+3. **Industries (2-3 tags)**: Industries from work experience
+   - Examples: "tech", "finance", "consulting", "healthcare", "e-commerce", "fintech", "saas"
+
+4. **Role Type (1-2 tags)**: Type of role based on job titles
+   - Examples: "engineer", "developer", "product-manager", "data-scientist", "designer", "devops", "architect", "consultant", "manager"
+
+5. **Domain (2-3 tags)**: Technical domains of expertise
+   - Examples: "frontend", "backend", "full-stack", "mobile", "data", "machine-learning", "devops", "security", "cloud"
+
+6. **Education (1 tag)**: Highest education level
+   - Examples: "phd", "masters-degree", "bachelors-degree", "bootcamp"
+
+7. **Languages (1-2 tags)**: Fluent spoken languages
+   - Format: "{language}-native" or "{language}-fluent"
+   - Examples: "french-native", "english-fluent", "spanish-fluent"
+
+8. **Work Style (1-2 tags)**: Leadership, preferences
+   - Examples: "leadership", "remote", "startup", "enterprise", "international"
+
+**TAG FORMAT RULES:**
+- All lowercase
+- Use hyphens for multi-word tags (e.g., "full-stack", "mid-level")
+- No special characters except hyphens
+- Be specific and meaningful for job matching
+- Prioritize the most distinctive/important characteristics
+
 ## DATE PARSING
 - "January 2020" or "Jan 2020" → "2020-01"
 - "2020" → "2020-01"
@@ -752,6 +794,24 @@ Examples of hobbies/interests to extract:
     "Chess: Competitive player with ELO rating 1500",
     "Cinema: Amateur filmmaker and screenwriter",
     "Open Source: Contributor to React ecosystem"
+  ],
+  "profileTags": [
+    "senior",
+    "product-manager",
+    "react",
+    "python",
+    "aws",
+    "sql",
+    "figma",
+    "tech",
+    "consulting",
+    "full-stack",
+    "data",
+    "masters-degree",
+    "french-native",
+    "english-fluent",
+    "leadership",
+    "agile"
   ]
 }
 
@@ -765,6 +825,7 @@ Examples of hobbies/interests to extract:
 7. Extract the professional summary/objective if present at the top of the CV
 8. CRITICAL: Put hobbies, interests, and personal projects in the "hobbies" array, NEVER in "experiences"!
 9. Experience responsibilities should ONLY contain professional work duties, achievements, and metrics
+10. CRITICAL: Generate exactly 15-20 profileTags that accurately summarize the candidate for job matching
 `;
 }
 
@@ -849,6 +910,8 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
       // Normalize all extracted data
       // Normalize hobbies array
       const hobbies = normalizeHobbies(parsedContent.hobbies || []);
+      // Normalize profile tags
+      const profileTags = normalizeProfileTags(parsedContent.profileTags || []);
       
       const result: CVFullProfileExtractionResult = {
         personalInfo: normalizePersonalInfo(parsedContent.personalInfo || {}),
@@ -858,7 +921,8 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
         tools: normalizeTools(parsedContent.tools || []),
         languages: normalizeLanguages(parsedContent.languages || []),
         hobbies: hobbies,
-        summary: cleanString(parsedContent.summary) || ''
+        summary: cleanString(parsedContent.summary) || '',
+        profileTags: profileTags
       };
       
       console.log(`   ✓ Personal info: ${result.personalInfo.firstName} ${result.personalInfo.lastName}`);
@@ -868,6 +932,7 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
       console.log(`   ✓ Tools: ${result.tools.length}`);
       console.log(`   ✓ Languages: ${result.languages.length}`);
       console.log(`   ✓ Hobbies: ${result.hobbies.length}`);
+      console.log(`   ✓ Profile Tags: ${result.profileTags.length}`);
       console.log(`   ✓ Summary: ${result.summary ? 'Yes' : 'No'}`);
 
       return result;
@@ -1045,5 +1110,33 @@ function normalizeHobbies(hobbies: any[]): string[] {
       return '';
     })
     .filter(hobby => hobby && hobby.length > 0);
+}
+
+/**
+ * Normalize profile tags array
+ * Ensures tags are lowercase, hyphenated, and deduplicated
+ */
+function normalizeProfileTags(tags: any[]): string[] {
+  if (!Array.isArray(tags)) return [];
+  
+  const normalizedTags = tags
+    .map(tag => {
+      if (typeof tag === 'string') {
+        // Normalize: lowercase, trim, replace spaces with hyphens, remove special chars
+        return tag
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+      }
+      return '';
+    })
+    .filter(tag => tag && tag.length > 0);
+  
+  // Deduplicate and limit to 20 tags
+  const uniqueTags = [...new Set(normalizedTags)];
+  return uniqueTags.slice(0, 20);
 }
 

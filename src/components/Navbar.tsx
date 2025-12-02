@@ -122,7 +122,7 @@ export default function Navbar() {
     };
   }, []);
 
-  const handleThemeToggle = () => {
+  const handleThemeToggle = async () => {
     // Toggle between light and dark (ignore system mode for toggle)
     const currentTheme = loadThemeFromStorage();
     const newTheme: Theme = (currentTheme === 'dark' || isDark) ? 'light' : 'dark';
@@ -130,6 +130,21 @@ export default function Navbar() {
     setTheme(newTheme);
     setIsDark(newTheme === 'dark');
     applyTheme(newTheme);
+    
+    // Save to Firestore if user is logged in
+    if (currentUser?.uid) {
+      try {
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const { db } = await import('../lib/firebase');
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          theme: newTheme,
+          settingsUpdatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Error saving theme to Firestore:', error);
+        // Don't show error to user, localStorage is enough for persistence
+      }
+    }
     
     // Dispatch custom event to update other components
     window.dispatchEvent(new Event('themechange'));

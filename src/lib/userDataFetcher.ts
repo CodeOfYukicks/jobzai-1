@@ -156,6 +156,9 @@ export interface CompleteUserData {
   responseRate?: number;
   averageMatchScore?: number;
   totalCampaigns?: number;
+  
+  // Profile tags for job matching (generated from CV import)
+  profileTags?: string[];
 }
 
 /**

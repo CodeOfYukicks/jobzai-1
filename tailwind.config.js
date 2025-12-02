@@ -57,6 +57,23 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
+				},
+				// Jobzai Premium Violet Palette
+				jobzai: {
+					50: '#f5f3ff',
+					100: '#ede9fe',
+					200: '#ddd6fe',
+					300: '#c4b5fd',
+					400: '#a5a0ff',
+					500: '#635BFF',
+					600: '#5249e6',
+					700: '#4338ca',
+					800: '#3730a3',
+					900: '#312e81',
+					950: '#1e1b4b',
+					DEFAULT: '#635BFF',
+					light: '#7c75ff',
+					dark: '#5249e6',
 				}
 			},
 			borderRadius: {
@@ -214,11 +231,16 @@ export default {
 			boxShadow: {
 				'premium': '0 20px 40px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.1)',
 				'premium-lg': '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-				'glow-sm': '0 0 15px rgba(141, 117, 230, 0.3)',
-				'glow': '0 0 30px rgba(141, 117, 230, 0.3)',
-				'glow-lg': '0 0 50px rgba(141, 117, 230, 0.4)',
+				'premium-soft': '0 4px 20px -2px rgba(99, 91, 255, 0.12), 0 0 0 1px rgba(99, 91, 255, 0.05)',
+				'premium-hover': '0 8px 30px -4px rgba(99, 91, 255, 0.2), 0 0 0 1px rgba(99, 91, 255, 0.1)',
+				'glow-sm': '0 0 15px rgba(99, 91, 255, 0.3)',
+				'glow': '0 0 30px rgba(99, 91, 255, 0.3)',
+				'glow-lg': '0 0 50px rgba(99, 91, 255, 0.4)',
+				'glow-violet': '0 0 20px rgba(99, 91, 255, 0.25)',
 				'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
-				'inner-glow': 'inset 0 0 20px rgba(141, 117, 230, 0.1)',
+				'inner-glow': 'inset 0 0 20px rgba(99, 91, 255, 0.1)',
+				'card-hover': '0 12px 40px -8px rgba(99, 91, 255, 0.15)',
+				'sidebar': '-4px 0 24px -4px rgba(0, 0, 0, 0.08)',
 			},
 			backdropBlur: {
 				'xs': '2px',
@@ -227,6 +249,9 @@ export default {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
 				'gradient-mesh': 'radial-gradient(at 0% 0%, rgb(168, 85, 247) 0px, transparent 50%), radial-gradient(at 100% 100%, rgb(99, 102, 241) 0px, transparent 50%)',
 				'gradient-shimmer': 'linear-gradient(110deg, transparent 40%, rgba(255, 255, 255, 0.2) 50%, transparent 60%)',
+				'gradient-violet': 'linear-gradient(135deg, #635BFF 0%, #7c75ff 100%)',
+				'gradient-violet-soft': 'linear-gradient(135deg, rgba(99, 91, 255, 0.08) 0%, rgba(124, 117, 255, 0.04) 100%)',
+				'gradient-premium': 'linear-gradient(135deg, #635BFF 0%, #5249e6 50%, #7c75ff 100%)',
 			}
 		}
 	},

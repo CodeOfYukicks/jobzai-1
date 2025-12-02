@@ -81,25 +81,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               
               // Load and apply theme from Firestore if available (only when logged in)
               if (userData?.theme) {
-                applyTheme(userData.theme as Theme);
+                // Firestore has theme - use it and sync to localStorage
+                // Skip if already applied to avoid unnecessary DOM manipulation
+                applyTheme(userData.theme as Theme, true);
               } else {
-                // If no theme in Firestore, load from localStorage
-                const theme = loadThemeFromStorage();
-                applyTheme(theme);
+                // No theme in Firestore - check localStorage and current DOM state
+                const currentIsDark = document.documentElement.classList.contains('dark');
+                const localStorageTheme = loadThemeFromStorage();
+                
+                // Determine which theme to use
+                let themeToApply: Theme;
+                if (localStorageTheme !== 'system') {
+                  themeToApply = localStorageTheme;
+                } else if (currentIsDark) {
+                  // Preserve dark mode if already set in DOM
+                  themeToApply = 'dark';
+                } else {
+                  // Default to light if nothing is set
+                  themeToApply = 'light';
+                }
+                
+                // Apply theme only if different from current state
+                applyTheme(themeToApply, true);
+                
+                // Save to Firestore for future consistency (non-blocking)
+                updateDoc(doc(db, 'users', user.uid), {
+                  theme: themeToApply
+                }).catch((error) => {
+                  console.error('Error saving theme to Firestore:', error);
+                  // Non-critical error, continue
+                });
               }
             }
             setLoading(false);
           },
           (error) => {
             console.error('Error listening to user document:', error);
+            // On error, preserve current theme from DOM or localStorage
+            const currentIsDark = document.documentElement.classList.contains('dark');
+            const localStorageTheme = loadThemeFromStorage();
+            if (localStorageTheme !== 'system') {
+              applyTheme(localStorageTheme);
+            } else if (currentIsDark) {
+              applyTheme('dark');
+            }
             setLoading(false);
           }
         );
       } else {
         setUserData(null);
         setIsProfileCompleted(false);
-        // Force light mode when logged out
-        forceLightMode();
+        // Load theme from localStorage when logged out (pages publiques peuvent forcer le mode clair individuellement)
+        const theme = loadThemeFromStorage();
+        applyTheme(theme);
         setLoading(false);
       }
     });

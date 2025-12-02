@@ -1,0 +1,112 @@
+import React from 'react';
+
+const BouncingLoader = () => {
+  return (
+    <div className="typing-indicator">
+      <div className="typing-circle" />
+      <div className="typing-circle" />
+      <div className="typing-circle" />
+      <div className="typing-shadow" />
+      <div className="typing-shadow" />
+      <div className="typing-shadow" />
+      
+      <style>{`
+        .typing-indicator {
+          width: 60px;
+          height: 30px;
+          position: relative;
+          z-index: 4;
+        }
+
+        .typing-circle {
+          width: 8px;
+          height: 8px;
+          position: absolute;
+          border-radius: 50%;
+          background-color: #635BFF;
+          left: 15%;
+          transform-origin: 50%;
+          animation: typing-circle7124 0.5s alternate infinite ease;
+        }
+
+        @keyframes typing-circle7124 {
+          0% {
+            top: 20px;
+            height: 5px;
+            border-radius: 50px 50px 25px 25px;
+            transform: scaleX(1.7);
+          }
+          40% {
+            height: 8px;
+            border-radius: 50%;
+            transform: scaleX(1);
+          }
+          100% {
+            top: 0%;
+          }
+        }
+
+        .typing-circle:nth-child(2) {
+          left: 45%;
+          animation-delay: 0.2s;
+        }
+
+        .typing-circle:nth-child(3) {
+          left: auto;
+          right: 15%;
+          animation-delay: 0.3s;
+        }
+
+        .typing-shadow {
+          width: 5px;
+          height: 4px;
+          border-radius: 50%;
+          background-color: rgba(99, 91, 255, 0.25);
+          position: absolute;
+          top: 30px;
+          transform-origin: 50%;
+          z-index: 3;
+          left: 15%;
+          filter: blur(1px);
+          animation: typing-shadow046 0.5s alternate infinite ease;
+        }
+
+        @keyframes typing-shadow046 {
+          0% {
+            transform: scaleX(1.5);
+          }
+          40% {
+            transform: scaleX(1);
+            opacity: 0.7;
+          }
+          100% {
+            transform: scaleX(0.2);
+            opacity: 0.4;
+          }
+        }
+
+        .typing-shadow:nth-child(4) {
+          left: 45%;
+          animation-delay: 0.2s;
+        }
+
+        .typing-shadow:nth-child(5) {
+          left: auto;
+          right: 15%;
+          animation-delay: 0.3s;
+        }
+        
+        .dark .typing-circle {
+          background-color: #a5a0ff;
+        }
+        
+        .dark .typing-shadow {
+          background-color: rgba(165, 160, 255, 0.2);
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default BouncingLoader;
+

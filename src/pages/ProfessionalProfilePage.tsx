@@ -544,6 +544,11 @@ const ProfessionalProfilePage = () => {
         updateData.professionalSummary = extractedProfile.summary;
       }
       
+      // Profile tags (15-20 AI-generated tags summarizing the user for job matching)
+      if (extractedProfile.profileTags && extractedProfile.profileTags.length > 0) {
+        updateData.profileTags = extractedProfile.profileTags;
+      }
+      
       // Save to Firestore
       await updateDoc(doc(db, 'users', currentUser.uid), {
         ...updateData,
@@ -563,6 +568,7 @@ const ProfessionalProfilePage = () => {
       if (extractedProfile.skills?.length) counts.push(`${extractedProfile.skills.length} skills`);
       if (extractedProfile.tools?.length) counts.push(`${extractedProfile.tools.length} tools`);
       if (extractedProfile.languages?.length) counts.push(`${extractedProfile.languages.length} languages`);
+      if (extractedProfile.profileTags?.length) counts.push(`${extractedProfile.profileTags.length} profile tags`);
       if (extractedProfile.summary) counts.push('summary');
       
       toast.success(`Profile imported! Found ${counts.join(', ')}`);

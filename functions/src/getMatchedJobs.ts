@@ -1,5 +1,14 @@
 /**
- * Job Matching API v4.0 - Precision Rule-based Matching
+ * Job Matching API v5.1 - Hybrid Rule-based + Semantic + Profile Tags Matching
+ * 
+ * V5.1 ADDITIONS:
+ * - Profile Tags Score: AI-generated tags from CV import (seniority, tech, industry, role, domain, work style)
+ * - Max +25 points from profile tags matching
+ * 
+ * V5.0 ADDITIONS:
+ * - Semantic matching via embeddings (40% weight in hybrid scoring)
+ * - Collaborative filtering (popular jobs among similar users)
+ * - Feedback loop (saved/dismissed jobs influence scoring)
  * 
  * CRITICAL FIXES from v2.0:
  * - Role function matching (engineering vs sales vs consulting etc.)
@@ -7,13 +16,16 @@
  * - PENALTIES for jobs with empty/poor enrichment data
  * - Enrichment quality penalty (jobs with low data quality penalized)
  * 
- * Scoring system:
+ * Scoring system (max 181 points rule-based):
  * - Role Function: +25 (match) / -20 (mismatch)
  * - Skills/Tech: +30 (match) / -10 (job has no tech data)
+ * - Profile Tags: +25 (V5.1 - seniority +6, tech +6, industry +4, role +4, domain +3, work style +2)
  * - Location: +15 (match)
  * - Experience: +10 (match)
  * - Industry: +10 (match)
  * - History Bonus: +10 (past experience)
+ * - Collaborative: +8 (popular with similar users)
+ * - Other bonuses: salary, recency, career priorities, feedback
  * - Data Quality Penalty: -15 (if enrichmentQuality < 50)
  * - Deal Breakers/Sectors: -30/-20
  * - Language: HARD FILTER (excluded)
@@ -114,6 +126,9 @@ interface UserProfileData {
 
     // V5.0 Semantic Matching - User profile embedding
     embedding?: number[];
+
+    // V5.1 Profile Tags - AI-generated summary tags from CV import
+    profileTags?: string[];
 }
 
 interface EnrichedJob {
@@ -164,6 +179,8 @@ interface MatchBreakdown {
     feedbackScore: number;
     semanticScore: number;
     collaborativeScore: number;
+    // V5.1 Profile Tags
+    profileTagsScore: number;
     // Penalties
     dataQualityPenalty: number;
     dealBreakerPenalty: number;
@@ -1032,6 +1049,250 @@ function calculateSemanticScore(
 }
 
 /**
+ * Profile Tags Score (V5.1 - AI-generated profile summary tags)
+ * Matches user's profile tags against job characteristics
+ * Max score: 25 points
+ * 
+ * Tag categories:
+ * - Seniority (junior, mid-level, senior, lead, principal): +6 max
+ * - Technologies (react, python, aws, etc.): +6 max
+ * - Industries (tech, finance, consulting, etc.): +4 max
+ * - Role Type (engineer, product-manager, etc.): +4 max
+ * - Domain (frontend, backend, full-stack, etc.): +3 max
+ * - Work Style (remote, startup, leadership, etc.): +2 max
+ */
+function calculateProfileTagsScore(user: UserProfileData, job: EnrichedJob): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    let score = 0;
+    
+    // If no profile tags, return neutral score
+    if (!user.profileTags || user.profileTags.length === 0) {
+        return { score: 0, reasons: [] };
+    }
+
+    const tags = user.profileTags.map(t => t.toLowerCase().trim());
+    
+    // Define tag categories with patterns
+    const seniorityTags = ['junior', 'entry-level', 'mid-level', 'senior', 'lead', 'staff', 'principal', 'executive', 'director'];
+    const domainTags = ['frontend', 'backend', 'full-stack', 'fullstack', 'mobile', 'devops', 'cloud', 'data', 'machine-learning', 'ml', 'ai', 'security'];
+    const roleTypeTags = ['engineer', 'developer', 'product-manager', 'data-scientist', 'designer', 'architect', 'consultant', 'manager', 'analyst', 'devops-engineer'];
+    const workStyleTags = ['remote', 'startup', 'enterprise', 'leadership', 'international', 'freelance'];
+    
+    // Categorize user's tags
+    const userSeniority = tags.filter(t => seniorityTags.some(st => t.includes(st)));
+    const userTechTags = tags.filter(t => 
+        !seniorityTags.some(st => t.includes(st)) && 
+        !domainTags.some(dt => t === dt) && 
+        !roleTypeTags.some(rt => t === rt) &&
+        !workStyleTags.some(wt => t === wt) &&
+        !t.includes('-native') && !t.includes('-fluent') && !t.includes('-degree') && !t.includes('-phd')
+    );
+    const userIndustryTags = tags.filter(t => 
+        ['tech', 'finance', 'consulting', 'healthcare', 'e-commerce', 'ecommerce', 'fintech', 'saas', 'retail', 'media', 'education', 'manufacturing', 'energy', 'real-estate', 'banking'].some(ind => t.includes(ind))
+    );
+    const userRoleTags = tags.filter(t => roleTypeTags.some(rt => t.includes(rt)));
+    const userDomainTags = tags.filter(t => domainTags.some(dt => t.includes(dt)));
+    const userWorkStyleTags = tags.filter(t => workStyleTags.some(wt => t.includes(wt)));
+    const userLanguageTags = tags.filter(t => t.includes('-native') || t.includes('-fluent'));
+
+    // Job data for matching
+    const jobTechs = (job.technologies || []).map(t => t.toLowerCase());
+    const jobIndustries = (job.industries || []).map(i => i.toLowerCase());
+    const jobLevels = (job.experienceLevels || []).map(l => l.toLowerCase());
+    const jobSeniority = (job.seniority || '').toLowerCase();
+    const jobTitle = (job.title || '').toLowerCase();
+    const jobDesc = (job.description || '').toLowerCase();
+    const jobWorkLocs = (job.workLocations || []).map(w => w.toLowerCase());
+    const jobRoleFunction = (job.roleFunction || '').toLowerCase();
+
+    // 1. SENIORITY MATCHING (max +6)
+    if (userSeniority.length > 0) {
+        let seniorityMatch = false;
+        
+        for (const tag of userSeniority) {
+            // Match against job seniority field
+            if (jobSeniority && (jobSeniority.includes(tag) || tag.includes(jobSeniority))) {
+                seniorityMatch = true;
+                break;
+            }
+            // Match against experience levels
+            if (jobLevels.some(l => l.includes(tag) || tag.includes(l))) {
+                seniorityMatch = true;
+                break;
+            }
+            // Match against job title
+            if (jobTitle.includes(tag.replace('-', ' '))) {
+                seniorityMatch = true;
+                break;
+            }
+        }
+        
+        if (seniorityMatch) {
+            score += 6;
+            const level = userSeniority[0].replace('-', ' ');
+            reasons.push(`Matches your ${level} level`);
+        }
+    }
+
+    // 2. TECHNOLOGY MATCHING (max +6)
+    if (userTechTags.length > 0 && jobTechs.length > 0) {
+        const matchedTechs: string[] = [];
+        
+        for (const tag of userTechTags) {
+            const normalizedTag = tag.replace(/-/g, '').replace(/js$/, '');
+            for (const jobTech of jobTechs) {
+                const normalizedJobTech = jobTech.replace(/-/g, '').replace(/\.js$/, '').replace(/js$/, '');
+                if (normalizedJobTech.includes(normalizedTag) || normalizedTag.includes(normalizedJobTech) ||
+                    jobTech.includes(tag) || tag.includes(jobTech)) {
+                    matchedTechs.push(jobTech);
+                    break;
+                }
+            }
+        }
+        
+        const techMatchRatio = matchedTechs.length / Math.min(userTechTags.length, 5);
+        const techScore = Math.round(techMatchRatio * 6);
+        
+        if (techScore > 0) {
+            score += techScore;
+            if (matchedTechs.length > 0) {
+                const displayTechs = [...new Set(matchedTechs)].slice(0, 3);
+                reasons.push(`Tech stack: ${displayTechs.join(', ')}`);
+            }
+        }
+    }
+
+    // 3. INDUSTRY MATCHING (max +4)
+    if (userIndustryTags.length > 0 && jobIndustries.length > 0) {
+        let industryMatch = false;
+        let matchedIndustry = '';
+        
+        for (const tag of userIndustryTags) {
+            for (const jobInd of jobIndustries) {
+                if (jobInd.includes(tag) || tag.includes(jobInd)) {
+                    industryMatch = true;
+                    matchedIndustry = jobInd;
+                    break;
+                }
+            }
+            if (industryMatch) break;
+        }
+        
+        if (industryMatch) {
+            score += 4;
+            reasons.push(`Industry fit: ${matchedIndustry}`);
+        }
+    }
+
+    // 4. ROLE TYPE MATCHING (max +4)
+    if (userRoleTags.length > 0) {
+        let roleMatch = false;
+        
+        for (const tag of userRoleTags) {
+            const normalizedTag = tag.replace(/-/g, ' ').replace('_', ' ');
+            // Match against roleFunction
+            if (jobRoleFunction && (jobRoleFunction.includes(normalizedTag) || normalizedTag.includes(jobRoleFunction))) {
+                roleMatch = true;
+                break;
+            }
+            // Match against job title
+            if (jobTitle.includes(normalizedTag) || jobTitle.includes(tag)) {
+                roleMatch = true;
+                break;
+            }
+        }
+        
+        if (roleMatch) {
+            score += 4;
+            if (reasons.length < 3) {
+                reasons.push('Role type alignment');
+            }
+        }
+    }
+
+    // 5. DOMAIN MATCHING (max +3)
+    if (userDomainTags.length > 0) {
+        let domainMatch = false;
+        let matchedDomain = '';
+        
+        for (const tag of userDomainTags) {
+            // Match against job title
+            if (jobTitle.includes(tag.replace('-', ' ')) || jobTitle.includes(tag)) {
+                domainMatch = true;
+                matchedDomain = tag;
+                break;
+            }
+            // Match against technologies (frontend -> react/vue, backend -> node/python, etc.)
+            const domainTechMap: Record<string, string[]> = {
+                'frontend': ['react', 'vue', 'angular', 'css', 'html', 'javascript', 'typescript', 'nextjs', 'next.js'],
+                'backend': ['node', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'django', 'fastapi', 'spring'],
+                'full-stack': ['react', 'node', 'python', 'javascript', 'typescript'],
+                'fullstack': ['react', 'node', 'python', 'javascript', 'typescript'],
+                'devops': ['docker', 'kubernetes', 'k8s', 'terraform', 'jenkins', 'ci/cd', 'aws', 'azure', 'gcp'],
+                'cloud': ['aws', 'azure', 'gcp', 'cloud', 'serverless', 'lambda'],
+                'mobile': ['ios', 'android', 'swift', 'kotlin', 'react native', 'flutter'],
+                'data': ['sql', 'python', 'spark', 'hadoop', 'snowflake', 'databricks', 'etl'],
+                'machine-learning': ['python', 'tensorflow', 'pytorch', 'ml', 'ai', 'deep learning'],
+            };
+            
+            const relatedTechs = domainTechMap[tag] || [];
+            if (relatedTechs.length > 0 && jobTechs.some(jt => relatedTechs.some(rt => jt.includes(rt)))) {
+                domainMatch = true;
+                matchedDomain = tag;
+                break;
+            }
+            // Match in description
+            if (jobDesc.includes(tag.replace('-', ' '))) {
+                domainMatch = true;
+                matchedDomain = tag;
+                break;
+            }
+        }
+        
+        if (domainMatch) {
+            score += 3;
+            if (reasons.length < 3) {
+                reasons.push(`${matchedDomain.replace('-', ' ')} focus`);
+            }
+        }
+    }
+
+    // 6. WORK STYLE MATCHING (max +2)
+    if (userWorkStyleTags.length > 0) {
+        let workStyleMatch = false;
+        
+        for (const tag of userWorkStyleTags) {
+            // Remote preference
+            if (tag === 'remote' && (jobWorkLocs.includes('remote') || jobDesc.includes('remote'))) {
+                workStyleMatch = true;
+                break;
+            }
+            // Startup preference
+            if (tag === 'startup' && (jobDesc.includes('startup') || jobDesc.includes('early-stage') || jobDesc.includes('fast-paced'))) {
+                workStyleMatch = true;
+                break;
+            }
+            // Enterprise preference
+            if (tag === 'enterprise' && (jobDesc.includes('enterprise') || jobDesc.includes('fortune 500') || jobDesc.includes('large scale'))) {
+                workStyleMatch = true;
+                break;
+            }
+            // Leadership
+            if (tag === 'leadership' && (jobTitle.includes('lead') || jobTitle.includes('manager') || jobTitle.includes('head') || jobTitle.includes('director'))) {
+                workStyleMatch = true;
+                break;
+            }
+        }
+        
+        if (workStyleMatch) {
+            score += 2;
+        }
+    }
+
+    return { score: Math.min(score, 25), reasons: reasons.slice(0, 2) };
+}
+
+/**
  * Data Quality Penalty (-15 if enrichment quality < 50%)
  */
 function calculateDataQualityPenalty(job: EnrichedJob): { penalty: number; reasons: string[] } {
@@ -1152,6 +1413,9 @@ function calculateMatchScore(
     
     // V5.0 Collaborative Score (based on similar users)
     const collaborative = calculateCollaborativeScore(job, collaborativeData);
+    
+    // V5.1 Profile Tags Score (AI-generated CV summary tags)
+    const profileTags = calculateProfileTagsScore(user, job);
 
     // Penalties
     const dataQuality = calculateDataQualityPenalty(job);
@@ -1159,19 +1423,19 @@ function calculateMatchScore(
     const sectorAvoid = calculateSectorAvoidPenalty(user, job);
 
     // =============================================================================
-    // V5.0 HYBRID SCORING: 60% Rule-based + 40% Semantic
+    // V5.1 HYBRID SCORING: 60% Rule-based + 40% Semantic
     // =============================================================================
     
-    // Calculate rule-based score (max 156 points before semantic, including collaborative)
+    // Calculate rule-based score (max 181 points before semantic, including collaborative + profileTags)
     const ruleBasedPositive = 
         roleFunction.score + skills.score + location.score + 
         experience.score + industry.score + title.score + 
         history.score + environment.score +
         salary.score + recency.score + careerPriorities.score +
-        feedback.score + collaborative.score;
+        feedback.score + collaborative.score + profileTags.score;
     
-    // Scale rule-based to 100 (max 156 points with collaborative)
-    const ruleBasedScore = Math.round((Math.max(ruleBasedPositive, 0) / 156) * 100);
+    // Scale rule-based to 100 (max 181 points with collaborative + profileTags)
+    const ruleBasedScore = Math.round((Math.max(ruleBasedPositive, 0) / 181) * 100);
     
     // Semantic score is already 0-40, scale to 0-100
     const semanticScore100 = Math.round((semantic.score / 40) * 100);
@@ -1199,6 +1463,8 @@ function calculateMatchScore(
     if (collaborative.score > 3) allReasons.push(...collaborative.reasons);
     // Then semantic match reasons (if strong)
     if (semantic.score >= 28) allReasons.push(...semantic.reasons);
+    // V5.1 Profile Tags reasons (personalized matching from CV analysis)
+    if (profileTags.score > 5) allReasons.push(...profileTags.reasons);
     // Then feedback reasons (user interest signal)
     if (feedback.score > 3) allReasons.push(...feedback.reasons);
     if (roleFunction.score > 0) allReasons.push(...roleFunction.reasons);
@@ -1242,6 +1508,8 @@ function calculateMatchScore(
             feedbackScore: feedback.score,
             semanticScore: semantic.score,
             collaborativeScore: collaborative.score,
+            // V5.1 Profile Tags
+            profileTagsScore: profileTags.score,
             // Penalties
             dataQualityPenalty: dataQuality.penalty,
             dealBreakerPenalty: dealBreaker.penalty,

@@ -249,16 +249,34 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   useEffect(() => {
     const updateThemeState = () => {
       const savedTheme = loadThemeFromStorage();
+      const currentIsDark = document.documentElement.classList.contains('dark');
       
+      // Only apply theme if it's different from current state to avoid unnecessary changes
+      // This prevents overriding the theme set by AuthContext
       if (savedTheme === 'system') {
         const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (currentIsDark !== systemIsDark) {
+          applyTheme(savedTheme);
+        }
         setIsDarkMode(systemIsDark);
       } else {
-        setIsDarkMode(savedTheme === 'dark');
+        const shouldBeDark = savedTheme === 'dark';
+        if (currentIsDark !== shouldBeDark) {
+          applyTheme(savedTheme);
+        }
+        setIsDarkMode(shouldBeDark);
       }
     };
     
-    updateThemeState();
+    // Don't update immediately - let AuthContext load theme first
+    // Only update state for UI display
+    const savedTheme = loadThemeFromStorage();
+    if (savedTheme === 'system') {
+      const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(systemIsDark);
+    } else {
+      setIsDarkMode(savedTheme === 'dark');
+    }
     
     // Listen to system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -284,13 +302,28 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     };
   }, []);
 
-  const handleThemeToggle = (checked: boolean) => {
+  const handleThemeToggle = async (checked: boolean) => {
     // Toggle between light and dark (ignore system mode for toggle)
     const currentTheme = loadThemeFromStorage();
     const newTheme: Theme = (currentTheme === 'dark' || isDarkMode) ? 'light' : 'dark';
     
     setIsDarkMode(newTheme === 'dark');
     applyTheme(newTheme);
+    
+    // Save to Firestore if user is logged in
+    if (currentUser?.uid) {
+      try {
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const { db } = await import('../lib/firebase');
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          theme: newTheme,
+          settingsUpdatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Error saving theme to Firestore:', error);
+        // Don't show error to user, localStorage is enough for persistence
+      }
+    }
     
     // Dispatch custom event to update other components
     window.dispatchEvent(new Event('themechange'));
@@ -332,6 +365,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/cv-analysis' ||
     location.pathname.startsWith('/resume-builder') ||
     location.pathname === '/professional-profile' ||
+    location.pathname === '/campaigns' ||
     location.pathname.startsWith('/notes/');
 
   return (

@@ -7,16 +7,27 @@ export type Theme = 'light' | 'dark' | 'system';
 
 /**
  * Apply theme to the document
+ * @param theme - Theme to apply
+ * @param skipIfSame - If true, skip applying if the theme is already applied
  */
-export function applyTheme(theme: Theme) {
+export function applyTheme(theme: Theme, skipIfSame: boolean = false) {
   const root = document.documentElement;
   
+  let shouldBeDark: boolean;
   if (theme === 'system') {
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    root.classList.toggle('dark', systemTheme === 'dark');
+    shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   } else {
-    root.classList.toggle('dark', theme === 'dark');
+    shouldBeDark = theme === 'dark';
   }
+  
+  const currentlyDark = root.classList.contains('dark');
+  
+  // Skip if already in the correct state
+  if (skipIfSame && currentlyDark === shouldBeDark) {
+    return;
+  }
+  
+  root.classList.toggle('dark', shouldBeDark);
   
   // Save to localStorage for persistence
   localStorage.setItem('theme', theme);
