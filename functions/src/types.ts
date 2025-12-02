@@ -1,4 +1,16 @@
-export type ATSProvider = 'greenhouse' | 'lever' | 'smartrecruiters' | 'workday' | 'ashby';
+export type ATSProvider = 
+	| 'greenhouse' 
+	| 'lever' 
+	| 'smartrecruiters' 
+	| 'workday' 
+	| 'ashby'
+	| 'recruitee'
+	| 'personio'
+	| 'breezyhr'
+	| 'teamtailor'
+	| 'workable'
+	| 'remoteok'
+	| 'adzuna';
 
 export interface UserProfile {
 	name: string;

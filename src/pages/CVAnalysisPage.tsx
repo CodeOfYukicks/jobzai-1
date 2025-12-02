@@ -2979,7 +2979,25 @@ export default function CVAnalysisPage() {
             (normalizedMatchScore !== undefined && normalizedMatchScore > 0) ||
             (data._isLoading === false);
 
-          if (isCompleted && data._isLoading !== false) {
+          // Check if analysis failed
+          const isFailed = data.status === 'failed' || data.error;
+
+          if (isFailed) {
+            console.log(`❌ Analysis ${analysis.id} failed! Updating local state...`);
+
+            // Update the analysis in local state to mark as failed
+            setAnalyses(prev => prev.map(a =>
+              a.id === analysis.id
+                ? { ...a, _isLoading: false, error: data.error || 'Analysis failed' }
+                : a
+            ));
+
+            // Show error notification
+            toast.error(`Analysis failed: ${data.error || 'Unknown error'}`, {
+              duration: 8000,
+              icon: '❌'
+            });
+          } else if (isCompleted && data._isLoading !== false) {
             console.log(`✅ Analysis ${analysis.id} completed! Updating local state...`);
 
             // Update the analysis in local state
@@ -3015,7 +3033,7 @@ export default function CVAnalysisPage() {
   useEffect(() => {
     if (!currentUser) return;
 
-    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    const TIMEOUT_MS = 9 * 60 * 1000; // 9 minutes (matches Cloud Function timeout)
     const CHECK_INTERVAL_MS = 30 * 1000; // Check every 30 seconds
 
     const checkTimeouts = () => {
@@ -3039,7 +3057,7 @@ export default function CVAnalysisPage() {
       });
 
       if (timedOutAnalyses.length > 0) {
-        console.warn(`⏱️ Found ${timedOutAnalyses.length} analyses that exceeded timeout (5 minutes)`);
+        console.warn(`⏱️ Found ${timedOutAnalyses.length} analyses that exceeded timeout (9 minutes)`);
 
         timedOutAnalyses.forEach(async (analysis) => {
           console.log(`⏱️ Marking analysis ${analysis.id} as failed due to timeout`);
@@ -3057,7 +3075,7 @@ export default function CVAnalysisPage() {
             await setDoc(doc(analysesRef, analysis.id), {
               _isLoading: false,
               status: 'failed',
-              error: 'Analysis timed out after 5 minutes. Please try again.',
+              error: 'Analysis timed out after 9 minutes. Please try again.',
               updatedAt: serverTimestamp(),
             }, { merge: true });
 
@@ -4357,6 +4375,19 @@ URL to visit: ${jobUrl}
           );
 
           if (result.status === 'error') {
+            // Mark analysis as failed in Firestore before throwing
+            try {
+              const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
+              await setDoc(doc(analysesRef, placeholderId), {
+                _isLoading: false,
+                status: 'failed',
+                error: result.message || 'Premium analysis failed',
+                updatedAt: serverTimestamp(),
+              }, { merge: true });
+              console.log('✅ Marked analysis as failed in Firestore');
+            } catch (firestoreError) {
+              console.error('❌ Error updating Firestore:', firestoreError);
+            }
             throw new Error(result.message || 'Premium analysis failed');
           }
 

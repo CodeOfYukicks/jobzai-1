@@ -22,6 +22,7 @@ export default {
 			fontFamily: {
 				'geist': ['Geist', 'system-ui', 'sans-serif'],
 				'inter-tight': ['Inter Tight', 'system-ui', 'sans-serif'],
+				'display': ['Instrument Serif', 'Georgia', 'serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

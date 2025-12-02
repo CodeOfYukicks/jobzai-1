@@ -1,4 +1,5 @@
-// Version 2.0 - Worker-based architecture
+// Version 3.0 - Scalable Queue-based Architecture (Dec 2025)
+// Supports 1000+ companies with distributed task processing
 import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {
@@ -9,6 +10,7 @@ export { fetchJobsFromATS } from './fetchJobs';
 export { generateJobEmbedding } from './generateJobEmbedding';
 export { generateUserEmbedding } from './generateUserEmbedding';
 export { matchJobsForUsers } from './matchJobsForUsers';
+export { getMatchedJobs } from './getMatchedJobs';
 
 // 🚀 NEW: Queue-based ATS job fetching architecture
 // Scalable, fault-tolerant system for fetching jobs from multiple ATS sources
@@ -16,8 +18,47 @@ export { scheduleFetchJobs } from './schedulers/fetchJobsScheduler';
 export { fetchJobsWorker } from './workers/fetchJobsWorker';
 export { enrichSkillsWorker } from './workers/enrichSkillsWorker';
 
-// 🤖 AUTOMATED: Master + Batch Architecture (Production Ready)
-// Master triggers 4 batches in parallel for fast, reliable execution
+// 🎯 DISTRIBUTED QUEUE SYSTEM (Scale to 100K+ jobs)
+// Modern queue-based architecture with automatic retry and monitoring
+export {
+	createFetchTasks,       // Scheduled task creator (every 6 hours)
+	createFetchTasksManual, // Manual HTTP endpoint for testing
+	getQueueStatus,         // Queue monitoring endpoint
+	processFetchTask,       // Firestore trigger for task processing
+	processTaskManual,      // Manual task processing endpoint
+	retryFailedTasks,       // Retry failed tasks
+} from './queue';
+
+// 🔄 DYNAMIC BATCH PROCESSOR (replaces hardcoded batches)
+// Automatically distributes 500+ companies across providers
+export { processDynamicBatch } from './dynamicBatchProcessor';
+
+// 🧹 MAINTENANCE & CLEANUP
+// Database cleanup, TTL, and statistics
+export {
+	scheduledCleanup,
+	manualCleanup,
+	getDatabaseStats,
+} from './maintenance';
+
+// 🔍 COMPANY DISCOVERY
+// Automatic discovery of new companies from ATS sitemaps
+export {
+	scheduledDiscovery,
+	manualDiscovery,
+	getDiscoveredCompanies,
+	activateDiscoveredCompany,
+} from './discovery';
+
+// 🌐 JOB AGGREGATORS
+// External job aggregators (RemoteOK, WeWorkRemotely, Adzuna)
+export {
+	fetchFromAggregators,
+	fetchAggregatorsManual,
+} from './aggregators';
+
+// 🤖 LEGACY: Master + Batch Architecture (kept for backwards compatibility)
+// Will be deprecated in favor of the distributed queue system
 export { masterTrigger } from './masterTrigger';
 export { fetchJobsBatch1 } from './batches/fetchJobsBatch1';
 export { fetchJobsBatch2 } from './batches/fetchJobsBatch2';
@@ -27,6 +68,21 @@ export { fetchJobsBatch4 } from './batches/fetchJobsBatch4';
 // 🧪 TEST: Manual HTTP endpoint for testing Workday fetcher
 // export { testFetchWorkday } from './test/testFetchWorkday';
 
+// ============================================
+// 🚀 DIRECT EXPORTS - Force Firebase to detect these
+// ============================================
+import { processDynamicBatch as _processDynamicBatch } from './dynamicBatchProcessor';
+import { getDatabaseStats as _getDatabaseStats, manualCleanup as _manualCleanup } from './maintenance';
+import { fetchAggregatorsManual as _fetchAggregatorsManual } from './aggregators';
+import { processTaskManual as _processTaskManual, getQueueStatus as _getQueueStatus } from './queue';
+
+// Re-export with explicit names
+export const runDynamicBatch = _processDynamicBatch;
+export const dbStats = _getDatabaseStats;
+export const cleanupJobs = _manualCleanup;
+export const fetchAggregators = _fetchAggregatorsManual;
+export const testFetchTask = _processTaskManual;
+export const queueStatus = _getQueueStatus;
 
 /**
  * Import function triggers from their respective submodules:
@@ -51,7 +107,7 @@ export const testNewFunction = onRequest({
 
 // ==================== Job Enrichment Functions ====================
 
-export { enrichJobsManual, enrichSingleJob } from './enrichJobFunctions';
+export { enrichJobsManual, enrichSingleJob, reEnrichAllJobsV4 } from './enrichJobFunctions';
 import { emailService } from './lib/mailgun.js';
 import OpenAI from 'openai';
 import * as functions from 'firebase-functions';
@@ -429,9 +485,9 @@ async function handlePremiumAnalysis(
       }
     }));
 
-    // Call OpenAI API with premium prompt - Updated to GPT-5.1 (Nov 2025)
+    // Call OpenAI API with premium prompt - Reverted to GPT-4o (stable)
     const completion = await openaiClient.chat.completions.create({
-      model: 'gpt-5.1',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
@@ -446,12 +502,11 @@ async function handlePremiumAnalysis(
         }
       ],
       response_format: { type: 'json_object' },
-      max_tokens: 8000,
-      temperature: 0.2,
-      reasoning_effort: 'high', // GPT-5.1 feature for premium analysis
+      max_tokens: 6000,
+      temperature: 0.2, // Low for consistency
     });
 
-    console.log('✅ Premium analysis received from GPT-5.1');
+    console.log('✅ Premium analysis received from GPT-4o');
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
@@ -516,6 +571,28 @@ async function handlePremiumAnalysis(
     });
   } catch (error: any) {
     console.error('❌ Error in premium analysis:', error);
+    
+    // CRITICAL: Always update Firestore to mark analysis as failed
+    // This prevents the analysis from staying in loading state forever
+    if (userId && analysisId) {
+      try {
+        await admin.firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('analyses')
+          .doc(analysisId)
+          .set({
+            _isLoading: false,
+            status: 'failed',
+            error: error.message || 'Internal server error',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+        console.log('✅ Marked analysis as failed in Firestore');
+      } catch (firestoreError) {
+        console.error('❌ Failed to update Firestore with error status:', firestoreError);
+      }
+    }
+    
     res.status(500).json({
       status: 'error',
       message: error.message || 'Internal server error'
@@ -531,7 +608,7 @@ export const analyzeCVVision = onRequest({
   region: 'us-central1',
   cors: true,
   maxInstances: 10,
-  timeoutSeconds: 300, // 5 minutes timeout for large PDFs
+  timeoutSeconds: 540, // 9 minutes timeout (max for Gen 2) - needed for GPT-5.1 with reasoning
   invoker: 'public', // Allow public access (no authentication required)
 }, async (req, res) => {
   // Set CORS headers
@@ -568,7 +645,7 @@ export const analyzeCVVision = onRequest({
       return await handlePremiumAnalysis(req, res, resumeImages, jobContext, userId, analysisId);
     }
 
-    const { model, messages, response_format, max_tokens, temperature } = req.body;
+    const { model, messages, response_format, max_tokens, max_completion_tokens, temperature } = req.body;
 
     // Validate request for regular vision analysis
     if (!model || !messages || !Array.isArray(messages)) {
@@ -611,17 +688,16 @@ export const analyzeCVVision = onRequest({
     });
     console.log(`   Images: ${imageCount}`);
 
-    // Call OpenAI API - Updated to GPT-5.1 (Nov 2025)
+    // Call OpenAI API - Reverted to GPT-4o (stable)
     const completion = await openaiClient.chat.completions.create({
-      model: model || 'gpt-5.1',
+      model: model || 'gpt-4o',
       messages: messages,
       response_format: response_format || { type: 'json_object' },
-      max_tokens: max_tokens || 6000, // Increased for more detailed analysis
-      temperature: temperature || 0.1, // Lower temperature for more precise, consistent analysis
-      reasoning_effort: 'high', // GPT-5.1 feature for comprehensive analysis
+      max_tokens: max_tokens || 6000,
+      temperature: 0.1, // Low for consistency
     });
 
-    console.log('✅ GPT-5.1 Vision API response received');
+    console.log('✅ GPT-4o Vision API response received');
 
     // Extract content
     const content = completion.choices[0]?.message?.content;
@@ -700,7 +776,7 @@ export const analyzeResumePremium = onRequest(
     region: 'us-central1',
     cors: [/localhost:\d+/, /\.web\.app$/, /\.firebaseapp\.com$/],
     maxInstances: 10,
-    timeoutSeconds: 300,
+    timeoutSeconds: 540, // 9 minutes timeout (max for Gen 2) - needed for GPT-5.1 with reasoning
     invoker: 'public',
   },
   async (req, res) => {
@@ -719,10 +795,11 @@ export const analyzeResumePremium = onRequest(
       return;
     }
 
+    // Extract userId and analysisId before try block so they're available in catch
+    const { resumeImages, jobContext, userId, analysisId } = req.body;
+
     try {
       console.log('🎯 Premium ATS analysis request received');
-
-      const { resumeImages, jobContext, userId, analysisId } = req.body;
 
       // Validate request
       if (!resumeImages || !Array.isArray(resumeImages) || resumeImages.length === 0) {
@@ -780,9 +857,9 @@ export const analyzeResumePremium = onRequest(
         }
       }));
 
-      // Call OpenAI API with premium prompt - Updated to GPT-5.1 (Nov 2025)
+      // Call OpenAI API with premium prompt - Reverted to GPT-4o (stable)
       const completion = await openaiClient.chat.completions.create({
-        model: 'gpt-5.1',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -800,12 +877,11 @@ export const analyzeResumePremium = onRequest(
           }
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 8000, // Increased for comprehensive analysis
-        temperature: 0.2, // Low for consistency and precision
-        reasoning_effort: 'high', // GPT-5.1 feature for premium analysis
+        max_tokens: 6000,
+        temperature: 0.2, // Low for consistency
       });
 
-      console.log('✅ Premium analysis received from GPT-5.1');
+      console.log('✅ Premium analysis received from GPT-4o');
 
       // Extract and parse content
       const content = completion.choices[0]?.message?.content;
@@ -886,6 +962,27 @@ export const analyzeResumePremium = onRequest(
 
     } catch (error: any) {
       console.error('❌ Error in analyzeCVPremium:', error);
+
+      // CRITICAL: Always update Firestore to mark analysis as failed
+      // This prevents the analysis from staying in loading state forever
+      if (userId && analysisId) {
+        try {
+          await admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('analyses')
+            .doc(analysisId)
+            .set({
+              _isLoading: false,
+              status: 'failed',
+              error: error.response?.data?.error?.message || error.message || 'Internal server error',
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+          console.log('✅ Marked analysis as failed in Firestore');
+        } catch (firestoreError) {
+          console.error('❌ Failed to update Firestore with error status:', firestoreError);
+        }
+      }
 
       // Handle OpenAI API errors
       if (error.response) {
@@ -2245,9 +2342,71 @@ const handleInvoicePaymentFailed = async (invoice: Stripe.Invoice) => {
 // ==================== Job Search API ====================
 
 /**
- * Global Job Search API
- * Endpoint: GET /api/jobs
- * Query params: keyword, location, remote, type, seniority, timePosted
+ * Technology aliases for better matching
+ */
+const TECH_ALIASES: Record<string, string[]> = {
+  'salesforce': ['sfdc', 'sf', 'sales cloud', 'service cloud', 'apex', 'lightning'],
+  'javascript': ['js', 'ecmascript'],
+  'typescript': ['ts'],
+  'python': ['py'],
+  'react': ['reactjs', 'react.js'],
+  'vue': ['vuejs', 'vue.js'],
+  'node.js': ['nodejs', 'node'],
+  'next.js': ['nextjs', 'next'],
+  'postgresql': ['postgres', 'psql'],
+  'mongodb': ['mongo'],
+  'kubernetes': ['k8s'],
+  'elasticsearch': ['elastic'],
+  'go': ['golang'],
+  '.net': ['dotnet', 'csharp', 'c#'],
+  'aws': ['amazon web services'],
+  'gcp': ['google cloud'],
+  'azure': ['microsoft azure'],
+  'dynamics 365': ['dynamics', 'microsoft dynamics'],
+  'machine learning': ['ml'],
+  'deep learning': ['dl'],
+  'ci/cd': ['cicd'],
+};
+
+/**
+ * Get all variations of a technology name
+ */
+function getTechVariations(tech: string): string[] {
+  const lower = tech.toLowerCase();
+  const variations = [lower];
+  
+  // Check if this tech has aliases
+  if (TECH_ALIASES[lower]) {
+    variations.push(...TECH_ALIASES[lower]);
+  }
+  
+  // Check if this is an alias for another tech
+  for (const [main, aliases] of Object.entries(TECH_ALIASES)) {
+    if (aliases.includes(lower)) {
+      variations.push(main, ...aliases);
+    }
+  }
+  
+  return [...new Set(variations)];
+}
+
+/**
+ * Global Job Search API - V2 with Smart Parsing Support
+ * 
+ * New parameters:
+ * - locations: comma-separated list of locations (multi-location support)
+ * - technologies: comma-separated list of technologies  
+ * - workLocation: remote|hybrid|on-site
+ * - roleFunction: engineering|sales|marketing|consulting|etc.
+ * - keyword: remaining unclassified search terms
+ * 
+ * Legacy parameters still supported:
+ * - location: single location (for backwards compat)
+ * - remote: boolean
+ * - fullTime: boolean
+ * - senior: boolean
+ * - experienceLevel: string
+ * - jobType: string
  */
 export const searchJobs = onRequest({
   region: 'us-central1',
@@ -2276,12 +2435,23 @@ export const searchJobs = onRequest({
   }
 
   try {
-    console.log('🔍 Job search request received');
+    console.log('🔍 Job search V2 request received');
     console.log('   Query params:', req.query);
 
-    // Extract query parameters
+    // ============================================
+    // EXTRACT PARAMETERS (V2 + Legacy support)
+    // ============================================
+    
+    // V2 Smart Parser Parameters
     const keyword = req.query.keyword as string | undefined;
-    const location = req.query.location as string | undefined;
+    const locationsParam = req.query.locations as string | undefined;
+    const technologiesParam = req.query.technologies as string | undefined;
+    const workLocation = req.query.workLocation as string | undefined;
+    const roleFunction = req.query.roleFunction as string | undefined;
+    const employmentType = req.query.employmentType as string | undefined;
+    
+    // Legacy parameters (for backwards compatibility)
+    const legacyLocation = req.query.location as string | undefined;
     const remote = req.query.remote === 'true';
     const fullTime = req.query.fullTime === 'true';
     const senior = req.query.senior === 'true';
@@ -2289,23 +2459,34 @@ export const searchJobs = onRequest({
     const experienceLevel = req.query.experienceLevel as string | undefined;
     const jobType = req.query.jobType as string | undefined;
 
-    // NEW: Support for enriched tags
+    // Parse multi-value parameters
+    const locations = locationsParam 
+      ? locationsParam.split(',').map(l => l.trim().toLowerCase())
+      : (legacyLocation ? [legacyLocation.toLowerCase()] : []);
+    
+    const technologies = technologiesParam 
+      ? technologiesParam.split(',').map(t => t.trim().toLowerCase())
+      : [];
+    
+    // Other enriched tags from UI filters
     const industries = req.query.industries ? (req.query.industries as string).split(',') : [];
-    const technologies = req.query.technologies ? (req.query.technologies as string).split(',') : [];
     const skills = req.query.skills ? (req.query.skills as string).split(',') : [];
 
-    console.log('=== Search Jobs Request ===');
+    console.log('=== Smart Search V2 ===');
     console.log(`   Keyword: ${keyword || 'none'}`);
-    console.log(`   Location: ${location || 'none'}`);
-    console.log(`   Remote: ${remote}`);
-    console.log(`   Full-time: ${fullTime}`);
-    console.log(`   Senior: ${senior}`);
-    console.log(`   Experience Level: ${experienceLevel || 'none'}`);
-    console.log(`   Job Type: ${jobType || 'none'}`);
-    console.log(`   Industries: ${industries.length > 0 ? industries.join(', ') : 'none'}`);
+    console.log(`   Locations: ${locations.length > 0 ? locations.join(', ') : 'none'}`);
     console.log(`   Technologies: ${technologies.length > 0 ? technologies.join(', ') : 'none'}`);
+    console.log(`   Work Location: ${workLocation || 'none'}`);
+    console.log(`   Role Function: ${roleFunction || 'none'}`);
+    console.log(`   Employment Type: ${employmentType || 'none'}`);
+    console.log(`   Experience Level: ${experienceLevel || 'none'}`);
+    console.log(`   Remote (legacy): ${remote}`);
+    console.log(`   Full-time (legacy): ${fullTime}`);
+    console.log(`   Senior (legacy): ${senior}`);
+    console.log(`   Industries: ${industries.length > 0 ? industries.join(', ') : 'none'}`);
     console.log(`   Skills: ${skills.length > 0 ? skills.join(', ') : 'none'}`);
-    const limit = parseInt((req.query.limit as string) || '200', 10);
+    
+    const limitParam = parseInt((req.query.limit as string) || '200', 10);
 
     // Build optimized Firestore query
     let jobsQuery: admin.firestore.Query = admin.firestore().collection('jobs');
@@ -2325,8 +2506,11 @@ export const searchJobs = onRequest({
 
     // Limit results
     // If any filter is active, we need to search deeper to find matches in older jobs
-    const isFiltering = keyword || location || remote || fullTime || senior || experienceLevel || jobType || industries.length > 0 || technologies.length > 0 || skills.length > 0;
-    const effectiveLimit = isFiltering ? 4000 : Math.min(limit, 1000);
+    const hasAnyFilter = keyword || locations.length > 0 || technologies.length > 0 || 
+                         workLocation || roleFunction || employmentType ||
+                         remote || fullTime || senior || experienceLevel || jobType || 
+                         industries.length > 0 || skills.length > 0;
+    const effectiveLimit = hasAnyFilter ? 4000 : Math.min(limitParam, 1000);
     jobsQuery = jobsQuery.limit(effectiveLimit);
 
     // Execute the query
@@ -2336,15 +2520,7 @@ export const searchJobs = onRequest({
 
     // --- 2. In-Memory Filtering (Keyword & Complex Logic) ---
 
-    let jobs = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        // Ensure logoUrl is mapped correctly from either companyLogo or logoUrl
-        logoUrl: data.companyLogo || data.logoUrl || '',
-      };
-    }) as Array<{
+    interface JobDoc {
       id: string;
       title?: string;
       description?: string;
@@ -2360,187 +2536,345 @@ export const searchJobs = onRequest({
       level?: string;
       type?: string;
       employmentType?: string;
-      employmentTypes?: string[]; // New tag field
+      employmentTypes?: string[];
       salaryRange?: string;
       compensation?: string;
       remote?: string;
       remotePolicy?: string;
-      workLocations?: string[]; // New tag field
-      experienceLevels?: string[]; // New tag field
-      industries?: string[]; // NEW: Enriched industries tags
-      technologies?: string[]; // NEW: Enriched  technologies tags
+      workLocations?: string[];
+      experienceLevels?: string[];
+      industries?: string[];
+      technologies?: string[];
+      roleFunction?: string;
       ats?: string;
-    }>;
+      _score?: number; // For relevance sorting
+    }
 
-    // Apply keyword filter (search in title, description, company, and location)
-    if (keyword) {
-      const keywordLower = keyword.toLowerCase();
+    let jobs: JobDoc[] = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        logoUrl: data.companyLogo || data.logoUrl || '',
+      } as JobDoc;
+    });
 
-      jobs = jobs.filter(job => {
-        const title = (job.title || '').toLowerCase();
-        const description = (job.description || job.summary || '').toLowerCase();
-        const company = (job.company || '').toLowerCase();
-        const skills = Array.isArray(job.skills)
-          ? job.skills.join(' ').toLowerCase()
-          : '';
+    // ============================================
+    // SMART MULTI-FIELD SEARCH
+    // ============================================
 
-        const matches = title.includes(keywordLower) ||
-          description.includes(keywordLower) ||
-          company.includes(keywordLower) ||
-          skills.includes(keywordLower);
+    /**
+     * Check if a job matches a keyword in any relevant field
+     */
+    const matchesKeyword = (job: JobDoc, kw: string): boolean => {
+      const lower = kw.toLowerCase();
+      const title = (job.title || '').toLowerCase();
+      const description = (job.description || job.summary || '').toLowerCase();
+      const company = (job.company || '').toLowerCase();
+      const jobLocation = (job.location || '').toLowerCase();
+      const jobSkills = Array.isArray(job.skills) ? job.skills.join(' ').toLowerCase() : '';
+      const jobTechs = Array.isArray(job.technologies) ? job.technologies.join(' ').toLowerCase() : '';
+      const jobIndustries = Array.isArray(job.industries) ? job.industries.join(' ').toLowerCase() : '';
+      const jobRoleFunction = (job.roleFunction || '').toLowerCase();
 
-        // Log when we find a match with company name
-        if (matches && company.includes(keywordLower)) {
-          console.log(`   ✓ Match found in company: "${job.company}"`);
+      return title.includes(lower) ||
+             description.includes(lower) ||
+             company.includes(lower) ||
+             jobLocation.includes(lower) ||
+             jobSkills.includes(lower) ||
+             jobTechs.includes(lower) ||
+             jobIndustries.includes(lower) ||
+             jobRoleFunction.includes(lower);
+    };
+
+    /**
+     * Check if job matches any of multiple locations (OR logic)
+     */
+    const matchesLocations = (job: JobDoc, locs: string[]): boolean => {
+      if (locs.length === 0) return true;
+      const jobLocation = (job.location || '').toLowerCase();
+      return locs.some(loc => jobLocation.includes(loc));
+    };
+
+    /**
+     * Check if job matches any of multiple technologies (with aliases)
+     */
+    const matchesTechnologies = (job: JobDoc, techs: string[]): boolean => {
+      if (techs.length === 0) return true;
+      
+      const jobTechs = Array.isArray(job.technologies) 
+        ? job.technologies.map(t => t.toLowerCase()) 
+        : [];
+      const title = (job.title || '').toLowerCase();
+      const description = (job.description || job.summary || '').toLowerCase();
+      
+      return techs.some(tech => {
+        // Get all variations of this technology
+        const variations = getTechVariations(tech);
+        
+        // Check in technologies array
+        if (variations.some(v => jobTechs.some(jt => jt.includes(v) || v.includes(jt)))) {
+          return true;
         }
-
-        return matches;
+        
+        // Also check in title and description for broader matching
+        if (variations.some(v => title.includes(v) || description.includes(v))) {
+          return true;
+        }
+        
+        return false;
       });
+    };
 
-      console.log(`   Jobs after keyword filter: ${jobs.length}`);
-    }
-
-    // Apply location filter
-    if (location) {
-      const locationLower = location.toLowerCase();
-      jobs = jobs.filter(job => {
-        const jobLocation = (job.location || '').toLowerCase();
-        return jobLocation.includes(locationLower);
-      });
-    }
-
-    // Apply remote filter - check both old 'remote' field and new 'workLocations' array
-    if (remote) {
-      jobs = jobs.filter(job => {
-        const remotePolicy = (job.remote || job.remotePolicy || '').toLowerCase();
-        const workLocations = job.workLocations || [];
-
+    /**
+     * Check if job matches work location preference
+     */
+    const matchesWorkLocation = (job: JobDoc, wl: string): boolean => {
+      const remotePolicy = (job.remote || job.remotePolicy || '').toLowerCase();
+      const jobWorkLocations = job.workLocations || [];
+      
+      if (wl === 'remote') {
         return remotePolicy.includes('remote') ||
-          remotePolicy.includes('fully remote') ||
-          remotePolicy.includes('work from home') ||
-          workLocations.includes('remote');
-      });
+               remotePolicy.includes('fully remote') ||
+               remotePolicy.includes('work from home') ||
+               jobWorkLocations.includes('remote');
+      }
+      if (wl === 'hybrid') {
+        return remotePolicy.includes('hybrid') ||
+               remotePolicy.includes('flex') ||
+               jobWorkLocations.includes('hybrid');
+      }
+      if (wl === 'on-site') {
+        return remotePolicy.includes('on-site') ||
+               remotePolicy.includes('onsite') ||
+               remotePolicy.includes('in-office') ||
+               jobWorkLocations.includes('on-site');
+      }
+      return true;
+    };
+
+    /**
+     * Check if job matches role function
+     */
+    const matchesRoleFunction = (job: JobDoc, rf: string): boolean => {
+      const jobRoleFunction = (job.roleFunction || '').toLowerCase();
+      const title = (job.title || '').toLowerCase();
+      
+      // Direct match on roleFunction field
+      if (jobRoleFunction === rf.toLowerCase()) {
+        return true;
+      }
+      
+      // Fallback: check title for role keywords
+      const roleKeywords: Record<string, string[]> = {
+        'engineering': ['engineer', 'developer', 'développeur', 'devops', 'sre', 'architect', 'programmer'],
+        'sales': ['sales', 'account executive', 'bdr', 'sdr', 'commercial', 'account manager'],
+        'marketing': ['marketing', 'growth', 'content', 'seo', 'brand', 'communication'],
+        'consulting': ['consultant', 'consulting', 'advisor', 'conseil'],
+        'data': ['data', 'analyst', 'analytics', 'bi', 'scientist'],
+        'product': ['product manager', 'product owner', 'chef de produit'],
+        'design': ['designer', 'ux', 'ui', 'creative', 'graphic'],
+        'hr': ['hr', 'recruiter', 'talent', 'people', 'rh'],
+        'finance': ['finance', 'financial', 'accountant', 'controller', 'comptable'],
+        'operations': ['operations', 'ops', 'supply chain', 'logistics'],
+        'support': ['support', 'customer success', 'customer service'],
+        'legal': ['legal', 'lawyer', 'juriste', 'compliance'],
+      };
+      
+      const keywords = roleKeywords[rf.toLowerCase()] || [];
+      return keywords.some(kw => title.includes(kw));
+    };
+
+    // ============================================
+    // APPLY FILTERS
+    // ============================================
+
+    // Apply keyword filter with tokenization
+    if (keyword) {
+      const tokens = keyword.toLowerCase().split(/\s+/).filter(t => t.length > 1);
+      
+      if (tokens.length > 0) {
+        jobs = jobs.filter(job => {
+          // Job must match ALL keyword tokens (AND logic)
+          return tokens.every(token => matchesKeyword(job, token));
+        });
+        console.log(`   Jobs after keyword filter (${tokens.join(', ')}): ${jobs.length}`);
+      }
     }
 
-    // Apply full-time filter - check both old 'type' field and new 'employmentTypes' array
-    if (fullTime) {
+    // Apply multi-location filter (OR logic - matches any location)
+    if (locations.length > 0) {
+      jobs = jobs.filter(job => matchesLocations(job, locations));
+      console.log(`   Jobs after location filter (${locations.join(', ')}): ${jobs.length}`);
+    }
+
+    // Apply technologies filter with alias support
+    if (technologies.length > 0) {
+      jobs = jobs.filter(job => matchesTechnologies(job, technologies));
+      console.log(`   Jobs after technologies filter: ${jobs.length}`);
+    }
+
+    // Apply work location filter (V2 smart param)
+    if (workLocation) {
+      jobs = jobs.filter(job => matchesWorkLocation(job, workLocation));
+      console.log(`   Jobs after workLocation filter: ${jobs.length}`);
+    }
+
+    // Apply role function filter (V2 smart param)
+    if (roleFunction) {
+      jobs = jobs.filter(job => matchesRoleFunction(job, roleFunction));
+      console.log(`   Jobs after roleFunction filter: ${jobs.length}`);
+    }
+
+    // Apply employment type filter (V2 smart param)
+    if (employmentType) {
+      const etLower = employmentType.toLowerCase();
       jobs = jobs.filter(job => {
         const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
         const employmentTypes = job.employmentTypes || [];
+        return jobTypeStr.includes(etLower) || 
+               employmentTypes.some(et => et.toLowerCase().includes(etLower));
+      });
+      console.log(`   Jobs after employmentType filter: ${jobs.length}`);
+    }
 
+    // Legacy: Apply remote filter
+    if (remote && !workLocation) {
+      jobs = jobs.filter(job => matchesWorkLocation(job, 'remote'));
+    }
+
+    // Legacy: Apply full-time filter
+    if (fullTime && !employmentType) {
+      jobs = jobs.filter(job => {
+        const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
+        const employmentTypes = job.employmentTypes || [];
         return jobTypeStr.includes('full') ||
-          jobTypeStr.includes('full-time') ||
-          jobTypeStr.includes('fulltime') ||
-          employmentTypes.includes('full-time');
+               jobTypeStr.includes('full-time') ||
+               jobTypeStr.includes('fulltime') ||
+               employmentTypes.includes('full-time');
       });
     }
 
-    // Apply seniority filter (senior) - check both old 'seniority' field and new 'experienceLevels' array
+    // Legacy: Apply seniority filter (senior)
     if (senior) {
       jobs = jobs.filter(job => {
         const seniorityLevel = (job.seniority || job.level || '').toLowerCase();
         const experienceLevels = job.experienceLevels || [];
-
         return seniorityLevel.includes('senior') ||
-          seniorityLevel.includes('sr') ||
-          seniorityLevel.includes('lead') ||
-          seniorityLevel.includes('principal') ||
-          experienceLevels.includes('senior') ||
-          experienceLevels.includes('lead');
+               seniorityLevel.includes('sr') ||
+               seniorityLevel.includes('lead') ||
+               seniorityLevel.includes('principal') ||
+               experienceLevels.includes('senior') ||
+               experienceLevels.includes('lead');
       });
     }
 
-    // Apply experience level filter (from dropdown) - check both old and new fields
+    // Apply experience level filter
     if (experienceLevel) {
       const levelLower = experienceLevel.toLowerCase();
       jobs = jobs.filter(job => {
         const jobLevel = (job.seniority || job.level || '').toLowerCase();
         const experienceLevels = job.experienceLevels || [];
-
         return jobLevel.includes(levelLower) ||
-          experienceLevels.some(level => level.toLowerCase().includes(levelLower));
+               experienceLevels.some(level => level.toLowerCase().includes(levelLower));
       });
+      console.log(`   Jobs after experienceLevel filter: ${jobs.length}`);
     }
 
-    // Apply job type filter (from dropdown) - check both old and new fields
+    // Apply job type filter (legacy)
     if (jobType) {
       const typeLower = jobType.toLowerCase();
       jobs = jobs.filter(job => {
         const jobTypeValue = (job.type || job.employmentType || '').toLowerCase();
         const employmentTypes = job.employmentTypes || [];
-
         return jobTypeValue.includes(typeLower) ||
-          employmentTypes.some(type => type.toLowerCase().includes(typeLower));
+               employmentTypes.some(type => type.toLowerCase().includes(typeLower));
       });
     }
 
-    // NEW: Apply industries filter
+    // Apply industries filter
     if (industries.length > 0) {
       jobs = jobs.filter(job => {
         const jobIndustries = job.industries || [];
-        // Check if job has any of the requested industries
         return industries.some(industry =>
-          jobIndustries.includes(industry.toLowerCase())
+          jobIndustries.some(ji => ji.toLowerCase().includes(industry.toLowerCase()))
         );
       });
       console.log(`   Jobs after industries filter: ${jobs.length}`);
     }
 
-    // NEW: Apply technologies filter
-    if (technologies.length > 0) {
-      jobs = jobs.filter(job => {
-        const jobTechs = job.technologies || [];
-        // Check if job has any of the requested technologies
-        return technologies.some(tech =>
-          jobTechs.includes(tech.toLowerCase())
-        );
-      });
-      console.log(`   Jobs after technologies filter: ${jobs.length}`);
-    }
-
-    // NEW: Apply skills filter
+    // Apply skills filter
     if (skills.length > 0) {
       jobs = jobs.filter(job => {
         const jobSkills = Array.isArray(job.skills) ? job.skills.map(s => s.toLowerCase()) : [];
-        return skills.some(skill => jobSkills.includes(skill.toLowerCase()));
+        return skills.some(skill => jobSkills.some(js => js.includes(skill.toLowerCase())));
       });
       console.log(`   Jobs after skills filter: ${jobs.length}`);
     }
-    // Note: last24h filter is already applied at Firestore query level for optimization
-    // No need to filter again in memory
 
     console.log(`   Returning ${jobs.length} filtered jobs`);
 
-    // Sort by relevance if keyword is present
-    if (keyword) {
-      const keywordLower = keyword.toLowerCase();
+    // ============================================
+    // RELEVANCE SCORING
+    // ============================================
+    
+    // Calculate relevance scores for sorting
+    const calculateRelevanceScore = (job: JobDoc): number => {
+      let score = 0;
+      const title = (job.title || '').toLowerCase();
+      const company = (job.company || '').toLowerCase();
+      const description = (job.description || job.summary || '').toLowerCase();
+      const jobLocation = (job.location || '').toLowerCase();
+      const jobTechs = Array.isArray(job.technologies) ? job.technologies.map(t => t.toLowerCase()) : [];
+
+      // Score for keyword matches
+      if (keyword) {
+        const tokens = keyword.toLowerCase().split(/\s+/).filter(t => t.length > 1);
+        for (const token of tokens) {
+          if (title.includes(token)) score += 30;
+          if (company === token) score += 100;
+          else if (company.includes(token)) score += 50;
+          if (jobTechs.some(t => t.includes(token))) score += 25;
+          if (description.includes(token)) score += 5;
+        }
+      }
+
+      // Score for technology matches (with priority for title matches)
+      if (technologies.length > 0) {
+        for (const tech of technologies) {
+          const variations = getTechVariations(tech);
+          if (variations.some(v => title.includes(v))) score += 40;
+          if (variations.some(v => jobTechs.some(jt => jt.includes(v)))) score += 30;
+        }
+      }
+
+      // Score for location matches
+      if (locations.length > 0) {
+        for (const loc of locations) {
+          if (jobLocation.includes(loc)) score += 20;
+        }
+      }
+
+      // Score for role function match
+      if (roleFunction && job.roleFunction?.toLowerCase() === roleFunction.toLowerCase()) {
+        score += 25;
+      }
+
+      return score;
+    };
+
+    // Sort by relevance if any search criteria present
+    if (keyword || technologies.length > 0 || locations.length > 0 || roleFunction) {
+      jobs.forEach(job => {
+        job._score = calculateRelevanceScore(job);
+      });
+
       jobs.sort((a, b) => {
-        let scoreA = 0;
-        let scoreB = 0;
-
-        const getScore = (job: any) => {
-          let score = 0;
-          const company = (job.company || '').toLowerCase();
-          const title = (job.title || '').toLowerCase();
-          const description = (job.description || job.summary || '').toLowerCase();
-
-          if (company === keywordLower) score += 100;
-          else if (company.includes(keywordLower)) score += 50;
-
-          if (title.includes(keywordLower)) score += 30;
-
-          if (job.technologies && job.technologies.some(t => t.toLowerCase().includes(keywordLower))) score += 20;
-
-          if (description.includes(keywordLower)) score += 10;
-
-          return score;
-        };
-
-        scoreA = getScore(a);
-        scoreB = getScore(b);
-
-        if (scoreA !== scoreB) return scoreB - scoreA;
-
+        // First by relevance score
+        const scoreDiff = (b._score || 0) - (a._score || 0);
+        if (scoreDiff !== 0) return scoreDiff;
+        
+        // Then by date
         const dateA = a.postedAt?._seconds || 0;
         const dateB = b.postedAt?._seconds || 0;
         return dateB - dateA;

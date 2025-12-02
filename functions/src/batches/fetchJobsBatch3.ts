@@ -1,5 +1,12 @@
 /**
- * Batch 3: Greenhouse Companies 41-68 + Lever + Ashby
+ * ⚠️ DEPRECATED - Use processDynamicBatch instead
+ * 
+ * This file is kept for backwards compatibility only.
+ * The dynamic batch processor automatically handles all companies.
+ * 
+ * Migration: Use processDynamicBatch
+ * 
+ * Batch 3: Greenhouse Companies 41-68 + Lever + Ashby (Legacy)
  */
 
 import { onRequest } from 'firebase-functions/v2/https';

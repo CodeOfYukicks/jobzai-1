@@ -1,86 +1,122 @@
-import { memo } from 'react';
-import { Target, Code, Users, Lightbulb, Rocket, Shield, Award, Zap } from 'lucide-react';
-import { JobApplication, Interview } from '../../../types/interview';
+import { memo, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { Interview } from '../../../types/interview';
+import { JobApplication } from '../../../types/job';
 
 interface PositionDetailsSectionProps {
   application: JobApplication;
   interview: Interview;
 }
 
-const responsibilityIcons = [Target, Code, Users, Lightbulb, Rocket, Shield, Award, Zap];
-
 const PositionDetailsSection = memo(function PositionDetailsSection({
   application,
   interview,
 }: PositionDetailsSectionProps) {
   const positionDetails = interview?.preparation?.positionDetails;
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   
-  // Extract first sentence as headline
-  const headline = positionDetails?.split('.')[0] || `The ${application.position} role involves key responsibilities in the organization`;
+  // Extract headline
+  const headline = positionDetails?.split('.')[0] || `Key responsibilities for ${application.position}`;
   
-  // Extract remaining sentences as individual responsibilities
-  const sentences = positionDetails?.split('.').slice(1).filter(s => s.trim().length > 0) || [];
+  // Extract sentences as responsibilities
+  const responsibilities = positionDetails
+    ?.split('.')
+    .slice(1)
+    .filter(s => s.trim().length > 10)
+    .slice(0, 6) || [];
 
   return (
-    <article className="group rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300">
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 ring-1 ring-inset ring-purple-100 dark:ring-purple-500/20">
-            <Target className="w-5 h-5" />
-          </div>
+    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden transition-colors">
+      
+      {/* Header Bar */}
+      <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white tracking-tight">
-              Position Details
-            </h2>
-            <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>Role expectations for</span>
-              <span className="font-medium text-gray-700 dark:text-gray-300">{application.position}</span>
-            </div>
+            <span className="text-[10px] font-semibold tracking-[0.15em] uppercase text-slate-400 dark:text-slate-500">
+              Role Overview
+            </span>
+            <h3 className="mt-1 text-lg font-medium text-slate-900 dark:text-white">
+              {application.position}
+            </h3>
           </div>
+          {responsibilities.length > 0 && (
+            <span className="px-2.5 py-1 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-medium">
+              {responsibilities.length} responsibilities
+            </span>
+          )}
         </div>
-      </header>
+      </div>
 
-      <div className="space-y-8">
-        {/* Headline */}
-        <div className="relative pl-5 border-l-4 border-purple-500/30 dark:border-purple-400/30">
-          <p className="text-base font-medium text-gray-900 dark:text-white leading-relaxed italic">
-            "{headline}."
-          </p>
-        </div>
+      {/* Content */}
+      <div className="p-8">
+        {responsibilities.length > 0 ? (
+          <div className="space-y-0">
+            {/* Headline insight */}
+            <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-400 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+              {headline}.
+            </p>
 
-        {/* Key Responsibilities Grid */}
-        {sentences.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {sentences.slice(0, 6).map((responsibility, index) => {
-              const Icon = responsibilityIcons[index % responsibilityIcons.length];
-              
-              return (
-                <div
-                  key={index}
-                  className="group/card relative overflow-hidden rounded-xl bg-gray-50/50 dark:bg-gray-800/50 p-5 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md hover:shadow-purple-500/5 border border-transparent hover:border-purple-100 dark:hover:border-purple-500/20"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center group-hover/card:scale-110 transition-transform duration-200">
-                      <Icon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300 pt-0.5">
-                      {responsibility.trim()}.
-                    </p>
+            {/* Responsibilities List - Accordion style */}
+            <div className="space-y-1">
+              {responsibilities.map((responsibility, index) => {
+                const isExpanded = expandedIndex === index;
+                const text = responsibility.trim();
+                const isLong = text.length > 80;
+                
+                return (
+                  <div
+                    key={index}
+                    className={`
+                      group rounded-lg transition-all duration-200
+                      ${isExpanded ? 'bg-slate-50 dark:bg-slate-800/50' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'}
+                    `}
+                  >
+                    <button
+                      onClick={() => isLong && setExpandedIndex(isExpanded ? null : index)}
+                      className={`
+                        w-full text-left px-4 py-3 flex items-start gap-4
+                        ${isLong ? 'cursor-pointer' : 'cursor-default'}
+                      `}
+                      disabled={!isLong}
+                    >
+                      {/* Index */}
+                      <span className="flex-shrink-0 w-6 text-xs font-mono text-slate-300 dark:text-slate-600 pt-0.5">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      
+                      {/* Content */}
+                      <span 
+                        className={`
+                          flex-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300
+                          ${!isExpanded && isLong ? 'line-clamp-1' : ''}
+                        `}
+                      >
+                        {text}.
+                      </span>
+                      
+                      {/* Expand indicator */}
+                      {isLong && (
+                        <ChevronRight 
+                          className={`
+                            flex-shrink-0 w-4 h-4 text-slate-300 dark:text-slate-600 mt-0.5
+                            transition-transform duration-200
+                            ${isExpanded ? 'rotate-90' : ''}
+                          `} 
+                        />
+                      )}
+                    </button>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-dashed border-gray-200 dark:border-gray-700">
-            <div className="h-12 w-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-              <Rocket className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-            </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-              No detailed responsibilities yet
+          <div className="py-12 text-center">
+            <p className="text-sm text-slate-400 dark:text-slate-500">
+              No role details available
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Run the job analysis to extract key role expectations
+            <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">
+              Analyze the job posting to extract responsibilities
             </p>
           </div>
         )}

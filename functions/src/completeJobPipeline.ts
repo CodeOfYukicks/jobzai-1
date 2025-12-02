@@ -101,7 +101,7 @@ function extractTechnologies(title: string, description: string): string[] {
 	return technologies;
 }
 
-async function processCompany(provider: string, company: string, db: admin.firestore.Firestore): Promise<{ success: boolean; jobs: number }> {
+async function processCompany(provider: string, company: string, db: admin.firestore.Firestore, workdayDomain?: string, workdaySiteId?: string): Promise<{ success: boolean; jobs: number }> {
 	try {
 		let jobs: NormalizedATSJob[] = [];
 
@@ -109,7 +109,11 @@ async function processCompany(provider: string, company: string, db: admin.fires
 		else if (provider === 'lever') jobs = await fetchLever(company);
 		else if (provider === 'smartrecruiters') jobs = await fetchSmartRecruiters(company);
 		else if (provider === 'ashby') jobs = await fetchAshby(company);
-		else if (provider === 'workday') return { success: true, jobs: 0 }; // Skip Workday
+		else if (provider === 'workday') {
+			// Workday re-enabled with improved fetcher
+			const { fetchWorkday } = require('./utils/atsFetchers');
+			jobs = await fetchWorkday(company, workdayDomain || 'wd5', workdaySiteId);
+		}
 
 		if (jobs.length === 0) return { success: true, jobs: 0 };
 
@@ -190,7 +194,9 @@ export const completeJobPipeline = onRequest({
 		// Process in batches of 5
 		for (let i = 0; i < ATS_SOURCES.length; i += 5) {
 			const batch = ATS_SOURCES.slice(i, i + 5);
-			const results = await Promise.all(batch.map(s => processCompany(s.provider, s.company || '', db)));
+			const results = await Promise.all(batch.map(s => 
+				processCompany(s.provider, s.company || '', db, s.workdayDomain, s.workdaySiteId)
+			));
 			
 			results.forEach(r => {
 				if (r.success) {

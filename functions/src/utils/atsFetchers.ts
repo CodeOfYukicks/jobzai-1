@@ -220,87 +220,167 @@ export async function fetchAshby(companySlug: string): Promise<NormalizedATSJob[
 /*                          WORKDAY                          */
 /* --------------------------------------------------------- */
 
+/**
+ * 🔧 Workday Fetcher - Improved with exponential backoff and robust ID handling
+ * 
+ * Key improvements:
+ * - Exponential backoff for rate limits (429 errors)
+ * - Robust externalId sanitization
+ * - Larger page size (50 vs 20) for faster fetching
+ * - Better error handling with retry logic
+ * - Skip details fetch for faster execution
+ */
 export async function fetchWorkday(companySlug: string, domain: string = 'wd5', siteId?: string): Promise<NormalizedATSJob[]> {
 	const site = siteId || companySlug;
 	const url = `https://${companySlug}.${domain}.myworkdayjobs.com/wday/cxs/${companySlug}/${site}/jobs`;
 	const allJobs: NormalizedATSJob[] = [];
-	const limit = 20;
+	const pageSize = 50; // Increased from 20 for faster fetching
+	const MAX_JOBS = 5000; // Increased from 2000 to get more jobs
+	const MAX_RETRIES = 3;
 
 	console.log(`[ATS][Workday] Starting fetch for ${companySlug} (site=${site}, domain=${domain})`);
 
+	// Helper: Fetch with exponential backoff
+	const fetchWithRetry = async (fetchUrl: string, body: any, retries = MAX_RETRIES): Promise<any> => {
+		for (let attempt = 1; attempt <= retries; attempt++) {
+			try {
+				const resp = await fetch(fetchUrl, {
+					method: "POST",
+					headers: { 
+						"Content-Type": "application/json",
+						"Accept": "application/json",
+					},
+					body: JSON.stringify(body),
+				});
+				
+				if (resp.status === 429) {
+					// Rate limited - exponential backoff
+					const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+					console.warn(`[ATS][Workday] Rate limited for ${companySlug}, waiting ${waitTime}ms (attempt ${attempt}/${retries})`);
+					await new Promise(resolve => setTimeout(resolve, waitTime));
+					continue;
+				}
+				
+				if (!resp.ok) {
+					throw new Error(`HTTP ${resp.status}`);
+				}
+				
+				return await resp.json();
+			} catch (e: any) {
+				if (attempt === retries) {
+					throw e;
+				}
+				const waitTime = Math.pow(2, attempt) * 500;
+				await new Promise(resolve => setTimeout(resolve, waitTime));
+			}
+		}
+	};
+
 	try {
 		// 1. Fetch first page to get total count
-		const firstPage = await fetchJson<any>(url, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ appliedFacets: {}, limit, offset: 0, searchText: "" }),
-		});
+		const firstPage = await fetchWithRetry(url, { appliedFacets: {}, limit: pageSize, offset: 0, searchText: "" });
 
 		const total = firstPage.total || 0;
 		const postings = firstPage.jobPostings || [];
 
-		// Process first page
-		const firstJobs: NormalizedATSJob[] = [];
-		for (const j of postings) {
-			firstJobs.push(await normalizeWorkdayJob(j, companySlug, domain, site));
-			await new Promise(resolve => setTimeout(resolve, 100)); // 100ms to avoid rate limits
-		}
-		allJobs.push(...firstJobs);
+		console.log(`[ATS][Workday] ${companySlug}: Found ${total} total jobs`);
 
-		if (total <= limit) {
+		// Process first page (fast - no details fetch)
+		for (const j of postings) {
+			allJobs.push(normalizeWorkdayJobFast(j, companySlug, domain, site));
+		}
+
+		if (total <= pageSize) {
 			console.log(`[ATS][Workday] company=${companySlug} jobs=${allJobs.length}`);
 			return allJobs;
 		}
 
-		// 2. Calculate remaining offsets (limit to 2000 total jobs for performance)
+		// 2. Calculate remaining offsets
 		const offsets: number[] = [];
-		const MAX_JOBS = 2000; // Optimized with timeouts to avoid hanging
-		for (let offset = limit; offset < Math.min(total, MAX_JOBS); offset += limit) {
+		const targetJobs = Math.min(total, MAX_JOBS);
+		for (let offset = pageSize; offset < targetJobs; offset += pageSize) {
 			offsets.push(offset);
 		}
-		console.log(`[ATS][Workday] Will fetch ${Math.min(total, MAX_JOBS)} of ${total} total jobs`);
+		console.log(`[ATS][Workday] Will fetch ${targetJobs} of ${total} total jobs (${offsets.length} pages)`);
 
-
-		// 3. Fetch remaining pages in parallel chunks (concurrency 2)
-		const chunkedOffsets = [];
-		const chunkSize = 2;
+		// 3. Fetch remaining pages in parallel chunks (concurrency 3)
+		const chunkSize = 3;
 		for (let i = 0; i < offsets.length; i += chunkSize) {
-			chunkedOffsets.push(offsets.slice(i, i + chunkSize));
-		}
-
-		for (const chunk of chunkedOffsets) {
+			const chunk = offsets.slice(i, i + chunkSize);
+			
 			const promises = chunk.map(async (offset) => {
 				try {
-					const json = await fetchJson<any>(url, {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ appliedFacets: {}, limit, offset, searchText: "" }),
-					});
-
-					// Process jobs sequentially to avoid rate limits
-					const jobs: NormalizedATSJob[] = [];
-					for (const j of (json.jobPostings || [])) {
-						jobs.push(await normalizeWorkdayJob(j, companySlug, domain, site));
-						// Small delay between details fetches (100ms to avoid rate limiting)
-						await new Promise(resolve => setTimeout(resolve, 100));
-					}
-					return jobs;
+					const json = await fetchWithRetry(url, { appliedFacets: {}, limit: pageSize, offset, searchText: "" });
+					return (json.jobPostings || []).map((j: any) => normalizeWorkdayJobFast(j, companySlug, domain, site));
 				} catch (e) {
-					console.error(`[ATS][Workday] Error fetching page offset=${offset} for ${companySlug}`, e);
+					console.error(`[ATS][Workday] Error fetching page offset=${offset} for ${companySlug}:`, e);
 					return [];
 				}
 			});
 
 			const results = await Promise.all(promises);
 			results.forEach(jobs => allJobs.push(...jobs));
+			
+			// Small delay between chunks to avoid rate limiting
+			if (i + chunkSize < offsets.length) {
+				await new Promise(resolve => setTimeout(resolve, 200));
+			}
 		}
 
 	} catch (e) {
-		console.error(`[ATS][Workday] Error fetching initial page for ${companySlug}`, e);
+		console.error(`[ATS][Workday] Error fetching for ${companySlug}:`, e);
 	}
 
 	console.log(`[ATS][Workday] company=${companySlug} jobs=${allJobs.length}`);
 	return allJobs;
+}
+
+/**
+ * Fast Workday job normalization - skips details fetch for speed
+ * Uses only data from the listing API
+ */
+function normalizeWorkdayJobFast(j: any, companySlug: string, domain: string, siteId?: string): NormalizedATSJob {
+	const baseUrl = `https://${companySlug}.${domain}.myworkdayjobs.com`;
+	let applyUrl = j.externalUrl;
+
+	if (!applyUrl && j.externalPath) {
+		const locale = 'en-US';
+		const site = siteId || 'External';
+		applyUrl = `${baseUrl}/${locale}/${site}${j.externalPath}`;
+	}
+
+	// Location: use locationsText if present, otherwise fallback to locations array
+	const location = j.locationsText || (Array.isArray(j.locations) ? j.locations.join(', ') : '');
+
+	// Generate a robust externalId - sanitize special characters
+	let externalId = j.id || j.jobPostingId || j.externalPath || '';
+	if (typeof externalId === 'string') {
+		// Remove slashes, colons, and other problematic characters
+		externalId = externalId
+			.replace(/[\/\\:*?"<>|]/g, '_')
+			.replace(/\s+/g, '_')
+			.substring(0, 200); // Limit length for Firestore doc IDs
+	}
+
+	// Use bulletFields for basic description if available
+	let description = '';
+	if (j.bulletFields && Array.isArray(j.bulletFields)) {
+		description = j.bulletFields.map((b: any) => b.value || b).join('\n');
+	}
+
+	return normalizeATSJob(
+		{
+			title: j.title || 'Untitled Position',
+			description,
+			companyName: titleCaseCompany(j.company, companySlug),
+			companyLogo: j.companyLogo || clearbitFromUrl(applyUrl || baseUrl),
+			location,
+			applyUrl: applyUrl || baseUrl,
+			postedAt: j.postedOn || j.postingDate || new Date().toISOString(),
+			externalId,
+		},
+		"workday"
+	);
 }
 
 // Helper function to add timeout to fetch requests

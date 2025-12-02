@@ -8,6 +8,26 @@ export interface FilterState {
     skills: string[];
 }
 
+// V4.0 Match Details - Updated scoring breakdown
+export interface MatchDetails {
+    // V4.0 scores
+    roleFunctionScore: number;
+    skillsScore: number;
+    locationScore: number;
+    experienceScore: number;
+    industryScore: number;
+    titleScore: number;
+    historyBonus: number;
+    environmentBonus: number;
+    // Penalties
+    dataQualityPenalty: number;
+    dealBreakerPenalty: number;
+    sectorAvoidPenalty: number;
+}
+
+// Role function types for job classification
+export type RoleFunction = 'engineering' | 'sales' | 'marketing' | 'operations' | 'hr' | 'finance' | 'design' | 'data' | 'product' | 'consulting' | 'support' | 'legal' | 'other';
+
 export interface Job {
     id: string;
     title: string;
@@ -26,4 +46,16 @@ export interface Job {
     skills?: string[];
     industries?: string[];
     technologies?: string[];
+    tags?: string[];
+    
+    // V4.0 enrichment fields
+    roleFunction?: RoleFunction;
+    languageRequirements?: string[];
+    enrichmentQuality?: number;
+    
+    // Match scoring (For You mode)
+    matchScore?: number;
+    matchDetails?: MatchDetails;
+    matchReasons?: string[];
+    excludeReasons?: string[];
 }

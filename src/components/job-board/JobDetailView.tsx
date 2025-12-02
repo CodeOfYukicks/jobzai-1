@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { Job } from '../../types/job-board';
-import { Building2, MapPin, Clock, Share2, Bookmark, Heart } from 'lucide-react';
+import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Sparkles, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -243,6 +243,140 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                     </div>
                 </div>
 
+                {/* Match Score Breakdown V4.0 - Only show if job has match details */}
+                {job.matchScore !== undefined && job.matchDetails && (
+                    <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                job.matchScore >= 70 ? 'bg-emerald-500' :
+                                job.matchScore >= 50 ? 'bg-blue-500' :
+                                job.matchScore >= 35 ? 'bg-amber-500' : 'bg-gray-400'
+                            }`}>
+                                <span className="text-white font-bold text-lg">{job.matchScore}</span>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                    {job.matchScore >= 70 ? 'Excellent Match' :
+                                     job.matchScore >= 50 ? 'Good Match' :
+                                     job.matchScore >= 35 ? 'Partial Match' : 'Low Match'}
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {job.roleFunction && job.roleFunction !== 'other' 
+                                        ? `${job.roleFunction.charAt(0).toUpperCase() + job.roleFunction.slice(1)} role`
+                                        : 'Based on your profile'}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {/* Match Reasons */}
+                        {job.matchReasons && job.matchReasons.length > 0 && (
+                            <div className="mb-4 flex flex-wrap gap-2">
+                                {job.matchReasons.map((reason, idx) => (
+                                    <span 
+                                        key={idx} 
+                                        className="text-xs px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                                    >
+                                        ✓ {reason}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {/* Exclude Reasons (warnings) */}
+                        {job.excludeReasons && job.excludeReasons.length > 0 && (
+                            <div className="mb-4 flex flex-wrap gap-2">
+                                {job.excludeReasons.map((reason, idx) => (
+                                    <span 
+                                        key={idx} 
+                                        className="text-xs px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 flex items-center gap-1"
+                                    >
+                                        <AlertTriangle className="w-3 h-3" />
+                                        {reason}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* V4.0 Score Grid - 6 columns */}
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            <MatchScoreItem 
+                                icon={<Users className="w-4 h-4" />}
+                                label="Role Fit" 
+                                score={job.matchDetails.roleFunctionScore} 
+                                maxScore={25}
+                                canBeNegative={true}
+                            />
+                            <MatchScoreItem 
+                                icon={<Code className="w-4 h-4" />}
+                                label="Skills" 
+                                score={job.matchDetails.skillsScore} 
+                                maxScore={30}
+                                canBeNegative={true}
+                            />
+                            <MatchScoreItem 
+                                icon={<MapPin className="w-4 h-4" />}
+                                label="Location" 
+                                score={job.matchDetails.locationScore} 
+                                maxScore={15}
+                            />
+                            <MatchScoreItem 
+                                icon={<GraduationCap className="w-4 h-4" />}
+                                label="Level" 
+                                score={job.matchDetails.experienceScore} 
+                                maxScore={10}
+                            />
+                            <MatchScoreItem 
+                                icon={<Briefcase className="w-4 h-4" />}
+                                label="Industry" 
+                                score={job.matchDetails.industryScore} 
+                                maxScore={10}
+                            />
+                            <MatchScoreItem 
+                                icon={<Target className="w-4 h-4" />}
+                                label="Title" 
+                                score={job.matchDetails.titleScore} 
+                                maxScore={10}
+                            />
+                        </div>
+                        
+                        {/* Bonuses & Penalties Summary */}
+                        <div className="mt-3 pt-3 border-t border-indigo-200 dark:border-indigo-700 flex flex-wrap gap-3 text-xs">
+                            {job.matchDetails.historyBonus > 0 && (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                    +{job.matchDetails.historyBonus} history bonus
+                                </span>
+                            )}
+                            {job.matchDetails.environmentBonus > 2 && (
+                                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                    +{job.matchDetails.environmentBonus} environment fit
+                                </span>
+                            )}
+                            {job.matchDetails.dataQualityPenalty > 0 && (
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                    -{job.matchDetails.dataQualityPenalty} data quality
+                                </span>
+                            )}
+                            {job.matchDetails.dealBreakerPenalty > 0 && (
+                                <span className="text-red-600 dark:text-red-400 font-medium">
+                                    -{job.matchDetails.dealBreakerPenalty} deal breaker
+                                </span>
+                            )}
+                            {job.matchDetails.sectorAvoidPenalty > 0 && (
+                                <span className="text-red-600 dark:text-red-400 font-medium">
+                                    -{job.matchDetails.sectorAvoidPenalty} sector avoid
+                                </span>
+                            )}
+                        </div>
+                        
+                        {/* Language Requirements Warning */}
+                        {job.languageRequirements && job.languageRequirements.length > 0 && (
+                            <div className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg">
+                                ⚠️ Requires: {job.languageRequirements.map(l => l.charAt(0).toUpperCase() + l.slice(1)).join(', ')}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="h-px bg-gray-100 dark:bg-gray-800 mb-8" />
 
                 {/* Job Details */}
@@ -311,4 +445,46 @@ function DetailCard({ label, value }: { label: string, value?: string }) {
 
 function BriefcaseIcon(props: any) {
     return <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+}
+
+function MatchScoreItem({ icon, label, score, maxScore, canBeNegative = false }: { 
+    icon: React.ReactNode, 
+    label: string, 
+    score: number, 
+    maxScore: number,
+    canBeNegative?: boolean
+}) {
+    const isNegative = score < 0;
+    const displayScore = Math.abs(score);
+    const percentage = Math.max(0, Math.round((score / maxScore) * 100));
+    
+    const getColor = (pct: number, negative: boolean) => {
+        if (negative) return 'bg-red-500';
+        if (pct >= 80) return 'bg-emerald-500';
+        if (pct >= 60) return 'bg-blue-500';
+        if (pct >= 40) return 'bg-amber-500';
+        return 'bg-gray-400';
+    };
+
+    return (
+        <div className={`flex flex-col items-center p-2 rounded-xl ${
+            isNegative ? 'bg-red-50 dark:bg-red-900/20' : 'bg-white/50 dark:bg-gray-800/50'
+        }`}>
+            <div className={`mb-1 ${isNegative ? 'text-red-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                {icon}
+            </div>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</div>
+            <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                    className={`h-full ${getColor(percentage, isNegative)} rounded-full transition-all duration-500`}
+                    style={{ width: `${isNegative ? 100 : percentage}%` }}
+                />
+            </div>
+            <div className={`text-xs font-bold mt-1 ${
+                isNegative ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'
+            }`}>
+                {isNegative ? `-${displayScore}` : `${score}/${maxScore}`}
+            </div>
+        </div>
+    );
 }

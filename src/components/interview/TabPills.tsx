@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export interface TabItem {
 	id: string;
@@ -14,71 +14,84 @@ export interface TabPillsProps {
 }
 
 export function TabPills({ items, activeId, onChange, className = '' }: TabPillsProps) {
-	const activeIndex = items.findIndex(item => item.id === activeId);
-	const tabWidth = 100 / items.length;
-	const indicatorRef = useRef<HTMLDivElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
+	const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
+	// Calculate indicator position based on active tab
 	useEffect(() => {
-		if (indicatorRef.current) {
-			indicatorRef.current.style.left = `${activeIndex * tabWidth}%`;
-			indicatorRef.current.style.width = `calc(${tabWidth}% - 4px)`;
+		if (containerRef.current) {
+			const activeButton = containerRef.current.querySelector(`[data-tab-id="${activeId}"]`) as HTMLButtonElement;
+			if (activeButton) {
+				const containerRect = containerRef.current.getBoundingClientRect();
+				const buttonRect = activeButton.getBoundingClientRect();
+				setIndicatorStyle({
+					left: buttonRect.left - containerRect.left,
+					width: buttonRect.width,
+				});
+			}
 		}
-	}, [activeIndex, tabWidth]);
+	}, [activeId, items]);
 
 	return (
-		<div className={['w-full', className].join(' ')}>
-			{/* Container avec background subtil type Notion/Apple */}
-			<div className="relative rounded-lg border border-indigo-200/40 bg-indigo-50/30 p-1 dark:border-indigo-500/20 dark:bg-indigo-500/5">
-				{/* Indicateur de sélection animé avec CSS transitions */}
-				<div 
-					ref={indicatorRef}
-					className="absolute top-1 bottom-1 rounded-md border border-indigo-200/60 bg-white shadow-sm shadow-indigo-600/5 transition-all duration-300 ease-out dark:border-indigo-500/30 dark:bg-[#1c1c1e]"
-					style={{
-						marginLeft: '2px',
-						marginRight: '2px',
-						left: `${activeIndex * tabWidth}%`,
-						width: `calc(${tabWidth}% - 4px)`,
-					}}
-				/>
-				
-				{/* Boutons */}
-				<div className="relative flex w-full">
+		<div className={`w-full max-w-7xl mx-auto ${className}`}>
+			{/* Tabs container - minimal with bottom border */}
+			<div className="relative" ref={containerRef}>
+				{/* Tab buttons */}
+				<div className="flex items-center gap-1">
 					{items.map((item) => {
 						const isActive = activeId === item.id;
 						return (
 							<button
 								key={item.id}
+								data-tab-id={item.id}
 								onClick={() => onChange(item.id)}
-								className={[
-									'relative z-10 flex flex-1 items-center justify-center gap-2',
-									'rounded-md px-4 py-2.5 text-[13px] font-medium transition-all duration-200',
-									isActive
-										? 'text-indigo-700 dark:text-indigo-300'
-										: 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
-								].join(' ')}
+								className={`
+									relative flex items-center gap-2 px-4 py-3
+									text-sm font-medium
+									transition-colors duration-200
+									${isActive
+										? 'text-slate-900 dark:text-white'
+										: 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+									}
+								`}
 							>
 								{item.icon && (
 									<span 
-										className={[
-											'transition-all duration-200',
-											isActive 
-												? 'scale-105 text-indigo-600 dark:text-indigo-400' 
-												: 'scale-100 text-neutral-500 dark:text-neutral-500'
-										].join(' ')}
+										className={`
+											transition-colors duration-200
+											${isActive 
+												? 'text-slate-900 dark:text-white' 
+												: 'text-slate-400 dark:text-slate-500'
+											}
+										`}
 									>
 										{item.icon}
 									</span>
 								)}
-								<span className="whitespace-nowrap">{item.label}</span>
+								<span>{item.label}</span>
 							</button>
 						);
 					})}
 				</div>
+
+				{/* Subtle bottom border line */}
+				<div className="absolute bottom-0 left-0 right-0 h-px bg-slate-200 dark:bg-slate-800" />
+
+				{/* Animated underline indicator */}
+				<div
+					className="
+						absolute bottom-0 h-0.5
+						bg-slate-900 dark:bg-white
+						transition-all duration-300 ease-out
+					"
+					style={{
+						left: indicatorStyle.left,
+						width: indicatorStyle.width,
+					}}
+				/>
 			</div>
 		</div>
 	);
 }
 
 export default TabPills;
-
-

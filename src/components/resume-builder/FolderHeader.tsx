@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Image, Camera, X, Smile, Folder as FolderIcon, Briefcase, Target, Star, Heart, Zap, Rocket, BookOpen, Code, Palette } from 'lucide-react';
 import { Folder } from './FolderCard';
@@ -7,6 +7,14 @@ import CoverPhotoGallery from '../profile/CoverPhotoGallery';
 
 // Emoji options for folders
 const EMOJI_OPTIONS = ['📁', '💼', '🎯', '⭐', '🚀', '💡', '📚', '🎨', '💻', '🔥', '✨', '🎪'];
+
+// Common emojis for special views (like notes)
+const COMMON_EMOJIS = [
+  '📝', '📄', '📋', '📌', '🎯', '💡', '🚀', '⭐',
+  '📚', '💼', '🎨', '🔧', '📊', '🗂️', '✅', '❤️',
+  '📁', '📂', '📑', '📃', '📜', '📰', '📕', '📗',
+  '📘', '📙', '📓', '📔', '📒', '📖', '🔖', '🏷️'
+];
 
 // Lucide icon options mapping
 const LUCIDE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -31,9 +39,13 @@ interface FolderHeaderProps {
   folder?: Folder | null; // null means uncategorized or special view if not passed
   title: string;
   subtitle: string;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | string; // Can be ReactNode or emoji string for special views
+  coverPhoto?: string; // For special views (all, uncategorized)
+  isSpecialView?: boolean;
+  viewType?: 'all' | 'uncategorized';
   onUpdateCover?: (blob: Blob) => Promise<void>;
   onRemoveCover?: () => Promise<void>;
+  onUpdateEmoji?: (emoji: string) => Promise<void>;
   isUpdating?: boolean;
   children?: React.ReactNode;
   className?: string;
@@ -44,8 +56,12 @@ export default function FolderHeader({
   title,
   subtitle,
   icon,
+  coverPhoto: coverPhotoProp,
+  isSpecialView = false,
+  viewType,
   onUpdateCover,
   onRemoveCover,
+  onUpdateEmoji,
   isUpdating = false,
   children,
   className = ''
@@ -54,10 +70,23 @@ export default function FolderHeader({
   const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
   const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
   const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
-  const coverPhoto = folder?.coverPhoto;
+  // Use coverPhoto from prop for special views, or from folder for regular folders
+  const coverPhoto = isSpecialView ? coverPhotoProp : folder?.coverPhoto;
   const hasCover = !!coverPhoto;
+  
+  // Debug log for cover photo
+  useEffect(() => {
+    if (isSpecialView) {
+      console.log('FolderHeader - isSpecialView:', isSpecialView, 'coverPhotoProp:', coverPhotoProp, 'coverPhoto:', coverPhoto, 'hasCover:', hasCover);
+    }
+  }, [isSpecialView, coverPhotoProp, coverPhoto, hasCover]);
+  
+  // Get current emoji for special views
+  const currentEmoji = isSpecialView && typeof icon === 'string' ? icon : null;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -85,6 +114,25 @@ export default function FolderHeader({
     setIsCoverCropperOpen(true);
   };
 
+  const handleEmojiSelect = async (emoji: string) => {
+    if (onUpdateEmoji) {
+      await onUpdateEmoji(emoji);
+    }
+    setShowEmojiPicker(false);
+  };
+
+  // Click outside handler for emoji picker
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div 
       className={`relative group/header ${className}`}
@@ -96,6 +144,7 @@ export default function FolderHeader({
         {hasCover ? (
           <div className="absolute inset-0 w-full h-full overflow-hidden">
             <img 
+              key={coverPhoto} // Force reload when coverPhoto changes
               src={coverPhoto} 
               alt="Folder cover" 
               className="w-full h-full object-cover animate-in fade-in duration-500"
@@ -197,6 +246,7 @@ export default function FolderHeader({
           <div className="flex items-end gap-4">
             {/* Icon */}
             <div 
+              ref={emojiPickerRef}
               className={`relative shrink-0 flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-2xl shadow-2xl border-4 border-white dark:border-[#121212] ${!folder ? 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700' : ''}`}
               style={folder ? { 
                 backgroundColor: folder.color,
@@ -216,9 +266,45 @@ export default function FolderHeader({
                     );
                   })()
                 )
+              ) : isSpecialView && typeof icon === 'string' ? (
+                <>
+                  <motion.button
+                    onClick={() => onUpdateEmoji && setShowEmojiPicker(!showEmojiPicker)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="text-3xl sm:text-4xl select-none leading-none filter drop-shadow-sm hover:bg-gray-200/50 dark:hover:bg-gray-700/50 rounded-xl p-2 transition-colors cursor-pointer"
+                  >
+                    {currentEmoji || icon || '📁'}
+                  </motion.button>
+                  
+                  <AnimatePresence>
+                    {showEmojiPicker && onUpdateEmoji && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute top-full mt-2 left-0 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
+                      >
+                        <div className="grid grid-cols-8 gap-1">
+                          {COMMON_EMOJIS.map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => handleEmojiSelect(emoji)}
+                              className={`p-2 text-2xl rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
+                                currentEmoji === emoji ? 'bg-purple-100 dark:bg-purple-900/30' : ''
+                              }`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
               ) : (
                 <span className="text-gray-400 dark:text-gray-500">
-                  {icon || <FolderIcon className="w-8 h-8 sm:w-10 sm:h-10" />}
+                  {typeof icon === 'string' ? icon : (icon || <FolderIcon className="w-8 h-8 sm:w-10 sm:h-10" />)}
                 </span>
               )}
             </div>

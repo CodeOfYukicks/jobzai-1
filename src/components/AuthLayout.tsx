@@ -50,7 +50,6 @@ const navigationGroups = {
       { name: 'Job Board', href: '/jobs', icon: LayoutGrid },
       { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
       { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
-      { name: 'Resume Builder', href: '/resume-builder', icon: FileEdit },
     ],
   },
   track: [
@@ -59,6 +58,7 @@ const navigationGroups = {
   ],
   prepare: [
     { name: 'Interview Hub', href: '/upcoming-interviews', icon: Clock },
+    { name: 'Document Manager', href: '/resume-builder', icon: FileEdit },
   ],
   improve: [
     { name: 'Professional Profile', href: '/professional-profile', icon: User },
@@ -138,7 +138,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const navigate = useNavigate();
   const [credits, setCredits] = useState(0);
   const { currentUser, logout } = useAuth();
-  const [logoUrl, setLogoUrl] = useState<string>('');
+  const [logoUrlLight, setLogoUrlLight] = useState<string>('');
+  const [logoUrlDark, setLogoUrlDark] = useState<string>('');
   const [isHovered, setIsHovered] = useState<string | null>(null);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -192,20 +193,27 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     }
   }, [currentUser]);
 
-  // Charger le logo depuis Firebase Storage
+  // Charger les logos (light et dark) depuis Firebase Storage
   useEffect(() => {
-    const loadLogo = async () => {
+    const loadLogos = async () => {
       try {
         const storage = getStorage();
-        const logoRef = ref(storage, 'images/logo-only.png');
-        const url = await getDownloadURL(logoRef);
-        setLogoUrl(url);
+        
+        // Logo pour le mode clair
+        const logoLightRef = ref(storage, 'images/logo-only.png');
+        const lightUrl = await getDownloadURL(logoLightRef);
+        setLogoUrlLight(lightUrl);
+        
+        // Logo pour le mode sombre
+        const logoDarkRef = ref(storage, 'images/logo-only-dark.png');
+        const darkUrl = await getDownloadURL(logoDarkRef);
+        setLogoUrlDark(darkUrl);
       } catch (error) {
-        console.error('Error loading logo:', error);
+        console.error('Error loading logos:', error);
       }
     };
 
-    loadLogo();
+    loadLogos();
   }, []);
 
   // Track scroll to add elevation to mobile header
@@ -342,10 +350,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               to="/"
               className="flex items-center justify-center hover:opacity-80 transition-opacity"
             >
-              {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className={`${isCollapsed ? 'h-8 w-8' : 'h-8 w-auto'}`} />
+              {(isDarkMode ? logoUrlDark : logoUrlLight) ? (
+                <img 
+                  src={isDarkMode ? logoUrlDark : logoUrlLight} 
+                  alt="Logo" 
+                  className={`${isCollapsed ? 'h-8 w-8' : 'h-8 w-auto'} transition-opacity duration-300`} 
+                />
               ) : (
-                <div className={`${isCollapsed ? 'h-8 w-8' : 'h-8 w-28'} bg-gray-100 animate-pulse rounded`} />
+                <div className={`${isCollapsed ? 'h-8 w-8' : 'h-8 w-28'} bg-gray-100 dark:bg-gray-700 animate-pulse rounded`} />
               )}
             </Link>
             
@@ -398,14 +410,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 className="absolute right-[-16px] top-1/2 -translate-y-1/2 z-20
                   w-8 h-8 rounded-full 
                   bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm
-                  border-2 border-purple-500/20 dark:border-purple-400/20
+                  border-2 border-[#635BFF]/20 dark:border-[#a5a0ff]/20
                   shadow-lg hover:shadow-xl
                   flex items-center justify-center
                   hover:scale-110 active:scale-95
                   transition-all duration-200"
                 aria-label="Expand sidebar"
               >
-                <ChevronRight className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <ChevronRight className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff]" />
               </motion.button>
             )}
           </AnimatePresence>
@@ -452,7 +464,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-xl 
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
-                        ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
+                        ? 'bg-gradient-to-r from-[#635BFF]/10 to-[#7c75ff]/10 text-[#635BFF] dark:text-[#a5a0ff]'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
                     title={isCollapsed ? item.name : undefined}
@@ -461,7 +473,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     {isHovered === item.name && (
                       <motion.div
                         layoutId="hoverEffect"
-                        className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5"
+                        className="absolute inset-0 bg-gradient-to-r from-[#635BFF]/5 to-[#7c75ff]/5"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -472,8 +484,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     <div className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5 flex-1'}`}>
                       <item.icon className={`h-5 w-5 transition-colors
                         ${location.pathname === item.href 
-                          ? 'text-purple-600 dark:text-purple-400' 
-                          : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
+                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
                       />
                       {!isCollapsed && (
                         <span className="flex-1">{item.name}</span>
@@ -484,7 +496,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       <motion.div
                         layoutId="activeIndicator"
                         className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 
-                          bg-gradient-to-b from-purple-600 to-indigo-600 rounded-r-full"
+                          bg-gradient-to-b from-[#635BFF] to-[#7c75ff] rounded-r-full"
                       />
                     )}
                   </Link>
@@ -507,7 +519,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-xl 
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
-                        ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
+                        ? 'bg-gradient-to-r from-[#635BFF]/10 to-[#7c75ff]/10 text-[#635BFF] dark:text-[#a5a0ff]'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
                     title={isCollapsed ? item.name : undefined}
@@ -516,7 +528,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     {isHovered === item.name && (
                       <motion.div
                         layoutId="hoverEffect"
-                        className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5"
+                        className="absolute inset-0 bg-gradient-to-r from-[#635BFF]/5 to-[#7c75ff]/5"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -527,8 +539,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     <div className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5 flex-1'}`}>
                       <item.icon className={`h-5 w-5 transition-colors
                         ${location.pathname === item.href 
-                          ? 'text-purple-600 dark:text-purple-400' 
-                          : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
+                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
                       />
                       {!isCollapsed && (
                         <span className="flex-1">{item.name}</span>
@@ -539,7 +551,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       <motion.div
                         layoutId="activeIndicator"
                         className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 
-                          bg-gradient-to-b from-purple-600 to-indigo-600 rounded-r-full"
+                          bg-gradient-to-b from-[#635BFF] to-[#7c75ff] rounded-r-full"
                       />
                     )}
                   </Link>
@@ -562,7 +574,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-xl 
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
-                        ? 'bg-gradient-to-r from-purple-600/10 to-indigo-600/10 text-purple-600 dark:text-purple-400'
+                        ? 'bg-gradient-to-r from-[#635BFF]/10 to-[#7c75ff]/10 text-[#635BFF] dark:text-[#a5a0ff]'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
                     title={isCollapsed ? item.name : undefined}
@@ -571,7 +583,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     {isHovered === item.name && (
                       <motion.div
                         layoutId="hoverEffect"
-                        className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5"
+                        className="absolute inset-0 bg-gradient-to-r from-[#635BFF]/5 to-[#7c75ff]/5"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -582,8 +594,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     <div className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5 flex-1'}`}>
                       <item.icon className={`h-5 w-5 transition-colors
                         ${location.pathname === item.href 
-                          ? 'text-purple-600 dark:text-purple-400' 
-                          : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'}`} 
+                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
                       />
                       {!isCollapsed && (
                         <span className="flex-1">{item.name}</span>
@@ -594,7 +606,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       <motion.div
                         layoutId="activeIndicator"
                         className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 
-                          bg-gradient-to-b from-purple-600 to-indigo-600 rounded-r-full"
+                          bg-gradient-to-b from-[#635BFF] to-[#7c75ff] rounded-r-full"
                       />
                     )}
                   </Link>
@@ -667,7 +679,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                  className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 p-3.5 shadow-premium-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-0.5"
+                  className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-[#635BFF] via-[#5249e6] to-[#7c75ff] p-3.5 shadow-premium-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-0.5"
                 >
                   {/* Mesh gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
@@ -686,7 +698,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     }}
                   />
                   <motion.div
-                    className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-indigo-400/10 blur-2xl"
+                    className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-[#7c75ff]/10 blur-2xl"
                     animate={{
                       scale: [1, 1.3, 1],
                       opacity: [0.1, 0.2, 0.1],
@@ -797,9 +809,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   <Link
                     to="/billing"
                     className="group relative flex items-center justify-center w-full p-2.5 rounded-lg
-                      bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700
-                      hover:from-purple-500 hover:via-purple-600 hover:to-indigo-600
-                      shadow-lg hover:shadow-xl hover:shadow-purple-500/30
+                      bg-gradient-to-br from-[#635BFF] via-[#5249e6] to-[#7c75ff]
+                      hover:from-[#7c75ff] hover:via-[#8b85ff] hover:to-[#9d97ff]
+                      shadow-lg hover:shadow-xl hover:shadow-[#635BFF]/40
                       hover:-translate-y-0.5 active:translate-y-0
                       transition-all duration-300 ease-out
                       overflow-hidden"
@@ -825,7 +837,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                         border border-white/50
                         shadow-lg"
                     >
-                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
+                      <span className="text-[10px] font-bold text-[#635BFF] dark:text-[#a5a0ff]">
                         {credits > 999 ? `${(credits / 1000).toFixed(1)}k` : credits}
                       </span>
                     </motion.div>
@@ -845,8 +857,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   >
                     <div className={`flex items-center ${isCollapsed ? 'flex-col' : 'gap-2.5'}`}>
                       <div className="relative">
-                        <div className={`${isCollapsed ? 'h-9 w-9' : 'h-9 w-9'} rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 
-                          flex items-center justify-center shadow-lg shadow-purple-600/20 overflow-hidden`}>
+                        <div className={`${isCollapsed ? 'h-9 w-9' : 'h-9 w-9'} rounded-xl bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
+                          flex items-center justify-center shadow-lg shadow-[#635BFF]/30 overflow-hidden`}>
                           {profilePhoto ? (
                             <img 
                               src={profilePhoto} 
@@ -951,7 +963,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               <ChevronLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
-              {logoUrl && <img src={logoUrl} alt="Logo" className="h-7 w-auto opacity-90" />}
+              {(isDarkMode ? logoUrlDark : logoUrlLight) && (
+                <img 
+                  src={isDarkMode ? logoUrlDark : logoUrlLight} 
+                  alt="Logo" 
+                  className="h-7 w-auto opacity-90 transition-opacity duration-300" 
+                />
+              )}
               <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
                 {currentTitle}
               </span>

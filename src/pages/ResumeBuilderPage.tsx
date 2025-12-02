@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, getDocs, deleteDoc, doc, orderBy, addDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, getDocs, deleteDoc, doc, orderBy, addDoc, serverTimestamp, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { toast } from 'sonner';
@@ -101,6 +101,19 @@ export default function ResumeBuilderPage() {
   // Notes state
   const [notes, setNotes] = useState<NotionDocument[]>([]);
   const [isCreatingNote, setIsCreatingNote] = useState(false);
+
+  // View preferences state (for 'all' and 'uncategorized')
+  interface ViewPreferences {
+    coverPhoto?: string;
+    icon?: string;
+  }
+  const [viewPreferences, setViewPreferences] = useState<{
+    all: ViewPreferences;
+    uncategorized: ViewPreferences;
+  }>({
+    all: {},
+    uncategorized: {}
+  });
 
   // Fetch folders from Firestore
   const fetchFolders = useCallback(async () => {
@@ -215,14 +228,66 @@ export default function ResumeBuilderPage() {
     }
   }, [currentUser]);
 
+  // Fetch view preferences from Firestore
+  const fetchViewPreferences = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const preferences = userData.viewPreferences || {};
+        setViewPreferences({
+          all: preferences.all || {},
+          uncategorized: preferences.uncategorized || {}
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching view preferences:', error);
+    }
+  }, [currentUser]);
+
+  // Save view preferences to Firestore
+  const saveViewPreferences = useCallback(async (viewType: 'all' | 'uncategorized', preferences: ViewPreferences) => {
+    if (!currentUser) return;
+
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPreferences = currentData.viewPreferences || {};
+
+      await updateDoc(userRef, {
+        viewPreferences: {
+          ...currentPreferences,
+          [viewType]: preferences
+        }
+      });
+
+      setViewPreferences(prev => {
+        const updated = {
+          ...prev,
+          [viewType]: preferences
+        };
+        console.log('Updated viewPreferences:', updated);
+        console.log('Cover photo for', viewType, ':', preferences.coverPhoto);
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error saving view preferences:', error);
+      toast.error('Failed to save preferences');
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     if (currentUser) {
       fetchFolders();
       fetchResumes();
       fetchDocuments();
       fetchNotes();
+      fetchViewPreferences();
     }
-  }, [currentUser, fetchFolders, fetchResumes, fetchDocuments, fetchNotes]);
+  }, [currentUser, fetchFolders, fetchResumes, fetchDocuments, fetchNotes, fetchViewPreferences]);
 
   // Templates available
   const templates: { value: CVTemplate; label: string; description: string }[] = [
@@ -777,23 +842,51 @@ export default function ResumeBuilderPage() {
   };
 
   const handleUpdateCover = async (blob: Blob) => {
-    if (!currentUser || !selectedFolderId || typeof selectedFolderId !== 'string' || selectedFolderId === 'all') return;
+    if (!currentUser || !selectedFolderId) return;
     
     setIsUpdatingCover(true);
     try {
       const timestamp = Date.now();
-      // Use cover-photos collection which is already allowed in storage.rules
-      // Naming convention: folder_{folderId}_cover_{timestamp}.jpg
-      const fileName = `folder_${selectedFolderId}_cover_${timestamp}.jpg`;
-      const folderCoverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
       
-      await uploadBytes(folderCoverRef, blob, { contentType: 'image/jpeg' });
-      const coverUrl = await getDownloadURL(folderCoverRef);
-      
-      await updateFolder(selectedFolderId, { coverPhoto: coverUrl });
-      toast.success('Folder cover updated');
+      // Handle special views (all, uncategorized)
+      if (selectedFolderId === 'all' || selectedFolderId === null) {
+        const viewType = selectedFolderId === 'all' ? 'all' : 'uncategorized';
+        const fileName = `view_${viewType}_cover_${timestamp}.jpg`;
+        const viewCoverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+        
+        await uploadBytes(viewCoverRef, blob, { contentType: 'image/jpeg' });
+        const coverUrl = await getDownloadURL(viewCoverRef);
+        console.log('Cover URL generated:', coverUrl);
+        
+        // Delete old cover if exists
+        const currentPrefs = viewPreferences[viewType] || {};
+        if (currentPrefs?.coverPhoto) {
+          try {
+            const oldCoverRef = ref(storage, currentPrefs.coverPhoto);
+            await deleteObject(oldCoverRef);
+          } catch (e) {
+            console.warn('Could not delete old cover photo from storage', e);
+          }
+        }
+        
+        const newPrefs = { ...currentPrefs, coverPhoto: coverUrl };
+        console.log('Saving preferences for', viewType, ':', newPrefs);
+        await saveViewPreferences(viewType, newPrefs);
+        console.log('Cover saved for', viewType, ':', coverUrl);
+        toast.success('Cover updated');
+      } else if (typeof selectedFolderId === 'string') {
+        // Handle regular folder
+        const fileName = `folder_${selectedFolderId}_cover_${timestamp}.jpg`;
+        const folderCoverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+        
+        await uploadBytes(folderCoverRef, blob, { contentType: 'image/jpeg' });
+        const coverUrl = await getDownloadURL(folderCoverRef);
+        
+        await updateFolder(selectedFolderId, { coverPhoto: coverUrl });
+        toast.success('Folder cover updated');
+      }
     } catch (error) {
-      console.error('Error updating folder cover:', error);
+      console.error('Error updating cover:', error);
       toast.error('Failed to update cover');
     } finally {
       setIsUpdatingCover(false);
@@ -801,29 +894,59 @@ export default function ResumeBuilderPage() {
   };
 
   const handleRemoveCover = async () => {
-    if (!currentUser || !selectedFolderId || typeof selectedFolderId !== 'string' || selectedFolderId === 'all') return;
+    if (!currentUser || !selectedFolderId) return;
     
-    const folder = folders.find(f => f.id === selectedFolderId);
-    if (!folder || !folder.coverPhoto) return;
-
     setIsUpdatingCover(true);
     try {
-      await updateFolder(selectedFolderId, { coverPhoto: undefined }); // FieldValue.delete() in update would be cleaner but simple update works if logic handles it
-      
-      try {
-        const coverRef = ref(storage, folder.coverPhoto);
-        await deleteObject(coverRef);
-      } catch (e) {
-        console.warn('Could not delete old cover photo from storage', e);
+      // Handle special views (all, uncategorized)
+      if (selectedFolderId === 'all' || selectedFolderId === null) {
+        const viewType = selectedFolderId === 'all' ? 'all' : 'uncategorized';
+        const currentPrefs = viewPreferences[viewType];
+        
+        if (currentPrefs?.coverPhoto) {
+          try {
+            const coverRef = ref(storage, currentPrefs.coverPhoto);
+            await deleteObject(coverRef);
+          } catch (e) {
+            console.warn('Could not delete old cover photo from storage', e);
+          }
+        }
+        
+        await saveViewPreferences(viewType, { ...currentPrefs, coverPhoto: undefined });
+        toast.success('Cover removed');
+      } else if (typeof selectedFolderId === 'string') {
+        // Handle regular folder
+        const folder = folders.find(f => f.id === selectedFolderId);
+        if (!folder || !folder.coverPhoto) return;
+
+        await updateFolder(selectedFolderId, { coverPhoto: undefined });
+        
+        try {
+          const coverRef = ref(storage, folder.coverPhoto);
+          await deleteObject(coverRef);
+        } catch (e) {
+          console.warn('Could not delete old cover photo from storage', e);
+        }
+        
+        toast.success('Folder cover removed');
       }
-      
-      toast.success('Folder cover removed');
     } catch (error) {
-      console.error('Error removing folder cover:', error);
+      console.error('Error removing cover:', error);
       toast.error('Failed to remove cover');
     } finally {
       setIsUpdatingCover(false);
     }
+  };
+
+  // Handle emoji update for special views
+  const handleUpdateEmoji = async (emoji: string) => {
+    if (!currentUser || !selectedFolderId || (selectedFolderId !== 'all' && selectedFolderId !== null)) return;
+    
+    const viewType = selectedFolderId === 'all' ? 'all' : 'uncategorized';
+    const currentPrefs = viewPreferences[viewType];
+    
+    await saveViewPreferences(viewType, { ...currentPrefs, icon: emoji });
+    toast.success('Emoji updated');
   };
 
   // Filter and sort resumes
@@ -962,16 +1085,25 @@ export default function ResumeBuilderPage() {
     const itemLabel = totalDisplayedItems === 1 ? 'item' : 'items';
     
     if (selectedFolderId === 'all') {
+      const prefs = viewPreferences.all;
       return {
         title: 'All Documents',
         subtitle: `${totalDisplayedItems} ${itemLabel}`,
-        icon: <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
+        icon: prefs.icon || '📁',
+        coverPhoto: prefs.coverPhoto,
+        isSpecialView: true as const,
+        viewType: 'all' as const
       };
     } else if (selectedFolderId === null) {
+      const prefs = viewPreferences.uncategorized;
+      console.log('getHeaderProps - uncategorized prefs:', prefs);
       return {
         title: 'Uncategorized',
         subtitle: `${totalDisplayedItems} ${itemLabel}`,
-        icon: <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
+        icon: prefs.icon || '📄',
+        coverPhoto: prefs?.coverPhoto,
+        isSpecialView: true as const,
+        viewType: 'uncategorized' as const
       };
     } else {
       // Custom folder
@@ -980,12 +1112,13 @@ export default function ResumeBuilderPage() {
         folder,
         title: folder?.name || 'Folder',
         subtitle: `${totalDisplayedItems} ${itemLabel}`,
-        icon: null // Icon is handled inside FolderHeader via folder prop
+        icon: null, // Icon is handled inside FolderHeader via folder prop
+        isSpecialView: false as const
       };
     }
   };
 
-  const headerProps = getHeaderProps();
+  const headerProps = useMemo(() => getHeaderProps(), [selectedFolderId, viewPreferences, totalDisplayedItems, folders]);
   
   // Total counts for sidebar
   const totalUncategorized = uncategorized.length + uncategorizedDocs.length + uncategorizedNotes.length;
@@ -1035,9 +1168,13 @@ export default function ResumeBuilderPage() {
             folder={currentFolder}
             title={headerProps.title}
             subtitle={headerProps.subtitle}
-            icon={headerProps.icon}
-            onUpdateCover={currentFolder ? handleUpdateCover : undefined}
-            onRemoveCover={currentFolder ? handleRemoveCover : undefined}
+            icon={headerProps.isSpecialView ? headerProps.icon : headerProps.icon}
+            coverPhoto={headerProps.isSpecialView ? headerProps.coverPhoto : undefined}
+            isSpecialView={headerProps.isSpecialView}
+            viewType={headerProps.isSpecialView ? headerProps.viewType : undefined}
+            onUpdateCover={handleUpdateCover}
+            onRemoveCover={handleRemoveCover}
+            onUpdateEmoji={headerProps.isSpecialView ? handleUpdateEmoji : undefined}
             isUpdating={isUpdatingCover}
           >
             <div className="flex items-center gap-2">

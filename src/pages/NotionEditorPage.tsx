@@ -67,7 +67,7 @@ export default function NotionEditorPage() {
   // Sidebar state
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<SelectedFolderType>('all');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true); // Default collapsed for note editor
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Default open to show file list
 
   // Items for folder counts
   const [resumes, setResumes] = useState<Resume[]>([]);

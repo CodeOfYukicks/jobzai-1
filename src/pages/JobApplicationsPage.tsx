@@ -193,53 +193,74 @@ export default function JobApplicationsPage() {
   }, [showLookupDropdown]);
 
   const fireConfetti = () => {
-    // Création d'un effet de confettis festif
-    const count = 200;
+    // Ultra Premium Side Cannons Confetti
+    // Sophisticated dual-origin celebration effect
+    
     const defaults = {
-      origin: { y: 0.7 },
-      zIndex: 1500 // Pour être sûr que les confettis apparaissent au-dessus de tout
+      zIndex: 1500,
+      ticks: 300,
+      gravity: 0.8,
+      decay: 0.94,
+      shapes: ['circle', 'square'] as confetti.Shape[],
     };
 
-    function fire(particleRatio: number, opts: any) {
+    // Premium color palettes
+    const goldColors = ['#FFD700', '#FFC107', '#FFDF00', '#F5DEB3'];
+    const roseGoldColors = ['#E8B4B8', '#ECC5C0', '#DBA39A', '#F4C2C2'];
+    const champagneColors = ['#F7E7CE', '#FAD6A5', '#FFE4B5', '#FFDAB9'];
+    const accentColors = ['#9333EA', '#6366F1', '#A855F7', '#818CF8'];
+
+    // Fire from a specific side with angle
+    const fireFromSide = (
+      side: 'left' | 'right',
+      particleCount: number,
+      colors: string[],
+      velocity: number,
+      spread: number,
+      scalar: number,
+      drift: number
+    ) => {
+      const angle = side === 'left' ? 60 : 120;
+      const origin = side === 'left' ? { x: 0, y: 0.5 } : { x: 1, y: 0.5 };
+      
       confetti({
         ...defaults,
-        ...opts,
-        particleCount: Math.floor(count * particleRatio),
-        scalar: 1.2,
+        particleCount,
+        colors,
+        startVelocity: velocity,
+        spread,
+        angle,
+        origin,
+        scalar,
+        drift: side === 'left' ? drift : -drift,
       });
-    }
+    };
 
-    fire(0.25, {
-      spread: 26,
-      startVelocity: 55,
-      colors: ['#9333ea', '#6366f1'] // Couleurs violet et indigo pour matcher votre thème
-    });
+    // Wave 1: Initial high-velocity burst (0ms)
+    // Sharp, fast particles that shoot across
+    fireFromSide('left', 50, [...goldColors, ...accentColors], 70, 55, 1.0, 1.2);
+    fireFromSide('right', 50, [...goldColors, ...accentColors], 70, 55, 1.0, 1.2);
 
-    fire(0.2, {
-      spread: 60,
-      colors: ['#22c55e', '#10b981'] // Vert pour symboliser le succès
-    });
+    // Wave 2: Secondary medium burst (150ms)
+    // More particles, fuller spread
+    setTimeout(() => {
+      fireFromSide('left', 80, [...champagneColors, ...roseGoldColors], 55, 70, 1.2, 0.8);
+      fireFromSide('right', 80, [...champagneColors, ...roseGoldColors], 55, 70, 1.2, 0.8);
+    }, 150);
 
-    fire(0.35, {
-      spread: 100,
-      decay: 0.91,
-      scalar: 0.8,
-      colors: ['#6366f1', '#8b5cf6'] // Plus de violet et indigo
-    });
+    // Wave 3: Final floaty burst (300ms)
+    // Larger, slower particles that linger elegantly
+    setTimeout(() => {
+      fireFromSide('left', 60, [...goldColors, ...champagneColors], 40, 85, 1.4, 0.5);
+      fireFromSide('right', 60, [...goldColors, ...champagneColors], 40, 85, 1.4, 0.5);
+    }, 300);
 
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 25,
-      decay: 0.92,
-      scalar: 1.2,
-      colors: ['#22c55e', '#9333ea'] // Mix de vert et violet
-    });
-
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 45,
-      colors: ['#f472b6', '#c084fc'] // Rose et violet clair pour plus de festivité
-    });
+    // Wave 4: Trailing sparkle burst (450ms)
+    // Small accent particles for a finishing touch
+    setTimeout(() => {
+      fireFromSide('left', 40, [...roseGoldColors, ...accentColors], 35, 90, 0.8, 0.3);
+      fireFromSide('right', 40, [...roseGoldColors, ...accentColors], 35, 90, 0.8, 0.3);
+    }, 450);
   };
 
   const handleDragEnd = async (result: any) => {

@@ -134,12 +134,12 @@ async function storeMetrics(
 export const fetchJobsFromATS = onSchedule(
 	{
 		region: REGION,
-		schedule: 'every 24 hours',
+		schedule: 'every 3 hours', // Process 150 sources per run, all 1062 in ~24h
 		timeZone: 'UTC',
 		retryCount: 3,
 		maxInstances: 1,
-		timeoutSeconds: 3600, // 60 minutes (increased from 540s)
-		memory: '4GiB', // Increased from 1GiB
+		timeoutSeconds: 540, // 9 minutes - keep it short to avoid scheduler timeout
+		memory: '2GiB',
 	},
 	async () => {
 		const db = admin.firestore();
@@ -248,11 +248,27 @@ export const fetchJobsFromATS = onSchedule(
 		};
 
 		try {
-			// Process sources in parallel chunks to control concurrency
-			const chunkSize = 3; // Process 3 providers at a time
-			for (let i = 0; i < SOURCES.length; i += chunkSize) {
-				const chunk = SOURCES.slice(i, i + chunkSize);
+			// 🚀 OPTIMIZED: Process fewer sources per run to avoid timeout
+			// Cloud Scheduler HTTP timeout is ~30s, so we process in smaller batches
+			const chunkSize = 15; // Process 15 providers at a time
+			const MAX_SOURCES_PER_RUN = 150; // Reduced to finish within timeout
+			
+			// Select sources to process this run (rotate through all sources over multiple runs)
+			// With 1062 sources and 150/run, need ~7 runs = runs every 3h to cover all in 24h
+			const runIndex = Math.floor(Date.now() / (3 * 60 * 60 * 1000)) % Math.ceil(SOURCES.length / MAX_SOURCES_PER_RUN);
+			const sourceOffset = runIndex * MAX_SOURCES_PER_RUN;
+			const sourcesToProcess = SOURCES.slice(sourceOffset, sourceOffset + MAX_SOURCES_PER_RUN);
+			
+			console.log(`[CRON] Run #${runIndex}: Processing sources ${sourceOffset}-${sourceOffset + sourcesToProcess.length} (${sourcesToProcess.length}/${SOURCES.length})`);
+			
+			for (let i = 0; i < sourcesToProcess.length; i += chunkSize) {
+				const chunk = sourcesToProcess.slice(i, i + chunkSize);
 				await Promise.all(chunk.map(src => processSource(src)));
+				
+				// Log progress every 50 sources
+				if ((i + chunkSize) % 50 === 0 || i + chunkSize >= sourcesToProcess.length) {
+					console.log(`[CRON] Progress: ${Math.min(i + chunkSize, sourcesToProcess.length)}/${sourcesToProcess.length} sources, ${totalWritten} jobs`);
+				}
 			}
 
 			const totalDuration = Date.now() - startTime;

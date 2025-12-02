@@ -6,11 +6,11 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import { toast } from 'sonner';
 import {
-  CalendarSidebar,
   CalendarTopbar,
   CalendarGrid,
   EventModal,
   AddEventModal,
+  UpcomingEventsPanel,
 } from '../components/calendar';
 import { CalendarEvent, CalendarView as CalendarViewType } from '../components/calendar/types';
 
@@ -609,27 +609,21 @@ export default function CalendarView() {
     setShowAddEventModal(true);
   };
 
+  const handleOpenAddEvent = () => {
+    setSelectedSlot(new Date());
+    setShowAddEventModal(true);
+  };
+
+  const handleSelectEventFromPanel = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+  };
+
   return (
     <AuthLayout small>
       <div className="flex w-full min-h-0 flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <CalendarSidebar
-          selectedView={selectedView}
-          onViewChange={setSelectedView}
-          onAddEvent={() => {
-            setSelectedSlot(new Date());
-            setShowAddEventModal(true);
-          }}
-          onTodayClick={navigateToToday}
-          showApplications={showApplications}
-          showInterviews={showInterviews}
-          onToggleApplications={() => setShowApplications(!showApplications)}
-          onToggleInterviews={() => setShowInterviews(!showInterviews)}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto py-6 pl-8 pr-24">
-          <div className="w-full max-w-7xl mx-auto">
+        {/* Main Content - Calendar */}
+        <div className="flex-1 min-h-0 overflow-y-auto py-6 px-6 lg:px-8">
+          <div className="w-full max-w-5xl mx-auto">
             {/* Topbar */}
             <CalendarTopbar
               currentDate={currentDate}
@@ -637,65 +631,80 @@ export default function CalendarView() {
               onPrevious={navigateToPrevious}
               onNext={navigateToNext}
               onToday={navigateToToday}
+              onViewChange={setSelectedView}
+              onAddEvent={handleOpenAddEvent}
+              showApplications={showApplications}
+              showInterviews={showInterviews}
+              onToggleApplications={() => setShowApplications(!showApplications)}
+              onToggleInterviews={() => setShowInterviews(!showInterviews)}
             />
 
             {/* Calendar */}
             <div className="mt-6">
-            {isLoading ? (
+              {isLoading ? (
                 <div className="h-[calc(100vh-280px)] flex items-center justify-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
-                <div className="flex flex-col items-center gap-3">
+                  <div className="flex flex-col items-center gap-3">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading calendar...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Loading calendar...</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
+              ) : (
                 <CalendarGrid
-                events={filteredEvents}
+                  events={filteredEvents}
                   currentDate={currentDate}
                   selectedView={selectedView}
                   onNavigate={setCurrentDate}
                   onView={setSelectedView}
-                onSelectEvent={(event: CalendarEvent) => {
-                  // Check if this is a quick click (not a drag)
-                  const timeSinceDragStart = Date.now() - dragStartTimeRef.current;
-                  
-                  // If drag was started less than 150ms ago, or no drag is happening, open modal
-                  if (timeSinceDragStart < 150 || !isDragging) {
-                    // Cancel any pending drag timeout
+                  onSelectEvent={(event: CalendarEvent) => {
+                    // Check if this is a quick click (not a drag)
+                    const timeSinceDragStart = Date.now() - dragStartTimeRef.current;
+
+                    // If drag was started less than 150ms ago, or no drag is happening, open modal
+                    if (timeSinceDragStart < 150 || !isDragging) {
+                      // Cancel any pending drag timeout
+                      if (dragTimeoutRef.current) {
+                        clearTimeout(dragTimeoutRef.current);
+                        dragTimeoutRef.current = null;
+                      }
+                      setIsDragging(false);
+                      setJustSelectedEvent(true);
+                      setSelectedEvent(event);
+                      setTimeout(() => {
+                        setJustSelectedEvent(false);
+                      }, 300);
+                    }
+                  }}
+                  onSelectSlot={handleSlotSelect}
+                  onEventDrop={handleEventDrop}
+                  onEventResize={handleEventResize}
+                  onDragStart={() => {
+                    // Record when drag started
+                    dragStartTimeRef.current = Date.now();
+                    setJustSelectedEvent(false);
+
+                    // Only set isDragging to true after 150ms (real drag, not a click)
                     if (dragTimeoutRef.current) {
                       clearTimeout(dragTimeoutRef.current);
-                      dragTimeoutRef.current = null;
                     }
-                    setIsDragging(false);
-                    setJustSelectedEvent(true);
-                    setSelectedEvent(event);
-                    setTimeout(() => {
-                      setJustSelectedEvent(false);
-                    }, 300);
-                  }
-                }}
-                onSelectSlot={handleSlotSelect}
-                onEventDrop={handleEventDrop}
-                onEventResize={handleEventResize}
-                onDragStart={() => {
-                  // Record when drag started
-                  dragStartTimeRef.current = Date.now();
-                  setJustSelectedEvent(false);
-                  
-                  // Only set isDragging to true after 150ms (real drag, not a click)
-                  if (dragTimeoutRef.current) {
-                    clearTimeout(dragTimeoutRef.current);
-                  }
-                  dragTimeoutRef.current = setTimeout(() => {
-                    setIsDragging(true);
-                  }, 150);
-                }}
+                    dragTimeoutRef.current = setTimeout(() => {
+                      setIsDragging(true);
+                    }, 150);
+                  }}
                   eventStyleGetter={eventStyleGetter}
                   isDragging={isDragging}
-              />
-            )}
+                />
+              )}
+            </div>
           </div>
-          </div>
+        </div>
+
+        {/* Right Panel - Upcoming Events (Premium) */}
+        <div className="hidden xl:block w-[380px] flex-shrink-0 h-full">
+          <UpcomingEventsPanel
+            events={filteredEvents}
+            onSelectEvent={handleSelectEventFromPanel}
+            onAddEvent={handleOpenAddEvent}
+          />
         </div>
 
         {/* Event Detail Modal */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, Sparkles } from 'lucide-react';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { Job } from '../../types/job-board';
 
@@ -7,20 +7,56 @@ interface JobCardProps {
     job: Job;
     isSelected: boolean;
     onClick: () => void;
+    showMatchScore?: boolean;
 }
 
-export function JobCard({ job, isSelected, onClick }: JobCardProps) {
+// Helper to get match score color
+function getMatchScoreColor(score: number): { bg: string; text: string; ring: string } {
+    if (score >= 80) return { 
+        bg: 'bg-emerald-100 dark:bg-emerald-900/30', 
+        text: 'text-emerald-700 dark:text-emerald-300',
+        ring: 'ring-emerald-500/20'
+    };
+    if (score >= 60) return { 
+        bg: 'bg-blue-100 dark:bg-blue-900/30', 
+        text: 'text-blue-700 dark:text-blue-300',
+        ring: 'ring-blue-500/20'
+    };
+    if (score >= 40) return { 
+        bg: 'bg-amber-100 dark:bg-amber-900/30', 
+        text: 'text-amber-700 dark:text-amber-300',
+        ring: 'ring-amber-500/20'
+    };
+    return { 
+        bg: 'bg-gray-100 dark:bg-gray-800', 
+        text: 'text-gray-600 dark:text-gray-400',
+        ring: 'ring-gray-500/20'
+    };
+}
+
+export function JobCard({ job, isSelected, onClick, showMatchScore = false }: JobCardProps) {
+    const matchScore = job.matchScore;
+    const scoreColors = matchScore ? getMatchScoreColor(matchScore) : null;
+
     return (
         <div
             onClick={onClick}
             className={`
-                group cursor-pointer p-4 rounded-xl transition-all duration-200
+                group cursor-pointer p-4 rounded-xl transition-all duration-200 relative
                 ${isSelected
                     ? 'bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-500 dark:border-indigo-400'
                     : 'bg-white dark:bg-gray-900 border-2 border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-md'
                 }
             `}
         >
+            {/* Match Score Badge - Top Right */}
+            {showMatchScore && matchScore !== undefined && scoreColors && (
+                <div className={`absolute -top-2 -right-2 flex items-center gap-1 px-2.5 py-1 rounded-full ${scoreColors.bg} ${scoreColors.text} ring-2 ${scoreColors.ring} shadow-sm`}>
+                    <Sparkles className="w-3 h-3" />
+                    <span className="text-xs font-bold">{matchScore}%</span>
+                </div>
+            )}
+
             <div className="flex gap-4">
                 {/* Large Square Logo */}
                 <div className="shrink-0">

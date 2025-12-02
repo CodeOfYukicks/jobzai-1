@@ -34,7 +34,7 @@ export default function SidebarLink({
   } py-2 text-[13px] font-medium rounded-xl 
     transition-all duration-200 relative overflow-hidden
     ${isActive
-      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+      ? 'bg-gradient-to-r from-[#635BFF]/10 to-[#7c75ff]/10 text-[#635BFF] dark:text-[#a5a0ff]'
       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
     }`;
 
@@ -50,7 +50,7 @@ export default function SidebarLink({
       {isHovered === name && (
         <motion.div
           layoutId="hoverEffect"
-          className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5"
+          className="absolute inset-0 bg-gradient-to-r from-[#635BFF]/5 to-[#7c75ff]/5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -66,8 +66,8 @@ export default function SidebarLink({
         <Icon
           className={`h-5 w-5 transition-colors
             ${isActive
-              ? 'text-purple-600 dark:text-purple-400'
-              : 'text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'
+              ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+              : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'
             }`}
         />
         {!isCollapsed && (
@@ -81,7 +81,7 @@ export default function SidebarLink({
         <motion.div
           layoutId="activeIndicator"
           className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 
-            bg-gradient-to-b from-purple-600 to-indigo-600 rounded-r-full"
+            bg-gradient-to-b from-[#635BFF] to-[#7c75ff] rounded-r-full"
         />
       )}
     </Link>

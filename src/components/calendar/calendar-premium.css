@@ -406,3 +406,40 @@
     max-width: calc(100vw - 32px) !important;
   }
 }
+
+/* ==================== CUSTOM SCROLLBAR ==================== */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147, 51, 234, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(147, 51, 234, 0.3) 0%, rgba(99, 102, 241, 0.3) 100%);
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(147, 51, 234, 0.5) 0%, rgba(99, 102, 241, 0.5) 100%);
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(168, 85, 247, 0.3) transparent;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.3) 0%, rgba(129, 140, 248, 0.3) 100%);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.5) 0%, rgba(129, 140, 248, 0.5) 100%);
+}

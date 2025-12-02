@@ -406,7 +406,7 @@ END:VCALENDAR`;
             className="flex items-center gap-3 mb-4">
             {[
               { label: 'Total', count: allInterviews.length, color: 'gray', icon: Calendar },
-              { label: 'Upcoming', count: getUpcomingInterviews().length, color: 'violet', icon: TrendingUp },
+              { label: 'Upcoming', count: getUpcomingInterviews().length, color: 'blue', icon: TrendingUp },
               { label: 'Past', count: getPastInterviews().length, color: 'gray', icon: History }
             ].map((stat, index) => (
               <motion.div 
@@ -415,19 +415,19 @@ END:VCALENDAR`;
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 * index }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
-                  stat.color === 'violet' 
-                    ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' 
+                  stat.color === 'blue' 
+                    ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/20 border-[#635BFF]/20 dark:border-[#7c75ff]/30' 
                     : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                 }`}
               >
                 <stat.icon className={`w-4 h-4 ${
-                  stat.color === 'violet' 
-                    ? 'text-violet-600 dark:text-violet-400' 
+                  stat.color === 'blue' 
+                    ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                     : 'text-gray-600 dark:text-gray-400'
                 }`} />
                 <div className={`text-lg font-bold ${
-                  stat.color === 'violet' 
-                    ? 'text-violet-600 dark:text-violet-400' 
+                  stat.color === 'blue' 
+                    ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                     : 'text-gray-900 dark:text-gray-100'
                 }`}>
                   {stat.count}
@@ -457,7 +457,7 @@ END:VCALENDAR`;
                   onClick={() => setFilterPeriod('upcoming')}
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterPeriod === 'upcoming'
-                      ? 'bg-white text-violet-700 shadow-sm dark:bg-gray-50 dark:text-violet-700'
+                      ? 'bg-white text-[#635BFF] shadow-sm dark:bg-gray-50 dark:text-[#635BFF]'
                       : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
                 >
                   Upcoming
@@ -560,8 +560,8 @@ END:VCALENDAR`;
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Calendar className="w-10 h-10 text-purple-600 dark:text-purple-400" />
+            <div className="w-20 h-20 bg-gradient-to-br from-[#635BFF]/10 to-[#7c75ff]/10 dark:from-[#635BFF]/30 dark:to-[#7c75ff]/30 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Calendar className="w-10 h-10 text-[#635BFF] dark:text-[#a5a0ff]" />
             </div>
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
               {filterType !== 'all' || filterPeriod !== 'all'
@@ -585,8 +585,8 @@ END:VCALENDAR`;
               </Link>
               <Link
                 to="/calendar"
-                className="inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 
-                  text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/20"
+                className="inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-[#635BFF] to-[#7c75ff] hover:opacity-90 
+                  text-white rounded-lg font-medium transition-all shadow-lg shadow-[#635BFF]/20"
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 <span className="text-sm font-medium">Schedule Interview</span>
@@ -604,17 +604,17 @@ END:VCALENDAR`;
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-200 to-transparent dark:via-violet-800"></div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#635BFF]/20 to-transparent dark:via-[#7c75ff]/30"></div>
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                      <TrendingUp className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff]" />
                       <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                         Upcoming Interviews
                       </h2>
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#635BFF]/10 text-[#635BFF] dark:bg-[#635BFF]/30 dark:text-[#a5a0ff]">
                         {getUpcomingInterviews().filter(item => filterType === 'all' || item.interview.type === filterType).length}
                       </span>
                     </div>
-                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-200 to-transparent dark:via-violet-800"></div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#635BFF]/20 to-transparent dark:via-[#7c75ff]/30"></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {getUpcomingInterviews()

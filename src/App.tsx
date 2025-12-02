@@ -56,6 +56,8 @@ import ResumeBuilderPage from './pages/ResumeBuilderPage';
 import NotionEditorPage from './pages/NotionEditorPage';
 
 import { initNotificationService } from './services/notificationService';
+import { BackgroundTaskIndicator, useBackgroundTasks } from './hooks/useBackgroundTasks';
+import { resumePendingTasks } from './services/cvRewriteWorker';
 
 const queryClient = new QueryClient();
 
@@ -94,6 +96,17 @@ function AppContent() {
       initNotificationService(currentUser.uid);
     }
   }, [currentUser]);
+
+  // Resume any pending background tasks when app loads
+  useEffect(() => {
+    if (currentUser?.uid) {
+      console.log('🔄 Checking for pending background tasks...');
+      resumePendingTasks(currentUser.uid);
+    }
+  }, [currentUser?.uid]);
+
+  // Initialize background task monitoring
+  useBackgroundTasks();
   
   return (
     <>
@@ -203,6 +216,9 @@ function AppContent() {
         onMinimize={() => setMinimized(true)}
         onMaximize={() => setMinimized(false)}
       />
+      
+      {/* Global Background Task Indicator - shows when CV generation is running */}
+      <BackgroundTaskIndicator />
       
       <Toaster
         position="top-right"

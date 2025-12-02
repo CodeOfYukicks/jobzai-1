@@ -1,5 +1,12 @@
 /**
- * Batch 4: SmartRecruiters (All 20 companies)
+ * ⚠️ DEPRECATED - Use processDynamicBatch instead
+ * 
+ * This file is kept for backwards compatibility only.
+ * The dynamic batch processor automatically handles all companies.
+ * 
+ * Migration: Use processDynamicBatch with providers=['smartrecruiters']
+ * 
+ * Batch 4: SmartRecruiters (Legacy)
  */
 
 import { onRequest } from 'firebase-functions/v2/https';

@@ -1,11 +1,18 @@
-import { memo, useMemo } from 'react';
-import { Building2, MapPin, Briefcase, ExternalLink } from 'lucide-react';
-import { JobApplication, Interview } from '../../../types/interview';
-import { getCompanyDomain } from '../../../utils/logo';
+import { memo, useMemo, useRef, useState } from 'react';
+import { ExternalLink, MapPin, Globe, Users } from 'lucide-react';
+import { Interview } from '../../../types/interview';
+import { JobApplication } from '../../../types/job';
+import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl } from '../../../utils/logo';
 
 interface CompanyProfileSectionProps {
   application: JobApplication;
   interview: Interview;
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 const CompanyProfileSection = memo(function CompanyProfileSection({
@@ -13,108 +20,127 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
   interview,
 }: CompanyProfileSectionProps) {
   const companyInfo = interview?.preparation?.companyInfo;
-  
-  // Extract first sentence as headline
-  const headline = companyInfo?.split('.')[0] || `${application.companyName} is a leading company in its industry`;
-  const details = companyInfo?.split('.').slice(1).join('.').trim();
+  const companyDomain = getCompanyDomain(application.companyName);
+  const initialLogo = companyDomain ? getClearbitUrl(companyDomain) : null;
+  const [logoSrc, setLogoSrc] = useState<string | null>(initialLogo);
+  const triedGoogle = useRef(false);
 
-  // Get company website URL (not the job posting URL)
+  function handleLogoError() {
+    if (companyDomain && !triedGoogle.current) {
+      triedGoogle.current = true;
+      setLogoSrc(getGoogleFaviconUrl(companyDomain));
+    } else {
+      setLogoSrc(null);
+    }
+  }
+  
+  // Extract headline and details
+  const headline = companyInfo?.split('.')[0] || `${application.companyName} is a leading company in its industry`;
+  const details = companyInfo?.split('.').slice(1, 3).join('. ').trim();
+
+  // Get company website URL
   const companyWebsiteUrl = useMemo(() => {
-    // First, try to extract domain from job posting URL if it exists
     if (application.url) {
       try {
         const url = new URL(application.url);
-        // Return the base domain (e.g., https://company.com)
         return `${url.protocol}//${url.hostname}`;
       } catch (e) {
-        // If URL parsing fails, continue to fallback
+        // fallback
       }
     }
-    
-    // Fallback: construct URL from company name using getCompanyDomain
     const domain = getCompanyDomain(application.companyName);
-    if (domain) {
-      return `https://${domain}`;
-    }
-    
+    if (domain) return `https://${domain}`;
     return null;
   }, [application.url, application.companyName]);
 
   return (
-    <article className="group rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300">
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 ring-1 ring-inset ring-indigo-100 dark:ring-indigo-500/20">
-            <Building2 className="w-5 h-5" />
+    <article className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 transition-colors">
+      
+      {/* Top: Logo + Company Name inline */}
+      <div className="flex items-start gap-5 mb-8">
+        {/* Logo - Glassmorphism style */}
+        <div className="flex-shrink-0">
+          <div 
+            className="
+              h-14 w-14 rounded-xl 
+              backdrop-blur-xl bg-slate-50 dark:bg-slate-800 
+              ring-1 ring-slate-200/80 dark:ring-slate-700/80
+              flex items-center justify-center
+              transition-all duration-200
+            "
+          >
+            {logoSrc ? (
+              <img
+                src={logoSrc}
+                alt={`${application.companyName} logo`}
+                onError={handleLogoError}
+                className="h-8 w-8 object-contain"
+              />
+            ) : (
+              <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">
+                {getInitials(application.companyName)}
+              </span>
+            )}
           </div>
-          <div>
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white tracking-tight">
-              Company Profile
+        </div>
+
+        {/* Company Name + Meta */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">
+              {application.companyName}
             </h2>
-            <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span className="font-medium text-gray-700 dark:text-gray-300">{application.companyName}</span>
-              {companyWebsiteUrl && (
-                <>
-                  <span className="text-gray-300 dark:text-gray-600">•</span>
-                  <a 
-                    href={companyWebsiteUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
-                  >
-                    Visit website
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </>
-              )}
-            </div>
+            {companyWebsiteUrl && (
+              <a 
+                href={companyWebsiteUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+              >
+                <Globe className="w-3 h-3" />
+                Website
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
           </div>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Info - 2/3 width */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Headline Quote */}
-          <div className="relative pl-5 border-l-4 border-indigo-500/30 dark:border-indigo-400/30">
-            <p className="text-base font-medium text-gray-900 dark:text-white leading-relaxed italic">
-              "{headline}."
-            </p>
-          </div>
-
-          {/* Detailed Info */}
-          {details && (
-            <div className="prose prose-sm prose-gray dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed">
-              <p>{details}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar Stats - 1/3 width */}
-        <div className="lg:col-span-1">
-          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-5 space-y-4 border border-gray-100 dark:border-gray-800">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-normal uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          
+          {/* Location + Industry tags */}
+          <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+            {application.location && (
+              <span className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5" />
-                Location
-              </div>
-              <div className="text-sm font-medium text-gray-900 dark:text-white pl-5.5">
-                {application.location || 'Remote / Not specified'}
-              </div>
-            </div>
-
-            <div className="w-full h-px bg-gray-200 dark:bg-gray-700/50" />
-
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-normal uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                <Briefcase className="w-3.5 h-3.5" />
-                Position
-              </div>
-              <div className="text-sm font-medium text-gray-900 dark:text-white pl-5.5">
-                {application.position}
-              </div>
-            </div>
+                {application.location}
+              </span>
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Main Content: Insight */}
+      <div className="space-y-4">
+        {/* Primary Insight - Display Typography */}
+        <p className="font-display text-2xl md:text-[1.75rem] font-normal leading-[1.3] tracking-[-0.01em] text-slate-900 dark:text-white">
+          {headline}.
+        </p>
+
+        {/* Supporting Details */}
+        {details && (
+          <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
+            {details}.
+          </p>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="my-6 h-px bg-slate-100 dark:bg-slate-800" />
+
+      {/* Bottom: Quick Stats Row */}
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2 text-sm">
+          <Users className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+          <span className="text-slate-600 dark:text-slate-400">
+            Position: <span className="font-medium text-slate-900 dark:text-white">{application.position}</span>
+          </span>
         </div>
       </div>
     </article>

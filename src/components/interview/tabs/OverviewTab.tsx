@@ -7,7 +7,6 @@ import {
   PositionDetailsSection,
   CompanyUpdatesSection,
 } from '../sections';
-import { LazySection } from '../utils/LazySection';
 
 interface OverviewTabProps {
   application: JobApplication;
@@ -34,56 +33,54 @@ interface OverviewTabProps {
 const OverviewTab = memo(function OverviewTab({
   application,
   interview,
-  checklist,
   newsItems,
   isNewsLoading,
   newsError,
-  showAllChecklistItems,
   showAllNewsItems,
-  newTaskText,
-  setTab,
-  setShowAllChecklistItems,
   setShowAllNewsItems,
-  setNewTaskText,
-  toggleChecklistItem,
-  addChecklistItem,
-  deleteChecklistItem,
-  updateChecklistItemText,
   fetchCompanyNews,
   createNoteFromNews,
 }: OverviewTabProps) {
+  const hasPreparation = !!interview?.preparation;
+
   return (
-    <div className="space-y-5">
-      {/* Company Profile First */}
-      <LazySection minHeight="300px">
-        <CompanyProfileSection application={application} interview={interview} />
-      </LazySection>
+    <div className="max-w-7xl mx-auto">
+      {/* Bento Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Main Column - Company Profile (spans 8 cols) */}
+        <div className="lg:col-span-8">
+          <CompanyProfileSection application={application} interview={interview} />
+        </div>
 
-      <LazySection minHeight="300px">
-        <PositionDetailsSection application={application} interview={interview} />
-      </LazySection>
+        {/* Side Column - Key Points (spans 4 cols) */}
+        <div className="lg:col-span-4">
+          <KeyPointsSection interview={interview} />
+        </div>
 
-      <LazySection minHeight="200px">
-        <KeyPointsSection interview={interview} />
-      </LazySection>
+        {/* Full Width - Position Details */}
+        <div className="lg:col-span-12">
+          <PositionDetailsSection application={application} interview={interview} />
+        </div>
 
-      {interview?.preparation && (
-        <LazySection minHeight="300px">
-          <CompanyUpdatesSection
-            interview={interview}
-            newsItems={newsItems}
-            isNewsLoading={isNewsLoading}
-            newsError={newsError}
-            showAllNewsItems={showAllNewsItems}
-            setShowAllNewsItems={setShowAllNewsItems}
-            fetchCompanyNews={fetchCompanyNews}
-            createNoteFromNews={createNoteFromNews}
-          />
-        </LazySection>
-      )}
+        {/* Company Updates - Full width, collapsible */}
+        {hasPreparation && (
+          <div className="lg:col-span-12">
+            <CompanyUpdatesSection
+              interview={interview}
+              newsItems={newsItems}
+              isNewsLoading={isNewsLoading}
+              newsError={newsError}
+              showAllNewsItems={showAllNewsItems}
+              setShowAllNewsItems={setShowAllNewsItems}
+              fetchCompanyNews={fetchCompanyNews}
+              createNoteFromNews={createNoteFromNews}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 });
 
 export default OverviewTab;
-

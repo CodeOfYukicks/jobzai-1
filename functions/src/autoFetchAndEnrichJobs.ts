@@ -218,9 +218,9 @@ async function processSource(source: ATSProviderConfig, db: admin.firestore.Fire
 		} else if (provider === 'ashby' && company) {
 			jobs = await fetchAshby(company);
 		} else if (provider === 'workday' && company) {
-			// Skip Workday for now (has externalId issues)
-			console.log(`[AUTO] Skipping Workday (known issues)`);
-			return { success: true, jobs: 0 };
+			// Workday re-enabled with improved fetcher (exponential backoff + robust ID handling)
+			const { fetchWorkday } = require('./utils/atsFetchers');
+			jobs = await fetchWorkday(company, workdayDomain, workdaySiteId);
 		}
 
 		console.log(`[AUTO] Fetched ${jobs.length} jobs from ${provider}/${company}`);

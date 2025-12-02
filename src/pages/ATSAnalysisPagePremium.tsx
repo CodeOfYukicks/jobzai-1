@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDoc, doc, updateDoc } from 'firebase/firestore';
+import { getDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
-import { generateCVRewrite } from '../lib/cvRewriteService';
 import { CompanyLogo } from '../components/common/CompanyLogo';
 import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl } from '../utils/logo';
 import TailoredResumePanel from '../components/ats-premium/TailoredResumePanel';
 import { analyzeOptimizedCV } from '../lib/optimizedCVAnalyzer';
 import { analyzePremiumScore, type PremiumScoreAnalysis } from '../lib/premiumScoreAnalyzer';
+// Background task system for persistent CV generation
+import { createBackgroundTask, getActiveTaskForAnalysis, BackgroundTask } from '../services/backgroundTaskService';
+import { startCVRewriteWorker } from '../services/cvRewriteWorker';
 import {
   ExternalLink, Building2, MapPin, FileText, List,
   Target, TrendingUp, AlertCircle, Lightbulb, Activity, BookOpen,
@@ -108,7 +110,7 @@ function Section({ id, title, description, children }: SectionProps) {
   );
 }
 
-// Full-height Right Sidebar Panel - Ultra Sleek Design
+// Full-height Right Sidebar Panel - Notion Style Design
 function RightSidebarPanel({
   analysis,
   activeSection,
@@ -146,15 +148,15 @@ function RightSidebarPanel({
   ];
 
   return (
-    <div className="hidden lg:block fixed right-0 top-0 bottom-0 w-96 bg-white dark:bg-[#1E1F22] border-l border-gray-200 dark:border-[#2A2A2E] shadow-2xl z-30">
+    <div className="hidden lg:block fixed right-0 top-0 bottom-0 w-96 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 z-30">
       <div className="h-full flex flex-col">
-        {/* Sleek Tab Headers with gradient indicator */}
-        <div className="relative flex border-b border-gray-200 dark:border-[#2A2A2E] flex-shrink-0">
+        {/* Notion Style Tab Headers */}
+        <div className="relative flex border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
           <button
             onClick={() => setSidebarTab('summary')}
-            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${sidebarTab === 'summary'
-              ? 'text-purple-600 dark:text-purple-400'
-              : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+            className={`relative flex-1 px-4 py-4 text-xs font-medium transition-all ${sidebarTab === 'summary'
+              ? 'text-gray-900 dark:text-white'
+              : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
           >
             <div className="flex items-center justify-center gap-2">
@@ -164,16 +166,16 @@ function RightSidebarPanel({
             {sidebarTab === 'summary' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-600 to-indigo-600"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
           </button>
           <button
             onClick={() => setSidebarTab('navigation')}
-            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${sidebarTab === 'navigation'
-              ? 'text-purple-600 dark:text-purple-400'
-              : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+            className={`relative flex-1 px-4 py-4 text-xs font-medium transition-all ${sidebarTab === 'navigation'
+              ? 'text-gray-900 dark:text-white'
+              : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
           >
             <div className="flex items-center justify-center gap-2">
@@ -183,29 +185,29 @@ function RightSidebarPanel({
             {sidebarTab === 'navigation' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-600 to-indigo-600"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
           </button>
           <button
             onClick={() => setSidebarTab('cv')}
-            className={`relative flex-1 px-4 py-4 text-xs font-semibold transition-all ${sidebarTab === 'cv'
-              ? 'text-purple-600 dark:text-purple-400'
-              : 'text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+            className={`relative flex-1 px-4 py-4 text-xs font-medium transition-all ${sidebarTab === 'cv'
+              ? 'text-gray-900 dark:text-white'
+              : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
           >
             <div className="flex items-center justify-center gap-2">
               <Wand2 className="w-3.5 h-3.5" />
               Tailored Resume
               {cvRewrite && (
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               )}
             </div>
             {sidebarTab === 'cv' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-600 to-indigo-600"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
@@ -213,15 +215,15 @@ function RightSidebarPanel({
         </div>
 
         {/* Tab Content - Scrollable with custom scrollbar */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
           <AnimatePresence mode="wait">
             {sidebarTab === 'summary' && (
               <motion.div
                 key="summary"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
                 <JobSummaryPanel jobSummary={analysis.job_summary} compact />
@@ -231,34 +233,31 @@ function RightSidebarPanel({
             {sidebarTab === 'navigation' && (
               <motion.div
                 key="navigation"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-1"
               >
-                <nav className="space-y-1">
-                  {sections.map((section, index) => (
-                    <motion.button
+                <nav className="space-y-0.5">
+                  {sections.map((section) => (
+                    <button
                       key={section.id}
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
                       onClick={() => onNavigate(section.id)}
-                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left transition-all group ${activeSection === section.id
-                        ? 'bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 text-purple-700 dark:text-purple-300 font-semibold shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#26262B] hover:text-gray-900 dark:hover:text-gray-200'
+                      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150 group ${activeSection === section.id
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={`transition-colors ${activeSection === section.id ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
+                        <span className={`transition-colors ${activeSection === section.id ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
                           {section.icon}
                         </span>
                         <span className="text-sm">{section.label}</span>
                       </div>
-                      <ChevronRight className={`w-4 h-4 transition-all ${activeSection === section.id ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0'
+                      <ChevronRight className={`w-4 h-4 transition-all ${activeSection === section.id ? 'opacity-70' : 'opacity-0 group-hover:opacity-40'
                         }`} />
-                    </motion.button>
+                    </button>
                   ))}
                 </nav>
               </motion.div>
@@ -267,10 +266,10 @@ function RightSidebarPanel({
             {sidebarTab === 'cv' && (
               <motion.div
                 key="cv"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
                 className="h-full"
               >
                 <TailoredResumePanel
@@ -297,17 +296,17 @@ function RightSidebarPanel({
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(156, 163, 175, 0.3);
+          background: rgba(156, 163, 175, 0.2);
           border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(156, 163, 175, 0.5);
+          background: rgba(156, 163, 175, 0.4);
         }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(75, 85, 99, 0.3);
+          background: rgba(75, 85, 99, 0.2);
         }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(75, 85, 99, 0.5);
+          background: rgba(75, 85, 99, 0.4);
         }
       `}</style>
     </div>
@@ -326,6 +325,7 @@ export default function ATSAnalysisPagePremium() {
   const [cvRewrite, setCvRewrite] = useState<any>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStep, setGenerationStep] = useState(0);
+  const [generationStepLabel, setGenerationStepLabel] = useState('');
   const [sidebarTab, setSidebarTab] = useState<'summary' | 'navigation' | 'cv'>('summary');
   const [optimizedScore, setOptimizedScore] = useState<{
     overall: number;
@@ -334,6 +334,7 @@ export default function ATSAnalysisPagePremium() {
   } | null>(null);
   const [isCalculatingScore, setIsCalculatingScore] = useState(false);
   const [premiumAnalysis, setPremiumAnalysis] = useState<PremiumScoreAnalysis | null>(null);
+  const [activeBackgroundTask, setActiveBackgroundTask] = useState<BackgroundTask | null>(null);
 
   const sectionsRef = useRef<{ [key: string]: HTMLElement | null }>({});
 
@@ -420,6 +421,112 @@ export default function ATSAnalysisPagePremium() {
 
     fetchAnalysis();
   }, [id, currentUser, navigate]);
+
+  // Monitor background tasks for this analysis
+  useEffect(() => {
+    if (!id || !currentUser?.uid) return;
+
+    // Subscribe to background tasks collection for this analysis
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', currentUser.uid, 'backgroundTasks', `cv_rewrite_${id}`),
+      { includeMetadataChanges: false },
+      async (docSnap) => {
+        // Also check for any active task with matching analysisId
+        const task = await getActiveTaskForAnalysis(currentUser.uid, id, 'cv_rewrite');
+        
+        if (task) {
+          setActiveBackgroundTask(task);
+          setIsGeneratingCV(true);
+          setGenerationProgress(task.progress || 0);
+          setGenerationStep(task.step || 0);
+          setGenerationStepLabel(task.stepLabel || '');
+          setSidebarTab('cv');
+        } else {
+          // Check if task just completed - reload the CV rewrite
+          if (activeBackgroundTask && (activeBackgroundTask.status === 'pending' || activeBackgroundTask.status === 'in_progress')) {
+            // Task was active and now it's gone - reload analysis to get the new CV
+            console.log('🔄 Background task completed, reloading CV rewrite...');
+            const analysisDoc = await getDoc(doc(db, 'users', currentUser.uid, 'analyses', id));
+            if (analysisDoc.exists()) {
+              const data = analysisDoc.data();
+              if (data.cv_rewrite && data.cv_rewrite_generated_at) {
+                setCvRewrite(data.cv_rewrite);
+                setSidebarTab('cv');
+                toast.success('🎉 CV optimisé généré avec succès !', { duration: 5000 });
+              }
+            }
+          }
+          setActiveBackgroundTask(null);
+          setIsGeneratingCV(false);
+          setGenerationProgress(0);
+          setGenerationStep(0);
+          setGenerationStepLabel('');
+        }
+      },
+      (error) => {
+        console.error('Error monitoring background task:', error);
+      }
+    );
+
+    // Also check on mount if there's an active task
+    const checkActiveTask = async () => {
+      const task = await getActiveTaskForAnalysis(currentUser.uid, id, 'cv_rewrite');
+      if (task) {
+        setActiveBackgroundTask(task);
+        setIsGeneratingCV(true);
+        setGenerationProgress(task.progress || 0);
+        setGenerationStep(task.step || 0);
+        setGenerationStepLabel(task.stepLabel || '');
+        setSidebarTab('cv');
+      }
+    };
+    checkActiveTask();
+
+    return () => unsubscribe();
+  }, [id, currentUser?.uid, activeBackgroundTask]);
+
+  // Subscribe to active background task updates
+  useEffect(() => {
+    if (!activeBackgroundTask || !currentUser?.uid) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', currentUser.uid, 'backgroundTasks', activeBackgroundTask.id),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const task = docSnap.data() as BackgroundTask;
+          
+          if (task.status === 'completed') {
+            // Task completed - reload CV rewrite from analysis
+            setIsGeneratingCV(false);
+            setActiveBackgroundTask(null);
+            
+            // Reload the analysis to get the new CV
+            getDoc(doc(db, 'users', currentUser.uid, 'analyses', id!)).then((analysisDoc) => {
+              if (analysisDoc.exists()) {
+                const data = analysisDoc.data();
+                if (data.cv_rewrite) {
+                  setCvRewrite(data.cv_rewrite);
+                  setSidebarTab('cv');
+                }
+              }
+            });
+          } else if (task.status === 'failed') {
+            // Task failed
+            setIsGeneratingCV(false);
+            setActiveBackgroundTask(null);
+            toast.error(task.error || 'La génération du CV a échoué', { duration: 6000 });
+          } else {
+            // Update progress
+            setGenerationProgress(task.progress || 0);
+            setGenerationStep(task.step || 0);
+            setGenerationStepLabel(task.stepLabel || '');
+          }
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, [activeBackgroundTask?.id, currentUser?.uid, id]);
 
   // Calculate optimized CV score when CV rewrite is available
   // Use a ref to prevent calculation on initial mount when score might already exist
@@ -587,7 +694,7 @@ export default function ATSAnalysisPagePremium() {
     }
   };
 
-  // Generate CV Rewrite with AI
+  // Generate CV Rewrite with AI - Now uses background tasks for persistence
   const handleGenerateCVRewrite = async (adaptationLevel: AdaptationLevel = 'balanced') => {
     if (!analysis || !id || !currentUser) {
       toast.error('Analysis data not available');
@@ -608,154 +715,117 @@ export default function ATSAnalysisPagePremium() {
       return;
     }
 
-    console.log(`🎚️ Starting CV Rewrite with adaptation level: ${adaptationLevel}`);
-
-    setIsGeneratingCV(true);
-    setGenerationProgress(0);
-    setGenerationStep(0);
-
-    // Auto-switch to CV tab to show inline progress
-    setSidebarTab('cv');
-
-    // Simulate progress updates
-    const progressInterval = setInterval(() => {
-      setGenerationProgress((prev) => {
-        if (prev >= 90) return prev;
-        const increment = Math.random() * 5 + 2;
-        const newProgress = Math.min(prev + increment, 90);
-
-        // Update step based on progress
-        setGenerationStep(() => {
-          if (newProgress < 25) return 0;
-          if (newProgress < 50) return 1;
-          if (newProgress < 75) return 2;
-          if (newProgress < 90) return 3;
-          return 4;
-        });
-
-        return newProgress;
-      });
-    }, 500);
-
-    try {
-      // Step 1: Analyzing
-      setGenerationStep(0);
-      setGenerationProgress(10);
-
-      // Extract FULL enriched data from analysis for ultra-quality rewriting
-      const cvText = analysis.cvText || '';
-      const matchScore = analysis.match_scores?.overall_score || 0;
-      
-      // Enriched strengths with full context
-      const enrichedStrengths = (analysis.top_strengths || []).map((s: any) => ({
-        name: s.name || '',
-        example_from_resume: s.example_from_resume || '',
-        why_it_matters: s.why_it_matters || '',
-      }));
-      
-      // Enriched gaps with severity and resolution strategies
-      const enrichedGaps = (analysis.top_gaps || []).map((g: any) => ({
-        name: g.name || '',
-        severity: g.severity || 'Medium',
-        how_to_fix: g.how_to_fix || '',
-        why_it_matters: g.why_it_matters || '',
-      }));
-      
-      // Full keywords breakdown
-      const keywordsBreakdown = {
-        missing: analysis.match_breakdown?.keywords?.missing || [],
-        priority_missing: analysis.match_breakdown?.keywords?.priority_missing || [],
-        found: analysis.match_breakdown?.keywords?.found || [],
-      };
-      
-      // Pre-analyzed CV fixes
-      const cvFixes = analysis.cv_fixes ? {
-        high_impact_bullets_to_add: analysis.cv_fixes.high_impact_bullets_to_add || [],
-        bullets_to_rewrite: analysis.cv_fixes.bullets_to_rewrite || [],
-        keywords_to_insert: analysis.cv_fixes.keywords_to_insert || [],
-        sections_to_reorder: analysis.cv_fixes.sections_to_reorder || [],
-        estimated_score_gain: analysis.cv_fixes.estimated_score_gain || 0,
-      } : undefined;
-      
-      // Job summary insights
-      const jobSummary = analysis.job_summary ? {
-        hidden_expectations: analysis.job_summary.hidden_expectations || [],
-        core_requirements: analysis.job_summary.core_requirements || [],
-        mission: analysis.job_summary.mission || '',
-      } : undefined;
-      
-      // Strategic positioning
-      const positioning = analysis.action_plan_48h?.job_specific_positioning || '';
-
-      setGenerationStep(1);
-      setGenerationProgress(30);
-
-      // Step 2: Generating with FULL enriched data
-      setGenerationStep(2);
-      setGenerationProgress(50);
-
-      const result = await generateCVRewrite({
-        cvText,
-        jobDescription: analysis.jobDescription,
-        atsAnalysis: {
-          matchScore,
-          strengths: enrichedStrengths,
-          gaps: enrichedGaps,
-          keywords: keywordsBreakdown,
-          cvFixes,
-          jobSummary,
-          positioning,
-        },
-        jobTitle: analysis.jobTitle,
-        company: analysis.company,
-        adaptationLevel, // Pass the selected adaptation level
-      });
-
-      setGenerationStep(3);
-      setGenerationProgress(75);
-
-      // Step 3: Saving to Firebase
-      await updateDoc(doc(db, 'users', currentUser.uid, 'analyses', id), {
-        cv_rewrite: result,
-        cv_rewrite_generated_at: new Date().toISOString()
-      });
-
-      setGenerationStep(4);
-      setGenerationProgress(100);
-
-      // Small delay to show completion
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Update state immediately - this will trigger UI update
-      setCvRewrite(result);
-
-      // Switch to CV tab to show the result
-      setSidebarTab('cv');
-
-      // Clear progress interval
-      clearInterval(progressInterval);
-
-      toast.success('🎉 Tailored resume generated successfully!', {
+    // Check if there's already an active task for this analysis
+    const existingTask = await getActiveTaskForAnalysis(currentUser.uid, id, 'cv_rewrite');
+    if (existingTask) {
+      toast.info('Une génération est déjà en cours pour cette analyse', {
         duration: 3000
       });
+      setSidebarTab('cv');
+      return;
+    }
+
+    console.log(`🎚️ Starting CV Rewrite with adaptation level: ${adaptationLevel}`);
+
+    // Extract FULL enriched data from analysis for ultra-quality rewriting
+    const cvText = analysis.cvText || '';
+    const matchScore = analysis.match_scores?.overall_score || 0;
+    
+    // Enriched strengths with full context
+    const enrichedStrengths = (analysis.top_strengths || []).map((s: any) => ({
+      name: s.name || '',
+      example_from_resume: s.example_from_resume || '',
+      why_it_matters: s.why_it_matters || '',
+    }));
+    
+    // Enriched gaps with severity and resolution strategies
+    const enrichedGaps = (analysis.top_gaps || []).map((g: any) => ({
+      name: g.name || '',
+      severity: g.severity || 'Medium',
+      how_to_fix: g.how_to_fix || '',
+      why_it_matters: g.why_it_matters || '',
+    }));
+    
+    // Full keywords breakdown
+    const keywordsBreakdown = {
+      missing: analysis.match_breakdown?.keywords?.missing || [],
+      priority_missing: analysis.match_breakdown?.keywords?.priority_missing || [],
+      found: analysis.match_breakdown?.keywords?.found || [],
+    };
+    
+    // Pre-analyzed CV fixes
+    const cvFixes = analysis.cv_fixes ? {
+      high_impact_bullets_to_add: analysis.cv_fixes.high_impact_bullets_to_add || [],
+      bullets_to_rewrite: analysis.cv_fixes.bullets_to_rewrite || [],
+      keywords_to_insert: analysis.cv_fixes.keywords_to_insert || [],
+      sections_to_reorder: analysis.cv_fixes.sections_to_reorder || [],
+      estimated_score_gain: analysis.cv_fixes.estimated_score_gain || 0,
+    } : undefined;
+    
+    // Job summary insights
+    const jobSummary = analysis.job_summary ? {
+      hidden_expectations: analysis.job_summary.hidden_expectations || [],
+      core_requirements: analysis.job_summary.core_requirements || [],
+      mission: analysis.job_summary.mission || '',
+    } : undefined;
+    
+    // Strategic positioning
+    const positioning = analysis.action_plan_48h?.job_specific_positioning || '';
+
+    // Input data for the background task
+    const inputData = {
+      cvText,
+      jobDescription: analysis.jobDescription,
+      atsAnalysis: {
+        matchScore,
+        strengths: enrichedStrengths,
+        gaps: enrichedGaps,
+        keywords: keywordsBreakdown,
+        cvFixes,
+        jobSummary,
+        positioning,
+      },
+      jobTitle: analysis.jobTitle,
+      company: analysis.company,
+      adaptationLevel,
+    };
+
+    try {
+      // Create background task
+      const taskId = await createBackgroundTask(currentUser.uid, 'cv_rewrite', {
+        analysisId: id,
+        jobTitle: analysis.jobTitle,
+        company: analysis.company,
+        adaptationLevel,
+        inputData,
+      });
+
+      // Set local state to show progress immediately
+      setIsGeneratingCV(true);
+      setGenerationProgress(0);
+      setGenerationStep(0);
+      setGenerationStepLabel('Démarrage...');
+      setSidebarTab('cv');
+
+      // Show toast notification
+      toast.success('🚀 Génération du CV lancée en arrière-plan !', {
+        description: 'Vous pouvez quitter cette page - vous serez notifié quand ce sera terminé.',
+        duration: 5000,
+      });
+
+      // Start the worker (runs in background, continues even if user leaves page)
+      startCVRewriteWorker(currentUser.uid, taskId, id, inputData);
 
     } catch (error: any) {
-      console.error('❌ Error generating CV Rewrite:', error);
+      console.error('❌ Error starting CV Rewrite:', error);
 
-      clearInterval(progressInterval);
-
-      let errorMessage = 'Failed to generate CV';
-      if (error.message?.includes('API key')) {
-        errorMessage = 'OpenAI API key is missing. Please configure your environment.';
-      } else if (error.message) {
+      let errorMessage = 'Failed to start CV generation';
+      if (error.message) {
         errorMessage = error.message;
       }
 
       toast.error(errorMessage, { duration: 6000 });
-    } finally {
       setIsGeneratingCV(false);
-      setGenerationProgress(0);
-      setGenerationStep(0);
     }
   };
 

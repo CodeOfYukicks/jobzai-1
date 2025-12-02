@@ -50,15 +50,15 @@ const TooltipButton = ({ icon, label, onClick, active = false, badge }: TooltipB
       <AnimatePresence>
         {showTooltip && (
           <motion.div
-            initial={{ opacity: 0, x: 10 }}
+            initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 10 }}
+            exit={{ opacity: 0, x: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-16 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
+            className="absolute left-16 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
           >
             <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
               {label}
-              <div className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900 dark:border-l-gray-700" />
+              <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-700" />
             </div>
           </motion.div>
         )}
@@ -83,7 +83,7 @@ export const CalendarSidebar = ({
   const activeFilters = [!showApplications, !showInterviews].filter(Boolean).length;
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-16 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 flex flex-col items-center py-6 gap-2 z-[60]">
+    <div className="hidden lg:flex fixed left-0 top-16 bottom-0 w-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 flex-col items-center py-6 gap-2 z-[40]">
       {/* Logo/Brand */}
       <div className="mb-4">
         <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
@@ -112,11 +112,11 @@ export const CalendarSidebar = ({
           <AnimatePresence>
             {showViewMenu && (
               <motion.div
-                initial={{ opacity: 0, x: 10, scale: 0.95 }}
+                initial={{ opacity: 0, x: -10, scale: 0.95 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 10, scale: 0.95 }}
+                exit={{ opacity: 0, x: -10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-16 top-0 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[140px]"
+                className="absolute left-16 top-0 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[140px]"
               >
                 {(['month', 'week', 'day'] as CalendarView[]).map((view) => (
                   <button
@@ -159,11 +159,11 @@ export const CalendarSidebar = ({
           <AnimatePresence>
             {showFilterMenu && (
               <motion.div
-                initial={{ opacity: 0, x: 10, scale: 0.95 }}
+                initial={{ opacity: 0, x: -10, scale: 0.95 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 10, scale: 0.95 }}
+                exit={{ opacity: 0, x: -10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-16 top-0 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[180px]"
+                className="absolute left-16 top-0 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[180px]"
               >
                 <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   Event Types

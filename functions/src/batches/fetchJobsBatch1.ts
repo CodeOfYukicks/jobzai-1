@@ -1,5 +1,12 @@
 /**
- * Batch 1: Greenhouse Companies 1-20
+ * ⚠️ DEPRECATED - Use processDynamicBatch instead
+ * 
+ * This file is kept for backwards compatibility only.
+ * The dynamic batch processor automatically handles all companies.
+ * 
+ * Migration: Use processDynamicBatch with providers=['greenhouse']
+ * 
+ * Batch 1: Greenhouse Companies 1-20 (Legacy)
  */
 
 import { onRequest } from 'firebase-functions/v2/https';

@@ -365,6 +365,7 @@ exports.fetchJobsFromATS = serverlessFunctions.fetchJobsFromATS;
 exports.generateJobEmbedding = serverlessFunctions.generateJobEmbedding;
 exports.generateUserEmbedding = serverlessFunctions.generateUserEmbedding;
 exports.matchJobsForUsers = serverlessFunctions.matchJobsForUsers;
+exports.getMatchedJobs = serverlessFunctions.getMatchedJobs;
 
 // Export job search function
 exports.searchJobs = serverlessFunctions.searchJobs;
