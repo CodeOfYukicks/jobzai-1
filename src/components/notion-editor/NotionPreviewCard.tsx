@@ -86,6 +86,7 @@ const NotionPreviewCard = memo(
     const contextMenuRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
+    const coverButtonRef = useRef<HTMLButtonElement>(null);
 
     // Card dimensions
     const targetWidth = compact ? 140 : 220;
@@ -285,6 +286,7 @@ const NotionPreviewCard = memo(
                         className="absolute top-2 right-2 flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg z-10"
                       >
                         <button
+                          ref={coverButtonRef}
                           onClick={(e) => {
                             e.stopPropagation();
                             setIsCoverGalleryOpen(true);
@@ -537,6 +539,7 @@ const NotionPreviewCard = memo(
               onSelectBlob={handleGallerySelect}
               onRemove={onRemoveCover}
               currentCover={note.coverImage}
+              triggerRef={coverButtonRef}
             />
           </>
         )}

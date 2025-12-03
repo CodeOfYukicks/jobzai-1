@@ -2496,6 +2496,7 @@ export default function CVAnalysisPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLLabelElement>(null);
   const jobSelectorRef = useRef<HTMLDivElement>(null);
+  const jobInputRef = useRef<HTMLInputElement>(null);
   const jobDropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -2759,12 +2760,12 @@ export default function CVAnalysisPage() {
 
   // Calculer la position du dropdown pour éviter qu'il soit coupé
   useEffect(() => {
-    if (showJobDropdown && jobSelectorRef.current) {
+    if (showJobDropdown && jobInputRef.current) {
       const updatePosition = () => {
-        if (jobSelectorRef.current) {
-          const rect = jobSelectorRef.current.getBoundingClientRect();
+        if (jobInputRef.current) {
+          const rect = jobInputRef.current.getBoundingClientRect();
           setDropdownPosition({
-            top: rect.bottom + 8,
+            top: rect.bottom + 4,
             left: rect.left,
             width: rect.width
           });
@@ -6975,34 +6976,34 @@ URL to visit: ${jobUrl}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`border-2 rounded-xl p-5 transition-all duration-200 shadow-sm ${usingSavedCV
-                ? 'border-purple-500 dark:border-purple-400 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/20 shadow-purple-200 dark:shadow-purple-900/20'
-                : 'border-purple-200 dark:border-purple-800 bg-white dark:bg-[#1A1A1A] hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md'
+              className={`border-2 rounded-xl p-4 transition-all duration-200 ${usingSavedCV
+                ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-gradient-to-br from-[#635BFF]/5 to-[#7c75ff]/5 dark:from-[#635BFF]/10 dark:to-[#5249e6]/10 shadow-lg shadow-[#635BFF]/10 dark:shadow-[#635BFF]/20'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A] hover:border-[#635BFF]/50 dark:hover:border-[#a5a0ff]/50 hover:shadow-md'
                 }`}
             >
               {/* Header with badge */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${usingSavedCV
-                    ? 'bg-purple-600 dark:bg-purple-500'
-                    : 'bg-purple-100 dark:bg-purple-900/30'
+                    ? 'bg-[#635BFF] dark:bg-[#635BFF]'
+                    : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                     }`}>
                     <FileText className={`w-4 h-4 ${usingSavedCV
                       ? 'text-white'
-                      : 'text-purple-600 dark:text-purple-400'
+                      : 'text-[#635BFF] dark:text-[#a5a0ff]'
                       }`} />
                   </div>
                   <div>
                     <span className={`text-xs font-semibold uppercase tracking-wide ${usingSavedCV
-                      ? 'text-purple-700 dark:text-purple-300'
-                      : 'text-purple-600 dark:text-purple-400'
+                      ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                      : 'text-[#635BFF] dark:text-[#a5a0ff]'
                       }`}>
                       Saved CV
                     </span>
                   </div>
                 </div>
                 {usingSavedCV && (
-                  <div className="px-2 py-1 bg-purple-600 dark:bg-purple-500 text-white text-xs font-semibold rounded-full flex items-center gap-1">
+                  <div className="px-2 py-1 bg-[#635BFF] dark:bg-[#635BFF] text-white text-xs font-semibold rounded-full flex items-center gap-1">
                     <Check className="w-3 h-3" />
                     Selected
                   </div>
@@ -7010,20 +7011,20 @@ URL to visit: ${jobUrl}
               </div>
 
               {/* CV Name - Large and Visible */}
-              <div className="mb-4">
-                <p className={`text-lg font-semibold mb-1 ${usingSavedCV
-                  ? 'text-purple-900 dark:text-purple-100'
+              <div className="mb-3">
+                <p className={`text-base font-semibold mb-0.5 ${usingSavedCV
+                  ? 'text-gray-900 dark:text-white'
                   : 'text-gray-900 dark:text-white'
                   }`}>
                   {userCV.name}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   From your professional profile
                 </p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -7032,7 +7033,7 @@ URL to visit: ${jobUrl}
                     e.stopPropagation();
                     setShowCVPreview(true);
                   }}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   <Eye className="w-4 h-4" />
                   Preview
@@ -7046,9 +7047,9 @@ URL to visit: ${jobUrl}
                     handleUseSavedCV();
                   }}
                   disabled={isDownloadingCV || usingSavedCV}
-                  className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${usingSavedCV
-                    ? 'bg-purple-600 dark:bg-purple-500 text-white cursor-default shadow-md'
-                    : 'bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-500 dark:to-indigo-500 text-white hover:from-purple-700 hover:to-indigo-700 dark:hover:from-purple-600 dark:hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/30'
+                  className={`flex-1 px-3 py-2 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${usingSavedCV
+                    ? 'bg-[#635BFF] dark:bg-[#635BFF] text-white cursor-default shadow-md'
+                    : 'bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white hover:from-[#5249e6] hover:to-[#635BFF] dark:hover:from-[#5249e6] dark:hover:to-[#635BFF] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#635BFF]/30'
                     }`}
                 >
                   {isDownloadingCV ? (
@@ -7071,8 +7072,8 @@ URL to visit: ${jobUrl}
               </div>
             </motion.div>
           ) : (
-            <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50">
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+            <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-800/50">
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                 No saved CV found in your profile. Upload a new one below.
               </p>
             </div>
@@ -7094,25 +7095,25 @@ URL to visit: ${jobUrl}
           <div
             className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${
               selectedBuilderItem
-                ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
+                ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
                 : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A]'
             }`}
           >
             {/* Header - Always visible */}
             <button
               onClick={() => setShowCVSelector(!showCVSelector)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              <div className="flex items-center gap-2.5">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
                   selectedBuilderItem
-                    ? 'bg-indigo-600 dark:bg-indigo-500'
-                    : 'bg-indigo-100 dark:bg-indigo-900/30'
+                    ? 'bg-[#635BFF] dark:bg-[#635BFF]'
+                    : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                 }`}>
-                  <FileText className={`w-5 h-5 ${
+                  <FileText className={`w-4 h-4 ${
                     selectedBuilderItem
                       ? 'text-white'
-                      : 'text-indigo-600 dark:text-indigo-400'
+                      : 'text-[#635BFF] dark:text-[#a5a0ff]'
                   }`} />
                 </div>
                 <div className="text-left">
@@ -7132,12 +7133,12 @@ URL to visit: ${jobUrl}
               </div>
               <div className="flex items-center gap-2">
                 {selectedBuilderItem && (
-                  <span className="px-2 py-1 bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-semibold rounded-full flex items-center gap-1">
+                  <span className="px-2 py-1 bg-[#635BFF] dark:bg-[#635BFF] text-white text-xs font-semibold rounded-full flex items-center gap-1">
                     <Check className="w-3 h-3" />
                     Selected
                   </span>
                 )}
-                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${showCVSelector ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showCVSelector ? 'rotate-180' : ''}`} />
               </div>
             </button>
 
@@ -7145,24 +7146,24 @@ URL to visit: ${jobUrl}
             {showCVSelector && (
               <div className="border-t border-gray-200 dark:border-gray-700">
                 {/* Search Input */}
-                <div className="p-3 border-b border-gray-100 dark:border-gray-700/50">
+                <div className="p-2.5 border-b border-gray-100 dark:border-gray-700/50">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="text"
                       value={cvSelectorSearch}
                       onChange={(e) => setCvSelectorSearch(e.target.value)}
                       placeholder="Search your CVs..."
-                      className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#635BFF]/50 focus:border-[#635BFF]/50 text-gray-900 dark:text-white placeholder-gray-400"
                     />
                   </div>
                 </div>
 
                 {/* CV List */}
-                <div className="max-h-48 overflow-y-auto">
+                <div className="max-h-40 overflow-y-auto">
                   {isLoadingBuilderCVs ? (
-                    <div className="flex items-center justify-center py-6">
-                      <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+                    <div className="flex items-center justify-center py-5">
+                      <Loader2 className="w-5 h-5 text-[#635BFF] animate-spin" />
                     </div>
                   ) : (
                     <>
@@ -7181,24 +7182,24 @@ URL to visit: ${jobUrl}
                                 setUsingSavedCV(false);
                                 setCvFile(null);
                               }}
-                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
+                              className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${
                                 isSelected
-                                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                                  ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                                   : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                               }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                                 isSelected
-                                  ? 'bg-indigo-600 dark:bg-indigo-500'
-                                  : 'bg-purple-100 dark:bg-purple-900/30'
+                                  ? 'bg-[#635BFF] dark:bg-[#635BFF]'
+                                  : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                               }`}>
                                 <FileText className={`w-4 h-4 ${
-                                  isSelected ? 'text-white' : 'text-purple-600 dark:text-purple-400'
+                                  isSelected ? 'text-white' : 'text-[#635BFF] dark:text-[#a5a0ff]'
                                 }`} />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-medium truncate ${
-                                  isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
+                                  isSelected ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-900 dark:text-white'
                                 }`}>
                                   {cv.name}
                                 </p>
@@ -7207,7 +7208,7 @@ URL to visit: ${jobUrl}
                                 </p>
                               </div>
                               {isSelected && (
-                                <Check className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                                <Check className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff] flex-shrink-0" />
                               )}
                             </div>
                           );
@@ -7228,15 +7229,15 @@ URL to visit: ${jobUrl}
                                 setUsingSavedCV(false);
                                 setCvFile(null);
                               }}
-                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
+                              className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${
                                 isSelected
-                                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                                  ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                                   : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                               }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                                 isSelected
-                                  ? 'bg-indigo-600 dark:bg-indigo-500'
+                                  ? 'bg-[#635BFF] dark:bg-[#635BFF]'
                                   : 'bg-red-100 dark:bg-red-900/30'
                               }`}>
                                 <FileText className={`w-4 h-4 ${
@@ -7245,7 +7246,7 @@ URL to visit: ${jobUrl}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-medium truncate ${
-                                  isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
+                                  isSelected ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-900 dark:text-white'
                                 }`}>
                                   {doc.name}
                                 </p>
@@ -7254,7 +7255,7 @@ URL to visit: ${jobUrl}
                                 </p>
                               </div>
                               {isSelected && (
-                                <Check className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                                <Check className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff] flex-shrink-0" />
                               )}
                             </div>
                           );
@@ -7262,7 +7263,7 @@ URL to visit: ${jobUrl}
 
                       {/* Empty State */}
                       {builderCVs.length === 0 && builderDocs.length === 0 && (
-                        <div className="py-6 text-center">
+                        <div className="py-5 text-center">
                           <FileText className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             No CVs in Resume Builder yet
@@ -7288,51 +7289,51 @@ URL to visit: ${jobUrl}
           </div>
 
           {/* Divider */}
-          <div className="relative my-4">
+          <div className="relative my-3">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white dark:bg-[#121212] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+              <span className="bg-white dark:bg-[#121212] px-3 text-xs font-medium text-gray-400 dark:text-gray-500">
                 OR
               </span>
             </div>
           </div>
 
           {/* Upload New CV Option */}
-          <div className="mb-4">
+          <div className="mb-3">
             <label
               ref={dropZoneRef}
               htmlFor="cv-upload-input-modal"
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`w-full flex items-center p-4 border-2 border-dashed rounded-2xl cursor-pointer
+              className={`w-full flex items-center p-3 border-2 border-dashed rounded-xl cursor-pointer
                 transition-all duration-200 ease-out
                 backdrop-blur-sm
                 group
                 ${isDragging
-                  ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                  ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
                   : cvFile && !usingSavedCV
-                    ? 'border-[#635BFF]/30 dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#5249e6]/10'
-                    : 'border-gray-200/60 dark:border-gray-700/50 hover:border-purple-400/60 dark:hover:border-purple-600/60 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-[#1A1A1A]'
+                    ? 'border-[#635BFF]/50 dark:border-[#a5a0ff]/50 bg-[#635BFF]/5 dark:bg-[#5249e6]/10'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-[#635BFF]/50 dark:hover:border-[#a5a0ff]/50 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-[#1A1A1A]'
                 }`}
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 transition-transform duration-200
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 transition-transform duration-200
                 ${isDragging
-                  ? 'bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/30 scale-105'
+                  ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20 scale-105'
                   : cvFile && !usingSavedCV
-                    ? 'bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20'
-                    : 'bg-gradient-to-br from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20 group-hover:scale-105'
+                    ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
+                    : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20 group-hover:scale-105'
                 }`}>
                 {cvFile && !usingSavedCV ?
-                  <Check className="w-6 h-6 text-[#5249e6] dark:text-[#a5a0ff]" /> :
-                  <Upload className={`w-6 h-6 ${isDragging ? 'text-purple-600 dark:text-purple-400' : 'text-purple-600 dark:text-purple-400'}`} />
+                  <Check className="w-5 h-5 text-[#635BFF] dark:text-[#a5a0ff]" /> :
+                  <Upload className={`w-5 h-5 ${isDragging ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-[#635BFF] dark:text-[#a5a0ff]'}`} />
                 }
               </div>
               <div className="flex-1 text-left">
-                <h3 className={`font-semibold text-sm mb-1 ${isDragging
-                  ? 'text-purple-600 dark:text-purple-400'
+                <h3 className={`font-semibold text-sm mb-0.5 ${isDragging
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff]'
                   : 'text-gray-900 dark:text-white'
                   }`}>
                   {cvFile && !usingSavedCV ? "Resume Selected" : isDragging ? "Drop your CV here" : "Upload Your Resume"}
@@ -7348,7 +7349,7 @@ URL to visit: ${jobUrl}
                   </div>
                 ) : (
                   <p className={`text-xs ${isDragging
-                    ? 'text-purple-600 dark:text-purple-400 font-medium'
+                    ? 'text-[#635BFF] dark:text-[#a5a0ff] font-medium'
                     : 'text-gray-500 dark:text-gray-400'
                     }`}>
                     {isDragging ? "Release to upload" : "Click to select or drag and drop a PDF file"}
@@ -7356,8 +7357,8 @@ URL to visit: ${jobUrl}
                 )}
               </div>
               {cvFile && !usingSavedCV && (
-                <span className="ml-3 flex-shrink-0 rounded-full bg-[#635BFF]/10 dark:bg-[#5249e6]/30 backdrop-blur-sm p-2 border border-[#635BFF]/20 dark:border-[#5249e6]/30">
-                  <Check className="w-4 h-4 text-[#5249e6] dark:text-[#a5a0ff]" />
+                <span className="ml-2 flex-shrink-0 rounded-full bg-[#635BFF]/10 dark:bg-[#5249e6]/30 backdrop-blur-sm p-1.5 border border-[#635BFF]/20 dark:border-[#5249e6]/30">
+                  <Check className="w-3.5 h-3.5 text-[#635BFF] dark:text-[#a5a0ff]" />
                 </span>
               )}
               <input
@@ -7370,10 +7371,10 @@ URL to visit: ${jobUrl}
               />
             </label>
           </div>
-          <div className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center mt-2 
-            bg-blue-50/60 dark:bg-blue-900/20 backdrop-blur-sm 
-            px-3 py-2 rounded-lg border border-blue-100/50 dark:border-blue-800/30">
-            <Info className="w-3.5 h-3.5 mr-1.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+          <div className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center 
+            bg-[#635BFF]/5 dark:bg-[#635BFF]/10 backdrop-blur-sm 
+            px-2.5 py-1.5 rounded-lg border border-[#635BFF]/10 dark:border-[#635BFF]/20">
+            <Info className="w-3 h-3 mr-1.5 text-[#635BFF] dark:text-[#a5a0ff] flex-shrink-0" />
             <span>Your resume will be analyzed to determine its match with the job description</span>
           </div>
         </motion.div>
@@ -7391,15 +7392,15 @@ URL to visit: ${jobUrl}
           className="space-y-4"
         >
           {/* Mode Toggle */}
-          <div className="flex items-center gap-2 p-1 bg-gray-100/50 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex items-center gap-1.5 p-1 bg-gray-100/50 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-gray-200/50 dark:border-gray-700/50">
             <button
               onClick={() => {
                 setJobInputMode('ai');
                 setSelectedSavedJob(null);
                 setJobSearchQuery('');
               }}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'ai'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'ai'
+                ? 'bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
                 }`}
             >
@@ -7413,8 +7414,8 @@ URL to visit: ${jobUrl}
                 setSelectedSavedJob(null);
                 setJobSearchQuery('');
               }}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'manual'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'manual'
+                ? 'bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
                 }`}
             >
@@ -7425,12 +7426,9 @@ URL to visit: ${jobUrl}
             <button
               onClick={() => {
                 setJobInputMode('saved');
-                if (savedJobs.length > 0 && !selectedSavedJob) {
-                  setShowJobDropdown(true);
-                }
               }}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'saved'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30'
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'saved'
+                ? 'bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
                 }`}
             >
@@ -7450,18 +7448,18 @@ URL to visit: ${jobUrl}
             >
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1 flex items-center gap-1.5">
-                  <Link2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  <Link2 className="w-3.5 h-3.5 text-[#635BFF] dark:text-[#a5a0ff]" />
                   Job Posting URL
                 </label>
                 <div className="relative group">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 transition-opacity"></div>
-                  <div className="relative rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500">
-                    <div className="relative flex rounded-xl bg-white dark:bg-[#1A1A1A] overflow-hidden">
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#635BFF] via-[#7c75ff] to-[#5249e6] opacity-60 blur-sm group-hover:opacity-80 transition-opacity"></div>
+                  <div className="relative rounded-lg p-[2px] bg-gradient-to-r from-[#635BFF] via-[#7c75ff] to-[#5249e6]">
+                    <div className="relative flex rounded-lg bg-white dark:bg-[#1A1A1A] overflow-hidden">
                       <input
                         type="url"
                         value={formData.jobUrl}
                         onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
-                        className="flex-1 px-4 py-3.5 rounded-l-xl bg-transparent border-0 focus:ring-0 focus:outline-none text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
+                        className="flex-1 px-3 py-2.5 rounded-l-lg bg-transparent border-0 focus:ring-0 focus:outline-none text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
                         placeholder="https://linkedin.com/jobs/view/..."
                         autoFocus
                       />
@@ -7471,7 +7469,7 @@ URL to visit: ${jobUrl}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleExtractJobInfo}
                         disabled={isExtractingJob || !formData.jobUrl || !formData.jobUrl.trim()}
-                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-r-xl bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-r-lg bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white hover:from-[#5249e6] hover:to-[#635BFF] dark:hover:from-[#5249e6] dark:hover:to-[#635BFF] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                         title="Extract job information with AI"
                       >
                         {isExtractingJob ? (
@@ -7493,45 +7491,6 @@ URL to visit: ${jobUrl}
                   <Info className="w-3 h-3 flex-shrink-0" />
                   <span>Paste the job posting URL and our AI will extract all information automatically</span>
                 </p>
-              </div>
-
-              {/* Extracted/Manual Fields */}
-              <div className="space-y-3 pt-3 border-t border-gray-100/50 dark:border-gray-800/50">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                    Job Title
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.jobTitle}
-                    onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                    placeholder="e.g., Full Stack Developer"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                    Company
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                    placeholder="e.g., Google"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                    Job Description
-                  </label>
-                  <textarea
-                    value={formData.jobDescription}
-                    onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all h-36 resize-none"
-                    placeholder="Job description will be extracted automatically, or paste it manually..."
-                  />
-                </div>
               </div>
             </motion.div>
           )}
@@ -7575,7 +7534,7 @@ URL to visit: ${jobUrl}
                 <textarea
                   value={formData.jobDescription}
                   onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all h-40 resize-none"
+                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF] transition-all h-36 resize-none"
                   placeholder="Paste the complete job description here..."
                 />
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
@@ -7596,7 +7555,7 @@ URL to visit: ${jobUrl}
             >
               <div className="relative job-selector-container" ref={jobSelectorRef}>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1 flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  <Briefcase className="w-3.5 h-3.5 text-[#635BFF] dark:text-[#a5a0ff]" />
                   Select a Saved Job
                 </label>
 
@@ -7604,6 +7563,7 @@ URL to visit: ${jobUrl}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
+                    ref={jobInputRef}
                     type="text"
                     value={selectedSavedJob ? `${selectedSavedJob.companyName} - ${selectedSavedJob.position}` : jobSearchQuery}
                     onChange={(e) => {
@@ -7631,7 +7591,7 @@ URL to visit: ${jobUrl}
                         setShowJobDropdown(true);
                       }
                     }}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF] transition-all"
                     placeholder="Search by company or position..."
                   />
                   {selectedSavedJob && (
@@ -7711,9 +7671,11 @@ URL to visit: ${jobUrl}
                                   className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-b-0"
                                 >
                                   <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
-                                      <Building className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                    </div>
+                                    <CompanyLogo
+                                      companyName={job.companyName}
+                                      size="md"
+                                      className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
+                                    />
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                                         {job.companyName}
@@ -7773,16 +7735,16 @@ URL to visit: ${jobUrl}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-3 p-2.5 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
+                    className="mt-3 p-2.5 bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border border-[#635BFF]/20 dark:border-[#635BFF]/30 rounded-lg"
                   >
                     <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                      <Check className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff] flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {selectedSavedJob.companyName} - {selectedSavedJob.position}
                         </p>
                         {selectedSavedJob.fullJobDescription && (
-                          <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5">
+                          <p className="text-xs text-[#635BFF] dark:text-[#a5a0ff] mt-0.5">
                             Full job description loaded
                           </p>
                         )}
@@ -8215,22 +8177,23 @@ URL to visit: ${jobUrl}
               setJobSearchQuery('');
               setShowJobDropdown(false);
             }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              exit={{ opacity: 0, scale: 0.96, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-[#121212] w-full sm:rounded-2xl rounded-t-2xl max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
+              className="bg-white dark:bg-[#121212] w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/5"
             >
               {/* Header */}
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl z-10 sticky top-0">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800/50 flex items-center justify-between bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl z-10 sticky top-0">
                 <div>
-                  <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
+                  <h2 className="font-semibold text-lg text-gray-900 dark:text-white tracking-tight">
                     {steps[currentStep - 1].title}
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {steps[currentStep - 1].description}
                   </p>
                 </div>
@@ -8241,21 +8204,21 @@ URL to visit: ${jobUrl}
                     setJobSearchQuery('');
                     setShowJobDropdown(false);
                   }}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6 overflow-x-visible">
+              <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 overflow-x-visible">
                 <div className="relative">
                   {steps[currentStep - 1].content}
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#121212] flex justify-between items-center z-10">
+              <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800/50 bg-white dark:bg-[#121212] flex justify-between items-center z-10">
                 <button
                   onClick={() => {
                     if (currentStep > 1) {
@@ -8263,7 +8226,7 @@ URL to visit: ${jobUrl}
                     }
                   }}
                   disabled={currentStep === 1}
-                  className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-colors flex items-center gap-2 ${currentStep === 1
+                  className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${currentStep === 1
                     ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A]'
                     }`}
@@ -8291,7 +8254,7 @@ URL to visit: ${jobUrl}
                     (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
                     isDownloadingCV
                   }
-                  className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-black rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-gray-200 dark:shadow-none flex items-center gap-2"
+                  className="px-5 py-2 bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white rounded-lg hover:from-[#5249e6] hover:to-[#635BFF] dark:hover:from-[#5249e6] dark:hover:to-[#635BFF] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30 flex items-center gap-2"
                 >
                   {currentStep === steps.length ? (
                     <>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { collection, query, onSnapshot, doc, updateDoc, orderBy, addDoc, deleteDoc, serverTimestamp, getDocs, getDoc } from 'firebase/firestore';
@@ -116,6 +117,11 @@ export default function JobApplicationsPage() {
   // Sorting
   const [sortBy, setSortBy] = useState<'appliedDate' | 'updatedAt' | 'companyName' | 'position' | 'interviewCount'>('appliedDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  // Track manual order per status (Map<status, string[]> where array contains application IDs in order)
+  const [manualOrder, setManualOrder] = useState<Map<string, string[]>>(new Map());
+  // Refs for scrollable column containers to enable auto-scroll during drag
+  const columnScrollRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const autoScrollIntervalRef = useRef<number | null>(null);
 
   // Company filters
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
@@ -136,6 +142,10 @@ export default function JobApplicationsPage() {
   const [isHoveringCover, setIsHoveringCover] = useState(false);
   const [isCoverDark, setIsCoverDark] = useState<boolean | null>(null); // null = pas encore détecté, true = sombre, false = claire
   const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Move to interview prompt modal states
+  const [showMoveToInterviewPrompt, setShowMoveToInterviewPrompt] = useState(false);
+  const [pendingMoveApplication, setPendingMoveApplication] = useState<JobApplication | null>(null);
 
   // Handle file select for cover
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -495,68 +505,6 @@ export default function JobApplicationsPage() {
     }
   };
 
-  const handleDragEnd = async (result: any) => {
-    if (!result.destination || !currentUser) return;
-
-    const { source, destination, draggableId } = result;
-
-    // Si l'application est déplacée vers la même colonne, ne rien faire
-    if (source.droppableId === destination.droppableId) return;
-
-    const newStatus = destination.droppableId as 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected' | 'pending_decision' | 'archived';
-
-    try {
-      // Get the application we're updating
-      const app = applications.find(a => a.id === draggableId);
-      if (!app) return;
-
-      // Create a new status history entry
-      const newStatusChange: StatusChange = {
-        status: newStatus,
-        date: new Date().toISOString().split('T')[0],
-      };
-
-      // Update history - make sure it exists first
-      const statusHistory = app.statusHistory || [{
-        status: app.status,
-        date: app.appliedDate,
-        notes: 'Initial application'
-      }];
-
-      // Add new status change to history
-      statusHistory.push(newStatusChange);
-
-      // Mise à jour optimiste de l'UI
-      setApplications(prev => prev.map(app =>
-        app.id === draggableId ? {
-          ...app,
-          status: newStatus,
-          statusHistory
-        } : app
-      ));
-
-      // Mise à jour dans Firestore
-      const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', draggableId);
-      await updateDoc(applicationRef, {
-        status: newStatus,
-        updatedAt: serverTimestamp(),
-        statusHistory
-      });
-
-      // Lancer les confettis si déplacé vers "offer"
-      if (newStatus === 'offer') {
-        fireConfetti();
-      }
-
-      toast.success(`Application moved to ${newStatus}`);
-    } catch (error) {
-      console.error('Error updating application status:', error);
-      toast.error('Failed to update application status');
-      // Retour à l'état précédent en cas d'erreur
-      setApplications(prev => [...prev]);
-    }
-  };
-
   // Fonction pour extraire les informations depuis l'URL avec AI
   const handleExtractJobInfo = async () => {
     if (!formData.url || !formData.url.trim()) {
@@ -779,28 +727,51 @@ export default function JobApplicationsPage() {
           contactEmail: formData.contactEmail || ''
         };
 
-        // Mise à jour de la candidature avec le nouvel entretien
+        // Check if we should prompt user to move to interview column
+        const currentStatus = existingApplication?.status || 'applied';
+        const shouldPromptMove = (currentStatus === 'wishlist' || currentStatus === 'applied' || currentStatus === 'pending_decision');
+
+        // Mise à jour de la candidature avec le nouvel entretien (don't change status yet if prompting)
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-        await updateDoc(applicationRef, {
-          interviews: existingApplication?.interviews ? [...existingApplication.interviews, interviewData] : [interviewData],
-          status: 'interview',
-          updatedAt: serverTimestamp(),
-          statusHistory: existingApplication?.statusHistory ?
-            [...existingApplication.statusHistory, {
-              status: 'interview',
-              date: formData.interviewDate,
-              notes: 'Interview added from job applications page'
-            }] :
-            [{
-              status: 'applied',
-              date: formData.interviewDate || new Date().toISOString().split('T')[0],
-              notes: 'Application created from job applications page'
-            }, {
-              status: 'interview',
-              date: formData.interviewDate,
-              notes: 'Interview scheduled from job applications page'
-            }]
-        });
+        
+        if (shouldPromptMove && existingApplication) {
+          // Just add interview, keep current status
+          await updateDoc(applicationRef, {
+            interviews: existingApplication.interviews ? [...existingApplication.interviews, interviewData] : [interviewData],
+            updatedAt: serverTimestamp()
+          });
+
+          // Fetch updated application to show in modal
+          const updatedDoc = await getDoc(applicationRef);
+          if (updatedDoc.exists()) {
+            const updatedApp = { id: updatedDoc.id, ...updatedDoc.data() } as JobApplication;
+            setPendingMoveApplication(updatedApp);
+            setShowMoveToInterviewPrompt(true);
+          }
+        } else {
+          // New application or status already interview - update status immediately
+          await updateDoc(applicationRef, {
+            interviews: existingApplication?.interviews ? [...existingApplication.interviews, interviewData] : [interviewData],
+            status: 'interview',
+            updatedAt: serverTimestamp(),
+            statusHistory: existingApplication?.statusHistory ?
+              [...existingApplication.statusHistory, {
+                status: 'interview',
+                date: formData.interviewDate,
+                notes: 'Interview added from job applications page'
+              }] :
+              [{
+                status: 'applied',
+                date: formData.interviewDate || new Date().toISOString().split('T')[0],
+                notes: 'Application created from job applications page'
+              }, {
+                status: 'interview',
+                date: formData.interviewDate,
+                notes: 'Interview scheduled from job applications page'
+              }]
+          });
+          toast.success('Interview added successfully');
+        }
 
         // Si la création réussit, on ferme le modal et réinitialise le formulaire
         setNewApplicationModal(false);
@@ -823,8 +794,6 @@ export default function JobApplicationsPage() {
           interviewTime: '09:00',
           interviewDate: new Date().toISOString().split('T')[0],
         });
-
-        toast.success('Interview added successfully');
       }
     } catch (error) {
       console.error('Error creating application/interview:', error);
@@ -924,41 +893,20 @@ export default function JobApplicationsPage() {
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', selectedApplication.id);
       const updatedInterviews = [...(selectedApplication.interviews || []), interview];
 
-      // Mettre à jour le statut si nécessaire
-      let updatedStatus = selectedApplication.status;
-      if (selectedApplication.status === 'applied' && interview.status === 'scheduled') {
-        updatedStatus = 'interview';
+      // Check if we should prompt user to move to interview column
+      const shouldPromptMove = (selectedApplication.status === 'wishlist' || selectedApplication.status === 'applied' || selectedApplication.status === 'pending_decision') && interview.status === 'scheduled';
 
-        // Ajouter une entrée dans l'historique de statut
-        const statusHistory = selectedApplication.statusHistory || [{
-          status: selectedApplication.status,
-          date: selectedApplication.appliedDate,
-          notes: 'Initial application'
-        }];
-        statusHistory.push({
-          status: 'interview',
-          date: new Date().toISOString().split('T')[0],
-          notes: 'Interview scheduled'
-        });
+      // Update interviews without changing status yet (let user decide via modal)
+      await updateDoc(applicationRef, {
+        interviews: updatedInterviews,
+        updatedAt: serverTimestamp()
+      });
 
-        await updateDoc(applicationRef, {
-          interviews: updatedInterviews,
-          status: updatedStatus,
-          statusHistory,
-          updatedAt: serverTimestamp()
-        });
-      } else {
-        await updateDoc(applicationRef, {
-          interviews: updatedInterviews,
-          updatedAt: serverTimestamp()
-        });
-      }
-
-      // Mettre à jour l'état local
+      // Mettre à jour l'état local (keep current status for now)
       const updatedApplication = {
         ...selectedApplication,
         interviews: updatedInterviews,
-        status: updatedStatus
+        status: selectedApplication.status // Keep current status
       };
       setSelectedApplication(updatedApplication);
 
@@ -978,10 +926,68 @@ export default function JobApplicationsPage() {
       });
       setShowAddInterviewForm(false);
 
-      toast.success('Interview added successfully!');
+      // Show prompt modal if status is wishlist or applied
+      if (shouldPromptMove) {
+        setPendingMoveApplication(updatedApplication);
+        setShowMoveToInterviewPrompt(true);
+      } else {
+        toast.success('Interview added successfully!');
+      }
     } catch (error) {
       console.error('Error adding interview:', error);
       toast.error('Failed to add interview');
+    }
+  };
+
+  // Handle moving application to interview column
+  const handleMoveToInterview = async () => {
+    if (!currentUser || !pendingMoveApplication) return;
+
+    try {
+      const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', pendingMoveApplication.id);
+      
+      // Add status history entry
+      const statusHistory = pendingMoveApplication.statusHistory || [{
+        status: pendingMoveApplication.status,
+        date: pendingMoveApplication.appliedDate,
+        notes: 'Initial application'
+      }];
+      statusHistory.push({
+        status: 'interview',
+        date: new Date().toISOString().split('T')[0],
+        notes: 'Moved to interview column after scheduling interview'
+      });
+
+      // Update status to interview
+      await updateDoc(applicationRef, {
+        status: 'interview',
+        statusHistory,
+        updatedAt: serverTimestamp()
+      });
+
+      // Update local state
+      const updatedApplication = {
+        ...pendingMoveApplication,
+        status: 'interview' as const,
+        statusHistory
+      };
+
+      setApplications(prev => prev.map(app =>
+        app.id === pendingMoveApplication.id ? updatedApplication : app
+      ));
+
+      // Update selected application if it's the same one
+      if (selectedApplication?.id === pendingMoveApplication.id) {
+        setSelectedApplication(updatedApplication);
+      }
+
+      // Close modal and show success
+      setShowMoveToInterviewPrompt(false);
+      setPendingMoveApplication(null);
+      toast.success('Application moved to Interview column');
+    } catch (error) {
+      console.error('Error moving application to interview:', error);
+      toast.error('Failed to move application');
     }
   };
 
@@ -1120,39 +1126,313 @@ export default function JobApplicationsPage() {
       });
     }
 
-    // Sorting
-    filtered.sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case 'appliedDate':
-          comparison = new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
-          break;
-        case 'updatedAt':
-          const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
-          const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
-          comparison = aUpdated - bUpdated;
-          break;
-        case 'companyName':
-          comparison = a.companyName.localeCompare(b.companyName);
-          break;
-        case 'position':
-          comparison = a.position.localeCompare(b.position);
-          break;
-        case 'interviewCount':
-          const aCount = a.interviews?.length || 0;
-          const bCount = b.interviews?.length || 0;
-          comparison = aCount - bCount;
-          break;
+    // Group by status to apply manual order per status
+    const groupedByStatus = new Map<string, JobApplication[]>();
+    filtered.forEach(app => {
+      const status = app.status;
+      if (!groupedByStatus.has(status)) {
+        groupedByStatus.set(status, []);
       }
-
-      return sortOrder === 'asc' ? comparison : -comparison;
+      groupedByStatus.get(status)!.push(app);
     });
 
-    return filtered;
+    // Apply manual order and sorting per status group
+    const result: JobApplication[] = [];
+    groupedByStatus.forEach((statusApps, status) => {
+      // Check if there's a manual order for this status
+      const manualOrderForStatus = manualOrder.get(status);
+      
+      if (manualOrderForStatus && manualOrderForStatus.length > 0) {
+        // Use manual order: create a map for quick lookup
+        const appMap = new Map(statusApps.map(app => [app.id, app]));
+        const orderedApps: JobApplication[] = [];
+        
+        // First, add apps in manual order
+        manualOrderForStatus.forEach(id => {
+          const app = appMap.get(id);
+          if (app) {
+            orderedApps.push(app);
+            appMap.delete(id);
+          }
+        });
+        
+        // Then add any remaining apps (new apps not in manual order) and sort them
+        const remainingApps = Array.from(appMap.values());
+        remainingApps.sort((a, b) => {
+          let comparison = 0;
+          switch (sortBy) {
+            case 'appliedDate':
+              comparison = new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
+              break;
+            case 'updatedAt':
+              const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+              const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
+              comparison = aUpdated - bUpdated;
+              break;
+            case 'companyName':
+              comparison = a.companyName.localeCompare(b.companyName);
+              break;
+            case 'position':
+              comparison = a.position.localeCompare(b.position);
+              break;
+            case 'interviewCount':
+              const aCount = a.interviews?.length || 0;
+              const bCount = b.interviews?.length || 0;
+              comparison = aCount - bCount;
+              break;
+          }
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+        
+        result.push(...orderedApps, ...remainingApps);
+      } else {
+        // No manual order: apply normal sorting
+        statusApps.sort((a, b) => {
+          let comparison = 0;
+          switch (sortBy) {
+            case 'appliedDate':
+              comparison = new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
+              break;
+            case 'updatedAt':
+              const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+              const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
+              comparison = aUpdated - bUpdated;
+              break;
+            case 'companyName':
+              comparison = a.companyName.localeCompare(b.companyName);
+              break;
+            case 'position':
+              comparison = a.position.localeCompare(b.position);
+              break;
+            case 'interviewCount':
+              const aCount = a.interviews?.length || 0;
+              const bCount = b.interviews?.length || 0;
+              comparison = aCount - bCount;
+              break;
+          }
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+        result.push(...statusApps);
+      }
+    });
+
+    return result;
   };
 
   const filteredApplications = applyFilters(applications);
+
+  // Track mouse position during drag for auto-scroll
+  const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Auto-scroll handler for drag and drop
+  const handleDragUpdate = (update: any) => {
+    const { destination } = update;
+    
+    if (!destination) {
+      // Clear any ongoing scroll when not over a droppable
+      if (autoScrollIntervalRef.current) {
+        clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const droppableId = destination.droppableId;
+    const scrollContainer = columnScrollRefs.current.get(droppableId);
+    
+    if (!scrollContainer || !mousePositionRef.current) return;
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const mouseY = mousePositionRef.current.y;
+    
+    const distanceFromTop = mouseY - containerRect.top;
+    const distanceFromBottom = containerRect.bottom - mouseY;
+    
+    // Auto-scroll threshold (in pixels)
+    const scrollThreshold = 80;
+    const scrollSpeed = 10;
+
+    // Clear any existing scroll interval
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+
+    // Scroll up if mouse is near top edge
+    if (distanceFromTop < scrollThreshold && scrollContainer.scrollTop > 0) {
+      autoScrollIntervalRef.current = window.setInterval(() => {
+        if (scrollContainer.scrollTop > 0) {
+          scrollContainer.scrollTop = Math.max(0, scrollContainer.scrollTop - scrollSpeed);
+        } else {
+          if (autoScrollIntervalRef.current) {
+            clearInterval(autoScrollIntervalRef.current);
+            autoScrollIntervalRef.current = null;
+          }
+        }
+      }, 16); // ~60fps
+    }
+    // Scroll down if mouse is near bottom edge
+    else if (distanceFromBottom < scrollThreshold) {
+      const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      if (scrollContainer.scrollTop < maxScroll) {
+        autoScrollIntervalRef.current = window.setInterval(() => {
+          const currentMaxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+          if (scrollContainer.scrollTop < currentMaxScroll) {
+            scrollContainer.scrollTop = Math.min(currentMaxScroll, scrollContainer.scrollTop + scrollSpeed);
+          } else {
+            if (autoScrollIntervalRef.current) {
+              clearInterval(autoScrollIntervalRef.current);
+              autoScrollIntervalRef.current = null;
+            }
+          }
+        }, 16); // ~60fps
+      }
+    }
+  };
+
+  // Track mouse position during drag
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      mousePositionRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
+  // Cleanup scroll interval on drag end
+  const handleDragStart = () => {
+    // Clear any existing scroll interval when starting a new drag
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+  };
+
+  const handleDragEnd = async (result: any) => {
+    // Clear scroll interval when drag ends
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+    if (!result.destination || !currentUser) return;
+
+    const { source, destination, draggableId } = result;
+
+    // Handle same-column reordering (moving up/down within a column)
+    if (source.droppableId === destination.droppableId) {
+      // If dropped at the same position, no change needed
+      if (source.index === destination.index) return;
+
+      try {
+        const status = source.droppableId as 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected' | 'pending_decision' | 'archived';
+        
+        // Get filtered applications with the same status (these are what's displayed in the column)
+        const statusApplications = filteredApplications.filter(app => app.status === status);
+        
+        // Reorder the status applications array based on drag indices
+        const reorderedStatusApps = Array.from(statusApplications);
+        const [removed] = reorderedStatusApps.splice(source.index, 1);
+        reorderedStatusApps.splice(destination.index, 0, removed);
+        
+        // Store the manual order for this status (array of IDs in order)
+        const newManualOrder = new Map(manualOrder);
+        newManualOrder.set(status, reorderedStatusApps.map(app => app.id));
+        setManualOrder(newManualOrder);
+        
+        // Note: Order persistence to Firestore can be added later if needed
+        // For now, the order is maintained in memory during the session
+      } catch (error) {
+        console.error('Error reordering application:', error);
+        toast.error('Failed to reorder application');
+      }
+      return;
+    }
+
+    // Handle cross-column movement (changing status)
+    const newStatus = destination.droppableId as 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected' | 'pending_decision' | 'archived';
+    const oldStatus = source.droppableId as 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected' | 'pending_decision' | 'archived';
+
+    try {
+      // Get the application we're updating
+      const app = applications.find(a => a.id === draggableId);
+      if (!app) return;
+
+      // Get filtered applications for the destination column (before status change)
+      // The card we're moving isn't in this list yet since it still has the old status
+      const destinationStatusApps = filteredApplications.filter(app => app.status === newStatus);
+      
+      // Create a new array with the moved card ID inserted at the destination position
+      const reorderedDestinationIds = destinationStatusApps.map(app => app.id);
+      // Insert the card ID at the destination index
+      reorderedDestinationIds.splice(destination.index, 0, draggableId);
+      
+      // Store the manual order for the destination column
+      const newManualOrder = new Map(manualOrder);
+      newManualOrder.set(newStatus, reorderedDestinationIds);
+      
+      // Also update the source column order if it had manual order
+      if (oldStatus !== newStatus) {
+        const sourceStatusApps = filteredApplications.filter(app => app.status === oldStatus);
+        const reorderedSourceApps = sourceStatusApps.filter(a => a.id !== draggableId);
+        if (reorderedSourceApps.length > 0) {
+          newManualOrder.set(oldStatus, reorderedSourceApps.map(app => app.id));
+        } else {
+          // Remove manual order for source column if it's now empty
+          newManualOrder.delete(oldStatus);
+        }
+      }
+      
+      setManualOrder(newManualOrder);
+
+      // Create a new status history entry
+      const newStatusChange: StatusChange = {
+        status: newStatus,
+        date: new Date().toISOString().split('T')[0],
+      };
+
+      // Update history - make sure it exists first
+      const statusHistory = app.statusHistory || [{
+        status: app.status,
+        date: app.appliedDate,
+        notes: 'Initial application'
+      }];
+
+      // Add new status change to history
+      statusHistory.push(newStatusChange);
+
+      // Mise à jour optimiste de l'UI
+      setApplications(prev => prev.map(app =>
+        app.id === draggableId ? {
+          ...app,
+          status: newStatus,
+          statusHistory
+        } : app
+      ));
+
+      // Mise à jour dans Firestore
+      const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', draggableId);
+      await updateDoc(applicationRef, {
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+        statusHistory
+      });
+
+      // Lancer les confettis si déplacé vers "offer"
+      if (newStatus === 'offer') {
+        fireConfetti();
+      }
+
+      toast.success(`Application moved to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast.error('Failed to update application status');
+      // Retour à l'état précédent en cas d'erreur
+      setApplications(prev => [...prev]);
+    }
+  };
 
   // Count active filters
   const getActiveFilterCount = () => {
@@ -1353,19 +1633,19 @@ END:VCALENDAR`;
   const cssVariables = `
     :root {
       --card-dragging-bg: white;
-      --card-dragging-border: #9333ea;
+      --card-dragging-border: #635BFF;
     }
     
     .dark {
       --card-dragging-bg: #1f2937;
-      --card-dragging-border: #9333ea;
+      --card-dragging-border: #635BFF;
     }
 
     /* Animation effet de brillance pendant le drag */
     @keyframes pulse-border {
-      0% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7); }
-      70% { box-shadow: 0 0 0 4px rgba(147, 51, 234, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(99, 91, 255, 0.7); }
+      70% { box-shadow: 0 0 0 4px rgba(99, 91, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(99, 91, 255, 0); }
     }
     
     .dragging {
@@ -1374,7 +1654,7 @@ END:VCALENDAR`;
 
     /* Animation pour le dropzone hover */
     .droppable-hover {
-      background-color: rgba(147, 51, 234, 0.05);
+      background-color: rgba(99, 91, 255, 0.05);
       transition: background-color 0.2s ease;
     }
 
@@ -1844,7 +2124,11 @@ END:VCALENDAR`;
               className="flex-1 flex flex-col min-h-0"
             >
               {/* Kanban Board - Optimisé pleine hauteur */}
-              <DragDropContext onDragEnd={handleDragEnd}>
+              <DragDropContext 
+                onDragStart={handleDragStart}
+                onDragUpdate={handleDragUpdate}
+                onDragEnd={handleDragEnd}
+              >
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -1909,7 +2193,16 @@ END:VCALENDAR`;
                                 </motion.button>
                               </div>
 
-                              <div className="flex-1 overflow-y-auto space-y-2 sm:space-y-3">
+                              <div 
+                                ref={(el) => {
+                                  if (el) {
+                                    columnScrollRefs.current.set(status, el);
+                                  } else {
+                                    columnScrollRefs.current.delete(status);
+                                  }
+                                }}
+                                className="flex-1 overflow-y-auto space-y-2 sm:space-y-3"
+                              >
                                 <ApplicationList
                                   applications={filteredApplications.filter(a => a.status === status)}
                                   onCardClick={(app) => {
@@ -3848,6 +4141,12 @@ END:VCALENDAR`;
                 updatedAt: new Date().toISOString()
               };
 
+              // Check if interviews were added and status is wishlist, applied, or pending_decision
+              const interviewsAdded = updates.interviews && updates.interviews.length > (selectedApplication.interviews?.length || 0);
+              const shouldPromptMove = interviewsAdded && 
+                (selectedApplication.status === 'wishlist' || selectedApplication.status === 'applied' || selectedApplication.status === 'pending_decision') &&
+                !updates.status; // Status wasn't changed in this update
+
               // Update local state
               setApplications(prev =>
                 prev.map(app =>
@@ -3860,9 +4159,17 @@ END:VCALENDAR`;
               // Update selected application to reflect changes immediately
               setSelectedApplication(updatedApplication);
 
-              // Don't show toast for every update (only for user-initiated saves)
-              if (!updates.interviews) {
-                toast.success('Application updated successfully');
+              // Show modal prompt if needed
+              if (shouldPromptMove) {
+                setPendingMoveApplication(updatedApplication);
+                setShowMoveToInterviewPrompt(true);
+              } else {
+                // Don't show toast for every update (only for user-initiated saves)
+                if (!updates.interviews) {
+                  toast.success('Application updated successfully');
+                } else if (!shouldPromptMove) {
+                  toast.success('Interview scheduled successfully!');
+                }
               }
             } catch (error) {
               console.error('Error updating application:', error);
@@ -4406,6 +4713,108 @@ END:VCALENDAR`;
               </div>
             </motion.div>
           </motion.div>
+        )}
+
+        {/* Move to Interview Prompt Modal - Premium Minimalist */}
+        {typeof document !== 'undefined' && createPortal(
+          <AnimatePresence>
+            {showMoveToInterviewPrompt && pendingMoveApplication && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => {
+                  setShowMoveToInterviewPrompt(false);
+                  setPendingMoveApplication(null);
+                }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-xl z-[200] flex items-center justify-center p-4"
+                style={{ zIndex: 200 }}
+              >
+              <motion.div
+                initial={{ scale: 0.96, y: 10, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.96, y: 10, opacity: 0 }}
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800/50 overflow-hidden pointer-events-auto"
+                style={{ zIndex: 201 }}
+              >
+                {/* Subtle gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900/50 pointer-events-none" />
+                
+                {/* Content */}
+                <div className="relative px-8 py-8 z-10 pointer-events-auto">
+                  {/* Icon - Minimalist */}
+                  <div className="flex justify-center mb-6">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#635BFF]/10 to-[#7c75ff]/10 dark:from-[#635BFF]/20 dark:to-[#7c75ff]/20 rounded-2xl blur-xl" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-[#635BFF]/5 to-[#7c75ff]/5 dark:from-[#635BFF]/10 dark:to-[#7c75ff]/10 border border-[#635BFF]/10 dark:border-[#635BFF]/20">
+                        <Calendar className="w-5 h-5 text-[#635BFF] dark:text-[#a5a0ff]" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Title - Refined typography */}
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2 tracking-tight">
+                    Move to Interview column?
+                  </h3>
+
+                  {/* Message - Minimalist */}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8 leading-relaxed">
+                    You've scheduled an interview. Would you like to move this application to the Interview column?
+                  </p>
+
+                  {/* Application Info - Ultra minimalist */}
+                  <div className="mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                    <div className="text-center space-y-1">
+                      <div className="font-medium text-sm text-gray-900 dark:text-white">
+                        {pendingMoveApplication.companyName}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {pendingMoveApplication.position}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Buttons - Premium design */}
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={() => {
+                        setShowMoveToInterviewPrompt(false);
+                        setPendingMoveApplication(null);
+                      }}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50"
+                    >
+                      {pendingMoveApplication.status === 'wishlist' ? 'Keep in Wishlist' : 
+                       pendingMoveApplication.status === 'pending_decision' ? 'Keep in Pending Decision' : 
+                       'Keep in Applied'}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.01, y: -1 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={handleMoveToInterview}
+                      className="relative flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#635BFF] to-[#7c75ff] hover:from-[#7c75ff] hover:to-[#8b85ff] rounded-xl transition-all duration-300 shadow-lg shadow-[#635BFF]/25 dark:shadow-[#635BFF]/20 overflow-hidden group"
+                    >
+                      {/* Shine effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        initial={{ x: '-100%' }}
+                        whileHover={{ x: '200%' }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                        style={{ transform: 'skewX(-20deg)' }}
+                      />
+                      <span className="relative z-10">Move</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
         )}
 
         {/* Delete Confirmation Modal */}

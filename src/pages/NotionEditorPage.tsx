@@ -24,6 +24,7 @@ import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
 import { Resume } from './ResumeBuilderPage';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
+import CoverRepositioner from '../components/profile/CoverRepositioner';
 import {
   getNote,
   getNotes,
@@ -79,8 +80,11 @@ export default function NotionEditorPage() {
   const [isCoverHovering, setIsCoverHovering] = useState(false);
   const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
   const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
+  const [isRepositioning, setIsRepositioning] = useState(false);
   const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+  const coverContainerRef = useRef<HTMLDivElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const coverButtonRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
 
   const autoSaverRef = useRef<ReturnType<typeof createAutoSaver> | null>(null);
@@ -608,6 +612,95 @@ export default function NotionEditorPage() {
     }
   }, [currentUser, activeNoteId, note?.coverImage]);
 
+  // Handle cover reposition
+  const handleRepositionSave = useCallback(async (position: { x: number; y: number }) => {
+    if (!currentUser || !activeNoteId || !note?.coverImage) return;
+
+    setIsUpdatingCover(true);
+    try {
+      // Load the original image
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = note.coverImage;
+      });
+
+      // Get container dimensions
+      const containerWidth = coverContainerRef.current?.clientWidth || 1584;
+      const containerHeight = coverContainerRef.current?.clientHeight || 396;
+
+      // Calculate the actual position based on relative position
+      const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+      const containerAspectRatio = containerWidth / containerHeight;
+      
+      let displayWidth: number;
+      let displayHeight: number;
+      
+      if (imgAspectRatio > containerAspectRatio) {
+        displayHeight = containerHeight;
+        displayWidth = containerHeight * imgAspectRatio;
+      } else {
+        displayWidth = containerWidth;
+        displayHeight = containerWidth / imgAspectRatio;
+      }
+
+      const bounds = {
+        minX: containerWidth - displayWidth,
+        maxX: 0,
+        minY: containerHeight - displayHeight,
+        maxY: 0,
+      };
+
+      const actualX = bounds.minX + (bounds.maxX - bounds.minX) * position.x;
+      const actualY = bounds.minY + (bounds.maxY - bounds.minY) * position.y;
+
+      // Create canvas and draw image at new position
+      const canvas = document.createElement('canvas');
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Could not get canvas context');
+
+      ctx.drawImage(
+        img,
+        0, 0, img.naturalWidth, img.naturalHeight,
+        actualX, actualY, displayWidth, displayHeight
+      );
+
+      // Convert to blob and upload
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          throw new Error('Failed to create blob');
+        }
+
+        const timestamp = Date.now();
+        const fileName = `note_${activeNoteId}_cover_${timestamp}.jpg`;
+        const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
+        
+        await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+        const coverUrl = await getDownloadURL(coverRef);
+        
+        await updateNote({
+          userId: currentUser.uid,
+          noteId: activeNoteId,
+          updates: { coverImage: coverUrl },
+        });
+        
+        setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
+        toast.success('Cover position updated');
+        setIsUpdatingCover(false);
+      }, 'image/jpeg', 0.92);
+    } catch (error) {
+      console.error('Error repositioning cover:', error);
+      toast.error('Failed to reposition cover');
+      setIsUpdatingCover(false);
+    }
+  }, [currentUser, activeNoteId, note?.coverImage]);
+
   // Manual save
   const handleManualSave = useCallback(async () => {
     if (!autoSaverRef.current) return;
@@ -932,7 +1025,10 @@ export default function NotionEditorPage() {
               onMouseEnter={() => setIsCoverHovering(true)}
               onMouseLeave={() => setIsCoverHovering(false)}
             >
-              <div className={`relative w-full transition-all duration-300 ease-in-out ${note.coverImage ? 'h-48 sm:h-64' : 'h-24 sm:h-32'}`}>
+              <div 
+                ref={coverContainerRef}
+                className={`relative w-full transition-all duration-300 ease-in-out ${note.coverImage ? 'h-48 sm:h-64' : 'h-24 sm:h-32'}`}
+              >
                 {note.coverImage ? (
                   <div className="absolute inset-0 w-full h-full overflow-hidden">
                     <img 
@@ -977,41 +1073,26 @@ export default function NotionEditorPage() {
                         </button>
                       ) : (
                         // Controls when cover exists
-                        <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                        <div className="flex items-center gap-2">
                           <button
+                            ref={coverButtonRef}
                             onClick={() => setIsCoverGalleryOpen(true)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                              hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 
+                              bg-white/90 dark:bg-gray-900/90 backdrop-blur-md hover:bg-white dark:hover:bg-gray-800
+                              border border-gray-200 dark:border-gray-700 rounded-md shadow-sm transition-all duration-200"
                           >
-                            <Image className="w-3.5 h-3.5" />
                             Change cover
                           </button>
                           
-                          <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
-                          
                           <button
-                            onClick={() => coverInputRef.current?.click()}
+                            onClick={() => setIsRepositioning(true)}
                             disabled={isUpdatingCover}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                              hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 
+                              bg-white/90 dark:bg-gray-900/90 backdrop-blur-md hover:bg-white dark:hover:bg-gray-800
+                              border border-gray-200 dark:border-gray-700 rounded-md shadow-sm transition-all duration-200
+                              disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {isUpdatingCover ? (
-                              <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Camera className="w-3.5 h-3.5" />
-                            )}
-                            Upload
-                          </button>
-                          
-                          <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
-                          
-                          <button
-                            onClick={handleRemoveCover}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
-                              hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
-                            title="Remove cover"
-                          >
-                            <X className="w-3.5 h-3.5" />
+                            Reposition
                           </button>
                         </div>
                       )}
@@ -1165,7 +1246,18 @@ export default function NotionEditorPage() {
           onSelectBlob={handleGallerySelect}
           onRemove={handleRemoveCover}
           currentCover={note?.coverImage}
+          triggerRef={coverButtonRef}
         />
+        
+        {note?.coverImage && (
+          <CoverRepositioner
+            isOpen={isRepositioning}
+            coverImageUrl={note.coverImage}
+            onClose={() => setIsRepositioning(false)}
+            onSave={handleRepositionSave}
+            containerRef={coverContainerRef}
+          />
+        )}
       </div>
     </AuthLayout>
   );

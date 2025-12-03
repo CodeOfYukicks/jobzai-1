@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, MapPin, Edit2, Camera, Image, Check, X, Sparkles, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -42,6 +42,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
   const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
   const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
   const [isHoveringPhoto, setIsHoveringPhoto] = useState(false);
+  const coverButtonRef = useRef<HTMLButtonElement>(null);
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
   const [currentEducation, setCurrentEducation] = useState<CurrentEducation | null>(null);
   const [formData, setFormData] = useState({
@@ -281,6 +282,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
             )}
           </label>
           <button
+            ref={coverButtonRef}
             onClick={() => setIsCoverGalleryOpen(true)}
             className="px-3 py-2 bg-white/90 hover:bg-white text-gray-700 text-xs font-medium rounded-full backdrop-blur-md transition-all shadow-sm"
           >
@@ -613,6 +615,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
         }
       }}
       currentCover={formData.coverPhoto}
+      triggerRef={coverButtonRef}
     />
     </>
   );

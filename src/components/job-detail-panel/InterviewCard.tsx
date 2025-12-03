@@ -1,5 +1,6 @@
 import { format, parseISO, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   Clock,
   MapPin,
@@ -10,9 +11,12 @@ import {
   Video,
   MessageSquare,
   Sparkles,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { Interview, JobApplication } from '../../types/job';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 
 // Helper function to safely parse dates from Firestore
 const parseDate = (dateValue: any): Date => {
@@ -57,10 +61,12 @@ const statusConfig = {
 interface InterviewCardProps {
   interview: Interview;
   jobApplication?: JobApplication;
+  onDelete?: (interviewId: string) => void;
 }
 
-export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps) => {
+export const InterviewCard = ({ interview, jobApplication, onDelete }: InterviewCardProps) => {
   const navigate = useNavigate();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const typeConfig = interviewTypeConfig[interview.type];
   const statusConf = statusConfig[interview.status];
   const date = parseDate(interview.date);
@@ -81,6 +87,17 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
     });
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (onDelete) {
+      onDelete(interview.id);
+    }
+    setShowDeleteModal(false);
+  };
+
   const isVideoCall = interview.location?.toLowerCase().match(/zoom|meet|teams|skype|webex/);
 
   return (
@@ -91,11 +108,11 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
     >
       <div className="flex flex-col sm:flex-row">
         {/* Left Side - Date Visual */}
-        <div className="sm:w-32 bg-gray-50 dark:bg-gray-800/50 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center p-6 gap-1 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors">
-          <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+        <div className="sm:w-24 bg-gray-50 dark:bg-gray-800/50 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center p-4 gap-1 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors">
+          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
             {format(date, 'MMM')}
           </span>
-          <span className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+          <span className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
             {format(date, 'd')}
           </span>
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -104,25 +121,25 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
         </div>
 
         {/* Right Side - Content */}
-        <div className="flex-1 p-5 sm:p-6">
-          <div className="flex items-start justify-between mb-4">
+        <div className="flex-1 p-4 sm:p-5">
+          <div className="flex items-start justify-between mb-3">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide border ${typeConfig.color}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${typeConfig.color}`}>
                   {typeConfig.label}
                 </span>
                 {interview.status !== 'scheduled' && (
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1 ${statusConf.bg} ${statusConf.color}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide flex items-center gap-1 ${statusConf.bg} ${statusConf.color}`}>
                     {statusConf.label}
                   </span>
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                 Interview
               </h3>
             </div>
 
-            {/* Options / Status Indicator */}
+            {/* Options / Status Indicator and Delete Button */}
             <div className="flex items-center gap-2">
               {interview.status === 'scheduled' && (
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium">
@@ -130,32 +147,43 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
                   Upcoming
                 </div>
               )}
+              {onDelete && (
+                <motion.button
+                  onClick={handleDeleteClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  aria-label="Delete interview"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </motion.button>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 mb-5">
-            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
-              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 mb-4">
+            <div className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-300">
+              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
               </div>
               <span className="font-medium">{interview.time}</span>
             </div>
 
-            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
-              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+            <div className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-300">
+              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                 {isVideoCall ? (
-                  <Video className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <Video className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
                 ) : (
-                  <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <MapPin className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
                 )}
               </div>
               <span className="font-medium truncate">{interview.location || 'No location set'}</span>
             </div>
 
             {interview.interviewers && interview.interviewers.length > 0 && (
-              <div className="col-span-1 sm:col-span-2 flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
-                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <div className="col-span-1 sm:col-span-2 flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-300">
+                <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                  <User className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {interview.interviewers.map((interviewer, idx) => (
@@ -169,7 +197,7 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
           </div>
 
           {interview.notes && (
-            <div className="mb-5 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50">
+            <div className="mb-4 p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50">
               <div className="flex items-start gap-2">
                 <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
                 <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">
@@ -186,7 +214,7 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
                 onClick={handlePrepareInterview}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex-1 relative overflow-hidden group bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-gray-900/20 dark:shadow-white/10 group-hover:shadow-2xl group-hover:shadow-gray-900/40 dark:group-hover:shadow-gray-800/40"
+                className="flex-1 relative overflow-hidden group bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3.5 py-2 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-gray-900/20 dark:shadow-white/10 group-hover:shadow-2xl group-hover:shadow-gray-900/40 dark:group-hover:shadow-gray-800/40"
               >
                 {/* Subtle brightness overlay on hover */}
                 <motion.div 
@@ -213,7 +241,7 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
                     transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                     whileHover={{ rotate: [0, 15, -15, 0], scale: 1.15 }}
                   >
-                    <Sparkles className="w-4 h-4 transition-transform duration-300" />
+                    <Sparkles className="w-3.5 h-3.5 transition-transform duration-300" />
                   </motion.div>
                   <span className="group-hover:font-semibold transition-all duration-300">Prepare with AI</span>
                 </span>
@@ -223,15 +251,109 @@ export const InterviewCard = ({ interview, jobApplication }: InterviewCardProps)
             {interview.status === 'completed' && (
               <button
                 onClick={handlePrepareInterview}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-3.5 h-3.5" />
                 View Notes
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Premium Delete Confirmation Modal */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showDeleteModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowDeleteModal(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-xl z-[200] flex items-center justify-center p-4"
+              style={{ zIndex: 200 }}
+            >
+              <motion.div
+                initial={{ scale: 0.96, y: 10, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.96, y: 10, opacity: 0 }}
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800/50 overflow-hidden pointer-events-auto"
+                style={{ zIndex: 201 }}
+              >
+                {/* Subtle gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900/50 pointer-events-none" />
+                
+                {/* Content */}
+                <div className="relative px-8 py-8 z-10 pointer-events-auto">
+                  {/* Icon - Premium */}
+                  <div className="flex justify-center mb-6">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-red-600/10 dark:from-red-500/20 dark:to-red-600/20 rounded-2xl blur-xl" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/30 dark:to-red-900/20 border border-red-200/50 dark:border-red-800/30">
+                        <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Title - Refined typography */}
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2 tracking-tight">
+                    Delete Interview?
+                  </h3>
+
+                  {/* Message - Minimalist */}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8 leading-relaxed">
+                    Are you sure you want to delete this interview? This action cannot be undone.
+                  </p>
+
+                  {/* Interview Info - Ultra minimalist */}
+                  <div className="mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                    <div className="text-center space-y-1">
+                      <div className="font-medium text-sm text-gray-900 dark:text-white">
+                        {format(date, 'MMM d, yyyy')} at {interview.time}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                        {typeConfig.label} Interview
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Buttons - Premium design */}
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={() => setShowDeleteModal(false)}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50"
+                    >
+                      Cancel
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.01, y: -1 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={handleConfirmDelete}
+                      className="relative flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl transition-all duration-300 shadow-lg shadow-red-500/25 dark:shadow-red-500/20 overflow-hidden group"
+                    >
+                      {/* Shine effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        initial={{ x: '-100%' }}
+                        whileHover={{ x: '200%' }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                        style={{ transform: 'skewX(-20deg)' }}
+                      />
+                      <span className="relative z-10">Delete</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 };

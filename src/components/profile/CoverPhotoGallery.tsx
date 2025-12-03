@@ -16,8 +16,15 @@ import {
   searchUnsplashPhotos, 
   getRandomUnsplashPhotos, 
   fetchImageAsBlob as fetchUnsplashImageAsBlob,
-  type UnsplashPhoto 
+  type UnsplashPhoto,
+  UnsplashRateLimitError
 } from '../../lib/unsplash';
+import {
+  getFallbackPhotos,
+  searchFallbackPhotos,
+  fallbackToUnsplash,
+  type FallbackPhoto
+} from '../../lib/fallback-images';
 
 interface CoverPhotoGalleryProps {
   isOpen: boolean;
@@ -25,6 +32,7 @@ interface CoverPhotoGalleryProps {
   onSelectBlob: (blob: Blob) => void;
   onRemove?: () => void;
   currentCover?: string;
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
 type TabType = 'gallery' | 'unsplash' | 'upload' | 'link';
@@ -103,18 +111,34 @@ interface GalleryTabProps {
 const GalleryTab = ({ onSelectColor, onSelectImage, isFetching }: GalleryTabProps) => {
   const [collections, setCollections] = useState<Record<string, UnsplashPhoto[]>>({});
   const [loadingCollections, setLoadingCollections] = useState<Record<string, boolean>>({});
+  const [usingFallback, setUsingFallback] = useState<Record<string, boolean>>({});
 
-  // Load Unsplash photos for each collection
+  // Load Unsplash photos for each collection, with fallback support
   useEffect(() => {
     const loadCollections = async () => {
       for (const collection of IMAGE_COLLECTIONS) {
         if (!collections[collection.id] && !loadingCollections[collection.id]) {
           setLoadingCollections(prev => ({ ...prev, [collection.id]: true }));
           try {
+            // Try Unsplash first
             const photos = await getRandomUnsplashPhotos(4, collection.query);
             setCollections(prev => ({ ...prev, [collection.id]: photos }));
+            setUsingFallback(prev => ({ ...prev, [collection.id]: false }));
           } catch (error) {
-            console.error(`Error loading ${collection.label} photos:`, error);
+            // If rate limit error, use fallback
+            if (error instanceof UnsplashRateLimitError) {
+              console.log(`Unsplash rate limit exceeded, using fallback for ${collection.label}`);
+              try {
+                const fallbackPhotos = getFallbackPhotos(4, collection.query);
+                const unsplashCompatible = fallbackPhotos.map(fallbackToUnsplash);
+                setCollections(prev => ({ ...prev, [collection.id]: unsplashCompatible }));
+                setUsingFallback(prev => ({ ...prev, [collection.id]: true }));
+              } catch (fallbackError) {
+                console.error(`Error loading fallback photos for ${collection.label}:`, fallbackError);
+              }
+            } else {
+              console.error(`Error loading ${collection.label} photos:`, error);
+            }
           } finally {
             setLoadingCollections(prev => ({ ...prev, [collection.id]: false }));
           }
@@ -157,12 +181,20 @@ const GalleryTab = ({ onSelectColor, onSelectImage, isFetching }: GalleryTabProp
       {IMAGE_COLLECTIONS.map((collection) => {
         const photos = collections[collection.id] || [];
         const isLoading = loadingCollections[collection.id];
+        const isUsingFallback = usingFallback[collection.id];
 
         return (
           <div key={collection.id}>
-            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
-              {collection.label}
-            </h4>
+            <div className="flex items-center gap-2 mb-3">
+              <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                {collection.label}
+              </h4>
+              {isUsingFallback && (
+                <span className="px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-full">
+                  Limited mode
+                </span>
+              )}
+            </div>
             {isLoading ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[1, 2, 3, 4].map((i) => (
@@ -324,16 +356,20 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const [searchUsingFallback, setSearchUsingFallback] = useState(false);
 
   const handleSearch = useCallback(async (query: string, pageNum: number = 1) => {
     if (!query.trim()) {
       setSearchResults([]);
+      setSearchUsingFallback(false);
       return;
     }
 
     setIsSearching(true);
     setError(null);
     try {
+      // Try Unsplash first
       const response = await searchUnsplashPhotos(query, pageNum, 20);
       if (pageNum === 1) {
         setSearchResults(response.results);
@@ -342,9 +378,30 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
       }
       setHasMore(pageNum < response.total_pages);
       setPage(pageNum);
+      setSearchUsingFallback(false);
     } catch (err) {
-      console.error('Error searching Unsplash:', err);
-      setError(err instanceof Error ? err.message : 'Failed to search photos');
+      // If rate limit error, use fallback
+      if (err instanceof UnsplashRateLimitError) {
+        console.log('Unsplash rate limit exceeded, using fallback for search');
+        try {
+          const fallbackResponse = searchFallbackPhotos(query, pageNum, 20);
+          const unsplashCompatible = fallbackResponse.results.map(fallbackToUnsplash);
+          if (pageNum === 1) {
+            setSearchResults(unsplashCompatible);
+          } else {
+            setSearchResults(prev => [...prev, ...unsplashCompatible]);
+          }
+          setHasMore(pageNum < fallbackResponse.total_pages);
+          setPage(pageNum);
+          setSearchUsingFallback(true);
+        } catch (fallbackError) {
+          console.error('Error using fallback for search:', fallbackError);
+          setError('Failed to search photos');
+        }
+      } else {
+        console.error('Error searching Unsplash:', err);
+        setError(err instanceof Error ? err.message : 'Failed to search photos');
+      }
     } finally {
       setIsSearching(false);
     }
@@ -366,17 +423,32 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
     onSelectPhoto(photo.urls.regular);
   }, [onSelectPhoto]);
 
-  // Load default photos function
+  // Load default photos function with fallback support
   const loadDefaultPhotos = useCallback(async () => {
     setIsLoadingDefaults(true);
     setError(null);
     try {
-      // Load random photos with popular queries for cover images
+      // Try Unsplash first
       const photos = await getRandomUnsplashPhotos(12);
       setDefaultPhotos(photos);
+      setUsingFallback(false);
     } catch (err) {
-      console.error('Error loading default Unsplash photos:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load photos');
+      // If rate limit error, use fallback
+      if (err instanceof UnsplashRateLimitError) {
+        console.log('Unsplash rate limit exceeded, using fallback for default photos');
+        try {
+          const fallbackPhotos = getFallbackPhotos(12);
+          const unsplashCompatible = fallbackPhotos.map(fallbackToUnsplash);
+          setDefaultPhotos(unsplashCompatible);
+          setUsingFallback(true);
+        } catch (fallbackError) {
+          console.error('Error using fallback for default photos:', fallbackError);
+          setError('Failed to load photos');
+        }
+      } else {
+        console.error('Error loading default Unsplash photos:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load photos');
+      }
     } finally {
       setIsLoadingDefaults(false);
     }
@@ -406,7 +478,7 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Unsplash photos..."
+            placeholder="Search photos..."
             className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
             disabled={isSearching || isFetching}
           />
@@ -428,9 +500,16 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
       {showDefaultSection && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Suggested Photos
-            </h4>
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                Suggested Photos
+              </h4>
+              {usingFallback && (
+                <span className="px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-full">
+                  Limited mode
+                </span>
+              )}
+            </div>
             <motion.button
               onClick={handleRefresh}
               disabled={isLoadingDefaults || isFetching}
@@ -494,9 +573,16 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
       {/* Search Results */}
       {searchQuery.trim() && searchResults.length > 0 && (
         <div className={showDefaultSection ? 'mt-8' : ''}>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
-            Search Results
-          </h4>
+          <div className="flex items-center gap-2 mb-3">
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Search Results
+            </h4>
+            {searchUsingFallback && (
+              <span className="px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-full">
+                Limited mode
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {searchResults.map((photo) => (
               <motion.button
@@ -733,10 +819,13 @@ const CoverPhotoGallery = ({
   onClose, 
   onSelectBlob, 
   onRemove,
-  currentCover 
+  currentCover,
+  triggerRef
 }: CoverPhotoGalleryProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('gallery');
   const [isFetching, setIsFetching] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Reset tab when modal opens
   useEffect(() => {
@@ -744,6 +833,59 @@ const CoverPhotoGallery = ({
       setActiveTab('gallery');
     }
   }, [isOpen]);
+
+  // Calculate position based on trigger element
+  useEffect(() => {
+    if (!isOpen || !triggerRef?.current) {
+      setPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!triggerRef?.current) return;
+      
+      const rect = triggerRef.current.getBoundingClientRect();
+      const panelWidth = 680; // Fixed width for the panel
+      const panelHeight = 600; // Estimated max height
+      const spacing = 8; // Space between button and panel
+      
+      let left = rect.right + spacing;
+      let top = rect.bottom + spacing;
+      
+      // Adjust if panel would overflow right edge
+      if (left + panelWidth > window.innerWidth) {
+        left = rect.left - panelWidth - spacing;
+      }
+      
+      // Adjust if panel would overflow bottom edge
+      if (top + panelHeight > window.innerHeight) {
+        top = rect.top - panelHeight - spacing;
+      }
+      
+      // Ensure panel doesn't go off-screen on left
+      if (left < 0) {
+        left = spacing;
+      }
+      
+      // Ensure panel doesn't go off-screen on top
+      if (top < 0) {
+        top = spacing;
+      }
+      
+      setPosition({ top, left });
+    };
+
+    updatePosition();
+    
+    // Update position on scroll/resize
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen, triggerRef]);
 
   // Helper: Fetch URL and convert to blob
   const fetchImageAsBlob = useCallback(async (url: string): Promise<Blob> => {
@@ -861,169 +1003,200 @@ const CoverPhotoGallery = ({
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'gallery', label: 'Gallery', icon: <Image className="w-4 h-4" /> },
-    { id: 'unsplash', label: 'Unsplash', icon: <Search className="w-4 h-4" /> },
     { id: 'upload', label: 'Upload', icon: <Upload className="w-4 h-4" /> },
     { id: 'link', label: 'Link', icon: <Link2 className="w-4 h-4" /> },
+    { id: 'unsplash', label: 'Unsplash', icon: <Search className="w-4 h-4" /> },
   ];
+
+  const renderPanelContent = () => (
+    <>
+      {/* Header with tabs */}
+      <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
+        {/* Tabs */}
+        <div className="flex items-center gap-0.5">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.id
+                  ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Right side - Remove button */}
+        <div className="flex items-center gap-2">
+          {currentCover && onRemove && (
+            <button
+              onClick={handleRemove}
+              className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-4 py-4 max-h-[600px] overflow-y-auto">
+        <AnimatePresence mode="wait">
+          {activeTab === 'gallery' && (
+            <motion.div
+              key="gallery"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <GalleryTab
+                onSelectColor={handleSelectColor}
+                onSelectImage={handleSelectImage}
+                isFetching={isFetching}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'unsplash' && (
+            <motion.div
+              key="unsplash"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <UnsplashTab
+                onSelectPhoto={handleSelectUnsplashPhoto}
+                isFetching={isFetching}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'upload' && (
+            <motion.div
+              key="upload"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <UploadTab
+                onFileSelect={handleFileSelect}
+                isFetching={isFetching}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'link' && (
+            <motion.div
+              key="link"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <LinkTab
+                onSubmitUrl={handleSubmitUrl}
+                isFetching={isFetching}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Loading overlay */}
+      <AnimatePresence>
+        {isFetching && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center z-10"
+          >
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                Processing...
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
 
   if (!isOpen) return null;
 
+  // If no triggerRef provided, use centered modal (fallback)
+  const usePositionedPanel = triggerRef && position;
+
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-start justify-center pt-12 pb-8 px-4 overflow-y-auto"
-      >
-        {/* Backdrop */}
-        <motion.div 
+      {usePositionedPanel ? (
+        // Positioned panel (Notion style)
+        <>
+          {/* Light backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+            onClick={onClose}
+          />
+          
+          {/* Panel positioned next to button */}
+          <motion.div
+            ref={panelRef}
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            style={{
+              position: 'fixed',
+              top: `${position.top}px`,
+              left: `${position.left}px`,
+              zIndex: 50,
+            }}
+            className="bg-white dark:bg-[#1E1E1E] rounded-lg shadow-2xl w-[680px] ring-1 ring-black/5 dark:ring-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {renderPanelContent()}
+          </motion.div>
+        </>
+      ) : (
+        // Centered modal (fallback for when no triggerRef)
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
-          onClick={onClose} 
-        />
-        
-        {/* Modal */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative bg-white dark:bg-[#1E1E1E] rounded-2xl shadow-2xl w-full max-w-4xl my-auto ring-1 ring-black/5 dark:ring-white/10"
+          className="fixed inset-0 z-50 flex items-start justify-center pt-12 pb-8 px-4 overflow-y-auto"
         >
-          {/* Header with tabs */}
-          <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
-            {/* Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                    activeTab === tab.id
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Right side buttons */}
-            <div className="flex items-center gap-2">
-              {/* Remove button (only show if there's a current cover and onRemove is provided) */}
-              {currentCover && onRemove && (
-                <motion.button
-                  onClick={handleRemove}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Remove
-                </motion.button>
-              )}
-              
-              {/* Close button */}
-              <button
-                onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="px-6 py-6 max-h-[70vh] overflow-y-auto">
-            <AnimatePresence mode="wait">
-              {activeTab === 'gallery' && (
-                <motion.div
-                  key="gallery"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <GalleryTab
-                    onSelectColor={handleSelectColor}
-                    onSelectImage={handleSelectImage}
-                    isFetching={isFetching}
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === 'unsplash' && (
-                <motion.div
-                  key="unsplash"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <UnsplashTab
-                    onSelectPhoto={handleSelectUnsplashPhoto}
-                    isFetching={isFetching}
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === 'upload' && (
-                <motion.div
-                  key="upload"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <UploadTab
-                    onFileSelect={handleFileSelect}
-                    isFetching={isFetching}
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === 'link' && (
-                <motion.div
-                  key="link"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <LinkTab
-                    onSubmitUrl={handleSubmitUrl}
-                    isFetching={isFetching}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Loading overlay */}
-          <AnimatePresence>
-            {isFetching && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10"
-              >
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                    Processing...
-                  </span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Backdrop */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={onClose} 
+          />
+          
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="relative bg-white dark:bg-[#1E1E1E] rounded-2xl shadow-2xl w-full max-w-4xl my-auto ring-1 ring-black/5 dark:ring-white/10"
+          >
+            {renderPanelContent()}
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </AnimatePresence>
   );
 };

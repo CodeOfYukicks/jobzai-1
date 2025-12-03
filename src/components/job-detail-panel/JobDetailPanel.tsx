@@ -203,30 +203,19 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
       // Update job with new interview
       const updatedInterviews = [...(job.interviews || []), newInterview];
 
-      // Also update status to interview if currently applied
+      // Only update interviews - let parent component handle status change via modal prompt
+      // if status is 'wishlist' or 'applied'
       const updates: Partial<JobApplication> = {
         interviews: updatedInterviews,
       };
 
-      if (job.status === 'applied') {
-        updates.status = 'interview';
-
-        // Add to status history
-        const newStatusChange: StatusChange = {
-          status: 'interview',
-          date: new Date().toISOString().split('T')[0],
-          notes: 'Interview scheduled',
-        };
-
-        updates.statusHistory = [
-          ...(job.statusHistory || []),
-          newStatusChange,
-        ];
-      }
+      // Don't auto-update status if it's wishlist or applied - let modal handle it
+      // For other statuses, keep existing behavior (though they probably won't need status change)
 
       await onUpdate(updates);
       setShowAddInterviewForm(false);
-      toast.success('Interview scheduled successfully!');
+      
+      // Don't show toast here - parent component will show modal or toast as appropriate
     } catch (error) {
       console.error('Error adding interview:', error);
       toast.error('Failed to schedule interview');
@@ -522,12 +511,30 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                 </div>
 
                                 {job.interviews && job.interviews.length > 0 ? (
-                                  <div className="grid gap-4">
+                                  <div className="grid gap-3">
                                     {job.interviews.map((interview) => (
                                       <InterviewCard
                                         key={interview.id}
                                         interview={interview}
                                         jobApplication={job}
+                                        onDelete={async (interviewId) => {
+                                          if (!onUpdate || !job) return;
+                                          
+                                          try {
+                                            const updatedInterviews = job.interviews?.filter(
+                                              (i) => i.id !== interviewId
+                                            ) || [];
+                                            
+                                            await onUpdate({
+                                              interviews: updatedInterviews,
+                                            });
+                                            
+                                            toast.success('Interview deleted successfully');
+                                          } catch (error) {
+                                            console.error('Error deleting interview:', error);
+                                            toast.error('Failed to delete interview');
+                                          }
+                                        }}
                                       />
                                     ))}
                                   </div>

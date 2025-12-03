@@ -4,6 +4,7 @@ import { Image, Camera, X, Smile, Folder as FolderIcon, Briefcase, Target, Star,
 import { Folder } from './FolderCard';
 import CoverPhotoCropper from '../profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../profile/CoverPhotoGallery';
+import CoverRepositioner from '../profile/CoverRepositioner';
 
 // Emoji options for folders
 const EMOJI_OPTIONS = ['📁', '💼', '🎯', '⭐', '🚀', '💡', '📚', '🎨', '💻', '🔥', '✨', '🎪'];
@@ -69,9 +70,12 @@ export default function FolderHeader({
   const [isHovering, setIsHovering] = useState(false);
   const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
   const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
+  const [isRepositioning, setIsRepositioning] = useState(false);
   const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverButtonRef = useRef<HTMLButtonElement>(null);
+  const coverContainerRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   // Use coverPhoto from prop for special views, or from folder for regular folders
@@ -114,6 +118,69 @@ export default function FolderHeader({
     setIsCoverCropperOpen(true);
   };
 
+  const handleRepositionSave = async (position: { x: number; y: number }) => {
+    if (!coverPhoto || !onUpdateCover || !coverContainerRef.current) return;
+
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = coverPhoto;
+      });
+
+      const containerWidth = coverContainerRef.current.clientWidth || 1584;
+      const containerHeight = coverContainerRef.current.clientHeight || 396;
+
+      const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+      const containerAspectRatio = containerWidth / containerHeight;
+      
+      let displayWidth: number;
+      let displayHeight: number;
+      
+      if (imgAspectRatio > containerAspectRatio) {
+        displayHeight = containerHeight;
+        displayWidth = containerHeight * imgAspectRatio;
+      } else {
+        displayWidth = containerWidth;
+        displayHeight = containerWidth / imgAspectRatio;
+      }
+
+      const bounds = {
+        minX: containerWidth - displayWidth,
+        maxX: 0,
+        minY: containerHeight - displayHeight,
+        maxY: 0,
+      };
+
+      const actualX = bounds.minX + (bounds.maxX - bounds.minX) * position.x;
+      const actualY = bounds.minY + (bounds.maxY - bounds.minY) * position.y;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Could not get canvas context');
+
+      ctx.drawImage(
+        img,
+        0, 0, img.naturalWidth, img.naturalHeight,
+        actualX, actualY, displayWidth, displayHeight
+      );
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) throw new Error('Failed to create blob');
+        await onUpdateCover(blob);
+        setIsRepositioning(false);
+      }, 'image/jpeg', 0.92);
+    } catch (error) {
+      console.error('Error repositioning cover:', error);
+    }
+  };
+
   const handleEmojiSelect = async (emoji: string) => {
     if (onUpdateEmoji) {
       await onUpdateEmoji(emoji);
@@ -140,7 +207,10 @@ export default function FolderHeader({
       onMouseLeave={() => setIsHovering(false)}
     >
       {/* Cover Photo Area */}
-      <div className={`relative w-full transition-all duration-300 ease-in-out ${hasCover ? 'h-56 sm:h-72' : 'h-32 sm:h-40'}`}>
+      <div 
+        ref={coverContainerRef}
+        className={`relative w-full transition-all duration-300 ease-in-out ${hasCover ? 'h-56 sm:h-72' : 'h-32 sm:h-40'}`}
+      >
         {hasCover ? (
           <div className="absolute inset-0 w-full h-full overflow-hidden">
             <img 
@@ -187,41 +257,26 @@ export default function FolderHeader({
               ) : (
                 // Controls when cover exists
                 <>
-                  <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                  <div className="flex items-center gap-2">
                     <button
+                      ref={coverButtonRef}
                       onClick={() => setIsCoverGalleryOpen(true)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                        hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                      className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 
+                        bg-white/90 dark:bg-gray-900/90 backdrop-blur-md hover:bg-white dark:hover:bg-gray-800
+                        border border-gray-200 dark:border-gray-700 rounded-md shadow-sm transition-all duration-200"
                     >
-                      <Image className="w-3.5 h-3.5" />
                       Change cover
                     </button>
                     
-                    <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
-                    
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => setIsRepositioning(true)}
                       disabled={isUpdating}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                        hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                      className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 
+                        bg-white/90 dark:bg-gray-900/90 backdrop-blur-md hover:bg-white dark:hover:bg-gray-800
+                        border border-gray-200 dark:border-gray-700 rounded-md shadow-sm transition-all duration-200
+                        disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isUpdating ? (
-                        <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Camera className="w-3.5 h-3.5" />
-                      )}
-                      Upload
-                    </button>
-                    
-                    <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
-                    
-                    <button
-                      onClick={onRemoveCover}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
-                        hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
-                      title="Remove cover"
-                    >
-                      <X className="w-3.5 h-3.5" />
+                      Reposition
                     </button>
                   </div>
                 </>
@@ -348,7 +403,18 @@ export default function FolderHeader({
         onSelectBlob={handleGallerySelect}
         onRemove={onRemoveCover}
         currentCover={coverPhoto}
+        triggerRef={coverButtonRef}
       />
+      
+      {coverPhoto && (
+        <CoverRepositioner
+          isOpen={isRepositioning}
+          coverImageUrl={coverPhoto}
+          onClose={() => setIsRepositioning(false)}
+          onSave={handleRepositionSave}
+          containerRef={coverContainerRef}
+        />
+      )}
     </div>
   );
 }

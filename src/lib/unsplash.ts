@@ -4,6 +4,21 @@ import { db } from './firebase';
 // Cache the API key to avoid repeated Firestore reads
 let unsplashAccessKey: string | null = null;
 
+/**
+ * Custom error class for Unsplash rate limit errors
+ * This allows callers to easily identify when rate limit is exceeded
+ */
+export class UnsplashRateLimitError extends Error {
+  constructor(message: string = 'Unsplash API rate limit exceeded') {
+    super(message);
+    this.name = 'UnsplashRateLimitError';
+    // Maintains proper stack trace for where our error was thrown (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, UnsplashRateLimitError);
+    }
+  }
+}
+
 export interface UnsplashPhoto {
   id: string;
   urls: {
@@ -86,7 +101,7 @@ export async function searchUnsplashPhotos(
         throw new Error('Invalid Unsplash API credentials');
       }
       if (response.status === 403) {
-        throw new Error('Unsplash API rate limit exceeded');
+        throw new UnsplashRateLimitError('Unsplash API rate limit exceeded');
       }
       throw new Error(`Unsplash API error: ${response.statusText}`);
     }
@@ -125,7 +140,7 @@ export async function getRandomUnsplashPhotos(
         throw new Error('Invalid Unsplash API credentials');
       }
       if (response.status === 403) {
-        throw new Error('Unsplash API rate limit exceeded');
+        throw new UnsplashRateLimitError('Unsplash API rate limit exceeded');
       }
       throw new Error(`Unsplash API error: ${response.statusText}`);
     }
