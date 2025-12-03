@@ -373,6 +373,8 @@ export default function InterviewPrepPage() {
   const [noteColor, setNoteColor] = useState('#ffeb3b');
   const [isRegeneratingQuestions, setIsRegeneratingQuestions] = useState(false);
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
+  const [showStarExportModal, setShowStarExportModal] = useState(false);
+  const [pendingStarExport, setPendingStarExport] = useState<{skill: string, storyId: string} | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isDrawingConnection, setIsDrawingConnection] = useState(false);
   const [notePositions, setNotePositions] = useState<Record<string, { x: number; y: number }>>({});
@@ -437,6 +439,7 @@ export default function InterviewPrepPage() {
   const [activeNoteDocumentId, setActiveNoteDocumentId] = useState<string | null>(null);
   const [highlightedDocumentId, setHighlightedDocumentId] = useState<string | null>(null);
   const documentsSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tldrawWhiteboardRef = useRef<{ toggleFullscreen: () => void; addStarStoryToBoard: (skill: string, story: { situation: string; action: string; result: string }) => Promise<void> } | null>(null);
   const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
   const [liveSessionHistory, setLiveSessionHistory] = useState<LiveSessionRecord[]>([]);
   const [selectedHistorySession, setSelectedHistorySession] = useState<LiveSessionRecord | null>(null);
@@ -3495,6 +3498,11 @@ Return ONLY the pitch text, no explanations or formatting.`;
     await saveSkillCoach(next);
   };
 
+  const handleStarExportClick = (skill: string, storyId: string) => {
+    setPendingStarExport({ skill, storyId });
+    setShowStarExportModal(true);
+  };
+
   const exportStoryToNotes = async (skill: string, storyId: string) => {
     const story = (skillCoach?.starStories?.[skill] || []).find(s => s.id === storyId);
     if (!story) return;
@@ -3543,6 +3551,161 @@ Return ONLY the pitch text, no explanations or formatting.`;
     await saveNoteDocuments(updatedDocs, newDoc.id);
     
     toast.success('STAR story exported to Notes');
+  };
+
+  const exportStoryToStickyWhiteboard = async (skill: string, storyId: string) => {
+    const story = (skillCoach?.starStories?.[skill] || []).find(s => s.id === storyId);
+    if (!story) return;
+
+    // Calculate positions for visual layout
+    const baseX = 100;
+    const baseY = 200;
+    const noteSpacing = 340; // Space between notes
+    const noteWidth = 280;
+    const noteHeight = 200;
+    const titleWidth = 300;
+    const titleHeight = 120;
+
+    // Create title note
+    const titleNoteId = uuidv4();
+    const titleNote: Note = {
+      id: titleNoteId,
+      title: `STAR: ${skill}`,
+      content: `<strong>${skill}</strong>`,
+      color: '#fbbf24', // Amber/yellow
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      position: { x: baseX + noteWidth + (noteSpacing - titleWidth) / 2, y: baseY - 150 }
+    };
+
+    // Create Situation note
+    const situationNoteId = uuidv4();
+    const situationNote: Note = {
+      id: situationNoteId,
+      title: 'Situation',
+      content: story.situation || '<em>No situation provided</em>',
+      color: '#3b82f6', // Blue
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      position: { x: baseX, y: baseY }
+    };
+
+    // Create Action note
+    const actionNoteId = uuidv4();
+    const actionNote: Note = {
+      id: actionNoteId,
+      title: 'Action',
+      content: story.action || '<em>No action provided</em>',
+      color: '#f97316', // Orange
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      position: { x: baseX + noteSpacing, y: baseY }
+    };
+
+    // Create Result note
+    const resultNoteId = uuidv4();
+    const resultNote: Note = {
+      id: resultNoteId,
+      title: 'Result',
+      content: story.result || '<em>No result provided</em>',
+      color: '#10b981', // Green
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      position: { x: baseX + noteSpacing * 2, y: baseY }
+    };
+
+    // Add all notes
+    const newNotes = [titleNote, situationNote, actionNote, resultNote];
+    const updatedNotes = [...stickyNotes, ...newNotes];
+    setStickyNotes(updatedNotes);
+
+    // Set positions and sizes
+    const newPositions: Record<string, { x: number; y: number }> = {};
+    const newSizes: Record<string, { width: number; height: number }> = {};
+
+    newPositions[titleNoteId] = titleNote.position!;
+    newSizes[titleNoteId] = { width: titleWidth, height: titleHeight };
+
+    newPositions[situationNoteId] = situationNote.position!;
+    newSizes[situationNoteId] = { width: noteWidth, height: noteHeight };
+
+    newPositions[actionNoteId] = actionNote.position!;
+    newSizes[actionNoteId] = { width: noteWidth, height: noteHeight };
+
+    newPositions[resultNoteId] = resultNote.position!;
+    newSizes[resultNoteId] = { width: noteWidth, height: noteHeight };
+
+    setNotePositions(prev => ({ ...prev, ...newPositions }));
+    setNoteSizes(prev => ({ ...prev, ...newSizes }));
+
+    // Create arrows connecting Situation -> Action -> Result
+    const arrow1Id = uuidv4();
+    const arrow2Id = uuidv4();
+    const arrow1: Shape = {
+      id: arrow1Id,
+      type: 'arrow',
+      startX: baseX + noteWidth,
+      startY: baseY + noteHeight / 2,
+      endX: baseX + noteSpacing,
+      endY: baseY + noteHeight / 2,
+      color: '#6b7280' // Gray
+    };
+    const arrow2: Shape = {
+      id: arrow2Id,
+      type: 'arrow',
+      startX: baseX + noteSpacing + noteWidth,
+      startY: baseY + noteHeight / 2,
+      endX: baseX + noteSpacing * 2,
+      endY: baseY + noteHeight / 2,
+      color: '#6b7280' // Gray
+    };
+
+    setShapes(prev => [...prev, arrow1, arrow2]);
+
+    // Create a background rectangle to group visually
+    const bgRectId = uuidv4();
+    const bgRect: Shape = {
+      id: bgRectId,
+      type: 'rectangle',
+      startX: baseX - 20,
+      startY: baseY - 170,
+      endX: baseX + noteSpacing * 2 + noteWidth + 20,
+      endY: baseY + noteHeight + 20,
+      color: 'rgba(99, 102, 241, 0.1)' // Semi-transparent indigo
+    };
+    setShapes(prev => [...prev, bgRect]);
+
+    // Save to Firebase
+    await updateInterviewNotes(updatedNotes);
+
+    // Expand notes panel if not already expanded
+    if (!isNotesExpanded) {
+      setIsNotesExpanded(true);
+    }
+
+    toast.success('STAR story exported to Sticky Notes Whiteboard');
+  };
+
+  const exportStoryToTldrawWhiteboard = async (skill: string, storyId: string) => {
+    const story = (skillCoach?.starStories?.[skill] || []).find(s => s.id === storyId);
+    if (!story) return;
+
+    if (!tldrawWhiteboardRef.current) {
+      toast.error('Whiteboard is not ready. Please wait a moment and try again.');
+      return;
+    }
+
+    try {
+      await tldrawWhiteboardRef.current.addStarStoryToBoard(skill, {
+        situation: story.situation || '',
+        action: story.action || '',
+        result: story.result || ''
+      });
+      toast.success('STAR story exported to TldrawWhiteboard');
+    } catch (error) {
+      console.error('Error exporting to TldrawWhiteboard:', error);
+      toast.error('Failed to export to whiteboard');
+    }
   };
 
   const practiceInChat = (skill: string) => {
@@ -4919,7 +5082,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                           addStarStory={addStarStory}
                           updateStarField={updateStarField}
                           deleteStarStory={deleteStarStory}
-                          exportStoryToNotes={exportStoryToNotes}
+                          exportStoryToNotes={handleStarExportClick}
                           practiceInChat={practiceInChat}
                         />
                       </Suspense>
@@ -5146,7 +5309,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                       </div>
                                       <div className="flex gap-2">
                                         <button
-                                          onClick={() => exportStoryToNotes(skill, story.id)}
+                                          onClick={() => handleStarExportClick(skill, story.id)}
                                           className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
                                         >
                                           Export to Notes
@@ -5796,6 +5959,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                 <div className="h-[600px] bg-gray-50/50 dark:bg-neutral-950/30">
                   {applicationId && interviewId && (
                     <TldrawWhiteboard
+                      ref={tldrawWhiteboardRef}
                       applicationId={applicationId}
                       interviewId={interviewId}
                       height={600}
@@ -6670,6 +6834,109 @@ Return ONLY the pitch text, no explanations or formatting.`;
           </AnimatePresence>
         </div>
       </MotionConfig>
+
+      {/* STAR Export Choice Modal */}
+      <AnimatePresence>
+        {showStarExportModal && pendingStarExport && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              setShowStarExportModal(false);
+              setPendingStarExport(null);
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ 
+                type: "spring", 
+                damping: 25, 
+                stiffness: 300,
+                duration: 0.3
+              }}
+              className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-2xl w-full shadow-2xl border border-gray-200/50 dark:border-gray-700/50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                    Export STAR Story
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Choose where to create your STAR story
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowStarExportModal(false);
+                    setPendingStarExport(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-all duration-200 hover:scale-110"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Options */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Notes Panel Option */}
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={async () => {
+                    await exportStoryToNotes(pendingStarExport.skill, pendingStarExport.storyId);
+                    setShowStarExportModal(false);
+                    setPendingStarExport(null);
+                  }}
+                  className="p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-gray-800 transition-all duration-200 text-left group"
+                >
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
+                      <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Notes Panel</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Rich text document in sidebar
+                      </p>
+                    </div>
+                  </div>
+                </motion.button>
+
+                {/* Whiteboard Option */}
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={async () => {
+                    await exportStoryToTldrawWhiteboard(pendingStarExport.skill, pendingStarExport.storyId);
+                    setShowStarExportModal(false);
+                    setPendingStarExport(null);
+                  }}
+                  className="p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-gray-800 transition-all duration-200 text-left group"
+                >
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">
+                      <LayoutDashboard className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Whiteboard</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Advanced whiteboard with shapes
+                      </p>
+                    </div>
+                  </div>
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <LiveInterviewSession
         isOpen={isLiveSessionOpen}
         onClose={() => setIsLiveSessionOpen(false)}

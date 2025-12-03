@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect, useCallback } from 'react';
+import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -50,6 +50,385 @@ function formatDateString(dateInput: any): string {
   }
 }
 
+/**
+ * Checks if a whiteboard has content by examining thumbnailUrl and snapshot
+ * @param whiteboard - The whiteboard document to check
+ * @returns true if the whiteboard has content (thumbnail or shapes in snapshot), false otherwise
+ */
+/**
+ * Extracts shapes from tldraw snapshot for preview rendering
+ */
+function extractShapesFromSnapshot(snapshot: any): Array<{
+  id: string;
+  typeName: string;
+  x: number;
+  y: number;
+  props: any;
+}> {
+  try {
+    let records: Record<string, any> | null = null;
+    
+    if (snapshot?.store && typeof snapshot.store === 'object') {
+      records = snapshot.store;
+    } else if (snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)) {
+      records = snapshot;
+    }
+
+    if (!records) {
+      return [];
+    }
+
+    const shapes: Array<{
+      id: string;
+      typeName: string;
+      x: number;
+      y: number;
+      props: any;
+    }> = [];
+
+    Object.keys(records).forEach(key => {
+      const record = records![key];
+      if (!record || typeof record !== 'object') return;
+      
+      // Skip system records
+      if (key.startsWith('instance:') || 
+          key.startsWith('document:') ||
+          key.startsWith('page_state:') ||
+          key.startsWith('camera:') ||
+          key.startsWith('pointer:') ||
+          key.startsWith('presence:') ||
+          key === 'version' ||
+          key === 'schema') {
+        return;
+      }
+
+      // Check if it's a shape record - tldraw shapes have typeName property
+      const typeName = record.typeName || record.type;
+      
+      // Accept any record that starts with 'shape:' or has a typeName that indicates it's a shape
+      const isShape = key.startsWith('shape:') || 
+                      (typeName && typeof typeName === 'string' && 
+                       ['geo', 'arrow', 'draw', 'text', 'note', 'frame', 'group', 'image', 'video', 'embed', 'bookmark', 'highlight', 'line'].includes(typeName));
+      
+      if (isShape) {
+        const props = record.props || {};
+        
+        // Extract position - tldraw shapes store position in props.x and props.y
+        // But they might also be in the record directly or in a different format
+        let x = props.x ?? record.x ?? 0;
+        let y = props.y ?? record.y ?? 0;
+        
+        // Some shapes might have position in a point object
+        if (props.point && typeof props.point === 'object') {
+          x = props.point.x ?? x;
+          y = props.point.y ?? y;
+        }
+        
+        // Extract dimensions - tldraw shapes store dimensions in props.w and props.h
+        let w = props.w ?? props.width ?? record.width ?? 100;
+        let h = props.h ?? props.height ?? record.height ?? 100;
+        
+        // Some shapes might have size in a size object
+        if (props.size && typeof props.size === 'object') {
+          w = props.size.w ?? props.size.width ?? w;
+          h = props.size.h ?? props.size.height ?? h;
+        }
+        
+        // Ensure minimum dimensions
+        w = Math.max(20, w);
+        h = Math.max(20, h);
+        
+        // Only add if we have valid coordinates (even if 0,0 is valid)
+        if (typeof x === 'number' && typeof y === 'number' && !isNaN(x) && !isNaN(y)) {
+          shapes.push({
+            id: key,
+            typeName: typeName || 'geo',
+            x,
+            y,
+            props: {
+              ...props,
+              w,
+              h,
+            }
+          });
+        }
+      }
+    });
+
+    // Debug: log all record keys to understand structure
+    if (process.env.NODE_ENV === 'development' && shapes.length === 0) {
+      const allKeys = Object.keys(records);
+      const nonSystemKeys = allKeys.filter(key => 
+        !key.startsWith('instance:') && 
+        !key.startsWith('document:') &&
+        !key.startsWith('page_state:') &&
+        !key.startsWith('camera:') &&
+        !key.startsWith('pointer:') &&
+        !key.startsWith('presence:') &&
+        key !== 'version' &&
+        key !== 'schema'
+      );
+      console.log('[WhiteboardPreview] No shapes found. Record keys:', nonSystemKeys.slice(0, 10));
+      if (nonSystemKeys.length > 0) {
+        console.log('[WhiteboardPreview] Sample record:', nonSystemKeys[0], records[nonSystemKeys[0]]);
+      }
+    }
+
+    // Debug log
+    if (process.env.NODE_ENV === 'development' && shapes.length > 0) {
+      console.log('[WhiteboardPreview] Extracted shapes:', shapes.length, shapes.slice(0, 3));
+    }
+
+    return shapes;
+  } catch (error) {
+    console.warn('Error extracting shapes from snapshot:', error);
+    return [];
+  }
+}
+
+/**
+ * Renders a preview of whiteboard content as SVG
+ * Returns the SVG as a string for dangerouslySetInnerHTML
+ */
+function renderWhiteboardPreview(
+  shapes: Array<{ id: string; typeName: string; x: number; y: number; props: any }>,
+  width: number,
+  height: number
+): string | null {
+  if (shapes.length === 0) {
+    return '';
+  }
+
+  // Calculate bounds to center the preview
+  const validShapes = shapes.filter(s => typeof s.x === 'number' && typeof s.y === 'number');
+  if (validShapes.length === 0) {
+    return '';
+  }
+
+  const minX = Math.min(...validShapes.map(s => s.x), 0);
+  const minY = Math.min(...validShapes.map(s => s.y), 0);
+  const maxX = Math.max(...validShapes.map(s => s.x + (s.props.w || 100)), width);
+  const maxY = Math.max(...validShapes.map(s => s.y + (s.props.h || 100)), height);
+  
+  const contentWidth = maxX - minX || width;
+  const contentHeight = maxY - minY || height;
+  const scale = Math.min(width / Math.max(contentWidth, 100), height / Math.max(contentHeight, 100), 0.7);
+  const offsetX = (width - contentWidth * scale) / 2 - minX * scale;
+  const offsetY = (height - contentHeight * scale) / 2 - minY * scale;
+
+  const svgElements: string[] = [];
+  const uniqueId = `arrowhead-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  validShapes.slice(0, 15).forEach((shape, index) => { // Limit to 15 shapes for performance
+    const x = (shape.x * scale) + offsetX;
+    const y = (shape.y * scale) + offsetY;
+    const w = Math.max(10, (shape.props.w || 100) * scale);
+    const h = Math.max(10, (shape.props.h || 100) * scale);
+    
+    // Use colors from props or default amber colors
+    const fill = shape.props.fill || shape.props.color || '#fef3c7';
+    const stroke = shape.props.stroke || shape.props.color || '#f59e0b';
+    const strokeWidth = Math.max(1, (shape.props.strokeWidth || 2) * scale);
+
+    switch (shape.typeName) {
+      case 'geo':
+        // Check if it's a rectangle or circle based on props
+        if (shape.props.geo === 'ellipse' || shape.props.geo === 'circle') {
+          const radius = Math.min(w, h) / 2;
+          svgElements.push(
+            `<circle cx="${x + w/2}" cy="${y + h/2}" r="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`
+          );
+        } else {
+          svgElements.push(
+            `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" rx="4"/>`
+          );
+        }
+        break;
+      case 'rectangle':
+        svgElements.push(
+          `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" rx="4"/>`
+        );
+        break;
+      case 'circle':
+      case 'ellipse':
+        const radius = Math.min(w, h) / 2;
+        svgElements.push(
+          `<circle cx="${x + w/2}" cy="${y + h/2}" r="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`
+        );
+        break;
+      case 'arrow':
+        svgElements.push(
+          `<line x1="${x}" y1="${y + h/2}" x2="${x + w}" y2="${y + h/2}" stroke="${stroke}" stroke-width="${strokeWidth}" marker-end="url(#${uniqueId})"/>`
+        );
+        break;
+      case 'draw':
+        // Simple curved line representation for draw shapes
+        const midX = x + w / 2;
+        const midY = y + h / 2;
+        svgElements.push(
+          `<path d="M ${x} ${y} Q ${midX} ${midY} ${x + w} ${y + h}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="none"/>`
+        );
+        break;
+      case 'text':
+        const text = (shape.props.text || 'Text').substring(0, 15);
+        svgElements.push(
+          `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" rx="2"/>`,
+          `<text x="${x + w/2}" y="${y + h/2}" font-size="${Math.max(8, Math.min(h * 0.4, 12))}" fill="${stroke}" text-anchor="middle" dominant-baseline="middle" font-family="system-ui, -apple-system, sans-serif">${text}</text>`
+        );
+        break;
+      case 'note':
+      case 'frame':
+        svgElements.push(
+          `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" rx="4"/>`
+        );
+        break;
+      default:
+        // Default rectangle for unknown shapes
+        svgElements.push(
+          `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" rx="2"/>`
+        );
+    }
+  });
+
+  if (svgElements.length === 0) {
+    return null;
+  }
+
+  return `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" style="display: block;">
+      <defs>
+        <marker id="${uniqueId}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="${stroke || '#f59e0b'}"/>
+        </marker>
+      </defs>
+      ${svgElements.join('')}
+    </svg>
+  `;
+}
+
+function hasWhiteboardContent(whiteboard: WhiteboardDocument): boolean {
+  // If thumbnail exists, whiteboard definitely has content
+  if (whiteboard.thumbnailUrl) {
+    return true;
+  }
+
+  // If no snapshot, whiteboard is empty
+  if (!whiteboard.snapshot) {
+    return false;
+  }
+
+  // If snapshot is a string, check if it's not empty
+  if (typeof whiteboard.snapshot === 'string') {
+    const trimmed = whiteboard.snapshot.trim();
+    // Empty string, empty object, or just whitespace
+    if (!trimmed || trimmed === '{}' || trimmed === 'null' || trimmed === '') {
+      return false;
+    }
+  }
+
+  // Try to parse snapshot and check for shapes
+  try {
+    const snapshot = typeof whiteboard.snapshot === 'string' 
+      ? JSON.parse(whiteboard.snapshot) 
+      : whiteboard.snapshot;
+    
+    // If parsed snapshot is null or empty object, it's empty
+    if (!snapshot || (typeof snapshot === 'object' && Object.keys(snapshot).length === 0)) {
+      return false;
+    }
+
+    // tldraw snapshot structure: { store: { [recordId]: record, ... } }
+    // Or direct store: { [recordId]: record, ... }
+    
+    let records: Record<string, any> | null = null;
+    
+    // Check if snapshot has a store property (most common structure)
+    if (snapshot?.store && typeof snapshot.store === 'object') {
+      records = snapshot.store;
+    } 
+    // Check if snapshot itself is a store (direct structure)
+    else if (snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)) {
+      records = snapshot;
+    }
+
+    if (!records) {
+      return false;
+    }
+
+    const recordKeys = Object.keys(records);
+    
+    // A completely empty tldraw whiteboard typically has only:
+    // - page:page:page (the default page)
+    // - instance:instance:instance (the instance state)
+    // So if we have more than 2 records, there's likely content
+    
+    // Filter out system/metadata records
+    const systemRecordPrefixes = [
+      'instance:',
+      'document:',
+      'page_state:',
+      'camera:',
+      'pointer:',
+      'presence:',
+    ];
+    
+    const contentKeys = recordKeys.filter(key => {
+      // Skip system records
+      if (systemRecordPrefixes.some(prefix => key.startsWith(prefix))) {
+        return false;
+      }
+      // Skip version and other metadata
+      if (key === 'version' || key === 'schema') {
+        return false;
+      }
+      return true;
+    });
+
+    // If we have any content keys beyond system records, there's content
+    if (contentKeys.length > 0) {
+      return true;
+    }
+
+    // Fallback: if we have more records than just the basic system ones, likely has content
+    // This handles edge cases where content might be stored differently
+    if (recordKeys.length > 2) {
+      // Check if any record looks like a shape
+      return recordKeys.some(key => {
+        const record = records[key];
+        if (!record || typeof record !== 'object') return false;
+        
+        // Check for shape indicators
+        const typeName = record.typeName || record.type;
+        if (typeName && typeof typeName === 'string') {
+          // Known tldraw shape types
+          const shapeTypes = ['geo', 'arrow', 'draw', 'text', 'note', 'frame', 'group', 'image', 'video', 'embed', 'bookmark', 'highlight', 'line'];
+          if (shapeTypes.includes(typeName)) {
+            return true;
+          }
+        }
+        
+        // Check if key starts with 'shape:' (tldraw shape ID format)
+        if (key.startsWith('shape:')) {
+          return true;
+        }
+        
+        // Check if record has shape-like properties
+        if (record.props && typeof record.props === 'object' && Object.keys(record.props).length > 0) {
+          return true;
+        }
+        
+        return false;
+      });
+    }
+
+    return false;
+  } catch (error) {
+    // If parsing fails, assume empty (graceful degradation)
+    console.warn('Error parsing whiteboard snapshot:', error, whiteboard.id);
+    return false;
+  }
+}
+
 const WhiteboardPreviewCard = memo(
   ({
     whiteboard,
@@ -74,6 +453,44 @@ const WhiteboardPreviewCard = memo(
     // Card dimensions
     const targetWidth = compact ? 140 : 220;
     const scaledHeight = compact ? 180 : 280;
+
+    // Extract shapes from snapshot for preview
+    const previewShapes = useMemo(() => {
+      if (!whiteboard.snapshot) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[WhiteboardPreview] No snapshot for:', whiteboard.id);
+        }
+        return [];
+      }
+      try {
+        const snapshot = typeof whiteboard.snapshot === 'string' 
+          ? JSON.parse(whiteboard.snapshot) 
+          : whiteboard.snapshot;
+        const shapes = extractShapesFromSnapshot(snapshot);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[WhiteboardPreview] Extracted shapes for', whiteboard.id, ':', shapes.length);
+        }
+        return shapes;
+      } catch (error) {
+        console.warn('[WhiteboardPreview] Error parsing snapshot:', error, whiteboard.id);
+        return [];
+      }
+    }, [whiteboard.snapshot, whiteboard.id]);
+
+    // Generate preview SVG
+    const previewSvg = useMemo(() => {
+      if (previewShapes.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[WhiteboardPreview] No shapes to render for:', whiteboard.id);
+        }
+        return null;
+      }
+      const svg = renderWhiteboardPreview(previewShapes, targetWidth, scaledHeight);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[WhiteboardPreview] Generated SVG for:', whiteboard.id, 'length:', svg?.length);
+      }
+      return svg;
+    }, [previewShapes, targetWidth, scaledHeight, whiteboard.id]);
 
     const handleEdit = useCallback(() => {
       onEdit(whiteboard.id);
@@ -210,14 +627,54 @@ const WhiteboardPreviewCard = memo(
 
           <div className="relative w-full h-full bg-white dark:bg-gray-900 shadow-[0_4px_12px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_32px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden rounded-lg ring-1 ring-black/5 group-hover:ring-amber-500/20 flex flex-col">
             {/* Thumbnail or Placeholder */}
-            {whiteboard.thumbnailUrl ? (
-              <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-800">
-                <img
-                  src={whiteboard.thumbnailUrl}
-                  alt="Whiteboard preview"
-                  className="w-full h-full object-contain"
-                />
-              </div>
+            {hasWhiteboardContent(whiteboard) ? (
+              whiteboard.thumbnailUrl ? (
+                <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-800">
+                  <img
+                    src={whiteboard.thumbnailUrl}
+                    alt="Whiteboard preview"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : previewSvg ? (
+                <div className="flex-1 overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-900/20 dark:via-orange-900/15 dark:to-yellow-900/10 relative">
+                  {/* Grid pattern */}
+                  <div 
+                    className="absolute inset-0 opacity-30 dark:opacity-20"
+                    style={{
+                      backgroundImage: `
+                        linear-gradient(to right, rgb(203 213 225 / 0.5) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgb(203 213 225 / 0.5) 1px, transparent 1px)
+                      `,
+                      backgroundSize: '20px 20px',
+                    }}
+                  />
+                  {/* SVG Preview */}
+                  <div 
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    dangerouslySetInnerHTML={{ __html: previewSvg }}
+                    style={{ zIndex: 10 }}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-900/20 dark:via-orange-900/15 dark:to-yellow-900/10">
+                  {/* Grid pattern */}
+                  <div 
+                    className="absolute inset-0 opacity-30 dark:opacity-20"
+                    style={{
+                      backgroundImage: `
+                        linear-gradient(to right, rgb(203 213 225 / 0.5) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgb(203 213 225 / 0.5) 1px, transparent 1px)
+                      `,
+                      backgroundSize: '20px 20px',
+                    }}
+                  />
+                  <span className="text-5xl mb-2 relative z-10">{whiteboard.emoji || '🎨'}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium relative z-10">
+                    Whiteboard with content
+                  </span>
+                </div>
+              )
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-900/20 dark:via-orange-900/15 dark:to-yellow-900/10">
                 {/* Grid pattern */}
@@ -244,7 +701,7 @@ const WhiteboardPreviewCard = memo(
             </div>
 
             {/* Emoji badge */}
-            {whiteboard.thumbnailUrl && (
+            {hasWhiteboardContent(whiteboard) && !whiteboard.thumbnailUrl && (
               <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
                 <span className="text-lg">{whiteboard.emoji || '🎨'}</span>
               </div>

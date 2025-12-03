@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Tldraw, TLStoreSnapshot, TldrawEditor, loadSnapshot, getSnapshot, Editor } from 'tldraw';
+import { createShapeId, toRichText } from '@tldraw/editor';
 import 'tldraw/tldraw.css';
 import { doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -9,6 +10,7 @@ import { Minimize2 } from 'lucide-react';
 
 export interface TldrawWhiteboardRef {
   toggleFullscreen: () => void;
+  addStarStoryToBoard: (skill: string, story: { situation: string; action: string; result: string }) => Promise<void>;
 }
 
 interface TldrawWhiteboardProps {
@@ -130,10 +132,201 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
   const [initialSnapshot, setInitialSnapshot] = useState<TLStoreSnapshot | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Expose toggleFullscreen method via ref
+  // Helper function to truncate text intelligently
+  const truncateText = (text: string, maxLength: number = 200): string => {
+    if (!text || text.length <= maxLength) return text;
+    // Try to truncate at a sentence boundary
+    const truncated = text.substring(0, maxLength);
+    const lastPeriod = truncated.lastIndexOf('.');
+    const lastSpace = truncated.lastIndexOf(' ');
+    const cutPoint = lastPeriod > maxLength * 0.7 ? lastPeriod + 1 : lastSpace;
+    return truncated.substring(0, cutPoint) + '...';
+  };
+
+  // Helper function to format text with title
+  const formatStarText = (title: string, content: string): string => {
+    const truncated = truncateText(content, 180);
+    return `${title}\n\n${truncated}`;
+  };
+
+  // Function to add STAR story to board
+  const addStarStoryToBoard = useCallback(async (skill: string, story: { situation: string; action: string; result: string }) => {
+    if (!editor) {
+      throw new Error('Editor not ready');
+    }
+
+    try {
+      // Get viewport center
+      const viewport = editor.getViewportPageBounds();
+      const centerX = viewport.x + viewport.width / 2;
+      const centerY = viewport.y + viewport.height / 2;
+
+      // Compact layout: vertical flow with notes (post-it style)
+      const noteWidth = 260;
+      const noteHeight = 160; // Compact height for notes
+      const noteSpacing = 50; // Tight vertical spacing
+      const startX = centerX - noteWidth / 2;
+      const startY = centerY - 250; // Start higher for vertical layout
+
+      // Create shapes using tldraw API
+      const shapes: any[] = [];
+
+      // Title note (yellow/amber) - compact header
+      const titleNoteId = createShapeId();
+      shapes.push({
+        id: titleNoteId,
+        type: 'note',
+        x: startX,
+        y: startY,
+        props: {
+          richText: toRichText(`⭐ STAR: ${skill}`),
+          color: 'yellow',
+          size: 'm',
+        },
+      });
+
+      // Situation note (blue) - compact with formatted text
+      const situationNoteId = createShapeId();
+      const situationY = startY + noteHeight + noteSpacing;
+      shapes.push({
+        id: situationNoteId,
+        type: 'note',
+        x: startX,
+        y: situationY,
+        props: {
+          richText: toRichText(formatStarText('📋 SITUATION', story.situation || 'No situation provided')),
+          color: 'blue',
+          size: 'm',
+        },
+      });
+
+      // Action note (orange) - compact with formatted text
+      const actionNoteId = createShapeId();
+      const actionY = situationY + noteHeight + noteSpacing;
+      shapes.push({
+        id: actionNoteId,
+        type: 'note',
+        x: startX,
+        y: actionY,
+        props: {
+          richText: toRichText(formatStarText('⚡ ACTION', story.action || 'No action provided')),
+          color: 'orange',
+          size: 'm',
+        },
+      });
+
+      // Result note (green) - compact with formatted text
+      const resultNoteId = createShapeId();
+      const resultY = actionY + noteHeight + noteSpacing;
+      shapes.push({
+        id: resultNoteId,
+        type: 'note',
+        x: startX,
+        y: resultY,
+        props: {
+          richText: toRichText(formatStarText('✅ RESULT', story.result || 'No result provided')),
+          color: 'green',
+          size: 'm',
+        },
+      });
+
+      // Create arrows connecting the notes vertically (centered)
+      // Arrow from Title to Situation
+      const arrow1Id = createShapeId();
+      shapes.push({
+        id: arrow1Id,
+        type: 'arrow',
+        x: centerX,
+        y: startY + noteHeight,
+        props: {
+          start: { x: 0, y: 0 },
+          end: { x: 0, y: noteSpacing },
+          arrowheadEnd: 'arrow',
+          color: 'grey',
+          size: 'm',
+          fill: 'none',
+        },
+      });
+
+      // Arrow from Situation to Action
+      const arrow2Id = createShapeId();
+      shapes.push({
+        id: arrow2Id,
+        type: 'arrow',
+        x: centerX,
+        y: situationY + noteHeight,
+        props: {
+          start: { x: 0, y: 0 },
+          end: { x: 0, y: noteSpacing },
+          arrowheadEnd: 'arrow',
+          color: 'grey',
+          size: 'm',
+          fill: 'none',
+        },
+      });
+
+      // Arrow from Action to Result
+      const arrow3Id = createShapeId();
+      shapes.push({
+        id: arrow3Id,
+        type: 'arrow',
+        x: centerX,
+        y: actionY + noteHeight,
+        props: {
+          start: { x: 0, y: 0 },
+          end: { x: 0, y: noteSpacing },
+          arrowheadEnd: 'arrow',
+          color: 'grey',
+          size: 'm',
+          fill: 'none',
+        },
+      });
+
+      // Create a frame to group everything visually
+      // Note: Create frame first so other shapes can be parented to it
+      const frameId = createShapeId();
+      const framePadding = 40;
+      const frameHeight = resultY - startY + noteHeight + framePadding;
+      shapes.unshift({
+        id: frameId,
+        type: 'frame',
+        x: startX - framePadding / 2,
+        y: startY - framePadding / 2,
+        props: {
+          w: noteWidth + framePadding,
+          h: frameHeight,
+        },
+      });
+
+      // Create all shapes at once
+      editor.createShapes(shapes);
+
+      // Reparent notes and arrows to frame for better grouping
+      const noteIds = [titleNoteId, situationNoteId, actionNoteId, resultNoteId];
+      const arrowIds = [arrow1Id, arrow2Id, arrow3Id];
+      try {
+        editor.reparentShapes([...noteIds, ...arrowIds], frameId);
+      } catch (e) {
+        // If reparenting fails, shapes will still be visually grouped by the frame bounds
+        console.warn('[TLDRAW] Could not reparent shapes to frame:', e);
+      }
+
+      // Select all created shapes
+      editor.setSelectedShapes(shapes.map(s => s.id));
+
+      // Zoom to fit the new content
+      editor.zoomToFit();
+    } catch (error) {
+      console.error('[TLDRAW] Error adding STAR story:', error);
+      throw error;
+    }
+  }, [editor]);
+
+  // Expose methods via ref
   useImperativeHandle(ref, () => ({
     toggleFullscreen: () => setIsFullscreen(prev => !prev),
-  }));
+    addStarStoryToBoard,
+  }), [addStarStoryToBoard]);
 
   // Detect dark mode
   useEffect(() => {

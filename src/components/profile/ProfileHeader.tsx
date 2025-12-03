@@ -526,7 +526,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                 whileTap={{ scale: 0.98 }}
                 onClick={onImportCV}
                 disabled={isImportingCV}
-                className="flex items-center gap-2 px-4 py-2 bg-[#0A66C2] text-white text-sm font-semibold rounded-full hover:bg-[#004182] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-[#635BFF] dark:bg-[#a5a0ff] text-white text-sm font-semibold rounded-full hover:bg-[#5249e6] dark:hover:bg-[#7c75ff] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isImportingCV ? (
                   <>

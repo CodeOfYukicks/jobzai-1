@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Copy, Check, Save, RefreshCw, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Copy, Check, Save, RefreshCw, FileText, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GeneratedEmail } from '../../types/job';
 import NotionEditor from '../notion-editor/NotionEditor';
@@ -9,6 +9,7 @@ import {
   convertTiptapToText,
   TiptapDocument,
 } from '../../lib/textToTiptap';
+import { FocusModeView } from './FocusModeView';
 
 interface GeneratedContentViewProps {
   content: string;
@@ -36,6 +37,7 @@ export const GeneratedContentView = ({
   const [isCopied, setIsCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
 
   // Update content when prop changes
   useEffect(() => {
@@ -108,24 +110,38 @@ export const GeneratedContentView = ({
     }
   };
 
+  // Focus Mode View
+  if (isFocusMode) {
+    return (
+      <FocusModeView
+        content={tiptapContent}
+        toolName={toolName}
+        toolType={toolType}
+        onClose={() => setIsFocusMode(false)}
+        onSave={onSave}
+        onRegenerate={onRegenerate}
+        onContentChange={handleEditorChange}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-[500px] flex flex-col bg-white dark:bg-gray-800">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="min-h-[500px] flex flex-col bg-white dark:bg-gray-900">
+      {/* Header - Simplifié */}
+      <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </button>
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{getToolEmoji()}</span>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
             {toolName}
           </h2>
           {hasChanges && (
-            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
               <span>Unsaved</span>
             </span>
@@ -134,74 +150,110 @@ export const GeneratedContentView = ({
         <div className="w-16" /> {/* Spacer for centering */}
       </div>
 
-      {/* Notion-like Editor */}
+      {/* Content Area - Premium Layout */}
       <div className="flex-1 overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-3xl mx-auto px-6 py-6"
+          transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+          className="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 xl:px-20 py-12"
         >
-          {/* Document Header */}
-          <div className="mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30">
+          {/* Document Header - Épuré */}
+          <div className="mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-100 dark:border-purple-800/30">
                 <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
                   AI Generated {toolName}
                 </h3>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Edit using the rich text editor below
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Edit and refine your content below
                 </p>
               </div>
             </div>
           </div>
 
-          {/* NotionEditor */}
-          <div className="min-h-[300px] bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+          {/* Zone d'édition - Premium */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100/50 dark:border-gray-800/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <NotionEditor
               content={tiptapContent}
               onChange={handleEditorChange}
               placeholder="Start editing your content..."
               editable={true}
               autofocus={false}
-              className="min-h-[280px]"
+              className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-semibold prose-p:leading-relaxed prose-p:text-gray-900 dark:prose-p:text-gray-100"
             />
           </div>
 
-          {/* Helpful tip */}
-          <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30">
-            <span className="text-purple-500 mt-0.5">💡</span>
-            <p className="text-xs text-purple-700 dark:text-purple-300">
-              <strong>Tip:</strong> Type <code className="px-1 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30">/</code> to access formatting commands like headings, lists, and quotes.
+          {/* Helpful tip - Discret */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mt-6 flex items-start gap-3 p-4 rounded-xl bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30"
+          >
+            <span className="text-purple-500 dark:text-purple-400 mt-0.5 text-base">💡</span>
+            <p className="text-xs text-purple-700 dark:text-purple-300 leading-relaxed">
+              <strong className="font-semibold">Tip:</strong> Type <code className="px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-mono text-xs">/</code> to access formatting commands like headings, lists, and quotes.
             </p>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
 
-      {/* Action Bar */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      {/* Action Bar - Premium Design */}
+      <div className="border-t border-gray-100/50 dark:border-gray-800/50 px-8 sm:px-12 lg:px-16 xl:px-20 py-6 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
             {onRegenerate && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={onRegenerate}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+                className="group inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-lg bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50"
               >
-                <RefreshCw className="w-4 h-4" />
+                <motion.div
+                  animate={{ rotate: 0 }}
+                  whileHover={{ rotate: 180 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </motion.div>
                 <span>Regenerate</span>
-              </button>
+              </motion.button>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsFocusMode(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-lg bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50"
+              title="Enter focus mode for distraction-free editing"
+            >
+              <Maximize2 className="w-4 h-4" />
+              <span>Focus Mode</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: isCopied ? 1 : 1.02, y: isCopied ? 0 : -1 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleCopy}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 backdrop-blur-lg border ${
+                isCopied
+                  ? 'bg-green-50/80 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/50 text-green-700 dark:text-green-400 shadow-lg shadow-green-200/50 dark:shadow-green-900/50'
+                  : 'bg-white/80 dark:bg-gray-800/80 border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50'
+              }`}
             >
               {isCopied ? (
                 <>
-                  <Check className="w-4 h-4 text-green-600" />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  >
+                    <Check className="w-4 h-4" />
+                  </motion.div>
                   <span>Copied</span>
                 </>
               ) : (
@@ -210,12 +262,14 @@ export const GeneratedContentView = ({
                   <span>Copy</span>
                 </>
               )}
-            </button>
+            </motion.button>
             {onSave && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02, y: -0.5 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleSave}
                 disabled={isSaving}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#635BFF] to-[#7c75ff] hover:from-[#5a52e6] hover:to-[#6d65e6] rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#635BFF]/30 hover:shadow-xl hover:shadow-[#635BFF]/40 disabled:hover:shadow-lg disabled:hover:shadow-[#635BFF]/30"
               >
                 {isSaving ? (
                   <>
@@ -228,7 +282,7 @@ export const GeneratedContentView = ({
                     <span>Save as Note</span>
                   </>
                 )}
-              </button>
+              </motion.button>
             )}
           </div>
         </div>

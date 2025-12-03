@@ -272,6 +272,142 @@ URL to visit: ${url}
 }
 
 /**
+ * Generate jobInsights from a job description text (fallback when URL is not available)
+ * Uses ChatGPT API to analyze the description and extract structured insights
+ * 
+ * @param description - Full job description text
+ * @param title - Job title/position
+ * @param company - Company name
+ * @returns jobInsights object with 6 structured sections
+ */
+export async function generateJobInsightsFromDescription(
+  description: string,
+  title: string,
+  company: string
+): Promise<DetailedJobInfo['jobInsights']> {
+  if (!description || description.trim().length === 0) {
+    throw new Error('Job description is required to generate insights');
+  }
+
+  const prompt = `
+You are an expert career consultant analyzing a job posting. Extract structured insights from the job description provided below.
+
+JOB POSTING DETAILS:
+- Job Title: ${title}
+- Company: ${company}
+- Full Job Description:
+${description.substring(0, 4000)}
+
+Your task is to analyze this job description and extract structured insights. Return ONLY a valid JSON object with the following structure:
+
+{
+  "jobInsights": {
+    "keyResponsibilities": "2-3 main duties and responsibilities (50-100 words). Focus on what the person will actually do day-to-day.",
+    "requiredSkills": "Top 5-7 critical skills needed (50-80 words). Include both technical and soft skills mentioned.",
+    "experienceLevel": "Years of experience required, seniority level, and any specific experience requirements (30-50 words).",
+    "compensationBenefits": "Salary range, benefits, work arrangement, perks if mentioned (40-70 words). If not specified, use 'Not specified'.",
+    "companyCulture": "Work environment, company values, team culture, work style if mentioned (50-80 words). If not specified, use 'Details not specified in posting'.",
+    "growthOpportunities": "Career development, advancement opportunities, learning opportunities if mentioned (40-70 words). If not specified, use 'Details not specified in posting'."
+  }
+}
+
+CRITICAL RULES:
+- Extract ONLY information that is explicitly mentioned or clearly implied in the description
+- Do NOT invent or hallucinate information
+- If a section cannot be determined from the description, use "Details not specified in posting"
+- Keep each section concise but informative (within the word limits specified)
+- Return ONLY valid JSON - no markdown, no code blocks, no explanations
+- The JSON must be parseable and valid
+
+Return ONLY the JSON object:
+`;
+
+  try {
+    const response = await fetch('/api/chatgpt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'cv-edit', prompt }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    if (!text) {
+      throw new Error('Empty response from API');
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      // Try to extract JSON from markdown code blocks
+      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        data = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      } else {
+        throw new Error('Failed to parse API response as JSON');
+      }
+    }
+
+    if (data.status !== 'success') {
+      throw new Error(data.message || 'API returned error status');
+    }
+
+    // Extract jobInsights from response
+    let jobInsights;
+    if (data.content && typeof data.content === 'object') {
+      // If content is already an object
+      if (data.content.jobInsights) {
+        jobInsights = data.content.jobInsights;
+      } else if (data.content.keyResponsibilities) {
+        // If content is already the jobInsights object
+        jobInsights = data.content;
+      } else {
+        // Try to parse as string if it's a string
+        try {
+          const parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
+          jobInsights = parsed.jobInsights || parsed;
+        } catch {
+          throw new Error('Could not extract jobInsights from API response');
+        }
+      }
+    } else if (typeof data.content === 'string') {
+      // Content is a string, try to parse it
+      try {
+        const parsed = JSON.parse(data.content);
+        jobInsights = parsed.jobInsights || parsed;
+      } catch {
+        // Try to extract JSON from the string
+        const jsonMatch = data.content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          jobInsights = parsed.jobInsights || parsed;
+        } else {
+          throw new Error('Could not parse jobInsights from string content');
+        }
+      }
+    } else {
+      throw new Error('Unexpected API response format');
+    }
+
+    // Validate and return jobInsights with defaults
+    return {
+      keyResponsibilities: jobInsights.keyResponsibilities?.trim() || 'Details not specified in posting',
+      requiredSkills: jobInsights.requiredSkills?.trim() || 'Details not specified in posting',
+      experienceLevel: jobInsights.experienceLevel?.trim() || 'Details not specified in posting',
+      compensationBenefits: jobInsights.compensationBenefits?.trim() || 'Not specified',
+      companyCulture: jobInsights.companyCulture?.trim() || 'Details not specified in posting',
+      growthOpportunities: jobInsights.growthOpportunities?.trim() || 'Details not specified in posting',
+    };
+  } catch (error) {
+    console.error('Error generating jobInsights from description:', error);
+    throw new Error(`Failed to generate job insights: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
  * Main extraction function with configurable detail level
  * 
  * @param url - Job posting URL to extract from

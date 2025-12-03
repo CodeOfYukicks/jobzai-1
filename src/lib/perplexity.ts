@@ -1,96 +1,53 @@
-import axios from 'axios';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from './firebase';
-
-// Cache the API key to avoid repeated Firestore reads
-let perplexityApiKey: string | null = null;
+// Note: API calls are now made through the local server endpoint /api/perplexity
+// to avoid CORS issues. The server handles API key retrieval from Firestore.
 
 /**
- * Retrieves the Perplexity API key from Firestore
- */
-export async function getPerplexityApiKey(): Promise<string> {
-  if (!perplexityApiKey) {
-    try {
-      // Fetch API key from Firestore settings collection
-      const settingsDoc = await getDoc(doc(db, 'settings', 'perplexity'));
-      if (!settingsDoc.exists()) {
-        throw new Error('Perplexity settings not found');
-      }
-
-      const { apiKey } = settingsDoc.data();
-      if (!apiKey) {
-        throw new Error('Perplexity API key not found');
-      }
-
-      perplexityApiKey = apiKey as string;
-    } catch (error) {
-      console.error('Error retrieving Perplexity API key:', error);
-      throw new Error('Failed to initialize Perplexity API. Please try again later.');
-    }
-  }
-  
-  if (!perplexityApiKey) {
-    throw new Error('Failed to retrieve Perplexity API key');
-  }
-  
-  return perplexityApiKey;
-}
-
-/**
- * Makes a request to the Perplexity API
+ * Makes a request to the Perplexity API via the local server endpoint
+ * This avoids CORS issues by routing through the Express server
  */
 export async function queryPerplexity(prompt: string): Promise<any> {
   try {
-    const apiKey = await getPerplexityApiKey();
+    console.log('Sending request to Perplexity API via /api/perplexity...');
     
-    console.log('Sending request to Perplexity API...');
-    
-    const response = await axios.post(
-      'https://api.perplexity.ai/chat/completions',
-      {
-        model: 'sonar-pro', // Use sonar-pro model for web browsing capabilities
-        messages: [
-          { 
-            role: 'system', 
-            content: `You are a conversational interview coach helping with job interview preparation. 
-
-Follow these strict guidelines:
-1. Keep responses extremely brief and direct - first paragraph should contain the key answer.
-2. Limit to 1-2 short paragraphs total unless explicitly asked for more detail.
-3. Never reveal or explain your thinking process - just provide the final answer.
-4. Use natural, friendly language as if chatting with a friend.
-5. When giving advice, jump straight to the actionable tips.
-6. Avoid lengthy explanations or theoretical background information.
-7. Use bullet points sparingly and only for very short lists.
-
-You can browse the web when needed for specific information, but keep search results brief.`
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 1500 // Further reduced to encourage brevity
+    const response = await fetch('/api/perplexity', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        }
-      }
-    );
+      body: JSON.stringify({
+        prompt: prompt,
+        model: 'sonar-pro',
+        temperature: 0.7,
+        max_tokens: 1500
+      })
+    });
 
-    console.log('Perplexity API response received:', response.status);
-    
-    // Parse the response properly
-    if (response.data && response.data.choices && response.data.choices.length > 0) {
-      const textContent = response.data.choices[0].message.content;
-      console.log('Response content:', textContent.substring(0, 100) + '...');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Perplexity API error response:', response.status, errorData);
       
       return {
-        ...response.data,
-        text: textContent
+        text: errorData.text || errorData.message || `Sorry, there was a problem with the AI service (${response.status}).`,
+        error: true,
+        errorMessage: errorData.errorMessage || errorData.message || `HTTP ${response.status}`
+      };
+    }
+
+    const data = await response.json();
+    console.log('Perplexity API response received:', response.status);
+    
+    // The server already formats the response with the same structure
+    if (data.text) {
+      console.log('Response content:', data.text.substring(0, 100) + '...');
+      return data;
+    } else if (data.error) {
+      return {
+        text: data.text || "I received a response from the API but couldn't extract the answer. Please try again.",
+        error: true,
+        errorMessage: data.errorMessage || "Invalid response structure"
       };
     } else {
-      console.error('Unexpected response structure:', response.data);
+      console.error('Unexpected response structure:', data);
       return {
         text: "I received a response from the API but couldn't extract the answer. Please try again.",
         error: true,
@@ -100,25 +57,13 @@ You can browse the web when needed for specific information, but keep search res
   } catch (error) {
     console.error('Error querying Perplexity API:', error);
     
-    // First check if it's a network error (like being blocked by an extension)
-    if (axios.isAxiosError(error) && !error.response) {
+    // Check if it's a network error
+    if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('Network error or request blocked:', error.message);
       return {
-        text: "It looks like your browser might be blocking the connection to our AI service. This could be due to an ad blocker, privacy extension, or network issues. Try disabling any extensions that might interfere with API requests.",
+        text: "It looks like your browser might be blocking the connection to our AI service. This could be due to an ad blocker, privacy extension, or network issues. Make sure the server is running (npm run dev) and try disabling any extensions that might interfere with API requests.",
         error: true,
         errorMessage: error.message
-      };
-    }
-    
-    // Then check for API errors
-    if (axios.isAxiosError(error) && error.response) {
-      const errorMessage = error.response.data?.error?.message || 'Unknown API error';
-      console.error('Perplexity API Error Details:', error.response.data);
-      
-      return {
-        text: `Sorry, there was a problem with the AI service: ${errorMessage}.`,
-        error: true,
-        errorMessage: errorMessage
       };
     }
     
@@ -133,24 +78,15 @@ You can browse the web when needed for specific information, but keep search res
 
 /**
  * Makes a specialized request to Perplexity API for job posting extraction
- * Uses sonar-online model which is better at visiting URLs and extracting exact information
+ * Uses sonar-pro model which is better at visiting URLs and extracting exact information
+ * Routes through the local server endpoint to avoid CORS issues
  */
 export async function queryPerplexityForJobExtraction(prompt: string): Promise<any> {
   try {
-    const apiKey = await getPerplexityApiKey();
+    console.log('Sending job extraction request to Perplexity API via /api/perplexity...');
     
-    console.log('Sending job extraction request to Perplexity API...');
-    
-    const response = await axios.post(
-      'https://api.perplexity.ai/chat/completions',
-      {
-        model: 'sonar-pro', // Use sonar-pro model for real-time web browsing and URL access
-        search_recency_filter: 'day', // Force fresh search, not cached/training data
-        return_citations: true, // Return citations to verify it actually visited the URL
-        messages: [
-          { 
-            role: 'system', 
-            content: `You are a precise job posting information extractor. Your ONLY task is to visit URLs and extract EXACT information from job posting pages.
+    // Build the specialized system message for job extraction
+    const systemMessage = `You are a precise job posting information extractor. Your ONLY task is to visit URLs and extract EXACT information from job posting pages.
 
 CRITICAL RULES - FOLLOW THESE EXACTLY:
 1. You MUST visit the URL provided and read the ACTUAL content of the page
@@ -217,34 +153,52 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
 17. If you cannot access the URL or see the page content, return an error - do NOT guess
 18. For the jobDescription field, include the COMPLETE, FULL text from ALL sections - completeness is critical for accurate CV matching
 19. A complete job description should typically be 1000-5000+ characters - if shorter, you likely missed sections
-20. For summary fields, provide comprehensive, useful summaries (3-5 sentences) that include key responsibilities, required qualifications, and what makes the role unique`
-          },
+20. For summary fields, provide comprehensive, useful summaries (3-5 sentences) that include key responsibilities, required qualifications, and what makes the role unique`;
+
+    const response = await fetch('/api/perplexity', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemMessage },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.0, // Zero temperature for maximum precision - no creativity or summarization
-        max_tokens: 16000 // Maximum tokens to allow very long, complete job descriptions
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        }
-      }
-    );
+        model: 'sonar-pro',
+        temperature: 0.0,
+        max_tokens: 16000,
+        search_recency_filter: 'day',
+        return_citations: true
+      })
+    });
 
-    console.log('Perplexity API response received:', response.status);
-    
-    // Parse the response properly
-    if (response.data && response.data.choices && response.data.choices.length > 0) {
-      const textContent = response.data.choices[0].message.content;
-      console.log('Response content:', textContent.substring(0, 200) + '...');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Perplexity API error response:', response.status, errorData);
       
       return {
-        ...response.data,
-        text: textContent
+        text: errorData.text || errorData.message || `Sorry, there was a problem with the AI service (${response.status}).`,
+        error: true,
+        errorMessage: errorData.errorMessage || errorData.message || `HTTP ${response.status}`
+      };
+    }
+
+    const data = await response.json();
+    console.log('Perplexity API response received:', response.status);
+    
+    // The server already formats the response with the same structure
+    if (data.text) {
+      console.log('Response content:', data.text.substring(0, 200) + '...');
+      return data;
+    } else if (data.error) {
+      return {
+        text: data.text || "I received a response from the API but couldn't extract the answer. Please try again.",
+        error: true,
+        errorMessage: data.errorMessage || "Invalid response structure"
       };
     } else {
-      console.error('Unexpected response structure:', response.data);
+      console.error('Unexpected response structure:', data);
       return {
         text: "I received a response from the API but couldn't extract the answer. Please try again.",
         error: true,
@@ -254,25 +208,13 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
   } catch (error) {
     console.error('Error querying Perplexity API for job extraction:', error);
     
-    // First check if it's a network error (like being blocked by an extension)
-    if (axios.isAxiosError(error) && !error.response) {
+    // Check if it's a network error
+    if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('Network error or request blocked:', error.message);
       return {
-        text: "It looks like your browser might be blocking the connection to our AI service. This could be due to an ad blocker, privacy extension, or network issues. Try disabling any extensions that might interfere with API requests.",
+        text: "It looks like your browser might be blocking the connection to our AI service. This could be due to an ad blocker, privacy extension, or network issues. Make sure the server is running (npm run dev) and try disabling any extensions that might interfere with API requests.",
         error: true,
         errorMessage: error.message
-      };
-    }
-    
-    // Then check for API errors
-    if (axios.isAxiosError(error) && error.response) {
-      const errorMessage = error.response.data?.error?.message || 'Unknown API error';
-      console.error('Perplexity API Error Details:', error.response.data);
-      
-      return {
-        text: `Sorry, there was a problem with the AI service: ${errorMessage}.`,
-        error: true,
-        errorMessage: errorMessage
       };
     }
     

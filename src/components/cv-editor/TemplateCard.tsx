@@ -307,7 +307,7 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
   };
 
   return (
-    <div className="w-full aspect-[3/4] bg-white rounded-md shadow-inner overflow-hidden border border-gray-100">
+    <div className="w-full aspect-[4/3] max-h-32 bg-white rounded-md shadow-inner overflow-hidden border border-gray-100">
       {getPreviewContent()}
     </div>
   );
@@ -396,7 +396,7 @@ export default function TemplateCard({
       )}
 
       {/* Preview area - very compact */}
-      <div className="p-1 bg-gray-50 dark:bg-gray-900/50">
+      <div className="p-0.5 bg-gray-50 dark:bg-gray-900/50">
         <TemplatePreview template={template.value} accentColor={accentColorHex} />
       </div>
 

@@ -33,7 +33,7 @@ export default function TemplatesTab({
         </div>
 
         {/* Premium Template Grid - Compact */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {TEMPLATE_INFO.map((t) => (
             <TemplateCard
               key={t.value}

@@ -120,54 +120,54 @@ export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
       id: 'responsibilities',
       title: 'Key Responsibilities',
       icon: Briefcase,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
-      borderColor: 'border-blue-500',
+      color: 'text-blue-600/70 dark:text-blue-400/80',
+      bgColor: 'bg-blue-500/[0.03] dark:bg-blue-500/[0.05]',
+      borderColor: 'border-blue-600/20 dark:border-blue-400/20',
       content: job.jobInsights?.keyResponsibilities
     },
     {
       id: 'skills',
       title: 'Required Skills',
       icon: Zap,
-      color: 'text-pink-500',
-      bgColor: 'bg-pink-500/10',
-      borderColor: 'border-pink-500',
+      color: 'text-rose-600/70 dark:text-rose-400/80',
+      bgColor: 'bg-rose-500/[0.03] dark:bg-rose-500/[0.05]',
+      borderColor: 'border-rose-600/20 dark:border-rose-400/20',
       content: job.jobInsights?.requiredSkills
     },
     {
       id: 'experience',
       title: 'Experience Level',
       icon: TrendingUp,
-      color: 'text-green-500',
-      bgColor: 'bg-green-500/10',
-      borderColor: 'border-green-500',
+      color: 'text-emerald-600/70 dark:text-emerald-400/80',
+      bgColor: 'bg-emerald-500/[0.03] dark:bg-emerald-500/[0.05]',
+      borderColor: 'border-emerald-600/20 dark:border-emerald-400/20',
       content: job.jobInsights?.experienceLevel
     },
     {
       id: 'compensation',
       title: 'Compensation & Benefits',
       icon: DollarSign,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-500/10',
-      borderColor: 'border-orange-500',
+      color: 'text-amber-600/70 dark:text-amber-400/80',
+      bgColor: 'bg-amber-500/[0.03] dark:bg-amber-500/[0.05]',
+      borderColor: 'border-amber-600/20 dark:border-amber-400/20',
       content: job.jobInsights?.compensationBenefits
     },
     {
       id: 'culture',
       title: 'Company Culture',
       icon: Heart,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
-      borderColor: 'border-purple-500',
+      color: 'text-violet-600/70 dark:text-violet-400/80',
+      bgColor: 'bg-violet-500/[0.03] dark:bg-violet-500/[0.05]',
+      borderColor: 'border-violet-600/20 dark:border-violet-400/20',
       content: job.jobInsights?.companyCulture
     },
     {
       id: 'growth',
       title: 'Growth Opportunities',
       icon: Rocket,
-      color: 'text-indigo-500',
-      bgColor: 'bg-indigo-500/10',
-      borderColor: 'border-indigo-500',
+      color: 'text-indigo-600/70 dark:text-indigo-400/80',
+      bgColor: 'bg-indigo-500/[0.03] dark:bg-indigo-500/[0.05]',
+      borderColor: 'border-indigo-600/20 dark:border-indigo-400/20',
       content: job.jobInsights?.growthOpportunities
     }
   ].filter(insight => insight.content && insight.content.trim());
@@ -175,7 +175,7 @@ export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
   return (
     <div className="space-y-6">
       {/* Insights Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {insights.map((insight, index) => {
           const Icon = insight.icon;
           return (
@@ -184,20 +184,20 @@ export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -4 }}
-              className={`group relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border-t-4 ${insight.borderColor} shadow-sm hover:shadow-xl transition-all duration-300`}
+              whileHover={{ y: -0.5 }}
+              className={`group relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border-l-2 ${insight.borderColor} border border-gray-100/50 dark:border-gray-800/50 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.3)] hover:border-opacity-30 dark:hover:border-opacity-30 transition-all duration-200 ease-out hover:bg-gradient-to-br hover:from-white/50 hover:to-transparent dark:hover:from-gray-800/30 dark:hover:to-transparent`}
             >
-              <div className="p-6 h-full flex flex-col">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className={`p-3 rounded-lg ${insight.bgColor} ${insight.color}`}>
-                    <Icon className="w-6 h-6" />
+              <div className="p-5 h-full flex flex-col">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`p-2.5 rounded-md border border-gray-200/50 dark:border-gray-700/30 ${insight.bgColor}`}>
+                    <Icon className={`w-5 h-5 ${insight.color}`} />
                   </div>
-                  <h4 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">
                     {insight.title}
                   </h4>
                 </div>
                 <div className="flex-1">
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">
+                  <p className="text-gray-600/90 dark:text-gray-200 leading-[1.6] text-[13px] hyphens-auto">
                     {insight.content}
                   </p>
                 </div>

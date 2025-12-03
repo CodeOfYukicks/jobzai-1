@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from 'sonner';
-import { extractJobInfo, DetailedJobInfo } from '../../lib/jobExtractor';
+import { extractJobInfo, DetailedJobInfo, generateJobInsightsFromDescription } from '../../lib/jobExtractor';
 import { useJobInteractions } from '../../hooks/useJobInteractions';
 
 interface JobDetailViewProps {
@@ -142,10 +142,15 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                 // Show analyzing message
                 toast.info('Analyzing job details...', { duration: 2000 });
 
-                // Extract job info with AI asynchronously
+                // Extract job info with AI asynchronously using URL
                 extractJobInfo(job.applyUrl, { detailed: true })
                     .then(async (extractedData) => {
                         const detailedData = extractedData as DetailedJobInfo;
+                        console.log('✅ Successfully extracted job info from URL:', { 
+                            jobId: docRef.id, 
+                            hasInsights: !!detailedData.jobInsights 
+                        });
+
                         // Format the summary for description - structured format with 3 bullet points
                         let formattedDescription = detailedData.summary;
                         if (formattedDescription) {
@@ -182,10 +187,94 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
 
                         toast.success('AI analysis complete! ✨', { duration: 2000 });
                     })
-                    .catch((extractError) => {
-                        console.error('Error extracting job info in background:', extractError);
-                        // Silent fail - job is already added, just without AI enhancement
+                    .catch(async (extractError) => {
+                        console.error('❌ Error extracting job info from URL in background:', {
+                            error: extractError,
+                            jobId: docRef.id,
+                            url: job.applyUrl
+                        });
+
+                        // Fallback: Try to generate insights from description if URL extraction failed
+                        if (job.description && job.description.trim().length > 0) {
+                            console.log('🔄 Attempting fallback: generating insights from description...');
+                            try {
+                                const jobInsights = await generateJobInsightsFromDescription(
+                                    job.description,
+                                    job.title,
+                                    job.company
+                                );
+
+                                console.log('✅ Successfully generated jobInsights from description (fallback):', {
+                                    jobId: docRef.id,
+                                    hasInsights: !!jobInsights
+                                });
+
+                                // Update the document with AI-generated insights
+                                const { updateDoc, doc } = await import('firebase/firestore');
+                                await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
+                                    jobInsights: jobInsights,
+                                    updatedAt: serverTimestamp()
+                                });
+
+                                toast.success('AI analysis complete! ✨', { duration: 2000 });
+                            } catch (fallbackError) {
+                                console.error('❌ Fallback also failed:', {
+                                    error: fallbackError,
+                                    jobId: docRef.id
+                                });
+                                // Silent fail - job is already added, just without AI enhancement
+                            }
+                        } else {
+                            // Silent fail - job is already added, just without AI enhancement
+                            console.warn('⚠️ No description available for fallback extraction');
+                        }
                     });
+            } else if (job.description && job.description.trim().length > 0) {
+                // Fallback: Generate insights from description if URL is not available
+                console.log('📝 No applyUrl available, generating insights from description:', {
+                    jobId: docRef.id,
+                    title: job.title,
+                    company: job.company,
+                    descriptionLength: job.description.length
+                });
+
+                // Show analyzing message
+                toast.info('Analyzing job details from description...', { duration: 2000 });
+
+                // Generate jobInsights from description
+                generateJobInsightsFromDescription(job.description, job.title, job.company)
+                    .then(async (jobInsights) => {
+                        console.log('✅ Successfully generated jobInsights from description:', {
+                            jobId: docRef.id,
+                            hasInsights: !!jobInsights,
+                            sections: Object.keys(jobInsights).filter(key => jobInsights[key as keyof typeof jobInsights] && jobInsights[key as keyof typeof jobInsights] !== 'Details not specified in posting')
+                        });
+
+                        // Update the document with AI-generated insights
+                        const { updateDoc, doc } = await import('firebase/firestore');
+                        await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
+                            jobInsights: jobInsights,
+                            updatedAt: serverTimestamp()
+                        });
+
+                        toast.success('AI analysis complete! ✨', { duration: 2000 });
+                    })
+                    .catch((insightsError) => {
+                        console.error('❌ Error generating jobInsights from description:', {
+                            error: insightsError,
+                            jobId: docRef.id,
+                            title: job.title,
+                            company: job.company
+                        });
+                        // Silent fail - job is already added, just without AI enhancement
+                        toast.error('Could not generate AI insights, but job was added successfully', { duration: 3000 });
+                    });
+            } else {
+                console.log('⚠️ No applyUrl or description available for AI extraction:', {
+                    jobId: docRef.id,
+                    hasApplyUrl: !!job.applyUrl,
+                    hasDescription: !!(job.description && job.description.trim().length > 0)
+                });
             }
         } catch (error) {
             console.error('Error adding to wishlist:', error);

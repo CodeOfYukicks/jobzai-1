@@ -64,6 +64,38 @@ async function getOpenAIApiKey() {
   return null;
 }
 
+// Function to get Perplexity API key from Firestore
+async function getPerplexityApiKey() {
+  try {
+    console.log('🔑 Attempting to retrieve Perplexity API key from Firestore...');
+    const settingsDoc = await admin.firestore().collection('settings').doc('perplexity').get();
+
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      const apiKey = data?.apiKey || data?.api_key;
+      if (apiKey) {
+        console.log('✅ Perplexity API key retrieved from Firestore (first 10 chars):', apiKey.substring(0, 10) + '...');
+        return apiKey;
+      } else {
+        console.warn('⚠️  Document exists but apiKey field is missing. Available fields:', Object.keys(data || {}));
+      }
+    } else {
+      console.warn('⚠️  Document settings/perplexity does not exist in Firestore');
+    }
+  } catch (error) {
+    console.error('❌ Failed to retrieve Perplexity API key from Firestore:', error.message);
+  }
+
+  // Fallback to environment variable
+  if (process.env.PERPLEXITY_API_KEY || process.env.VITE_PERPLEXITY_API_KEY) {
+    const apiKey = process.env.PERPLEXITY_API_KEY || process.env.VITE_PERPLEXITY_API_KEY;
+    console.log('Using Perplexity API key from environment variable');
+    return apiKey;
+  }
+
+  return null;
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -658,6 +690,200 @@ app.post('/api/chatgpt', async (req, res) => {
       message: error.message || "An error occurred processing your request",
       errorType: error.name || 'UnknownError',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Perplexity API endpoint
+app.post('/api/perplexity', async (req, res) => {
+  try {
+    console.log("🔵 Perplexity API endpoint called");
+    console.log("   Request body keys:", Object.keys(req.body || {}));
+
+    // Get API key from Firestore or environment variables
+    let apiKey;
+    try {
+      apiKey = await getPerplexityApiKey();
+    } catch (keyError) {
+      console.error('❌ Error retrieving Perplexity API key:', keyError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to retrieve Perplexity API key: ${keyError.message}`,
+        details: process.env.NODE_ENV === 'development' ? keyError.stack : undefined
+      });
+    }
+
+    if (!apiKey) {
+      console.error('❌ ERREUR: Clé API Perplexity manquante');
+      console.error('   Checking environment variables:');
+      console.error('   - PERPLEXITY_API_KEY:', process.env.PERPLEXITY_API_KEY ? 'defined' : 'not defined');
+      console.error('   - VITE_PERPLEXITY_API_KEY:', process.env.VITE_PERPLEXITY_API_KEY ? 'defined' : 'not defined');
+      return res.status(500).json({
+        status: 'error',
+        message: 'Perplexity API key is missing. Please add it to Firestore (settings/perplexity) or .env file (PERPLEXITY_API_KEY).'
+      });
+    }
+
+    console.log('✅ Perplexity API key retrieved successfully (first 10 chars):', apiKey.substring(0, 10) + '...');
+
+    // Extract request parameters
+    const { 
+      prompt, 
+      model = 'sonar-pro', 
+      messages, 
+      temperature = 0.7, 
+      max_tokens = 1500,
+      search_recency_filter,
+      return_citations
+    } = req.body;
+
+    // Build messages array - use provided messages or construct from prompt
+    let requestMessages;
+    if (messages && Array.isArray(messages)) {
+      requestMessages = messages;
+    } else if (prompt) {
+      // Default system message for interview coaching
+      const systemMessage = `You are a conversational interview coach helping with job interview preparation. 
+
+Follow these strict guidelines:
+1. Keep responses extremely brief and direct - first paragraph should contain the key answer.
+2. Limit to 1-2 short paragraphs total unless explicitly asked for more detail.
+3. Never reveal or explain your thinking process - just provide the final answer.
+4. Use natural, friendly language as if chatting with a friend.
+5. When giving advice, jump straight to the actionable tips.
+6. Avoid lengthy explanations or theoretical background information.
+7. Use bullet points sparingly and only for very short lists.
+
+You can browse the web when needed for specific information, but keep search results brief.`;
+
+      requestMessages = [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: prompt }
+      ];
+    } else {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Either prompt or messages array is required'
+      });
+    }
+
+    // Build request body for Perplexity API
+    const perplexityRequestBody = {
+      model: model,
+      messages: requestMessages,
+      temperature: temperature,
+      max_tokens: max_tokens
+    };
+
+    // Add optional parameters if provided
+    if (search_recency_filter) {
+      perplexityRequestBody.search_recency_filter = search_recency_filter;
+    }
+    if (return_citations !== undefined) {
+      perplexityRequestBody.return_citations = return_citations;
+    }
+
+    console.log('📡 Sending request to Perplexity API...');
+    console.log(`   Model: ${model}`);
+    console.log(`   Messages count: ${requestMessages.length}`);
+    console.log(`   Max tokens: ${max_tokens}`);
+
+    // Call Perplexity API
+    const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(perplexityRequestBody)
+    });
+
+    console.log(`Perplexity API response status: ${perplexityResponse.status}`);
+
+    // Handle response
+    const responseText = await perplexityResponse.text();
+    console.log("Response received, length:", responseText.length);
+
+    if (!perplexityResponse.ok) {
+      console.error("Non-200 response:", responseText);
+      try {
+        const errorData = JSON.parse(responseText);
+        return res.status(perplexityResponse.status).json({
+          status: 'error',
+          message: `Perplexity API error: ${errorData.error?.message || 'Unknown error'}`,
+          error: errorData.error,
+          errorMessage: errorData.error?.message || 'Unknown API error'
+        });
+      } catch (e) {
+        return res.status(perplexityResponse.status).json({
+          status: 'error',
+          message: `Perplexity API error: ${responseText.substring(0, 200)}`,
+          errorMessage: responseText.substring(0, 200)
+        });
+      }
+    }
+
+    // Parse and return response
+    try {
+      const parsedResponse = JSON.parse(responseText);
+      
+      // Extract text content from response
+      if (parsedResponse.choices && parsedResponse.choices.length > 0) {
+        const textContent = parsedResponse.choices[0].message.content;
+        console.log('Response content preview:', textContent.substring(0, 100) + '...');
+        
+        // Return response in the same format as the original client-side function
+        return res.json({
+          ...parsedResponse,
+          text: textContent
+        });
+      } else {
+        console.error('Unexpected response structure:', parsedResponse);
+        return res.status(500).json({
+          status: 'error',
+          text: "I received a response from the API but couldn't extract the answer. Please try again.",
+          error: true,
+          errorMessage: "Invalid response structure"
+        });
+      }
+    } catch (parseError) {
+      console.error("❌ Parse error:", parseError);
+      return res.status(500).json({
+        status: 'error',
+        message: "Failed to parse Perplexity API response",
+        rawResponse: responseText.substring(0, 500) + "...",
+        error: true,
+        errorMessage: parseError.message
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Unexpected error in Perplexity API handler:", error);
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+
+    // Check if response was already sent
+    if (res.headersSent) {
+      console.error("⚠️  Response already sent, cannot send error response");
+      return;
+    }
+
+    // Check if it's a network error
+    if (error.message && (error.message.includes('fetch') || error.message.includes('network'))) {
+      return res.status(500).json({
+        status: 'error',
+        text: "It looks like your browser might be blocking the connection to our AI service. This could be due to an ad blocker, privacy extension, or network issues. Try disabling any extensions that might interfere with API requests.",
+        error: true,
+        errorMessage: error.message
+      });
+    }
+
+    return res.status(500).json({
+      status: 'error',
+      text: "I'm sorry, I couldn't process your request due to a technical issue. This could be a network problem, an issue with the Perplexity API, or with your browser settings blocking certain requests. Please try again later.",
+      error: true,
+      errorMessage: error.message || 'Unknown error'
     });
   }
 });
@@ -2607,6 +2833,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
   console.log(`Claude API proxy available at http://localhost:${PORT}/api/claude`);
   console.log(`ChatGPT API proxy available at http://localhost:${PORT}/api/chatgpt`);
+  console.log(`Perplexity API proxy available at http://localhost:${PORT}/api/perplexity`);
   console.log(`GPT-4o Vision API proxy available at http://localhost:${PORT}/api/analyze-cv-vision`);
   console.log(`Job URL extraction available at http://localhost:${PORT}/api/extract-job-url`);
   console.log(`Interview analysis available at http://localhost:${PORT}/api/analyze-interview`);

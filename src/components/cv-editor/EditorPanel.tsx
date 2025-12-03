@@ -276,7 +276,7 @@ export default function EditorPanel({
             className={`
               relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
               ${activeTab === 'ai-review' 
-                ? 'text-[#EB7134] dark:text-[#EB7134]' 
+                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
@@ -286,7 +286,7 @@ export default function EditorPanel({
             {activeTab === 'ai-review' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#EB7134]"
+                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#635BFF]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -298,7 +298,7 @@ export default function EditorPanel({
             className={`
               relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
               ${activeTab === 'editor' 
-                ? 'text-[#EB7134] dark:text-[#EB7134]' 
+                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
@@ -308,7 +308,7 @@ export default function EditorPanel({
             {activeTab === 'editor' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#EB7134]"
+                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#635BFF]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -320,7 +320,7 @@ export default function EditorPanel({
             className={`
               relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
               ${activeTab === 'templates' 
-                ? 'text-[#EB7134] dark:text-[#EB7134]' 
+                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
@@ -330,7 +330,7 @@ export default function EditorPanel({
             {activeTab === 'templates' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#EB7134]"
+                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#635BFF]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -342,7 +342,7 @@ export default function EditorPanel({
             className={`
               relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
               ${activeTab === 'layout-style' 
-                ? 'text-[#EB7134] dark:text-[#EB7134]' 
+                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
@@ -352,7 +352,7 @@ export default function EditorPanel({
             {activeTab === 'layout-style' && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#EB7134]"
+                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#635BFF]"
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
@@ -434,7 +434,7 @@ export default function EditorPanel({
                               className={`
                                 group rounded-lg transition-all duration-200 border
                                 ${snapshot.isDragging 
-                                  ? 'shadow-2xl scale-[1.02] ring-2 ring-[#EB7134] bg-white dark:bg-gray-800 border-[#EB7134]' 
+                                  ? 'shadow-2xl scale-[1.02] ring-2 ring-[#635BFF] bg-white dark:bg-gray-800 border-[#635BFF]' 
                                   : expandedSection === section.id
                                     ? 'bg-white dark:bg-gray-800 shadow-lg border border-gray-300/70 dark:border-gray-600/70 ring-1 ring-gray-200/50 dark:ring-gray-700/50'
                                     : 'bg-white dark:bg-gray-800/40 border-gray-200/60 dark:border-gray-700/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 hover:shadow-md hover:bg-gray-50/30 dark:hover:bg-gray-800/60'

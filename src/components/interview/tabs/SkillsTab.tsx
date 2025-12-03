@@ -16,7 +16,7 @@ interface SkillsTabProps {
   addStarStory: (skill: string, initialContent?: { situation: string; action: string; result: string }) => Promise<void>;
   updateStarField: (skill: string, storyId: string, field: 'situation' | 'action' | 'result', value: string) => Promise<void>;
   deleteStarStory: (skill: string, storyId: string) => Promise<void>;
-  exportStoryToNotes: (skill: string, storyId: string) => void;
+  exportStoryToNotes: (skill: string, storyId: string) => void; // This now opens the modal instead of directly exporting
   practiceInChat: (skill: string) => void;
 }
 
