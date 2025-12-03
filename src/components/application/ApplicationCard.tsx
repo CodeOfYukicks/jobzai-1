@@ -15,11 +15,15 @@ function formatDate(dateString: string): string {
 
 export function ApplicationCard({
   app, onDelete, onClick, isDragging = false,
+  isInactive = false,
+  inactiveDays = 0,
 }: {
   app: JobApplication;
   onDelete: () => void;
   onClick: () => void;
   isDragging?: boolean;
+  isInactive?: boolean;
+  inactiveDays?: number;
 }) {
   const interviewTypes =
     app.interviews?.map((i) => i.type).filter((v, i, a) => a.indexOf(v) === i) || [];
@@ -43,6 +47,15 @@ export function ApplicationCard({
       role="button"
     >
       <div className="p-4 flex flex-col flex-1 min-h-0">
+        {/* Inactive Badge */}
+        {isInactive && (
+          <div className="absolute top-2 right-2 z-10">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800">
+              {inactiveDays}d inactive
+            </span>
+          </div>
+        )}
+
         {/* Section 1: Header - Position avec logo */}
         <div className="flex items-start gap-3 mb-3 flex-shrink-0">
           <CompanyLogo 

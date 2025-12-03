@@ -88,11 +88,93 @@ export interface JobApplication {
     companyCulture?: string;
     growthOpportunities?: string;
   };
+  jobTags?: {  // Structured tags extracted by AI for analytics
+    industry: string[];
+    sector: string;
+    seniority: string;
+    employmentType: string[];
+    technologies: string[];
+    skills: string[];
+    location: {
+      city?: string;
+      country?: string;
+      remote: boolean;
+      hybrid: boolean;
+    };
+    companySize?: string;
+    salaryRange?: {
+      min?: number;
+      max?: number;
+      currency?: string;
+    };
+  };
   cvAnalysisId?: string;  // ID of linked CV analysis from CV Analysis page
   linkedNoteIds?: string[];  // IDs of linked NotionDocuments from AI-generated content
   linkedResumeIds?: string[];  // IDs of linked CVs/Resumes from Resume Builder
   linkedDocumentIds?: string[];  // IDs of linked PDF Documents from Resume Builder
   linkedWhiteboardIds?: string[];  // IDs of linked Whiteboards from Resume Builder
+}
+
+export interface AutomationSettings {
+  autoRejectDays: {
+    enabled: boolean;
+    days: number;
+    applyTo: ('applied' | 'interview' | 'pending_decision')[];
+  };
+  autoArchiveRejected: {
+    enabled: boolean;
+    days: number;
+  };
+  autoMoveToInterview: {
+    enabled: boolean;
+  };
+  inactiveReminder: {
+    enabled: boolean;
+    days: number;
+  };
+  autoMoveToPendingDecision: {
+    enabled: boolean;
+    interviewCount: number;
+  };
+  autoRejectNoResponse: {
+    enabled: boolean;
+    days: number;
+    applyTo: ('applied' | 'interview')[];
+  };
+}
+
+export const defaultAutomationSettings: AutomationSettings = {
+  autoRejectDays: {
+    enabled: false,
+    days: 30,
+    applyTo: ['applied', 'interview', 'pending_decision'],
+  },
+  autoArchiveRejected: {
+    enabled: false,
+    days: 30,
+  },
+  autoMoveToInterview: {
+    enabled: true,
+  },
+  inactiveReminder: {
+    enabled: false,
+    days: 14,
+  },
+  autoMoveToPendingDecision: {
+    enabled: false,
+    interviewCount: 2,
+  },
+  autoRejectNoResponse: {
+    enabled: false,
+    days: 30,
+    applyTo: ['applied', 'interview'],
+  },
+};
+
+export interface AutomationUpdate {
+  applicationId: string;
+  newStatus: JobApplication['status'];
+  reason: string;
 }
 
 

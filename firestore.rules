@@ -93,6 +93,11 @@ service cloud.firestore {
       match /creditHistory/{historyId} {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
+      
+      // Background Tasks subcollection (for CV generation, etc.)
+      match /backgroundTasks/{taskId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
     }
 
     // Jobs collection

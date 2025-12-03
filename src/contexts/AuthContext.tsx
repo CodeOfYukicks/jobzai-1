@@ -116,7 +116,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
           },
           (error) => {
-            console.error('Error listening to user document:', error);
+            // Handle permission errors gracefully
+            if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+              console.warn('⚠️ Permission denied when listening to user document. This may be expected if Firestore rules restrict access.');
+            } else {
+              console.error('Error listening to user document:', error);
+            }
             // On error, preserve current theme from DOM or localStorage
             const currentIsDark = document.documentElement.classList.contains('dark');
             const localStorageTheme = loadThemeFromStorage();

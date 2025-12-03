@@ -452,7 +452,7 @@ export default function ATSAnalysisPagePremium() {
               if (data.cv_rewrite && data.cv_rewrite_generated_at) {
                 setCvRewrite(data.cv_rewrite);
                 setSidebarTab('cv');
-                toast.success('🎉 CV optimisé généré avec succès !', { duration: 5000 });
+                toast.success('🎉 Optimized CV generated successfully!', { duration: 5000 });
               }
             }
           }
@@ -806,12 +806,6 @@ export default function ATSAnalysisPagePremium() {
       setGenerationStep(0);
       setGenerationStepLabel('Démarrage...');
       setSidebarTab('cv');
-
-      // Show toast notification
-      toast.success('🚀 Génération du CV lancée en arrière-plan !', {
-        description: 'Vous pouvez quitter cette page - vous serez notifié quand ce sera terminé.',
-        duration: 5000,
-      });
 
       // Start the worker (runs in background, continues even if user leaves page)
       startCVRewriteWorker(currentUser.uid, taskId, id, inputData);

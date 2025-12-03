@@ -902,11 +902,28 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     fetchData();
   }, [currentUser, applicationId, interviewId, navigate, location.state]);
 
+  // Typing animation refs - declared early so they can be used in useEffect hooks
+  const animatedMessagesRef = useRef<Set<string>>(new Set()); // Track by message ID (timestamp + content hash)
+  const isInitialLoadRef = useRef(true);
+  const typingIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const prevMessagesRef = useRef<ChatMessage[]>([]);
+
   useEffect(() => {
     if (interview?.skillRatings) {
       setSkillRatings(interview.skillRatings);
     }
   }, [interview]);
+
+  // Reset animation refs when interviewId changes
+  useEffect(() => {
+    // Clear all animation state when switching interviews
+    animatedMessagesRef.current.clear();
+    typingIntervalsRef.current.forEach(interval => clearInterval(interval));
+    typingIntervalsRef.current.clear();
+    isInitialLoadRef.current = true;
+    prevMessagesRef.current = [];
+    setTypingMessages({});
+  }, [interviewId]);
 
   // Initialize free-form notes from interview data
   useEffect(() => {
@@ -995,8 +1012,33 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     // Load chat history from interview data if available
     if (interview?.chatHistory) {
       setChatMessages(interview.chatHistory);
+      
+      // When loading from Firestore, mark all messages as already animated
+      // and initialize typingMessages with full content to avoid animation
+      const loadedMessages = interview.chatHistory;
+      const initialTypingMessages: Record<number, string> = {};
+      
+      loadedMessages.forEach((msg, index) => {
+        if (msg.role === 'assistant' && msg.content !== '__thinking__') {
+          const fullText = msg.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+          if (fullText.length > 0) {
+            const messageId = `${msg.timestamp}-${fullText.substring(0, 20)}`;
+            animatedMessagesRef.current.add(messageId);
+            initialTypingMessages[index] = fullText;
+          }
+        }
+      });
+      
+      setTypingMessages(initialTypingMessages);
+      // Reset isInitialLoadRef to true so the animation effect treats this as initial load
+      isInitialLoadRef.current = true;
+    } else {
+      // No chat history, reset everything
+      setChatMessages([]);
+      setTypingMessages({});
+      animatedMessagesRef.current.clear();
     }
-  }, [interview]);
+  }, [interview?.chatHistory]);
 
   // Track scroll position - no automatic scrolling
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -1379,13 +1421,14 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     }
   };
 
-  const sendMessage = async () => {
-    if (!message.trim() || isSending || !currentUser || !application || !interview || !applicationId) return;
+  // Helper function to send a message directly with text (used for auto-sending practice messages)
+  const sendMessageWithText = async (messageText: string) => {
+    if (!messageText.trim() || isSending || !currentUser || !application || !interview || !applicationId) return;
 
     // Add user message to chat
     const userMessage: ChatMessage = {
       role: 'user',
-      content: message,
+      content: messageText,
       timestamp: Date.now()
     };
 
@@ -1448,7 +1491,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
 
       // Query Perplexity API with a single argument
       const response = await queryPerplexity(
-        context + "\n\nUser message: " + message
+        context + "\n\nUser message: " + messageText
       );
 
       // Check if the response contains an error
@@ -1488,12 +1531,12 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     }
   };
 
-  // Typing animation effect - ChatGPT style
-  const animatedMessagesRef = useRef<Set<string>>(new Set()); // Track by message ID (timestamp + content hash)
-  const isInitialLoadRef = useRef(true);
-  const typingIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
-  const prevMessagesRef = useRef<ChatMessage[]>([]);
+  const sendMessage = async () => {
+    if (!message.trim() || isSending || !currentUser || !application || !interview || !applicationId) return;
+    await sendMessageWithText(message);
+  };
 
+  // Typing animation effect - ChatGPT style
   useEffect(() => {
     const wasInitialLoad = isInitialLoadRef.current;
     isInitialLoadRef.current = false;
@@ -1522,7 +1565,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         // Create a unique ID for this message based on timestamp and content
         const messageId = `${msg.timestamp}-${fullText.substring(0, 20)}`;
         
-        // Check if this message is already fully typed
+        // Check if this message is already fully typed (loaded from Firestore)
         const currentTypedText = typingMessages[index];
         if (currentTypedText === fullText) {
           // Already fully typed, mark as animated
@@ -1535,9 +1578,13 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         const isContentChanged = !prevMsg || prevMsg.content !== msg.content;
         const isNewMessage = index >= prevMessagesRef.current.length;
         
+        // Check if message was already marked as animated (loaded from Firestore)
+        const isAlreadyAnimated = animatedMessagesRef.current.has(messageId);
+        
         // Determine if we should animate: new message, content changed, or not yet animated
+        // But NOT if it's initial load (messages loaded from Firestore) or already animated
         const shouldAnimate = (isNewMessage || isContentChanged) && 
-                             !animatedMessagesRef.current.has(messageId) &&
+                             !isAlreadyAnimated &&
                              !wasInitialLoad;
 
         if (shouldAnimate && fullText.length > 0) {
@@ -3865,12 +3912,31 @@ Return ONLY the pitch text, no explanations or formatting.`;
     }
   };
 
-  const practiceInChat = (skill: string) => {
+  const practiceInChat = async (skill: string) => {
     const latestStory = (skillCoach?.starStories?.[skill] || [])[0];
-    const basePrompt = `Help me practise a targeted question about ${skill} for ${application?.position} at ${application?.companyName}.`;
-    const story = latestStory ? `\nHere is my STAR draft: Situation: ${latestStory.situation}. Action: ${latestStory.action}. Result: ${latestStory.result}. Please critique briefly and ask one follow-up.` : '';
+    const position = application?.position || 'this role';
+    const company = application?.companyName || 'this company';
+    
+    // Create a more conversational and clear question
+    let practiceMessage = `Can you help me practice answering questions about ${skill} for the ${position} position at ${company}?`;
+    
+    // If there's a STAR story, include it in the context
+    if (latestStory) {
+      practiceMessage += `\n\nI have prepared a STAR story for this skill:\n\nSituation: ${latestStory.situation}\nAction: ${latestStory.action}\nResult: ${latestStory.result}\n\nCan you ask me a question about ${skill} and then provide feedback on my answer?`;
+    } else {
+      practiceMessage += ` Please ask me a relevant interview question about ${skill} so I can practice my answer.`;
+    }
+    
+    // Switch to chat tab
     setTab('chat');
-    setMessage(basePrompt + story);
+    
+    // Set the message in the input field (for visual feedback)
+    setMessage(practiceMessage);
+    
+    // Wait for the tab to switch, then send the message automatically
+    setTimeout(() => {
+      sendMessageWithText(practiceMessage);
+    }, 200);
   };
 
   const shortenText = (text: string, max = 48) => {

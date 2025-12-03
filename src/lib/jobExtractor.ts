@@ -10,6 +10,27 @@ export interface BasicJobInfo {
   summary: string;
 }
 
+export interface JobTags {
+  industry: string[];           // ["Technology", "SaaS", "Fintech"]
+  sector: string;               // "Technology" (principal)
+  seniority: string;            // "Senior", "Mid-level", "Entry-level"
+  employmentType: string[];     // ["Full-time", "Remote"]
+  technologies: string[];        // ["React", "TypeScript", "Node.js"]
+  skills: string[];             // ["Leadership", "Agile", "Communication"]
+  location: {
+    city?: string;
+    country?: string;
+    remote: boolean;
+    hybrid: boolean;
+  };
+  companySize?: string;         // "Startup", "Mid-size", "Enterprise"
+  salaryRange?: {
+    min?: number;
+    max?: number;
+    currency?: string;
+  };
+}
+
 export interface DetailedJobInfo extends BasicJobInfo {
   fullJobDescription: string;
   jobInsights: {
@@ -20,6 +41,7 @@ export interface DetailedJobInfo extends BasicJobInfo {
     companyCulture: string;
     growthOpportunities: string;
   };
+  jobTags?: JobTags;
 }
 
 export interface JobExtractionOptions {
@@ -226,10 +248,42 @@ Now extract COMPLETE detailed information and return as JSON:
    - companyCulture: Work environment, values (50-80 words)
    - growthOpportunities: Career development, advancement (40-70 words, or "Not specified" if unavailable)
 
+3. jobTags: Extract structured tags for analytics (CRITICAL - be precise and consistent):
+   - industry: Array of industry categories (e.g., ["Technology", "SaaS", "Fintech"]). Include primary and sub-industries mentioned.
+   - sector: Single primary sector (e.g., "Technology", "Healthcare", "Finance", "Education", "Retail", "Manufacturing", "Consulting", "Media", "Non-profit", "Government")
+   - seniority: Single value - "Entry-level", "Mid-level", "Senior", "Lead", "Principal", "Executive", or "Internship" based on requirements
+   - employmentType: Array of employment types (e.g., ["Full-time", "Remote"] or ["Part-time", "Contract"]). Options: "Full-time", "Part-time", "Contract", "Internship", "Remote", "Hybrid", "On-site"
+   - technologies: Array of specific technologies/tools mentioned (e.g., ["React", "TypeScript", "Node.js", "AWS", "Docker"]). Extract from skills/requirements sections.
+   - skills: Array of soft skills and methodologies (e.g., ["Leadership", "Agile", "Communication", "Problem-solving", "Teamwork"])
+   - location: Object with:
+     * city: City name if mentioned (e.g., "Paris", "New York", "London")
+     * country: Country name if mentioned (e.g., "France", "United States", "United Kingdom")
+     * remote: Boolean - true if remote work is mentioned or required
+     * hybrid: Boolean - true if hybrid work is mentioned
+   - companySize: Optional - "Startup" (1-50), "Small" (51-200), "Mid-size" (201-1000), "Enterprise" (1000+), or "Not specified" if unclear
+   - salaryRange: Optional object with:
+     * min: Minimum salary number (if mentioned)
+     * max: Maximum salary number (if mentioned)
+     * currency: Currency code (e.g., "USD", "EUR", "GBP")
+
+RULES FOR TAGS:
+- Extract ONLY information explicitly mentioned or clearly implied in the posting
+- For industry: Use standard industry names (Technology, Healthcare, Finance, etc.)
+- For seniority: Analyze experience requirements (years, level indicators) to determine level
+- For technologies: Extract specific tech names, frameworks, tools mentioned
+- For skills: Extract soft skills, methodologies, certifications mentioned
+- For location: Parse the location string to extract city/country if possible
+- For remote/hybrid: Check if "remote", "hybrid", "work from home" is mentioned
+- For companySize: Infer from context if not explicitly stated (startup mentions, employee count, etc.)
+- For salaryRange: Extract numbers and currency if salary information is provided
+- If information is not available, use empty arrays [], empty strings "", false booleans, or omit optional fields
+- Be consistent with naming (e.g., always use "Full-time" not "Full time" or "FT")
+
 RULES:
 - Visit the URL and read the ACTUAL content
 - For fullJobDescription: include EVERYTHING - completeness is critical
 - For jobInsights: provide useful summaries based on page content
+- For jobTags: extract structured data precisely for analytics purposes
 - If specific insight info not available, use "Details not specified in posting"
 - Do NOT invent or hallucinate information
 
@@ -243,6 +297,26 @@ Return ONLY a valid JSON object (no markdown, no code blocks):
     "compensationBenefits": "salary and benefits",
     "companyCulture": "culture and values",
     "growthOpportunities": "growth potential"
+  },
+  "jobTags": {
+    "industry": ["Technology", "SaaS"],
+    "sector": "Technology",
+    "seniority": "Senior",
+    "employmentType": ["Full-time", "Remote"],
+    "technologies": ["React", "TypeScript", "Node.js"],
+    "skills": ["Leadership", "Agile"],
+    "location": {
+      "city": "Paris",
+      "country": "France",
+      "remote": true,
+      "hybrid": false
+    },
+    "companySize": "Mid-size",
+    "salaryRange": {
+      "min": 80000,
+      "max": 120000,
+      "currency": "EUR"
+    }
   }
 }
 
@@ -257,6 +331,37 @@ URL to visit: ${url}
 
   const extractedData = parseJobJSON(response.text || '');
 
+  // Parse and validate jobTags
+  let jobTags: JobTags | undefined;
+  if (extractedData.jobTags) {
+    try {
+      const tags = extractedData.jobTags;
+      jobTags = {
+        industry: Array.isArray(tags.industry) ? tags.industry.filter((i: any) => typeof i === 'string') : [],
+        sector: typeof tags.sector === 'string' ? tags.sector.trim() : '',
+        seniority: typeof tags.seniority === 'string' ? tags.seniority.trim() : '',
+        employmentType: Array.isArray(tags.employmentType) ? tags.employmentType.filter((e: any) => typeof e === 'string') : [],
+        technologies: Array.isArray(tags.technologies) ? tags.technologies.filter((t: any) => typeof t === 'string') : [],
+        skills: Array.isArray(tags.skills) ? tags.skills.filter((s: any) => typeof s === 'string') : [],
+        location: {
+          city: typeof tags.location?.city === 'string' ? tags.location.city.trim() : undefined,
+          country: typeof tags.location?.country === 'string' ? tags.location.country.trim() : undefined,
+          remote: typeof tags.location?.remote === 'boolean' ? tags.location.remote : false,
+          hybrid: typeof tags.location?.hybrid === 'boolean' ? tags.location.hybrid : false,
+        },
+        companySize: typeof tags.companySize === 'string' ? tags.companySize.trim() : undefined,
+        salaryRange: tags.salaryRange ? {
+          min: typeof tags.salaryRange.min === 'number' ? tags.salaryRange.min : undefined,
+          max: typeof tags.salaryRange.max === 'number' ? tags.salaryRange.max : undefined,
+          currency: typeof tags.salaryRange.currency === 'string' ? tags.salaryRange.currency.trim() : undefined,
+        } : undefined,
+      };
+    } catch (error) {
+      console.warn('Failed to parse jobTags:', error);
+      jobTags = undefined;
+    }
+  }
+
   return {
     ...basicInfo,
     fullJobDescription: extractedData.fullJobDescription?.trim() || '',
@@ -268,7 +373,175 @@ URL to visit: ${url}
       companyCulture: extractedData.jobInsights?.companyCulture?.trim() || 'Details not specified in posting',
       growthOpportunities: extractedData.jobInsights?.growthOpportunities?.trim() || 'Details not specified in posting',
     },
+    jobTags,
   };
+}
+
+/**
+ * Generate jobTags from a job description text (fallback when URL is not available)
+ * Uses ChatGPT API to analyze the description and extract structured tags
+ * 
+ * @param description - Full job description text
+ * @param title - Job title/position
+ * @param company - Company name
+ * @param location - Job location string
+ * @returns jobTags object with structured tags
+ */
+export async function generateJobTagsFromDescription(
+  description: string,
+  title: string,
+  company: string,
+  location: string = ''
+): Promise<JobTags | undefined> {
+  if (!description || description.trim().length === 0) {
+    return undefined;
+  }
+
+  const prompt = `
+You are an expert job analyst. Extract structured tags from the job description provided below for analytics purposes.
+
+JOB POSTING DETAILS:
+- Job Title: ${title}
+- Company: ${company}
+- Location: ${location}
+- Full Job Description:
+${description.substring(0, 4000)}
+
+Your task is to analyze this job description and extract structured tags. Return ONLY a valid JSON object with the following structure:
+
+{
+  "jobTags": {
+    "industry": ["Technology", "SaaS"],
+    "sector": "Technology",
+    "seniority": "Senior",
+    "employmentType": ["Full-time", "Remote"],
+    "technologies": ["React", "TypeScript", "Node.js"],
+    "skills": ["Leadership", "Agile"],
+    "location": {
+      "city": "Paris",
+      "country": "France",
+      "remote": true,
+      "hybrid": false
+    },
+    "companySize": "Mid-size",
+    "salaryRange": {
+      "min": 80000,
+      "max": 120000,
+      "currency": "EUR"
+    }
+  }
+}
+
+TAG EXTRACTION RULES:
+- industry: Array of industry categories (e.g., ["Technology", "SaaS", "Fintech"]). Include primary and sub-industries mentioned.
+- sector: Single primary sector from: "Technology", "Healthcare", "Finance", "Education", "Retail", "Manufacturing", "Consulting", "Media", "Non-profit", "Government", or "Other"
+- seniority: Single value - "Entry-level", "Mid-level", "Senior", "Lead", "Principal", "Executive", or "Internship" based on requirements
+- employmentType: Array of employment types. Options: "Full-time", "Part-time", "Contract", "Internship", "Remote", "Hybrid", "On-site"
+- technologies: Array of specific technologies/tools mentioned (e.g., ["React", "TypeScript", "Node.js", "AWS", "Docker"])
+- skills: Array of soft skills and methodologies (e.g., ["Leadership", "Agile", "Communication", "Problem-solving"])
+- location: Object with city, country (extract from location string or description), remote (true if mentioned), hybrid (true if mentioned)
+- companySize: "Startup" (1-50), "Small" (51-200), "Mid-size" (201-1000), "Enterprise" (1000+), or omit if unclear
+- salaryRange: Extract numbers and currency if salary information is provided, or omit if not available
+
+CRITICAL RULES:
+- Extract ONLY information explicitly mentioned or clearly implied in the description
+- Do NOT invent or hallucinate information
+- If information is not available, use empty arrays [], empty strings "", false booleans, or omit optional fields
+- Be consistent with naming (e.g., always use "Full-time" not "Full time")
+- Return ONLY valid JSON - no markdown, no code blocks, no explanations
+
+Return ONLY the JSON object:
+`;
+
+  try {
+    const response = await fetch('/api/chatgpt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'cv-edit', prompt }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    if (!text) {
+      throw new Error('Empty response from API');
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        data = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      } else {
+        throw new Error('Failed to parse API response as JSON');
+      }
+    }
+
+    if (data.status !== 'success') {
+      throw new Error(data.message || 'API returned error status');
+    }
+
+    // Extract jobTags from response
+    let jobTags;
+    if (data.content && typeof data.content === 'object') {
+      if (data.content.jobTags) {
+        jobTags = data.content.jobTags;
+      } else if (data.content.industry) {
+        jobTags = data.content;
+      } else {
+        try {
+          const parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
+          jobTags = parsed.jobTags || parsed;
+        } catch {
+          throw new Error('Could not extract jobTags from API response');
+        }
+      }
+    } else if (typeof data.content === 'string') {
+      try {
+        const parsed = JSON.parse(data.content);
+        jobTags = parsed.jobTags || parsed;
+      } catch {
+        const jsonMatch = data.content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          jobTags = parsed.jobTags || parsed;
+        } else {
+          throw new Error('Could not parse jobTags from string content');
+        }
+      }
+    } else {
+      throw new Error('Unexpected API response format');
+    }
+
+    // Validate and return jobTags with defaults
+    return {
+      industry: Array.isArray(jobTags.industry) ? jobTags.industry.filter((i: any) => typeof i === 'string') : [],
+      sector: typeof jobTags.sector === 'string' ? jobTags.sector.trim() : '',
+      seniority: typeof jobTags.seniority === 'string' ? jobTags.seniority.trim() : '',
+      employmentType: Array.isArray(jobTags.employmentType) ? jobTags.employmentType.filter((e: any) => typeof e === 'string') : [],
+      technologies: Array.isArray(jobTags.technologies) ? jobTags.technologies.filter((t: any) => typeof t === 'string') : [],
+      skills: Array.isArray(jobTags.skills) ? jobTags.skills.filter((s: any) => typeof s === 'string') : [],
+      location: {
+        city: typeof jobTags.location?.city === 'string' ? jobTags.location.city.trim() : undefined,
+        country: typeof jobTags.location?.country === 'string' ? jobTags.location.country.trim() : undefined,
+        remote: typeof jobTags.location?.remote === 'boolean' ? jobTags.location.remote : false,
+        hybrid: typeof jobTags.location?.hybrid === 'boolean' ? jobTags.location.hybrid : false,
+      },
+      companySize: typeof jobTags.companySize === 'string' ? jobTags.companySize.trim() : undefined,
+      salaryRange: jobTags.salaryRange ? {
+        min: typeof jobTags.salaryRange.min === 'number' ? jobTags.salaryRange.min : undefined,
+        max: typeof jobTags.salaryRange.max === 'number' ? jobTags.salaryRange.max : undefined,
+        currency: typeof jobTags.salaryRange.currency === 'string' ? jobTags.salaryRange.currency.trim() : undefined,
+      } : undefined,
+    };
+  } catch (error) {
+    console.error('Error generating jobTags from description:', error);
+    return undefined;
+  }
 }
 
 /**

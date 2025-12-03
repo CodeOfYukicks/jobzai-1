@@ -93,6 +93,7 @@ const levelColors = {
     icon: 'text-blue-500',
     iconBg: 'bg-blue-500/20',
     badge: 'bg-blue-500/20 text-blue-400',
+    shadow: 'shadow-blue-500/20',
   },
   balanced: {
     bg: 'bg-purple-500/10',
@@ -101,6 +102,7 @@ const levelColors = {
     icon: 'text-purple-500',
     iconBg: 'bg-purple-500/20',
     badge: 'bg-purple-500/20 text-purple-400',
+    shadow: 'shadow-purple-500/20',
   },
   optimized: {
     bg: 'bg-amber-500/10',
@@ -109,6 +111,7 @@ const levelColors = {
     icon: 'text-amber-500',
     iconBg: 'bg-amber-500/20',
     badge: 'bg-amber-500/20 text-amber-400',
+    shadow: 'shadow-amber-500/20',
   },
 };
 
@@ -180,7 +183,7 @@ export default function TailoredResumePanel({
               </div>
             </motion.div>
           ) : (
-            // Level Selection View - Full Panel
+            // Level Selection View - Full Panel Premium Design
             <motion.div
               key="levels"
               initial={{ opacity: 0, x: 20 }}
@@ -188,22 +191,22 @@ export default function TailoredResumePanel({
               exit={{ opacity: 0, x: 20 }}
               className="h-full flex flex-col"
             >
-              {/* Compact Header */}
-              <div className="flex items-center gap-2 px-4 py-2">
+              {/* Minimal Header */}
+              <div className="flex items-center gap-3 px-4 pt-4 pb-3 flex-shrink-0">
                 <button
                   onClick={() => setShowLevelSelector(false)}
-                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                 >
-                  <ChevronLeft className="w-4 h-4 text-gray-500" />
+                  <ChevronLeft className="w-4 h-4 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors" />
                 </button>
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
                   Choose Intensity
                 </h3>
               </div>
 
-              {/* Level Cards - Centered with flex-1 and justify-center */}
-              <div className="flex-1 flex flex-col justify-center px-3 py-2 gap-2">
-                {(['conservative', 'balanced', 'optimized'] as AdaptationLevel[]).map((levelKey) => {
+              {/* Level Cards - Full Height with Premium Spacing */}
+              <div className="flex-1 flex flex-col px-4 py-3 gap-3">
+                {(['conservative', 'balanced', 'optimized'] as AdaptationLevel[]).map((levelKey, index) => {
                   const level = levelData[levelKey];
                   const Icon = levelIcons[levelKey];
                   const colors = levelColors[levelKey];
@@ -213,70 +216,101 @@ export default function TailoredResumePanel({
                     <motion.button
                       key={levelKey}
                       onClick={() => setSelectedLevel(levelKey)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ scale: 1.01, y: -1 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`w-full text-left p-3 rounded-xl border transition-all duration-200 ${
+                      className={`relative w-full text-left p-4 rounded-xl border-2 transition-all duration-300 ${
                         isSelected
-                          ? `${colors.bg} ${colors.selectedBorder} border-2`
-                          : `bg-transparent ${colors.border} border hover:${colors.bg}`
+                          ? `${colors.selectedBorder} ${colors.bg} shadow-lg ${colors.shadow}`
+                          : `${colors.border} bg-white dark:bg-gray-900 hover:${colors.bg} hover:border-opacity-50`
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${colors.iconBg} flex-shrink-0`}>
-                          <Icon className={`w-4 h-4 ${colors.icon}`} />
+                      {/* Selected State Background Gradient */}
+                      {isSelected && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className={`absolute inset-0 rounded-xl bg-gradient-to-br ${colors.bg} opacity-50`}
+                        />
+                      )}
+
+                      <div className="relative flex items-start gap-3">
+                        {/* Icon Container */}
+                        <div className={`p-2.5 rounded-lg ${colors.iconBg} flex-shrink-0 shadow-sm`}>
+                          <Icon className={`w-5 h-5 ${colors.icon}`} strokeWidth={2} />
                         </div>
 
+                        {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
                               {level.name}
                             </span>
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${colors.badge}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${colors.badge} shadow-sm`}>
                               {level.scoreGain}
                             </span>
                           </div>
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
                             {level.description}
                           </p>
+
+                          {/* Features - Compact Layout */}
+                          <div className="flex flex-col gap-1">
+                            {level.features.map((feature, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400"
+                              >
+                                <div className={`w-1 h-1 rounded-full ${colors.icon.replace('text-', 'bg-')} flex-shrink-0`} />
+                                <span>{feature}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
 
+                        {/* Selected Indicator */}
                         {isSelected && (
                           <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="p-1 bg-green-500 rounded-full flex-shrink-0"
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                            className="flex-shrink-0"
                           >
-                            <Check className="w-2.5 h-2.5 text-white" />
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30">
+                              <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                            </div>
                           </motion.div>
                         )}
                       </div>
 
-                      {/* Features - inline */}
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 ml-11">
-                        {level.features.map((feature, idx) => (
-                          <span
-                            key={idx}
-                            className="text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1"
-                          >
-                            <span className={`w-1 h-1 rounded-full ${colors.icon.replace('text-', 'bg-')}`} />
-                            {feature}
-                          </span>
-                        ))}
-                      </div>
+                      {/* Hover Glow Effect */}
+                      {!isSelected && (
+                        <motion.div
+                          className={`absolute inset-0 rounded-xl ${colors.bg} opacity-0 hover:opacity-10 transition-opacity duration-300`}
+                        />
+                      )}
                     </motion.button>
                   );
                 })}
               </div>
 
-              {/* Generate Button - Sticky at bottom */}
-              <div className="px-3 pb-3 pt-2">
-                <button
+              {/* Generate Button - Enhanced Premium Styling */}
+              <div className="px-4 pb-4 pt-3 flex-shrink-0 border-t border-gray-100 dark:border-gray-800">
+                <motion.button
                   onClick={handleConfirmLevel}
-                  className="w-full group flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-semibold hover:shadow-lg transition-all"
+                  whileHover={{ scale: 1.01, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full group relative flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-bold shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Generate CV</span>
-                  <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
-                </button>
+                  {/* Gradient Overlay on Hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  
+                  <Sparkles className="w-4 h-4 relative z-10" />
+                  <span className="relative z-10">Generate CV</span>
+                  <ArrowRight className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 relative z-10" />
+                </motion.button>
               </div>
             </motion.div>
           )}

@@ -56,23 +56,23 @@ export function useBackgroundTasks(): UseBackgroundTasksReturn {
         if (task.type === 'cv_rewrite') {
           if (task.status === 'completed') {
             toast.success(
-              `🎉 CV optimisé généré avec succès !`,
+              `🎉 Optimized CV generated successfully!`,
               {
                 description: task.jobTitle && task.company 
-                  ? `CV adapté pour ${task.jobTitle} chez ${task.company}`
-                  : 'Votre CV a été optimisé avec succès',
+                  ? `CV tailored for ${task.jobTitle} at ${task.company}`
+                  : 'Your CV has been optimized successfully',
                 duration: 10000,
                 action: task.analysisId ? {
-                  label: 'Voir le CV',
+                  label: 'View CV',
                   onClick: () => navigate(`/ats-analysis/${task.analysisId}`)
                 } : undefined,
               }
             );
           } else if (task.status === 'failed') {
             toast.error(
-              `❌ Échec de la génération du CV`,
+              `❌ CV generation failed`,
               {
-                description: task.error || 'Une erreur est survenue lors de la génération',
+                description: task.error || 'An error occurred during generation',
                 duration: 8000,
               }
             );

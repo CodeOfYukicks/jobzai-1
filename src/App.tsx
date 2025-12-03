@@ -55,9 +55,10 @@ import CVCreatorPage from './pages/CVCreatorPage';
 import ResumeBuilderPage from './pages/ResumeBuilderPage';
 import NotionEditorPage from './pages/NotionEditorPage';
 import WhiteboardEditorPage from './pages/WhiteboardEditorPage';
+import MockInterviewPage from './pages/MockInterviewPage';
 
 import { initNotificationService } from './services/notificationService';
-import { BackgroundTaskIndicator, useBackgroundTasks } from './hooks/useBackgroundTasks';
+import { useBackgroundTasks } from './hooks/useBackgroundTasks';
 import { resumePendingTasks } from './services/cvRewriteWorker';
 
 const queryClient = new QueryClient();
@@ -194,6 +195,7 @@ function AppContent() {
           <Route path="/interview-prep/:applicationId/:interviewId" element={<InterviewPrepPage />} />
           <Route path="/upcoming-interviews" element={<UpcomingInterviewsPage />} />
           <Route path="/interview-help" element={<InterviewHelpPage />} />
+          <Route path="/mock-interview" element={<MockInterviewPage />} />
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/jobs" element={<JobBoardPage />} />
         </Route>
@@ -219,8 +221,6 @@ function AppContent() {
         onMaximize={() => setMinimized(false)}
       />
       
-      {/* Global Background Task Indicator - shows when CV generation is running */}
-      <BackgroundTaskIndicator />
       
       <Toaster
         position="top-right"

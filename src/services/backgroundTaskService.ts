@@ -171,13 +171,25 @@ export function subscribeToActiveTasks(
     where('status', 'in', ['pending', 'in_progress'])
   );
   
-  return onSnapshot(q, (snapshot) => {
-    const tasks: BackgroundTask[] = [];
-    snapshot.forEach((doc) => {
-      tasks.push(doc.data() as BackgroundTask);
-    });
-    callback(tasks);
-  });
+  return onSnapshot(q, 
+    (snapshot) => {
+      const tasks: BackgroundTask[] = [];
+      snapshot.forEach((doc) => {
+        tasks.push(doc.data() as BackgroundTask);
+      });
+      callback(tasks);
+    },
+    (error) => {
+      // Handle permission errors gracefully
+      if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+        console.warn('⚠️ Permission denied when subscribing to active tasks. This may be expected if Firestore rules restrict access.');
+        callback([]); // Return empty array on permission error
+        return;
+      }
+      console.error('❌ Error subscribing to active tasks:', error);
+      callback([]); // Return empty array on error
+    }
+  );
 }
 
 /**
@@ -195,13 +207,25 @@ export function subscribeToCompletedTasks(
     where('notificationShown', '==', false)
   );
   
-  return onSnapshot(q, (snapshot) => {
-    const tasks: BackgroundTask[] = [];
-    snapshot.forEach((doc) => {
-      tasks.push(doc.data() as BackgroundTask);
-    });
-    callback(tasks);
-  });
+  return onSnapshot(q, 
+    (snapshot) => {
+      const tasks: BackgroundTask[] = [];
+      snapshot.forEach((doc) => {
+        tasks.push(doc.data() as BackgroundTask);
+      });
+      callback(tasks);
+    },
+    (error) => {
+      // Handle permission errors gracefully
+      if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+        console.warn('⚠️ Permission denied when subscribing to completed tasks. This may be expected if Firestore rules restrict access.');
+        callback([]); // Return empty array on permission error
+        return;
+      }
+      console.error('❌ Error subscribing to completed tasks:', error);
+      callback([]); // Return empty array on error
+    }
+  );
 }
 
 /**
@@ -213,22 +237,34 @@ export function subscribeToRecentTasks(
 ): Unsubscribe {
   const tasksRef = collection(db, 'users', userId, 'backgroundTasks');
   
-  return onSnapshot(tasksRef, (snapshot) => {
-    const tasks: BackgroundTask[] = [];
-    snapshot.forEach((doc) => {
-      const task = doc.data() as BackgroundTask;
-      // Only include tasks from the last 24 hours
-      const createdAt = new Date(task.createdAt);
-      const now = new Date();
-      const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-      if (hoursDiff < 24) {
-        tasks.push(task);
+  return onSnapshot(tasksRef, 
+    (snapshot) => {
+      const tasks: BackgroundTask[] = [];
+      snapshot.forEach((doc) => {
+        const task = doc.data() as BackgroundTask;
+        // Only include tasks from the last 24 hours
+        const createdAt = new Date(task.createdAt);
+        const now = new Date();
+        const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        if (hoursDiff < 24) {
+          tasks.push(task);
+        }
+      });
+      // Sort by creation date, newest first
+      tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(tasks);
+    },
+    (error) => {
+      // Handle permission errors gracefully
+      if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+        console.warn('⚠️ Permission denied when subscribing to recent tasks. This may be expected if Firestore rules restrict access.');
+        callback([]); // Return empty array on permission error
+        return;
       }
-    });
-    // Sort by creation date, newest first
-    tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    callback(tasks);
-  });
+      console.error('❌ Error subscribing to recent tasks:', error);
+      callback([]); // Return empty array on error
+    }
+  );
 }
 
 /**

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -29,6 +29,7 @@ import {
   Search,
   Trash2,
   TrendingUp,
+  Target,
   User,
   Users,
   X,
@@ -42,6 +43,7 @@ import {
   XCircle,
   Image,
   Camera,
+  Settings,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
@@ -50,11 +52,13 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractJobInfo, DetailedJobInfo } from '../lib/jobExtractor';
 import DatePicker from '../components/ui/DatePicker';
-import { JobApplication, Interview, StatusChange } from '../types/job';
+import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
 import { JobDetailPanel } from '../components/job-detail-panel';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
+import AutomationSettingsModal from '../components/application/AutomationSettingsModal';
+import { checkAndApplyAutomations, isApplicationInactive, getInactiveDays } from '../lib/automationEngine';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -147,6 +151,11 @@ export default function JobApplicationsPage() {
   const [showMoveToInterviewPrompt, setShowMoveToInterviewPrompt] = useState(false);
   const [pendingMoveApplication, setPendingMoveApplication] = useState<JobApplication | null>(null);
 
+  // Automation settings states
+  const [automationSettings, setAutomationSettings] = useState<AutomationSettings>(defaultAutomationSettings);
+  const [showAutomationSettingsModal, setShowAutomationSettingsModal] = useState(false);
+  const automationIntervalRef = useRef<number | null>(null);
+
   // Handle file select for cover
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -191,6 +200,126 @@ export default function JobApplicationsPage() {
 
     return () => unsubscribe();
   }, [currentUser]);
+
+  // Load automation settings from Firestore
+  useEffect(() => {
+    const loadAutomationSettings = async () => {
+      if (!currentUser) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData.automationSettings) {
+            setAutomationSettings(userData.automationSettings as AutomationSettings);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading automation settings:', error);
+      }
+    };
+
+    loadAutomationSettings();
+  }, [currentUser]);
+
+  // Save automation settings to Firestore
+  const handleSaveAutomationSettings = async (settings: AutomationSettings) => {
+    if (!currentUser) return;
+
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        automationSettings: settings,
+      });
+      setAutomationSettings(settings);
+      toast.success('Automation settings saved');
+    } catch (error) {
+      console.error('Error saving automation settings:', error);
+      toast.error('Failed to save automation settings');
+      throw error;
+    }
+  };
+
+  // Apply automations
+  const applyAutomations = useCallback(async () => {
+    if (!currentUser || applications.length === 0) return;
+
+    try {
+      const updates = checkAndApplyAutomations(applications, automationSettings);
+      
+      if (updates.length === 0) return;
+
+      // Apply updates to Firestore
+      for (const update of updates) {
+        const appRef = doc(db, 'users', currentUser.uid, 'jobApplications', update.applicationId);
+        const app = applications.find((a) => a.id === update.applicationId);
+        if (!app) continue;
+
+        const statusHistory = app.statusHistory || [{
+          status: app.status,
+          date: app.appliedDate,
+          notes: 'Initial application',
+        }];
+
+        const newStatusChange: StatusChange = {
+          status: update.newStatus,
+          date: new Date().toISOString().split('T')[0],
+          notes: update.reason,
+        };
+
+        statusHistory.push(newStatusChange);
+
+        await updateDoc(appRef, {
+          status: update.newStatus,
+          statusHistory,
+          updatedAt: serverTimestamp(),
+        });
+
+        // Show toast for each update
+        toast.info(`${app.companyName} - ${app.position}: ${update.reason}`, {
+          duration: 4000,
+        });
+      }
+
+      if (updates.length > 0) {
+        toast.success(`${updates.length} automation${updates.length > 1 ? 's' : ''} applied`);
+      }
+    } catch (error) {
+      console.error('Error applying automations:', error);
+      toast.error('Failed to apply automations');
+    }
+  }, [currentUser, applications, automationSettings]);
+
+  // Run automations on mount and periodically
+  useEffect(() => {
+    if (!currentUser || applications.length === 0) return;
+
+    let mounted = true;
+
+    // Run after a short delay to avoid running on every render
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        applyAutomations();
+      }
+    }, 2000);
+
+    // Run every hour
+    automationIntervalRef.current = window.setInterval(() => {
+      if (mounted) {
+        applyAutomations();
+      }
+    }, 60 * 60 * 1000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+      if (automationIntervalRef.current) {
+        clearInterval(automationIntervalRef.current);
+      }
+    };
+    // Only run when automationSettings change, not on every application change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, automationSettings]);
 
   // Handle highlight parameter from URL to open application modal
   useEffect(() => {
@@ -247,7 +376,7 @@ export default function JobApplicationsPage() {
   // Function to detect if cover image is dark or light
   const detectCoverBrightness = (imageUrl: string): Promise<boolean> => {
     return new Promise((resolve) => {
-      const img = new Image();
+      const img = new window.Image();
       img.crossOrigin = 'anonymous';
       
       img.onload = () => {
@@ -561,7 +690,8 @@ export default function JobApplicationsPage() {
         location: extractedData.location || prev.location,
         description: formattedDescription || prev.description || '',
         fullJobDescription: extractedData.fullJobDescription || prev.fullJobDescription || '',
-        jobInsights: extractedData.jobInsights || prev.jobInsights
+        jobInsights: extractedData.jobInsights || prev.jobInsights,
+        jobTags: extractedData.jobTags || prev.jobTags
       }));
 
       setShowFullForm(true);
@@ -609,7 +739,9 @@ export default function JobApplicationsPage() {
           generatedEmails: [],
           stickyNotes: [],
           // Initialize jobInsights if extracted by AI
-          ...(formData.jobInsights && { jobInsights: formData.jobInsights })
+          ...(formData.jobInsights && { jobInsights: formData.jobInsights }),
+          // Initialize jobTags if extracted by AI
+          ...(formData.jobTags && { jobTags: formData.jobTags })
         };
 
         // Vérification des champs requis
@@ -1514,16 +1646,52 @@ export default function JobApplicationsPage() {
   };
 
   const getResponseRateData = () => {
+    const now = new Date();
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    
     const total = applications.length;
     const responses = applications.filter(app => app.status !== 'applied').length;
     const interviews = applications.filter(app => app.status === 'interview' || app.status === 'offer' ||
       (app.interviews && app.interviews.length > 0)).length;
     const offers = applications.filter(app => app.status === 'offer').length;
 
+    // Calculate rates for current month
+    const currentMonthApps = applications.filter(app => {
+      const appDate = new Date(app.appliedDate);
+      return appDate >= oneMonthAgo;
+    });
+    const currentMonthTotal = currentMonthApps.length;
+    const currentMonthResponses = currentMonthApps.filter(app => app.status !== 'applied').length;
+    const currentMonthInterviews = currentMonthApps.filter(app => app.status === 'interview' || app.status === 'offer' ||
+      (app.interviews && app.interviews.length > 0)).length;
+    const currentMonthOffers = currentMonthApps.filter(app => app.status === 'offer').length;
+
+    // Calculate rates for previous month
+    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+    const previousMonthApps = applications.filter(app => {
+      const appDate = new Date(app.appliedDate);
+      return appDate >= twoMonthsAgo && appDate < oneMonthAgo;
+    });
+    const previousMonthTotal = previousMonthApps.length;
+    const previousMonthResponses = previousMonthApps.filter(app => app.status !== 'applied').length;
+    const previousMonthInterviews = previousMonthApps.filter(app => app.status === 'interview' || app.status === 'offer' ||
+      (app.interviews && app.interviews.length > 0)).length;
+    const previousMonthOffers = previousMonthApps.filter(app => app.status === 'offer').length;
+
+    const currentResponseRate = currentMonthTotal > 0 ? (currentMonthResponses / currentMonthTotal) * 100 : 0;
+    const previousResponseRate = previousMonthTotal > 0 ? (previousMonthResponses / previousMonthTotal) * 100 : 0;
+    const currentInterviewRate = currentMonthTotal > 0 ? (currentMonthInterviews / currentMonthTotal) * 100 : 0;
+    const previousInterviewRate = previousMonthTotal > 0 ? (previousMonthInterviews / previousMonthTotal) * 100 : 0;
+    const currentOfferRate = currentMonthTotal > 0 ? (currentMonthOffers / currentMonthTotal) * 100 : 0;
+    const previousOfferRate = previousMonthTotal > 0 ? (previousMonthOffers / previousMonthTotal) * 100 : 0;
+
     return {
       responseRate: total ? (responses / total) * 100 : 0,
       interviewRate: total ? (interviews / total) * 100 : 0,
-      offerRate: total ? (offers / total) * 100 : 0
+      offerRate: total ? (offers / total) * 100 : 0,
+      responseRateTrend: currentResponseRate - previousResponseRate,
+      interviewRateTrend: currentInterviewRate - previousInterviewRate,
+      offerRateTrend: currentOfferRate - previousOfferRate,
     };
   };
 
@@ -1567,6 +1735,275 @@ export default function JobApplicationsPage() {
       avgDaysToInterview: applicationsWithInterviews ? Math.round(totalApplicationToInterview / applicationsWithInterviews) : 0,
       avgDaysToOffer: interviewsWithOffers ? Math.round(totalInterviewToOffer / interviewsWithOffers) : 0
     };
+  };
+
+  // New Analytics Functions - Tag-based analysis
+
+  // Distribution by industry
+  const getIndustryDistribution = () => {
+    const industryCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    
+    applications.forEach(app => {
+      if (app.jobTags?.industry && app.jobTags.industry.length > 0) {
+        app.jobTags.industry.forEach(industry => {
+          if (!industryCounts[industry]) {
+            industryCounts[industry] = { count: 0, interviews: 0, offers: 0 };
+          }
+          industryCounts[industry].count++;
+          if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+            industryCounts[industry].interviews++;
+          }
+          if (app.status === 'offer') {
+            industryCounts[industry].offers++;
+          }
+        });
+      }
+    });
+
+    return Object.entries(industryCounts)
+      .map(([industry, data]) => ({
+        industry,
+        count: data.count,
+        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  };
+
+  // Distribution by technologies
+  const getTechnologyDistribution = () => {
+    const techCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    
+    applications.forEach(app => {
+      if (app.jobTags?.technologies && app.jobTags.technologies.length > 0) {
+        app.jobTags.technologies.forEach(tech => {
+          if (!techCounts[tech]) {
+            techCounts[tech] = { count: 0, interviews: 0, offers: 0 };
+          }
+          techCounts[tech].count++;
+          if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+            techCounts[tech].interviews++;
+          }
+          if (app.status === 'offer') {
+            techCounts[tech].offers++;
+          }
+        });
+      }
+    });
+
+    return Object.entries(techCounts)
+      .map(([tech, data]) => ({
+        tech,
+        count: data.count,
+        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 15);
+  };
+
+  // Distribution by seniority
+  const getSeniorityDistribution = () => {
+    const seniorityCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    
+    applications.forEach(app => {
+      const seniority = app.jobTags?.seniority || 'Not specified';
+      if (!seniorityCounts[seniority]) {
+        seniorityCounts[seniority] = { count: 0, interviews: 0, offers: 0 };
+      }
+      seniorityCounts[seniority].count++;
+      if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+        seniorityCounts[seniority].interviews++;
+      }
+      if (app.status === 'offer') {
+        seniorityCounts[seniority].offers++;
+      }
+    });
+
+    return Object.entries(seniorityCounts)
+      .map(([seniority, data]) => ({
+        seniority,
+        count: data.count,
+        percentage: applications.length > 0 ? (data.count / applications.length) * 100 : 0,
+        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  // Location insights
+  const getLocationInsights = () => {
+    const locationCounts: { [key: string]: { count: number; interviews: number; offers: number; type: string } } = {};
+    
+    applications.forEach(app => {
+      let locationKey = 'Not specified';
+      let locationType = 'Not specified';
+      
+      if (app.jobTags?.location) {
+        const loc = app.jobTags.location;
+        if (loc.remote && loc.hybrid) {
+          locationKey = 'Hybrid';
+          locationType = 'Hybrid';
+        } else if (loc.remote) {
+          locationKey = 'Remote';
+          locationType = 'Remote';
+        } else if (loc.city && loc.country) {
+          locationKey = `${loc.city}, ${loc.country}`;
+          locationType = 'On-site';
+        } else if (loc.city) {
+          locationKey = loc.city;
+          locationType = 'On-site';
+        } else if (loc.country) {
+          locationKey = loc.country;
+          locationType = 'On-site';
+        } else {
+          locationKey = app.location || 'Not specified';
+          locationType = 'On-site';
+        }
+      } else {
+        locationKey = app.location || 'Not specified';
+        locationType = 'On-site';
+      }
+
+      if (!locationCounts[locationKey]) {
+        locationCounts[locationKey] = { count: 0, interviews: 0, offers: 0, type: locationType };
+      }
+      locationCounts[locationKey].count++;
+      if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+        locationCounts[locationKey].interviews++;
+      }
+      if (app.status === 'offer') {
+        locationCounts[locationKey].offers++;
+      }
+    });
+
+    // Group by type (Remote, Hybrid, On-site)
+    const typeGroups: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    Object.values(locationCounts).forEach(data => {
+      const type = data.type;
+      if (!typeGroups[type]) {
+        typeGroups[type] = { count: 0, interviews: 0, offers: 0 };
+      }
+      typeGroups[type].count += data.count;
+      typeGroups[type].interviews += data.interviews;
+      typeGroups[type].offers += data.offers;
+    });
+
+    return {
+      byLocation: Object.entries(locationCounts)
+        .map(([location, data]) => ({
+          location,
+          count: data.count,
+          type: data.type,
+          interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
+          offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10),
+      byType: Object.entries(typeGroups)
+        .map(([type, data]) => ({
+          type,
+          count: data.count,
+          interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
+          offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+        }))
+        .sort((a, b) => b.count - a.count),
+    };
+  };
+
+  // Employment type distribution
+  const getEmploymentTypeDistribution = () => {
+    const typeCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    
+    applications.forEach(app => {
+      const types = app.jobTags?.employmentType || [];
+      if (types.length === 0) {
+        const defaultType = 'Not specified';
+        if (!typeCounts[defaultType]) {
+          typeCounts[defaultType] = { count: 0, interviews: 0, offers: 0 };
+        }
+        typeCounts[defaultType].count++;
+        if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+          typeCounts[defaultType].interviews++;
+        }
+        if (app.status === 'offer') {
+          typeCounts[defaultType].offers++;
+        }
+      } else {
+        types.forEach(type => {
+          if (!typeCounts[type]) {
+            typeCounts[type] = { count: 0, interviews: 0, offers: 0 };
+          }
+          typeCounts[type].count++;
+          if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+            typeCounts[type].interviews++;
+          }
+          if (app.status === 'offer') {
+            typeCounts[type].offers++;
+          }
+        });
+      }
+    });
+
+    return Object.entries(typeCounts)
+      .map(([type, data]) => ({
+        type,
+        count: data.count,
+        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  // Company size distribution
+  const getCompanySizeDistribution = () => {
+    const sizeCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    
+    applications.forEach(app => {
+      const size = app.jobTags?.companySize || 'Not specified';
+      if (!sizeCounts[size]) {
+        sizeCounts[size] = { count: 0, interviews: 0, offers: 0 };
+      }
+      sizeCounts[size].count++;
+      if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+        sizeCounts[size].interviews++;
+      }
+      if (app.status === 'offer') {
+        sizeCounts[size].offers++;
+      }
+    });
+
+    return Object.entries(sizeCounts)
+      .map(([size, data]) => ({
+        size,
+        count: data.count,
+        percentage: applications.length > 0 ? (data.count / applications.length) * 100 : 0,
+        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  // Success patterns analysis
+  const getSuccessPatterns = () => {
+    const patterns = {
+      topIndustries: getIndustryDistribution().slice(0, 3),
+      topTechnologies: getTechnologyDistribution().slice(0, 5),
+      bestSeniority: getSeniorityDistribution()
+        .filter(s => s.count >= 2) // At least 2 applications
+        .sort((a, b) => b.interviewRate - a.interviewRate)
+        .slice(0, 1)[0],
+      bestLocationType: getLocationInsights().byType
+        .sort((a, b) => b.interviewRate - a.interviewRate)
+        .slice(0, 1)[0],
+      bestCompanySize: getCompanySizeDistribution()
+        .filter(s => s.count >= 2)
+        .sort((a, b) => b.interviewRate - a.interviewRate)
+        .slice(0, 1)[0],
+    };
+
+    return patterns;
   };
 
   // Helper function to generate .ics file for calendar integration
@@ -1816,29 +2253,51 @@ END:VCALENDAR`;
               </p>
             </div>
 
-            {/* Bouton Add à droite */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setEventType(null);
-                setLookupSelectedApplication(null);
-                setLinkedApplicationId(null);
-                setLookupSearchQuery('');
-                setShowLookupDropdown(false);
-                setNewApplicationModal(true);
-              }}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
-                    ${coverPhoto 
-                      ? (isCoverDark 
-                        ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
-                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
-                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Application</span>
-            </motion.button>
+            {/* Boutons Add et Settings à droite */}
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setEventType(null);
+                  setLookupSelectedApplication(null);
+                  setLinkedApplicationId(null);
+                  setLookupSearchQuery('');
+                  setShowLookupDropdown(false);
+                  setNewApplicationModal(true);
+                }}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
+                  ${coverPhoto 
+                    ? (isCoverDark 
+                      ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
+                      : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
+                    : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Application</span>
+              </motion.button>
+
+              {/* Settings Button */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowAutomationSettingsModal(true)}
+                className={`relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
+                  ${coverPhoto 
+                    ? (isCoverDark 
+                      ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
+                      : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
+                    : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                title="Automation Settings"
+              >
+                <Settings className="w-4 h-4" />
+                {Object.values(automationSettings).some((s: any) => (s as { enabled?: boolean }).enabled) && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full" />
+                )}
+              </motion.button>
+            </div>
               </motion.div>
 
               {/* Stats and View Toggle Row */}
@@ -2209,6 +2668,22 @@ END:VCALENDAR`;
                                     setSelectedApplication(app);
                                     setTimelineModal(true);
                                   }}
+                                  getIsInactive={(app) => {
+                                    try {
+                                      return isApplicationInactive(app, automationSettings.inactiveReminder);
+                                    } catch (error) {
+                                      console.error('Error checking inactive status:', error);
+                                      return false;
+                                    }
+                                  }}
+                                  getInactiveDays={(app) => {
+                                    try {
+                                      return getInactiveDays(app);
+                                    } catch (error) {
+                                      console.error('Error getting inactive days:', error);
+                                      return 0;
+                                    }
+                                  }}
                                   onCardDelete={(app) => {
                                     setDeleteModal({ show: true, application: app });
                                   }}
@@ -2264,59 +2739,93 @@ END:VCALENDAR`;
                 </div>
               ) : (
                 <>
-                  {/* Top row - Response rate metrics */}
+                  {/* Section 1: Vue d'ensemble - Métriques améliorées */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {[
-                      {
-                        label: 'Response Rate',
-                        value: `${getResponseRateData().responseRate.toFixed(0)}%`,
-                        desc: 'Applications that received any response',
-                        icon: <MessageSquare className="text-purple-500" />,
-                        trend: '+5% vs last month'
-                      },
-                      {
-                        label: 'Interview Rate',
-                        value: `${getResponseRateData().interviewRate.toFixed(0)}%`,
-                        desc: 'Applications that led to interviews',
-                        icon: <Users className="text-blue-500" />,
-                        trend: '+2% vs last month'
-                      },
-                      {
-                        label: 'Offer Rate',
-                        value: `${getResponseRateData().offerRate.toFixed(0)}%`,
-                        desc: 'Applications that resulted in offers',
-                        icon: <Check className="text-green-500" />,
-                        trend: getResponseRateData().offerRate > 0 ? '+3% vs last month' : 'No change'
-                      }
-                    ].map((metric, i) => (
-                      <motion.div
-                        key={metric.label}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.1 * i }}
-                        className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{metric.label}</p>
-                            <h3 className="text-2xl font-bold mt-1">{metric.value}</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{metric.desc}</p>
+                    {(() => {
+                      const rateData = getResponseRateData();
+                      const getTrendText = (trend: number) => {
+                        if (trend > 0) return `+${trend.toFixed(1)}% vs last month`;
+                        if (trend < 0) return `${trend.toFixed(1)}% vs last month`;
+                        return 'No change';
+                      };
+                      const getPerformanceBadge = (rate: number) => {
+                        if (rate >= 30) return { text: 'Excellent', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' };
+                        if (rate >= 15) return { text: 'Good', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' };
+                        return { text: 'Needs Improvement', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' };
+                      };
+                      
+                      return [
+                        {
+                          label: 'Response Rate',
+                          value: `${rateData.responseRate.toFixed(0)}%`,
+                          desc: 'Applications that received any response',
+                          icon: <MessageSquare className="text-purple-500" />,
+                          trend: rateData.responseRateTrend,
+                          badge: getPerformanceBadge(rateData.responseRate)
+                        },
+                        {
+                          label: 'Interview Rate',
+                          value: `${rateData.interviewRate.toFixed(0)}%`,
+                          desc: 'Applications that led to interviews',
+                          icon: <Users className="text-blue-500" />,
+                          trend: rateData.interviewRateTrend,
+                          badge: getPerformanceBadge(rateData.interviewRate)
+                        },
+                        {
+                          label: 'Offer Rate',
+                          value: `${rateData.offerRate.toFixed(0)}%`,
+                          desc: 'Applications that resulted in offers',
+                          icon: <Check className="text-green-500" />,
+                          trend: rateData.offerRateTrend,
+                          badge: getPerformanceBadge(rateData.offerRate)
+                        }
+                      ].map((metric, i) => (
+                        <motion.div
+                          key={metric.label}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.1 * i }}
+                          className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{metric.label}</p>
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${metric.badge.color}`}>
+                                  {metric.badge.text}
+                                </span>
+                              </div>
+                              <h3 className="text-2xl font-bold mt-1">{metric.value}</h3>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{metric.desc}</p>
+                            </div>
+                            <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-700">
+                              {metric.icon}
+                            </div>
                           </div>
-                          <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-700">
-                            {metric.icon}
+                          <div className="mt-4 flex items-center text-xs">
+                            {metric.trend !== 0 ? (
+                              <>
+                                {metric.trend > 0 ? (
+                                  <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
+                                ) : (
+                                  <TrendingUp className="w-3 h-3 text-red-500 mr-1 rotate-180" />
+                                )}
+                                <span className={metric.trend > 0 ? 'text-green-500' : 'text-red-500'}>
+                                  {getTrendText(metric.trend)}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-gray-500">No change vs last month</span>
+                            )}
                           </div>
-                        </div>
-                        <div className="mt-4 flex items-center text-xs">
-                          <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
-                          <span className="text-green-500">{metric.trend}</span>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      ));
+                    })()}
                   </div>
 
-                  {/* Middle row - Charts */}
+                  {/* Section 2: Distribution par catégories */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Monthly Applications Chart */}
+                    {/* Top Industries */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -2324,68 +2833,45 @@ END:VCALENDAR`;
                       className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
                     >
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-medium">Applications Over Time</h3>
-                        <div className="text-xs text-gray-500">Last 6 months</div>
+                        <h3 className="font-medium">Top Industries</h3>
+                        <div className="text-xs text-gray-500">{getIndustryDistribution().length} industries</div>
                       </div>
-
-                      <div className="h-60 flex items-end justify-between px-2">
-                        {getMonthlyApplicationData().map(([month, data], i) => {
-                          const total = data.applied + data.interviews + data.pending + data.offers + data.rejected;
-                          const maxHeight = 200; // max height in pixels
-
-                          return (
-                            <div key={month} className="flex flex-col items-center gap-2 w-1/6">
-                              {/* Stacked bars */}
-                              <div className="relative w-12 flex flex-col-reverse items-center">
-                                {[
-                                  { type: 'rejected', count: data.rejected, color: 'bg-red-500' },
-                                  { type: 'offers', count: data.offers, color: 'bg-green-500' },
-                                  { type: 'pending', count: data.pending, color: 'bg-amber-500' },
-                                  { type: 'interviews', count: data.interviews, color: 'bg-purple-500' },
-                                  { type: 'applied', count: data.applied, color: 'bg-blue-500' }
-                                ].map((segment, j) => {
-                                  const height = total > 0 ? (segment.count / total) * maxHeight : 0;
-
-                                  return (
-                                    <motion.div
-                                      key={segment.type}
-                                      initial={{ height: 0 }}
-                                      animate={{ height: Math.max(height, segment.count > 0 ? 4 : 0) }}
-                                      transition={{ duration: 0.5, delay: 0.1 * j + 0.1 * i }}
-                                      className={`w-8 ${segment.color} rounded-sm`}
-                                      style={{ marginBottom: segment.count > 0 ? 1 : 0 }}
-                                    />
-                                  );
-                                })}
+                      {getIndustryDistribution().length > 0 ? (
+                        <div className="space-y-3">
+                          {getIndustryDistribution().slice(0, 5).map((item, i) => {
+                            const maxCount = getIndustryDistribution()[0]?.count || 1;
+                            const widthPercentage = (item.count / maxCount) * 100;
+                            return (
+                              <div key={item.industry} className="space-y-1">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="font-medium text-gray-900 dark:text-white">{item.industry}</span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-500">{item.count} apps</span>
+                                    <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                                      {item.interviewRate.toFixed(0)}% interview
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${widthPercentage}%` }}
+                                    transition={{ duration: 0.5, delay: 0.1 * i }}
+                                    className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"
+                                  />
+                                </div>
                               </div>
-
-                              {/* Month label */}
-                              <div className="text-xs text-gray-500">
-                                {new Date(month).toLocaleDateString(undefined, { month: 'short' })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Legend */}
-                      <div className="flex justify-center mt-4 gap-4 text-xs">
-                        {[
-                          { label: 'Applied', color: 'bg-blue-500' },
-                          { label: 'Interviews', color: 'bg-purple-500' },
-                          { label: 'Pending', color: 'bg-amber-500' },
-                          { label: 'Offers', color: 'bg-green-500' },
-                          { label: 'Rejected', color: 'bg-red-500' }
-                        ].map(item => (
-                          <div key={item.label} className="flex items-center gap-1">
-                            <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                            <span>{item.label}</span>
-                          </div>
-                        ))}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
+                          No industry data available. Add jobs with AI extraction to see industry insights.
+                        </div>
+                      )}
                     </motion.div>
 
-                    {/* Application Sources */}
+                    {/* Top Technologies */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -2393,44 +2879,361 @@ END:VCALENDAR`;
                       className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
                     >
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-medium">Application Sources</h3>
+                        <h3 className="font-medium">Top Technologies</h3>
+                        <div className="text-xs text-gray-500">{getTechnologyDistribution().length} technologies</div>
                       </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Placeholder for Pie Chart - In a real app you would use a chart library */}
-                        <div className="flex items-center justify-center">
-                          <div className="relative w-32 h-32">
-                            <PieChart className="w-32 h-32 text-gray-200 dark:text-gray-700" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="text-lg font-medium">{applications.length}</span>
-                            </div>
+                      {getTechnologyDistribution().length > 0 ? (
+                        <>
+                          {/* Tag Cloud */}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {getTechnologyDistribution().slice(0, 10).map((item, i) => {
+                              const maxCount = getTechnologyDistribution()[0]?.count || 1;
+                              const size = Math.max(12, Math.min(20, 12 + (item.count / maxCount) * 8));
+                              return (
+                                <motion.span
+                                  key={item.tech}
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ duration: 0.3, delay: 0.05 * i }}
+                                  className="px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium"
+                                  style={{ fontSize: `${size}px` }}
+                                >
+                                  {item.tech}
+                                </motion.span>
+                              );
+                            })}
                           </div>
+                          {/* Top 5 Bar Chart */}
+                          <div className="space-y-2">
+                            {getTechnologyDistribution().slice(0, 5).map((item, i) => {
+                              const maxCount = getTechnologyDistribution()[0]?.count || 1;
+                              const widthPercentage = (item.count / maxCount) * 100;
+                              return (
+                                <div key={item.tech} className="space-y-1">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-700 dark:text-gray-300">{item.tech}</span>
+                                    <span className="text-gray-500">{item.count}</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${widthPercentage}%` }}
+                                      transition={{ duration: 0.4, delay: 0.1 * i }}
+                                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
+                          No technology data available. Add jobs with AI extraction to see technology insights.
                         </div>
+                      )}
+                    </motion.div>
 
-                        {/* Legend / List */}
-                        <div className="flex flex-col justify-center space-y-2">
-                          {getApplicationSourceData().map((source, i) => (
-                            <motion.div
-                              key={source.source}
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.3, delay: 0.1 * i }}
-                              className="flex items-center justify-between"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className={`w-3 h-3 rounded-full bg-${['blue', 'purple', 'green', 'yellow', 'pink'][i % 5]
-                                  }-500`}></div>
-                                <span className="text-sm">{source.source}</span>
-                              </div>
-                              <span className="text-sm font-medium">{source.count}</span>
-                            </motion.div>
-                          ))}
-                        </div>
+                    {/* Distribution Seniorité */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.5 }}
+                      className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-medium">Seniority Distribution</h3>
                       </div>
+                      {getSeniorityDistribution().length > 0 ? (
+                        <div className="space-y-3">
+                          {getSeniorityDistribution().map((item, i) => {
+                            const total = getSeniorityDistribution().reduce((sum, s) => sum + s.count, 0);
+                            const percentage = total > 0 ? (item.count / total) * 100 : 0;
+                            return (
+                              <div key={item.seniority} className="space-y-1">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="font-medium text-gray-900 dark:text-white">{item.seniority}</span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-500">{item.count} ({percentage.toFixed(0)}%)</span>
+                                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                      {item.interviewRate.toFixed(0)}% interview
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${percentage}%` }}
+                                    transition={{ duration: 0.5, delay: 0.1 * i }}
+                                    className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
+                          No seniority data available.
+                        </div>
+                      )}
+                    </motion.div>
+
+                    {/* Type d'emploi */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.6 }}
+                      className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-medium">Employment Type</h3>
+                      </div>
+                      {getEmploymentTypeDistribution().length > 0 ? (
+                        <div className="space-y-3">
+                          {getEmploymentTypeDistribution().map((item, i) => {
+                            const maxCount = getEmploymentTypeDistribution()[0]?.count || 1;
+                            const widthPercentage = (item.count / maxCount) * 100;
+                            return (
+                              <div key={item.type} className="space-y-1">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="font-medium text-gray-900 dark:text-white">{item.type}</span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-500">{item.count}</span>
+                                    <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                                      {item.interviewRate.toFixed(0)}% interview
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${widthPercentage}%` }}
+                                    transition={{ duration: 0.5, delay: 0.1 * i }}
+                                    className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
+                          No employment type data available.
+                        </div>
+                      )}
                     </motion.div>
                   </div>
 
-                  {/* Bottom row - Time metrics */}
+                  {/* Section 3: Insights géographiques */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.7 }}
+                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-medium">Location Insights</h3>
+                    </div>
+                    {(() => {
+                      const locationData = getLocationInsights();
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* By Type */}
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">By Work Arrangement</h4>
+                            <div className="space-y-3">
+                              {locationData.byType.map((item, i) => (
+                                <div key={item.type} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm font-medium text-gray-900 dark:text-white">{item.type}</span>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <span className="text-xs text-gray-500">{item.count}</span>
+                                    <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                                      {item.interviewRate.toFixed(0)}% interview
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          {/* Top Locations */}
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Top Locations</h4>
+                            <div className="space-y-2">
+                              {locationData.byLocation.slice(0, 5).map((item, i) => (
+                                <div key={item.location} className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-700 dark:text-gray-300">{item.location}</span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-500">{item.count}</span>
+                                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                      {item.interviewRate.toFixed(0)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </motion.div>
+
+                  {/* Section 4: Patterns de succès */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.8 }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    {(() => {
+                      const patterns = getSuccessPatterns();
+                      return [
+                        patterns.topIndustries.length > 0 && {
+                          title: 'Best Performing Industries',
+                          icon: <TrendingUp className="w-5 h-5 text-purple-500" />,
+                          content: (
+                            <div className="space-y-2">
+                              {patterns.topIndustries.map((ind, i) => (
+                                <div key={ind.industry} className="flex items-center justify-between text-sm">
+                                  <span className="font-medium text-gray-900 dark:text-white">{ind.industry}</span>
+                                  <span className="text-purple-600 dark:text-purple-400 font-medium">
+                                    {ind.interviewRate.toFixed(0)}% interview rate
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ),
+                        },
+                        patterns.topTechnologies.length > 0 && {
+                          title: 'Most In-Demand Technologies',
+                          icon: <Code className="w-5 h-5 text-blue-500" />,
+                          content: (
+                            <div className="flex flex-wrap gap-2">
+                              {patterns.topTechnologies.map((tech) => (
+                                <span
+                                  key={tech.tech}
+                                  className="px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium"
+                                >
+                                  {tech.tech}
+                                </span>
+                              ))}
+                            </div>
+                          ),
+                        },
+                        patterns.bestSeniority && {
+                          title: 'Your Sweet Spot',
+                          icon: <Target className="w-5 h-5 text-green-500" />,
+                          content: (
+                            <div className="space-y-1">
+                              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                                {patterns.bestSeniority.seniority}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {patterns.bestSeniority.interviewRate.toFixed(0)}% interview rate
+                              </p>
+                            </div>
+                          ),
+                        },
+                        patterns.bestLocationType && {
+                          title: 'Best Work Arrangement',
+                          icon: <MapPin className="w-5 h-5 text-indigo-500" />,
+                          content: (
+                            <div className="space-y-1">
+                              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                                {patterns.bestLocationType.type}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {patterns.bestLocationType.interviewRate.toFixed(0)}% interview rate
+                              </p>
+                            </div>
+                          ),
+                        },
+                      ].filter(Boolean).map((insight: any, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3, delay: 0.1 * i }}
+                          className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800"
+                        >
+                          <div className="flex items-center gap-2 mb-3">
+                            {insight.icon}
+                            <h4 className="font-medium text-gray-900 dark:text-white">{insight.title}</h4>
+                          </div>
+                          {insight.content}
+                        </motion.div>
+                      ));
+                    })()}
+                  </motion.div>
+
+                  {/* Section 5: Timeline améliorée */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.9 }}
+                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-medium">Applications Over Time</h3>
+                      <div className="text-xs text-gray-500">Last 6 months</div>
+                    </div>
+
+                    <div className="h-60 flex items-end justify-between px-2">
+                      {getMonthlyApplicationData().map(([month, data], i) => {
+                        const total = data.applied + data.interviews + data.pending + data.offers + data.rejected;
+                        const maxHeight = 200;
+
+                        return (
+                          <div key={month} className="flex flex-col items-center gap-2 w-1/6">
+                            <div className="relative w-12 flex flex-col-reverse items-center">
+                              {[
+                                { type: 'rejected', count: data.rejected, color: 'bg-red-500' },
+                                { type: 'offers', count: data.offers, color: 'bg-green-500' },
+                                { type: 'pending', count: data.pending, color: 'bg-amber-500' },
+                                { type: 'interviews', count: data.interviews, color: 'bg-purple-500' },
+                                { type: 'applied', count: data.applied, color: 'bg-blue-500' }
+                              ].map((segment, j) => {
+                                const height = total > 0 ? (segment.count / total) * maxHeight : 0;
+                                return (
+                                  <motion.div
+                                    key={segment.type}
+                                    initial={{ height: 0 }}
+                                    animate={{ height: Math.max(height, segment.count > 0 ? 4 : 0) }}
+                                    transition={{ duration: 0.5, delay: 0.1 * j + 0.1 * i }}
+                                    className={`w-8 ${segment.color} rounded-sm`}
+                                    style={{ marginBottom: segment.count > 0 ? 1 : 0 }}
+                                  />
+                                );
+                              })}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(month).toLocaleDateString(undefined, { month: 'short' })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-center mt-4 gap-4 text-xs">
+                      {[
+                        { label: 'Applied', color: 'bg-blue-500' },
+                        { label: 'Interviews', color: 'bg-purple-500' },
+                        { label: 'Pending', color: 'bg-amber-500' },
+                        { label: 'Offers', color: 'bg-green-500' },
+                        { label: 'Rejected', color: 'bg-red-500' }
+                      ].map(item => (
+                        <div key={item.label} className="flex items-center gap-1">
+                          <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                          <span>{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Section 6: Métriques temporelles améliorées */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
                       {
@@ -2448,7 +3251,7 @@ END:VCALENDAR`;
                         key={metric.label}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.6 + 0.1 * i }}
+                        transition={{ duration: 0.4, delay: 1.0 + 0.1 * i }}
                         className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
                       >
                         <div className="flex items-center gap-3">
@@ -4899,6 +5702,15 @@ END:VCALENDAR`;
           onSelectBlob={handleGallerySelect}
           onRemove={coverPhoto ? handleRemoveCover : undefined}
           currentCover={coverPhoto || undefined}
+        />
+
+        {/* Automation Settings Modal */}
+        <AutomationSettingsModal
+          isOpen={showAutomationSettingsModal}
+          onClose={() => setShowAutomationSettingsModal(false)}
+          settings={automationSettings}
+          onSave={handleSaveAutomationSettings}
+          applications={applications}
         />
       </div>
     </AuthLayout>

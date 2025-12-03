@@ -164,657 +164,171 @@ function formatJobSummaryInsights(jobSummary: EnrichedATSAnalysis['jobSummary'])
 }
 
 /**
- * Generate level-specific instructions for the AI prompt
- * These control how aggressively the AI rewrites the CV
+ * Get level-specific configuration for CV rewriting
+ * Simplified version - controls keyword count and intensity
  */
-function getAdaptationLevelInstructions(level: AdaptationLevel): {
-  missionStatement: string;
-  rewritingIntensity: string;
-  keywordStrategy: string;
-  styleGuidance: string;
+function getLevelConfig(level: AdaptationLevel): {
+  keywords: string;
+  intensity: string;
+  scoreGoal: string;
+  approach: string;
 } {
   switch (level) {
     case 'conservative':
       return {
-        missionStatement: `Your mission is to make MINIMAL, targeted improvements while preserving the candidate's authentic voice and original style. Focus on corrections and subtle enhancements.`,
-        rewritingIntensity: `
-## 🎚️ ADAPTATION LEVEL: CONSERVATIVE (Level 1)
-
-**Rewriting Intensity: LOW - Preserve Original Voice**
-
-Your approach for this level:
-1. **PRESERVE** the original tone, writing style, and sentence structure as much as possible
-2. **CORRECT** only grammatical errors, typos, and formatting issues
-3. **SUBTLY ADD** 3-5 priority keywords where they fit NATURALLY (don't force them)
-4. **MINIMAL REPHRASING** - only change wording if it's clearly weak or unclear
-5. **KEEP** the original summary structure - just polish it slightly
-6. **DON'T** use aggressive power verbs unless the original already has a strong tone
-7. **PRIORITIZE** authenticity over optimization - the CV should still "sound like" the candidate
-
-The goal is a 5-10% improvement in match score, NOT a complete transformation.
-`,
-        keywordStrategy: `
-### 🔑 CONSERVATIVE KEYWORD APPROACH
-- Add only 3-5 of the most critical keywords
-- Keywords should blend in naturally with existing content
-- Don't restructure sentences to accommodate keywords
-- If a keyword doesn't fit naturally, skip it
-`,
-        styleGuidance: `
-### ✍️ STYLE PRESERVATION
-- Keep the candidate's original vocabulary and tone
-- Minor grammar/spelling corrections only
-- Light formatting improvements
-- Preserve original bullet structure and length
-`
+        keywords: '3-5',
+        intensity: 'LOW - preserve original voice',
+        scoreGoal: '5-10%',
+        approach: 'Minimal changes: fix grammar, add few keywords naturally, keep original tone and structure.'
       };
-
     case 'balanced':
       return {
-        missionStatement: `Your mission is to create a BALANCED optimization that improves job match while maintaining the candidate's professional identity. Aim for noticeable improvement without losing authenticity.`,
-        rewritingIntensity: `
-## 🎚️ ADAPTATION LEVEL: BALANCED (Level 2)
-
-**Rewriting Intensity: MODERATE - Thoughtful Optimization**
-
-Your approach for this level:
-1. **ENHANCE** bullet points with stronger action verbs and clearer impact statements
-2. **INTEGRATE** 10-15 priority keywords naturally throughout the CV
-3. **IMPROVE** the professional summary with better structure (Hook + Proof + Value)
-4. **REORDER** experiences if needed to highlight most relevant ones first
-5. **ADD QUANTIFICATION** where data exists in the original (use ~ for reasonable estimates)
-6. **MAINTAIN** the overall structure and format of the original CV
-7. **BALANCE** optimization with authenticity - improve but don't transform completely
-
-The goal is a 15-25% improvement in match score with natural-sounding content.
-`,
-        keywordStrategy: `
-### 🔑 BALANCED KEYWORD APPROACH
-- Integrate 10-15 priority keywords across all sections
-- Rephrase sentences to include keywords naturally
-- Add a Skills/Core Competencies section if missing
-- Keywords should appear 1-2 times each
-`,
-        styleGuidance: `
-### ✍️ STYLE ENHANCEMENT
-- Upgrade weak verbs to stronger alternatives
-- Improve sentence structure for impact
-- Add relevant context to bullet points
-- Maintain professional but enhanced tone
-`
+        keywords: '10-15',
+        intensity: 'MODERATE - enhance while authentic',
+        scoreGoal: '15-25%',
+        approach: 'Balanced optimization: stronger verbs, integrate keywords, improve summary with Hook+Proof+Value format, add metrics where data exists.'
       };
-
     case 'optimized':
       return {
-        missionStatement: `Your mission is to MAXIMIZE job match potential through comprehensive optimization. Transform this CV into the strongest possible match while keeping core experiences and achievements intact.`,
-        rewritingIntensity: `
-## 🎚️ ADAPTATION LEVEL: OPTIMIZED (Level 3)
-
-**Rewriting Intensity: HIGH - Maximum Impact**
-
-Your approach for this level:
-1. **TRANSFORM** every bullet point to use powerful action verbs and quantified results
-2. **SATURATE** the CV with 20+ priority keywords, each appearing 2-3 times
-3. **REWRITE** the professional summary to directly address the job's core requirements
-4. **RESTRUCTURE** content to front-load the most relevant experiences and skills
-5. **AMPLIFY** all achievements to their maximum truthful potential
-6. **CREATE** a comprehensive Skills/Core Competencies section with keyword clusters
-7. **ELEVATE** language to senior-level tone throughout
-8. **OPTIMIZE** for ATS with strategic keyword placement and formatting
-
-The goal is a 30-40%+ improvement in match score - create the STRONGEST possible CV.
-
-⚠️ IMPORTANT: Even at maximum intensity, NEVER invent experiences, metrics, or achievements.
-Transform what exists, don't fabricate what doesn't.
-`,
-        keywordStrategy: `
-### 🔑 OPTIMIZED KEYWORD APPROACH
-- Saturate with 20+ keywords across all sections
-- Each priority keyword should appear 2-3 times
-- Add keyword variations and synonyms
-- Create dedicated skills clusters by category
-- Front-load keywords in summary and recent experiences
-`,
-        styleGuidance: `
-### ✍️ STYLE TRANSFORMATION
-- Use the most powerful action verbs available
-- Add maximum impact to every statement
-- Elevate all language to senior executive level
-- Create compelling, memorable achievements
-- Ensure every bullet demonstrates value
-`
+        keywords: '20+',
+        intensity: 'HIGH - maximum transformation',
+        scoreGoal: '30-40%',
+        approach: 'Full transformation: powerful action verbs, saturate with keywords, rewrite summary for job requirements, elevate to senior-level tone, maximize ATS compatibility.'
       };
-
     default:
-      // Default to balanced if unknown level
-      return getAdaptationLevelInstructions('balanced');
+      return getLevelConfig('balanced');
   }
 }
 
 /**
- * Generate the ULTRA-QUALITY CV rewriting prompt
- * Uses a 3-Phase strategic approach with full ATS data richness
+ * Generate optimized CV rewriting prompt
+ * Streamlined version: ~200 lines instead of 500+, 3x cheaper, more reliable
  */
 function generateCVRewritePrompt(input: CVRewriteInput): string {
-  // Format enriched data
-  const formattedStrengths = formatEnrichedStrengths(input.atsAnalysis.strengths);
-  const formattedGaps = formatEnrichedGaps(input.atsAnalysis.gaps);
-  const formattedCVFixes = formatCVFixes(input.atsAnalysis.cvFixes);
-  const formattedJobInsights = formatJobSummaryInsights(input.atsAnalysis.jobSummary);
-  
-  // Prepare keywords
   const priorityKeywords = input.atsAnalysis.keywords.priority_missing || [];
-  const otherMissingKeywords = input.atsAnalysis.keywords.missing.filter(k => !priorityKeywords.includes(k));
-  const foundKeywords = input.atsAnalysis.keywords.found || [];
-  
-  // Get level-specific instructions (default to balanced)
+  const missingKeywords = input.atsAnalysis.keywords.missing.filter(k => !priorityKeywords.includes(k));
   const adaptationLevel = input.adaptationLevel || 'balanced';
-  const levelInstructions = getAdaptationLevelInstructions(adaptationLevel);
+  const levelConfig = getLevelConfig(adaptationLevel);
   
-  return `You are an ELITE CV STRATEGIST with 25+ years placing top executives at FAANG, McKinsey, Goldman Sachs, and Fortune 100 companies. Your CVs have a 94% interview callback rate.
+  // Format strengths and gaps concisely
+  const strengths = (input.atsAnalysis.strengths || []).map(s => s.name).filter(Boolean).join(', ') || 'None identified';
+  const gaps = (input.atsAnalysis.gaps || []).map(g => g.name).filter(Boolean).join(', ') || 'None identified';
 
-${levelInstructions.missionStatement}
+  return `You are an expert CV strategist. Rewrite this CV to maximize job match while preserving factual accuracy.
 
-${levelInstructions.rewritingIntensity}
+## TASK
+Optimize CV for: **${input.jobTitle}** at **${input.company}**
+Current match: ${input.atsAnalysis.matchScore}% → Target improvement: +${levelConfig.scoreGoal}
+Intensity: ${levelConfig.intensity}
+Approach: ${levelConfig.approach}
 
-═══════════════════════════════════════════════════════════════════════════════
-                           PHASE 1: DEEP UNDERSTANDING
-═══════════════════════════════════════════════════════════════════════════════
-
-## 🎯 TARGET OPPORTUNITY
-- **Company**: ${input.company}
-- **Position**: ${input.jobTitle}
-- **Current Match Score**: ${input.atsAnalysis.matchScore}%
-- **Adaptation Level**: ${adaptationLevel.toUpperCase()}
-
-## 📋 JOB DESCRIPTION (Analyze EVERY requirement)
-"""
+## JOB DESCRIPTION
 ${input.jobDescription}
-"""
 
-${formattedJobInsights ? `## 🔍 DEEP JOB INSIGHTS (From ATS Analysis)\n${formattedJobInsights}\n` : ''}
-
-${input.atsAnalysis.positioning ? `## 🧭 STRATEGIC POSITIONING GUIDANCE\n${input.atsAnalysis.positioning}\n` : ''}
-
-## 📄 ORIGINAL CV (Your raw material)
-"""
+## ORIGINAL CV
 ${input.cvText}
-"""
 
-═══════════════════════════════════════════════════════════════════════════════
-                        PHASE 2: STRATEGIC ANALYSIS
-═══════════════════════════════════════════════════════════════════════════════
+## KEYWORDS TO INTEGRATE (${levelConfig.keywords} keywords - THIS IS CRITICAL FOR ATS)
+Priority (MUST include): ${priorityKeywords.slice(0, 15).join(', ') || 'Extract from job description'}
+Secondary: ${missingKeywords.slice(0, 10).join(', ') || 'None'}
 
-## 💪 STRENGTHS TO AMPLIFY (with proof points)
-${formattedStrengths}
+### Keyword Integration Rules (MANDATORY)
+1. SUMMARY: Include 2-3 priority keywords in the professional summary
+2. EXPERIENCES: Each bullet point should naturally include 1-2 keywords when relevant
+3. SKILLS: List ALL priority keywords in the skills section
+4. PLACEMENT: Front-load keywords in the first 2 experiences (most recent = most important)
+5. NATURAL: Rephrase bullets to include keywords WITHOUT changing the meaning
+   Example: "Managed team" → "Led cross-functional team using Agile methodologies"
+   Example: "Did marketing" → "Drove digital marketing campaigns leveraging SEO and content strategy"
 
-## ⚠️ GAPS TO ADDRESS (with resolution strategies)
-${formattedGaps}
+## ATS INSIGHTS
+Strengths to amplify: ${strengths}
+Gaps to address: ${gaps}
 
-## 🔧 PRE-ANALYZED CV FIXES
-${formattedCVFixes}
+## REWRITING RULES
 
-## 🔑 KEYWORD STRATEGY
+### Professional Summary (40-50 words, Hook+Proof+Value format)
+- HOOK (10 words): Strongest differentiator for this role
+- PROOF (20 words): One concrete achievement with metric FROM the original CV
+- VALUE (15 words): What you bring to ${input.company}
 
-### 🔴 PRIORITY KEYWORDS
-${priorityKeywords.length > 0 ? priorityKeywords.join(', ') : 'None specified - use keywords from job description'}
+### Bullet Points
+- Use power verbs: Architected, Delivered, Drove, Orchestrated, Spearheaded
+- Avoid: Worked on, Helped, Participated, Was responsible for
+- Include metrics ONLY if present in original CV (use ~ for estimates)
+- Max 20 words per bullet, 3-5 bullets per experience
 
-### 🟡 SECONDARY KEYWORDS
-${otherMissingKeywords.slice(0, 20).join(', ') || 'None'}
+### Strict Rules
+- Use ONLY information from the original CV
+- Keep EXACT same number of experiences and educations  
+- Never invent metrics, achievements, or experiences
+- Never confuse education entries with work experience
+- ALWAYS extract name, firstName, lastName, and professional title from the CV header
 
-### 🟢 KEYWORDS ALREADY PRESENT
-${foundKeywords.slice(0, 15).join(', ') || 'None identified'}
+## OUTPUT (JSON only)
 
-${levelInstructions.keywordStrategy}
-
-${levelInstructions.styleGuidance}
-
-═══════════════════════════════════════════════════════════════════════════════
-                         PHASE 3: EXECUTION EXCELLENCE
-═══════════════════════════════════════════════════════════════════════════════
-
-## 📝 PROFESSIONAL SUMMARY FORMAT: Hook + Proof + Value (40-50 words)
-
-Create a summary using this precise structure:
-1. **HOOK (10 words)**: A compelling statement that creates urgency. Start with the candidate's strongest differentiator relevant to ${input.jobTitle}.
-2. **PROOF (20 words)**: ONE concrete achievement with a real metric FROM THE CV (not invented). This proves the hook.
-3. **VALUE (15 words)**: What unique value they bring to ${input.company}'s specific needs.
-
-**Example for Product Manager at Spotify:**
-"Music-obsessed Product Leader who scaled engagement features to 2M DAU. Delivered $4M ARR growth through data-driven experimentation. Ready to redefine audio experiences at Spotify."
-
-❌ AVOID: Generic phrases like "results-driven", "passionate", "team player", "motivated professional"
-✅ USE: Specific, memorable, job-relevant differentiators
-
-## 📊 QUANTIFICATION RULES (CAUTIOUS APPROACH)
-
-### ✅ ALLOWED Quantification:
-1. **Direct from CV**: If CV says "team of 5" → Use "team of 5"
-2. **Reasonable estimates with ~**: If CV says "several team members" → Use "~5-8 team members"
-3. **Calculable metrics**: If CV says "3 years at company, led 2 major projects/year" → Use "6+ major projects"
-4. **Industry standard ranges**: If CV says "managed large budget" for senior role → Use "~$500K-1M budget"
-
-### ❌ FORBIDDEN Quantification:
-1. **Never invent percentages**: If CV says "improved performance" → DON'T add "by 40%"
-2. **Never add revenue/cost numbers**: Unless CV explicitly mentions financial impact
-3. **Never guess user counts**: Unless CV mentions scale
-4. **Never fabricate timeframes**: Unless CV mentions them
-
-### 💡 Smart Alternative When No Metrics:
-Instead of inventing: "Improved system performance, reducing latency and enhancing user experience for enterprise clients"
-(Focus on WHAT was done and WHO benefited, without fake numbers)
-
-## ⚡ POWER VERB ARSENAL
-Replace ALL weak verbs immediately:
-- ❌ "Worked on" → ✅ "Architected", "Engineered", "Built", "Delivered"
-- ❌ "Helped" → ✅ "Enabled", "Catalyzed", "Drove", "Empowered"
-- ❌ "Was responsible for" → ✅ "Owned", "Led", "Championed", "Spearheaded"
-- ❌ "Participated in" → ✅ "Contributed", "Collaborated", "Partnered with"
-- ❌ "Managed" (overused) → ✅ "Orchestrated", "Directed", "Steered", "Oversaw"
-
-## 👔 SENIORITY ELEVATION
-Transform EVERY statement to sound senior-level:
-- Show STRATEGIC thinking, not just execution
-- Emphasize LEADERSHIP and INFLUENCE over tasks
-- Highlight CROSS-FUNCTIONAL impact and stakeholder management
-- Demonstrate BUSINESS ACUMEN and ROI awareness
-- Feature MENTORSHIP and team development
-- Example: "Developed features" → "Architected strategic product initiatives, establishing engineering patterns adopted across 5 product teams"
-
-## 🤖 ATS OPTIMIZATION
-- Front-load PRIORITY keywords in Summary and first experience
-- Create "Core Competencies" section with keyword clusters
-- Use standard section headers ATS systems recognize
-- Include both acronyms AND full terms: "CI/CD (Continuous Integration/Continuous Deployment)"
-- Ensure PRIORITY keywords appear 2-3 times naturally
-
-## 📏 ONE-PAGE A4 OPTIMIZATION
-- **Summary**: 40-50 words maximum (Hook + Proof + Value format)
-- **Bullets**: 3-5 per experience, max 20 words each
-- **Content**: Compact, impactful, no filler words
-- **Goal**: Fit comfortably on one A4 page
-
----
-
-## 🚫 ABSOLUTE RULES - NEVER VIOLATE:
-1. ✅ ONLY use information that exists in the original CV
-2. ❌ NEVER invent jobs, dates, companies, metrics, degrees, or achievements
-3. ✅ Rephrase, restructure, amplify, and emphasize - but ALWAYS truthful
-4. ✅ If a metric isn't in the CV, don't invent it (but you can add "~" for estimates if reasonable)
-5. ✅ If there's a gap, address it through smart positioning, not fabrication
-
-## 🚫 CRITICAL: EXPERIENCE CREATION RULES - ABSOLUTE PROHIBITION
-⛔ **NEVER CREATE NEW EXPERIENCES** - This is the #1 rule you must NEVER break:
-1. ❌ NEVER create a new experience entry that doesn't exist in the original CV
-2. ❌ NEVER use the candidate's name (first name or full name) as a job title or company name
-3. ❌ NEVER add experiences like "Rouchdi Touil - 2018 - Present" or "Firstname Lastname - Date"
-4. ❌ NEVER invent freelance/consulting experiences that aren't in the original CV
-5. ✅ ONLY modify/enhance bullet points within EXISTING experiences
-6. ✅ If you want to add new skills/achievements, add them as NEW BULLETS to EXISTING experiences
-7. ✅ If a skill cannot fit into any existing experience, put it in "suggested_additions" (NOT as a new experience)
-
-## 🎓 CRITICAL: EDUCATION ≠ EXPERIENCE - NEVER CONFUSE THEM
-⛔ **EDUCATION entries are NOT work experiences** - This is a CRITICAL distinction:
-1. ❌ NEVER transform a degree/diploma/certification into a work experience entry
-2. ❌ "Master's in Management", "Bachelor's", "MBA", "Engineering Degree", "Master's" = EDUCATION ONLY
-3. ❌ Universities, Business Schools, Colleges, Institutes = NOT valid "company" names for experiences
-4. ❌ NEVER create experience bullet points for education/study periods
-5. ❌ NEVER add work achievements to a degree - degrees don't have "achievements", only courses/GPA/honors
-6. ✅ Education achievements (GPA, honors, thesis, relevant courses) go in the EDUCATION section ONLY
-7. ✅ A valid EXPERIENCE entry MUST have ALL of these:
-   - A REAL job title (Developer, Manager, Analyst, Consultant, Intern, etc.) - NOT a degree name
-   - A REAL company/business name (Accenture, Google, Danone, etc.) - NOT a school/university
-   - Actual WORK responsibilities - NOT academic projects (unless it's an internship at a company)
-
-**BEFORE ADDING ANY EXPERIENCE TO THE OUTPUT, ASK YOURSELF:**
-- Is the "company" field a real business/corporation (NOT a university/school)? If NO → This is NOT an experience
-- Is the "title" field a real job position (NOT a degree name like "Master's")? If NO → This is NOT an experience  
-- Did this exact experience exist in the ORIGINAL CV as a real JOB? If NO → This is NOT an experience
-- Would a recruiter see this as a real work experience? If NO → This is NOT an experience
-
-**VALIDATION CHECK**: Before returning, verify that:
-- The number of experiences in your output EXACTLY matches the original CV
-- No experience has the candidate's name as company or title
-- No new experience entries were created
-- ⚠️ NO education/degree was incorrectly placed in the experiences array
-- ⚠️ Every experience has a REAL company name (Accenture, Google, etc. - NOT a school/university)
-- ⚠️ Every experience has a REAL job title (Manager, Developer, etc. - NOT a degree name like "Master's")
-
-## CRITICAL DATA PRESERVATION RULES:
-⚠️ **MOST IMPORTANT**: You MUST preserve ALL experiences and ALL educations from the original CV
-
-1. **EXPERIENCES - PRESERVE EVERY SINGLE ONE**:
-   - If the original CV has 3 projects under Accenture (Ayvens, Danone, Technicolor), you MUST include ALL 3
-   - If the original CV has 5 experiences, you MUST include ALL 5
-   - Each project/client MUST be a separate experience entry with its own ### header
-   - Extract ALL bullet points for EACH experience - DO NOT skip any
-   - If an experience has 8 bullets, include ALL 8 (you can optimize wording but keep all content)
-   - DO NOT combine multiple projects into one experience entry
-   - DO NOT remove experiences even if they seem less relevant
-
-2. **EDUCATIONS - PRESERVE EVERY SINGLE ONE**:
-   - If the original CV has Master + Prépa, you MUST include BOTH
-   - If the original CV has 3 education entries, you MUST include ALL 3
-   - Each degree/certificate MUST be a separate education entry with its own ### header
-   - DO NOT combine multiple educations into one entry
-
-3. **VALIDATION BEFORE RETURNING**:
-   - Count experiences in original CV
-   - Count experiences in your output
-   - They MUST match - if not, you're missing data
-   - Same for educations - count must match
-
-6. ✅ Make it so compelling that recruiters MUST call this candidate
-
----
-
-## CRITICAL OUTPUT REQUIREMENTS - PRESERVE ALL EXPERIENCES:
-
-STEP 1: COUNT ORIGINAL EXPERIENCES FIRST
-- Parse the original CV and count EVERY work experience
-- Count internships, part-time, contract, volunteer positions separately
-- Note the exact number: original_experiences_count = <number>
-
-STEP 2: Generate structured JSON FIRST (before markdown) - THIS IS CRITICAL:
-
-⚠️ **structured_data MUST be a complete, accurate JSON representation of ALL CV data**
+IMPORTANT: Extract ALL personal information from the CV header (name, email, phone, location, LinkedIn, professional title).
 
 {
   "structured_data": {
     "personalInfo": {
-      "name": "<full name from CV>",
-      "firstName": "<first name>",
-      "lastName": "<last name>",
-      "email": "<email from CV>",
-      "phone": "<phone from CV>",
-      "location": "<location from CV>",
-      "linkedin": "<linkedin URL if present>",
-      "title": "<professional title/headline if present>"
+      "name": "<REQUIRED: full name from CV, e.g. 'John Smith'>",
+      "firstName": "<REQUIRED: first name only, e.g. 'John'>",
+      "lastName": "<REQUIRED: last name only, e.g. 'Smith'>",
+      "title": "<REQUIRED: professional title/headline from CV, e.g. 'Senior Product Manager' or 'Digital Marketing Specialist'>",
+      "email": "<email if present>",
+      "phone": "<phone if present>",
+      "location": "<city/country if present>",
+      "linkedin": "<linkedin url if present>"
     },
-    "summary": "<complete professional summary text, 2-3 sentences>",
+    "summary": "<rewritten summary, 40-50 words, Hook+Proof+Value format>",
     "experiences": [
       {
         "id": "exp-0",
-        "title": "<EXACT job title from original CV>",
-        "company": "<EXACT company name from original>",
-        "client": "<client/project name if different from company, e.g., 'Ayvens' or 'Danone'>",
-        "startDate": "<EXACT start date from original, e.g., 'Jan 2020' or '2018'>",
-        "endDate": "<EXACT end date or 'Present'>",
-        "duration": "<duration if mentioned, e.g., '38 months'>",
+        "title": "<exact job title from original>",
+        "company": "<exact company from original>",
+        "client": "<client name if consulting role>",
+        "startDate": "<exact from original>",
+        "endDate": "<exact from original or 'Present'>",
         "location": "<location if mentioned>",
         "bullets": [
-          "<rewritten bullet 1 - optimized but preserving all content>",
-          "<rewritten bullet 2>",
-          "<rewritten bullet 3>",
-          "... ALL bullets from original experience - DO NOT skip any"
+          "<rewritten bullet with power verb and impact>",
+          "<all bullets from original, rewritten>"
         ]
-      },
-      {
-        "id": "exp-1",
-        "title": "<NEXT experience title>",
-        "company": "<NEXT experience company>",
-        // ... REPEAT for EVERY experience from original CV
       }
-      // ⚠️ CRITICAL: If original CV has 3 projects (Ayvens, Danone, Technicolor), you MUST create 3 separate objects here
-      // ⚠️ CRITICAL: Count MUST match original_experiences_count
     ],
     "educations": [
       {
         "id": "edu-0",
-        "degree": "<EXACT degree name from original, e.g., 'Master's in Management' or 'PGE'>",
-        "institution": "<EXACT institution name from original>",
-        "startDate": "<start date if shown>",
-        "endDate": "<end date or graduation year, e.g., '2018'>",
-        "year": "<graduation year if different from endDate>",
-        "gpa": "<GPA if mentioned>",
-        "honors": "<honors if mentioned>",
-        "details": "<any additional details like relevant coursework>"
-      },
-      {
-        "id": "edu-1",
-        "degree": "<NEXT education entry, e.g., 'Prépa' or 'Preparatory Course'>",
-        "institution": "<NEXT institution>",
-        // ... REPEAT for EVERY education from original CV
+        "degree": "<exact degree from original>",
+        "institution": "<exact institution>",
+        "endDate": "<graduation year>",
+        "details": "<honors, GPA if mentioned>"
       }
-      // ⚠️ CRITICAL: If original CV has Master + Prépa, you MUST create 2 separate objects here
     ],
-    "skills": [
-      "<skill 1>",
-      "<skill 2>",
-      "... ALL skills from original CV"
-    ],
-    "languages": [
-      {
-        "name": "<language name, e.g., 'French'>",
-        "level": "<proficiency level: Native/Fluent/Intermediate/Basic>"
-      }
-      // ⚠️ CRITICAL: Languages ONLY, NOT certifications
-    ],
-    "certifications": [
-      {
-        "name": "<certification name, e.g., 'Salesforce Certified Administrator'>",
-        "issuer": "<issuing organization, e.g., 'Salesforce'>",
-        "date": "<date if mentioned>",
-        "year": "<year if mentioned>",
-        "credentialId": "<credential ID if visible>",
-        "details": "<any additional details>"
-      }
-      // ⚠️ CRITICAL: Professional certifications ONLY, NOT languages
-    ],
-    "hobbies": [
-      "<hobby 1>",
-      "<hobby 2>",
-      "... if present in original CV"
-    ]
-  },
-  "validation": {
-    "original_experiences_count": <number from step 1 - count ALL experiences including each project/client separately>,
-    "rewritten_experiences_count": <number in structured_data.experiences array - MUST match original>,
-    "original_educations_count": <number - count ALL education entries including prépa, master, etc.>,
-    "rewritten_educations_count": <number in structured_data.educations array - MUST match original>,
-    "match": <true ONLY if BOTH counts match, false otherwise>
+    "skills": ["<MUST include ALL priority keywords here>", "<plus other relevant skills from CV>"],
+    "languages": [{"name": "<language>", "level": "<Native/Fluent/Intermediate/Basic>"}],
+    "certifications": [{"name": "<cert name>", "issuer": "<issuer>", "year": "<year if known>"}],
+    "hobbies": ["<hobby1>", "<hobby2>"]
   },
   "analysis": {
-    "positioning_strategy": "One powerful paragraph (150-200 words) explaining THE WINNING narrative angle for this candidate. What's their superpower? How do we frame their experience to make ${input.company} desperate to interview them?",
-    "strengths": [
-      "5-7 key strengths WITH specific context",
-      "Example: 'Strong full-stack experience with React/Node.js, evident from 3+ years building scalable web applications'"
-    ],
-    "gaps": [
-      "3-5 gaps identified WITH tactical strategies to address them through positioning",
-      "Example: 'Missing cloud experience → Emphasize related DevOps work and quick learning ability'"
-    ],
-    "recommended_keywords": [
-      "20-30 keywords to integrate naturally, prioritized by importance",
-      "Include both hard skills and soft skills relevant to the role"
-    ],
-    "experience_relevance": [
-      "Ordered list of which experiences are MOST relevant to ${input.jobTitle} at ${input.company} and WHY",
-      "This guides how to prioritize and structure the Experience section"
-    ]
+    "positioning_strategy": "<2-3 sentences: the winning narrative angle for this candidate>",
+    "key_improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"],
+    "keywords_integrated": ["<list of priority keywords you successfully integrated into the CV>"]
   },
-  "suggested_additions": {
-    "description": "Skills, achievements, or bullets that are HIGHLY RELEVANT to ${input.jobTitle} but could NOT be naturally integrated into existing experiences. These will be shown to the user as suggestions they can manually add.",
-    "items": [
-      {
-        "bullet": "<A powerful, job-relevant bullet point that matches ${input.jobTitle} requirements>",
-        "reason": "<Why this skill/achievement is important for ${input.company}>",
-        "target_experience_id": "<exp-0 or exp-1 etc. - the experience ID where this could potentially be added>",
-        "target_experience_title": "<Title of the experience where this could be added>",
-        "priority": "<high/medium/low based on job relevance>"
-      }
-    ],
-    "note": "ONLY include bullets here if they CANNOT be naturally added to existing experience bullets. Prefer modifying existing bullets first. Maximum 5 suggestions."
-  },
-  "initial_cv": "The ULTIMATE rewritten CV in markdown format - this is your MASTERPIECE. Every word counts. Every achievement quantified. Every bullet powerful. This should be ready to copy-paste into an editor. Use ## for sections, ### for job titles, bullet points for achievements. MUST include ALL experiences from structured_data.experiences. CRITICAL: For experiences with a 'client' field (e.g., client='Ayvens', company='Accenture'), format the header as: ### Job Title - Client (via Company). Example: ### PO/PM - Ayvens (via Accenture). This ensures the client name is prominently displayed. IMPORTANT: Keep content compact and concise - Professional Summary: 2-3 sentences (50-60 words max), 3-5 bullets per experience (max 20 words each). The CV must fit comfortably on one A4 page.",
-  "cv_templates": {
-    "tech_minimalist": "Full CV in Google/Linear/Vercel style - Clean, modern, highly scannable. Perfect for tech companies. Heavy emphasis on tech stack and impact metrics. Modern language. Each bullet starts with impact.",
-    "consulting": "Full CV in McKinsey/BCG/Bain style - STAR format religiously. Every bullet: [Result/Metric] by [Action] resulting in [Business Impact]. Example: 'Increased revenue by 40% ($12M) by restructuring pricing strategy, enabling expansion into 3 new markets.' Metrics dominate.",
-    "ats_boost": "Pure ATS optimization masterpiece - Maximum keyword density but NATURAL. Strategic keyword placement in all sections. Core Competencies section at top. Keywords distributed throughout. Standard headers. No fancy formatting. This CV will score 95%+ on any ATS.",
-    "harvard": "Harvard Business School style - Traditional, professional, executive-level. Strong emphasis on leadership, progression, and team impact. Education prominent. Professional Summary emphasizes strategic leadership. Shows clear career progression.",
-    "notion": "Notion/Figma/Linear style - Modern hierarchy with clear visual structure. Well-organized sections. Skills categorized (Technical, Domain, Soft). Clean but distinctive. Great for design-forward tech companies.",
-    "apple": "Apple/Airbnb ultra-minimal style - Elegant, sophisticated, maximum impact with minimum words. Only the essential, perfectly crafted. Each bullet is a mini-case-study. Perfect spacing. Only top 3-4 experiences. Quality over quantity."
-  },
-  "internal_prompt_used": "This exact prompt (for transparency and debugging)"
+  "suggested_additions": [
+    {
+      "bullet": "<relevant achievement that couldn't fit naturally>",
+      "target_experience_id": "exp-0",
+      "reason": "<why important for this job>"
+    }
+  ]
 }
 
-STEP 3: CRITICAL VALIDATION RULES - VERIFY BEFORE RETURNING:
-
-⚠️ **MANDATORY VALIDATION CHECKLIST:**
-
-1. **EXPERIENCES VALIDATION:**
-   - Count original experiences from CV: <number>
-   - Count experiences in structured_data.experiences: <number>
-   - ✅ They MUST match EXACTLY - if not, you're missing data
-   - If original has 3 projects (Ayvens, Danone, Technicolor), structured_data.experiences MUST have 3 objects
-   - If original has 5 experiences, structured_data.experiences MUST have 5 objects
-   - Each experience object MUST have:
-     * id (exp-0, exp-1, exp-2, etc. - sequential)
-     * title (EXACT from original, do not modify)
-     * company (EXACT from original, do not modify)
-     * startDate and endDate (EXACT from original, do not modify)
-     * bullets (rewritten and optimized, but ALL bullets from original must be included)
-
-2. **EDUCATIONS VALIDATION:**
-   - Count original educations from CV: <number>
-   - Count educations in structured_data.educations: <number>
-   - ✅ They MUST match EXACTLY - if not, you're missing data
-   - If original has Master + Prépa, structured_data.educations MUST have 2 objects
-   - Each education object MUST have:
-     * id (edu-0, edu-1, etc. - sequential)
-     * degree (EXACT from original)
-     * institution (EXACT from original)
-     * endDate or year (EXACT from original)
-
-3. **LANGUAGES vs CERTIFICATIONS:**
-   - Languages MUST be in structured_data.languages (array of {name, level})
-   - Certifications MUST be in structured_data.certifications (array of {name, issuer, date})
-   - ❌ DO NOT put languages in certifications
-   - ❌ DO NOT put certifications in languages
-
-4. **FINAL CHECK:**
-   - validation.original_experiences_count === validation.rewritten_experiences_count
-   - validation.original_educations_count === validation.rewritten_educations_count
-   - validation.match === true ONLY if BOTH match
-   - The initial_cv markdown must include ALL experiences from structured_data.experiences as separate ### headers
-   - CRITICAL FORMATTING: If an experience has a 'client' field, format the header as: ### Job Title - Client (via Company)
-     Example: If client='Ayvens' and company='Accenture', use: ### PO/PM - Ayvens (via Accenture)
-     This ensures clients/projects are prominently displayed, not just the parent company
-   - If validation.match is false, you MUST fix structured_data before returning
-
-### STRUCTURE & SECTION RULES (NON-NEGOTIABLE)
-1. The master \`initial_cv\` MUST begin with this exact contact header (use real values):
-\`\`\`
-# Firstname Lastname
-Professional Title: Senior Product Manager
-Location: Paris, France
-Email: firstname.lastname@email.com
-Phone: +33 6 12 34 56 78
-LinkedIn: https://linkedin.com/in/username
-\`\`\`
-2. After the contact header, include sections in this order (all of them, even if concise):
-   - ## Professional Summary
-   - ## Professional Experience
-   - ## Education
-   - ## Skills
-   - ## Certifications
-   - ## Languages
-   - ## Hobbies & Interests
-3. **CRITICAL FOR EXPERIENCES**: Every experience entry MUST use \`### Job Title - Company\` followed by a period line (e.g., \`2019 – Present\`) and bullet points starting with "-" or "•".
-   - **If the original CV has multiple projects under the same company (e.g., Accenture with projects: Ayvens, Danone, Technicolor), you MUST create SEPARATE \`###\` blocks for EACH project:**
-     \`\`\`
-     ### Project Manager - Ayvens (via Accenture)
-     2020 - 2023
-     - Bullet 1
-     - Bullet 2
-     
-     ### Project Manager - Danone (via Accenture)
-     2019 - 2020
-     - Bullet 1
-     - Bullet 2
-     \`\`\`
-   - **DO NOT group multiple projects under a single \`###\` header**
-   - **Each distinct project/client/role MUST have its own \`###\` header**
-4. Skills should be comma-separated keyword clusters (e.g., "Product Strategy, AI Platforms, Salesforce, GTM Leadership").
-5. Certifications use \`### Certification - Issuer\` followed by the year/ID on the next line and optional bullet(s) for impact.
-6. Languages section lines follow \`Language | Level\` with Level ∈ {Basic, Intermediate, Advanced, Fluent, Native}.
-7. Hobbies & Interests must be a short comma-separated list of curated interests (no sentences).
-
-## TEMPLATE-SPECIFIC REQUIREMENTS:
-
-### Tech Minimalist:
-- Opening: Powerful 2-line summary highlighting tech stack and impact
-- Experience: Tech stack visible in each role, metrics prominent
-- Format: "Built [product/feature] using [tech stack], resulting in [quantified impact]"
-- Skills: Categorized by type (Languages, Frameworks, Tools, Cloud, etc.)
-
-### Consulting:
-- Opening: Results-driven summary with biggest wins
-- Experience: Every bullet follows: "[Metric/Result] by [Action] for [Business Impact]"
-- Heavy on business metrics: Revenue, cost savings, efficiency, ROI
-- Shows strategic thinking and client impact
-
-### ATS Boost:
-- Core Competencies section at top with keyword clusters
-- Standard headers: Professional Summary, Professional Experience, Education, Skills
-- Keywords naturally repeated across sections
-- Both acronyms and full terms included
-- Maximum parsability for ATS systems
-
-### Harvard:
-- Professional Summary emphasizes leadership philosophy
-- Experience shows clear progression and increasing responsibility
-- Team size and management scope clearly stated
-- Education section prominent (include GPA if strong, honors, relevant coursework)
-- Professional but warm tone
-
-### Notion:
-- Clear hierarchy with section breaks
-- Skills organized into categories
-- Modern but professional language
-- Bullet structure with sub-bullets where appropriate
-- Visual clarity through spacing and structure
-
-### Apple:
-- Absolute minimalism - only what matters most
-- Each experience is a story of impact
-- 3-4 most impressive roles only
-- Each bullet is perfectly crafted
-- Sophisticated, elegant, confident tone
-- Lots of white space
-
----
-
-## QUALITY CHECKLIST - VERIFY BEFORE RETURNING:
-
-✅ ALL original experiences preserved (count matches exactly)
-✅ Every achievement has a number/percentage/scale
-✅ Every verb is powerful (NO "helped", "worked on", "participated")
-✅ All missing keywords integrated naturally (check the list!)
-✅ Reads at senior/leadership level
-✅ Perfect ATS-optimized structure
-✅ NO fabricated information (verify against original CV)
-✅ Compelling narrative that tells a story
-✅ ${input.company} will be desperate to interview this candidate
-✅ Each template is COMPLETE and ready to use
-✅ All 6 templates are distinctly different in style and structure
-✅ structured_data.experiences array contains ALL experiences from original CV
-✅ validation.match is true (original count = rewritten count)
-
-## 🚫 FINAL EXPERIENCE VALIDATION (CRITICAL):
-⛔ VERIFY NO NEW EXPERIENCES WERE CREATED:
-✅ Count of experiences in output EQUALS count in original CV
-✅ NO experience has candidate's first name or full name as title/company
-✅ NO experience like "Firstname Lastname - 2018 - Present" exists
-✅ ALL experience titles/companies match EXACTLY with original CV
-✅ suggested_additions contains any skills that couldn't fit (max 5 items)
-✅ suggested_additions items have valid target_experience_id references
-
-If ANY of these checks fail, FIX THE OUTPUT before returning!
-
----
-
-NOW, CREATE THE BEST CV THIS CANDIDATE HAS EVER SEEN. Make ${input.company} regret not hiring them sooner. This is the CV that changes their career. GO!`;
+CRITICAL VALIDATION:
+- structured_data.experiences.length MUST equal original CV experience count
+- structured_data.educations.length MUST equal original CV education count
+- Return valid JSON only, no markdown code blocks`;
 }
 
 /**
@@ -1061,6 +575,25 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     rewrittenExperiences.map((exp: any) => `${exp.title} at ${exp.company}`)
   );
   
+  // Helper function for fuzzy company matching
+  // Handles cases where AI enhances company name (e.g., "Silae" -> "Silae (B2B SaaS)")
+  const normalizeCompany = (company: string) => {
+    if (!company) return '';
+    // Remove parenthetical additions and normalize
+    return company.toLowerCase().replace(/\s*\([^)]*\)\s*/g, '').trim();
+  };
+  
+  const fuzzyCompanyMatch = (company1: string, company2: string) => {
+    const norm1 = normalizeCompany(company1);
+    const norm2 = normalizeCompany(company2);
+    // Exact match after normalization, or one contains the other
+    return norm1 === norm2 || 
+           norm1.includes(norm2) || 
+           norm2.includes(norm1) ||
+           // Handle "Unknown Company" or empty companies
+           !norm1 || !norm2;
+  };
+  
   if (originalExperiences.length !== rewrittenExperiences.length) {
     console.warn(
       `⚠️ Experience count mismatch: ${originalExperiences.length} original vs ${rewrittenExperiences.length} rewritten`
@@ -1068,12 +601,18 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     console.warn('Original experiences:', originalExperiences.map((e: any) => `${e.title} - ${e.company}`));
     console.warn('Rewritten experiences:', rewrittenExperiences.map((e: any) => `${e.title} - ${e.company}`));
     
+    // Only try to add missing experiences if rewritten count is LESS than original
+    // If AI generated MORE experiences, it likely added relevant ones - don't create duplicates
+    if (rewrittenExperiences.length < originalExperiences.length) {
+      console.log(`📝 Rewritten has fewer experiences, checking for missing ones...`);
+    
     // Réécrire les expériences manquantes une par une
     for (const exp of originalExperiences) {
+        // Use fuzzy matching to handle enhanced company names
       const exists = rewrittenExperiences.find(
         (r: any) => 
-          r.title?.toLowerCase() === exp.title?.toLowerCase() &&
-          r.company?.toLowerCase() === exp.company?.toLowerCase()
+            r.title?.toLowerCase().includes(exp.title?.toLowerCase().split(' ')[0]) && // Match first word of title
+            fuzzyCompanyMatch(r.company, exp.company)
       );
       
       if (!exists) {
@@ -1120,6 +659,9 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
           });
         }
       }
+      }
+    } else {
+      console.log(`📝 Rewritten has ${rewrittenExperiences.length} experiences (>= original ${originalExperiences.length}), skipping missing check to avoid duplicates`);
     }
   }
   

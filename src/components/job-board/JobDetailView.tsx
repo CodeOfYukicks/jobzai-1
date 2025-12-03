@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from 'sonner';
-import { extractJobInfo, DetailedJobInfo, generateJobInsightsFromDescription } from '../../lib/jobExtractor';
+import { extractJobInfo, DetailedJobInfo, generateJobInsightsFromDescription, generateJobTagsFromDescription } from '../../lib/jobExtractor';
 import { useJobInteractions } from '../../hooks/useJobInteractions';
 
 interface JobDetailViewProps {
@@ -182,6 +182,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                             description: formattedDescription || '',
                             fullJobDescription: detailedData.fullJobDescription || job.description || '',
                             ...(detailedData.jobInsights && { jobInsights: detailedData.jobInsights }),
+                            ...(detailedData.jobTags && { jobTags: detailedData.jobTags }),
                             updatedAt: serverTimestamp()
                         });
 
@@ -198,21 +199,31 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                         if (job.description && job.description.trim().length > 0) {
                             console.log('🔄 Attempting fallback: generating insights from description...');
                             try {
-                                const jobInsights = await generateJobInsightsFromDescription(
-                                    job.description,
-                                    job.title,
-                                    job.company
-                                );
+                                const [jobInsights, jobTags] = await Promise.all([
+                                    generateJobInsightsFromDescription(
+                                        job.description,
+                                        job.title,
+                                        job.company
+                                    ),
+                                    generateJobTagsFromDescription(
+                                        job.description,
+                                        job.title,
+                                        job.company,
+                                        job.location || ''
+                                    )
+                                ]);
 
-                                console.log('✅ Successfully generated jobInsights from description (fallback):', {
+                                console.log('✅ Successfully generated jobInsights and tags from description (fallback):', {
                                     jobId: docRef.id,
-                                    hasInsights: !!jobInsights
+                                    hasInsights: !!jobInsights,
+                                    hasTags: !!jobTags
                                 });
 
-                                // Update the document with AI-generated insights
+                                // Update the document with AI-generated insights and tags
                                 const { updateDoc, doc } = await import('firebase/firestore');
                                 await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
                                     jobInsights: jobInsights,
+                                    ...(jobTags && { jobTags: jobTags }),
                                     updatedAt: serverTimestamp()
                                 });
 
@@ -241,26 +252,31 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                 // Show analyzing message
                 toast.info('Analyzing job details from description...', { duration: 2000 });
 
-                // Generate jobInsights from description
-                generateJobInsightsFromDescription(job.description, job.title, job.company)
-                    .then(async (jobInsights) => {
-                        console.log('✅ Successfully generated jobInsights from description:', {
+                // Generate jobInsights and tags from description
+                Promise.all([
+                    generateJobInsightsFromDescription(job.description, job.title, job.company),
+                    generateJobTagsFromDescription(job.description, job.title, job.company, job.location || '')
+                ])
+                    .then(async ([jobInsights, jobTags]) => {
+                        console.log('✅ Successfully generated jobInsights and tags from description:', {
                             jobId: docRef.id,
                             hasInsights: !!jobInsights,
+                            hasTags: !!jobTags,
                             sections: Object.keys(jobInsights).filter(key => jobInsights[key as keyof typeof jobInsights] && jobInsights[key as keyof typeof jobInsights] !== 'Details not specified in posting')
                         });
 
-                        // Update the document with AI-generated insights
+                        // Update the document with AI-generated insights and tags
                         const { updateDoc, doc } = await import('firebase/firestore');
                         await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
                             jobInsights: jobInsights,
+                            ...(jobTags && { jobTags: jobTags }),
                             updatedAt: serverTimestamp()
                         });
 
                         toast.success('AI analysis complete! ✨', { duration: 2000 });
                     })
                     .catch((insightsError) => {
-                        console.error('❌ Error generating jobInsights from description:', {
+                        console.error('❌ Error generating jobInsights/tags from description:', {
                             error: insightsError,
                             jobId: docRef.id,
                             title: job.title,

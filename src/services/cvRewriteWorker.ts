@@ -83,10 +83,18 @@ export async function startCVRewriteWorker(
     await updateTaskProgress(userId, taskId, 75, 3, 'Saving your optimized CV...');
     
     // Save to analysis document
-    await updateDoc(doc(db, 'users', userId, 'analyses', analysisId), {
-      cv_rewrite: result,
-      cv_rewrite_generated_at: new Date().toISOString()
-    });
+    try {
+      await updateDoc(doc(db, 'users', userId, 'analyses', analysisId), {
+        cv_rewrite: result,
+        cv_rewrite_generated_at: new Date().toISOString()
+      });
+    } catch (error: any) {
+      if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+        console.warn('⚠️ Permission denied when saving CV rewrite. Check Firestore security rules.');
+        throw new Error('Permission denied: Unable to save CV rewrite. Please check your Firestore security rules.');
+      }
+      throw error;
+    }
     
     // Step 5: Complete
     await updateTaskProgress(userId, taskId, 100, 4, 'Complete!');
@@ -118,47 +126,60 @@ export async function startCVRewriteWorker(
  * Called when app loads to continue interrupted tasks
  */
 export async function resumePendingTasks(userId: string): Promise<void> {
-  const { collection, query, where, getDocs } = await import('firebase/firestore');
-  
-  const tasksRef = collection(db, 'users', userId, 'backgroundTasks');
-  const q = query(
-    tasksRef,
-    where('type', '==', 'cv_rewrite'),
-    where('status', 'in', ['pending', 'in_progress'])
-  );
-  
-  const snapshot = await getDocs(q);
-  
-  if (snapshot.empty) {
-    console.log('📋 No pending CV rewrite tasks to resume');
-    return;
-  }
-  
-  console.log(`📋 Found ${snapshot.docs.length} pending CV rewrite tasks to resume`);
-  
-  for (const taskDoc of snapshot.docs) {
-    const task = taskDoc.data() as BackgroundTask;
+  try {
+    const { collection, query, where, getDocs } = await import('firebase/firestore');
     
-    // Skip if already running
-    if (runningWorkers.has(task.id)) {
-      continue;
-    }
-    
-    // Check if task has required input data
-    if (!task.inputData || !task.analysisId) {
-      console.warn(`⚠️ Task ${task.id} missing input data, marking as failed`);
-      await failTask(userId, task.id, 'Task data missing');
-      continue;
-    }
-    
-    // Resume the task
-    console.log(`🔄 Resuming task: ${task.id}`);
-    startCVRewriteWorker(
-      userId,
-      task.id,
-      task.analysisId,
-      task.inputData as CVRewriteTaskInput
+    const tasksRef = collection(db, 'users', userId, 'backgroundTasks');
+    const q = query(
+      tasksRef,
+      where('type', '==', 'cv_rewrite'),
+      where('status', 'in', ['pending', 'in_progress'])
     );
+    
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      console.log('📋 No pending CV rewrite tasks to resume');
+      return;
+    }
+    
+    console.log(`📋 Found ${snapshot.docs.length} pending CV rewrite tasks to resume`);
+    
+    for (const taskDoc of snapshot.docs) {
+      const task = taskDoc.data() as BackgroundTask;
+      
+      // Skip if already running
+      if (runningWorkers.has(task.id)) {
+        continue;
+      }
+      
+      // Check if task has required input data
+      if (!task.inputData || !task.analysisId) {
+        console.warn(`⚠️ Task ${task.id} missing input data, marking as failed`);
+        try {
+          await failTask(userId, task.id, 'Task data missing');
+        } catch (error) {
+          console.error(`Failed to mark task ${task.id} as failed:`, error);
+        }
+        continue;
+      }
+      
+      // Resume the task
+      console.log(`🔄 Resuming task: ${task.id}`);
+      startCVRewriteWorker(
+        userId,
+        task.id,
+        task.analysisId,
+        task.inputData as CVRewriteTaskInput
+      );
+    }
+  } catch (error: any) {
+    // Handle permission errors gracefully
+    if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+      console.warn('⚠️ Permission denied when resuming CV rewrite tasks. This may be expected if Firestore rules restrict access.');
+      return;
+    }
+    console.error('❌ Error resuming pending CV rewrite tasks:', error);
   }
 }
 

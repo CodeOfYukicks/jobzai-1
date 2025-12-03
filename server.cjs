@@ -499,8 +499,8 @@ app.post('/api/chatgpt', async (req, res) => {
         4000;
 
     // Select model based on task type
-    // Use GPT-5.1 for all tasks - latest and most capable model (Nov 2025)
-    const model = 'gpt-5.1';
+    // Use GPT-4o for all tasks - latest and most capable model
+    const model = 'gpt-4o';
 
     try {
       openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -690,6 +690,107 @@ app.post('/api/chatgpt', async (req, res) => {
       message: error.message || "An error occurred processing your request",
       errorType: error.name || 'UnknownError',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// ============================================
+// OpenAI Realtime API Session Endpoint
+// Creates an ephemeral client secret for WebSocket connection
+// Used by the Mock Interview Live feature
+// Uses OpenAI Realtime GA (Generally Available) API
+// ============================================
+app.post('/api/openai-realtime-session', async (req, res) => {
+  try {
+    console.log('🎙️ OpenAI Realtime Session endpoint called');
+    
+    // Get API key from Firestore or environment variables
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+    } catch (keyError) {
+      console.error('❌ Error retrieving OpenAI API key:', keyError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to retrieve API key: ${keyError.message}`
+      });
+    }
+    
+    if (!apiKey) {
+      console.error('❌ OpenAI API key is missing');
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file.'
+      });
+    }
+    
+    console.log('✅ API key retrieved (first 10 chars):', apiKey.substring(0, 10) + '...');
+    
+    // Model for Realtime API
+    const model = 'gpt-4o-realtime-preview-2024-12-17';
+    
+    console.log('📡 Creating OpenAI Realtime client secret via GA API...');
+    
+    // Create a client secret using the GA (Generally Available) API endpoint
+    // This is the correct endpoint for the GA WebSocket URL
+    // The GA endpoint doesn't take model/voice params - those are set via session.update after connecting
+    const tokenResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({})
+    });
+    
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('❌ OpenAI Realtime client secret creation failed:', tokenResponse.status);
+      console.error('   Error:', errorText);
+      
+      // Parse error for better message
+      let errorMessage = 'Failed to create realtime client secret';
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (e) {
+        errorMessage = errorText.substring(0, 200);
+      }
+      
+      return res.status(tokenResponse.status).json({
+        status: 'error',
+        message: errorMessage
+      });
+    }
+    
+    const tokenData = await tokenResponse.json();
+    console.log('✅ Realtime client secret response:', JSON.stringify(tokenData, null, 2));
+    
+    // The GA API returns the client_secret directly or nested - handle both cases
+    const clientSecret = tokenData.client_secret?.value || tokenData.value || tokenData.secret;
+    const expiresAt = tokenData.client_secret?.expires_at || tokenData.expires_at;
+    
+    if (!clientSecret) {
+      console.error('❌ Could not extract client_secret from response:', tokenData);
+      return res.status(500).json({
+        status: 'error',
+        message: 'Invalid response from OpenAI API - no client_secret found'
+      });
+    }
+    
+    // Return the WebSocket URL and client secret
+    // The frontend will use these to establish the WebSocket connection
+    res.json({
+      url: `wss://api.openai.com/v1/realtime?model=${model}`,
+      client_secret: clientSecret,
+      expires_at: expiresAt
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in OpenAI Realtime session endpoint:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to create realtime session'
     });
   }
 });

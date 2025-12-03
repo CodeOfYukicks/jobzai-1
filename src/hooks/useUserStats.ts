@@ -28,7 +28,13 @@ export function useUserStats() {
         setLoading(false);
       },
       (error) => {
-        setError(error);
+        // Handle permission errors gracefully
+        if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+          console.warn('⚠️ Permission denied when loading user stats. This may be expected if Firestore rules restrict access.');
+          setStats(null);
+        } else {
+          setError(error);
+        }
         setLoading(false);
       }
     );
