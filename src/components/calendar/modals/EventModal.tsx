@@ -80,7 +80,7 @@ END:VCALENDAR`;
 
   const handleNavigateToApplication = () => {
     if (application?.id) {
-      navigate(`/applications`);
+      navigate(`/applications?highlight=${application.id}`);
     }
   };
 

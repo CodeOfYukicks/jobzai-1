@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
-import { collection, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, serverTimestamp, query, getDocs, orderBy } from 'firebase/firestore';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,6 +41,18 @@ import RightSidebarPanel from '../components/interview/RightSidebarPanel';
 import { LiveInterviewSession } from '../components/interview/live/LiveInterviewSession';
 import { LiveInterviewResults } from '../components/interview/live/LiveInterviewResults';
 import { InterviewType, QuestionCount } from '../components/interview/live/LiveSessionConfig';
+import ContextDocumentSelector, { ContextDocument } from '../components/interview/ContextDocumentSelector';
+import {
+  extractResumeText,
+  extractNoteText,
+  extractWhiteboardText,
+  extractPDFText,
+  truncateText,
+} from '../lib/documentTextExtractor';
+import { Resume } from './ResumeBuilderPage';
+import { NotionDocument, getNotes } from '../lib/notionDocService';
+import { WhiteboardDocument, getWhiteboards } from '../lib/whiteboardDocService';
+import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
 
 // Interface for the job application data
 interface Note {
@@ -99,6 +111,15 @@ interface Interview {
   noteDocuments?: NoteDocument[];
   activeNoteDocumentId?: string | null;
   liveSessionHistory?: LiveSessionRecord[];
+  contextDocuments?: ContextDocument[];
+}
+
+interface ContextDocument {
+  id: string;
+  type: 'resume' | 'note' | 'whiteboard' | 'pdf';
+  documentId: string;
+  title: string;
+  textContent?: string; // Contenu texte extrait (optionnel, peut être chargé à la demande)
 }
 
 interface LiveSessionRecord {
@@ -443,6 +464,8 @@ export default function InterviewPrepPage() {
   const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
   const [liveSessionHistory, setLiveSessionHistory] = useState<LiveSessionRecord[]>([]);
   const [selectedHistorySession, setSelectedHistorySession] = useState<LiveSessionRecord | null>(null);
+  const [contextDocuments, setContextDocuments] = useState<ContextDocument[]>([]);
+  const [documentTextCache, setDocumentTextCache] = useState<Record<string, string>>({});
 
   // Play sound from Firebase Storage when user clicks "Prepare Live"
   const playFuturisticSound = async () => {
@@ -850,6 +873,11 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
             // Load live session history
             if (interviewData.liveSessionHistory) {
               setLiveSessionHistory(interviewData.liveSessionHistory);
+            }
+
+            // Load context documents
+            if (interviewData.contextDocuments) {
+              setContextDocuments(interviewData.contextDocuments);
             }
 
             // Use navigation state URL if available, otherwise use stored URL
@@ -1374,6 +1402,27 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     setIsSending(true);
 
     try {
+      // Load text content from context documents
+      let documentContextText = '';
+      if (contextDocuments.length > 0) {
+        try {
+          const documentTexts = await Promise.all(
+            contextDocuments.map(doc => loadDocumentText(doc))
+          );
+          
+          documentContextText = '\n\nADDITIONAL CONTEXT FROM USER DOCUMENTS:\n';
+          contextDocuments.forEach((doc, index) => {
+            const text = documentTexts[index];
+            if (text && text.trim()) {
+              documentContextText += `\n=== ${doc.title} (${doc.type}) ===\n${text}\n`;
+            }
+          });
+        } catch (error) {
+          console.error('Error loading document context:', error);
+          // Continue without document context if loading fails
+        }
+      }
+
       // Build context for the AI based on the job details
       const context = `
         You are a conversational AI interview coach helping the user prepare for their ${interview.type} interview at ${application.companyName} for the ${application.position} position.
@@ -1382,6 +1431,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         - Position: ${application.position}
         - Company: ${application.companyName}
         - Required Skills: ${interview.preparation?.requiredSkills?.join(', ') || "Not specified"}
+        ${documentContextText}
         
         CONVERSATIONAL GUIDELINES:
         - Keep your responses short and concise (2-3 paragraphs max)
@@ -1390,6 +1440,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         - If the user says "hello" or similar, respond with a brief greeting and ask how you can help
         - Ask follow-up questions to guide the conversation
         - Avoid walls of text - use short paragraphs with one main point each
+        - Use the document context provided above to give personalized advice based on the user's actual background and experience
         
         USER'S CHAT HISTORY (for context only - don't reference this directly):
         ${chatMessages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}
@@ -3433,6 +3484,112 @@ Return ONLY the pitch text, no explanations or formatting.`;
     }, 1000);
   }, []);
 
+  // Save context documents to Firestore
+  const saveContextDocuments = async (documents: ContextDocument[]) => {
+    if (!currentUser || !application || !interview || !applicationId) return;
+    const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
+    if (interviewIndex === -1) return;
+    const updatedInterviews = [...(application.interviews || [])];
+    updatedInterviews[interviewIndex] = {
+      ...interview,
+      contextDocuments: documents,
+    } as Interview;
+    const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
+    await updateDoc(applicationRef, { interviews: updatedInterviews, updatedAt: serverTimestamp() });
+    setInterview({ ...interview, contextDocuments: documents });
+  };
+
+  // Load text content for a document (with caching)
+  const loadDocumentText = async (doc: ContextDocument): Promise<string> => {
+    const cacheKey = `${doc.type}-${doc.documentId}`;
+    
+    // Check cache first
+    if (documentTextCache[cacheKey]) {
+      return documentTextCache[cacheKey];
+    }
+
+    try {
+      let text = '';
+
+      switch (doc.type) {
+        case 'resume': {
+          // Fetch resume from Firestore
+          const resumeRef = doc(db, 'users', currentUser!.uid, 'cvs', doc.documentId);
+          const resumeSnap = await getDoc(resumeRef);
+          if (resumeSnap.exists()) {
+            const resumeData = resumeSnap.data();
+            const resume: Resume = {
+              id: resumeSnap.id,
+              name: resumeData.name || 'Untitled Resume',
+              cvData: resumeData.cvData,
+              createdAt: resumeData.createdAt,
+              updatedAt: resumeData.updatedAt,
+              template: resumeData.template,
+              layoutSettings: resumeData.layoutSettings,
+              folderId: resumeData.folderId,
+              tags: resumeData.tags || [],
+            };
+            text = extractResumeText(resume);
+          }
+          break;
+        }
+        case 'note': {
+          // Fetch note from Firestore
+          const note = await getNotes(currentUser!.uid).then(notes => 
+            notes.find(n => n.id === doc.documentId)
+          );
+          if (note) {
+            text = extractNoteText(note);
+          }
+          break;
+        }
+        case 'whiteboard': {
+          // Fetch whiteboard from Firestore
+          const whiteboards = await getWhiteboards(currentUser!.uid);
+          const whiteboard = whiteboards.find(w => w.id === doc.documentId);
+          if (whiteboard) {
+            text = extractWhiteboardText(whiteboard);
+          }
+          break;
+        }
+        case 'pdf': {
+          // Fetch PDF document from Firestore
+          const pdfRef = doc(db, 'users', currentUser!.uid, 'documents', doc.documentId);
+          const pdfSnap = await getDoc(pdfRef);
+          if (pdfSnap.exists()) {
+            const pdfData = pdfSnap.data();
+            const pdfDoc: ImportedDocument = {
+              id: pdfSnap.id,
+              name: pdfData.name || 'Untitled Document',
+              fileUrl: pdfData.fileUrl,
+              fileSize: pdfData.fileSize || 0,
+              pageCount: pdfData.pageCount,
+              folderId: pdfData.folderId,
+              createdAt: pdfData.createdAt,
+              updatedAt: pdfData.updatedAt,
+            };
+            text = await extractPDFText(pdfDoc.fileUrl);
+          }
+          break;
+        }
+      }
+
+      // Cache the text
+      const truncatedText = truncateText(text, 5000);
+      setDocumentTextCache(prev => ({ ...prev, [cacheKey]: truncatedText }));
+      return truncatedText;
+    } catch (error) {
+      console.error('Error loading document text:', error);
+      return `Error loading document: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  };
+
+  // Handle context documents change
+  const handleContextDocumentsChange = async (documents: ContextDocument[]) => {
+    setContextDocuments(documents);
+    await saveContextDocuments(documents);
+  };
+
   // Debounce save for free-form notes (auto-save after 1 second of no typing)
   useEffect(() => {
     if (!interview) return;
@@ -3873,6 +4030,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
         }}
         position={application?.position}
         userPhotoURL={currentUser?.photoURL}
+        contextDocuments={contextDocuments}
+        onContextDocumentsChange={handleContextDocumentsChange}
+        userId={currentUser?.uid}
       />
 
       <MotionConfig transition={{ duration: 0.2 }}>

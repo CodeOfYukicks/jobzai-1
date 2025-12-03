@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle, ArrowRight, Activity, StickyNote, History, Calendar, 
   ChevronRight, MessageSquare, Send, User, Bot, Loader2, 
-  ChevronDown, Plus, Mic, Square, Sparkles
+  ChevronDown, ChevronUp, Plus, Mic, Square, Sparkles
 } from 'lucide-react';
 import NotesDocumentManager from './NotesDocumentManager';
 import { NoteDocument } from './DocumentsLibrary';
 import { toast } from 'sonner';
+import ContextDocumentSelector, { ContextDocument } from './ContextDocumentSelector';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -62,6 +63,9 @@ interface RightSidebarPanelProps {
   onClearChat?: () => void;
   position?: string;
   userPhotoURL?: string | null;
+  contextDocuments?: ContextDocument[];
+  onContextDocumentsChange?: (documents: ContextDocument[]) => void;
+  userId?: string;
 }
 
 export default function RightSidebarPanel({
@@ -88,6 +92,9 @@ export default function RightSidebarPanel({
   onClearChat,
   position,
   userPhotoURL,
+  contextDocuments = [],
+  onContextDocumentsChange,
+  userId,
 }: RightSidebarPanelProps) {
   
   const localChatEndRef = useRef<HTMLDivElement>(null);
@@ -95,6 +102,9 @@ export default function RightSidebarPanel({
   
   const effectiveChatEndRef = chatEndRef || localChatEndRef;
   const effectiveChatContainerRef = chatContainerRef || localChatContainerRef;
+
+  // Context section collapse state
+  const [isContextExpanded, setIsContextExpanded] = useState(true);
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -525,6 +535,54 @@ export default function RightSidebarPanel({
               transition={{ duration: 0.2 }}
               className="flex-1 flex flex-col min-h-0"
             >
+              {/* Context Section */}
+              {userId && (
+                <div className="flex-shrink-0 border-b border-slate-200/60 dark:border-slate-800/60">
+                  {/* Context Header with Collapse Button */}
+                  <button
+                    onClick={() => setIsContextExpanded(!isContextExpanded)}
+                    className="w-full flex items-center justify-between px-4 pt-4 pb-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
+                      Context
+                      {contextDocuments.length > 0 && (
+                        <span className="ml-2 text-jobzai-600 dark:text-jobzai-400">
+                          ({contextDocuments.length})
+                        </span>
+                      )}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {isContextExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                      )}
+                    </div>
+                  </button>
+                  
+                  {/* Context Content - Collapsible */}
+                  <AnimatePresence>
+                    {isContextExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 pb-3">
+                          <ContextDocumentSelector
+                            selectedDocuments={contextDocuments}
+                            onDocumentsChange={onContextDocumentsChange || (() => {})}
+                            userId={userId}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
               {/* Chat Messages Area */}
               <div 
                 ref={effectiveChatContainerRef}
