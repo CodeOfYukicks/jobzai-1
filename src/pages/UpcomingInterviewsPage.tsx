@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, query, getDocs, addDoc, updateDoc, doc, where, Timestamp, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection, query, getDocs, addDoc, updateDoc, doc, where, Timestamp, serverTimestamp, getDoc } from 'firebase/firestore';
+import { db, storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
@@ -18,10 +19,16 @@ import {
   MessageSquare,
   History,
   TrendingUp,
-  Filter
+  Filter,
+  Image,
+  Camera,
+  Loader2,
+  X
 } from 'lucide-react';
 import InterviewCard from '../components/interview/InterviewCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
+import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 
 // Interface for the job application data
 interface Interview {
@@ -60,6 +67,16 @@ export default function UpcomingInterviewsPage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'upcoming' | 'past'>('all');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Cover photo states
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
+  const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+  const [isHoveringCover, setIsHoveringCover] = useState(false);
+  const [isCoverDark, setIsCoverDark] = useState<boolean | null>(null); // null = pas encore détecté, true = sombre, false = claire
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchAllInterviews = async () => {
     if (!currentUser) return;
@@ -125,6 +142,34 @@ export default function UpcomingInterviewsPage() {
     if (!currentUser) return;
     fetchAllInterviews();
   }, [currentUser, sortOrder]);
+
+  // Load page preferences (cover photo) and detect brightness
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadPagePreferences = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const pagePreferences = userData.pagePreferences || {};
+          const upcomingInterviewsPrefs = pagePreferences.upcomingInterviews || {};
+          if (upcomingInterviewsPrefs.coverPhoto) {
+            setCoverPhoto(upcomingInterviewsPrefs.coverPhoto);
+            // Detect brightness
+            const isDark = await detectCoverBrightness(upcomingInterviewsPrefs.coverPhoto);
+            setIsCoverDark(isDark);
+          } else {
+            setIsCoverDark(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading page preferences:', error);
+      }
+    };
+
+    loadPagePreferences();
+  }, [currentUser]);
 
   // Helper function to generate .ics file for calendar integration
   const generateICSFile = (interview: Interview, company: string, position: string) => {
@@ -379,69 +424,365 @@ END:VCALENDAR`;
     }
   };
 
+  // Handle file select for cover
+  const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedCoverFile(file);
+      setIsCoverCropperOpen(true);
+    }
+    // Reset input
+    if (coverFileInputRef.current) {
+      coverFileInputRef.current.value = '';
+    }
+  };
+
+  // Handle cropped cover
+  const handleCroppedCover = async (blob: Blob) => {
+    await handleUpdateCover(blob);
+    setIsCoverCropperOpen(false);
+    setSelectedCoverFile(null);
+  };
+
+  // Handle gallery select
+  const handleGallerySelect = (blob: Blob) => {
+    setSelectedCoverFile(blob);
+    setIsCoverGalleryOpen(false);
+    setIsCoverCropperOpen(true);
+  };
+
+  // Function to detect if cover image is dark or light
+  const detectCoverBrightness = (imageUrl: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            resolve(true); // Default to dark if canvas fails
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0);
+          
+          // Sample pixels from the image (sample every 10th pixel for performance)
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          let totalBrightness = 0;
+          let sampleCount = 0;
+          
+          for (let i = 0; i < data.length; i += 40) { // Sample every 10th pixel (RGBA = 4 bytes)
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Calculate luminance using relative luminance formula
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            totalBrightness += luminance;
+            sampleCount++;
+          }
+          
+          const averageBrightness = totalBrightness / sampleCount;
+          // If average brightness is less than 0.5, consider it dark
+          resolve(averageBrightness < 0.5);
+        } catch (error) {
+          console.error('Error detecting cover brightness:', error);
+          resolve(true); // Default to dark on error
+        }
+      };
+      
+      img.onerror = () => {
+        resolve(true); // Default to dark on error
+      };
+      
+      img.src = imageUrl;
+    });
+  };
+
+  // Handle cover photo update
+  const handleUpdateCover = async (blob: Blob) => {
+    if (!currentUser) return;
+
+    setIsUpdatingCover(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `upcoming_interviews_cover_${timestamp}.jpg`;
+      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(coverRef);
+
+      // Delete old cover if exists - extract path from URL
+      if (coverPhoto) {
+        try {
+          // Extract the path from the full URL
+          const urlParts = coverPhoto.split('/o/');
+          if (urlParts.length > 1) {
+            const pathPart = urlParts[1].split('?')[0];
+            const decodedPath = decodeURIComponent(pathPart);
+            const oldCoverRef = ref(storage, decodedPath);
+            await deleteObject(oldCoverRef);
+          }
+        } catch (e) {
+          console.warn('Could not delete old cover photo from storage', e);
+        }
+      }
+
+      // Save to Firestore
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPagePreferences = currentData.pagePreferences || {};
+      const currentUpcomingInterviewsPrefs = currentPagePreferences.upcomingInterviews || {};
+
+      await updateDoc(userRef, {
+        pagePreferences: {
+          ...currentPagePreferences,
+          upcomingInterviews: {
+            ...currentUpcomingInterviewsPrefs,
+            coverPhoto: coverUrl
+          }
+        }
+      });
+
+      setCoverPhoto(coverUrl);
+      
+      // Detect brightness of new cover
+      const isDark = await detectCoverBrightness(coverUrl);
+      setIsCoverDark(isDark);
+      
+      toast.success('Cover updated');
+    } catch (error) {
+      console.error('Error updating cover:', error);
+      toast.error('Failed to update cover');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  };
+
+  // Handle cover photo removal
+  const handleRemoveCover = async () => {
+    if (!currentUser || !coverPhoto) return;
+
+    setIsUpdatingCover(true);
+    try {
+      // Delete from storage - extract path from URL
+      try {
+        // Extract the path from the full URL
+        const urlParts = coverPhoto.split('/o/');
+        if (urlParts.length > 1) {
+          const pathPart = urlParts[1].split('?')[0];
+          const decodedPath = decodeURIComponent(pathPart);
+          const coverRef = ref(storage, decodedPath);
+          await deleteObject(coverRef);
+        }
+      } catch (e) {
+        console.warn('Could not delete cover photo from storage', e);
+      }
+
+      // Remove from Firestore
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPagePreferences = currentData.pagePreferences || {};
+      const currentUpcomingInterviewsPrefs = currentPagePreferences.upcomingInterviews || {};
+
+      await updateDoc(userRef, {
+        pagePreferences: {
+          ...currentPagePreferences,
+          upcomingInterviews: {
+            ...currentUpcomingInterviewsPrefs,
+            coverPhoto: null
+          }
+        }
+      });
+
+      setCoverPhoto(null);
+      setIsCoverDark(null);
+      toast.success('Cover removed');
+    } catch (error) {
+      console.error('Error removing cover:', error);
+      toast.error('Failed to remove cover');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  };
+
   return (
     <AuthLayout>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20">
-        {/* Compact Header Section */}
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
+        {/* Cover Photo Section with all header elements */}
+        <div 
+          className="relative group/cover flex-shrink-0"
+          onMouseEnter={() => setIsHoveringCover(true)}
+          onMouseLeave={() => setIsHoveringCover(false)}
+        >
+          {/* Cover Photo Area - Height adjusted to contain all header elements */}
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[200px] sm:min-h-[220px]' : 'h-auto min-h-[150px] sm:min-h-[170px]'}`}>
+            {/* Cover Background */}
+            {coverPhoto ? (
+              <div className="absolute inset-0 w-full h-full overflow-hidden">
+                <img 
+                  key={coverPhoto}
+                  src={coverPhoto} 
+                  alt="Interviews cover" 
+                  className="w-full h-full object-cover animate-in fade-in duration-500"
+                />
+                <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
+              </div>
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
+                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
+                   style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                />
+                {/* Subtle animated gradient orbs */}
+                <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
+                <div className="absolute bottom-10 left-20 w-64 h-64 bg-indigo-200/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
+              </div>
+            )}
+
+            {/* Cover Controls - Visible on hover - Centered */}
+            <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
+              <AnimatePresence>
+                {(isHoveringCover || !coverPhoto) && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2 pointer-events-auto"
+                  >
+                    {!coverPhoto ? (
+                      <button
+                        onClick={() => setIsCoverGalleryOpen(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
+                          bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
+                          border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                          hover:shadow-md group"
+                      >
+                        <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                        <span>Add cover</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                        <button
+                          onClick={() => setIsCoverGalleryOpen(true)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                        >
+                          <Image className="w-3.5 h-3.5" />
+                          Change cover
+                        </button>
+                        
+                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        
+                        <button
+                          onClick={() => coverFileInputRef.current?.click()}
+                          disabled={isUpdatingCover}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                        >
+                          {isUpdatingCover ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Camera className="w-3.5 h-3.5" />
+                          )}
+                          Upload
+                        </button>
+                        
+                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        
+                        <button
+                          onClick={handleRemoveCover}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
+                            hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                          title="Remove cover"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* All Header Content - Positioned directly on cover */}
+            <div className="relative z-10 px-4 sm:px-6 pt-4 pb-4 flex flex-col gap-3">
+              {/* Title Row */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-4">
-          <div className="flex items-center justify-between mb-3">
+                className="flex items-center justify-between mb-2"
+              >
             {/* Title left */}
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">All Interviews</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  <h1 className={`text-2xl font-bold ${coverPhoto 
+                    ? 'text-white drop-shadow-2xl'
+                    : 'text-gray-900 dark:text-white'
+                  }`}>All Interviews</h1>
+                  <p className={`text-sm mt-0.5 ${coverPhoto 
+                    ? 'text-white/90 drop-shadow-lg'
+                    : 'text-gray-500 dark:text-gray-400'
+                  }`}>
                 Track and manage all your job interviews
               </p>
             </div>
-          </div>
-
-          {/* Stats inline horizontal */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex items-center gap-3 mb-4">
-            {[
-              { label: 'Total', count: allInterviews.length, color: 'gray', icon: Calendar },
-              { label: 'Upcoming', count: getUpcomingInterviews().length, color: 'blue', icon: TrendingUp },
-              { label: 'Past', count: getPastInterviews().length, color: 'gray', icon: History }
-            ].map((stat, index) => (
-              <motion.div 
-                key={stat.label}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 * index }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
-                  stat.color === 'blue' 
-                    ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/20 border-[#635BFF]/20 dark:border-[#7c75ff]/30' 
-                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <stat.icon className={`w-4 h-4 ${
-                  stat.color === 'blue' 
-                    ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                    : 'text-gray-600 dark:text-gray-400'
-                }`} />
-                <div className={`text-lg font-bold ${
-                  stat.color === 'blue' 
-                    ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                    : 'text-gray-900 dark:text-gray-100'
-                }`}>
-                  {stat.count}
-                </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  {stat.label}
-                </div>
               </motion.div>
-            ))}
-          </motion.div>
 
-          {/* Filters - clean horizontal pill layout */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-            <div className="flex flex-wrap items-center gap-3">
+              {/* Stats inline horizontal */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex items-center gap-3 mb-2">
+                {[
+                  { label: 'Total', count: allInterviews.length, color: 'gray', icon: Calendar },
+                  { label: 'Upcoming', count: getUpcomingInterviews().length, color: 'blue', icon: TrendingUp },
+                  { label: 'Past', count: getPastInterviews().length, color: 'gray', icon: History }
+                ].map((stat, index) => (
+                  <motion.div 
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 * index }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${coverPhoto ? 'drop-shadow-lg' : ''}`}
+                  >
+                    <stat.icon className={`w-4 h-4 ${
+                      stat.color === 'blue' 
+                        ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                        : 'text-gray-600 dark:text-gray-400'
+                    }`} />
+                    <div className={`text-lg font-bold ${
+                      stat.color === 'blue' 
+                        ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                        : 'text-gray-900 dark:text-gray-100'
+                    }`}>
+                      {stat.count}
+                    </div>
+                    <div className={`text-xs ${coverPhoto 
+                      ? (isCoverDark ? 'text-white/90' : 'text-gray-700 dark:text-white/90')
+                      : 'text-gray-600 dark:text-gray-400'
+                    }`}>
+                      {stat.label}
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Filters - clean horizontal pill layout */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
+                <div className="flex flex-wrap items-center gap-3">
               {/* Period Filter */}
               <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-gray-800 dark:bg-gray-900/60">
                 <button
@@ -520,23 +861,36 @@ END:VCALENDAR`;
                 >
                   Final
                 </button>
+                </div>
               </div>
+
+              {/* Sort Button */}
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="inline-flex items-center justify-center self-start rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:bg-gray-800"
+                aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
+              >
+                <Calendar className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''} transition-transform`} />
+                <span className="ml-2 hidden sm:inline">
+                  Sort by date
+                </span>
+              </button>
+              </motion.div>
             </div>
 
-            {/* Sort Button */}
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="inline-flex items-center justify-center self-start rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:bg-gray-800"
-              aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
-            >
-              <Calendar className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''} transition-transform`} />
-              <span className="ml-2 hidden sm:inline">
-                Sort by date
-              </span>
-            </button>
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={coverFileInputRef}
+              className="hidden"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleCoverFileSelect}
+            />
           </div>
-        </motion.div>
+        </div>
 
+        {/* Main Content Area */}
+        <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
         {isLoading ? (
           <motion.div 
             initial={{ opacity: 0 }}
@@ -716,6 +1070,28 @@ END:VCALENDAR`;
             )}
           </div>
         )}
+        </div>
+
+        {/* Cover Photo Modals */}
+        <CoverPhotoCropper
+          isOpen={isCoverCropperOpen}
+          file={selectedCoverFile}
+          onClose={() => {
+            setIsCoverCropperOpen(false);
+            setSelectedCoverFile(null);
+          }}
+          onCropped={handleCroppedCover}
+          exportWidth={1584}
+          exportHeight={396}
+        />
+        
+        <CoverPhotoGallery
+          isOpen={isCoverGalleryOpen}
+          onClose={() => setIsCoverGalleryOpen(false)}
+          onSelectBlob={handleGallerySelect}
+          onRemove={coverPhoto ? handleRemoveCover : undefined}
+          currentCover={coverPhoto || undefined}
+        />
       </div>
     </AuthLayout>
   );

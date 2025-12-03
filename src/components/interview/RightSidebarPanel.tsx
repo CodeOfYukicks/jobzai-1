@@ -612,14 +612,30 @@ export default function RightSidebarPanel({
                     }
 
                     let displayContent = msg.content;
-                    if (msg.role === 'assistant' && displayContent.includes('<think>')) {
-                      displayContent = displayContent.replace(/<think>[\s\S]*<\/think>/g, '');
-                    }
+                    
+                    // Clean up assistant messages
                     if (msg.role === 'assistant' && msg.content !== '__thinking__') {
-                      const fullText = displayContent.replace(/<think>[\s\S]*<\/think>/g, '').trim();
-                      if (typingMessages[index] !== undefined && typingMessages[index].length < fullText.length) {
-                        displayContent = typingMessages[index];
+                      // Remove reasoning tags and clean up
+                      const fullText = displayContent
+                        .replace(/<think>[\s\S]*?<\/think>/g, '')
+                        .replace(/\[\d+\]/g, '') // Remove citation numbers
+                        .trim();
+                      
+                      // Use typed text if available and animation is in progress
+                      if (typingMessages[index] !== undefined) {
+                        const typedText = typingMessages[index];
+                        if (typedText.length > 0 && typedText.length < fullText.length) {
+                          // Animation in progress - use typed text
+                          displayContent = typedText;
+                        } else if (typedText.length === fullText.length) {
+                          // Animation complete - use full text
+                          displayContent = fullText;
+                        } else {
+                          // Fallback to full text if typing message seems incorrect
+                          displayContent = fullText;
+                        }
                       } else {
+                        // No typing animation data - show full text
                         displayContent = fullText;
                       }
                     }
@@ -668,8 +684,11 @@ export default function RightSidebarPanel({
                              msg.content !== '__thinking__' && 
                              typingMessages[index] !== undefined && 
                              (() => {
-                               const fullText = msg.content.replace(/<think>[\s\S]*<\/think>/g, '').trim();
-                               return typingMessages[index].length < fullText.length;
+                               const fullText = msg.content
+                                 .replace(/<think>[\s\S]*?<\/think>/g, '')
+                                 .trim();
+                               const typedText = typingMessages[index];
+                               return typedText && typedText.length > 0 && typedText.length < fullText.length;
                              })() && (
                               <span className="inline-block w-0.5 h-4 bg-jobzai-500 ml-0.5 animate-pulse" />
                             )}

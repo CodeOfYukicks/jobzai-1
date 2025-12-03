@@ -11,3 +11,4 @@ export {
 	activateDiscoveredCompany,  // Activate/deactivate companies
 } from './discoverCompanies';
 
+

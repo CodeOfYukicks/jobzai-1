@@ -380,3 +380,4 @@ export const processWorkdayBatch = onRequest({
 	res.redirect(307, `https://${REGION}-jobzai.cloudfunctions.net/processDynamicBatch`);
 });
 
+

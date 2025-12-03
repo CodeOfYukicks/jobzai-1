@@ -663,10 +663,20 @@ export default function PremiumCVEditor() {
             issuer: '',
             date: ''
           };
-          setCvData(prev => ({
-            ...prev,
-            certifications: [...prev.certifications, newCert]
-          }));
+          setCvData(prev => {
+            const newCertifications = [...prev.certifications, newCert];
+            // Auto-enable certifications section if it was disabled
+            const sectionIndex = prev.sections.findIndex(s => s.type === 'certifications');
+            const updatedSections = [...prev.sections];
+            if (sectionIndex !== -1 && !updatedSections[sectionIndex].enabled) {
+              updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], enabled: true };
+            }
+            return {
+              ...prev,
+              certifications: newCertifications,
+              sections: updatedSections
+            };
+          });
           setIsDirty(true);
           setHighlightTarget(null);
           toast.success('Certification added!');

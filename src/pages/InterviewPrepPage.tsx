@@ -1435,27 +1435,20 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
   };
 
   // Typing animation effect - ChatGPT style
-  const prevMessagesLengthRef = useRef(chatMessages.length);
-  const animatedMessagesRef = useRef<Set<number>>(new Set());
+  const animatedMessagesRef = useRef<Set<string>>(new Set()); // Track by message ID (timestamp + content hash)
   const isInitialLoadRef = useRef(true);
   const typingIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
   const prevMessagesRef = useRef<ChatMessage[]>([]);
 
   useEffect(() => {
-    const isNewMessage = chatMessages.length > prevMessagesLengthRef.current;
     const wasInitialLoad = isInitialLoadRef.current;
-    const previousLength = prevMessagesLengthRef.current;
     isInitialLoadRef.current = false;
-    prevMessagesLengthRef.current = chatMessages.length;
-
-    // Only process new messages (those added since last render)
-    const newMessagesStartIndex = previousLength;
 
     // Check if messages actually changed (not just a re-render)
     const messagesChanged = chatMessages.length !== prevMessagesRef.current.length ||
       chatMessages.some((msg, idx) => {
         const prevMsg = prevMessagesRef.current[idx];
-        return !prevMsg || msg.content !== prevMsg.content || msg.role !== prevMsg.role;
+        return !prevMsg || msg.content !== prevMsg.content || msg.role !== prevMsg.role || msg.timestamp !== prevMsg.timestamp;
       });
 
     if (!messagesChanged && !wasInitialLoad) {
@@ -1464,53 +1457,76 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     }
 
     chatMessages.forEach((msg, index) => {
-      // Only animate assistant messages that are new
+      // Only animate assistant messages that are not thinking
       if (msg.role === 'assistant' && msg.content !== '__thinking__') {
-        const fullText = msg.content.replace(/<think>[\s\S]*<\/think>/g, '').trim();
-
-        // Check if this message is already fully typed
-        if (typingMessages[index] === fullText) {
-          return; // Already fully typed
+        const fullText = msg.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        
+        if (fullText.length === 0) {
+          return; // Skip empty messages
         }
 
-        // Only process if this is a new message (added since last render) or if it hasn't been processed yet
-        const isNewlyAdded = index >= newMessagesStartIndex;
+        // Create a unique ID for this message based on timestamp and content
+        const messageId = `${msg.timestamp}-${fullText.substring(0, 20)}`;
+        
+        // Check if this message is already fully typed
+        const currentTypedText = typingMessages[index];
+        if (currentTypedText === fullText) {
+          // Already fully typed, mark as animated
+          animatedMessagesRef.current.add(messageId);
+          return;
+        }
 
-        // If not in typingMessages, handle it
-        if (!typingMessages[index] && fullText.length > 0) {
-          // Check if this is a new message (last message and we just added a message, not initial load)
-          const isLastMessage = index === chatMessages.length - 1;
+        // Check if this message content changed (e.g., "__thinking__" replaced with real content)
+        const prevMsg = prevMessagesRef.current[index];
+        const isContentChanged = !prevMsg || prevMsg.content !== msg.content;
+        const isNewMessage = index >= prevMessagesRef.current.length;
+        
+        // Determine if we should animate: new message, content changed, or not yet animated
+        const shouldAnimate = (isNewMessage || isContentChanged) && 
+                             !animatedMessagesRef.current.has(messageId) &&
+                             !wasInitialLoad;
 
-          if (isNewMessage && isLastMessage && !wasInitialLoad && isNewlyAdded && !animatedMessagesRef.current.has(index)) {
-            // New message - animate typing
-            animatedMessagesRef.current.add(index);
-            setTypingMessages(prev => ({ ...prev, [index]: '' }));
+        if (shouldAnimate && fullText.length > 0) {
+          // Mark as being animated
+          animatedMessagesRef.current.add(messageId);
+          
+          // Clear any existing interval for this index
+          const existingInterval = typingIntervalsRef.current.get(index);
+          if (existingInterval) {
+            clearInterval(existingInterval);
+          }
 
-            // Clear any existing interval for this index
-            const existingInterval = typingIntervalsRef.current.get(index);
-            if (existingInterval) {
-              clearInterval(existingInterval);
+          // Calculate adaptive typing speed based on message length
+          // Longer messages get slightly faster typing to avoid too long animations
+          const baseDelay = 15; // Base delay in ms per character
+          const adaptiveDelay = fullText.length > 500 
+            ? Math.max(8, baseDelay - Math.floor((fullText.length - 500) / 100)) // Faster for very long messages
+            : baseDelay;
+
+          // Start with empty string
+          setTypingMessages(prev => ({ ...prev, [index]: '' }));
+
+          // Animate typing character by character
+          let currentIndex = 0;
+          const typingInterval = setInterval(() => {
+            if (currentIndex < fullText.length) {
+              setTypingMessages(prev => ({
+                ...prev,
+                [index]: fullText.slice(0, currentIndex + 1)
+              }));
+              currentIndex++;
+            } else {
+              // Animation complete
+              clearInterval(typingInterval);
+              typingIntervalsRef.current.delete(index);
             }
+          }, adaptiveDelay);
 
-            // Animate typing character by character
-            let currentIndex = 0;
-            const typingInterval = setInterval(() => {
-              if (currentIndex < fullText.length) {
-                setTypingMessages(prev => ({
-                  ...prev,
-                  [index]: fullText.slice(0, currentIndex + 1)
-                }));
-                currentIndex++;
-              } else {
-                clearInterval(typingInterval);
-                typingIntervalsRef.current.delete(index);
-              }
-            }, 10); // Adjust speed here (lower = faster)
-
-            typingIntervalsRef.current.set(index, typingInterval);
-          } else if (!animatedMessagesRef.current.has(index) && (wasInitialLoad || isNewlyAdded)) {
-            // Loaded message - show full text immediately
-            animatedMessagesRef.current.add(index);
+          typingIntervalsRef.current.set(index, typingInterval);
+        } else if (wasInitialLoad || (!shouldAnimate && !currentTypedText)) {
+          // Loaded message or already processed - show full text immediately
+          if (!currentTypedText || currentTypedText !== fullText) {
+            animatedMessagesRef.current.add(messageId);
             setTypingMessages(prev => ({ ...prev, [index]: fullText }));
           }
         }

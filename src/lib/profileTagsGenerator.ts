@@ -532,3 +532,4 @@ function generateWorkStyleTags(data?: ProfileDataForTags): string[] {
   return tags.slice(0, 2);
 }
 
+

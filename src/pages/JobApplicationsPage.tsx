@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { collection, query, onSnapshot, doc, updateDoc, orderBy, addDoc, deleteDoc, serverTimestamp, getDocs, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Activity,
@@ -38,6 +39,8 @@ import {
   Building,
   Filter,
   XCircle,
+  Image,
+  Camera,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
@@ -49,6 +52,8 @@ import DatePicker from '../components/ui/DatePicker';
 import { JobApplication, Interview, StatusChange } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
 import { JobDetailPanel } from '../components/job-detail-panel';
+import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
+import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -122,6 +127,43 @@ export default function JobApplicationsPage() {
   // New Application Form State
   const [showFullForm, setShowFullForm] = useState(false);
 
+  // Cover photo states
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
+  const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+  const [isHoveringCover, setIsHoveringCover] = useState(false);
+  const [isCoverDark, setIsCoverDark] = useState<boolean | null>(null); // null = pas encore détecté, true = sombre, false = claire
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle file select for cover
+  const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedCoverFile(file);
+      setIsCoverCropperOpen(true);
+    }
+    // Reset input
+    if (coverFileInputRef.current) {
+      coverFileInputRef.current.value = '';
+    }
+  };
+
+  // Handle cropped cover
+  const handleCroppedCover = async (blob: Blob) => {
+    await handleUpdateCover(blob);
+    setIsCoverCropperOpen(false);
+    setSelectedCoverFile(null);
+  };
+
+  // Handle gallery select
+  const handleGallerySelect = (blob: Blob) => {
+    setSelectedCoverFile(blob);
+    setIsCoverGalleryOpen(false);
+    setIsCoverCropperOpen(true);
+  };
+
   useEffect(() => {
     if (!currentUser) return;
 
@@ -192,6 +234,87 @@ export default function JobApplicationsPage() {
     }
   }, [showLookupDropdown]);
 
+  // Function to detect if cover image is dark or light
+  const detectCoverBrightness = (imageUrl: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            resolve(true); // Default to dark if canvas fails
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0);
+          
+          // Sample pixels from the image (sample every 10th pixel for performance)
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          let totalBrightness = 0;
+          let sampleCount = 0;
+          
+          for (let i = 0; i < data.length; i += 40) { // Sample every 10th pixel (RGBA = 4 bytes)
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Calculate luminance using relative luminance formula
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            totalBrightness += luminance;
+            sampleCount++;
+          }
+          
+          const averageBrightness = totalBrightness / sampleCount;
+          // If average brightness is less than 0.5, consider it dark
+          resolve(averageBrightness < 0.5);
+        } catch (error) {
+          console.error('Error detecting cover brightness:', error);
+          resolve(true); // Default to dark on error
+        }
+      };
+      
+      img.onerror = () => {
+        resolve(true); // Default to dark on error
+      };
+      
+      img.src = imageUrl;
+    });
+  };
+
+  // Load page preferences (cover photo) and detect brightness
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadPagePreferences = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const pagePreferences = userData.pagePreferences || {};
+          const applicationsPrefs = pagePreferences.applications || {};
+          if (applicationsPrefs.coverPhoto) {
+            setCoverPhoto(applicationsPrefs.coverPhoto);
+            // Detect brightness
+            const isDark = await detectCoverBrightness(applicationsPrefs.coverPhoto);
+            setIsCoverDark(isDark);
+          } else {
+            setIsCoverDark(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading page preferences:', error);
+      }
+    };
+
+    loadPagePreferences();
+  }, [currentUser]);
+
   const fireConfetti = () => {
     // Ultra Premium Side Cannons Confetti
     // Sophisticated dual-origin celebration effect
@@ -261,6 +384,115 @@ export default function JobApplicationsPage() {
       fireFromSide('left', 40, [...roseGoldColors, ...accentColors], 35, 90, 0.8, 0.3);
       fireFromSide('right', 40, [...roseGoldColors, ...accentColors], 35, 90, 0.8, 0.3);
     }, 450);
+  };
+
+  // Handle cover photo update
+  const handleUpdateCover = async (blob: Blob) => {
+    if (!currentUser) return;
+
+    setIsUpdatingCover(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `applications_cover_${timestamp}.jpg`;
+      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(coverRef);
+
+      // Delete old cover if exists - extract path from URL
+      if (coverPhoto) {
+        try {
+          // Extract the path from the full URL
+          const urlParts = coverPhoto.split('/o/');
+          if (urlParts.length > 1) {
+            const pathPart = urlParts[1].split('?')[0];
+            const decodedPath = decodeURIComponent(pathPart);
+            const oldCoverRef = ref(storage, decodedPath);
+            await deleteObject(oldCoverRef);
+          }
+        } catch (e) {
+          console.warn('Could not delete old cover photo from storage', e);
+        }
+      }
+
+      // Save to Firestore
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPagePreferences = currentData.pagePreferences || {};
+      const currentApplicationsPrefs = currentPagePreferences.applications || {};
+
+      await updateDoc(userRef, {
+        pagePreferences: {
+          ...currentPagePreferences,
+          applications: {
+            ...currentApplicationsPrefs,
+            coverPhoto: coverUrl
+          }
+        }
+      });
+
+      setCoverPhoto(coverUrl);
+      
+      // Detect brightness of new cover
+      const isDark = await detectCoverBrightness(coverUrl);
+      setIsCoverDark(isDark);
+      
+      toast.success('Cover updated');
+    } catch (error) {
+      console.error('Error updating cover:', error);
+      toast.error('Failed to update cover');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  };
+
+  // Handle cover photo removal
+  const handleRemoveCover = async () => {
+    if (!currentUser || !coverPhoto) return;
+
+    setIsUpdatingCover(true);
+    try {
+      // Delete from storage - extract path from URL
+      try {
+        // Extract the path from the full URL
+        const urlParts = coverPhoto.split('/o/');
+        if (urlParts.length > 1) {
+          const pathPart = urlParts[1].split('?')[0];
+          const decodedPath = decodeURIComponent(pathPart);
+          const coverRef = ref(storage, decodedPath);
+          await deleteObject(coverRef);
+        }
+      } catch (e) {
+        console.warn('Could not delete cover photo from storage', e);
+      }
+
+      // Remove from Firestore
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPagePreferences = currentData.pagePreferences || {};
+      const currentApplicationsPrefs = currentPagePreferences.applications || {};
+
+      await updateDoc(userRef, {
+        pagePreferences: {
+          ...currentPagePreferences,
+          applications: {
+            ...currentApplicationsPrefs,
+            coverPhoto: null
+          }
+        }
+      });
+
+      setCoverPhoto(null);
+      setIsCoverDark(null);
+      toast.success('Cover removed');
+    } catch (error) {
+      console.error('Error removing cover:', error);
+      toast.error('Failed to remove cover');
+    } finally {
+      setIsUpdatingCover(false);
+    }
   };
 
   const handleDragEnd = async (result: any) => {
@@ -1184,18 +1416,122 @@ END:VCALENDAR`;
       {/* CSS Variables pour les animations */}
       <style>{cssVariables}</style>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col px-4 pt-6 pb-6">
-        {/* Compact Header Section */}
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
+        {/* Cover Photo Section with all header elements */}
+        <div 
+          className="relative group/cover flex-shrink-0"
+          onMouseEnter={() => setIsHoveringCover(true)}
+          onMouseLeave={() => setIsHoveringCover(false)}
+        >
+          {/* Cover Photo Area - Height adjusted to contain all header elements */}
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[200px] sm:min-h-[220px]' : 'h-auto min-h-[150px] sm:min-h-[170px]'}`}>
+            {/* Cover Background */}
+            {coverPhoto ? (
+              <div className="absolute inset-0 w-full h-full overflow-hidden">
+                <img 
+                  key={coverPhoto}
+                  src={coverPhoto} 
+                  alt="Applications cover" 
+                  className="w-full h-full object-cover animate-in fade-in duration-500"
+                />
+                <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
+              </div>
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
+                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
+                   style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                />
+                {/* Subtle animated gradient orbs */}
+                <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
+                <div className="absolute bottom-10 left-20 w-64 h-64 bg-indigo-200/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
+              </div>
+            )}
+
+            {/* Cover Controls - Visible on hover - Centered */}
+            <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
+              <AnimatePresence>
+                {(isHoveringCover || !coverPhoto) && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2 pointer-events-auto"
+                  >
+                    {!coverPhoto ? (
+                      <button
+                        onClick={() => setIsCoverGalleryOpen(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
+                          bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
+                          border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                          hover:shadow-md group"
+                      >
+                        <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                        <span>Add cover</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                        <button
+                          onClick={() => setIsCoverGalleryOpen(true)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                        >
+                          <Image className="w-3.5 h-3.5" />
+                          Change cover
+                        </button>
+                        
+                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        
+                        <button
+                          onClick={() => coverFileInputRef.current?.click()}
+                          disabled={isUpdatingCover}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                        >
+                          {isUpdatingCover ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Camera className="w-3.5 h-3.5" />
+                          )}
+                          Upload
+                        </button>
+                        
+                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        
+                        <button
+                          onClick={handleRemoveCover}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
+                            hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                          title="Remove cover"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* All Header Content - Positioned directly on cover */}
+            <div className="relative z-10 px-4 sm:px-6 pt-4 pb-4 flex flex-col gap-3">
+              {/* Title and Add Button Row */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-4 flex-shrink-0">
-          <div className="flex items-center justify-between mb-3">
+                className="flex items-center justify-between mb-2"
+              >
             {/* Titre à gauche */}
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Applications</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  <h1 className={`text-2xl font-bold ${coverPhoto 
+                    ? 'text-white drop-shadow-2xl'
+                    : 'text-gray-900 dark:text-white'
+                  }`}>Applications</h1>
+                  <p className={`text-sm mt-0.5 ${coverPhoto 
+                    ? 'text-white/90 drop-shadow-lg'
+                    : 'text-gray-500 dark:text-gray-400'
+                  }`}>
                 Track and manage your job applications
               </p>
             </div>
@@ -1212,26 +1548,27 @@ END:VCALENDAR`;
                 setShowLookupDropdown(false);
                 setNewApplicationModal(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                text-gray-700 dark:text-gray-200 
-                bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
-                border border-gray-200 dark:border-gray-700 rounded-lg
-                hover:bg-gray-50 dark:hover:bg-gray-700/80 
-                hover:border-gray-300 dark:hover:border-gray-600
-                shadow-sm hover:shadow transition-all duration-200"
+                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
+                    ${coverPhoto 
+                      ? (isCoverDark 
+                        ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
+                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
+                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
             >
               <Plus className="w-4 h-4" />
               <span>Add Application</span>
             </motion.button>
-          </div>
+              </motion.div>
 
-          {/* Stats en ligne horizontale + View Toggle */}
-          <div className="flex items-center justify-between mb-3">
+              {/* Stats and View Toggle Row */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="flex items-center gap-3">
+                className="flex items-center justify-between mb-2"
+              >
+                <div className="flex items-center gap-3">
               {[
                 { label: 'Applied', count: applications.filter(a => a.status === 'applied').length, color: 'blue' },
                 { label: 'Interview', count: applications.filter(a => a.status === 'interview').length, color: 'purple' },
@@ -1244,20 +1581,23 @@ END:VCALENDAR`;
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.1 * index }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${coverPhoto ? 'drop-shadow-lg' : ''}`}
                 >
                   <div className={`text-lg font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}>
                     {stat.count}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                  <div className={`text-xs ${coverPhoto 
+                    ? (isCoverDark ? 'text-white/90' : 'text-gray-700 dark:text-white/90')
+                    : 'text-gray-600 dark:text-gray-400'
+                  }`}>
                     {stat.label}
                   </div>
                 </motion.div>
               ))}
-            </motion.div>
+                </div>
 
             {/* View Toggle intégré */}
-            <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex">
+                <div className="p-1 rounded-lg flex bg-gray-100 dark:bg-gray-800">
               <button
                 onClick={() => setView('kanban')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${view === 'kanban'
@@ -1278,17 +1618,17 @@ END:VCALENDAR`;
                 <LineChart className="w-4 h-4" />
                 <span>Analytics</span>
               </button>
-            </div>
           </div>
         </motion.div>
 
-        {/* Barre de recherche et filtres - only show for kanban view */}
+              {/* Search and Filters Row - Only show for kanban view */}
         {view === 'kanban' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mb-3 flex-shrink-0">
+                  className=""
+                >
             {/* Search bar + Filters en une ligne */}
             <div className="flex items-center gap-3">
               {/* Search bar plus compact */}
@@ -1298,9 +1638,19 @@ END:VCALENDAR`;
                   placeholder="Search by company or position..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500"
-                />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        className={`w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 ${
+                          coverPhoto && isCoverDark 
+                            ? 'text-white placeholder-white/60' 
+                            : coverPhoto && !isCoverDark 
+                              ? 'text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/60' 
+                              : ''
+                        }`}
+                      />
+                      <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+                        coverPhoto 
+                          ? (isCoverDark ? 'text-white/60' : 'text-gray-600 dark:text-white/60') 
+                          : 'text-gray-400'
+                      }`} />
               </div>
 
               {/* Filters en ligne */}
@@ -1308,7 +1658,8 @@ END:VCALENDAR`;
                 {/* Date Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'date' ? null : 'date')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilter !== 'all' || customDateRange
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          dateFilter !== 'all' || customDateRange
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
@@ -1316,7 +1667,7 @@ END:VCALENDAR`;
                   <Calendar className="w-4 h-4" />
                   <span>Date</span>
                   {dateFilter !== 'all' || customDateRange ? (
-                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-purple-600 dark:bg-purple-500 px-1 text-xs font-semibold text-white">
+                          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
                       1
                     </span>
                   ) : null}
@@ -1325,7 +1676,8 @@ END:VCALENDAR`;
                 {/* Interview Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'interview' ? null : 'interview')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
@@ -1333,7 +1685,7 @@ END:VCALENDAR`;
                   <Users className="w-4 h-4" />
                   <span>Interviews</span>
                   {hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null ? (
-                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-purple-600 dark:bg-purple-500 px-1 text-xs font-semibold text-white">
+                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
                       {[hasInterviews !== 'all' ? 1 : 0, interviewTypes.length, interviewStatus.length, upcomingInterviewsDays !== null ? 1 : 0].reduce((a, b) => a + b, 0)}
                     </span>
                   ) : null}
@@ -1342,7 +1694,8 @@ END:VCALENDAR`;
                 {/* Company Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'company' ? null : 'company')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCompanies.length > 0
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          selectedCompanies.length > 0
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
@@ -1350,7 +1703,7 @@ END:VCALENDAR`;
                   <Building className="w-4 h-4" />
                   <span>Company</span>
                   {selectedCompanies.length > 0 ? (
-                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-purple-600 dark:bg-purple-500 px-1 text-xs font-semibold text-white">
+                          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
                       {selectedCompanies.length}
                     </span>
                   ) : null}
@@ -1359,7 +1712,8 @@ END:VCALENDAR`;
                 {/* Sort Filter */}
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'sort' ? null : 'sort')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sortBy !== 'appliedDate' || sortOrder !== 'desc'
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          sortBy !== 'appliedDate' || sortOrder !== 'desc'
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
@@ -1367,7 +1721,7 @@ END:VCALENDAR`;
                   <Filter className="w-4 h-4" />
                   <span>Sort</span>
                   {sortBy !== 'appliedDate' || sortOrder !== 'desc' ? (
-                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-purple-600 dark:bg-purple-500 px-1 text-xs font-semibold text-white">
+                          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
                       1
                     </span>
                   ) : null}
@@ -1386,7 +1740,11 @@ END:VCALENDAR`;
               )}
 
               {/* Results count */}
-              <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    <div className={`text-sm whitespace-nowrap ${
+                      coverPhoto 
+                        ? (isCoverDark ? 'text-white/90' : 'text-gray-700 dark:text-white/90')
+                        : 'text-gray-600 dark:text-gray-400'
+                    }`}>
                 {filteredApplications.length} {filteredApplications.length === 1 ? 'result' : 'results'}
                 {getActiveFilterCount() > 0 && (
                   <span className="ml-1 text-purple-600 dark:text-purple-400">
@@ -1398,7 +1756,7 @@ END:VCALENDAR`;
 
             {/* Active filter badges */}
             {getActiveFilterCount() > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mt-3">
                 {dateFilter !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
                     Date: {dateFilter === 'custom' && customDateRange
@@ -1413,7 +1771,7 @@ END:VCALENDAR`;
                         setDateFilter('all');
                         setCustomDateRange(null);
                       }}
-                      className="ml-1 hover:text-purple-900 dark:hover:text-purple-100"
+                      className="ml-1 hover:opacity-70"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -1424,7 +1782,7 @@ END:VCALENDAR`;
                     Companies: {selectedCompanies.length}
                     <button
                       onClick={() => setSelectedCompanies([])}
-                      className="ml-1 hover:text-purple-900 dark:hover:text-purple-100"
+                      className="ml-1 hover:opacity-70"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -1435,7 +1793,7 @@ END:VCALENDAR`;
                     Interviews: {hasInterviews === 'with' ? 'With' : hasInterviews === 'without' ? 'Without' : 'Upcoming'}
                     <button
                       onClick={() => setHasInterviews('all')}
-                      className="ml-1 hover:text-purple-900 dark:hover:text-purple-100"
+                      className="ml-1 hover:opacity-70"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -1449,7 +1807,7 @@ END:VCALENDAR`;
                         setSortBy('appliedDate');
                         setSortOrder('desc');
                       }}
-                      className="ml-1 hover:text-purple-900 dark:hover:text-purple-100"
+                      className="ml-1 hover:opacity-70"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -1459,7 +1817,21 @@ END:VCALENDAR`;
             )}
           </motion.div>
         )}
+            </div>
 
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={coverFileInputRef}
+              className="hidden"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleCoverFileSelect}
+            />
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
         {/* Main content area - switch between kanban and analytics */}
         <AnimatePresence mode="wait">
           {view === 'kanban' ? (
@@ -1806,6 +2178,7 @@ END:VCALENDAR`;
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
 
         {/* Filter Modals */}
         <AnimatePresence>
@@ -4091,12 +4464,33 @@ END:VCALENDAR`;
             // Redirect to upcoming interviews page
             window.location.href = '/upcoming-interviews';
           }}
-          className="fixed bottom-20 right-6 z-10 bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg flex items-center justify-center"
+          className="fixed bottom-20 right-6 z-10 bg-[#635BFF] hover:bg-[#7c75ff] dark:bg-[#a5a0ff] text-white p-4 rounded-full shadow-lg flex items-center justify-center transition-colors"
           aria-label="View all scheduled interviews"
         >
           <Calendar className="w-6 h-6" />
           <span className="sr-only">View all scheduled interviews</span>
         </button>
+
+        {/* Cover Photo Modals */}
+        <CoverPhotoCropper
+          isOpen={isCoverCropperOpen}
+          file={selectedCoverFile}
+          onClose={() => {
+            setIsCoverCropperOpen(false);
+            setSelectedCoverFile(null);
+          }}
+          onCropped={handleCroppedCover}
+          exportWidth={1584}
+          exportHeight={396}
+        />
+        
+        <CoverPhotoGallery
+          isOpen={isCoverGalleryOpen}
+          onClose={() => setIsCoverGalleryOpen(false)}
+          onSelectBlob={handleGallerySelect}
+          onRemove={coverPhoto ? handleRemoveCover : undefined}
+          currentCover={coverPhoto || undefined}
+        />
       </div>
     </AuthLayout>
   );

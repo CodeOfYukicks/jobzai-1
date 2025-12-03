@@ -351,6 +351,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/calendar' || 
     location.pathname.startsWith('/interview-prep/') || 
     location.pathname === '/resume-builder' ||
+    location.pathname === '/cv-analysis' ||
     (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor')) ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
     location.pathname.startsWith('/notes/');

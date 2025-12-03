@@ -205,3 +205,4 @@ curl -X POST https://us-central1-jobzai.cloudfunctions.net/retryFailedTasks
 3. **Real-time Updates**: Webhook subscriptions for ATS updates
 4. **Geographic Expansion**: Region-specific aggregators
 
+

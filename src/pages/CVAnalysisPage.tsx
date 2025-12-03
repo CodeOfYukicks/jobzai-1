@@ -12,7 +12,7 @@ import {
   Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
   SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound,
   Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2,
-  Eye, Zap, MoreHorizontal, Copy, MapPin
+  Eye, Zap, MoreHorizontal, Copy, MapPin, Image, Camera
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -21,7 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { CompanyLogo } from '../components/common/CompanyLogo';
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc, Unsubscribe } from 'firebase/firestore';
 import { JobApplication } from '../types/job';
-import { getDownloadURL, ref, getStorage, uploadBytes, getBytes } from 'firebase/storage';
+import { getDownloadURL, ref, getStorage, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import { toast } from 'sonner';
 import { db, storage, auth } from '../lib/firebase';
 import PrivateRoute from '../components/PrivateRoute';
@@ -57,6 +57,8 @@ import { Resume } from './ResumeBuilderPage';
 import jsPDF from 'jspdf';
 // Import Perplexity for job extraction
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
+import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
+import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 
 // Configurer le worker correctement pour utiliser le fichier local depuis public
 // Cela évite les problèmes CORS et 404 depuis les CDN externes
@@ -2520,6 +2522,16 @@ export default function CVAnalysisPage() {
   const [selectedBuilderItem, setSelectedBuilderItem] = useState<{ type: 'resume' | 'document'; item: Resume | ImportedDocument } | null>(null);
   const [isLoadingBuilderCVs, setIsLoadingBuilderCVs] = useState(false);
 
+  // Cover photo states
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
+  const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+  const [isHoveringCover, setIsHoveringCover] = useState(false);
+  const [isCoverDark, setIsCoverDark] = useState<boolean | null>(null); // null = pas encore détecté, true = sombre, false = claire
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+
   // Fonction pour charger le CV depuis le profil utilisateur
   const fetchUserCV = useCallback(async () => {
     if (!currentUser) {
@@ -3103,6 +3115,34 @@ export default function CVAnalysisPage() {
       clearInterval(intervalId);
     };
   }, [currentUser, analyses]);
+
+  // Load page preferences (cover photo) and detect brightness
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadPagePreferences = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const pagePreferences = userData.pagePreferences || {};
+          const cvAnalysisPrefs = pagePreferences.cvAnalysis || {};
+          if (cvAnalysisPrefs.coverPhoto) {
+            setCoverPhoto(cvAnalysisPrefs.coverPhoto);
+            // Detect brightness
+            const isDark = await detectCoverBrightness(cvAnalysisPrefs.coverPhoto);
+            setIsCoverDark(isDark);
+          } else {
+            setIsCoverDark(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading page preferences:', error);
+      }
+    };
+
+    loadPagePreferences();
+  }, [currentUser]);
 
   // Sauvegarder l'analyse dans Firestore
   const saveAnalysisToFirestore = async (analysis: ATSAnalysis, jobApplication?: JobApplication | null) => {
@@ -4694,6 +4734,195 @@ URL to visit: ${jobUrl}
     } catch (e) {
       console.error('Error duplicating analysis:', e);
       toast.error('Unable to duplicate analysis');
+    }
+  };
+
+  // Handle file select for cover
+  const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedCoverFile(file);
+      setIsCoverCropperOpen(true);
+    }
+    // Reset input
+    if (coverFileInputRef.current) {
+      coverFileInputRef.current.value = '';
+    }
+  };
+
+  // Handle cropped cover
+  const handleCroppedCover = async (blob: Blob) => {
+    await handleUpdateCover(blob);
+    setIsCoverCropperOpen(false);
+    setSelectedCoverFile(null);
+  };
+
+  // Handle gallery select
+  const handleGallerySelect = (blob: Blob) => {
+    setSelectedCoverFile(blob);
+    setIsCoverGalleryOpen(false);
+    setIsCoverCropperOpen(true);
+  };
+
+  // Function to detect if cover image is dark or light
+  const detectCoverBrightness = (imageUrl: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            resolve(true); // Default to dark if canvas fails
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0);
+          
+          // Sample pixels from the image (sample every 10th pixel for performance)
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          let totalBrightness = 0;
+          let sampleCount = 0;
+          
+          for (let i = 0; i < data.length; i += 40) { // Sample every 10th pixel (RGBA = 4 bytes)
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Calculate luminance using relative luminance formula
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            totalBrightness += luminance;
+            sampleCount++;
+          }
+          
+          const averageBrightness = totalBrightness / sampleCount;
+          // If average brightness is less than 0.5, consider it dark
+          resolve(averageBrightness < 0.5);
+        } catch (error) {
+          console.error('Error detecting cover brightness:', error);
+          resolve(true); // Default to dark on error
+        }
+      };
+      
+      img.onerror = () => {
+        resolve(true); // Default to dark on error
+      };
+      
+      img.src = imageUrl;
+    });
+  };
+
+  // Handle cover photo update
+  const handleUpdateCover = async (blob: Blob) => {
+    if (!currentUser) return;
+
+    setIsUpdatingCover(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `cv_analysis_cover_${timestamp}.jpg`;
+      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(coverRef);
+
+      // Delete old cover if exists - extract path from URL
+      if (coverPhoto) {
+        try {
+          // Extract the path from the full URL
+          const urlParts = coverPhoto.split('/o/');
+          if (urlParts.length > 1) {
+            const pathPart = urlParts[1].split('?')[0];
+            const decodedPath = decodeURIComponent(pathPart);
+            const oldCoverRef = ref(storage, decodedPath);
+            await deleteObject(oldCoverRef);
+          }
+        } catch (e) {
+          console.warn('Could not delete old cover photo from storage', e);
+        }
+      }
+
+      // Save to Firestore
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPagePreferences = currentData.pagePreferences || {};
+      const currentCvAnalysisPrefs = currentPagePreferences.cvAnalysis || {};
+
+      await updateDoc(userRef, {
+        pagePreferences: {
+          ...currentPagePreferences,
+          cvAnalysis: {
+            ...currentCvAnalysisPrefs,
+            coverPhoto: coverUrl
+          }
+        }
+      });
+
+      setCoverPhoto(coverUrl);
+      
+      // Detect brightness of new cover
+      const isDark = await detectCoverBrightness(coverUrl);
+      setIsCoverDark(isDark);
+      
+      toast.success('Cover updated');
+    } catch (error) {
+      console.error('Error updating cover:', error);
+      toast.error('Failed to update cover');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  };
+
+  // Handle cover photo removal
+  const handleRemoveCover = async () => {
+    if (!currentUser || !coverPhoto) return;
+
+    setIsUpdatingCover(true);
+    try {
+      // Delete from storage - extract path from URL
+      try {
+        // Extract the path from the full URL
+        const urlParts = coverPhoto.split('/o/');
+        if (urlParts.length > 1) {
+          const pathPart = urlParts[1].split('?')[0];
+          const decodedPath = decodeURIComponent(pathPart);
+          const coverRef = ref(storage, decodedPath);
+          await deleteObject(coverRef);
+        }
+      } catch (e) {
+        console.warn('Could not delete cover photo from storage', e);
+      }
+
+      // Remove from Firestore
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPagePreferences = currentData.pagePreferences || {};
+      const currentCvAnalysisPrefs = currentPagePreferences.cvAnalysis || {};
+
+      await updateDoc(userRef, {
+        pagePreferences: {
+          ...currentPagePreferences,
+          cvAnalysis: {
+            ...currentCvAnalysisPrefs,
+            coverPhoto: null
+          }
+        }
+      });
+
+      setCoverPhoto(null);
+      setIsCoverDark(null);
+      toast.success('Cover removed');
+    } catch (error) {
+      console.error('Error removing cover:', error);
+      toast.error('Failed to remove cover');
+    } finally {
+      setIsUpdatingCover(false);
     }
   };
 
@@ -7631,19 +7860,130 @@ URL to visit: ${jobUrl}
 
   return (
     <AuthLayout>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-4 py-6">
-          {/* Minimal Header */}
-          <div className="flex items-center justify-between mb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
+        {/* Cover Photo Section with all header elements */}
+        <div 
+          className="relative group/cover flex-shrink-0"
+          onMouseEnter={() => setIsHoveringCover(true)}
+          onMouseLeave={() => setIsHoveringCover(false)}
+        >
+          {/* Cover Photo Area - Height adjusted to contain all header elements */}
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[160px] sm:min-h-[180px]' : 'h-auto min-h-[120px] sm:min-h-[140px]'}`}>
+            {/* Cover Background */}
+            {coverPhoto ? (
+              <div className="absolute inset-0 w-full h-full overflow-hidden">
+                <img 
+                  key={coverPhoto}
+                  src={coverPhoto} 
+                  alt="CV Analysis cover" 
+                  className="w-full h-full object-cover animate-in fade-in duration-500"
+                />
+                <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
+              </div>
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
+                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
+                   style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                />
+                {/* Subtle animated gradient orbs */}
+                <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
+                <div className="absolute bottom-10 left-20 w-64 h-64 bg-indigo-200/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
+              </div>
+            )}
+
+            {/* Cover Controls - Visible on hover - Centered */}
+            <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
+              <AnimatePresence>
+                {(isHoveringCover || !coverPhoto) && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2 pointer-events-auto"
+                  >
+                    {!coverPhoto ? (
+                      <button
+                        onClick={() => setIsCoverGalleryOpen(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
+                          bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
+                          border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                          hover:shadow-md group"
+                      >
+                        <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                        <span>Add cover</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                        <button
+                          onClick={() => setIsCoverGalleryOpen(true)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                        >
+                          <Image className="w-3.5 h-3.5" />
+                          Change cover
+                        </button>
+                        
+                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        
+                        <button
+                          onClick={() => coverFileInputRef.current?.click()}
+                          disabled={isUpdatingCover}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                        >
+                          {isUpdatingCover ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Camera className="w-3.5 h-3.5" />
+                          )}
+                          Upload
+                        </button>
+                        
+                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        
+                        <button
+                          onClick={handleRemoveCover}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
+                            hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                          title="Remove cover"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* All Header Content - Positioned directly on cover */}
+            <div className="relative z-10 px-4 sm:px-6 pt-6 pb-3 flex flex-col gap-2">
+              {/* Title and New Analysis Button Row */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex items-center justify-between"
+              >
+                {/* Title left */}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Resume Lab
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  <h1 className={`text-2xl font-bold ${coverPhoto 
+                    ? 'text-white drop-shadow-2xl'
+                    : 'text-gray-900 dark:text-white'
+                  }`}>Resume Lab</h1>
+                  <p className={`text-sm mt-0.5 ${coverPhoto 
+                    ? 'text-white/90 drop-shadow-lg'
+                    : 'text-gray-500 dark:text-gray-400'
+                  }`}>
               AI-powered resume analysis for smarter applications
             </p>
           </div>
-          <button
+
+                {/* New Analysis Button right */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
             onClick={() => {
               setFormData({
                 jobTitle: '',
@@ -7659,18 +7999,33 @@ URL to visit: ${jobUrl}
               setShowJobDropdown(false);
               setIsModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-              text-gray-700 dark:text-gray-200 
-              bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
-              border border-gray-200 dark:border-gray-700 rounded-lg
-              hover:bg-gray-50 dark:hover:bg-gray-700/80 
-              hover:border-gray-300 dark:hover:border-gray-600
-              shadow-sm hover:shadow transition-all duration-200"
+                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
+                    ${coverPhoto 
+                      ? (isCoverDark 
+                        ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
+                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
+                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
           >
             <Sparkles className="w-4 h-4" />
             <span>New Analysis</span>
-          </button>
+                </motion.button>
+              </motion.div>
         </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={coverFileInputRef}
+              className="hidden"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleCoverFileSelect}
+            />
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
 
         {/* Minimal Search and Filters - Notion Style */}
         {analyses.length > 0 && (
@@ -8000,6 +8355,27 @@ URL to visit: ${jobUrl}
         onChange={handleFileUpload}
         className="hidden"
         accept=".pdf"
+      />
+
+      {/* Cover Photo Modals */}
+      <CoverPhotoCropper
+        isOpen={isCoverCropperOpen}
+        file={selectedCoverFile}
+        onClose={() => {
+          setIsCoverCropperOpen(false);
+          setSelectedCoverFile(null);
+        }}
+        onCropped={handleCroppedCover}
+        exportWidth={1584}
+        exportHeight={396}
+      />
+      
+      <CoverPhotoGallery
+        isOpen={isCoverGalleryOpen}
+        onClose={() => setIsCoverGalleryOpen(false)}
+        onSelectBlob={handleGallerySelect}
+        onRemove={coverPhoto ? handleRemoveCover : undefined}
+        currentCover={coverPhoto || undefined}
       />
     </AuthLayout>
   );

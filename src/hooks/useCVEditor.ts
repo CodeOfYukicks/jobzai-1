@@ -156,6 +156,38 @@ export function useCVEditor(
           }
       }
       
+      // Auto-enable/disable sections for certifications and projects
+      // Find the section in the sections array
+      const sectionIndex = newData.sections.findIndex(s => s.type === sectionId);
+      
+      if (sectionIndex !== -1) {
+        const section = newData.sections[sectionIndex];
+        
+        // Handle certifications section
+        if (sectionId === 'certifications' && updates.certifications !== undefined) {
+          // Check the final array after update
+          const hasItems = Array.isArray(newData.certifications) && newData.certifications.length > 0;
+          // Enable section if it has items and was disabled, disable if empty
+          if (hasItems && !section.enabled) {
+            newData.sections[sectionIndex] = { ...section, enabled: true };
+          } else if (!hasItems && section.enabled) {
+            newData.sections[sectionIndex] = { ...section, enabled: false };
+          }
+        }
+        
+        // Handle projects section
+        if (sectionId === 'projects' && updates.projects !== undefined) {
+          // Check the final array after update
+          const hasItems = Array.isArray(newData.projects) && newData.projects.length > 0;
+          // Enable section if it has items and was disabled, disable if empty
+          if (hasItems && !section.enabled) {
+            newData.sections[sectionIndex] = { ...section, enabled: true };
+          } else if (!hasItems && section.enabled) {
+            newData.sections[sectionIndex] = { ...section, enabled: false };
+          }
+        }
+      }
+      
       return newData;
     });
     setIsDirty(true);
@@ -187,6 +219,15 @@ export function useCVEditor(
           break;
       }
       
+      // Auto-enable sections for certifications and projects
+      const sectionIndex = newData.sections.findIndex(s => s.type === sectionId);
+      if (sectionIndex !== -1) {
+        const section = newData.sections[sectionIndex];
+        if ((sectionId === 'certifications' || sectionId === 'projects') && !section.enabled) {
+          newData.sections[sectionIndex] = { ...section, enabled: true };
+        }
+      }
+      
       return newData;
     });
     setIsDirty(true);
@@ -216,6 +257,23 @@ export function useCVEditor(
         case 'languages':
           newData.languages = newData.languages.filter(l => l.id !== itemId);
           break;
+      }
+      
+      // Auto-disable sections for certifications and projects if they become empty
+      const sectionIndex = newData.sections.findIndex(s => s.type === sectionId);
+      if (sectionIndex !== -1) {
+        const section = newData.sections[sectionIndex];
+        if (sectionId === 'certifications') {
+          const hasItems = newData.certifications.length > 0;
+          if (!hasItems && section.enabled) {
+            newData.sections[sectionIndex] = { ...section, enabled: false };
+          }
+        } else if (sectionId === 'projects') {
+          const hasItems = newData.projects.length > 0;
+          if (!hasItems && section.enabled) {
+            newData.sections[sectionIndex] = { ...section, enabled: false };
+          }
+        }
       }
       
       return newData;
