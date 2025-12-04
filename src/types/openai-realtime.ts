@@ -313,6 +313,11 @@ export interface ResponseDoneEvent {
   response: Response;
 }
 
+export interface ResponseCancelledEvent {
+  type: 'response.cancelled';
+  response?: Response;
+}
+
 export interface ResponseOutputItemAddedEvent {
   type: 'response.output_item.added';
   response_id: string;
@@ -426,6 +431,59 @@ export interface RateLimitsUpdatedEvent {
   }>;
 }
 
+// Additional events for conversation items
+export interface ConversationItemAddedEvent {
+  type: 'conversation.item.added';
+  item: {
+    id: string;
+    type: string;
+    role?: string;
+    content?: Array<{ type: string; text?: string; transcript?: string }>;
+  };
+}
+
+export interface ConversationItemDoneEvent {
+  type: 'conversation.item.done';
+  item: {
+    id: string;
+    type: string;
+    role?: string;
+    content?: Array<{ type: string; text?: string; transcript?: string }>;
+  };
+}
+
+// Additional response audio events
+export interface ResponseOutputAudioDeltaEvent {
+  type: 'response.output_audio.delta';
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  delta: string;
+}
+
+export interface ResponseOutputAudioDoneEvent {
+  type: 'response.output_audio.done';
+  item_id: string;
+  output_index: number;
+  content_index: number;
+}
+
+export interface ResponseOutputAudioTranscriptDeltaEvent {
+  type: 'response.output_audio_transcript.delta';
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  delta: string;
+}
+
+export interface ResponseOutputAudioTranscriptDoneEvent {
+  type: 'response.output_audio_transcript.done';
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  transcript: string;
+}
+
 export type ServerEvent =
   | ErrorEvent
   | SessionCreatedEvent
@@ -436,12 +494,15 @@ export type ServerEvent =
   | InputAudioBufferSpeechStartedEvent
   | InputAudioBufferSpeechStoppedEvent
   | ConversationItemCreatedEvent
+  | ConversationItemAddedEvent
+  | ConversationItemDoneEvent
   | ConversationItemInputAudioTranscriptionCompletedEvent
   | ConversationItemInputAudioTranscriptionFailedEvent
   | ConversationItemTruncatedEvent
   | ConversationItemDeletedEvent
   | ResponseCreatedEvent
   | ResponseDoneEvent
+  | ResponseCancelledEvent
   | ResponseOutputItemAddedEvent
   | ResponseOutputItemDoneEvent
   | ResponseContentPartAddedEvent
@@ -452,6 +513,10 @@ export type ServerEvent =
   | ResponseAudioTranscriptDoneEvent
   | ResponseAudioDeltaEvent
   | ResponseAudioDoneEvent
+  | ResponseOutputAudioDeltaEvent
+  | ResponseOutputAudioDoneEvent
+  | ResponseOutputAudioTranscriptDeltaEvent
+  | ResponseOutputAudioTranscriptDoneEvent
   | ResponseFunctionCallArgumentsDeltaEvent
   | ResponseFunctionCallArgumentsDoneEvent
   | RateLimitsUpdatedEvent;
@@ -484,9 +549,13 @@ export interface RealtimeSessionResponse {
 }
 
 export interface CreateSessionResponse {
+  status: string;
   url: string;
+  session_id?: string;
   client_secret: string;
   expires_at: number;
+  model?: string;
+  voice?: string;
 }
 
 // ============================================

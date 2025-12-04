@@ -56,6 +56,8 @@ import ResumeBuilderPage from './pages/ResumeBuilderPage';
 import NotionEditorPage from './pages/NotionEditorPage';
 import WhiteboardEditorPage from './pages/WhiteboardEditorPage';
 import MockInterviewPage from './pages/MockInterviewPage';
+import MockIntroScene from './pages/MockIntroScene';
+import CareerIntelligencePage from './pages/CareerIntelligencePage';
 
 import { initNotificationService } from './services/notificationService';
 import { useBackgroundTasks } from './hooks/useBackgroundTasks';
@@ -172,7 +174,8 @@ function AppContent() {
             } 
           />
           <Route path="/campaign-emails" element={<CampaignEmailsPage />} />
-          <Route path="/recommendations" element={<RecommendationsPage />} />
+          <Route path="/recommendations" element={<CareerIntelligencePage />} />
+          <Route path="/recommendations-legacy" element={<RecommendationsPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/settings" element={<SettingsPage />} />
@@ -196,6 +199,7 @@ function AppContent() {
           <Route path="/upcoming-interviews" element={<UpcomingInterviewsPage />} />
           <Route path="/interview-help" element={<InterviewHelpPage />} />
           <Route path="/mock-interview" element={<MockInterviewPage />} />
+          <Route path="/mock-intro" element={<MockIntroScene />} />
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/jobs" element={<JobBoardPage />} />
         </Route>

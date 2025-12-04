@@ -134,17 +134,43 @@ class AudioRealtimeProcessor extends AudioWorkletProcessor {
     // Get the first input channel (mono)
     const input = inputs[0];
     if (!input || input.length === 0) {
+      // Log occasionally if no input
+      if (Math.random() < 0.001) {
+        this.port.postMessage({ type: 'debug', message: 'No input data received' });
+      }
       return true;
     }
     
     const channelData = input[0];
     if (!channelData || channelData.length === 0) {
+      if (Math.random() < 0.001) {
+        this.port.postMessage({ type: 'debug', message: 'Empty channel data' });
+      }
       return true;
     }
     
     // Skip if not recording
     if (!this.isRecording) {
       return true;
+    }
+    
+    // Check if we're getting actual audio (not silence)
+    // Log once every few seconds
+    if (!this.lastNonSilenceCheck) this.lastNonSilenceCheck = 0;
+    this.lastNonSilenceCheck++;
+    if (this.lastNonSilenceCheck >= 3000) { // ~every 3 seconds at 128 samples/call
+      let hasSound = false;
+      let maxSample = 0;
+      for (let i = 0; i < channelData.length; i++) {
+        const abs = Math.abs(channelData[i]);
+        if (abs > maxSample) maxSample = abs;
+        if (abs > 0.001) hasSound = true;
+      }
+      this.port.postMessage({ 
+        type: 'debug', 
+        message: `Audio check - hasSound: ${hasSound}, maxSample: ${maxSample.toFixed(6)}` 
+      });
+      this.lastNonSilenceCheck = 0;
     }
     
     // Accumulate volume for visualization

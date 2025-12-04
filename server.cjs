@@ -731,10 +731,10 @@ app.post('/api/openai-realtime-session', async (req, res) => {
     
     console.log('📡 Creating OpenAI Realtime client secret via GA API...');
     
-    // Create a client secret using the GA (Generally Available) API endpoint
-    // This is the correct endpoint for the GA WebSocket URL
-    // The GA endpoint doesn't take model/voice params - those are set via session.update after connecting
-    const tokenResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+    // Use /v1/realtime/client_secrets to get a GA-compatible ephemeral token
+    // Note: This endpoint doesn't accept voice or other session config
+    // All config must be done via session.update after connection
+    const sessionResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -743,13 +743,13 @@ app.post('/api/openai-realtime-session', async (req, res) => {
       body: JSON.stringify({})
     });
     
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('❌ OpenAI Realtime client secret creation failed:', tokenResponse.status);
+    if (!sessionResponse.ok) {
+      const errorText = await sessionResponse.text();
+      console.error('❌ OpenAI Realtime session creation failed:', sessionResponse.status);
       console.error('   Error:', errorText);
       
       // Parse error for better message
-      let errorMessage = 'Failed to create realtime client secret';
+      let errorMessage = 'Failed to create realtime session';
       try {
         const errorData = JSON.parse(errorText);
         errorMessage = errorData.error?.message || errorMessage;
@@ -757,31 +757,73 @@ app.post('/api/openai-realtime-session', async (req, res) => {
         errorMessage = errorText.substring(0, 200);
       }
       
-      return res.status(tokenResponse.status).json({
+      return res.status(sessionResponse.status).json({
         status: 'error',
         message: errorMessage
       });
     }
     
-    const tokenData = await tokenResponse.json();
-    console.log('✅ Realtime client secret response:', JSON.stringify(tokenData, null, 2));
+    const sessionData = await sessionResponse.json();
+    console.log('✅ Realtime session response received');
+    console.log('   Response keys:', Object.keys(sessionData));
+    console.log('   Full response:', JSON.stringify(sessionData, null, 2));
     
-    // The GA API returns the client_secret directly or nested - handle both cases
-    const clientSecret = tokenData.client_secret?.value || tokenData.value || tokenData.secret;
-    const expiresAt = tokenData.client_secret?.expires_at || tokenData.expires_at;
+    // The /v1/sessions endpoint returns:
+    // { client_secret: { value: "ek_...", expires_at: ... }, server: { url: "wss://..." } }
+    // Or variations thereof - handle all possible shapes
+    let clientSecret;
+    let serverUrl;
+    let expiresAt;
+    
+    // Extract client_secret - handle multiple response formats
+    if (sessionData.client_secret?.value) {
+      clientSecret = sessionData.client_secret.value;
+      expiresAt = sessionData.client_secret.expires_at;
+      console.log('   Parsed client_secret.value format');
+    } else if (typeof sessionData.client_secret === 'string') {
+      clientSecret = sessionData.client_secret;
+      expiresAt = sessionData.expires_at;
+      console.log('   Parsed string client_secret format');
+    } else if (sessionData.value) {
+      // Direct format: { value: "ek_...", expires_at: ... }
+      clientSecret = sessionData.value;
+      expiresAt = sessionData.expires_at;
+      console.log('   Parsed direct value format');
+    } else if (sessionData.secret) {
+      // Alternative: { secret: "ek_...", ... }
+      clientSecret = sessionData.secret;
+      expiresAt = sessionData.expires_at;
+      console.log('   Parsed secret format');
+    }
+    
+    // Extract server URL
+    if (sessionData.server?.url) {
+      serverUrl = sessionData.server.url;
+      console.log('   Parsed server.url format');
+    } else if (sessionData.url) {
+      serverUrl = sessionData.url;
+      console.log('   Parsed direct url format');
+    } else {
+      // Fallback to constructing the URL
+      serverUrl = `wss://api.openai.com/v1/realtime?model=${model}`;
+      console.log('   Using fallback WebSocket URL');
+    }
     
     if (!clientSecret) {
-      console.error('❌ Could not extract client_secret from response:', tokenData);
+      console.error('❌ Could not extract client_secret from response');
       return res.status(500).json({
         status: 'error',
         message: 'Invalid response from OpenAI API - no client_secret found'
       });
     }
     
+    console.log('✅ Session created successfully');
+    console.log('   Client secret (first 20 chars):', clientSecret.substring(0, 20) + '...');
+    console.log('   Server URL:', serverUrl);
+    
     // Return the WebSocket URL and client secret
-    // The frontend will use these to establish the WebSocket connection
     res.json({
-      url: `wss://api.openai.com/v1/realtime?model=${model}`,
+      url: serverUrl,
       client_secret: clientSecret,
       expires_at: expiresAt
     });

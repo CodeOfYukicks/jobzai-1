@@ -14,7 +14,6 @@ import type {
   ServerEvent,
   ClientEvent,
   ConnectionStatus,
-  SessionConfig,
   TranscriptEntry,
   CreateSessionResponse,
 } from '../types/openai-realtime';
@@ -53,13 +52,6 @@ export interface UserProfile {
 }
 
 // ============================================
-// CONSTANTS
-// ============================================
-
-const OPENAI_REALTIME_URL = 'wss://api.openai.com/v1/realtime';
-const MODEL = 'gpt-4o-realtime-preview-2024-12-17';
-
-// ============================================
 // LIVE INTERVIEW CLIENT CLASS
 // ============================================
 
@@ -75,11 +67,27 @@ export class LiveInterviewClient {
   private isPlaying = false;
   private currentPlaybackSource: AudioBufferSourceNode | null = null;
   
+  // Gapless audio playback scheduling
+  private nextPlaybackTime: number = 0;
+  private playbackStarted: boolean = false;
+  private readonly PREBUFFER_COUNT = 3; // Wait for 3 chunks before starting playback
+  
+  // Barge-in control
+  private isInterrupted: boolean = false;
+  private scheduledSources: AudioBufferSourceNode[] = []; // Track all scheduled sources
+  private currentResponseId: string | null = null;
+  private interruptedAt: number = 0; // Timestamp of last interruption
+  private readonly INTERRUPT_COOLDOWN_MS = 500; // Ignore audio for 500ms after interruption
+  
+  // Master gain node for instant muting
+  private masterGainNode: GainNode | null = null;
+  
   // State
   private connectionStatus: ConnectionStatus = 'disconnected';
   private transcript: TranscriptEntry[] = [];
   private currentAssistantItemId: string | null = null;
   private currentUserItemId: string | null = null;
+  private greetingTriggered: boolean = false;
   
   // Accumulated audio data for decoding
   private pendingAudioChunks: string[] = [];
@@ -106,6 +114,10 @@ export class LiveInterviewClient {
   ): Promise<void> {
     this.jobContext = jobContext;
     this.userProfile = userProfile;
+    this.greetingTriggered = false; // Reset for new session
+    this.isInterrupted = false; // Reset interrupted state
+    this.currentResponseId = null;
+    this.resetAudioPlayback(); // Reset audio state
     
     try {
       this.setConnectionStatus('connecting');
@@ -149,6 +161,12 @@ export class LiveInterviewClient {
       this.mediaStream = null;
     }
     
+    // Disconnect master gain node
+    if (this.masterGainNode) {
+      this.masterGainNode.disconnect();
+      this.masterGainNode = null;
+    }
+    
     // Disconnect source node
     if (this.sourceNode) {
       this.sourceNode.disconnect();
@@ -174,8 +192,7 @@ export class LiveInterviewClient {
     }
     
     // Clear state
-    this.audioPlaybackQueue = [];
-    this.isPlaying = false;
+    this.resetAudioPlayback();
     this.pendingAudioChunks = [];
     
     this.config.onSessionEnded?.();
@@ -215,7 +232,16 @@ export class LiveInterviewClient {
       throw new Error(`Failed to create session: ${error}`);
     }
     
-    return response.json();
+    const sessionData = await response.json();
+    
+    // Check if session was created successfully
+    if (sessionData.status === 'error') {
+      throw new Error(sessionData.message || 'Failed to create session');
+    }
+    
+    console.log('✅ Session created with voice:', sessionData.voice || 'ash');
+    
+    return sessionData;
   }
 
   /**
@@ -241,10 +267,7 @@ export class LiveInterviewClient {
       this.ws.onopen = () => {
         console.log('🔌 WebSocket connected to OpenAI Realtime API');
         this.setConnectionStatus('ready');
-        
-        // Configure the session with our interviewer persona
-        this.configureSession();
-        
+        // Don't configure here - wait for session.created event
         resolve();
       };
       
@@ -268,24 +291,75 @@ export class LiveInterviewClient {
 
   /**
    * Configure the session with interviewer persona and context
-   * Uses the GA API session.update format
+   * Since we use client_secrets endpoint, ALL session config must be done here via session.update
    */
   private configureSession(): void {
     const instructions = this.buildInterviewerInstructions();
     
-    // GA API session configuration format
-    console.log('📝 Configuring session with instructions...');
+    console.log('📝 Configuring session with full configuration...');
+    console.log('📝 Job context:', this.jobContext?.companyName, '-', this.jobContext?.position);
+    console.log('📝 User profile:', this.userProfile?.firstName, this.userProfile?.lastName);
     
-    // Send session update with valid type
-    this.sendEvent({
+    // Update session with ONLY instructions first (known to work)
+    const sessionUpdate = {
       type: 'session.update',
       session: {
-        type: 'realtime',
-        instructions,
+        type: 'realtime',  // REQUIRED
+        instructions: instructions,
+      },
+    };
+    
+    console.log('📤 Sending session.update with instructions (length: ' + instructions.length + ' chars)');
+    this.sendEvent(sessionUpdate as ClientEvent);
+    
+    console.log('⏳ Waiting for session.updated confirmation before starting interview...');
+    
+    // Fallback: if session.updated doesn't arrive within 3 seconds, start anyway
+    // This handles cases where the update might fail silently
+    setTimeout(() => {
+      if (this.connectionStatus === 'ready' || this.connectionStatus === 'connected') {
+        console.warn('⚠️ session.updated not received after 3s, starting interview anyway...');
+        this.triggerInitialGreeting();
+        this.setConnectionStatus('live');
+      }
+    }, 3000);
+  }
+  
+  /**
+   * Trigger the AI to start the interview with a greeting
+   */
+  private triggerInitialGreeting(): void {
+    // Prevent triggering twice
+    if (this.greetingTriggered) {
+      console.log('⚠️ Greeting already triggered, skipping...');
+      return;
+    }
+    this.greetingTriggered = true;
+    
+    console.log('🎤 Triggering AI to start the interview...');
+    
+    const userName = this.userProfile?.firstName || 'the candidate';
+    const position = this.jobContext?.position || 'the position';
+    const company = this.jobContext?.companyName || 'the company';
+    
+    // Use response.create with specific instructions for the greeting
+    // This ensures the AI knows exactly how to start even if session.update failed
+    this.sendEvent({
+      type: 'response.create',
+      response: {
+        instructions: `You are a Senior HR Interview Manager conducting a professional interview. 
+        
+START THE INTERVIEW NOW by:
+1. Greeting ${userName} professionally (NOT casually - do NOT say "hey what's up" or similar)
+2. Introducing yourself as the interviewer for the ${position} role at ${company}
+3. Briefly explaining you'll be asking questions about their background and experience
+4. Asking your first interview question about their professional background
+
+Be warm but professional. Speak clearly and at a measured pace like a real interviewer would.`,
       },
     });
     
-    console.log('✅ Session configuration sent');
+    console.log('✅ Initial greeting triggered with interviewer instructions');
   }
 
   /**
@@ -398,14 +472,64 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
    * Request microphone permission
    */
   private async requestMicrophonePermission(): Promise<void> {
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        sampleRate: 48000, // Will be downsampled in worklet
-      },
-    });
+    console.log('🎤 Requesting microphone permission...');
+    
+    try {
+      // First, enumerate devices to see what's available
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(d => d.kind === 'audioinput');
+      console.log('🎤 Available microphones:', audioInputs.map(d => `${d.label || 'Unknown'} (${d.deviceId.slice(0, 8)}...)`));
+      
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          // Don't force sample rate - let the browser choose optimal
+        },
+      });
+      
+      // Verify the audio track is enabled
+      const audioTracks = this.mediaStream.getAudioTracks();
+      console.log('✅ Microphone access granted');
+      console.log('🎤 Number of audio tracks:', audioTracks.length);
+      
+      if (audioTracks.length > 0) {
+        const track = audioTracks[0];
+        const settings = track.getSettings();
+        console.log('🎤 Track label:', track.label);
+        console.log('🎤 Track enabled:', track.enabled);
+        console.log('🎤 Track muted:', track.muted);
+        console.log('🎤 Track readyState:', track.readyState);
+        console.log('🎤 Sample rate:', settings.sampleRate);
+        console.log('🎤 Channel count:', settings.channelCount);
+        console.log('🎤 Device ID:', settings.deviceId?.slice(0, 20) + '...');
+        
+        // Ensure the track is enabled
+        if (!track.enabled) {
+          track.enabled = true;
+          console.log('🎤 Track was disabled, now enabled');
+        }
+        
+        // Listen for track ending
+        track.onended = () => {
+          console.error('❌ Audio track ended unexpectedly!');
+        };
+        
+        track.onmute = () => {
+          console.warn('⚠️ Audio track was muted!');
+        };
+        
+        track.onunmute = () => {
+          console.log('✅ Audio track unmuted');
+        };
+      } else {
+        console.error('❌ No audio tracks in media stream!');
+      }
+    } catch (error) {
+      console.error('❌ Microphone permission denied or error:', error);
+      throw new Error('Microphone access is required for the interview. Please allow microphone access and try again.');
+    }
   }
 
   /**
@@ -421,6 +545,19 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
       sampleRate: 48000, // Standard browser rate
     });
     
+    // Create master gain node for instant muting during barge-in
+    this.masterGainNode = this.audioContext.createGain();
+    this.masterGainNode.gain.value = 1; // Start at full volume
+    this.masterGainNode.connect(this.audioContext.destination);
+    console.log('🔊 Master gain node created for barge-in control');
+    
+    // IMPORTANT: Resume AudioContext if suspended (browser security policy)
+    if (this.audioContext.state === 'suspended') {
+      console.log('🔊 AudioContext is suspended, resuming...');
+      await this.audioContext.resume();
+      console.log('✅ AudioContext resumed, state:', this.audioContext.state);
+    }
+    
     // Load the audio worklet processor
     await this.audioContext.audioWorklet.addModule('/audio-worklet-processor.js');
     
@@ -433,27 +570,91 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
       'audio-realtime-processor'
     );
     
+    // Log when worklet is ready
+    console.log('🎤 Audio worklet processor loaded and ready');
+    
+    // Track audio sending for debugging
+    let audioChunkCount = 0;
+    let lastAudioLog = Date.now();
+    let maxVolumeInPeriod = 0;
+    let loggedFirstChunk = false;
+    
     // Handle messages from the worklet (audio chunks and volume levels)
     this.audioWorkletNode.port.onmessage = (event) => {
       const { type, audio, level } = event.data;
       
-      if (type === 'audio' && this.ws?.readyState === WebSocket.OPEN) {
-        // Send audio chunk to OpenAI
-        this.sendEvent({
-          type: 'input_audio_buffer.append',
-          audio,
-        });
+      if (type === 'audio') {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          // Log first chunk details for debugging
+          if (!loggedFirstChunk) {
+            console.log('🎤 First audio chunk details:');
+            console.log('   - Base64 length:', audio.length);
+            console.log('   - First 50 chars:', audio.substring(0, 50));
+            loggedFirstChunk = true;
+          }
+          
+          // Send audio chunk to OpenAI
+          this.sendEvent({
+            type: 'input_audio_buffer.append',
+            audio,
+          });
+          audioChunkCount++;
+          
+          // Log every 5 seconds to confirm audio is being sent
+          const now = Date.now();
+          if (now - lastAudioLog > 5000) {
+            console.log(`🎤 Audio streaming: ${audioChunkCount} chunks sent in last 5s, max volume: ${maxVolumeInPeriod.toFixed(3)}`);
+            audioChunkCount = 0;
+            maxVolumeInPeriod = 0;
+            lastAudioLog = now;
+          }
+        } else {
+          console.warn('⚠️ WebSocket not open, cannot send audio. State:', this.ws?.readyState);
+        }
       } else if (type === 'volume') {
+        // Track max volume for debugging
+        if (level > maxVolumeInPeriod) {
+          maxVolumeInPeriod = level;
+        }
         // Update input volume visualization
         this.config.onAudioLevelChange?.(level, 'input');
+      } else if (type === 'debug') {
+        // Debug messages from worklet
+        console.log('🔬 Worklet debug:', event.data.message);
       }
     };
     
     // Connect the audio pipeline: mic -> worklet
     this.sourceNode.connect(this.audioWorkletNode);
     
-    // Note: We don't connect to destination to avoid feedback
-    // The worklet processes audio and sends it via postMessage
+    // IMPORTANT: Connect worklet to destination to ensure audio flows through
+    // We use a GainNode with 0 gain to prevent feedback while still processing
+    const silentGain = this.audioContext.createGain();
+    silentGain.gain.value = 0; // Silent - no audio to speakers
+    this.audioWorkletNode.connect(silentGain);
+    silentGain.connect(this.audioContext.destination);
+    
+    console.log('✅ Audio pipeline connected: microphone -> worklet -> (silent) -> destination');
+    
+    // Add an AnalyserNode to independently verify audio is flowing
+    const analyser = this.audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    this.sourceNode.connect(analyser);
+    
+    // Check audio levels periodically using the analyser
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const checkAudioInterval = setInterval(() => {
+      if (!this.audioContext || this.audioContext.state !== 'running') {
+        clearInterval(checkAudioInterval);
+        return;
+      }
+      analyser.getByteFrequencyData(dataArray);
+      const maxLevel = Math.max(...dataArray);
+      if (maxLevel > 0) {
+        console.log('📊 Analyser confirms audio signal present, max level:', maxLevel);
+        clearInterval(checkAudioInterval); // Only log once when we detect audio
+      }
+    }, 2000);
     
     // Set status to live once audio is flowing
     this.setConnectionStatus('live');
@@ -465,9 +666,20 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
 
   /**
    * Decode and play audio from base64 PCM16
+   * Uses gapless playback with precise scheduling
    */
-  private async playAudioChunk(base64Audio: string): Promise<void> {
+  private async playAudioChunk(base64Audio: string, responseId?: string): Promise<void> {
     if (!this.audioContext) return;
+    
+    // Simple check: if interrupted, don't play
+    if (this.isInterrupted) {
+      return;
+    }
+    
+    // Debug: log state on first chunk
+    if (!this.playbackStarted) {
+      console.log('🔊 Playing first chunk. Gain:', this.masterGainNode?.gain.value);
+    }
     
     try {
       // Decode base64 to binary
@@ -489,9 +701,18 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
       const audioBuffer = this.audioContext.createBuffer(1, float32.length, 24000);
       audioBuffer.getChannelData(0).set(float32);
       
-      // Add to queue and play
+      // Add to queue
       this.audioPlaybackQueue.push(audioBuffer);
-      this.processPlaybackQueue();
+      
+      // Start playback after collecting enough chunks (pre-buffering)
+      if (!this.playbackStarted && this.audioPlaybackQueue.length >= this.PREBUFFER_COUNT) {
+        this.playbackStarted = true;
+        this.nextPlaybackTime = this.audioContext.currentTime + 0.05; // Small initial delay
+        this.scheduleQueuedAudio();
+      } else if (this.playbackStarted) {
+        // Already playing, schedule this chunk
+        this.scheduleQueuedAudio();
+      }
       
       // Calculate and report output volume
       const rms = Math.sqrt(float32.reduce((sum, s) => sum + s * s, 0) / float32.length);
@@ -503,31 +724,144 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
   }
 
   /**
-   * Process the audio playback queue
+   * Schedule all queued audio buffers for gapless playback
    */
-  private processPlaybackQueue(): void {
-    if (this.isPlaying || this.audioPlaybackQueue.length === 0 || !this.audioContext) {
+  private scheduleQueuedAudio(): void {
+    if (!this.audioContext || !this.masterGainNode || this.audioPlaybackQueue.length === 0 || this.isInterrupted) {
       return;
     }
     
-    this.isPlaying = true;
-    const buffer = this.audioPlaybackQueue.shift()!;
+    // Schedule all queued buffers
+    while (this.audioPlaybackQueue.length > 0) {
+      const buffer = this.audioPlaybackQueue.shift()!;
+      
+      // Create buffer source
+      const source = this.audioContext.createBufferSource();
+      source.buffer = buffer;
+      
+      // Connect through master gain node (allows instant muting)
+      source.connect(this.masterGainNode);
+      
+      // Track this source so we can stop it later
+      this.scheduledSources.push(source);
+      
+      // Schedule to play at the exact time the previous chunk ends
+      const currentTime = this.audioContext.currentTime;
+      const startTime = Math.max(currentTime, this.nextPlaybackTime);
+      
+      source.start(startTime);
+      
+      // Update next playback time (duration = samples / sampleRate)
+      this.nextPlaybackTime = startTime + buffer.duration;
+      
+      this.isPlaying = true;
+      this.currentPlaybackSource = source;
+      
+      // Cleanup when done
+      source.onended = () => {
+        // Remove from tracked sources
+        const index = this.scheduledSources.indexOf(source);
+        if (index > -1) {
+          this.scheduledSources.splice(index, 1);
+        }
+        
+        // Check if all sources are done
+        if (this.scheduledSources.length === 0 && this.audioPlaybackQueue.length === 0) {
+          this.isPlaying = false;
+          this.currentPlaybackSource = null;
+        }
+      };
+    }
+  }
+  
+  /**
+   * Reset audio playback state (called when response ends)
+   */
+  private resetAudioPlayback(): void {
+    this.playbackStarted = false;
+    this.nextPlaybackTime = 0;
+    this.audioPlaybackQueue = [];
+    this.isPlaying = false;
+    this.scheduledSources = [];
+  }
+  
+  /**
+   * Force stop all audio sources without changing interrupted state
+   */
+  private stopAllAudioSources(): void {
+    // Stop all tracked sources
+    for (const source of this.scheduledSources) {
+      try {
+        source.onended = null;
+        source.stop(0);
+        source.disconnect();
+      } catch (e) { /* ignore */ }
+    }
+    this.scheduledSources = [];
     
-    // Create buffer source
-    const source = this.audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(this.audioContext.destination);
-    
-    this.currentPlaybackSource = source;
-    
-    source.onended = () => {
-      this.isPlaying = false;
+    // Stop current source
+    if (this.currentPlaybackSource) {
+      try {
+        this.currentPlaybackSource.onended = null;
+        this.currentPlaybackSource.stop(0);
+        this.currentPlaybackSource.disconnect();
+      } catch (e) { /* ignore */ }
       this.currentPlaybackSource = null;
-      // Process next chunk if available
-      this.processPlaybackQueue();
-    };
+    }
     
-    source.start();
+    this.isPlaying = false;
+  }
+  
+  /**
+   * Stop audio playback immediately (for barge-in/interruption)
+   */
+  private stopAudioPlayback(): void {
+    console.log('🔇 STOP AUDIO - sources:', this.scheduledSources.length, 'queue:', this.audioPlaybackQueue.length);
+    
+    // Set interrupted flag and timestamp FIRST
+    this.isInterrupted = true;
+    this.interruptedAt = Date.now();
+    
+    // INSTANT MUTE via master gain node
+    if (this.masterGainNode && this.audioContext) {
+      this.masterGainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+    }
+    
+    // Stop and DISCONNECT ALL scheduled sources
+    const sourcesToStop = [...this.scheduledSources];
+    this.scheduledSources = []; // Clear immediately
+    
+    for (const source of sourcesToStop) {
+      try {
+        source.onended = null; // Remove callback to prevent any interference
+        source.stop(0);
+        source.disconnect();
+      } catch (e) {
+        // Ignore - source might already be stopped
+      }
+    }
+    
+    // Stop the currently playing source
+    if (this.currentPlaybackSource) {
+      try {
+        this.currentPlaybackSource.onended = null;
+        this.currentPlaybackSource.stop(0);
+        this.currentPlaybackSource.disconnect();
+      } catch (e) {
+        // Ignore
+      }
+      this.currentPlaybackSource = null;
+    }
+    
+    // Clear the queue
+    this.audioPlaybackQueue = [];
+    
+    // Reset playback state
+    this.playbackStarted = false;
+    this.nextPlaybackTime = 0;
+    this.isPlaying = false;
+    
+    console.log('🔇 Audio STOPPED and CLEARED');
   }
 
   // ============================================
@@ -546,117 +880,175 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
     switch (event.type) {
       case 'session.created':
         console.log('✅ Session created:', event.session.id);
+        // NOW configure the session with our interviewer persona
+        // This ensures the session exists before we try to update it
+        console.log('📝 Session ready, now configuring interviewer persona...');
+        this.configureSession();
         break;
         
       case 'session.updated':
-        console.log('✅ Session updated');
+        console.log('✅ Session updated successfully! Interviewer persona is now active.');
+        console.log('📝 Session config applied - starting interview...');
+        // NOW trigger the greeting since session is confirmed configured
+        this.triggerInitialGreeting();
         break;
         
       case 'error':
-        console.error('❌ Server error:', event.error);
-        // Don't propagate session.update errors to UI - session can still work with defaults
         const errorMsg = event.error.message || '';
-        if (errorMsg.includes('session.type') || 
-            errorMsg.includes('session.modalities') ||
+        
+        // Ignore "no active response" errors - these happen when cancelling and are expected
+        if (errorMsg.includes('no active response')) {
+          console.log('ℹ️ No active response to cancel (this is normal after barge-in)');
+          break;
+        }
+        
+        console.error('❌ SERVER ERROR:', event.error);
+        console.error('❌ Error type:', event.error.type);
+        console.error('❌ Error code:', event.error.code);
+        console.error('❌ Error message:', errorMsg);
+        
+        // Check if this is a session configuration error
+        if (errorMsg.includes('session') || 
             errorMsg.includes('Unknown parameter') ||
             errorMsg.includes('Invalid value') ||
-            errorMsg.includes('Missing required parameter')) {
-          console.warn('⚠️ Session configuration failed, using defaults. This is OK.');
+            errorMsg.includes('Missing required parameter') ||
+            errorMsg.includes('instructions')) {
+          console.warn('⚠️ SESSION CONFIG ERROR - Instructions may not be applied!');
         } else {
           // Only show non-configuration errors to user
-          this.config.onError?.(new Error(event.error.message));
+          this.config.onError?.(new Error(errorMsg));
         }
         break;
         
       case 'input_audio_buffer.speech_started':
-        // User started speaking - create new transcript entry
+        // User started speaking - implement barge-in (interrupt AI)
         this.currentUserItemId = event.item_id;
-        this.addTranscriptEntry({
-          id: event.item_id,
-          role: 'user',
-          text: '',
-          timestamp: Date.now(),
-          isComplete: false,
+        console.log('🎤 USER SPEAKING - BARGE-IN');
+        
+        // ALWAYS stop AI audio playback immediately (client-side)
+        this.stopAudioPlayback();
+        
+        // Server-side: Cancel the response
+        this.sendEvent({
+          type: 'response.cancel',
         });
+        
+        // Server-side: Truncate the assistant's item if we have one
+        // This properly handles conversation state
+        if (this.currentAssistantItemId) {
+          this.sendEvent({
+            type: 'conversation.item.truncate',
+            item_id: this.currentAssistantItemId,
+            content_index: 0,
+            audio_end_ms: 0, // Truncate all audio
+          } as any);
+          console.log('🔇 Truncated assistant item:', this.currentAssistantItemId);
+        }
+        
+        console.log('🔇 BARGE-IN complete');
         break;
         
       case 'input_audio_buffer.speech_stopped':
         // User stopped speaking
         console.log('🎤 User stopped speaking');
-        if (this.currentUserItemId) {
-          this.updateTranscriptEntry(this.currentUserItemId, { isComplete: true });
-        }
         break;
       
       case 'input_audio_buffer.committed':
         // Audio buffer was committed - this happens after speech is detected
-        console.log('🎤 Audio buffer committed');
+        console.log('🎤 Audio buffer committed, item:', (event as any).item_id);
+        // Update the current user item ID if provided
+        if ((event as any).item_id) {
+          this.currentUserItemId = (event as any).item_id;
+        }
         break;
         
       case 'conversation.item.input_audio_transcription.completed':
-        // User's speech was transcribed
-        this.updateTranscriptEntry(event.item_id, { 
-          text: event.transcript,
-          isComplete: true,
-        });
+        // User's speech was transcribed - NOW create the entry with text
+        console.log('📝 User transcription:', event.transcript);
+        if (event.transcript && event.transcript.trim()) {
+          // Create or update entry with actual transcript
+          const existingIndex = this.transcript.findIndex(e => e.id === event.item_id);
+          if (existingIndex === -1) {
+            // Create new entry with the transcript
+            this.addTranscriptEntry({
+              id: event.item_id,
+              role: 'user',
+              text: event.transcript,
+              timestamp: Date.now(),
+              isComplete: true,
+            });
+          } else {
+            // Update existing entry
+            this.updateTranscriptEntry(event.item_id, { 
+              text: event.transcript,
+              isComplete: true,
+            });
+          }
+        }
         break;
         
       case 'response.created':
-        // AI is starting to respond
+        // AI is starting a new response
+        const newResponseId = (event as any).response?.id || `resp_${Date.now()}`;
+        console.log('🤖 NEW RESPONSE:', newResponseId);
+        
+        // Clear any leftover audio from previous response
+        this.stopAllAudioSources();
+        this.audioPlaybackQueue = [];
+        this.playbackStarted = false;
+        this.nextPlaybackTime = 0;
+        
+        // Update state for new response
         this.currentAssistantItemId = null;
+        this.currentResponseId = newResponseId;
+        
+        // Ensure we're ready to receive audio
+        this.isInterrupted = false;
+        this.interruptedAt = 0;
+        if (this.masterGainNode && this.audioContext) {
+          this.masterGainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
+        }
+        
+        console.log('🔊 Ready for audio');
         break;
         
       case 'response.output_item.added':
-        // New output item from AI
+        // New output item from AI - just track ID, don't create entry yet
         if (event.item.role === 'assistant') {
           this.currentAssistantItemId = event.item.id;
-          this.addTranscriptEntry({
-            id: event.item.id,
-            role: 'assistant',
-            text: '',
-            timestamp: Date.now(),
-            isComplete: false,
-          });
+          console.log('🤖 AI output item added:', event.item.id);
         }
         break;
       
       // GA API sends conversation.item.created or conversation.item.added for new items
       case 'conversation.item.created':
       case 'conversation.item.added':
-        // Handle both user and assistant items
         console.log('📝 Conversation item:', event.item?.role, event.item?.id);
-        if (event.item && event.item.role === 'assistant' && !this.currentAssistantItemId) {
+        // Track assistant item ID
+        if (event.item && event.item.role === 'assistant') {
           this.currentAssistantItemId = event.item.id;
-          this.addTranscriptEntry({
-            id: event.item.id,
-            role: 'assistant',
-            text: '',
-            timestamp: Date.now(),
-            isComplete: false,
-          });
         }
-        // Also extract any text content from the item
+        // Extract any text content from the item
         if (event.item?.content) {
           for (const part of event.item.content) {
             if (part.type === 'text' && part.text) {
               console.log('📝 Got text content:', part.text);
-              if (this.currentAssistantItemId) {
-                this.appendToTranscriptEntry(this.currentAssistantItemId, part.text);
-              }
+              this.addOrUpdateAssistantEntry(event.item.id, part.text);
             }
             if (part.type === 'audio' && part.transcript) {
               console.log('📝 Got audio transcript:', part.transcript);
-              if (this.currentAssistantItemId) {
-                this.appendToTranscriptEntry(this.currentAssistantItemId, part.transcript);
-              }
+              this.addOrUpdateAssistantEntry(event.item.id, part.transcript);
             }
           }
         }
         break;
       
       case 'conversation.item.done':
-        // Item is complete
+        // Item is complete - mark it
         console.log('✅ Conversation item done:', event.item?.id);
+        if (event.item?.id) {
+          this.updateTranscriptEntry(event.item.id, { isComplete: true });
+        }
         break;
         
       case 'response.audio_transcript.delta':
@@ -674,16 +1066,14 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
         break;
         
       case 'response.audio.delta':
-        // AI audio chunk - play it
-        console.log('🔊 Received audio chunk, length:', event.delta?.length);
-        this.playAudioChunk(event.delta);
+        // AI audio chunk - play it (pass response_id to filter old responses)
+        this.playAudioChunk(event.delta, (event as any).response_id);
         break;
       
       // GA API audio delta event (might be named differently)
       case 'response.output_audio.delta':
-        console.log('🔊 GA API audio delta received');
         if ((event as any).delta) {
-          this.playAudioChunk((event as any).delta);
+          this.playAudioChunk((event as any).delta, (event as any).response_id);
         }
         break;
         
@@ -696,20 +1086,38 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
       // GA API transcript events
       case 'response.output_audio_transcript.delta':
         // Real-time transcript of AI speech
-        console.log('📝 Transcript delta:', (event as any).delta);
-        if (this.currentAssistantItemId && (event as any).delta) {
-          this.appendToTranscriptEntry((event as any).item_id || this.currentAssistantItemId, (event as any).delta);
+        const delta = (event as any).delta;
+        if (delta) {
+          const itemId = (event as any).item_id || this.currentAssistantItemId;
+          if (itemId) {
+            this.addOrUpdateAssistantEntry(itemId, delta);
+          }
         }
         break;
         
       case 'response.output_audio_transcript.done':
         // Final transcript of AI speech
-        console.log('📝 Transcript done:', (event as any).transcript);
-        if (this.currentAssistantItemId && (event as any).transcript) {
-          // Update with final transcript
-          this.updateTranscriptEntry((event as any).item_id || this.currentAssistantItemId, {
-            text: (event as any).transcript,
-          });
+        const transcript = (event as any).transcript;
+        console.log('📝 AI transcript complete:', transcript?.substring(0, 50) + '...');
+        if (transcript) {
+          const itemId = (event as any).item_id || this.currentAssistantItemId;
+          if (itemId) {
+            // Replace with final transcript
+            const existingIndex = this.transcript.findIndex(e => e.id === itemId);
+            if (existingIndex !== -1) {
+              this.transcript[existingIndex].text = transcript;
+              this.transcript[existingIndex].isComplete = true;
+              this.config.onTranscriptUpdate?.([...this.transcript]);
+            } else {
+              this.addTranscriptEntry({
+                id: itemId,
+                role: 'assistant',
+                text: transcript,
+                timestamp: Date.now(),
+                isComplete: true,
+              });
+            }
+          }
         }
         break;
       
@@ -729,11 +1137,31 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
         
       case 'response.done':
         // AI finished responding
-        console.log('✅ Response done');
+        console.log('✅ RESPONSE DONE:', this.currentResponseId);
         if (this.currentAssistantItemId) {
           this.updateTranscriptEntry(this.currentAssistantItemId, { isComplete: true });
         }
         this.currentAssistantItemId = null;
+        
+        // Reset ALL state for next response
+        this.resetAudioPlayback();
+        this.isInterrupted = false;
+        this.interruptedAt = 0;
+        this.currentResponseId = null;
+        
+        // Make sure gain is at 1 for next response
+        if (this.masterGainNode && this.audioContext) {
+          this.masterGainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
+        }
+        
+        console.log('   Ready for next response');
+        break;
+        
+      case 'response.cancelled':
+        // Response was cancelled (due to barge-in)
+        console.log('🔇 Response cancelled (user interrupted)');
+        this.currentAssistantItemId = null;
+        this.resetAudioPlayback();
         break;
         
       case 'rate_limits.updated':
@@ -747,8 +1175,8 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
         // Check if this event has audio data
         if (eventData.delta && typeof eventData.delta === 'string' && eventData.delta.length > 100) {
           console.log('   🔊 This event might contain audio! Delta length:', eventData.delta.length);
-          // Try to play it as audio
-          this.playAudioChunk(eventData.delta);
+          // Try to play it as audio (pass response_id to filter old responses)
+          this.playAudioChunk(eventData.delta, eventData.response_id);
         }
         if (eventData.audio) {
           console.log('   🔊 Event has audio field:', typeof eventData.audio);
@@ -799,6 +1227,30 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
     const index = this.transcript.findIndex(e => e.id === id);
     if (index !== -1) {
       this.transcript[index].text += text;
+      this.config.onTranscriptUpdate?.([...this.transcript]);
+    }
+  }
+
+  /**
+   * Add or update an assistant transcript entry
+   * Only creates entry if we have actual text to show
+   */
+  private addOrUpdateAssistantEntry(id: string, text: string): void {
+    if (!text || !text.trim()) return;
+    
+    const existingIndex = this.transcript.findIndex(e => e.id === id);
+    if (existingIndex === -1) {
+      // Create new entry
+      this.addTranscriptEntry({
+        id,
+        role: 'assistant',
+        text,
+        timestamp: Date.now(),
+        isComplete: false,
+      });
+    } else {
+      // Append to existing entry
+      this.transcript[existingIndex].text += text;
       this.config.onTranscriptUpdate?.([...this.transcript]);
     }
   }
