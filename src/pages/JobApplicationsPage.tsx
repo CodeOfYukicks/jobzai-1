@@ -3895,13 +3895,27 @@ END:VCALENDAR`;
                     {/* Form Content */}
                     {eventType && (
                       <>
-                        {/* Switcher - Premium */}
-                        <div className="relative p-1 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-inner">
-                          <div className="flex items-center gap-1 relative">
-                            <motion.button
+                        {/* Switcher - Minimalist */}
+                        <div className="relative p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                          <div className="flex items-center relative">
+                            {/* Sliding pill indicator */}
+                            <motion.div
+                              className="absolute top-1 bottom-1 rounded-lg bg-white dark:bg-gray-700 shadow-sm"
+                              initial={false}
+                              animate={{
+                                left: eventType === 'application' ? '4px' : 'calc(50% + 2px)',
+                                right: eventType === 'interview' ? '4px' : 'calc(50% + 2px)',
+                              }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 500,
+                                damping: 35,
+                              }}
+                            />
+                            
+                            {/* Application button */}
+                            <button
                               type="button"
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
                               onClick={() => {
                                 setEventType('application');
                                 setLookupSelectedApplication(null);
@@ -3910,53 +3924,42 @@ END:VCALENDAR`;
                                 setShowLookupDropdown(false);
                                 setShowFullForm(false);
                               }}
-                              className={`relative flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                                eventType === 'application'
-                                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-lg shadow-gray-200/50 dark:shadow-black/30'
-                                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                              }`}
+                              className="relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150"
                             >
-                              {eventType === 'application' && (
-                                <motion.div
-                                  layoutId="activeTab"
-                                  className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-lg"
-                                  style={{ zIndex: -1 }}
-                                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                />
-                              )}
-                              <Briefcase className={`w-4 h-4 transition-colors ${
-                                eventType === 'application' ? 'text-purple-600 dark:text-purple-400' : ''
+                              <Briefcase className={`w-4 h-4 transition-colors duration-150 ${
+                                eventType === 'application' 
+                                  ? 'text-gray-900 dark:text-white' 
+                                  : 'text-gray-400 dark:text-gray-500'
                               }`} />
-                              <span>Application</span>
-                            </motion.button>
+                              <span className={eventType === 'application' 
+                                ? 'text-gray-900 dark:text-white' 
+                                : 'text-gray-500 dark:text-gray-400'
+                              }>
+                                Application
+                              </span>
+                            </button>
                             
-                            <motion.button
+                            {/* Interview button */}
+                            <button
                               type="button"
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
                               onClick={() => {
                                 setEventType('interview');
                                 setShowFullForm(true);
                               }}
-                              className={`relative flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                                eventType === 'interview'
-                                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-lg shadow-gray-200/50 dark:shadow-black/30'
-                                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                              }`}
+                              className="relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150"
                             >
-                              {eventType === 'interview' && (
-                                <motion.div
-                                  layoutId="activeTab"
-                                  className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-lg"
-                                  style={{ zIndex: -1 }}
-                                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                />
-                              )}
-                              <CalIcon className={`w-4 h-4 transition-colors ${
-                                eventType === 'interview' ? 'text-indigo-600 dark:text-indigo-400' : ''
+                              <CalIcon className={`w-4 h-4 transition-colors duration-150 ${
+                                eventType === 'interview' 
+                                  ? 'text-gray-900 dark:text-white' 
+                                  : 'text-gray-400 dark:text-gray-500'
                               }`} />
-                              <span>Interview</span>
-                            </motion.button>
+                              <span className={eventType === 'interview' 
+                                ? 'text-gray-900 dark:text-white' 
+                                : 'text-gray-500 dark:text-gray-400'
+                              }>
+                                Interview
+                              </span>
+                            </button>
                           </div>
                         </div>
 

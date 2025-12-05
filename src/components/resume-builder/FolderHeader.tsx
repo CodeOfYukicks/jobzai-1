@@ -404,7 +404,6 @@ export default function FolderHeader({
         onDirectApply={handleDirectApplyCover}
         onRemove={onRemoveCover}
         currentCover={coverPhoto}
-        triggerRef={coverButtonRef}
       />
       
       {coverPhoto && (

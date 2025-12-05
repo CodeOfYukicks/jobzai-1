@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useLayoutEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -17,7 +17,7 @@ export default function LoginPage() {
   const { login, resetPassword, resendVerificationEmail, signInWithGoogle } = useAuth();
 
   // Force light mode on login page
-  useEffect(() => {
+  useLayoutEffect(() => {
     forceLightMode();
   }, []);
 

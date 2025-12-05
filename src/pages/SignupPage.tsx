@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Loader2, RefreshCw, Eye, EyeOff, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -54,7 +54,7 @@ export default function SignupPage() {
   }, [password, confirmPassword]);
 
   // Force light mode on signup page
-  useEffect(() => {
+  useLayoutEffect(() => {
     forceLightMode();
   }, []);
 

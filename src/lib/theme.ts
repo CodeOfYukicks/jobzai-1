@@ -61,5 +61,7 @@ export function initializeTheme() {
 export function forceLightMode() {
   const root = document.documentElement;
   root.classList.remove('dark');
+  // Temporarily set light in localStorage to prevent AuthContext from overriding
+  localStorage.setItem('theme', 'light');
 }
 

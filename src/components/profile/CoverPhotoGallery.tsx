@@ -156,7 +156,7 @@ const GalleryTab = ({ onSelectColor, onSelectImage, isFetching }: GalleryTabProp
         <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
           Color & Gradient
         </h4>
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
           {COLOR_OPTIONS.map((color) => (
             <motion.button
               key={color.id}
@@ -850,8 +850,8 @@ const CoverPhotoGallery = ({
       if (!triggerRef?.current) return;
       
       const rect = triggerRef.current.getBoundingClientRect();
-      const panelWidth = 680; // Fixed width for the panel
-      const panelHeight = 600; // Estimated max height
+      const panelWidth = 520; // Fixed width for the panel
+      const panelHeight = 400; // Estimated max height
       const spacing = 8; // Space between button and panel
       
       let left = rect.right + spacing;
@@ -1079,7 +1079,7 @@ const CoverPhotoGallery = ({
       </div>
 
       {/* Content */}
-      <div className="px-4 py-4 max-h-[600px] overflow-y-auto">
+      <div className="px-4 py-4 max-h-[400px] overflow-y-auto">
         <AnimatePresence mode="wait">
           {activeTab === 'gallery' && (
             <motion.div
@@ -1180,7 +1180,7 @@ const CoverPhotoGallery = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+            className="fixed inset-0 z-40 bg-black/10"
             onClick={onClose}
           />
           
@@ -1197,7 +1197,7 @@ const CoverPhotoGallery = ({
               left: `${position.left}px`,
               zIndex: 50,
             }}
-            className="bg-white dark:bg-[#1E1E1E] rounded-lg shadow-2xl w-[680px] ring-1 ring-black/5 dark:ring-white/10"
+            className="bg-white dark:bg-[#1E1E1E] rounded-lg shadow-2xl w-[520px] ring-1 ring-black/5 dark:ring-white/10"
             onClick={(e) => e.stopPropagation()}
           >
             {renderPanelContent()}
@@ -1216,7 +1216,7 @@ const CoverPhotoGallery = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            className="absolute inset-0 bg-black/20" 
             onClick={onClose} 
           />
           
@@ -1226,7 +1226,7 @@ const CoverPhotoGallery = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative bg-white dark:bg-[#1E1E1E] rounded-2xl shadow-2xl w-full max-w-4xl my-auto ring-1 ring-black/5 dark:ring-white/10"
+            className="relative bg-white dark:bg-[#1E1E1E] rounded-2xl shadow-2xl w-full max-w-2xl my-auto ring-1 ring-black/5 dark:ring-white/10"
           >
             {renderPanelContent()}
           </motion.div>

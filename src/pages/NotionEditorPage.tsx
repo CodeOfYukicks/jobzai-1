@@ -1267,7 +1267,6 @@ export default function NotionEditorPage() {
           onDirectApply={handleDirectApplyCover}
           onRemove={handleRemoveCover}
           currentCover={note?.coverImage}
-          triggerRef={coverButtonRef}
         />
         
         {note?.coverImage && (
