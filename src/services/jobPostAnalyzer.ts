@@ -185,45 +185,41 @@ Your response should be in this exact JSON format:
 export const analyzeJobPostWithPerplexity = async (jobPostContent: string, position: string, company: string): Promise<JobPostAnalysisResult> => {
   try {
     const prompt = `
-You are an expert career coach helping prepare a candidate for an interview. 
-Analyze this job posting for a ${position} position at ${company} and provide comprehensive interview preparation guidance.
+Analyze this job posting for a ${position} position at ${company} and provide interview preparation guidance.
 
 JOB POSTING:
 """
 ${jobPostContent}
 """
 
-Based on the job post above, provide the following in JSON format:
-1. Key points about the role that should be emphasized during the interview
-2. Skill requirements and qualifications needed
-3. Suggested interview questions the candidate might be asked
-4. Recommended answers for the candidate to prepare
-5. Information about the company culture and values
-6. Detailed position responsibilities
-7. Tips for cultural fit
+Return a JSON object with these fields:
+- keyPoints: array of key points about the role
+- requiredSkills: array of required skills
+- suggestedQuestions: array of interview questions
+- suggestedAnswers: array of {question, answer} objects
+- companyInfo: company summary string
+- positionDetails: position details string
+- cultureFit: culture fit insights string
 
-Ensure your response is focused on practical, actionable advice for interview preparation.
-
-Your response should be in this exact JSON format:
-{
-  "keyPoints": ["point1", "point2", ...],
-  "requiredSkills": ["skill1", "skill2", ...],
-  "suggestedQuestions": ["question1", "question2", ...],
-  "suggestedAnswers": [
-    {"question": "question1", "answer": "suggested approach to answer"},
-    ...
-  ],
-  "companyInfo": "summary of company",
-  "positionDetails": "details about the position responsibilities",
-  "cultureFit": "insights about company culture and how to demonstrate fit"
-}
-
-Make sure the output is a valid JSON object with the exact fields described above.
-Return ONLY valid JSON. Do not include code fences or any prose before/after the JSON. Keep arrays of strings strictly quoted and comma-separated.
+Return ONLY the JSON object. No other text.
 `;
 
-    // Call the Perplexity API
-    const response = await queryPerplexity(prompt);
+    // Strict JSON-only system message for job post analysis
+    const jsonSystemMessage = `You are a job posting analyzer that returns ONLY valid JSON.
+
+CRITICAL RULES:
+1. Return ONLY valid JSON - no prose, no explanations, no markdown
+2. Do NOT write any text before or after the JSON object
+3. Do NOT say "Let me analyze...", "Here is...", or any preamble
+4. Start your response IMMEDIATELY with { and end with }
+5. All string values must be properly escaped`;
+
+    // Call the Perplexity API with strict JSON system message
+    const response = await queryPerplexity(prompt, {
+      systemMessage: jsonSystemMessage,
+      temperature: 0.3,
+      maxTokens: 3000
+    });
     
     if (response?.error) {
       return {
@@ -410,44 +406,42 @@ export const analyzeJobPost = async (
 export const analyzeJobUrlWithPerplexity = async (jobPostUrl: string, position: string, company: string): Promise<JobPostAnalysisResult> => {
   try {
     const prompt = `
-You are an expert career coach helping prepare a candidate for an interview. 
-Visit this job posting URL for a ${position} position at ${company} and provide comprehensive interview preparation guidance:
+Visit this job posting URL and analyze it for interview preparation:
 
 URL: ${jobPostUrl}
+Position: ${position}
+Company: ${company}
 
-Based on the job posting, provide the following in JSON format:
-1. Key points about the role that should be emphasized during the interview
-2. Skill requirements and qualifications needed
-3. Suggested interview questions the candidate might be asked
-4. Recommended answers for the candidate to prepare
-5. Information about the company culture and values
-6. Detailed position responsibilities
-7. Tips for cultural fit
+Return a JSON object with these fields:
+- keyPoints: array of key points about the role
+- requiredSkills: array of required skills  
+- suggestedQuestions: array of interview questions
+- suggestedAnswers: array of {question, answer} objects
+- companyInfo: company summary string
+- positionDetails: position details string
+- cultureFit: culture fit insights string
 
-If you can't access the URL, just analyze based on the position and company name.
-
-Ensure your response is focused on practical, actionable advice for interview preparation.
-
-Your response should be in this exact JSON format:
-{
-  "keyPoints": ["point1", "point2", ...],
-  "requiredSkills": ["skill1", "skill2", ...],
-  "suggestedQuestions": ["question1", "question2", ...],
-  "suggestedAnswers": [
-    {"question": "question1", "answer": "suggested approach to answer"},
-    ...
-  ],
-  "companyInfo": "summary of company",
-  "positionDetails": "details about the position responsibilities",
-  "cultureFit": "insights about company culture and how to demonstrate fit"
-}
-
-Make sure the output is a valid JSON object with the exact fields described above.
-Return ONLY valid JSON. Do not include code fences or any prose before/after the JSON. Keep arrays of strings strictly quoted and comma-separated.
+If you cannot access the URL, analyze based on position and company name.
+Return ONLY the JSON object. No other text.
 `;
 
-    // Call the Perplexity API
-    const response = await queryPerplexity(prompt);
+    // Strict JSON-only system message for job post URL analysis
+    const jsonSystemMessage = `You are a job posting analyzer that returns ONLY valid JSON.
+
+CRITICAL RULES:
+1. Return ONLY valid JSON - no prose, no explanations, no markdown
+2. Do NOT write any text before or after the JSON object
+3. Do NOT say "Let me fetch...", "Now let me...", "Here is...", or any preamble
+4. Start your response IMMEDIATELY with { and end with }
+5. All string values must be properly escaped
+6. Visit the URL and extract real information from the job posting`;
+
+    // Call the Perplexity API with strict JSON system message
+    const response = await queryPerplexity(prompt, {
+      systemMessage: jsonSystemMessage,
+      temperature: 0.3,
+      maxTokens: 3000
+    });
     
     if (response?.error) {
       return {

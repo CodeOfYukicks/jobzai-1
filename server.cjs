@@ -1069,7 +1069,8 @@ app.post('/api/perplexity', async (req, res) => {
       temperature = 0.7, 
       max_tokens = 1500,
       search_recency_filter,
-      return_citations
+      return_citations,
+      systemMessage: customSystemMessage  // Allow callers to override the default system message
     } = req.body;
 
     // Build messages array - use provided messages or construct from prompt
@@ -1077,8 +1078,8 @@ app.post('/api/perplexity', async (req, res) => {
     if (messages && Array.isArray(messages)) {
       requestMessages = messages;
     } else if (prompt) {
-      // Default system message for interview coaching
-      const systemMessage = `You are a conversational interview coach helping with job interview preparation. 
+      // Use custom system message if provided, otherwise use default conversational one
+      const systemMessage = customSystemMessage || `You are a conversational interview coach helping with job interview preparation. 
 
 Follow these strict guidelines:
 1. Keep responses extremely brief and direct - first paragraph should contain the key answer.
@@ -1219,6 +1220,288 @@ You can browse the web when needed for specific information, but keep search res
       text: "I'm sorry, I couldn't process your request due to a technical issue. This could be a network problem, an issue with the Perplexity API, or with your browser settings blocking certain requests. Please try again later.",
       error: true,
       errorMessage: error.message || 'Unknown error'
+    });
+  }
+});
+
+// GPT-4o-mini endpoint for fast chat responses
+// This is optimized for speed and cost while maintaining good quality
+app.post('/api/chat-fast', async (req, res) => {
+  try {
+    console.log("⚡ GPT-4o-mini Fast Chat endpoint called");
+    console.log("   Request body keys:", Object.keys(req.body || {}));
+
+    // Get API key from Firestore or environment variables
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+    } catch (keyError) {
+      console.error('❌ Error retrieving OpenAI API key:', keyError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to retrieve API key: ${keyError.message}`,
+        error: true,
+        errorMessage: keyError.message
+      });
+    }
+
+    if (!apiKey) {
+      console.error('❌ ERROR: OpenAI API key missing for fast chat');
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).',
+        error: true,
+        errorMessage: 'API key not configured'
+      });
+    }
+
+    console.log('✅ OpenAI API key retrieved successfully (first 10 chars):', apiKey.substring(0, 10) + '...');
+
+    // Extract request parameters
+    const { 
+      prompt, 
+      messages, 
+      systemMessage,
+      temperature = 0.7, 
+      max_tokens = 1000
+    } = req.body;
+
+    // Build messages array
+    let requestMessages = [];
+    
+    if (messages && Array.isArray(messages)) {
+      requestMessages = messages;
+    } else if (prompt) {
+      // Default system message for interview coaching
+      const defaultSystemMessage = systemMessage || `You are a conversational interview coach helping with job interview preparation. 
+
+Follow these strict guidelines:
+1. Keep responses extremely brief and direct - first paragraph should contain the key answer.
+2. Limit to 1-2 short paragraphs total unless explicitly asked for more detail.
+3. Never reveal or explain your thinking process - just provide the final answer.
+4. Use natural, friendly language as if chatting with a friend.
+5. When giving advice, jump straight to the actionable tips.
+6. Avoid lengthy explanations or theoretical background information.
+7. Use bullet points sparingly and only for very short lists.`;
+
+      requestMessages = [
+        { role: 'system', content: defaultSystemMessage },
+        { role: 'user', content: prompt }
+      ];
+    } else {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Either prompt or messages array is required',
+        error: true,
+        errorMessage: 'Missing prompt or messages'
+      });
+    }
+
+    console.log('📡 Sending request to OpenAI GPT-4o-mini...');
+    console.log(`   Messages count: ${requestMessages.length}`);
+    console.log(`   Max tokens: ${max_tokens}`);
+
+    // Call OpenAI API with GPT-4o-mini for speed
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: requestMessages,
+        temperature: temperature,
+        max_completion_tokens: max_tokens
+      })
+    });
+
+    console.log(`OpenAI API response status: ${openaiResponse.status}`);
+
+    // Handle response
+    const responseText = await openaiResponse.text();
+    console.log("Response received, length:", responseText.length);
+
+    if (!openaiResponse.ok) {
+      console.error("Non-200 response:", responseText);
+      try {
+        const errorData = JSON.parse(responseText);
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${errorData.error?.message || 'Unknown error'}`,
+          error: true,
+          errorMessage: errorData.error?.message || 'Unknown API error'
+        });
+      } catch (e) {
+        return res.status(openaiResponse.status).json({
+          status: 'error',
+          message: `OpenAI API error: ${responseText.substring(0, 200)}`,
+          error: true,
+          errorMessage: responseText.substring(0, 200)
+        });
+      }
+    }
+
+    // Parse and return response
+    try {
+      const parsedResponse = JSON.parse(responseText);
+      
+      // Extract text content from response
+      if (parsedResponse.choices && parsedResponse.choices.length > 0) {
+        const textContent = parsedResponse.choices[0].message.content;
+        console.log('✅ GPT-4o-mini response preview:', textContent.substring(0, 100) + '...');
+        
+        // Return response in a format compatible with the client
+        return res.json({
+          status: 'success',
+          text: textContent,
+          choices: parsedResponse.choices,
+          usage: parsedResponse.usage
+        });
+      } else {
+        console.error('Unexpected response structure:', parsedResponse);
+        return res.status(500).json({
+          status: 'error',
+          text: "I received a response from the API but couldn't extract the answer. Please try again.",
+          error: true,
+          errorMessage: "Invalid response structure"
+        });
+      }
+    } catch (parseError) {
+      console.error("❌ Parse error:", parseError);
+      return res.status(500).json({
+        status: 'error',
+        message: "Failed to parse OpenAI API response",
+        error: true,
+        errorMessage: parseError.message
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Unexpected error in GPT-4o-mini chat handler:", error);
+
+    if (res.headersSent) {
+      console.error("⚠️  Response already sent, cannot send error response");
+      return;
+    }
+
+    return res.status(500).json({
+      status: 'error',
+      text: "I'm sorry, I couldn't process your request due to a technical issue. Please try again later.",
+      error: true,
+      errorMessage: error.message || 'Unknown error'
+    });
+  }
+});
+
+// GPT-4o endpoint for high-quality question generation
+// Uses GPT-4o for better reasoning and question quality
+app.post('/api/generate-questions', async (req, res) => {
+  try {
+    console.log("🧠 GPT-4o Question Generation endpoint called");
+    console.log("   Request body keys:", Object.keys(req.body || {}));
+
+    // Get API key
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+    } catch (keyError) {
+      console.error('❌ Error retrieving OpenAI API key:', keyError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to retrieve API key: ${keyError.message}`
+      });
+    }
+
+    if (!apiKey) {
+      console.error('❌ ERROR: OpenAI API key missing');
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing.'
+      });
+    }
+
+    const { prompt, max_tokens = 2000, temperature = 0.7 } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Prompt is required'
+      });
+    }
+
+    console.log('📡 Sending request to OpenAI GPT-4o for question generation...');
+
+    // Call OpenAI API with GPT-4o for better quality
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert interview coach specializing in creating high-quality, targeted interview questions. Generate questions that are specific, relevant, and help candidates prepare effectively. Always respond with valid JSON format containing the questions and answers.'
+          },
+          {
+            role: 'user',
+            content: prompt + '\n\nRespond with valid JSON format.'
+          }
+        ],
+        temperature: temperature,
+        max_completion_tokens: max_tokens,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error('❌ OpenAI API error:', errorText);
+      return res.status(openaiResponse.status).json({
+        status: 'error',
+        message: 'Failed to generate questions',
+        details: errorText
+      });
+    }
+
+    const responseData = await openaiResponse.json();
+    const content = responseData.choices[0]?.message?.content;
+
+    if (!content) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Empty response from AI'
+      });
+    }
+
+    console.log('✅ GPT-4o question generation completed');
+
+    // Parse and return the JSON response
+    try {
+      const questionsData = JSON.parse(content);
+      return res.json({
+        status: 'success',
+        text: content,
+        data: questionsData,
+        choices: responseData.choices
+      });
+    } catch (parseError) {
+      // Return raw content if not valid JSON
+      return res.json({
+        status: 'success',
+        text: content,
+        choices: responseData.choices
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Error in question generation:", error);
+    return res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to generate questions'
     });
   }
 });

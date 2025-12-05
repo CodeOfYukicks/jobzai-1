@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import AuthLayout from '../components/AuthLayout';
 import { analyzeJobPost, JobPostAnalysisResult } from '../services/jobPostAnalyzer';
 import { queryPerplexity } from '../lib/perplexity';
+import { queryChatFast, queryQuestionGeneration } from '../lib/chatFast';
 // Removed react-draggable - using manual drag implementation
 import Xarrow, { Xwrapper } from 'react-xarrows';
 import {
@@ -1489,17 +1490,19 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         ${chatMessages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}
       `;
 
-      // Query Perplexity API with a single argument
-      const response = await queryPerplexity(
-        context + "\n\nUser message: " + messageText
+      // Query GPT-4o-mini for fast, high-quality chat responses
+      const response = await queryChatFast(
+        context + "\n\nUser message: " + messageText,
+        {
+          temperature: 0.7,
+          maxTokens: 1000
+        }
       );
 
       // Check if the response contains an error
       let aiContent = response.text || "I'm sorry, I couldn't process your request. Please try again later.";
-      // Remove <think> tags if present
+      // Remove <think> tags if present (shouldn't be needed for GPT but just in case)
       aiContent = aiContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-      // Remove references like [1], [2], [3], etc.
-      aiContent = aiContent.replace(/\[\d+\]/g, '');
 
       const aiMessage: ChatMessage = {
         role: 'assistant',
@@ -1939,12 +1942,13 @@ Make sure each answer is completely unique and specific to its question - no gen
 `;
 
       setRegeneratingProgress(60);
-      setRegeneratingMessage("Waiting for AI response...");
+      setRegeneratingMessage("Waiting for GPT-4o response...");
       await new Promise(resolve => setTimeout(resolve, 150));
 
-      const response = await queryPerplexity(prompt);
+      // Use GPT-4o for higher quality question generation
+      const response = await queryQuestionGeneration(prompt);
 
-      if (response) {
+      if (response && !response.error) {
         setRegeneratingProgress(70);
         setRegeneratingMessage("Processing AI response...");
         await new Promise(resolve => setTimeout(resolve, 150));
@@ -1957,9 +1961,9 @@ Make sure each answer is completely unique and specific to its question - no gen
         setRegeneratingMessage("Formatting questions...");
         await new Promise(resolve => setTimeout(resolve, 150));
         // Extract and clean the JSON from the response
-        const contentFromAPI = response?.choices?.[0]?.message?.content || response?.text || '';
+        const contentFromAPI = response?.text || '';
         if (!contentFromAPI) {
-          toast.error('Empty response from Perplexity API');
+          toast.error('Empty response from GPT-4o API');
           return;
         }
 
@@ -2629,19 +2633,20 @@ Generate exactly ${count} questions.
 `;
 
     try {
-      const response = await queryPerplexity(prompt);
+      // Use GPT-4o for higher quality question generation
+      const response = await queryQuestionGeneration(prompt);
 
-      if (!response) {
-        throw new Error('Empty response from Perplexity API');
+      if (!response || response.error) {
+        throw new Error(response?.errorMessage || 'Empty response from GPT-4o API');
       }
 
       // Extract and clean the JSON from the response
-      const contentFromAPI = response?.choices?.[0]?.message?.content || response?.text || '';
+      const contentFromAPI = response?.text || '';
       if (!contentFromAPI) {
-        throw new Error('Empty response content from Perplexity API');
+        throw new Error('Empty response content from GPT-4o API');
       }
 
-      // Clean content: remove unwanted tags
+      // Clean content: remove unwanted tags (shouldn't be needed for GPT but just in case)
       const content = String(contentFromAPI)
         .replace(/<think>[\s\S]*?<\/think>/g, '')
         .replace(/<think>[\s\S]*?<\/redacted_reasoning>/g, '')

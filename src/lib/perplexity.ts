@@ -1,25 +1,41 @@
 // Note: API calls are now made through the local server endpoint /api/perplexity
 // to avoid CORS issues. The server handles API key retrieval from Firestore.
 
+export interface PerplexityOptions {
+  systemMessage?: string;
+  temperature?: number;
+  maxTokens?: number;
+  model?: string;
+}
+
 /**
  * Makes a request to the Perplexity API via the local server endpoint
  * This avoids CORS issues by routing through the Express server
+ * @param prompt - The user prompt to send
+ * @param options - Optional configuration including custom system message
  */
-export async function queryPerplexity(prompt: string): Promise<any> {
+export async function queryPerplexity(prompt: string, options?: PerplexityOptions): Promise<any> {
   try {
     console.log('Sending request to Perplexity API via /api/perplexity...');
     
+    const requestBody: any = {
+      prompt: prompt,
+      model: options?.model || 'sonar-pro',
+      temperature: options?.temperature ?? 0.7,
+      max_tokens: options?.maxTokens || 1500
+    };
+
+    // If a custom system message is provided, pass it to override the default
+    if (options?.systemMessage) {
+      requestBody.systemMessage = options.systemMessage;
+    }
+
     const response = await fetch('/api/perplexity', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        prompt: prompt,
-        model: 'sonar-pro',
-        temperature: 0.7,
-        max_tokens: 1500
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {

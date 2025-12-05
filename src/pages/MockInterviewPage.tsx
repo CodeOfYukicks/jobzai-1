@@ -21,6 +21,9 @@ import {
   Clock,
   ChevronRight,
   Trash2,
+  Headphones,
+  Volume2,
+  BarChart3,
 } from 'lucide-react';
 import {
   LiveInterviewClient,
@@ -88,7 +91,7 @@ export interface MockInterviewSession {
   createdAt?: any;
 }
 
-type Phase = 'setup' | 'live' | 'results';
+type Phase = 'setup' | 'preparation' | 'live' | 'results';
 
 // ============================================
 // COMPONENT
@@ -500,8 +503,8 @@ export default function MockInterviewPage() {
     analyzeInterview(sessionId || undefined);
   }, [handleStopInterview, transcript, saveSessionToFirestore, analyzeInterview]);
 
-  // Start interview handler - defined after saveSessionToFirestore and analyzeInterview
-  const handleStartInterview = useCallback(async () => {
+  // Start interview handler - transitions to preparation phase
+  const handleStartInterview = useCallback(() => {
     if (!selectedApplication) {
       toast.error('Please select a job application first');
       return;
@@ -509,6 +512,18 @@ export default function MockInterviewPage() {
     
     if (!userProfile) {
       toast.error('User profile not loaded. Please try again.');
+      return;
+    }
+    
+    // Transition to preparation phase
+    setPhase('preparation');
+  }, [selectedApplication, userProfile]);
+
+  // Begin interview handler - actually starts the live interview
+  const handleBeginInterview = useCallback(async () => {
+    if (!selectedApplication || !userProfile) {
+      toast.error('Missing required data. Please go back and try again.');
+      setPhase('setup');
       return;
     }
     
@@ -693,7 +708,7 @@ export default function MockInterviewPage() {
         <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-violet-600/10 to-cyan-600/10 dark:from-violet-600/20 dark:to-cyan-600/20 border border-gray-200 dark:border-white/10 mb-4">
           <Mic className="h-6 w-6 text-violet-500 dark:text-violet-400" />
         </div>
-        <h1 className="text-2xl font-medium text-gray-900 dark:text-white mb-2">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
           Mock Interview
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -971,6 +986,178 @@ export default function MockInterviewPage() {
             {renderJobSelectionPanel()}
           </div>
         )}
+      </motion.div>
+    );
+  };
+
+  // ============================================
+  // RENDER - PREPARATION PHASE
+  // ============================================
+
+  const renderPreparationPhase = () => {
+    return (
+      <motion.div
+        key="preparation"
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3 }}
+        className="h-full flex items-center justify-center p-6 overflow-y-auto"
+      >
+        <div className="w-full max-w-md mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-center mb-10"
+          >
+            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-violet-600/10 to-cyan-600/10 dark:from-violet-600/20 dark:to-cyan-600/20 border border-gray-200 dark:border-white/10 mb-4">
+              <Headphones className="h-6 w-6 text-violet-500 dark:text-violet-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Before We Begin
+            </h1>
+            {selectedApplication && (
+              <div className="flex items-center justify-center gap-3 mt-1">
+                <CompanyLogo 
+                  companyName={selectedApplication.companyName} 
+                  size="lg" 
+                  className="!rounded-lg"
+                />
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {selectedApplication.position} at {selectedApplication.companyName}
+                </p>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Instructions List */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-4 mb-10"
+          >
+            {/* Instruction 1 */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 }}
+              className="flex items-start gap-4"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center">
+                <Volume2 className="h-5 w-5 text-violet-500 dark:text-violet-400" />
+              </div>
+              <div className="flex-1 pt-1">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
+                  Find a Quiet Space
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Choose a room with minimal background noise
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Instruction 2 */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-start gap-4"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-cyan-500/10 dark:bg-cyan-500/20 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
+              </div>
+              <div className="flex-1 pt-1">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
+                  10 Minutes Duration
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Take your time to answer each question thoughtfully
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Instruction 3 */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.35 }}
+              className="flex items-start gap-4"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center">
+                <Mic className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
+              </div>
+              <div className="flex-1 pt-1">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
+                  Speak Naturally
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Respond as you would in a real interview
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Instruction 4 */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex items-start gap-4"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center">
+                <BarChart3 className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 pt-1">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
+                  Detailed Feedback
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Receive AI-powered analysis after your interview
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Mic reminder */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.45 }}
+            className="text-center text-xs text-gray-400 dark:text-gray-500 mb-8"
+          >
+            Make sure your microphone is enabled and working properly
+          </motion.p>
+
+          {/* Actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="space-y-3"
+          >
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleBeginInterview}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white shadow-lg shadow-violet-500/25 transition-all"
+            >
+              <Play className="h-4 w-4" />
+              I'm Ready, Let's Start
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setPhase('setup')}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Go Back
+            </motion.button>
+          </motion.div>
+        </div>
       </motion.div>
     );
   };
@@ -1710,6 +1897,7 @@ export default function MockInterviewPage() {
       <div className="h-full overflow-hidden">
         <AnimatePresence mode="wait">
           {phase === 'setup' && renderSetupPhase()}
+          {phase === 'preparation' && renderPreparationPhase()}
           {phase === 'live' && renderLivePhase()}
           {phase === 'results' && renderResultsPhase()}
         </AnimatePresence>
