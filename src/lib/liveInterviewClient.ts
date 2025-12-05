@@ -63,8 +63,12 @@ export class LiveInterviewClient {
   private audioWorkletNode: AudioWorkletNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   
-  // Playback queue for AI audio responses
-  private audioPlaybackQueue: AudioBuffer[] = [];
+  // Playback queue for AI audio responses - each entry tracks its origin
+  private audioPlaybackQueue: Array<{
+    buffer: AudioBuffer;
+    responseId: string | null;
+    generation: number;
+  }> = [];
   private isPlaying = false;
   private currentPlaybackSource: AudioBufferSourceNode | null = null;
   
@@ -79,6 +83,9 @@ export class LiveInterviewClient {
   private currentResponseId: string | null = null;
   private interruptedAt: number = 0; // Timestamp of last interruption
   private readonly INTERRUPT_COOLDOWN_MS = 500; // Ignore audio for 500ms after interruption
+  private cancelledResponseIds: Set<string> = new Set(); // Track cancelled response IDs to reject late audio
+  private interruptionGeneration: number = 0; // Increments on each interruption - used to invalidate old audio
+  private currentAudioGeneration: number = 0; // The generation that's currently allowed to play
   
   // Master gain node for instant muting
   private masterGainNode: GainNode | null = null;
@@ -123,6 +130,9 @@ export class LiveInterviewClient {
     this.greetingTriggered = false; // Reset for new session
     this.isInterrupted = false; // Reset interrupted state
     this.currentResponseId = null;
+    this.cancelledResponseIds.clear(); // Clear cancelled response tracking
+    this.interruptionGeneration = 0; // Reset generation counter
+    this.currentAudioGeneration = 0; // Reset accepted generation
     this.resetAudioPlayback(); // Reset audio state
     
     try {
@@ -782,14 +792,57 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
   private async playAudioChunk(base64Audio: string, responseId?: string): Promise<void> {
     if (!this.audioContext) return;
     
-    // Simple check: if interrupted, don't play
+    // === STRICT BARGE-IN VALIDATION ===
+    // These checks are intentionally aggressive to prevent ANY old audio from playing
+    
+    // 1. FIRST CHECK: If interrupted, REJECT ALL AUDIO - no exceptions!
+    //    This is the most important check. When user is speaking, NO AI audio should play.
     if (this.isInterrupted) {
+      // Don't even log frequently to avoid console spam
+      return;
+    }
+    
+    // 2. Check generation counter - reject audio from before the latest interruption
+    //    This catches audio that was "in flight" when we interrupted
+    if (this.currentAudioGeneration !== this.interruptionGeneration) {
+      console.log('🔇 Rejecting audio from old generation:', this.currentAudioGeneration, 'current:', this.interruptionGeneration);
+      return;
+    }
+    
+    // 3. Check cooldown period after interruption - give time for old audio to clear
+    if (this.interruptedAt > 0) {
+      const timeSinceInterrupt = Date.now() - this.interruptedAt;
+      if (timeSinceInterrupt < this.INTERRUPT_COOLDOWN_MS) {
+        return; // Silent reject during cooldown
+      }
+      // Cooldown passed, clear the timestamp
+      this.interruptedAt = 0;
+    }
+    
+    // 4. If responseId is provided, validate it strictly
+    if (responseId) {
+      // Reject if from a cancelled response
+      if (this.cancelledResponseIds.has(responseId)) {
+        console.log('🔇 Rejecting audio from CANCELLED response:', responseId);
+        return;
+      }
+      // Reject if doesn't match current response
+      if (this.currentResponseId && responseId !== this.currentResponseId) {
+        console.log('🔇 Rejecting audio from OLD response:', responseId, '(current:', this.currentResponseId, ')');
+        return;
+      }
+    }
+    
+    // 5. If we had an interruption recently but no responseId, be extra cautious
+    //    Only allow if we've explicitly accepted this generation
+    if (!responseId && this.interruptionGeneration > 0 && this.currentAudioGeneration < this.interruptionGeneration) {
+      console.log('🔇 Rejecting audio without responseId after interruption');
       return;
     }
     
     // Debug: log state on first chunk
     if (!this.playbackStarted) {
-      console.log('🔊 Playing first chunk. Gain:', this.masterGainNode?.gain.value);
+      console.log('🔊 Playing first chunk. Gen:', this.currentAudioGeneration, 'Response:', responseId);
     }
     
     try {
@@ -812,8 +865,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       const audioBuffer = this.audioContext.createBuffer(1, float32.length, 24000);
       audioBuffer.getChannelData(0).set(float32);
       
-      // Add to queue
-      this.audioPlaybackQueue.push(audioBuffer);
+      // Add to queue WITH tracking info - this enables validation at scheduling time
+      this.audioPlaybackQueue.push({
+        buffer: audioBuffer,
+        responseId: responseId || null,
+        generation: this.currentAudioGeneration,
+      });
       
       // Start playback after collecting enough chunks (pre-buffering)
       if (!this.playbackStarted && this.audioPlaybackQueue.length >= this.PREBUFFER_COUNT) {
@@ -842,13 +899,44 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       return;
     }
     
+    // Check generation BEFORE scheduling any audio
+    if (this.currentAudioGeneration !== this.interruptionGeneration) {
+      console.log('🔇 scheduleQueuedAudio: Generation mismatch, clearing queue');
+      this.audioPlaybackQueue = [];
+      return;
+    }
+    
     // Schedule all queued buffers
     while (this.audioPlaybackQueue.length > 0) {
-      const buffer = this.audioPlaybackQueue.shift()!;
+      // Check for interruption BEFORE each buffer - handles rapid interrupts
+      if (this.isInterrupted || this.currentAudioGeneration !== this.interruptionGeneration) {
+        console.log('🔇 scheduleQueuedAudio: Interrupted mid-scheduling, clearing remaining queue');
+        this.audioPlaybackQueue = [];
+        return;
+      }
+      
+      const entry = this.audioPlaybackQueue.shift()!;
+      
+      // VALIDATE EACH BUFFER at scheduling time (second line of defense)
+      // This catches any buffers that snuck into the queue before state was updated
+      if (entry.generation !== this.interruptionGeneration) {
+        console.log('🔇 Skipping buffer from old generation:', entry.generation, 'current:', this.interruptionGeneration);
+        continue; // Skip this buffer, move to next
+      }
+      
+      if (entry.responseId && entry.responseId !== this.currentResponseId) {
+        console.log('🔇 Skipping buffer from old response:', entry.responseId, 'current:', this.currentResponseId);
+        continue; // Skip this buffer, move to next
+      }
+      
+      if (entry.responseId && this.cancelledResponseIds.has(entry.responseId)) {
+        console.log('🔇 Skipping buffer from cancelled response:', entry.responseId);
+        continue; // Skip this buffer, move to next
+      }
       
       // Create buffer source
       const source = this.audioContext.createBufferSource();
-      source.buffer = buffer;
+      source.buffer = entry.buffer;
       
       // Connect through master gain node (allows instant muting)
       source.connect(this.masterGainNode);
@@ -863,7 +951,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       source.start(startTime);
       
       // Update next playback time (duration = samples / sampleRate)
-      this.nextPlaybackTime = startTime + buffer.duration;
+      this.nextPlaybackTime = startTime + entry.buffer.duration;
       
       this.isPlaying = true;
       this.currentPlaybackSource = source;
@@ -924,6 +1012,29 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
   }
   
   /**
+   * Recreate the master gain node - this is the NUCLEAR option
+   * By disconnecting the old gain node, ANY scheduled sources connected to it
+   * will have no path to the speakers, ensuring complete silence
+   */
+  private recreateMasterGain(): void {
+    if (!this.audioContext) return;
+    
+    // Disconnect old gain node - this SEVERS the connection for all sources
+    if (this.masterGainNode) {
+      try {
+        this.masterGainNode.disconnect();
+      } catch (e) { /* ignore */ }
+    }
+    
+    // Create fresh gain node
+    this.masterGainNode = this.audioContext.createGain();
+    this.masterGainNode.gain.value = 1; // Full volume for new audio
+    this.masterGainNode.connect(this.audioContext.destination);
+    
+    console.log('🔊 Master gain node RECREATED - old sources orphaned');
+  }
+  
+  /**
    * Stop audio playback immediately (for barge-in/interruption)
    */
   private stopAudioPlayback(): void {
@@ -933,12 +1044,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
     this.isInterrupted = true;
     this.interruptedAt = Date.now();
     
-    // INSTANT MUTE via master gain node
-    if (this.masterGainNode && this.audioContext) {
-      this.masterGainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-    }
+    // NUCLEAR OPTION: Recreate the master gain node
+    // This DISCONNECTS the old gain node, orphaning any scheduled sources
+    // Even if we miss some sources in our tracking, they can't play without a gain node
+    this.recreateMasterGain();
     
-    // Stop and DISCONNECT ALL scheduled sources
+    // Stop and DISCONNECT ALL scheduled sources (belt and suspenders)
     const sourcesToStop = [...this.scheduledSources];
     this.scheduledSources = []; // Clear immediately
     
@@ -1037,6 +1148,18 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         console.log('🎤🎤🎤 BARGE-IN TRIGGERED 🎤🎤🎤');
         console.log('   isPlaying:', this.isPlaying, 'sources:', this.scheduledSources.length);
         console.log('   currentResponseId:', this.currentResponseId);
+        console.log('   generation:', this.interruptionGeneration);
+        
+        // INCREMENT GENERATION COUNTER - This invalidates ALL audio from before this moment
+        this.interruptionGeneration++;
+        console.log('   ✅ Generation incremented to:', this.interruptionGeneration);
+        
+        // Track the current response as cancelled BEFORE stopping playback
+        // This ensures any late audio from this response will be rejected
+        if (this.currentResponseId) {
+          this.cancelledResponseIds.add(this.currentResponseId);
+          console.log('   ✅ Added to cancelled responses:', this.currentResponseId);
+        }
         
         // ALWAYS stop AI audio playback immediately (client-side)
         this.stopAudioPlayback();
@@ -1106,6 +1229,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         // AI is starting a new response
         const newResponseId = (event as any).response?.id || `resp_${Date.now()}`;
         console.log('🤖 NEW RESPONSE:', newResponseId);
+        console.log('   Previous generation:', this.currentAudioGeneration, 'Interruption generation:', this.interruptionGeneration);
         
         // Clear any leftover audio from previous response
         this.stopAllAudioSources();
@@ -1117,9 +1241,17 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         this.currentAssistantItemId = null;
         this.currentResponseId = newResponseId;
         
-        // Ensure we're ready to receive audio
+        // ACCEPT THE NEW GENERATION - This is the key to allowing new audio
+        // We set currentAudioGeneration to match interruptionGeneration, which
+        // signals that audio for this response is allowed to play
+        this.currentAudioGeneration = this.interruptionGeneration;
+        console.log('   ✅ Accepted generation:', this.currentAudioGeneration);
+        
+        // NOW reset isInterrupted - the new response is ready
+        // This is safe because we've updated the generation counter
         this.isInterrupted = false;
-        this.interruptedAt = 0;
+        
+        // Restore gain for new audio
         if (this.masterGainNode && this.audioContext) {
           this.masterGainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
         }
@@ -1262,6 +1394,18 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         this.resetAudioPlayback();
         this.isInterrupted = false;
         this.interruptedAt = 0;
+        
+        // Clean up: remove this response from cancelled set (if it was there)
+        // and clear old entries to prevent memory leaks
+        if (this.currentResponseId) {
+          this.cancelledResponseIds.delete(this.currentResponseId);
+        }
+        // Keep only the last 10 cancelled IDs to prevent unbounded growth
+        if (this.cancelledResponseIds.size > 10) {
+          const idsArray = Array.from(this.cancelledResponseIds);
+          this.cancelledResponseIds = new Set(idsArray.slice(-10));
+        }
+        
         this.currentResponseId = null;
         
         // Make sure gain is at 1 for next response
@@ -1280,7 +1424,23 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         
       case 'response.cancelled':
         // Response was cancelled (due to barge-in)
-        console.log('🔇 Response cancelled (user interrupted)');
+        const cancelledResponseId = (event as any).response?.id;
+        console.log('🔇 Response cancelled:', cancelledResponseId);
+        
+        // CRITICAL: Only reset if this is the CURRENT response being cancelled
+        // If this is an OLD response that was already cancelled, ignore it!
+        // Otherwise we'd reset the state for the NEW response that's already playing
+        if (cancelledResponseId && cancelledResponseId !== this.currentResponseId) {
+          console.log('   ℹ️ Ignoring - this is an old cancelled response, not current');
+          break;
+        }
+        
+        // Also check if it's in our cancelled set (we already handled it)
+        if (cancelledResponseId && this.cancelledResponseIds.has(cancelledResponseId)) {
+          console.log('   ℹ️ Ignoring - already in cancelled set');
+          break;
+        }
+        
         this.currentAssistantItemId = null;
         this.resetAudioPlayback();
         break;
@@ -1294,10 +1454,17 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         const eventData = event as any;
         console.log('📨 Unhandled event:', event.type);
         // Check if this event has audio data
+        // GUARDED: Only play if NOT interrupted and has a valid response_id
         if (eventData.delta && typeof eventData.delta === 'string' && eventData.delta.length > 100) {
           console.log('   🔊 This event might contain audio! Delta length:', eventData.delta.length);
-          // Try to play it as audio (pass response_id to filter old responses)
-          this.playAudioChunk(eventData.delta, eventData.response_id);
+          // Only play audio from unknown events if:
+          // 1. We're not interrupted
+          // 2. We have a valid response_id that matches current
+          if (!this.isInterrupted && eventData.response_id && eventData.response_id === this.currentResponseId) {
+            this.playAudioChunk(eventData.delta, eventData.response_id);
+          } else {
+            console.log('   🔇 Skipping audio from unknown event (interrupted or mismatched response_id)');
+          }
         }
         if (eventData.audio) {
           console.log('   🔊 Event has audio field:', typeof eventData.audio);
