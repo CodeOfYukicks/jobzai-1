@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Briefcase, Video, Users, Building, Trophy, Clock } from 'lucide-react';
+import { Briefcase, Video, Users, Building, Trophy, Clock, Heart } from 'lucide-react';
 import { CalendarEvent } from './types';
 import { CompanyLogo } from '../common/CompanyLogo';
 import moment from 'moment';
@@ -20,6 +20,16 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
         icon: <Briefcase className="w-3.5 h-3.5" />,
         badge: 'Applied',
         badgeBg: 'bg-blue-400/20',
+      };
+    }
+
+    if (event.type === 'wishlist') {
+      return {
+        bg: 'bg-gradient-to-br from-pink-500 to-rose-500',
+        border: 'border-pink-400/30',
+        icon: <Heart className="w-3.5 h-3.5" />,
+        badge: 'Wishlist',
+        badgeBg: 'bg-pink-400/20',
       };
     }
 
@@ -72,7 +82,7 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
   };
 
   const { bg, border, icon, badge, badgeBg } = getEventColors();
-  const app = event.type === 'application' ? event.resource : (event.resource?.application || event.resource);
+  const app = (event.type === 'application' || event.type === 'wishlist') ? event.resource : (event.resource?.application || event.resource);
   const companyName = app?.companyName || 'Company';
   const position = app?.position || 'Position';
   const showTime = !event.allDay && variant !== 'month';
