@@ -85,6 +85,15 @@ export default function WhiteboardEditorPage() {
     return () => observer.disconnect();
   }, []);
 
+  // Sync tldraw color scheme with app theme
+  useEffect(() => {
+    if (editor) {
+      editor.user.updateUserPreferences({
+        colorScheme: isDarkMode ? 'dark' : 'light'
+      });
+    }
+  }, [editor, isDarkMode]);
+
   // Fetch whiteboard data
   useEffect(() => {
     const fetchData = async () => {
@@ -490,7 +499,6 @@ export default function WhiteboardEditorPage() {
         <Tldraw
           onMount={handleMount}
           persistenceKey={`whiteboard-${whiteboardId}`}
-          inferDarkMode
         />
       </div>
 
