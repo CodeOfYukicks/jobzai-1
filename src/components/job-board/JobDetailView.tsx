@@ -3,7 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { Job } from '../../types/job-board';
-import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Sparkles, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X } from 'lucide-react';
+import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Sparkles, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X, Link2, Linkedin, Mail, MessageCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -20,6 +21,8 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
     const { currentUser } = useAuth();
     const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
     const [isInWishlist, setIsInWishlist] = useState(false);
+    const [showShareMenu, setShowShareMenu] = useState(false);
+    const shareMenuRef = useRef<HTMLDivElement>(null);
     
     // Job Interactions (V5.0 - Feedback Loop)
     const { isJobSaved, toggleSave, trackView, trackApply } = useJobInteractions();
@@ -73,6 +76,51 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
 
         checkWishlistStatus();
     }, [currentUser, job]);
+
+    // Close share menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+                setShowShareMenu(false);
+            }
+        };
+
+        if (showShareMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showShareMenu]);
+
+    // Handle share to different platforms
+    const handleShare = (platform: 'copy' | 'linkedin' | 'twitter' | 'whatsapp' | 'email') => {
+        if (!job) return;
+        
+        const shareUrl = job.applyUrl || window.location.href;
+        const shareText = `${job.title} chez ${job.company}`;
+        
+        switch (platform) {
+            case 'copy':
+                navigator.clipboard.writeText(shareUrl);
+                toast.success('Lien copié !');
+                break;
+            case 'linkedin':
+                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                break;
+            case 'twitter':
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+                break;
+            case 'whatsapp':
+                window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
+                break;
+            case 'email':
+                window.location.href = `mailto:?subject=${encodeURIComponent(shareText)}&body=${encodeURIComponent('Découvre cette offre d\'emploi : ' + shareUrl)}`;
+                break;
+        }
+        setShowShareMenu(false);
+    };
 
     const handleAddToWishlist = async () => {
         if (!currentUser) {
@@ -404,9 +452,72 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                             />
                         </div>
                         <div className="flex gap-2">
-                            <button className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                                <Share2 className="w-5 h-5" />
-                            </button>
+                            {/* Share Button with Dropdown */}
+                            <div ref={shareMenuRef} className="relative">
+                                <button 
+                                    onClick={() => setShowShareMenu(!showShareMenu)}
+                                    className={`p-2.5 rounded-xl border transition-colors ${
+                                        showShareMenu 
+                                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                    }`}
+                                    title="Partager"
+                                >
+                                    <Share2 className="w-5 h-5" />
+                                </button>
+                                
+                                <AnimatePresence>
+                                    {showShareMenu && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                                        >
+                                            <div className="py-1">
+                                                <button
+                                                    onClick={() => handleShare('copy')}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                >
+                                                    <Link2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                    Copier le lien
+                                                </button>
+                                                <button
+                                                    onClick={() => handleShare('linkedin')}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                >
+                                                    <Linkedin className="w-4 h-4 text-[#0A66C2]" />
+                                                    LinkedIn
+                                                </button>
+                                                <button
+                                                    onClick={() => handleShare('twitter')}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                >
+                                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                                    </svg>
+                                                    Twitter / X
+                                                </button>
+                                                <button
+                                                    onClick={() => handleShare('whatsapp')}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                >
+                                                    <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                                                    WhatsApp
+                                                </button>
+                                                <button
+                                                    onClick={() => handleShare('email')}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                >
+                                                    <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                    Email
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                             <button 
                                 onClick={() => {
                                     toggleSave(job.id, { matchScore: job.matchScore });

@@ -296,20 +296,17 @@ export default function TailoredResumePanel({
                 })}
               </div>
 
-              {/* Generate Button - Enhanced Premium Styling */}
+              {/* Generate Button - Notion/Google-style Premium Hover */}
               <div className="px-4 pb-4 pt-3 flex-shrink-0 border-t border-gray-100 dark:border-gray-800">
                 <motion.button
                   onClick={handleConfirmLevel}
-                  whileHover={{ scale: 1.01, y: -1 }}
+                  whileHover={{ scale: 1.005 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full group relative flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-bold shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden"
+                  className="w-full group flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-50 text-white dark:text-gray-900 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl ring-1 ring-gray-900/5 dark:ring-gray-200/50 hover:ring-gray-900/10 dark:hover:ring-gray-300/60 transition-all duration-200 ease-out"
                 >
-                  {/* Gradient Overlay on Hover */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
-                  <Sparkles className="w-4 h-4 relative z-10" />
-                  <span className="relative z-10">Generate CV</span>
-                  <ArrowRight className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 relative z-10" />
+                  <Sparkles className="w-4 h-4" />
+                  <span>Generate CV</span>
+                  <ArrowRight className="w-4 h-4 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200" />
                 </motion.button>
               </div>
             </motion.div>

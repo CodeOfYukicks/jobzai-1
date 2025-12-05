@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   GripVertical, User, FileText, Briefcase, GraduationCap, 
   Code, Award, FolderOpen, Globe, Lock, Minus, Plus,
-  ChevronDown, Edit3, Type
+  ChevronDown, ChevronRight, Edit3, Type, Check, Palette,
+  Calendar, AlignLeft, Layers
 } from 'lucide-react';
-import { CVSection, CVLayoutSettings } from '../../../types/cvEditor';
+import { CVSection, CVLayoutSettings, CVColorScheme } from '../../../types/cvEditor';
 import { sortSections } from '../../../lib/cvEditorUtils';
 
 interface LayoutStyleTabProps {
@@ -20,43 +22,61 @@ const PREMIUM_FONTS = [
   { 
     name: 'Inter', 
     category: 'Sans-Serif',
-    description: 'Modern, clean, excellent readability'
+    description: 'Modern, clean, excellent readability',
+    preview: 'The quick brown fox'
   },
   { 
     name: 'Playfair Display', 
     category: 'Serif',
-    description: 'Elegant serif for executive CVs'
+    description: 'Elegant serif for executive CVs',
+    preview: 'The quick brown fox'
   },
   { 
     name: 'Montserrat', 
     category: 'Sans-Serif',
-    description: 'Geometric, professional'
+    description: 'Geometric, professional',
+    preview: 'The quick brown fox'
   },
   { 
     name: 'Lora', 
     category: 'Serif',
-    description: 'Contemporary serif, sophisticated'
+    description: 'Contemporary serif, sophisticated',
+    preview: 'The quick brown fox'
   },
   { 
     name: 'Raleway', 
     category: 'Sans-Serif',
-    description: 'Elegant, refined'
+    description: 'Elegant, refined',
+    preview: 'The quick brown fox'
   },
   { 
     name: 'Merriweather', 
     category: 'Serif',
-    description: 'Highly readable serif'
+    description: 'Highly readable serif',
+    preview: 'The quick brown fox'
   },
   { 
     name: 'Poppins', 
     category: 'Sans-Serif',
-    description: 'Modern geometric, friendly'
+    description: 'Modern geometric, friendly',
+    preview: 'The quick brown fox'
   },
   { 
     name: 'Source Sans Pro', 
     category: 'Sans-Serif',
-    description: 'Clean, professional'
+    description: 'Clean, professional',
+    preview: 'The quick brown fox'
   }
+];
+
+// Color swatches for accent color
+const COLOR_SWATCHES: { id: CVColorScheme; name: string; hex: string; ring: string }[] = [
+  { id: 'slate', name: 'Slate', hex: '#475569', ring: 'ring-slate-500' },
+  { id: 'charcoal', name: 'Charcoal', hex: '#1f2937', ring: 'ring-gray-800' },
+  { id: 'blue', name: 'Classic Blue', hex: '#2563eb', ring: 'ring-blue-500' },
+  { id: 'orange', name: 'Vibrant Orange', hex: '#ea580c', ring: 'ring-orange-500' },
+  { id: 'teal', name: 'Modern Teal', hex: '#0d9488', ring: 'ring-teal-500' },
+  { id: 'emerald', name: 'Fresh Green', hex: '#059669', ring: 'ring-emerald-500' },
 ];
 
 const sectionIcons: Record<string, React.ReactNode> = {
@@ -71,6 +91,365 @@ const sectionIcons: Record<string, React.ReactNode> = {
 };
 
 const lockedSections = ['personal', 'contact', 'links'];
+
+// Collapsible Section Component
+function CollapsibleSection({ 
+  title, 
+  icon: Icon,
+  defaultOpen = true, 
+  children,
+  badge
+}: { 
+  title: string; 
+  icon: React.ComponentType<{ className?: string }>;
+  defaultOpen?: boolean; 
+  children: React.ReactNode;
+  badge?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-gray-100 dark:border-gray-800/60 rounded-xl bg-white/50 dark:bg-gray-900/30 backdrop-blur-sm overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors"
+      >
+        <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/60">
+          <Icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+        </div>
+        <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">
+          {title}
+        </span>
+        {badge && (
+          <span className="px-2 py-0.5 text-[10px] font-medium bg-[#635BFF]/10 text-[#635BFF] dark:bg-[#635BFF]/20 dark:text-[#a5a0ff] rounded-full">
+            {badge}
+          </span>
+        )}
+        <motion.div
+          animate={{ rotate: isOpen ? 0 : -90 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="px-4 pb-4 pt-1">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Premium Slider Component
+function PremiumSlider({
+  value,
+  onChange,
+  min,
+  max,
+  label,
+  valueSuffix = '',
+  showTicks = true,
+  tickLabels,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  label: string;
+  valueSuffix?: string;
+  showTicks?: boolean;
+  tickLabels?: string[];
+}) {
+  const percentage = ((value - min) / (max - min)) * 100;
+  const tickCount = tickLabels?.length || 5;
+  const ticks = tickLabels || Array.from({ length: tickCount }, (_, i) => 
+    String(Math.round(min + (i * (max - min)) / (tickCount - 1)))
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
+          {label}
+        </span>
+        <span className="px-2.5 py-1 text-xs font-semibold bg-[#635BFF]/10 text-[#635BFF] dark:bg-[#635BFF]/20 dark:text-[#a5a0ff] rounded-full tabular-nums">
+          {value}{valueSuffix}
+        </span>
+      </div>
+      <div className="relative pt-1 pb-1">
+        <div className="relative h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+          <motion.div 
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#635BFF] to-[#8B5CF6] rounded-full"
+            initial={false}
+            animate={{ width: `${percentage}%` }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          />
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+        <motion.div 
+          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white dark:bg-gray-200 rounded-full shadow-lg border-2 border-[#635BFF] cursor-pointer pointer-events-none"
+          initial={false}
+          animate={{ left: `calc(${percentage}% - 10px)` }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          style={{ marginTop: '4px' }}
+        />
+      </div>
+      {showTicks && (
+        <div className="flex justify-between px-0.5">
+          {ticks.map((tick, i) => (
+            <span 
+              key={i} 
+              className={`text-[10px] tabular-nums transition-colors ${
+                i <= (percentage / 100) * (tickCount - 1) 
+                  ? 'text-[#635BFF]/70 dark:text-[#a5a0ff]/70' 
+                  : 'text-gray-400 dark:text-gray-600'
+              }`}
+            >
+              {tick}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Visual Font Picker Component
+function FontPicker({
+  selectedFont,
+  onSelect,
+}: {
+  selectedFont: string;
+  onSelect: (font: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedFontData = PREMIUM_FONTS.find(f => f.name === selectedFont);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl hover:border-[#635BFF]/50 dark:hover:border-[#635BFF]/30 transition-all group"
+      >
+        <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 group-hover:bg-[#635BFF]/10 transition-colors">
+          <Type className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-[#635BFF]" />
+        </div>
+        <div className="flex-1 text-left">
+          <p 
+            className="text-sm font-semibold text-gray-900 dark:text-white"
+            style={{ fontFamily: selectedFont }}
+          >
+            {selectedFont}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {selectedFontData?.description}
+          </p>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-10"
+              onClick={() => setIsOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 overflow-hidden max-h-[320px] overflow-y-auto"
+            >
+              {/* Sans-Serif Group */}
+              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 sticky top-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Sans-Serif
+                </span>
+              </div>
+              {PREMIUM_FONTS.filter(f => f.category === 'Sans-Serif').map(font => (
+                <button
+                  key={font.name}
+                  onClick={() => { onSelect(font.name); setIsOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                    selectedFont === font.name ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                  }`}
+                >
+                  <div className="flex-1 text-left">
+                    <p 
+                      className="text-sm text-gray-900 dark:text-white"
+                      style={{ fontFamily: font.name }}
+                    >
+                      {font.name}
+                    </p>
+                    <p 
+                      className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+                      style={{ fontFamily: font.name }}
+                    >
+                      {font.preview}
+                    </p>
+                  </div>
+                  {selectedFont === font.name && (
+                    <Check className="w-4 h-4 text-[#635BFF]" />
+                  )}
+                </button>
+              ))}
+
+              {/* Serif Group */}
+              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 sticky top-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Serif
+                </span>
+              </div>
+              {PREMIUM_FONTS.filter(f => f.category === 'Serif').map(font => (
+                <button
+                  key={font.name}
+                  onClick={() => { onSelect(font.name); setIsOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                    selectedFont === font.name ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                  }`}
+                >
+                  <div className="flex-1 text-left">
+                    <p 
+                      className="text-sm text-gray-900 dark:text-white"
+                      style={{ fontFamily: font.name }}
+                    >
+                      {font.name}
+                    </p>
+                    <p 
+                      className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+                      style={{ fontFamily: font.name }}
+                    >
+                      {font.preview}
+                    </p>
+                  </div>
+                  {selectedFont === font.name && (
+                    <Check className="w-4 h-4 text-[#635BFF]" />
+                  )}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Color Swatch Picker Component
+function ColorSwatchPicker({
+  selectedColor,
+  onSelect,
+}: {
+  selectedColor: CVColorScheme;
+  onSelect: (color: CVColorScheme) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
+          Accent Color
+        </span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          {COLOR_SWATCHES.find(c => c.id === selectedColor)?.name}
+        </span>
+      </div>
+      <div className="flex gap-2.5 flex-wrap">
+        {COLOR_SWATCHES.map(color => (
+          <motion.button
+            key={color.id}
+            onClick={() => onSelect(color.id)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className={`relative w-9 h-9 rounded-xl transition-all ${
+              selectedColor === color.id 
+                ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ' + color.ring
+                : 'hover:ring-2 hover:ring-offset-1 hover:ring-offset-white dark:hover:ring-offset-gray-900 hover:ring-gray-300 dark:hover:ring-gray-600'
+            }`}
+            style={{ backgroundColor: color.hex }}
+            title={color.name}
+          >
+            {selectedColor === color.id && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                <Check className="w-4 h-4 text-white drop-shadow-sm" />
+              </motion.div>
+            )}
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Option Selector Component (for Date Format, Line Height)
+function OptionSelector({
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  options: { value: string | number; label: string; preview?: string }[];
+  value: string | number;
+  onChange: (value: string | number) => void;
+  label: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
+        {label}
+      </span>
+      <div className="grid grid-cols-2 gap-2">
+        {options.map(option => (
+          <button
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            className={`flex flex-col items-start px-3 py-2.5 rounded-xl border transition-all text-left ${
+              value === option.value
+                ? 'border-[#635BFF] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
+                : 'border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800/40'
+            }`}
+          >
+            <span className={`text-sm font-medium ${
+              value === option.value 
+                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                : 'text-gray-900 dark:text-white'
+            }`}>
+              {option.preview || option.label}
+            </span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+              {option.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function LayoutStyleTab({ sections, onReorder, layoutSettings, onSettingsChange }: LayoutStyleTabProps) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -112,26 +491,33 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
   const sortedSections = sortSections(sections);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
-      <div className="max-w-2xl mx-auto space-y-8">
-        {/* Section Order & Titles */}
-        <div>
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-              Section Order & Titles
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Drag to reorder sections, click to edit titles
-            </p>
-          </div>
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* Subtle gradient header */}
+      <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-gray-50 via-gray-50/95 to-gray-50/0 dark:from-gray-900 dark:via-gray-900/95 dark:to-gray-900/0">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Style & Layout
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          Customize the appearance of your CV
+        </p>
+      </div>
 
+      <div className="px-5 pb-6 space-y-4">
+        {/* Section Order - Collapsible */}
+        <CollapsibleSection 
+          title="Section Order" 
+          icon={Layers}
+          badge={`${sortedSections.length} sections`}
+        >
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="layout-sections">
-              {(provided) => (
+              {(provided, droppableSnapshot) => (
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="space-y-2"
+                  className={`space-y-1.5 rounded-lg ${
+                    droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                  }`}
                 >
                   {sortedSections.map((section, index) => {
                     const isLocked = lockedSections.includes(section.type);
@@ -148,34 +534,39 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             className={`
-                              flex items-center gap-3 px-4 py-3.5 bg-white dark:bg-gray-800 rounded-lg border transition-all
+                              group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
                               ${snapshot.isDragging 
-                                ? 'shadow-xl scale-[1.02] ring-2 ring-[#635BFF]' 
-                                : 'shadow-sm border-gray-200 dark:border-gray-700'
+                                ? 'bg-white dark:bg-gray-800 shadow-2xl ring-2 ring-[#635BFF] z-50' 
+                                : 'bg-gray-50/80 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
                               }
-                              ${isLocked ? 'opacity-60' : ''}
+                              ${isLocked ? 'opacity-50' : ''}
                             `}
+                            style={provided.draggableProps.style}
                           >
                             {/* Drag Handle or Lock Icon */}
                             <div
                               {...provided.dragHandleProps}
                               className={`
-                                flex-shrink-0
+                                flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
                                 ${isLocked 
                                   ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' 
-                                  : 'text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing hover:text-gray-600 dark:hover:text-gray-400'
+                                  : 'text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/60'
                                 }
+                                ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
                               `}
+                              title={isLocked ? 'Section verrouillée' : 'Glisser pour réorganiser'}
                             >
                               {isLocked ? (
-                                <Lock className="w-4 h-4" />
+                                <Lock className="w-3.5 h-3.5" />
                               ) : (
-                                <GripVertical className="w-4 h-4" />
+                                <GripVertical className="w-3.5 h-3.5" />
                               )}
                             </div>
 
                             {/* Section Icon */}
-                            <div className="text-gray-500 dark:text-gray-400 flex-shrink-0">
+                            <div className={`flex-shrink-0 transition-colors duration-200 ${
+                              snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
+                            }`}>
                               {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
                             </div>
 
@@ -189,19 +580,18 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   onBlur={saveTitle}
                                   onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
                                   autoFocus
-                                  className="w-full px-3 py-1.5 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border border-[#7c75ff] dark:border-[#a5a0ff]/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]"
+                                  className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-[#635BFF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30"
                                 />
                               ) : (
-                                <button
+                                <span
                                   onClick={() => !isLocked && startEditingTitle(section.id, section.title)}
                                   className={`
-                                    w-full text-left text-sm font-semibold text-gray-900 dark:text-white truncate
-                                    ${!isLocked && 'hover:text-[#5249e6] dark:hover:text-[#a5a0ff] transition-colors'}
+                                    block text-sm font-medium text-gray-900 dark:text-white truncate
+                                    ${!isLocked && 'cursor-text hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors'}
                                   `}
-                                  disabled={isLocked}
                                 >
                                   {section.title}
-                                </button>
+                                </span>
                               )}
                             </div>
 
@@ -209,9 +599,9 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             {!isLocked && editingSection !== section.id && (
                               <button
                                 onClick={() => startEditingTitle(section.id, section.title)}
-                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
+                                className="p-1.5 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg transition-all duration-200 flex-shrink-0 opacity-0 group-hover:opacity-100"
                               >
-                                <Edit3 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                <Edit3 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                               </button>
                             )}
                           </div>
@@ -224,205 +614,87 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
               )}
             </Droppable>
           </DragDropContext>
-        </div>
 
-        {/* Locked Sections Info */}
-        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-start gap-3">
-            <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Locked Sections for Template
-              </h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Contact and Links sections are locked and cannot be reordered or renamed to maintain template consistency.
-              </p>
-            </div>
+          {/* Locked sections notice */}
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
+            <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 flex-shrink-0" />
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              Header sections are locked to maintain template consistency
+            </p>
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Other Settings */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
-            Other Settings
-          </h3>
+        {/* Typography - Collapsible */}
+        <CollapsibleSection title="Typography" icon={Type}>
+          <div className="space-y-5">
+            {/* Font Family - Visual Picker */}
+            <FontPicker
+              selectedFont={layoutSettings.fontFamily}
+              onSelect={(font) => onSettingsChange({ fontFamily: font })}
+            />
 
-          <div className="space-y-6">
-            {/* Font Size */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Font Size
-              </label>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => onSettingsChange({ fontSize: Math.max(8, layoutSettings.fontSize - 1) })}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={layoutSettings.fontSize <= 8}
-                >
-                  <Minus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                
-                <div className="flex-1">
-                  <div className="relative">
-                    <input
-                      type="range"
-                      min="8"
-                      max="14"
-                      value={layoutSettings.fontSize}
-                      onChange={(e) => onSettingsChange({ fontSize: Number(e.target.value) })}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#635BFF]"
-                    />
-                  </div>
-                </div>
+            {/* Font Size - Premium Slider */}
+            <PremiumSlider
+              value={layoutSettings.fontSize}
+              onChange={(v) => onSettingsChange({ fontSize: v })}
+              min={8}
+              max={14}
+              label="Font Size"
+              valueSuffix="pt"
+              tickLabels={['8', '10', '12', '14']}
+            />
 
-                <button
-                  onClick={() => onSettingsChange({ fontSize: Math.min(14, layoutSettings.fontSize + 1) })}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={layoutSettings.fontSize >= 14}
-                >
-                  <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-
-                <div className="w-12 text-center">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {layoutSettings.fontSize}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Font Family */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Font Family
-              </label>
-              <div className="relative">
-                <select
-                  value={layoutSettings.fontFamily}
-                  onChange={(e) => onSettingsChange({ fontFamily: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#635BFF] focus:border-transparent appearance-none cursor-pointer transition-all"
-                  style={{ fontFamily: layoutSettings.fontFamily }}
-                >
-                  <optgroup label="Sans-Serif">
-                    {PREMIUM_FONTS.filter(f => f.category === 'Sans-Serif').map(font => (
-                      <option key={font.name} value={font.name} style={{ fontFamily: font.name }}>
-                        {font.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Serif">
-                    {PREMIUM_FONTS.filter(f => f.category === 'Serif').map(font => (
-                      <option key={font.name} value={font.name} style={{ fontFamily: font.name }}>
-                        {font.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-                <Type className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              </div>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                {PREMIUM_FONTS.find(f => f.name === layoutSettings.fontFamily)?.description}
-              </p>
-            </div>
-
-            {/* Date Format */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Date Format
-              </label>
-              <div className="relative">
-                <select
-                  value={layoutSettings.dateFormat}
-                  onChange={(e) => onSettingsChange({ dateFormat: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#635BFF] focus:border-transparent appearance-none cursor-pointer transition-all"
-                >
-                  <option value="jan-24">Jan '24 (Short Name & Year)</option>
-                  <option value="january-2024">January 2024 (Full Name & Year)</option>
-                  <option value="01-2024">01/2024 (Numeric)</option>
-                  <option value="2024-01">2024-01 (ISO Format)</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              </div>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Preview: {layoutSettings.dateFormat === 'jan-24' && "Jan '24"}
-                {layoutSettings.dateFormat === 'january-2024' && 'January 2024'}
-                {layoutSettings.dateFormat === '01-2024' && '01/2024'}
-                {layoutSettings.dateFormat === '2024-01' && '2024-01'}
-              </p>
-            </div>
-
-            {/* Line Height */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Line Height
-              </label>
-              <div className="relative">
-                <select
-                  value={layoutSettings.lineHeight}
-                  onChange={(e) => onSettingsChange({ lineHeight: Number(e.target.value) })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#635BFF] focus:border-transparent appearance-none cursor-pointer transition-all"
-                >
-                  <option value="1.0">1.0 (Compact)</option>
-                  <option value="1.3">1.3 (Standard)</option>
-                  <option value="1.5">1.5 (Comfortable)</option>
-                  <option value="2.0">2.0 (Spacious)</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Experience Spacing */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Experience Spacing
-              </label>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => onSettingsChange({ experienceSpacing: Math.max(0, (layoutSettings.experienceSpacing ?? 6) - 1) })}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={(layoutSettings.experienceSpacing ?? 6) <= 0}
-                >
-                  <Minus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                
-                <div className="flex-1">
-                  <div className="relative">
-                    <input
-                      type="range"
-                      min="0"
-                      max="12"
-                      value={layoutSettings.experienceSpacing ?? 6}
-                      onChange={(e) => onSettingsChange({ experienceSpacing: Number(e.target.value) })}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#635BFF]"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => onSettingsChange({ experienceSpacing: Math.min(12, (layoutSettings.experienceSpacing ?? 6) + 1) })}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={(layoutSettings.experienceSpacing ?? 6) >= 12}
-                >
-                  <Plus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-
-                <div className="w-12 text-center">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {layoutSettings.experienceSpacing ?? 6}
-                  </span>
-                </div>
-              </div>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                {layoutSettings.experienceSpacing === 0 ? 'Compact (0px)' : 
-                 layoutSettings.experienceSpacing === 6 ? 'Balanced (24px)' :
-                 (layoutSettings.experienceSpacing ?? 6) >= 10 ? 'Spacious' : 'Adjust vertical spacing between job positions'}
-              </p>
-            </div>
+            {/* Line Height - Option Selector */}
+            <OptionSelector
+              label="Line Height"
+              value={layoutSettings.lineHeight}
+              onChange={(v) => onSettingsChange({ lineHeight: Number(v) })}
+              options={[
+                { value: 1.0, label: 'Compact', preview: '1.0×' },
+                { value: 1.3, label: 'Standard', preview: '1.3×' },
+                { value: 1.5, label: 'Comfortable', preview: '1.5×' },
+                { value: 2.0, label: 'Spacious', preview: '2.0×' },
+              ]}
+            />
           </div>
-        </div>
+        </CollapsibleSection>
+
+        {/* Colors - Collapsible */}
+        <CollapsibleSection title="Colors" icon={Palette}>
+          <ColorSwatchPicker
+            selectedColor={layoutSettings.accentColor || 'blue'}
+            onSelect={(color) => onSettingsChange({ accentColor: color })}
+          />
+        </CollapsibleSection>
+
+        {/* Formatting - Collapsible */}
+        <CollapsibleSection title="Formatting" icon={Calendar} defaultOpen={false}>
+          <div className="space-y-5">
+            {/* Date Format - Option Selector */}
+            <OptionSelector
+              label="Date Format"
+              value={layoutSettings.dateFormat}
+              onChange={(v) => onSettingsChange({ dateFormat: String(v) })}
+              options={[
+                { value: 'jan-24', label: 'Short', preview: "Jan '24" },
+                { value: 'january-2024', label: 'Full', preview: 'January 2024' },
+                { value: '01-2024', label: 'Numeric', preview: '01/2024' },
+                { value: '2024-01', label: 'ISO', preview: '2024-01' },
+              ]}
+            />
+
+            {/* Experience Spacing - Premium Slider */}
+            <PremiumSlider
+              value={layoutSettings.experienceSpacing ?? 6}
+              onChange={(v) => onSettingsChange({ experienceSpacing: v })}
+              min={0}
+              max={12}
+              label="Section Spacing"
+              tickLabels={['Tight', '', 'Normal', '', 'Loose']}
+            />
+          </div>
+        </CollapsibleSection>
       </div>
     </div>
   );
 }
-

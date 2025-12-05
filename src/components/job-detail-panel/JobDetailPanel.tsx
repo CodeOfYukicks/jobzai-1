@@ -357,8 +357,8 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                           { id: 'overview', label: 'Overview', icon: null, badge: null },
                           { id: 'interviews', label: 'Interviews', icon: null, badge: null },
                           { id: 'activity', label: 'Activity', icon: null, badge: null },
-                          { id: 'ai-tools', label: 'Document Studio', icon: Sparkles, badge: null },
                           { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
+                          { id: 'ai-tools', label: 'Document Studio', icon: Sparkles, badge: null },
                           { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: (job.cvAnalysisIds?.length || (job.cvAnalysisId ? 1 : 0)) || 'link' },
                           { id: 'linked-documents', label: 'Linked Documents', icon: FileText, badge: ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) > 0 ? ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) : null },
                         ] as const).map((tab) => (

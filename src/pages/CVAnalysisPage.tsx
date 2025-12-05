@@ -3010,7 +3010,7 @@ export default function CVAnalysisPage() {
               duration: 8000,
               icon: '❌'
             });
-          } else if (isCompleted && data._isLoading !== false) {
+          } else if (isCompleted && data._isLoading === false) {
             console.log(`✅ Analysis ${analysis.id} completed! Updating local state...`);
 
             // Update the analysis in local state

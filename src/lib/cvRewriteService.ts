@@ -165,7 +165,7 @@ function formatJobSummaryInsights(jobSummary: EnrichedATSAnalysis['jobSummary'])
 
 /**
  * Get level-specific configuration for CV rewriting
- * Simplified version - controls keyword count and intensity
+ * Controls keyword count, intensity, and transformation depth
  */
 function getLevelConfig(level: AdaptationLevel): {
   keywords: string;
@@ -201,6 +201,152 @@ function getLevelConfig(level: AdaptationLevel): {
 }
 
 /**
+ * Get detailed level-specific instructions for CV rewriting
+ * These instructions dramatically change how the AI rewrites the CV
+ */
+function getLevelSpecificInstructions(level: AdaptationLevel): {
+  bulletPointRules: string;
+  summaryRules: string;
+  strictRules: string;
+  examples: string;
+} {
+  switch (level) {
+    case 'conservative':
+      return {
+        bulletPointRules: `### Bullet Points (CONSERVATIVE - Minimal Changes)
+- KEEP 80%+ of the original wording intact
+- Only fix grammar, spelling, and punctuation errors
+- Add maximum 1 keyword per bullet point IF it fits naturally
+- Do NOT change the sentence structure significantly
+- Keep the original tone and voice of the candidate
+- Preserve all original metrics and numbers exactly as written
+- Only replace weak verbs if they are very obvious (e.g., "did" → "completed")`,
+        
+        summaryRules: `### Professional Summary (CONSERVATIVE)
+- Keep the original summary structure and length
+- Only fix grammar and improve clarity slightly
+- Add 1-2 keywords if they fit naturally into existing sentences
+- Do NOT rewrite entirely - just polish what's there`,
+        
+        strictRules: `### Strict Rules (CONSERVATIVE MODE)
+- PRESERVE the original wording as much as possible (80%+ unchanged)
+- Use ONLY information from the original CV
+- Keep EXACT same number of experiences and educations  
+- Never invent metrics, achievements, or experiences
+- Never change job titles, company names, or dates
+- If a bullet is already good, LEAVE IT UNCHANGED
+- Only make changes that are absolutely necessary`,
+        
+        examples: `### Before/After Examples (CONSERVATIVE)
+ORIGINAL: "Worked on improving the sales process"
+CONSERVATIVE: "Worked on improving the sales process using CRM tools"
+(Only added keyword "CRM tools" - kept original structure)
+
+ORIGINAL: "Helped the team with customer support tasks"
+CONSERVATIVE: "Helped the team with customer support tasks and ticket resolution"
+(Minimal change - added one relevant term)
+
+ORIGINAL: "Was responsible for managing social media"
+CONSERVATIVE: "Responsible for managing social media accounts"
+(Fixed passive voice slightly, kept most of original)`
+      };
+      
+    case 'balanced':
+      return {
+        bulletPointRules: `### Bullet Points (BALANCED - Professional Enhancement)
+- REWRITE bullets using stronger action verbs while keeping the core meaning
+- Replace weak verbs (worked, helped, did) with stronger ones (Led, Developed, Implemented)
+- Integrate 2-3 keywords per experience naturally into the sentences
+- Maintain the candidate's authentic voice but make it more professional
+- Keep existing metrics, add context where helpful (e.g., "team of 5" → "cross-functional team of 5")
+- Aim for 15-20 words per bullet point
+- Structure: [Action Verb] + [What] + [Result/Impact]`,
+        
+        summaryRules: `### Professional Summary (BALANCED - Hook+Proof+Value)
+- REWRITE the summary using Hook+Proof+Value format (40-50 words total):
+  * HOOK (10 words): Lead with years of experience + role match
+  * PROOF (20 words): One quantified achievement from the CV
+  * VALUE (15 words): What you bring to the target company
+- Integrate 3-4 priority keywords naturally
+- Make it compelling but authentic`,
+        
+        strictRules: `### Strict Rules (BALANCED MODE)
+- Rewrite content professionally while preserving factual accuracy
+- Use ONLY information from the original CV
+- Keep EXACT same number of experiences and educations  
+- Never invent metrics - but you CAN highlight existing ones more prominently
+- Never change job titles, company names, or dates
+- Transform weak bullets into strong ones, but keep the core achievement
+- ALWAYS extract name, firstName, lastName, and professional title from the CV header`,
+        
+        examples: `### Before/After Examples (BALANCED)
+ORIGINAL: "Worked on improving the sales process"
+BALANCED: "Optimized sales process workflows, contributing to improved team efficiency and revenue growth"
+(Stronger verb, added business impact, integrated keywords)
+
+ORIGINAL: "Helped the team with customer support tasks"
+BALANCED: "Collaborated with customer success team to resolve support tickets and enhance client satisfaction"
+(Professional language, keywords integrated, clearer impact)
+
+ORIGINAL: "Was responsible for managing social media"
+BALANCED: "Managed social media strategy across 4 platforms, driving engagement and brand visibility"
+(Action verb, quantification, clear results)`
+      };
+      
+    case 'optimized':
+      return {
+        bulletPointRules: `### Bullet Points (OPTIMIZED - MAXIMUM TRANSFORMATION)
+⚠️ COMPLETELY REWRITE EVERY SINGLE BULLET POINT - No bullet should remain unchanged!
+- Transform EVERY bullet into a powerful achievement statement
+- Use POWER VERBS: Spearheaded, Orchestrated, Architected, Pioneered, Revolutionized, Championed, Accelerated
+- SATURATE with keywords: Include 3-4 keywords per bullet when relevant
+- Add quantification estimates with ~ if reasonable (e.g., "improved efficiency" → "improved efficiency by ~25%")
+- Elevate tone to SENIOR/EXECUTIVE level language
+- Structure: [Power Verb] + [Strategic Action] + [Quantified Business Impact]
+- Each bullet should demonstrate LEADERSHIP, STRATEGY, and MEASURABLE RESULTS
+- Front-load the most impressive achievements
+- Max 22 words per bullet, 4-6 bullets per experience`,
+        
+        summaryRules: `### Professional Summary (OPTIMIZED - Executive Positioning)
+- COMPLETELY REWRITE as a powerful executive summary (50-60 words):
+  * HOOK: Position as the ideal candidate with exact job title match
+  * CREDENTIALS: Years of experience + key domain expertise
+  * ACHIEVEMENTS: 2 quantified wins from the CV
+  * VALUE PROP: Clear statement of what you deliver
+- SATURATE with 5-6 priority keywords
+- Use confident, executive-level language
+- Make it impossible to ignore`,
+        
+        strictRules: `### Strict Rules (OPTIMIZED MODE - Maximum Impact)
+- REWRITE EVERYTHING - No content should remain in its original form
+- Transform every bullet into a powerful achievement statement
+- You MAY add reasonable estimates with ~ prefix (e.g., ~20%, ~15 team members) based on context
+- Keep job titles, company names, and dates exactly as original
+- Never INVENT new achievements, but you CAN elevate how existing achievements are described
+- Ensure 20+ keyword mentions across the entire CV
+- Every sentence should demonstrate value and impact
+- ALWAYS extract name, firstName, lastName, and professional title from the CV header`,
+        
+        examples: `### Before/After Examples (OPTIMIZED)
+ORIGINAL: "Worked on improving the sales process"
+OPTIMIZED: "Spearheaded end-to-end sales process transformation leveraging CRM automation, accelerating pipeline velocity by ~30% and driving revenue growth across the organization"
+(Complete transformation: power verb, keywords saturated, estimated metric, executive tone)
+
+ORIGINAL: "Helped the team with customer support tasks"
+OPTIMIZED: "Orchestrated customer success initiatives across cross-functional teams, implementing data-driven support workflows that reduced ticket resolution time by ~40% and elevated NPS scores"
+(Elevated to leadership language, keywords integrated, quantified impact)
+
+ORIGINAL: "Was responsible for managing social media"
+OPTIMIZED: "Pioneered integrated digital marketing strategy spanning 5 social platforms, architecting content campaigns that amplified brand engagement by ~150% and generated ~$200K in attributed pipeline"
+(Executive language, multiple keywords, impressive metrics with estimates)`
+      };
+      
+    default:
+      return getLevelSpecificInstructions('balanced');
+  }
+}
+
+/**
  * Generate optimized CV rewriting prompt
  * Streamlined version: ~200 lines instead of 500+, 3x cheaper, more reliable
  */
@@ -209,18 +355,50 @@ function generateCVRewritePrompt(input: CVRewriteInput): string {
   const missingKeywords = input.atsAnalysis.keywords.missing.filter(k => !priorityKeywords.includes(k));
   const adaptationLevel = input.adaptationLevel || 'balanced';
   const levelConfig = getLevelConfig(adaptationLevel);
+  const levelInstructions = getLevelSpecificInstructions(adaptationLevel);
   
   // Format strengths and gaps concisely
   const strengths = (input.atsAnalysis.strengths || []).map(s => s.name).filter(Boolean).join(', ') || 'None identified';
   const gaps = (input.atsAnalysis.gaps || []).map(g => g.name).filter(Boolean).join(', ') || 'None identified';
 
-  return `You are an expert CV strategist. Rewrite this CV to maximize job match while preserving factual accuracy.
+  // Level-specific keyword integration rules
+  const keywordRules = adaptationLevel === 'conservative' 
+    ? `### Keyword Integration (CONSERVATIVE - Light Touch)
+1. SUMMARY: Add 1-2 keywords ONLY if they fit naturally into existing sentences
+2. EXPERIENCES: Add maximum 1 keyword per bullet WHERE IT FITS NATURALLY
+3. SKILLS: Include priority keywords in skills section
+4. DO NOT force keywords - if it sounds unnatural, skip it
+5. Preserve the candidate's original voice and wording`
+    : adaptationLevel === 'balanced'
+    ? `### Keyword Integration (BALANCED - Natural Enhancement)
+1. SUMMARY: Integrate 3-4 priority keywords naturally
+2. EXPERIENCES: Include 2-3 keywords per experience in rewritten bullets
+3. SKILLS: List ALL priority keywords in skills section
+4. PLACEMENT: Front-load keywords in the first 2 experiences
+5. Rephrase bullets to include keywords while maintaining authenticity
+   Example: "Managed team" → "Led cross-functional team using Agile methodologies"`
+    : `### Keyword Integration (OPTIMIZED - MAXIMUM SATURATION)
+1. SUMMARY: SATURATE with 5-6 priority keywords - make it keyword-rich
+2. EXPERIENCES: Include 3-4 keywords PER BULLET - maximize keyword density
+3. SKILLS: List ALL priority keywords + secondary keywords
+4. EVERY BULLET must contain at least 2 keywords from the job description
+5. Aim for 20+ total keyword mentions across the CV
+6. Transform weak phrases into keyword-rich power statements
+   Example: "Managed team" → "Orchestrated high-performance cross-functional teams leveraging Agile and Scrum methodologies"
+   Example: "Did marketing" → "Spearheaded data-driven digital marketing campaigns, architecting SEO strategy and content marketing initiatives"`;
+
+  return `You are an expert CV strategist. Your task is to rewrite this CV according to the SPECIFIC ADAPTATION LEVEL selected by the user.
+
+## ⚠️ CRITICAL: ADAPTATION LEVEL = ${adaptationLevel.toUpperCase()}
+This is a **${adaptationLevel.toUpperCase()}** level rewrite. You MUST follow the ${adaptationLevel}-specific rules below EXACTLY.
+${adaptationLevel === 'conservative' ? '→ Make MINIMAL changes - preserve 80%+ of original wording' : ''}
+${adaptationLevel === 'balanced' ? '→ Make PROFESSIONAL enhancements - rewrite with stronger verbs while staying authentic' : ''}
+${adaptationLevel === 'optimized' ? '→ Make MAXIMUM transformation - COMPLETELY REWRITE every bullet with power verbs and keyword saturation' : ''}
 
 ## TASK
 Optimize CV for: **${input.jobTitle}** at **${input.company}**
 Current match: ${input.atsAnalysis.matchScore}% → Target improvement: +${levelConfig.scoreGoal}
 Intensity: ${levelConfig.intensity}
-Approach: ${levelConfig.approach}
 
 ## JOB DESCRIPTION
 ${input.jobDescription}
@@ -228,42 +406,25 @@ ${input.jobDescription}
 ## ORIGINAL CV
 ${input.cvText}
 
-## KEYWORDS TO INTEGRATE (${levelConfig.keywords} keywords - THIS IS CRITICAL FOR ATS)
+## KEYWORDS TO INTEGRATE (Target: ${levelConfig.keywords} keywords)
 Priority (MUST include): ${priorityKeywords.slice(0, 15).join(', ') || 'Extract from job description'}
 Secondary: ${missingKeywords.slice(0, 10).join(', ') || 'None'}
 
-### Keyword Integration Rules (MANDATORY)
-1. SUMMARY: Include 2-3 priority keywords in the professional summary
-2. EXPERIENCES: Each bullet point should naturally include 1-2 keywords when relevant
-3. SKILLS: List ALL priority keywords in the skills section
-4. PLACEMENT: Front-load keywords in the first 2 experiences (most recent = most important)
-5. NATURAL: Rephrase bullets to include keywords WITHOUT changing the meaning
-   Example: "Managed team" → "Led cross-functional team using Agile methodologies"
-   Example: "Did marketing" → "Drove digital marketing campaigns leveraging SEO and content strategy"
+${keywordRules}
 
 ## ATS INSIGHTS
 Strengths to amplify: ${strengths}
 Gaps to address: ${gaps}
 
-## REWRITING RULES
+## REWRITING RULES FOR ${adaptationLevel.toUpperCase()} LEVEL
 
-### Professional Summary (40-50 words, Hook+Proof+Value format)
-- HOOK (10 words): Strongest differentiator for this role
-- PROOF (20 words): One concrete achievement with metric FROM the original CV
-- VALUE (15 words): What you bring to ${input.company}
+${levelInstructions.summaryRules}
 
-### Bullet Points
-- Use power verbs: Architected, Delivered, Drove, Orchestrated, Spearheaded
-- Avoid: Worked on, Helped, Participated, Was responsible for
-- Include metrics ONLY if present in original CV (use ~ for estimates)
-- Max 20 words per bullet, 3-5 bullets per experience
+${levelInstructions.bulletPointRules}
 
-### Strict Rules
-- Use ONLY information from the original CV
-- Keep EXACT same number of experiences and educations  
-- Never invent metrics, achievements, or experiences
-- Never confuse education entries with work experience
-- ALWAYS extract name, firstName, lastName, and professional title from the CV header
+${levelInstructions.strictRules}
+
+${levelInstructions.examples}
 
 ## OUTPUT (JSON only)
 

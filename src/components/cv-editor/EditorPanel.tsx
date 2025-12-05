@@ -410,15 +410,27 @@ export default function EditorPanel({
             transition={{ duration: 0.2 }}
             className="flex-1 min-h-0 overflow-hidden flex flex-col"
           >
+            {/* Premium Header with gradient fade */}
+            <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-white via-white/95 to-white/0 dark:from-gray-900 dark:via-gray-900/95 dark:to-gray-900/0">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                CV Sections
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                Edit your content and reorder sections
+              </p>
+            </div>
+
             {/* Sections List */}
-            <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-4">
+            <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 pb-6">
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="cv-sections">
-                  {(provided) => (
+                  {(provided, droppableSnapshot) => (
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className="space-y-2"
+                      className={`space-y-3 rounded-xl p-1 -m-1 ${
+                        droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                      }`}
                     >
                       {filteredSections.map((section, index) => (
                         <Draggable
@@ -432,99 +444,109 @@ export default function EditorPanel({
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className={`
-                                group rounded-lg transition-all duration-200 border
+                                group rounded-xl border overflow-hidden
                                 ${snapshot.isDragging 
-                                  ? 'shadow-2xl scale-[1.02] ring-2 ring-[#635BFF] bg-white dark:bg-gray-800 border-[#635BFF]' 
+                                  ? 'shadow-2xl ring-2 ring-[#635BFF] bg-white dark:bg-gray-800 border-[#635BFF] z-50' 
                                   : expandedSection === section.id
-                                    ? 'bg-white dark:bg-gray-800 shadow-lg border border-gray-300/70 dark:border-gray-600/70 ring-1 ring-gray-200/50 dark:ring-gray-700/50'
-                                    : 'bg-white dark:bg-gray-800/40 border-gray-200/60 dark:border-gray-700/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 hover:shadow-md hover:bg-gray-50/30 dark:hover:bg-gray-800/60'
+                                    ? 'bg-white dark:bg-gray-900/50 shadow-sm border-gray-200 dark:border-gray-700/60 ring-1 ring-gray-100 dark:ring-gray-800'
+                                    : 'bg-white/50 dark:bg-gray-900/30 backdrop-blur-sm border-gray-100 dark:border-gray-800/60 hover:border-gray-200 dark:hover:border-gray-700/80 hover:shadow-sm hover:bg-white/80 dark:hover:bg-gray-900/40'
                                 }
                               `}
+                              style={provided.draggableProps.style}
                             >
                               {/* Section Header */}
                               <div 
-                                className="flex items-center gap-3 px-4 py-3.5 cursor-pointer"
+                                className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
                                 onClick={() => toggleExpanded(section.id)}
                               >
-                                {/* Drag Handle - subtle, appears on hover */}
+                                {/* Drag Handle - always slightly visible, more on hover */}
                                 <div
                                   {...provided.dragHandleProps}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition-all duration-200"
+                                  className={`
+                                    p-1.5 rounded-lg cursor-grab active:cursor-grabbing transition-all duration-200
+                                    ${snapshot.isDragging 
+                                      ? 'text-[#635BFF] bg-[#635BFF]/10' 
+                                      : 'text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800'
+                                    }
+                                  `}
+                                  title="Glisser pour réorganiser"
                                 >
-                                  <GripVertical className="w-4 h-4" />
+                                  <GripVertical className="w-3.5 h-3.5" />
                                 </div>
 
-                                {/* Section Icon */}
+                                {/* Section Icon with background */}
                                 <div className={`
-                                  transition-colors duration-200
-                                  ${expandedSection === section.id 
-                                    ? 'text-gray-700 dark:text-gray-300' 
-                                    : 'text-gray-500 dark:text-gray-400'
+                                  p-1.5 rounded-lg transition-all duration-200
+                                  ${snapshot.isDragging
+                                    ? 'bg-[#635BFF]/10 text-[#635BFF]'
+                                    : expandedSection === section.id 
+                                      ? 'bg-[#635BFF]/10 text-[#635BFF] dark:text-[#a5a0ff]' 
+                                      : 'bg-gray-100/80 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400'
                                   }
                                 `}>
-                                  {sectionIconsSmall[section.type] || <FileText className="w-5 h-5" />}
+                                  {sectionIconsSmall[section.type] || <FileText className="w-4 h-4" />}
                                 </div>
 
                                 {/* Section Title */}
-                                <div className="flex-1 flex items-center gap-2">
+                                <div className="flex-1 flex items-center gap-2 text-left">
                                   <h3 className={`
-                                    text-sm font-semibold transition-colors duration-200
-                                    ${expandedSection === section.id 
-                                      ? 'text-gray-900 dark:text-white' 
-                                      : 'text-gray-600 dark:text-gray-400'
+                                    text-sm font-medium transition-colors duration-200
+                                    ${snapshot.isDragging
+                                      ? 'text-[#635BFF]'
+                                      : expandedSection === section.id 
+                                        ? 'text-gray-900 dark:text-white' 
+                                        : 'text-gray-700 dark:text-gray-300'
                                     }
                                   `}>
                                     {section.title}
                                   </h3>
                                   {/* AI Badge for sections with AI enhancement */}
                                   {(section.type === 'summary' || section.type === 'experience' || section.type === 'projects') && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gradient-to-r from-[#635BFF]/10 to-purple-500/10 dark:from-[#635BFF]/20 dark:to-purple-500/20 text-[#635BFF] dark:text-[#a5a0ff]">
                                       <Sparkles className="w-2.5 h-2.5" />
                                       AI
                                     </span>
                                   )}
                                 </div>
 
-                                  {/* Toggle Visibility */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onToggleSection(section.id);
-                                    }}
+                                {/* Toggle Visibility */}
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleSection(section.id);
+                                  }}
                                   className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
-                                    title={section.enabled ? 'Hide section' : 'Show section'}
-                                  >
-                                    {section.enabled ? (
+                                  title={section.enabled ? 'Masquer la section' : 'Afficher la section'}
+                                >
+                                  {section.enabled ? (
                                     <Eye className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                                    ) : (
+                                  ) : (
                                     <EyeOff className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                                    )}
-                                  </button>
+                                  )}
+                                </div>
 
-                                  {/* Expand/Collapse Chevron */}
-                                  <ChevronDown 
-                                    className={`
-                                    w-4 h-4 transition-all duration-200
-                                      ${expandedSection === section.id 
-                                      ? 'rotate-180 text-gray-600 dark:text-gray-400' 
-                                        : 'text-gray-400 dark:text-gray-500'
-                                      }
-                                    `}
-                                  />
+                                {/* Expand/Collapse Chevron */}
+                                <ChevronDown 
+                                  className={`
+                                    w-4 h-4 transition-transform duration-200
+                                    ${expandedSection === section.id ? 'rotate-0' : '-rotate-90'}
+                                    ${snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-400 dark:text-gray-500'}
+                                  `}
+                                />
                               </div>
 
                               {/* Section Content */}
-                              <AnimatePresence>
-                                {expandedSection === section.id && (
+                              <AnimatePresence initial={false}>
+                                {expandedSection === section.id && !snapshot.isDragging && (
                                   <motion.div
                                     initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: 'auto', opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                                     className="overflow-hidden"
                                   >
-                                    <div className="px-4 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700/50 bg-gradient-to-b from-gray-50/30 to-transparent dark:from-gray-900/20">
+                                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-800/60">
                                       <SectionEditor
                                         section={section}
                                         data={getSectionData(section)}

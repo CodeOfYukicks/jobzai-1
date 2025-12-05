@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   Zap,
@@ -8,8 +7,6 @@ import {
   Heart,
   Rocket,
   Sparkles,
-  ArrowRight,
-  Target,
 } from 'lucide-react';
 import { JobApplication } from '../../types/job';
 
@@ -29,23 +26,8 @@ interface InsightCard {
 }
 
 export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
-  const navigate = useNavigate();
-
   // Check if we have enhanced insights
   const hasInsights = job.jobInsights && Object.values(job.jobInsights).some(v => v && v.trim());
-
-  // Handle navigation to CV Analysis
-  const handleAnalyzeMatch = () => {
-    navigate('/cv-analysis', {
-      state: {
-        jobTitle: job.position,
-        company: job.companyName,
-        jobDescription: job.fullJobDescription || job.description || '',
-        jobUrl: job.url,
-        fromApplication: true
-      }
-    });
-  };
 
   // If no insights, show the old 3-bullet format with upgrade message
   if (!hasInsights) {
@@ -78,38 +60,6 @@ export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
           </div>
         </motion.div>
 
-        {/* CTA for CV Analysis */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-[2px]"
-        >
-          <div className="bg-white dark:bg-gray-900 rounded-[10px] p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">
-                    Get Personalized Match Analysis
-                  </h4>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Compare your CV against this job to see your match score, identify missing skills,
-                  and get personalized recommendations to improve your application.
-                </p>
-                <button
-                  onClick={handleAnalyzeMatch}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
-                >
-                  <span>Analyze My Match</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-              <Sparkles className="w-12 h-12 text-blue-200 dark:text-blue-800 opacity-50" />
-            </div>
-          </div>
-        </motion.div>
       </div>
     );
   }
