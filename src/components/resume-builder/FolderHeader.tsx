@@ -339,7 +339,7 @@ export default function FolderHeader({
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full mt-2 left-0 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
+                        className="absolute top-full mt-2 left-0 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 min-w-max"
                       >
                         <div className="grid grid-cols-8 gap-1">
                           {COMMON_EMOJIS.map((emoji) => (

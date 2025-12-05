@@ -1015,7 +1015,7 @@ export default function ResumeBuilderPage() {
   };
 
   const handleUpdateCover = async (blob: Blob) => {
-    if (!currentUser || !selectedFolderId) return;
+    if (!currentUser) return;
     
     setIsUpdatingCover(true);
     try {
@@ -1067,7 +1067,7 @@ export default function ResumeBuilderPage() {
   };
 
   const handleRemoveCover = async () => {
-    if (!currentUser || !selectedFolderId) return;
+    if (!currentUser) return;
     
     setIsUpdatingCover(true);
     try {
@@ -1113,7 +1113,7 @@ export default function ResumeBuilderPage() {
 
   // Handle emoji update for special views
   const handleUpdateEmoji = async (emoji: string) => {
-    if (!currentUser || !selectedFolderId || (selectedFolderId !== 'all' && selectedFolderId !== null)) return;
+    if (!currentUser || (selectedFolderId !== 'all' && selectedFolderId !== null)) return;
     
     const viewType = selectedFolderId === 'all' ? 'all' : 'uncategorized';
     const currentPrefs = viewPreferences[viewType];
@@ -1563,9 +1563,47 @@ export default function ResumeBuilderPage() {
                   No documents yet
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
-                  Create a resume or drag & drop PDF files here to get started.
+                  Create notes, whiteboards, resumes, or drag and drop PDF files to get started.
                 </p>
                 <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={handleCreateNote}
+                    disabled={isCreatingNote}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                      text-gray-700 dark:text-gray-200 
+                      bg-white dark:bg-gray-800 
+                      border border-gray-200 dark:border-gray-700 rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-gray-700 
+                      hover:border-gray-300 dark:hover:border-gray-600
+                      shadow-sm transition-all duration-200
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCreatingNote ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <StickyNote className="w-4 h-4" />
+                    )}
+                    <span>New Note</span>
+                  </button>
+                  <button
+                    onClick={handleCreateWhiteboard}
+                    disabled={isCreatingWhiteboard}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                      text-gray-700 dark:text-gray-200 
+                      bg-white dark:bg-gray-800 
+                      border border-gray-200 dark:border-gray-700 rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-gray-700 
+                      hover:border-gray-300 dark:hover:border-gray-600
+                      shadow-sm transition-all duration-200
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCreatingWhiteboard ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Palette className="w-4 h-4" />
+                    )}
+                    <span>New Board</span>
+                  </button>
                   <button
                     onClick={openCreateModal}
                     disabled={isCreating}
@@ -1653,7 +1691,7 @@ export default function ResumeBuilderPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {searchQuery 
                         ? 'Try adjusting your search' 
-                        : 'Drag documents here or create a new resume'}
+                        : 'Drag documents here or create notes, boards, or resumes'}
                     </p>
                   </div>
                 )}
