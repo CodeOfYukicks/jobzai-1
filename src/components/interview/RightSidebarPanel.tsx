@@ -99,12 +99,31 @@ export default function RightSidebarPanel({
   
   const localChatEndRef = useRef<HTMLDivElement>(null);
   const localChatContainerRef = useRef<HTMLDivElement>(null);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
   
   const effectiveChatEndRef = chatEndRef || localChatEndRef;
   const effectiveChatContainerRef = chatContainerRef || localChatContainerRef;
 
   // Context section collapse state
   const [isContextExpanded, setIsContextExpanded] = useState(true);
+  
+  // Tab indicator position state
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  
+  // Calculate indicator position based on active tab
+  useEffect(() => {
+    if (tabsContainerRef.current) {
+      const activeButton = tabsContainerRef.current.querySelector(`[data-tab-id="${sidebarTab}"]`) as HTMLButtonElement;
+      if (activeButton) {
+        const containerRect = tabsContainerRef.current.getBoundingClientRect();
+        const buttonRect = activeButton.getBoundingClientRect();
+        setIndicatorStyle({
+          left: buttonRect.left - containerRect.left,
+          width: buttonRect.width,
+        });
+      }
+    }
+  }, [sidebarTab]);
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -276,33 +295,59 @@ export default function RightSidebarPanel({
   return (
     <div className="hidden lg:flex fixed right-0 top-0 h-screen w-[400px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-200/60 dark:border-slate-800/60 z-30 flex-col shadow-sidebar">
       
-      {/* Tab Headers - Premium Jobzai style */}
-      <div className="flex-shrink-0 border-b border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
-              <div className="flex items-center px-2 pt-2">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = sidebarTab === tab.id;
-                  return (
-                    <motion.button
-                      key={tab.id}
-                      onClick={() => setSidebarTab(tab.id as any)}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`
-                        flex-1 flex items-center justify-center gap-2 py-3.5 mx-0.5 rounded-t-xl
-                        text-sm font-medium transition-all duration-200
-                        ${isActive
-                          ? 'text-jobzai-600 dark:text-jobzai-400 bg-jobzai-50/80 dark:bg-jobzai-950/30 border-b-2 border-jobzai-500'
-                          : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-b-2 border-transparent'
-                        }
-                      `}
-                    >
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-jobzai-500' : ''}`} />
-                      <span className="hidden xl:inline">{tab.label}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
+      {/* Tab Headers - Premium Jobzai style matching TabPills */}
+      <div className="flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+        <div className="relative" ref={tabsContainerRef}>
+          <nav className="flex items-center border-b border-slate-200/60 dark:border-slate-800/60">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = sidebarTab === tab.id;
+              return (
+                <motion.button
+                  key={tab.id}
+                  data-tab-id={tab.id}
+                  onClick={() => setSidebarTab(tab.id as any)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`
+                    relative flex-1 flex items-center justify-center gap-2 py-3.5
+                    text-sm font-medium transition-colors duration-200
+                    border-b-2 -mb-px
+                    ${isActive
+                      ? 'text-jobzai-500 dark:text-jobzai-400 border-jobzai-500 dark:border-jobzai-400'
+                      : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+                    }
+                  `}
+                >
+                  <Icon className={`w-4 h-4 transition-colors duration-200 ${isActive ? 'text-jobzai-500 dark:text-jobzai-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                  <span className="hidden xl:inline">{tab.label}</span>
+                  
+                  {/* Active indicator glow effect */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebarActiveTabGlow"
+                      className="absolute inset-0 bg-jobzai-500/5 dark:bg-jobzai-400/10 rounded-t-lg -z-10"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    />
+                  )}
+                </motion.button>
+              );
+            })}
+          </nav>
+          
+          {/* Animated gradient underline indicator */}
+          <motion.div
+            className="absolute bottom-0 h-0.5 rounded-full"
+            style={{ background: 'linear-gradient(90deg, #635BFF 0%, #7c75ff 100%)' }}
+            initial={false}
+            animate={{
+              left: indicatorStyle.left,
+              width: indicatorStyle.width,
+            }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+          />
+        </div>
       </div>
 
       {/* Tab Content */}

@@ -639,14 +639,18 @@ export default function NotionEditorPage() {
 
     setIsUpdatingCover(true);
     try {
-      // Load the original image
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Fetch the image as a blob to avoid CORS issues when drawing to canvas
+      const response = await fetch(note.coverImage);
+      const imageBlob = await response.blob();
+      const localImageUrl = URL.createObjectURL(imageBlob);
+
+      // Load the image from the local blob URL (no CORS issues)
+      const img = new window.Image();
       
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = note.coverImage;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = localImageUrl;
       });
 
       // Get container dimensions
@@ -692,32 +696,36 @@ export default function NotionEditorPage() {
         actualX, actualY, displayWidth, displayHeight
       );
 
-      // Convert to blob and upload
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          throw new Error('Failed to create blob');
-        }
+      // Clean up the object URL
+      URL.revokeObjectURL(localImageUrl);
 
-        const timestamp = Date.now();
-        const fileName = `note_${activeNoteId}_cover_${timestamp}.jpg`;
-        const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
-        
-        await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
-        const coverUrl = await getDownloadURL(coverRef);
-        
-        await updateNote({
-          userId: currentUser.uid,
-          noteId: activeNoteId,
-          updates: { coverImage: coverUrl },
-        });
-        
-        setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
-        toast.success('Cover position updated');
-        setIsUpdatingCover(false);
-      }, 'image/jpeg', 0.92);
+      // Convert to blob and upload
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to create blob'));
+        }, 'image/jpeg', 0.92);
+      });
+
+      const timestamp = Date.now();
+      const fileName = `note_${activeNoteId}_cover_${timestamp}.jpg`;
+      const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
+      
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(coverRef);
+      
+      await updateNote({
+        userId: currentUser.uid,
+        noteId: activeNoteId,
+        updates: { coverImage: coverUrl },
+      });
+      
+      setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
+      toast.success('Cover position updated');
     } catch (error) {
       console.error('Error repositioning cover:', error);
       toast.error('Failed to reposition cover');
+    } finally {
       setIsUpdatingCover(false);
     }
   }, [currentUser, activeNoteId, note?.coverImage]);

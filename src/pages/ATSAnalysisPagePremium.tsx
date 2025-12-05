@@ -443,7 +443,6 @@ export default function ATSAnalysisPagePremium() {
             setGenerationStep(0);
             setGenerationStepLabel('');
             setSidebarTab('cv');
-            toast.success('CV optimisé généré avec succès!', { duration: 5000 });
           }
         }
       },

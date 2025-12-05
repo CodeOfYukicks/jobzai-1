@@ -339,16 +339,16 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                 transition={{ duration: 0.4 }}
                 className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
             >
-                <div className="px-12 py-16 text-center">
+                <div className="px-8 py-10 text-center">
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="relative inline-flex items-center justify-center mb-8"
+                        className="relative inline-flex items-center justify-center mb-5"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-100/50 to-indigo-100/50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl blur-2xl" />
-                        <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center border border-purple-100 dark:border-purple-800/30 shadow-sm">
-                            <Target className="w-12 h-12 text-purple-600 dark:text-purple-400" strokeWidth={1.5} />
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-100/50 to-indigo-100/50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl blur-2xl" />
+                        <div className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center border border-purple-100 dark:border-purple-800/30 shadow-sm">
+                            <Target className="w-7 h-7 text-purple-600 dark:text-purple-400" strokeWidth={1.5} />
                         </div>
                     </motion.div>
 
@@ -356,7 +356,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="text-3xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight"
+                        className="text-xl font-semibold text-gray-900 dark:text-white mb-2 tracking-tight"
                     >
                         No CV Analyses Yet
                     </motion.h3>
@@ -365,7 +365,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
-                        className="text-base text-gray-600 dark:text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed"
+                        className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto leading-relaxed"
                     >
                         Analyze your CV against this job to get detailed insights, 
                         match scores, and actionable recommendations to improve your chances.
@@ -387,7 +387,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                                 jobId: job.id,
                             } : undefined
                         })}
-                        className="relative inline-flex items-center gap-2.5 px-6 py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium text-sm transition-all duration-300 shadow-lg shadow-gray-900/10 dark:shadow-white/10 hover:shadow-xl hover:shadow-gray-900/20 dark:hover:shadow-white/20"
+                        className="relative inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium text-sm transition-all duration-300 shadow-md shadow-gray-900/10 dark:shadow-white/10 hover:shadow-lg hover:shadow-gray-900/20 dark:hover:shadow-white/20"
                     >
                         <Sparkles className="w-4 h-4" strokeWidth={2} />
                         <span>Start CV Analysis</span>

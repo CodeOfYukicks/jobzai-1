@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
 import {
@@ -138,6 +139,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab' | 'linked-documents'>('overview');
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   // Logo states removed - now using CompanyLogo component
 
   if (!job) return null;
@@ -182,12 +184,16 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!onDelete) return;
-    if (confirm('Are you sure you want to delete this application?')) {
-      await onDelete();
-      onClose();
-    }
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!onDelete) return;
+    await onDelete();
+    setShowDeleteModal(false);
+    onClose();
   };
 
   const handleAddInterview = async (interviewData: Omit<Interview, 'id'>) => {
@@ -226,6 +232,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
   const StatusIcon = currentStatus.icon;
 
   return (
+    <>
     <Transition appear show={open} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>
         {/* Backdrop */}
@@ -714,6 +721,103 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
         </div >
       </Dialog >
     </Transition >
+
+      {/* Premium Delete Confirmation Modal */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showDeleteModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowDeleteModal(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-xl z-[200] flex items-center justify-center p-4"
+              style={{ zIndex: 200 }}
+            >
+              <motion.div
+                initial={{ scale: 0.96, y: 10, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.96, y: 10, opacity: 0 }}
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800/50 overflow-hidden pointer-events-auto"
+                style={{ zIndex: 201 }}
+              >
+                {/* Subtle gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900/50 pointer-events-none" />
+                
+                {/* Content */}
+                <div className="relative px-8 py-8 z-10 pointer-events-auto">
+                  {/* Icon - Premium */}
+                  <div className="flex justify-center mb-6">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-red-600/10 dark:from-red-500/20 dark:to-red-600/20 rounded-2xl blur-xl" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/30 dark:to-red-900/20 border border-red-200/50 dark:border-red-800/30">
+                        <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Title - Refined typography */}
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2 tracking-tight">
+                    Delete Application?
+                  </h3>
+
+                  {/* Message - Minimalist */}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8 leading-relaxed">
+                    Are you sure you want to delete this application? This action cannot be undone.
+                  </p>
+
+                  {/* Application Info - Ultra minimalist */}
+                  {job && (
+                    <div className="mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                      <div className="text-center space-y-1">
+                        <div className="font-medium text-sm text-gray-900 dark:text-white">
+                          {job.position}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {job.companyName}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Buttons - Premium design */}
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={() => setShowDeleteModal(false)}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50"
+                    >
+                      Cancel
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.01, y: -1 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={handleConfirmDelete}
+                      className="relative flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl transition-all duration-300 shadow-lg shadow-red-500/25 dark:shadow-red-500/20 overflow-hidden group"
+                    >
+                      {/* Shine effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        initial={{ x: '-100%' }}
+                        whileHover={{ x: '200%' }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                        style={{ transform: 'skewX(-20deg)' }}
+                      />
+                      <span className="relative z-10">Delete</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
   );
 };
 
