@@ -537,20 +537,35 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
   }
   
   // Map extracted experiences to the format used by the rest of the code
-  const originalExperiences = (extractedOriginal.experiences || []).map((exp: any, idx: number) => ({
-    id: `exp-${idx}`,
-    title: exp.title || '',
-    company: exp.company || '',
-    startDate: exp.startDate || '',
-    endDate: exp.endDate || '',
-    isCurrent: exp.current || false,
-    bullets: exp.responsibilities || exp.bullets || [],
-    description: exp.responsibilities || exp.bullets || [],
-  }));
+  // IMPORTANT: Store original bullets in a SEPARATE copy to avoid mutation issues
+  const originalExperiences = (extractedOriginal.experiences || []).map((exp: any, idx: number) => {
+    // Get bullets from multiple possible field names
+    const rawBullets = exp.responsibilities || exp.bullets || exp.achievements || exp.description || [];
+    // Create a defensive copy to prevent any potential mutation
+    const bulletsCopy = Array.isArray(rawBullets) 
+      ? [...rawBullets.map((b: string) => String(b))] 
+      : [];
+    
+    return {
+      id: `exp-${idx}`,
+      title: exp.title || '',
+      company: exp.company || '',
+      startDate: exp.startDate || '',
+      endDate: exp.endDate || '',
+      isCurrent: exp.current || false,
+      // Store original bullets in a separate copy
+      originalBullets: bulletsCopy, // NEW: Keep a clean copy for comparison
+      bullets: bulletsCopy,
+      description: bulletsCopy,
+    };
+  });
   
   console.log(`📊 CV Original: ${originalExperiences.length} expériences détectées`);
   originalExperiences.forEach((exp: any, idx: number) => {
     console.log(`   [${idx}] ${exp.title} at ${exp.company} - ${exp.bullets?.length || 0} bullets`);
+    if (exp.bullets?.length > 0) {
+      console.log(`      First bullet: "${exp.bullets[0]?.substring(0, 60)}..."`);
+    }
   });
   
   // 2. STEP 2: Generate the AI-rewritten CV
@@ -750,18 +765,41 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
   }
   
   // Build original structured data from AI-extracted data for before/after comparison
-  // IMPORTANT: Use the SAME IDs as finalStructuredData for reliable matching in comparison
+  // CRITICAL: Use ORIGINAL bullets (not rewritten) for proper comparison
+  // Use the SAME IDs as finalStructuredData for reliable matching in comparison
   // Note: Firestore doesn't accept undefined values, so we use empty strings or omit fields
+  
+  console.log('🔧 Building original_structured_data for before/after comparison...');
+  
   const originalStructuredData = {
     personalInfo: extractedOriginal.personalInfo || {},
     summary: extractedOriginal.summary || '',
     experiences: originalExperiences.map((exp: any, idx: number) => {
       // Use the same ID as the corresponding rewritten experience for perfect matching
       const matchingRewrittenId = finalStructuredData.experiences[idx]?.id || `exp-${idx}`;
-      // Get bullets from multiple possible sources
-      const bulletsArray = Array.isArray(exp.bullets) ? exp.bullets : 
-                          Array.isArray(exp.responsibilities) ? exp.responsibilities :
-                          Array.isArray(exp.description) ? exp.description : [];
+      
+      // CRITICAL: Use originalBullets (the clean copy) to ensure original data
+      // This prevents any potential mutation issues where bullets could be overwritten
+      const bulletsArray = Array.isArray(exp.originalBullets) && exp.originalBullets.length > 0
+        ? [...exp.originalBullets] // Create another copy for safety
+        : Array.isArray(exp.bullets) && exp.bullets.length > 0
+          ? [...exp.bullets]
+          : [];
+      
+      // DEBUG: Log what we're storing vs what's in rewritten
+      const rewrittenBullets = finalStructuredData.experiences[idx]?.bullets || [];
+      console.log(`   [${idx}] "${exp.title}" at "${exp.company}":`);
+      console.log(`      Original bullets: ${bulletsArray.length} items`);
+      console.log(`      Rewritten bullets: ${rewrittenBullets.length} items`);
+      if (bulletsArray.length > 0 && rewrittenBullets.length > 0) {
+        const sameFirst = bulletsArray[0] === rewrittenBullets[0];
+        if (sameFirst) {
+          console.warn(`      ⚠️ WARNING: First bullet is SAME in original and rewritten - possible issue!`);
+        } else {
+          console.log(`      ✅ Bullets are different (original vs rewritten)`);
+        }
+      }
+      
       const experience: any = {
         id: matchingRewrittenId, // Same ID as rewritten for comparison matching
         title: exp.title || '',
@@ -775,9 +813,6 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
       // Only add optional fields if they have values
       if (exp.client) experience.client = exp.client;
       if (exp.location) experience.location = exp.location;
-      
-      // Debug log
-      console.log(`   Building original exp[${idx}]: "${experience.title}" - ${experience.bullets.length} bullets`);
       
       return experience;
     }),

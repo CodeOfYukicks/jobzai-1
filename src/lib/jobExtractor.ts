@@ -10,6 +10,18 @@ export interface BasicJobInfo {
   summary: string;
 }
 
+/**
+ * Response from the extract-job-url endpoint
+ */
+interface ScrapedJobContent {
+  status: string;
+  content: string;
+  title?: string;
+  company?: string;
+  location?: string;
+  url: string;
+}
+
 export interface JobTags {
   industry: string[];           // ["Technology", "SaaS", "Fintech"]
   sector: string;               // "Technology" (principal)
@@ -47,6 +59,211 @@ export interface DetailedJobInfo extends BasicJobInfo {
 export interface JobExtractionOptions {
   detailed?: boolean;
 }
+
+/**
+ * ===========================================
+ * GPT-BASED JOB EXTRACTION (PRIMARY METHOD)
+ * Uses Puppeteer scraping + GPT-4o analysis
+ * ===========================================
+ */
+
+/**
+ * Scrape job page content using Puppeteer endpoint
+ * @param url - Job posting URL
+ * @returns Scraped page content
+ */
+async function scrapeJobPage(url: string): Promise<ScrapedJobContent> {
+  console.log('🔍 [GPT Method] Scraping job page with Puppeteer:', url);
+  
+  const response = await fetch('/api/extract-job-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Failed to scrape page: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.status !== 'success') {
+    throw new Error(data.message || 'Failed to extract job content from page');
+  }
+
+  console.log('✅ [GPT Method] Page scraped successfully:', {
+    contentLength: data.content?.length || 0,
+    hasTitle: !!data.title,
+    hasCompany: !!data.company,
+  });
+
+  return data;
+}
+
+/**
+ * Analyze scraped job content with GPT-4o
+ * @param scrapedContent - Content from Puppeteer scraping
+ * @returns Detailed job info with insights
+ */
+async function analyzeJobWithGPT(scrapedContent: ScrapedJobContent): Promise<DetailedJobInfo> {
+  console.log('🤖 [GPT Method] Analyzing job content with GPT-4o...');
+  
+  const prompt = `You are an expert job posting analyzer. Analyze the following job posting content and extract structured information.
+
+JOB POSTING CONTENT:
+Title: ${scrapedContent.title || 'Unknown'}
+Company: ${scrapedContent.company || 'Unknown'}
+Location: ${scrapedContent.location || 'Unknown'}
+
+Full Content:
+${scrapedContent.content.substring(0, 8000)}
+
+Extract the following information and return as JSON:
+
+{
+  "companyName": "exact company name",
+  "position": "exact job title",
+  "location": "job location",
+  "summary": "3 concise bullet points about the job (format: • Point 1\\n• Point 2\\n• Point 3)",
+  "fullJobDescription": "complete job description including responsibilities, requirements, etc.",
+  "jobInsights": {
+    "keyResponsibilities": "2-3 main duties (50-100 words)",
+    "requiredSkills": "top 5-7 critical skills (50-80 words)",
+    "experienceLevel": "years required, seniority level (30-50 words)",
+    "compensationBenefits": "salary, benefits if mentioned (40-70 words, or 'Not specified')",
+    "companyCulture": "work environment, values if mentioned (50-80 words, or 'Details not specified')",
+    "growthOpportunities": "career development if mentioned (40-70 words, or 'Details not specified')"
+  },
+  "jobTags": {
+    "industry": ["array of industries"],
+    "sector": "primary sector",
+    "seniority": "Entry-level|Mid-level|Senior|Lead|Principal|Executive|Internship",
+    "employmentType": ["Full-time", "Remote", etc.],
+    "technologies": ["specific technologies/tools mentioned"],
+    "skills": ["soft skills and methodologies"],
+    "location": {
+      "city": "city if mentioned",
+      "country": "country if mentioned",
+      "remote": true/false,
+      "hybrid": true/false
+    }
+  }
+}
+
+RULES:
+- Extract ONLY information explicitly present in the content
+- Use the provided title/company/location if they are valid
+- For summary: create 3 concise bullet points highlighting the key aspects
+- If information is not available, use empty strings, empty arrays, or "Not specified"/"Details not specified"
+- Return ONLY valid JSON - no markdown, no code blocks`;
+
+  const response = await fetch('/api/chatgpt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      type: 'cv-edit', // This type allows JSON responses
+      prompt 
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`GPT API error: ${response.status} - ${errorText.substring(0, 200)}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.status !== 'success') {
+    throw new Error(data.message || 'GPT analysis failed');
+  }
+
+  // Parse the response content
+  let parsedContent;
+  if (typeof data.content === 'object') {
+    parsedContent = data.content;
+  } else if (typeof data.content === 'string') {
+    try {
+      // Clean markdown if present
+      let cleanContent = data.content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedContent = JSON.parse(jsonMatch[0]);
+      } else {
+        parsedContent = JSON.parse(cleanContent);
+      }
+    } catch (parseError) {
+      console.error('Failed to parse GPT response:', parseError);
+      throw new Error('Failed to parse GPT response as JSON');
+    }
+  } else {
+    throw new Error('Unexpected GPT response format');
+  }
+
+  console.log('✅ [GPT Method] GPT analysis complete:', {
+    hasInsights: !!parsedContent.jobInsights,
+    hasTags: !!parsedContent.jobTags,
+  });
+
+  // Build the DetailedJobInfo object
+  const result: DetailedJobInfo = {
+    companyName: parsedContent.companyName || scrapedContent.company || '',
+    position: parsedContent.position || scrapedContent.title || '',
+    location: parsedContent.location || scrapedContent.location || '',
+    summary: parsedContent.summary || '',
+    // IMPORTANT: Save the FULL scraped content, not truncated
+    // Use scraped content as primary source (most complete), GPT extraction as fallback
+    fullJobDescription: scrapedContent.content || parsedContent.fullJobDescription || '',
+    jobInsights: {
+      keyResponsibilities: parsedContent.jobInsights?.keyResponsibilities || 'Details not specified in posting',
+      requiredSkills: parsedContent.jobInsights?.requiredSkills || 'Details not specified in posting',
+      experienceLevel: parsedContent.jobInsights?.experienceLevel || 'Details not specified in posting',
+      compensationBenefits: parsedContent.jobInsights?.compensationBenefits || 'Not specified',
+      companyCulture: parsedContent.jobInsights?.companyCulture || 'Details not specified in posting',
+      growthOpportunities: parsedContent.jobInsights?.growthOpportunities || 'Details not specified in posting',
+    },
+    jobTags: parsedContent.jobTags ? {
+      industry: Array.isArray(parsedContent.jobTags.industry) ? parsedContent.jobTags.industry : [],
+      sector: parsedContent.jobTags.sector || '',
+      seniority: parsedContent.jobTags.seniority || '',
+      employmentType: Array.isArray(parsedContent.jobTags.employmentType) ? parsedContent.jobTags.employmentType : [],
+      technologies: Array.isArray(parsedContent.jobTags.technologies) ? parsedContent.jobTags.technologies : [],
+      skills: Array.isArray(parsedContent.jobTags.skills) ? parsedContent.jobTags.skills : [],
+      location: {
+        city: parsedContent.jobTags.location?.city,
+        country: parsedContent.jobTags.location?.country,
+        remote: !!parsedContent.jobTags.location?.remote,
+        hybrid: !!parsedContent.jobTags.location?.hybrid,
+      },
+    } : undefined,
+  };
+
+  return result;
+}
+
+/**
+ * Extract job info using GPT-based method (Puppeteer + GPT-4o)
+ * This is the PRIMARY extraction method - more reliable than Perplexity
+ * 
+ * @param url - Job posting URL
+ * @returns DetailedJobInfo with all extracted data
+ */
+export async function extractJobInfoWithGPT(url: string): Promise<DetailedJobInfo> {
+  // Step 1: Scrape the page with Puppeteer
+  const scrapedContent = await scrapeJobPage(url);
+  
+  // Step 2: Analyze with GPT-4o
+  const detailedInfo = await analyzeJobWithGPT(scrapedContent);
+  
+  return detailedInfo;
+}
+
+/**
+ * ===========================================
+ * PERPLEXITY-BASED JOB EXTRACTION (FALLBACK)
+ * Uses Perplexity API with web browsing
+ * ===========================================
+ */
 
 /**
  * Robust JSON parser with repair capabilities
@@ -699,14 +916,210 @@ export async function extractJobInfo(
   url: string,
   options: JobExtractionOptions = { detailed: false }
 ): Promise<BasicJobInfo | DetailedJobInfo> {
-  // First, always extract basic info (fast and reliable)
-  const basicInfo = await extractBasicJobInfo(url);
   
-  // If detailed info requested, make second call
+  // For detailed extraction, use cascade: GPT (primary) -> Perplexity (fallback)
   if (options.detailed) {
-    return await extractDetailedJobInfo(url, basicInfo);
+    // Try GPT-based extraction first (Puppeteer + GPT-4o) - most reliable
+    try {
+      console.log('🎯 [extractJobInfo] Trying PRIMARY method: GPT (Puppeteer + GPT-4o)');
+      const gptResult = await extractJobInfoWithGPT(url);
+      console.log('✅ [extractJobInfo] GPT method succeeded');
+      return gptResult;
+    } catch (gptError) {
+      console.warn('⚠️ [extractJobInfo] GPT method failed:', gptError instanceof Error ? gptError.message : gptError);
+      
+      // Fallback to Perplexity
+      try {
+        console.log('🔄 [extractJobInfo] Trying FALLBACK method: Perplexity');
+        const basicInfo = await extractBasicJobInfo(url);
+        const perplexityResult = await extractDetailedJobInfo(url, basicInfo);
+        console.log('✅ [extractJobInfo] Perplexity method succeeded');
+        return perplexityResult;
+      } catch (perplexityError) {
+        console.error('❌ [extractJobInfo] Both GPT and Perplexity methods failed');
+        console.error('   GPT error:', gptError instanceof Error ? gptError.message : gptError);
+        console.error('   Perplexity error:', perplexityError instanceof Error ? perplexityError.message : perplexityError);
+        // Re-throw the original GPT error (usually more informative)
+        throw gptError;
+      }
+    }
   }
   
+  // For basic extraction, use Perplexity (it's faster for basic info)
+  const basicInfo = await extractBasicJobInfo(url);
   return basicInfo;
+}
+
+/**
+ * Job data interface for local fallback generation
+ * This matches the Job type from job-board types
+ */
+export interface JobDataForFallback {
+  title: string;
+  company: string;
+  location?: string;
+  description?: string;
+  tags?: string[];
+  type?: string;
+  seniority?: string;
+  salaryRange?: string;
+  remote?: string;
+}
+
+/**
+ * Generate basic job insights from existing job data (LOCAL FALLBACK)
+ * This function does NOT make any API calls - it extracts information from the job data
+ * we already have from the job board. Use this as a last resort when API calls fail.
+ * 
+ * @param jobData - Job data from the job board
+ * @returns jobInsights object with structured sections extracted locally
+ */
+export function generateBasicInsightsFromJobData(
+  jobData: JobDataForFallback
+): DetailedJobInfo['jobInsights'] {
+  const { title, company, location, description, tags, type, seniority, salaryRange, remote } = jobData;
+  
+  // Extract key responsibilities from description if available
+  let keyResponsibilities = 'Details not available - please check the job posting directly';
+  if (description && description.trim().length > 50) {
+    // Try to find responsibility-related content
+    const responsibilityPatterns = [
+      /responsibilities?:?\s*([\s\S]*?)(?=requirements?|qualifications?|skills?|experience|about|benefits|$)/i,
+      /what you['']?ll do:?\s*([\s\S]*?)(?=what you|requirements?|qualifications?|skills?|$)/i,
+      /your role:?\s*([\s\S]*?)(?=requirements?|qualifications?|skills?|about|$)/i,
+    ];
+    
+    for (const pattern of responsibilityPatterns) {
+      const match = description.match(pattern);
+      if (match && match[1] && match[1].trim().length > 20) {
+        // Clean and truncate
+        keyResponsibilities = match[1].trim().substring(0, 300);
+        if (match[1].length > 300) keyResponsibilities += '...';
+        break;
+      }
+    }
+    
+    // If no pattern matched, use first part of description
+    if (keyResponsibilities.includes('Details not available')) {
+      const firstPart = description.substring(0, 300).trim();
+      if (firstPart.length > 50) {
+        keyResponsibilities = firstPart + (description.length > 300 ? '...' : '');
+      }
+    }
+  }
+  
+  // Build required skills from tags
+  let requiredSkills = 'Skills not specified';
+  if (tags && tags.length > 0) {
+    requiredSkills = `Key skills: ${tags.slice(0, 7).join(', ')}`;
+  } else if (description) {
+    // Try to extract from description
+    const skillsMatch = description.match(/skills?:?\s*([\s\S]*?)(?=experience|responsibilities?|qualifications?|about|$)/i);
+    if (skillsMatch && skillsMatch[1] && skillsMatch[1].trim().length > 10) {
+      requiredSkills = skillsMatch[1].trim().substring(0, 200);
+    }
+  }
+  
+  // Build experience level
+  let experienceLevel = 'Experience level not specified';
+  if (seniority) {
+    experienceLevel = `Level: ${seniority}`;
+  }
+  if (type) {
+    experienceLevel += experienceLevel.includes('Level') ? ` | Type: ${type}` : `Type: ${type}`;
+  }
+  
+  // Build compensation/benefits
+  let compensationBenefits = 'Compensation details not specified';
+  if (salaryRange && salaryRange.trim().length > 0) {
+    compensationBenefits = `Salary: ${salaryRange}`;
+  }
+  if (remote) {
+    const remoteInfo = remote === 'remote' ? 'Remote work available' : 
+                       remote === 'hybrid' ? 'Hybrid work model' : 
+                       remote === 'on-site' ? 'On-site position' : '';
+    if (remoteInfo) {
+      compensationBenefits += compensationBenefits.includes('not specified') 
+        ? remoteInfo 
+        : ` | ${remoteInfo}`;
+    }
+  }
+  
+  // Company culture - try to extract from description
+  let companyCulture = 'Company culture details not available in listing';
+  if (description) {
+    const culturePatterns = [
+      /about (?:us|the company|our company):?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|$)/i,
+      /company culture:?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|$)/i,
+      /who we are:?\s*([\s\S]*?)(?=responsibilities?|requirements?|what you|$)/i,
+    ];
+    
+    for (const pattern of culturePatterns) {
+      const match = description.match(pattern);
+      if (match && match[1] && match[1].trim().length > 20) {
+        companyCulture = match[1].trim().substring(0, 250);
+        if (match[1].length > 250) companyCulture += '...';
+        break;
+      }
+    }
+  }
+  
+  // Growth opportunities - try to extract from description
+  let growthOpportunities = 'Growth opportunity details not available in listing';
+  if (description) {
+    const growthPatterns = [
+      /growth|career development|advancement|learning|training/i
+    ];
+    
+    if (growthPatterns.some(p => p.test(description))) {
+      growthOpportunities = 'Potential growth opportunities mentioned in job posting - see full description';
+    }
+  }
+  
+  return {
+    keyResponsibilities,
+    requiredSkills,
+    experienceLevel,
+    compensationBenefits,
+    companyCulture,
+    growthOpportunities,
+  };
+}
+
+/**
+ * Generate a basic summary description from job data (LOCAL FALLBACK)
+ * Creates a formatted bullet-point summary without making API calls
+ * 
+ * @param jobData - Job data from the job board
+ * @returns Formatted summary string with bullet points
+ */
+export function generateBasicSummaryFromJobData(jobData: JobDataForFallback): string {
+  const { title, company, location, tags, type, seniority, remote, salaryRange } = jobData;
+  
+  const bulletPoints: string[] = [];
+  
+  // First bullet: Role overview
+  let roleOverview = `${title} position at ${company}`;
+  if (location) roleOverview += ` based in ${location}`;
+  if (remote === 'remote') roleOverview += ' (Remote)';
+  else if (remote === 'hybrid') roleOverview += ' (Hybrid)';
+  bulletPoints.push(roleOverview);
+  
+  // Second bullet: Job type and level
+  const details: string[] = [];
+  if (type) details.push(type);
+  if (seniority) details.push(`${seniority} level`);
+  if (salaryRange) details.push(salaryRange);
+  if (details.length > 0) {
+    bulletPoints.push(details.join(' • '));
+  }
+  
+  // Third bullet: Key skills/tags
+  if (tags && tags.length > 0) {
+    bulletPoints.push(`Key skills: ${tags.slice(0, 5).join(', ')}`);
+  }
+  
+  // Format as bullet points
+  return bulletPoints.map(point => `• ${point}`).join('\n');
 }
 

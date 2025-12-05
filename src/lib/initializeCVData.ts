@@ -405,23 +405,43 @@ export async function loadOrInitializeCVData(
           
           // SECOND FALLBACK: If original_structured_data exists but has empty bullets,
           // check if we can recover from responsibilities field
+          // IMPORTANT: Create a deep copy to avoid mutating original data
           if (originalStructuredData && originalStructuredData.experiences) {
             let hasMissingBullets = false;
-            originalStructuredData.experiences = originalStructuredData.experiences.map((exp: any) => {
-              const bullets = exp.bullets || exp.responsibilities || [];
+            
+            // Create a deep copy of experiences to avoid mutation issues
+            const fixedExperiences = originalStructuredData.experiences.map((exp: any) => {
+              // Get bullets from multiple possible sources
+              const rawBullets = exp.bullets || exp.responsibilities || [];
+              const bullets = Array.isArray(rawBullets) ? [...rawBullets] : [];
+              
               if ((!exp.bullets || exp.bullets.length === 0) && bullets.length > 0) {
                 hasMissingBullets = true;
               }
+              
+              // Return a new object (not mutate the original)
               return {
                 ...exp,
-                bullets: Array.isArray(bullets) ? bullets : [],
-                responsibilities: Array.isArray(bullets) ? bullets : [],
+                bullets: bullets,
+                responsibilities: bullets,
               };
             });
+            
+            // Replace with the fixed copy
+            originalStructuredData = {
+              ...originalStructuredData,
+              experiences: fixedExperiences,
+            };
             
             if (hasMissingBullets) {
               console.log('🔧 Recovered missing bullets from responsibilities field');
             }
+            
+            // Debug: Log what we recovered
+            console.log('📋 Original structured data experiences after recovery:');
+            fixedExperiences.forEach((exp: any, idx: number) => {
+              console.log(`   [${idx}] "${exp.title}" at "${exp.company}": ${exp.bullets?.length || 0} bullets`);
+            });
           }
           
           // Load editor state if it exists

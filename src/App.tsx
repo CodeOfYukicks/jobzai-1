@@ -56,6 +56,7 @@ import ResumeBuilderPage from './pages/ResumeBuilderPage';
 import NotionEditorPage from './pages/NotionEditorPage';
 import WhiteboardEditorPage from './pages/WhiteboardEditorPage';
 import MockInterviewPage from './pages/MockInterviewPage';
+import MockInterviewResultPage from './pages/MockInterviewResultPage';
 import MockIntroScene from './pages/MockIntroScene';
 import CareerIntelligencePage from './pages/CareerIntelligencePage';
 
@@ -199,6 +200,7 @@ function AppContent() {
           <Route path="/upcoming-interviews" element={<UpcomingInterviewsPage />} />
           <Route path="/interview-help" element={<InterviewHelpPage />} />
           <Route path="/mock-interview" element={<MockInterviewPage />} />
+          <Route path="/mock-interview/:sessionId" element={<MockInterviewResultPage />} />
           <Route path="/mock-intro" element={<MockIntroScene />} />
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/jobs" element={<JobBoardPage />} />

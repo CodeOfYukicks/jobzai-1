@@ -112,10 +112,11 @@ export default function FolderHeader({
     setSelectedCoverFile(null);
   };
 
-  const handleGallerySelect = (blob: Blob) => {
-    setSelectedCoverFile(blob);
-    setIsCoverGalleryOpen(false);
-    setIsCoverCropperOpen(true);
+  // Handle direct cover apply from gallery (no cropper)
+  const handleDirectApplyCover = async (blob: Blob) => {
+    if (onUpdateCover) {
+      await onUpdateCover(blob);
+    }
   };
 
   const handleRepositionSave = async (position: { x: number; y: number }) => {
@@ -400,7 +401,7 @@ export default function FolderHeader({
       <CoverPhotoGallery
         isOpen={isCoverGalleryOpen}
         onClose={() => setIsCoverGalleryOpen(false)}
-        onSelectBlob={handleGallerySelect}
+        onDirectApply={handleDirectApplyCover}
         onRemove={onRemoveCover}
         currentCover={coverPhoto}
         triggerRef={coverButtonRef}

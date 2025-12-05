@@ -29,6 +29,7 @@ export interface LiveInterviewClientConfig {
   onError?: (error: Error) => void;
   onSessionStarted?: () => void;
   onSessionEnded?: () => void;
+  onInterviewConcluded?: () => void; // Called when AI finishes conclusion message
 }
 
 export interface JobContext {
@@ -88,6 +89,11 @@ export class LiveInterviewClient {
   private currentAssistantItemId: string | null = null;
   private currentUserItemId: string | null = null;
   private greetingTriggered: boolean = false;
+  
+  // Timer
+  private startTime: number = 0;
+  private readonly MAX_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+  private isInterviewEnded: boolean = false;
   
   // Accumulated audio data for decoding
   private pendingAudioChunks: string[] = [];
@@ -212,6 +218,97 @@ export class LiveInterviewClient {
     return [...this.transcript];
   }
 
+  /**
+   * Get elapsed time in milliseconds since interview started
+   */
+  getElapsedTime(): number {
+    if (this.startTime === 0) return 0;
+    return Date.now() - this.startTime;
+  }
+
+  /**
+   * Get elapsed time formatted as MM:SS
+   */
+  getFormattedTime(): string {
+    const elapsed = this.getElapsedTime();
+    const totalSeconds = Math.floor(elapsed / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Get remaining time in milliseconds
+   */
+  getRemainingTime(): number {
+    const elapsed = this.getElapsedTime();
+    return Math.max(0, this.MAX_DURATION_MS - elapsed);
+  }
+
+  /**
+   * Check if the interview has exceeded the max duration
+   */
+  isTimeUp(): boolean {
+    return this.getElapsedTime() >= this.MAX_DURATION_MS;
+  }
+
+  /**
+   * Check if interview has ended
+   */
+  hasEnded(): boolean {
+    return this.isInterviewEnded;
+  }
+
+  /**
+   * Get the full transcript for analysis
+   */
+  getFullTranscript(): TranscriptEntry[] {
+    return [...this.transcript];
+  }
+
+  /**
+   * Conclude the interview naturally
+   * The AI will thank the candidate and end the interview professionally
+   */
+  concludeInterview(): void {
+    if (this.isInterviewEnded) {
+      console.log('⚠️ Interview already concluded');
+      return;
+    }
+    
+    console.log('🏁 Concluding interview...');
+    this.isInterviewEnded = true;
+    
+    // Stop any ongoing audio playback
+    this.stopAudioPlayback();
+    
+    // Send a response.create with conclusion instructions
+    this.sendEvent({
+      type: 'response.create',
+      response: {
+        instructions: `The interview time is up. Please conclude the interview now by:
+1. Thanking the candidate for their time and answers
+2. Briefly summarizing that you've covered the key areas
+3. Explaining that they will receive feedback shortly
+4. Wishing them well
+
+Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask any more questions.`,
+      },
+    });
+    
+    // The interview will fully stop when onInterviewConcluded callback is called
+    // This happens after the AI finishes its conclusion message
+  }
+
+  /**
+   * Called when the AI has finished its conclusion message
+   * This triggers the transition to the results phase
+   */
+  private onConclusionComplete(): void {
+    console.log('✅ Interview conclusion complete');
+    this.config.onInterviewConcluded?.();
+  }
+
   // ============================================
   // PRIVATE: SESSION MANAGEMENT
   // ============================================
@@ -300,7 +397,8 @@ export class LiveInterviewClient {
     console.log('📝 Job context:', this.jobContext?.companyName, '-', this.jobContext?.position);
     console.log('📝 User profile:', this.userProfile?.firstName, this.userProfile?.lastName);
     
-    // Update session with ONLY instructions first (known to work)
+    // Update session with instructions only
+    // Note: input_audio_transcription causes session.update to fail silently
     const sessionUpdate = {
       type: 'session.update',
       session: {
@@ -336,6 +434,10 @@ export class LiveInterviewClient {
     }
     this.greetingTriggered = true;
     
+    // Start the timer
+    this.startTime = Date.now();
+    console.log('⏱️ Interview timer started');
+    
     console.log('🎤 Triggering AI to start the interview...');
     
     const userName = this.userProfile?.firstName || 'the candidate';
@@ -347,14 +449,15 @@ export class LiveInterviewClient {
     this.sendEvent({
       type: 'response.create',
       response: {
-        instructions: `You are a Senior HR Interview Manager conducting a professional interview. 
+        instructions: `You are Sarah Mitchell, a Senior HR Interview Manager conducting a professional interview. 
         
 START THE INTERVIEW NOW by:
 1. Greeting ${userName} professionally (NOT casually - do NOT say "hey what's up" or similar)
-2. Introducing yourself as the interviewer for the ${position} role at ${company}
+2. Introducing yourself as "Sarah Mitchell" or just "Sarah", the interviewer for the ${position} role at ${company}
 3. Briefly explaining you'll be asking questions about their background and experience
 4. Asking your first interview question about their professional background
 
+IMPORTANT: Your name is Sarah Mitchell. Never say "[Interviewer Name]" - always use your actual name.
 Be warm but professional. Speak clearly and at a measured pace like a real interviewer would.`,
       },
     });
@@ -418,7 +521,13 @@ Be warm but professional. Speak clearly and at a measured pace like a real inter
 
     return `# Senior HR Interview Manager - Mock Interview Session
 
-You are an elite Senior HR Interview Manager conducting a professional mock interview session. Your role is to provide a realistic, challenging, yet supportive interview experience that prepares candidates for real-world interviews.
+You are Sarah Mitchell, an elite Senior HR Interview Manager conducting a professional mock interview session. Your role is to provide a realistic, challenging, yet supportive interview experience that prepares candidates for real-world interviews.
+
+## Your Identity
+- Your name is Sarah Mitchell
+- You have 15 years of experience in talent acquisition
+- You specialize in technical and leadership roles
+- When introducing yourself, say "My name is Sarah Mitchell" or just "I'm Sarah"
 
 ## Your Persona
 - You are warm but professional, creating a comfortable yet formal interview atmosphere
@@ -461,7 +570,9 @@ ${userContext}
 ${jobContextStr}
 
 ## Starting the Interview
-Begin by warmly greeting the candidate, introducing yourself as the interviewer for ${jobContext?.companyName || 'the company'}, and briefly explaining the interview format. Then smoothly transition into your first question about their background.`;
+Begin by warmly greeting the candidate by name, introducing yourself as "Sarah Mitchell" (or just "Sarah"), the interviewer for the ${jobContext?.position || 'position'} at ${jobContext?.companyName || 'the company'}. Briefly explain the interview format, then smoothly transition into your first question about their background.
+
+IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
   }
 
   // ============================================
@@ -923,15 +1034,19 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
       case 'input_audio_buffer.speech_started':
         // User started speaking - implement barge-in (interrupt AI)
         this.currentUserItemId = event.item_id;
-        console.log('🎤 USER SPEAKING - BARGE-IN');
+        console.log('🎤🎤🎤 BARGE-IN TRIGGERED 🎤🎤🎤');
+        console.log('   isPlaying:', this.isPlaying, 'sources:', this.scheduledSources.length);
+        console.log('   currentResponseId:', this.currentResponseId);
         
         // ALWAYS stop AI audio playback immediately (client-side)
         this.stopAudioPlayback();
+        console.log('   ✅ stopAudioPlayback() called');
         
         // Server-side: Cancel the response
         this.sendEvent({
           type: 'response.cancel',
         });
+        console.log('   ✅ response.cancel sent');
         
         // Server-side: Truncate the assistant's item if we have one
         // This properly handles conversation state
@@ -1154,7 +1269,13 @@ Begin by warmly greeting the candidate, introducing yourself as the interviewer 
           this.masterGainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
         }
         
-        console.log('   Ready for next response');
+        // If interview was being concluded, notify that conclusion is complete
+        if (this.isInterviewEnded) {
+          console.log('🏁 Interview conclusion message delivered');
+          this.onConclusionComplete();
+        } else {
+          console.log('   Ready for next response');
+        }
         break;
         
       case 'response.cancelled':

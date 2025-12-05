@@ -1,5 +1,5 @@
 import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import { flushSync, createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar,
@@ -10,11 +10,22 @@ import {
 } from 'lucide-react';
 import { WhiteboardDocument } from '../../types/whiteboardDoc';
 
+const TAG_COLORS = [
+  { id: 'red', color: '#EF4444', label: 'Red' },
+  { id: 'orange', color: '#F97316', label: 'Orange' },
+  { id: 'yellow', color: '#EAB308', label: 'Yellow' },
+  { id: 'green', color: '#22C55E', label: 'Green' },
+  { id: 'blue', color: '#3B82F6', label: 'Blue' },
+  { id: 'purple', color: '#A855F7', label: 'Purple' },
+  { id: 'gray', color: '#6B7280', label: 'Gray' },
+];
+
 interface WhiteboardPreviewCardProps {
   whiteboard: WhiteboardDocument;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
   onRename?: (id: string, newTitle: string) => void;
+  onUpdateTags?: (id: string, tags: string[]) => void;
   compact?: boolean;
   draggable?: boolean;
 }
@@ -435,6 +446,7 @@ const WhiteboardPreviewCard = memo(
     onDelete,
     onEdit,
     onRename,
+    onUpdateTags,
     compact = false,
     draggable = true,
   }: WhiteboardPreviewCardProps) => {
@@ -507,6 +519,25 @@ const WhiteboardPreviewCard = memo(
       }
       setIsRenaming(false);
     }, [whiteboard.id, whiteboard.title, newTitle, onRename]);
+
+    const handleToggleTag = useCallback((colorId: string) => {
+      if (!onUpdateTags) return;
+      
+      const currentTags = whiteboard.tags || [];
+      const newTags = currentTags.includes(colorId)
+        ? currentTags.filter(t => t !== colorId)
+        : [...currentTags, colorId];
+        
+      onUpdateTags(whiteboard.id, newTags);
+    }, [whiteboard.id, whiteboard.tags, onUpdateTags]);
+
+    const handleTitleClick = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onRename) {
+        setIsRenaming(true);
+        setNewTitle(whiteboard.title);
+      }
+    }, [onRename, whiteboard.title]);
 
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
       e.preventDefault();
@@ -762,6 +793,24 @@ const WhiteboardPreviewCard = memo(
 
         {/* Footer Info */}
         <div className="w-full flex flex-col items-center gap-1">
+          {/* Tags Display */}
+          {whiteboard.tags && whiteboard.tags.length > 0 && (
+            <div className="flex items-center gap-1 mb-1">
+              {whiteboard.tags.map(tagId => {
+                const tagColor = TAG_COLORS.find(t => t.id === tagId)?.color;
+                if (!tagColor) return null;
+                return (
+                  <div
+                    key={tagId}
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: tagColor }}
+                    title={TAG_COLORS.find(t => t.id === tagId)?.label}
+                  />
+                );
+              })}
+            </div>
+          )}
+
           {isRenaming ? (
             <input
               ref={inputRef}
@@ -784,8 +833,9 @@ const WhiteboardPreviewCard = memo(
             />
           ) : (
             <h3
-              className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[180px] text-center"
+              className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[180px] text-center cursor-pointer hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
               title={whiteboard.title}
+              onClick={handleTitleClick}
             >
               {whiteboard.title || 'Untitled Whiteboard'}
             </h3>
@@ -816,6 +866,33 @@ const WhiteboardPreviewCard = memo(
               }}
               onMouseDown={(e) => e.stopPropagation()}
             >
+              {onUpdateTags && (
+                <>
+                  <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between gap-1">
+                      {TAG_COLORS.map((tag) => (
+                        <button
+                          key={tag.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleToggleTag(tag.id);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          className={`w-4 h-4 rounded-full transition-transform hover:scale-110 flex items-center justify-center
+                            ${whiteboard.tags?.includes(tag.id) ? 'ring-1 ring-offset-1 ring-gray-400 dark:ring-gray-500' : ''}`}
+                          style={{ backgroundColor: tag.color }}
+                          title={tag.label}
+                        >
+                          {whiteboard.tags?.includes(tag.id) && (
+                            <div className="w-1.5 h-1.5 bg-white rounded-full shadow-sm" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
               <button
                 onMouseDown={(e) => {
                   e.stopPropagation();

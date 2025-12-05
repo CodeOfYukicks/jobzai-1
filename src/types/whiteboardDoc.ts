@@ -8,6 +8,7 @@ export interface WhiteboardDocument {
   thumbnailUrl?: string; // Screenshot for preview card
   folderId?: string;
   emoji?: string;
+  tags?: string[];
   createdAt: Timestamp | Date | any;
   updatedAt: Timestamp | Date | any;
 }

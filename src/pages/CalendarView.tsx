@@ -30,7 +30,7 @@ interface Interview {
 }
 
 interface StatusChange {
-  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
+  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived' | 'wishlist';
   date: string;
   notes?: string;
 }
@@ -40,7 +40,7 @@ interface JobApplication {
   companyName: string;
   position: string;
   location: string;
-  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
+  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'archived' | 'wishlist';
   appliedDate: string;
   url?: string;
   contactName?: string;
@@ -61,6 +61,7 @@ export default function CalendarView() {
   const [selectedView, setSelectedView] = useState<CalendarViewType>('month');
   const [showApplications, setShowApplications] = useState(true);
   const [showInterviews, setShowInterviews] = useState(true);
+  const [showWishlists, setShowWishlists] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddEventModal, setShowAddEventModal] = useState(false);
@@ -97,17 +98,20 @@ export default function CalendarView() {
         applicationsSnapshot.forEach((doc) => {
           const application = { id: doc.id, ...doc.data() } as JobApplication;
           
-          // Add application date as event
+          // Add application/wishlist date as event
           if (application.appliedDate) {
             const appliedDate = new Date(application.appliedDate);
+            const isWishlist = application.status === 'wishlist';
             newEvents.push({
               id: `app-${application.id}`,
-              title: `Applied: ${application.companyName} - ${application.position}`,
+              title: isWishlist 
+                ? `Wishlist: ${application.companyName} - ${application.position}`
+                : `Applied: ${application.companyName} - ${application.position}`,
               start: appliedDate,
               end: appliedDate,
               allDay: true,
-              type: 'application',
-              color: '#8b5cf6',
+              type: isWishlist ? 'wishlist' : 'application',
+              color: isWishlist ? '#ec4899' : '#8b5cf6',
               resource: application,
             });
           }
@@ -172,9 +176,9 @@ export default function CalendarView() {
     
     try {
       const eventId = event.id;
-      const isApplication = event.type === 'application';
+      const isApplicationOrWishlist = event.type === 'application' || event.type === 'wishlist';
       
-      if (isApplication) {
+      if (isApplicationOrWishlist) {
         const applicationId = eventId.replace('app-', '');
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
         
@@ -263,7 +267,7 @@ export default function CalendarView() {
   };
   
   const handleEventResize = async ({ event, start, end }: any) => {
-    if (!currentUser || event.type === 'application') return;
+    if (!currentUser || event.type === 'application' || event.type === 'wishlist') return;
     
     // Clear timeout and reset dragging state
     if (dragTimeoutRef.current) {
@@ -328,7 +332,9 @@ export default function CalendarView() {
   // Filter events
   const filteredEvents = events.filter(
     (event) =>
-      (showApplications && event.type === 'application') || (showInterviews && event.type === 'interview')
+      (showApplications && event.type === 'application') || 
+      (showInterviews && event.type === 'interview') ||
+      (showWishlists && event.type === 'wishlist')
   );
 
   // Event style getter
@@ -635,8 +641,10 @@ export default function CalendarView() {
               onAddEvent={handleOpenAddEvent}
               showApplications={showApplications}
               showInterviews={showInterviews}
+              showWishlists={showWishlists}
               onToggleApplications={() => setShowApplications(!showApplications)}
               onToggleInterviews={() => setShowInterviews(!showInterviews)}
+              onToggleWishlists={() => setShowWishlists(!showWishlists)}
             />
 
             {/* Calendar */}

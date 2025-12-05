@@ -51,6 +51,16 @@ export interface Resume {
   tags?: string[];
 }
 
+const TAG_COLORS = [
+  { id: 'red', color: '#EF4444', label: 'Red' },
+  { id: 'orange', color: '#F97316', label: 'Orange' },
+  { id: 'yellow', color: '#EAB308', label: 'Yellow' },
+  { id: 'green', color: '#22C55E', label: 'Green' },
+  { id: 'blue', color: '#3B82F6', label: 'Blue' },
+  { id: 'purple', color: '#A855F7', label: 'Purple' },
+  { id: 'gray', color: '#6B7280', label: 'Gray' },
+];
+
 // Initial empty CV data structure
 const initialCVData: CVData = {
   personalInfo: {
@@ -91,6 +101,7 @@ export default function ResumeBuilderPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
+  const [selectedTagFilters, setSelectedTagFilters] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newResumeName, setNewResumeName] = useState('');
@@ -747,6 +758,26 @@ export default function ResumeBuilderPage() {
     }
   }, [currentUser]);
 
+  // Update note tags
+  const handleUpdateNoteTags = useCallback(async (noteId: string, tags: string[]) => {
+    if (!currentUser) return;
+
+    try {
+      await updateNote({
+        userId: currentUser.uid,
+        noteId,
+        updates: { tags },
+      });
+      
+      setNotes(prev => prev.map(n => 
+        n.id === noteId ? { ...n, tags } : n
+      ));
+    } catch (error) {
+      console.error('Error updating note tags:', error);
+      toast.error('Failed to update tags');
+    }
+  }, [currentUser]);
+
   // Move note to folder
   const handleDropNote = useCallback(async (noteId: string, folderId: string | null) => {
     if (!currentUser || !noteId) return;
@@ -902,6 +933,26 @@ export default function ResumeBuilderPage() {
     } catch (error) {
       console.error('Error renaming whiteboard:', error);
       toast.error('Failed to rename whiteboard');
+    }
+  }, [currentUser]);
+
+  // Update whiteboard tags
+  const handleUpdateWhiteboardTags = useCallback(async (whiteboardId: string, tags: string[]) => {
+    if (!currentUser) return;
+
+    try {
+      await updateWhiteboard({
+        userId: currentUser.uid,
+        whiteboardId,
+        updates: { tags },
+      });
+      
+      setWhiteboards(prev => prev.map(w => 
+        w.id === whiteboardId ? { ...w, tags } : w
+      ));
+    } catch (error) {
+      console.error('Error updating whiteboard tags:', error);
+      toast.error('Failed to update tags');
     }
   }, [currentUser]);
 
@@ -1083,6 +1134,13 @@ export default function ResumeBuilderPage() {
       );
     }
 
+    // Tag filter
+    if (selectedTagFilters.length > 0) {
+      filtered = filtered.filter((r) => 
+        selectedTagFilters.some(tag => r.tags?.includes(tag))
+      );
+    }
+
     // Sort
     filtered.sort((a, b) => {
       if (sortBy === 'date') {
@@ -1106,15 +1164,33 @@ export default function ResumeBuilderPage() {
     ? documents.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : documents;
 
-  // Filter notes by search
-  const filteredNotes = searchQuery 
-    ? notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : notes;
+  // Filter notes by search and tags
+  const filteredNotes = useMemo(() => {
+    let filtered = notes;
+    if (searchQuery) {
+      filtered = filtered.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+    if (selectedTagFilters.length > 0) {
+      filtered = filtered.filter(n => 
+        selectedTagFilters.some(tag => n.tags?.includes(tag))
+      );
+    }
+    return filtered;
+  }, [notes, searchQuery, selectedTagFilters]);
 
-  // Filter whiteboards by search
-  const filteredWhiteboards = searchQuery 
-    ? whiteboards.filter(w => w.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : whiteboards;
+  // Filter whiteboards by search and tags
+  const filteredWhiteboards = useMemo(() => {
+    let filtered = whiteboards;
+    if (searchQuery) {
+      filtered = filtered.filter(w => w.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+    if (selectedTagFilters.length > 0) {
+      filtered = filtered.filter(w => 
+        selectedTagFilters.some(tag => w.tags?.includes(tag))
+      );
+    }
+    return filtered;
+  }, [whiteboards, searchQuery, selectedTagFilters]);
 
   // Group resumes, documents, notes, and whiteboards by folder and calculate counts
   const groupedItems = () => {
@@ -1381,35 +1457,74 @@ export default function ResumeBuilderPage() {
           </FolderHeader>
 
           <div className="p-6 pt-4">
-            {/* Search */}
-            {resumes.length > 0 && (
-              <div className="flex items-center gap-3 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search resumes..."
-                    className="w-full pl-9 pr-4 py-2 
-                      bg-transparent
-                      border border-gray-200 dark:border-gray-700 rounded-lg
-                      focus:border-gray-300 dark:focus:border-gray-600
-                      focus:ring-0 focus:outline-none
-                      text-sm text-gray-900 dark:text-white placeholder-gray-400
-                      transition-colors duration-200"
-                  />
+            {/* Search and Filters */}
+            {(resumes.length > 0 || notes.length > 0 || whiteboards.length > 0) && (
+              <div className="flex flex-col gap-3 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search documents..."
+                      className="w-full pl-9 pr-4 py-2 
+                        bg-transparent
+                        border border-gray-200 dark:border-gray-700 rounded-lg
+                        focus:border-gray-300 dark:focus:border-gray-600
+                        focus:ring-0 focus:outline-none
+                        text-sm text-gray-900 dark:text-white placeholder-gray-400
+                        transition-colors duration-200"
+                    />
+                  </div>
+                  <div className="relative">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as 'date' | 'name')}
+                      className="appearance-none bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
+                    >
+                      <option value="date">Date</option>
+                      <option value="name">Name</option>
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as 'date' | 'name')}
-                    className="appearance-none bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
-                  >
-                    <option value="date">Date</option>
-                    <option value="name">Name</option>
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+
+                {/* Tag Filters */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Filter by tag:</span>
+                  <div className="flex items-center gap-1.5">
+                    {TAG_COLORS.map((tag) => (
+                      <button
+                        key={tag.id}
+                        onClick={() => {
+                          setSelectedTagFilters(prev => 
+                            prev.includes(tag.id) 
+                              ? prev.filter(t => t !== tag.id)
+                              : [...prev, tag.id]
+                          );
+                        }}
+                        className={`w-5 h-5 rounded-full transition-all hover:scale-110 flex items-center justify-center
+                          ${selectedTagFilters.includes(tag.id) 
+                            ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-gray-500 dark:ring-offset-gray-900' 
+                            : 'opacity-50 hover:opacity-100'}`}
+                        style={{ backgroundColor: tag.color }}
+                        title={tag.label}
+                      >
+                        {selectedTagFilters.includes(tag.id) && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </button>
+                    ))}
+                    {selectedTagFilters.length > 0 && (
+                      <button
+                        onClick={() => setSelectedTagFilters([])}
+                        className="ml-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -1434,7 +1549,7 @@ export default function ResumeBuilderPage() {
             )}
 
             {/* Empty State - No items at all */}
-            {!isLoading && resumes.length === 0 && documents.length === 0 && notes.length === 0 && (
+            {!isLoading && resumes.length === 0 && documents.length === 0 && notes.length === 0 && whiteboards.length === 0 && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -1475,32 +1590,32 @@ export default function ResumeBuilderPage() {
               <>
                 {totalDisplayedItems > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    {/* Notes */}
-                    {displayedNotes.map((note) => (
-                      <NotionPreviewCard
-                        key={`note-${note.id}`}
-                        note={note}
-                        onDelete={handleDeleteNote}
-                        onEdit={handleEditNote}
-                        onRename={handleRenameNote}
-                        onUpdateCover={(blob) => handleUpdateNoteCover(note.id, blob)}
-                        onRemoveCover={() => handleRemoveNoteCover(note.id)}
-                        compact
-                        draggable
-                      />
-                    ))}
-                    {/* Whiteboards */}
-                    {displayedWhiteboards.map((whiteboard) => (
-                      <WhiteboardPreviewCard
-                        key={`whiteboard-${whiteboard.id}`}
-                        whiteboard={whiteboard}
-                        onDelete={handleDeleteWhiteboard}
-                        onEdit={handleEditWhiteboard}
-                        onRename={handleRenameWhiteboard}
-                        compact
-                        draggable
-                      />
-                    ))}
+{/* Notes */}
+                                    {displayedNotes.map((note) => (
+                                      <NotionPreviewCard
+                                        key={`note-${note.id}`}
+                                        note={note}
+                                        onDelete={handleDeleteNote}
+                                        onEdit={handleEditNote}
+                                        onRename={handleRenameNote}
+                                        onUpdateTags={handleUpdateNoteTags}
+                                        compact
+                                        draggable
+                                      />
+                                    ))}
+{/* Whiteboards */}
+                                    {displayedWhiteboards.map((whiteboard) => (
+                                      <WhiteboardPreviewCard
+                                        key={`whiteboard-${whiteboard.id}`}
+                                        whiteboard={whiteboard}
+                                        onDelete={handleDeleteWhiteboard}
+                                        onEdit={handleEditWhiteboard}
+                                        onRename={handleRenameWhiteboard}
+                                        onUpdateTags={handleUpdateWhiteboardTags}
+                                        compact
+                                        draggable
+                                      />
+                                    ))}
                     {/* Resumes */}
                     {displayedResumes.map((resume) => (
                       <CVPreviewCard

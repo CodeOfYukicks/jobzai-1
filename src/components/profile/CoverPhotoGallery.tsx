@@ -29,7 +29,8 @@ import {
 interface CoverPhotoGalleryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectBlob: (blob: Blob) => void;
+  onSelectBlob?: (blob: Blob) => void;
+  onDirectApply?: (blob: Blob) => Promise<void>;
   onRemove?: () => void;
   currentCover?: string;
   triggerRef?: React.RefObject<HTMLElement>;
@@ -818,6 +819,7 @@ const CoverPhotoGallery = ({
   isOpen, 
   onClose, 
   onSelectBlob, 
+  onDirectApply,
   onRemove,
   currentCover,
   triggerRef
@@ -826,6 +828,9 @@ const CoverPhotoGallery = ({
   const [isFetching, setIsFetching] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  
+  // Use direct apply mode when onDirectApply is provided
+  const useDirectApply = !!onDirectApply;
 
   // Reset tab when modal opens
   useEffect(() => {
@@ -925,10 +930,16 @@ const CoverPhotoGallery = ({
         ctx.fillRect(0, 0, FULL_W, FULL_H);
       }
 
-      canvas.toBlob((blob) => {
+      canvas.toBlob(async (blob) => {
         if (blob) {
-          onSelectBlob(blob);
-          onClose();
+          if (useDirectApply && onDirectApply) {
+            // Direct apply mode: apply immediately, keep modal open
+            await onDirectApply(blob);
+          } else if (onSelectBlob) {
+            // Legacy mode: pass blob and close
+            onSelectBlob(blob);
+            onClose();
+          }
         }
       }, 'image/jpeg', 0.95);
     } catch (error) {
@@ -936,48 +947,66 @@ const CoverPhotoGallery = ({
     } finally {
       setIsFetching(false);
     }
-  }, [onSelectBlob, onClose]);
+  }, [onSelectBlob, onDirectApply, useDirectApply, onClose]);
 
   // Handle image selection from gallery
   const handleSelectImage = useCallback(async (url: string) => {
     setIsFetching(true);
     try {
       const blob = await fetchImageAsBlob(url);
-      onSelectBlob(blob);
-      onClose();
+      if (useDirectApply && onDirectApply) {
+        // Direct apply mode: apply immediately, keep modal open
+        await onDirectApply(blob);
+      } else if (onSelectBlob) {
+        // Legacy mode: pass blob and close
+        onSelectBlob(blob);
+        onClose();
+      }
     } catch (error) {
       console.error('Error fetching image:', error);
     } finally {
       setIsFetching(false);
     }
-  }, [fetchImageAsBlob, onSelectBlob, onClose]);
+  }, [fetchImageAsBlob, onSelectBlob, onDirectApply, useDirectApply, onClose]);
 
   // Handle file upload
-  const handleFileSelect = useCallback((file: File) => {
+  const handleFileSelect = useCallback(async (file: File) => {
     setIsFetching(true);
     try {
-      onSelectBlob(file);
-      onClose();
+      if (useDirectApply && onDirectApply) {
+        // Direct apply mode: apply immediately, keep modal open
+        await onDirectApply(file);
+      } else if (onSelectBlob) {
+        // Legacy mode: pass blob and close
+        onSelectBlob(file);
+        onClose();
+      }
     } catch (error) {
       console.error('Error processing file:', error);
     } finally {
       setIsFetching(false);
     }
-  }, [onSelectBlob, onClose]);
+  }, [onSelectBlob, onDirectApply, useDirectApply, onClose]);
 
   // Handle URL submission
   const handleSubmitUrl = useCallback(async (url: string) => {
     setIsFetching(true);
     try {
       const blob = await fetchImageAsBlob(url);
-      onSelectBlob(blob);
-      onClose();
+      if (useDirectApply && onDirectApply) {
+        // Direct apply mode: apply immediately, keep modal open
+        await onDirectApply(blob);
+      } else if (onSelectBlob) {
+        // Legacy mode: pass blob and close
+        onSelectBlob(blob);
+        onClose();
+      }
     } catch (error) {
       console.error('Error fetching image from URL:', error);
     } finally {
       setIsFetching(false);
     }
-  }, [fetchImageAsBlob, onSelectBlob, onClose]);
+  }, [fetchImageAsBlob, onSelectBlob, onDirectApply, useDirectApply, onClose]);
 
   // Handle remove
   const handleRemove = useCallback(() => {
@@ -992,14 +1021,20 @@ const CoverPhotoGallery = ({
     setIsFetching(true);
     try {
       const blob = await fetchImageAsBlob(photoUrl);
-      onSelectBlob(blob);
-      onClose();
+      if (useDirectApply && onDirectApply) {
+        // Direct apply mode: apply immediately, keep modal open
+        await onDirectApply(blob);
+      } else if (onSelectBlob) {
+        // Legacy mode: pass blob and close
+        onSelectBlob(blob);
+        onClose();
+      }
     } catch (error) {
       console.error('Error fetching Unsplash photo:', error);
     } finally {
       setIsFetching(false);
     }
-  }, [fetchImageAsBlob, onSelectBlob, onClose]);
+  }, [fetchImageAsBlob, onSelectBlob, onDirectApply, useDirectApply, onClose]);
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'gallery', label: 'Gallery', icon: <Image className="w-4 h-4" /> },

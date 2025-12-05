@@ -422,6 +422,39 @@ export default function ATSAnalysisPagePremium() {
     fetchAnalysis();
   }, [id, currentUser, navigate]);
 
+  // Real-time listener for cv_rewrite changes on the analysis document
+  // This ensures the UI updates automatically when CV generation completes
+  useEffect(() => {
+    if (!id || !currentUser?.uid) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', currentUser.uid, 'analyses', id),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          
+          // Check if cv_rewrite was just generated (while we were generating)
+          if (isGeneratingCV && data.cv_rewrite && data.cv_rewrite_generated_at) {
+            console.log('🎉 CV rewrite detected via real-time listener!');
+            setCvRewrite(data.cv_rewrite);
+            setIsGeneratingCV(false);
+            setActiveBackgroundTask(null);
+            setGenerationProgress(0);
+            setGenerationStep(0);
+            setGenerationStepLabel('');
+            setSidebarTab('cv');
+            toast.success('CV optimisé généré avec succès!', { duration: 5000 });
+          }
+        }
+      },
+      (error) => {
+        console.error('Error listening to analysis document:', error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [id, currentUser?.uid, isGeneratingCV]);
+
   // Monitor background tasks for this analysis
   useEffect(() => {
     if (!id || !currentUser?.uid) return;

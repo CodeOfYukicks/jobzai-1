@@ -182,6 +182,31 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
     }
   };
 
+  // Handle direct cover apply from gallery (no cropper)
+  const handleDirectApplyCover = async (blob: Blob) => {
+    if (!currentUser?.uid) return;
+    setIsUploadingCover(true);
+    try {
+      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${Date.now()}_gallery.jpg`);
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(coverRef);
+
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        coverPhoto: coverUrl
+      });
+
+      setFormData(prev => ({ ...prev, coverPhoto: coverUrl }));
+      if (onUpdate) {
+        onUpdate({ coverPhoto: coverUrl });
+      }
+    } catch (error) {
+      console.error('Error uploading cover photo:', error);
+      toast.error('Failed to upload cover photo');
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
   const handleStartEdit = () => {
     setEditFormData(formData);
     setIsEditing(true);
@@ -597,11 +622,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
     <CoverPhotoGallery
       isOpen={isCoverGalleryOpen}
       onClose={() => setIsCoverGalleryOpen(false)}
-      onSelectBlob={(blob) => {
-        setSelectedCoverFile(blob);
-        setIsCoverGalleryOpen(false);
-        setIsCoverCropperOpen(true);
-      }}
+      onDirectApply={handleDirectApplyCover}
       onRemove={async () => {
         if (!currentUser?.uid) return;
         try {

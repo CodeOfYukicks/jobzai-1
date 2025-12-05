@@ -356,8 +356,6 @@ export default function ContextDocumentSelector({
                                     onDelete={() => {}}
                                     onEdit={() => {}}
                                     onRename={() => {}}
-                                    onUpdateCover={() => {}}
-                                    onRemoveCover={() => {}}
                                   />
                                 )}
                                 {activeTab === 'whiteboard' && (

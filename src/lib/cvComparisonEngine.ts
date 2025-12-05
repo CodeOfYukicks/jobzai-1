@@ -1316,6 +1316,10 @@ function compareExperiences(
   let totalModified = 0;
   let totalUnchanged = 0;
 
+  console.log('🔍 compareExperiences: Starting comparison...');
+  console.log(`   Original experiences: ${original?.length || 0}`);
+  console.log(`   Modified experiences: ${modified?.length || 0}`);
+
   // Process original experiences
   original?.forEach(origExp => {
     const matchedModId = matches.get(origExp.id);
@@ -1324,6 +1328,20 @@ function compareExperiences(
       const modExp = modified?.find(e => e.id === matchedModId);
       if (modExp) {
         usedModifiedIds.add(modExp.id);
+
+        // DEBUG: Log bullets before comparison
+        console.log(`   Comparing "${origExp.title}" (ID: ${origExp.id}):`);
+        console.log(`      Original bullets: ${origExp.bullets?.length || 0}`);
+        console.log(`      Modified bullets: ${modExp.bullets?.length || 0}`);
+        if (origExp.bullets?.[0] && modExp.bullets?.[0]) {
+          const sameFirst = origExp.bullets[0] === modExp.bullets[0];
+          console.log(`      First bullet same? ${sameFirst}`);
+          if (sameFirst) {
+            console.warn(`      ⚠️ IDENTICAL first bullets - DATA ISSUE!`);
+            console.log(`         Original[0]: "${origExp.bullets[0].substring(0, 50)}..."`);
+            console.log(`         Modified[0]: "${modExp.bullets[0].substring(0, 50)}..."`);
+          }
+        }
 
         const { bulletComparisons, stats } = compareBullets(
           origExp.bullets || [],

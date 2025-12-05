@@ -32,6 +32,8 @@ import CommandPalette, { useCommandPalette } from '../components/profile/ui/Comm
 import { ProfileProvider } from '../contexts/ProfileContext';
 import debounce from 'lodash/debounce';
 import { extractFullProfileFromText } from '../lib/cvExperienceExtractor';
+import { pdfToImages } from '../lib/pdfToImages';
+import { extractCVTextAndTags } from '../lib/cvTextExtraction';
 
 const ProfessionalProfilePage = () => {
   const { currentUser, userData, loading: authLoading } = useAuth();
@@ -40,6 +42,7 @@ const ProfessionalProfilePage = () => {
   // CV Import state
   const [cvText, setCvText] = useState<string>('');
   const [isImportingCV, setIsImportingCV] = useState(false);
+  const [hasAutoImported, setHasAutoImported] = useState(false);
   
   // Command palette hook
   const commandPalette = useCommandPalette();
@@ -440,9 +443,9 @@ const ProfessionalProfilePage = () => {
         return;
       }
       
-      const userData = userDoc.data();
-      const storedCvText = userData.cvText;
-      const storedCvUrl = userData.cvUrl;
+      const firestoreUserData = userDoc.data();
+      let storedCvText = firestoreUserData.cvText;
+      const storedCvUrl = firestoreUserData.cvUrl;
       
       // Check if CV exists
       if (!storedCvUrl) {
@@ -450,13 +453,50 @@ const ProfessionalProfilePage = () => {
         return;
       }
       
-      // Check if CV text was extracted properly
+      setIsImportingCV(true);
+      
+      // If CV text is missing or too short, re-extract from the CV file
       if (!storedCvText || storedCvText.length < 100) {
-        toast.error('CV analysis failed. Please try re-uploading your CV in the Documents section.');
-        return;
+        toast.info('Re-analyzing your CV...');
+        
+        try {
+          // Fetch the CV file from storage
+          const response = await fetch(storedCvUrl);
+          if (!response.ok) {
+            throw new Error('Failed to download CV file');
+          }
+          
+          const blob = await response.blob();
+          const file = new File([blob], 'cv.pdf', { type: 'application/pdf' });
+          
+          // Convert to images and extract text
+          const images = await pdfToImages(file, 2, 1.5);
+          const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
+          
+          if (!text || text.length < 50) {
+            toast.error('Could not extract text from CV. Please try uploading a different format.');
+            setIsImportingCV(false);
+            return;
+          }
+          
+          // Save the extracted cvText to Firebase for future use
+          await updateDoc(doc(db, 'users', currentUser.uid), {
+            cvText: text,
+            cvTechnologies: technologies || [],
+            cvSkills: skills || [],
+            ...(experiences && experiences.length > 0 ? { professionalHistory: experiences } : {})
+          });
+          
+          storedCvText = text;
+          toast.success('CV re-analyzed successfully!');
+        } catch (extractError) {
+          console.error('CV re-extraction failed:', extractError);
+          toast.error('Failed to analyze CV. Please try re-uploading your CV in the Documents section.');
+          setIsImportingCV(false);
+          return;
+        }
       }
       
-      setIsImportingCV(true);
       toast.info('Extracting profile data from your CV...');
       
       // Extract full profile data
@@ -580,6 +620,47 @@ const ProfessionalProfilePage = () => {
       setIsImportingCV(false);
     }
   }, [currentUser, isImportingCV]);
+
+  // Auto-import CV data when profile is empty but CV exists
+  useEffect(() => {
+    const autoImportFromCV = async () => {
+      // Skip if already imported, currently importing, no user, or still loading
+      if (hasAutoImported || isImportingCV || !currentUser?.uid || authLoading) return;
+      
+      try {
+        // Get user data from Firestore
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (!userDoc.exists()) return;
+        
+        const firestoreUserData = userDoc.data();
+        
+        // Check if profile is empty (no professional history)
+        const profileIsEmpty = !firestoreUserData.professionalHistory || 
+                               firestoreUserData.professionalHistory.length === 0;
+        
+        // Check if CV exists
+        const cvExists = firestoreUserData.cvUrl && firestoreUserData.cvUrl.length > 0;
+        
+        // Only auto-import if profile is empty and CV exists
+        if (profileIsEmpty && cvExists) {
+          console.log('🔄 Auto-importing CV data: Profile is empty but CV exists');
+          setHasAutoImported(true);
+          // Small delay to ensure UI is ready
+          setTimeout(() => {
+            handleImportFromCV();
+          }, 500);
+        } else {
+          // Mark as done even if we don't import (to prevent repeated checks)
+          setHasAutoImported(true);
+        }
+      } catch (error) {
+        console.error('Auto-import check failed:', error);
+        setHasAutoImported(true);
+      }
+    };
+    
+    autoImportFromCV();
+  }, [currentUser, authLoading, hasAutoImported, isImportingCV, handleImportFromCV]);
 
   return (
     <ProfileProvider>

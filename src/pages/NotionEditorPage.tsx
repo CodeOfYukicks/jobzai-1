@@ -543,12 +543,33 @@ export default function NotionEditorPage() {
     }
   }, []);
 
-  // Handle gallery selection
-  const handleGallerySelect = useCallback((blob: Blob) => {
-    setSelectedCoverFile(blob);
-    setIsCoverGalleryOpen(false);
-    setIsCoverCropperOpen(true);
-  }, []);
+  // Handle direct cover apply from gallery (no cropper)
+  const handleDirectApplyCover = useCallback(async (blob: Blob) => {
+    if (!currentUser || !activeNoteId) return;
+
+    setIsUpdatingCover(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `note_${activeNoteId}_cover_${timestamp}.jpg`;
+      const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
+      
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(coverRef);
+      
+      await updateNote({
+        userId: currentUser.uid,
+        noteId: activeNoteId,
+        updates: { coverImage: coverUrl },
+      });
+      
+      setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
+    } catch (error) {
+      console.error('Error updating cover:', error);
+      toast.error('Failed to update cover image');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  }, [currentUser, activeNoteId]);
 
   // Handle cropped cover upload
   const handleCroppedCover = useCallback(async (blob: Blob) => {
@@ -1243,7 +1264,7 @@ export default function NotionEditorPage() {
         <CoverPhotoGallery
           isOpen={isCoverGalleryOpen}
           onClose={() => setIsCoverGalleryOpen(false)}
-          onSelectBlob={handleGallerySelect}
+          onDirectApply={handleDirectApplyCover}
           onRemove={handleRemoveCover}
           currentCover={note?.coverImage}
           triggerRef={coverButtonRef}

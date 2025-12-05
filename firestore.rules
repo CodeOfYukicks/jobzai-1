@@ -98,6 +98,11 @@ service cloud.firestore {
       match /backgroundTasks/{taskId} {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
+      
+      // Mock Interview Sessions subcollection
+      match /mockInterviewSessions/{sessionId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
     }
 
     // Jobs collection

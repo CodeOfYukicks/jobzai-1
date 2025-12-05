@@ -731,9 +731,9 @@ app.post('/api/openai-realtime-session', async (req, res) => {
     
     console.log('📡 Creating OpenAI Realtime client secret via GA API...');
     
-    // Use /v1/realtime/client_secrets to get a GA-compatible ephemeral token
-    // Note: This endpoint doesn't accept voice or other session config
-    // All config must be done via session.update after connection
+    // Use /v1/realtime/client_secrets for GA API
+    // Note: GA API doesn't support input_audio_transcription configuration
+    // Voice and other config must be done via session.update after connection
     const sessionResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
@@ -796,7 +796,8 @@ app.post('/api/openai-realtime-session', async (req, res) => {
       console.log('   Parsed secret format');
     }
     
-    // Extract server URL
+    // Extract server URL - MUST use the URL from API response, not fallback
+    // The /v1/realtime/sessions endpoint returns a URL compatible with the client_secret
     if (sessionData.server?.url) {
       serverUrl = sessionData.server.url;
       console.log('   Parsed server.url format');
@@ -804,9 +805,9 @@ app.post('/api/openai-realtime-session', async (req, res) => {
       serverUrl = sessionData.url;
       console.log('   Parsed direct url format');
     } else {
-      // Fallback to constructing the URL
+      // For /v1/realtime/sessions, construct beta-compatible URL
       serverUrl = `wss://api.openai.com/v1/realtime?model=${model}`;
-      console.log('   Using fallback WebSocket URL');
+      console.log('   Using constructed WebSocket URL');
     }
     
     if (!clientSecret) {
@@ -833,6 +834,197 @@ app.post('/api/openai-realtime-session', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to create realtime session'
+    });
+  }
+});
+
+// ============================================
+// Live Interview Analysis Endpoint
+// Analyzes interview transcript using GPT-4
+// ============================================
+
+app.post('/api/analyze-live-interview', async (req, res) => {
+  try {
+    console.log('📊 Live interview analysis endpoint called');
+    
+    const { transcript, jobContext } = req.body;
+    
+    if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Transcript is required and must be a non-empty array'
+      });
+    }
+    
+    // Get API key
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+    } catch (keyError) {
+      console.error('❌ Error retrieving API key:', keyError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to retrieve API key: ${keyError.message}`
+      });
+    }
+    
+    if (!apiKey) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing'
+      });
+    }
+    
+    // Format transcript for analysis
+    const formattedTranscript = transcript.map(entry => {
+      const role = entry.role === 'assistant' ? 'Interviewer' : 'Candidate';
+      return `${role}: ${entry.text || '(no response)'}`;
+    }).join('\n\n');
+    
+    const position = jobContext?.position || 'the position';
+    const company = jobContext?.companyName || 'the company';
+    
+    const analysisPrompt = `Analyze this interview for ${position} at ${company}. Be HONEST and STRICT - don't inflate scores.
+
+TRANSCRIPT:
+${formattedTranscript}
+
+SCORING (1-10): Most people score 5-7. 8+ is RARE.
+- 1-4: Poor/Below average
+- 5-6: Average, nothing special
+- 7: Good but room to improve
+- 8+: Exceptional (rarely given)
+
+Return this EXACT JSON structure:
+{
+  "summary": "3 sentences: what went well AND what didn't",
+  "answerQuality": {
+    "didTheyAnswer": "Yes/Partially/No with examples",
+    "specificExamples": "Did they give concrete examples?",
+    "starMethodUsage": "Did they use STAR method?"
+  },
+  "jobFit": {
+    "score": 5,
+    "assessment": "Would you hire them for this role?",
+    "missingSkills": ["skill1", "skill2"],
+    "relevantExperience": "What relevant experience?"
+  },
+  "strengths": ["specific strength 1", "strength 2", "strength 3"],
+  "improvements": ["specific improvement 1", "improvement 2", "improvement 3"],
+  "scores": {
+    "communication": 5,
+    "relevance": 5,
+    "structure": 5,
+    "confidence": 5,
+    "overall": 5
+  },
+  "memorableQuotes": {
+    "good": "Best thing they said",
+    "needsWork": "Something that needs work"
+  },
+  "recommendation": "2-3 actionable sentences"
+}
+
+ONLY return valid JSON, no markdown.`;
+
+    console.log('📤 Sending analysis request to GPT-4...');
+    console.log('   Transcript entries:', transcript.length);
+    
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    
+    let response;
+    try {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a brutally honest senior interview coach. You give real, actionable feedback without sugarcoating. Most candidates score 5-7, not 8+. Always respond with valid JSON only, no markdown.'
+            },
+            {
+              role: 'user',
+              content: analysisPrompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
+        signal: controller.signal
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('❌ Analysis request timed out after 60s');
+        throw new Error('Analysis request timed out. Please try again.');
+      }
+      throw fetchError;
+    }
+    clearTimeout(timeoutId);
+    
+    console.log('📥 Response received, status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ OpenAI API error:', errorText);
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('📦 Response parsed successfully');
+    
+    const content = data.choices[0]?.message?.content;
+    
+    if (!content) {
+      console.error('❌ No content in response:', data);
+      throw new Error('No content in OpenAI response');
+    }
+    
+    console.log('📝 Content length:', content.length);
+    
+    // Parse JSON response
+    let analysis;
+    try {
+      // Try to extract JSON if wrapped in markdown
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      const jsonStr = jsonMatch ? jsonMatch[1] : content;
+      analysis = JSON.parse(jsonStr.trim());
+    } catch (parseError) {
+      console.error('❌ Failed to parse analysis JSON:', parseError);
+      console.error('Content:', content);
+      throw new Error('Failed to parse analysis response');
+    }
+    
+    // Validate and set defaults
+    analysis.summary = analysis.summary || 'Interview completed.';
+    analysis.strengths = analysis.strengths || [];
+    analysis.improvements = analysis.improvements || [];
+    analysis.scores = analysis.scores || { communication: 5, relevance: 5, structure: 5, confidence: 5, overall: 5 };
+    analysis.recommendation = analysis.recommendation || 'Continue practicing your interview skills.';
+    
+    // Ensure scores are numbers between 1-10
+    for (const key of ['communication', 'relevance', 'structure', 'confidence', 'overall']) {
+      const score = analysis.scores[key];
+      analysis.scores[key] = Math.min(10, Math.max(1, parseInt(score) || 5));
+    }
+    
+    console.log('✅ Interview analysis completed successfully');
+    console.log('   Overall score:', analysis.scores.overall);
+    
+    res.json(analysis);
+    
+  } catch (error) {
+    console.error('❌ Error analyzing interview:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to analyze interview'
     });
   }
 });
@@ -1817,7 +2009,7 @@ IMPORTANT INSTRUCTIONS:
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-5.1',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',

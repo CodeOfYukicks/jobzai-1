@@ -444,11 +444,9 @@ END:VCALENDAR`;
     setSelectedCoverFile(null);
   };
 
-  // Handle gallery select
-  const handleGallerySelect = (blob: Blob) => {
-    setSelectedCoverFile(blob);
-    setIsCoverGalleryOpen(false);
-    setIsCoverCropperOpen(true);
+  // Handle direct cover apply from gallery (no cropper)
+  const handleDirectApplyCover = async (blob: Blob) => {
+    await handleUpdateCover(blob);
   };
 
   // Function to detect if cover image is dark or light
@@ -1088,7 +1086,7 @@ END:VCALENDAR`;
         <CoverPhotoGallery
           isOpen={isCoverGalleryOpen}
           onClose={() => setIsCoverGalleryOpen(false)}
-          onSelectBlob={handleGallerySelect}
+          onDirectApply={handleDirectApplyCover}
           onRemove={coverPhoto ? handleRemoveCover : undefined}
           currentCover={coverPhoto || undefined}
         />

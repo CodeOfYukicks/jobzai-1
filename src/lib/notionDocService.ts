@@ -21,6 +21,7 @@ export interface NotionDocument {
   folderId?: string;
   emoji?: string;
   coverImage?: string;
+  tags?: string[];
   createdAt: Timestamp | Date | any;
   updatedAt: Timestamp | Date | any;
 }

@@ -46,11 +46,26 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
 
     try {
       // 1. Create NotionDocument in notes collection
-      const toolTypeName = email.type === 'cover_letter' ? 'Cover Letter' : 'Follow Up';
+      const getToolInfo = (type: string) => {
+        switch (type) {
+          case 'cover_letter':
+            return { name: 'Cover Letter', emoji: '✉️' };
+          case 'follow_up':
+            return { name: 'Follow Up', emoji: '📧' };
+          case 'interview_prep':
+            return { name: 'Interview Prep', emoji: '❓' };
+          case 'questions_to_ask':
+            return { name: 'Questions to Ask', emoji: '💬' };
+          case 'thank_you':
+            return { name: 'Thank You', emoji: '🙏' };
+          default:
+            return { name: 'Document', emoji: '📄' };
+        }
+      };
+
+      const { name: toolTypeName, emoji: noteEmoji } = getToolInfo(email.type);
       const noteTitle = `${toolTypeName} - ${job.companyName} (${job.position})`;
       const tiptapContent = convertTextToTiptapContent(email.content);
-      
-      const noteEmoji = email.type === 'cover_letter' ? '✉️' : '📧';
       
       const newNote = await createNote({
         userId: currentUser.uid,
@@ -98,12 +113,10 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
   };
 
   const handleGenerate = (toolType: ToolType) => {
-    // Only allow generation for functional tools
-    if (toolType === 'cover_letter' || toolType === 'follow_up') {
-      setViewingContent(null);
-      setActiveGenerator(toolType);
-      setIsGenerating(true);
-    }
+    if (!toolType) return;
+    setViewingContent(null);
+    setActiveGenerator(toolType);
+    setIsGenerating(true);
   };
 
   const handleContentGenerated = (toolType: ToolType, content: string) => {
@@ -142,6 +155,12 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
         return 'Cover Letter';
       case 'follow_up':
         return 'Follow Up';
+      case 'interview_prep':
+        return 'Interview Prep Questions';
+      case 'questions_to_ask':
+        return 'Questions to Ask';
+      case 'thank_you':
+        return 'Thank You Email';
       default:
         return 'Document';
     }
@@ -161,7 +180,7 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
   const showLoadingScreen = isGenerating && activeGenerator;
 
   // Show content view if we have content to display
-  if (viewingContent && (viewingContent.toolType === 'cover_letter' || viewingContent.toolType === 'follow_up')) {
+  if (viewingContent && viewingContent.toolType) {
     return (
       <GeneratedContentView
         content={viewingContent.content}
@@ -314,42 +333,80 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
                 {/* Interview Prep Questions Card */}
                 <ToolCard
                   title="Interview Prep Questions"
-                  description="A list of questions to help you prepare for an upcoming interview."
+                  description="A list of likely questions you may be asked, with suggested approaches based on your experience."
                   color="blue"
                   icon={HelpCircle}
                   onGenerate={() => handleGenerate('interview_prep')}
-                  disabled={true}
-                  isActive={false}
-                >
-                  {/* Coming soon - no children */}
-                </ToolCard>
+                  disabled={isDisabled}
+                  historyCount={getHistoryForTool('interview_prep').length}
+                  onViewHistory={() => setHistoryModal({ toolType: 'interview_prep', isOpen: true })}
+                />
 
                 {/* Questions to Ask Card */}
                 <ToolCard
                   title="Questions to Ask"
-                  description="Generate a curated list of questions for job interviewees to ask employers, aimed at gaining deeper insights into the role and company culture."
+                  description="Smart questions to ask the interviewer, tailored to the role and company."
                   color="red"
                   icon={MessageSquare}
                   onGenerate={() => handleGenerate('questions_to_ask')}
-                  disabled={true}
-                  isActive={false}
-                >
-                  {/* Coming soon - no children */}
-                </ToolCard>
+                  disabled={isDisabled}
+                  historyCount={getHistoryForTool('questions_to_ask').length}
+                  onViewHistory={() => setHistoryModal({ toolType: 'questions_to_ask', isOpen: true })}
+                />
 
                 {/* Thank You After Interview Card */}
                 <ToolCard
                   title="Thank You After Interview"
-                  description="Sent shortly after an interview, this message expresses gratitude for the interview, reinforces your interest in the position, and briefly restates why you're are a good fit."
+                  description="A personalized thank you email to send after your interview, reinforcing your interest."
                   color="orange"
                   icon={FileText}
                   onGenerate={() => handleGenerate('thank_you')}
-                  disabled={true}
-                  isActive={false}
-                >
-                  {/* Coming soon - no children */}
-                </ToolCard>
+                  disabled={isDisabled}
+                  historyCount={getHistoryForTool('thank_you').length}
+                  onViewHistory={() => setHistoryModal({ toolType: 'thank_you', isOpen: true })}
+                />
               </div>
+
+              {/* Hidden EmailGenerators for interview tools */}
+              {activeGenerator === 'interview_prep' && (
+                <div className="hidden">
+                  <EmailGenerator
+                    job={job}
+                    type="interview_prep"
+                    onSave={handleSaveEmail}
+                    autoGenerate={true}
+                    onGenerationComplete={handleGenerationComplete}
+                    onContentGenerated={(content) => handleContentGenerated('interview_prep', content)}
+                    hideUI={true}
+                  />
+                </div>
+              )}
+              {activeGenerator === 'questions_to_ask' && (
+                <div className="hidden">
+                  <EmailGenerator
+                    job={job}
+                    type="questions_to_ask"
+                    onSave={handleSaveEmail}
+                    autoGenerate={true}
+                    onGenerationComplete={handleGenerationComplete}
+                    onContentGenerated={(content) => handleContentGenerated('questions_to_ask', content)}
+                    hideUI={true}
+                  />
+                </div>
+              )}
+              {activeGenerator === 'thank_you' && (
+                <div className="hidden">
+                  <EmailGenerator
+                    job={job}
+                    type="thank_you"
+                    onSave={handleSaveEmail}
+                    autoGenerate={true}
+                    onGenerationComplete={handleGenerationComplete}
+                    onContentGenerated={(content) => handleContentGenerated('thank_you', content)}
+                    hideUI={true}
+                  />
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

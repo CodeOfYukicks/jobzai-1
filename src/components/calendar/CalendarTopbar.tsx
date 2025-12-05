@@ -14,8 +14,10 @@ interface CalendarTopbarProps {
   onAddEvent?: () => void;
   showApplications?: boolean;
   showInterviews?: boolean;
+  showWishlists?: boolean;
   onToggleApplications?: () => void;
   onToggleInterviews?: () => void;
+  onToggleWishlists?: () => void;
 }
 
 export const CalendarTopbar = ({
@@ -28,8 +30,10 @@ export const CalendarTopbar = ({
   onAddEvent,
   showApplications = true,
   showInterviews = true,
+  showWishlists = true,
   onToggleApplications,
   onToggleInterviews,
+  onToggleWishlists,
 }: CalendarTopbarProps) => {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
 
@@ -70,7 +74,7 @@ export const CalendarTopbar = ({
     { value: 'day', label: 'Day', icon: <CalendarClock className="w-4 h-4" /> },
   ];
 
-  const activeFilters = [!showApplications, !showInterviews].filter(Boolean).length;
+  const activeFilters = [!showApplications, !showInterviews, !showWishlists].filter(Boolean).length;
 
   return (
     <div className="flex items-center justify-between pb-6 border-b border-gray-200 dark:border-gray-800">
@@ -189,6 +193,32 @@ export const CalendarTopbar = ({
                     >
                       <motion.div
                         animate={{ x: showInterviews ? 20 : 2 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute top-[3px] w-4 h-4 rounded-full shadow-sm bg-white"
+                      />
+                    </div>
+                  </button>
+                  
+                  {/* Wishlists Toggle */}
+                  <button
+                    onClick={onToggleWishlists}
+                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-sm bg-pink-500" />
+                      <span className={`font-medium ${showWishlists ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'}`}>
+                        Wishlist
+                      </span>
+                    </div>
+                    <div
+                      className={`w-10 h-[22px] rounded-full transition-all duration-200 relative ${
+                        showWishlists 
+                          ? 'bg-pink-500 dark:bg-pink-500' 
+                          : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
+                    >
+                      <motion.div
+                        animate={{ x: showWishlists ? 20 : 2 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="absolute top-[3px] w-4 h-4 rounded-full shadow-sm bg-white"
                       />

@@ -1,4 +1,4 @@
-import { queryPerplexity } from './perplexity';
+import { getOpenAIInstance } from './openai';
 import { JobApplication } from '../types/job';
 import { UserProfile } from '../hooks/useUserProfile';
 
@@ -9,140 +9,97 @@ interface EmailGenerationResult {
 }
 
 /**
+ * Query GPT-4o for document generation
+ * Uses OpenAI API for high-quality, clean document generation
+ */
+async function queryGPT(systemPrompt: string, userPrompt: string): Promise<EmailGenerationResult> {
+  try {
+    const openai = await getOpenAIInstance();
+    
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 2500,
+    });
+    
+    const content = completion.choices[0]?.message?.content || '';
+    
+    // Basic cleanup (GPT doesn't have citations, but may have markdown)
+    const cleaned = cleanGeneratedContent(content);
+    
+    return { content: cleaned };
+  } catch (error) {
+    console.error('Error querying GPT:', error);
+    return {
+      content: '',
+      error: true,
+      errorMessage: error instanceof Error ? error.message : 'Failed to generate content'
+    };
+  }
+}
+
+/**
+ * Clean generated content - simplified for GPT (no citations to remove)
+ */
+function cleanGeneratedContent(content: string): string {
+  let cleaned = content;
+  
+  // Remove markdown code blocks if present
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+  cleaned = cleaned.replace(/```/g, '');
+  
+  // Clean up any trailing whitespace on lines
+  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
+  
+  // Remove excessive blank lines (more than 2 consecutive)
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  
+  return cleaned.trim();
+}
+
+/**
  * Generates a professional cover letter based on job application and user profile
  */
 export async function generateCoverLetter(
   job: JobApplication,
   userProfile: UserProfile
 ): Promise<EmailGenerationResult> {
-  try {
-    // Build user context from profile
-    const userContext = buildUserContext(userProfile);
-    const jobContext = buildJobContext(job);
-    
-    const prompt = `You are an elite career strategist and cover letter specialist with expertise in creating compelling, ATS-optimized application documents. Your mission is to craft a powerful, personalized cover letter that maximizes the candidate's interview potential by leveraging their complete professional background.
+  const userContext = buildUserContext(userProfile);
+  const jobContext = buildJobContext(job);
+  
+  const systemPrompt = `You are an elite career strategist and cover letter specialist. You create compelling, ATS-optimized cover letters that maximize interview potential.
 
-**📋 CANDIDATE'S COMPLETE PROFESSIONAL PROFILE:**
+WRITING FRAMEWORK:
+1. Opening (3-4 sentences): Lead with enthusiasm for THIS role, reference a concrete achievement from CV
+2. Body 1 (5-7 sentences): 2-3 SPECIFIC, QUANTIFIABLE achievements matching job requirements
+3. Body 2 (4-6 sentences): Strategic fit, additional experiences solving their problems
+4. Closing (3-4 sentences): Reaffirm enthusiasm, confident call to action
+
+QUALITY STANDARDS:
+- Tone: Professional, confident, evidence-based
+- Length: 350-450 words
+- Voice: First person, active voice, powerful action verbs
+- Specificity: Every claim backed by CV evidence
+
+OUTPUT FORMAT:
+- Start with: "Dear Hiring Manager,"
+- Clear paragraph breaks
+- End with: "Sincerely," followed by candidate's full name
+- Return ONLY the letter body, no explanations`;
+
+  const userPrompt = `Generate a cover letter for:
+
+CANDIDATE PROFILE:
 ${userContext}
 
-**🎯 TARGET JOB OPPORTUNITY:**
-${jobContext}
+JOB OPPORTUNITY:
+${jobContext}`;
 
-**🚀 YOUR CRITICAL MISSION:**
-Create an exceptional cover letter that strategically positions this candidate as the ideal fit by intelligently mining their CV data and aligning it perfectly with the job requirements.
-
-**⭐ ENHANCED WRITING FRAMEWORK:**
-
-**1. Opening Paragraph - Powerful Hook (3-4 sentences):**
-   - Lead with genuine, specific enthusiasm for THIS role at THIS company
-   - Reference a concrete achievement or skill from the CV that immediately demonstrates relevance
-   - Create an instant connection between candidate's expertise and company's needs
-   - Use an attention-grabbing insight or relevant industry knowledge
-   ⚠️ MANDATORY: Scan the CV content for impressive, relevant achievements to feature upfront
-
-**2. Body Paragraph 1 - Demonstrated Excellence (5-7 sentences):**
-   - Mine the CV for 2-3 SPECIFIC, QUANTIFIABLE achievements that directly match job requirements
-   - Use precise numbers, percentages, or scale from CV (e.g., "increased efficiency by 40%", "managed team of 15", "reduced costs by $200K")
-   - Highlight technical stack/technologies from cvTechnologies that match job requirements
-   - Emphasize relevant skills from cvSkills that align with job description
-   - Use strong action verbs: spearheaded, architected, optimized, transformed, delivered
-   - Structure: "In my role as [X] at [Company], I [specific achievement with metric]..."
-   ⚠️ PRIORITY: Extract real project names, tools, and outcomes from the complete CV text
-
-**3. Body Paragraph 2 - Strategic Fit & Value Addition (4-6 sentences):**
-   - Demonstrate deep understanding of company's challenges, industry position, or growth stage
-   - Connect 1-2 additional experiences from CV that show you can solve their specific problems
-   - Reference cross-functional skills, leadership, or unique combinations from CV
-   - Show how your background prepares you for future challenges in this role
-   - Weave in relevant certifications, technologies, or methodologies from CV
-   ⚠️ CRITICAL: Use the full CV content to identify unique selling points and differentiators
-
-**4. Closing Paragraph - Confident Call to Action (3-4 sentences):**
-   - Reaffirm enthusiasm with reference to specific company value/mission
-   - Express confidence in ability to contribute based on proven track record (reference a key CV strength)
-   - Clear, professional call to action: "I would welcome the opportunity to discuss how my experience in [specific area from CV] can contribute to [company's specific goal]"
-   - Thank them professionally
-
-**🎯 INTELLIGENT CV DATA UTILIZATION (MANDATORY):**
-1. **If cvText is provided:** This is your GOLD MINE
-   - Extract specific project names, technologies used, team sizes, budget figures
-   - Find quantifiable achievements (%, $, timeframes, scale)
-   - Identify unique combinations of skills or rare expertise
-   - Look for leadership indicators, innovation, or problem-solving examples
-
-2. **If cvTechnologies is provided:** 
-   - Cross-reference with job requirements
-   - Prioritize technologies that match the job description
-   - Mention 3-5 most relevant technologies naturally in context
-   - Example: "leveraging [tech stack from CV] to build [relevant achievement]"
-
-3. **If cvSkills is provided:**
-   - Align highlighted skills with job's required qualifications
-   - Use these skills to frame achievements from CV text
-   - Demonstrate skill application through concrete examples
-
-**✨ ADVANCED QUALITY STANDARDS:**
-- **Tone:** Professional yet authentic, confident and evidence-based (not boastful)
-- **Length:** 350-450 words (substantial but focused)
-- **Voice:** First person, active voice, powerful action verbs
-- **Specificity:** Every claim backed by CV evidence - numbers, names, technologies, outcomes
-- **Customization:** Deeply tailored to THIS role using candidate's ACTUAL experiences from CV
-- **Technical Accuracy:** Use exact technology names and industry terminology from CV
-- **ATS Optimization:** Naturally incorporate keywords from job description that match CV content
-- **Storytelling:** Weave CV facts into a compelling narrative of capability and fit
-- **Value Focus:** Every sentence answers "So what?" - shows impact and relevance
-
-**🚫 STRICTLY AVOID:**
-❌ Generic phrases without CV backing ("proven track record" without proof)
-❌ Vague statements ("extensive experience" - BE SPECIFIC with CV data)
-❌ Resume repetition without added context or achievement details
-❌ Clichés: "team player," "fast learner," "out-of-the-box thinker," "passionate professional"
-❌ Humility that undermines achievements ("I think I might be able to...")
-❌ Focusing on benefits to candidate rather than value to employer
-❌ Ignoring the rich CV data provided - USE IT EXTENSIVELY
-❌ Making claims not supported by the CV content
-❌ Being overly technical without context or results
-❌ Long, dense paragraphs (break into digestible 4-7 sentence blocks)
-
-**📝 OUTPUT FORMAT:**
-- Start with: "Dear Hiring Manager," (or specific name if available in job posting)
-- Use clear paragraph breaks for readability
-- End with: "Sincerely," followed by candidate's full name
-- NO address blocks, NO subject line, NO header/footer
-- Return ONLY the letter body
-
-**🎯 FINAL MANDATE:**
-This candidate has provided their complete CV. Your cover letter must demonstrate you've thoroughly analyzed it by incorporating specific, verifiable details that prove this candidate is exceptional and perfectly suited for this role. Make every word count.
-
-Generate the cover letter now:`;
-
-    const response = await queryPerplexity(prompt);
-    
-    if (response.error) {
-      return {
-        content: '',
-        error: true,
-        errorMessage: response.errorMessage || 'Failed to generate cover letter'
-      };
-    }
-    
-    // Clean up the response
-    let content = response.text || '';
-    
-    // Remove any markdown formatting
-    content = content.replace(/```/g, '').trim();
-    
-    return {
-      content: content
-    };
-  } catch (error) {
-    console.error('Error generating cover letter:', error);
-    return {
-      content: '',
-      error: true,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
-  }
+  return queryGPT(systemPrompt, userPrompt);
 }
 
 /**
@@ -152,110 +109,48 @@ export async function generateFollowUp(
   job: JobApplication,
   userProfile: UserProfile
 ): Promise<EmailGenerationResult> {
-  try {
-    const userContext = buildUserContext(userProfile);
-    const jobContext = buildJobContext(job);
-    
-    // Calculate days since application
-    const appliedDate = new Date(job.appliedDate);
-    const today = new Date();
-    const daysSinceApplication = Math.floor((today.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    const prompt = `You are an expert career coach specializing in professional follow-up communications. Your task is to create a polite, professional follow-up email that demonstrates continued interest without being pushy.
+  const userContext = buildUserContext(userProfile);
+  const jobContext = buildJobContext(job);
+  
+  // Calculate days since application
+  const appliedDate = new Date(job.appliedDate);
+  const today = new Date();
+  const daysSinceApplication = Math.floor((today.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  const timingContext = daysSinceApplication < 7 
+    ? 'Early follow-up - keep it brief, acknowledge process takes time.'
+    : daysSinceApplication < 14 
+    ? 'Standard timing - balance enthusiasm with patience.'
+    : 'Been a while - politely inquire about timeline while reaffirming interest.';
 
-**CANDIDATE PROFILE:**
+  const systemPrompt = `You are an expert career coach specializing in professional follow-up communications. Create polite, professional follow-up emails that demonstrate continued interest without being pushy.
+
+STRUCTURE:
+1. Subject Line: Clear, professional, mentions position
+2. Opening (1-2 sentences): Reference application, express continued interest
+3. Body (2-3 short paragraphs): Enthusiasm, key qualifications, offer to provide more info
+4. Closing (2-3 sentences): Thank them, professional sign-off
+
+TONE: Professional, warm, confident, brief (150-250 words)
+
+AVOID: Demanding tone, desperation, repeating resume, negative comments about wait time
+
+OUTPUT: Return ONLY the email with Subject line first, then greeting, body, closing, and candidate's name. No explanations.`;
+
+  const userPrompt = `Generate a follow-up email for:
+
+CANDIDATE:
 ${userContext}
 
-**JOB APPLICATION DETAILS:**
+JOB APPLICATION:
 ${jobContext}
 - Applied: ${daysSinceApplication} days ago
-- Current Status: ${job.status}
-${job.notes ? `- Additional Context: ${job.notes}` : ''}
+- Status: ${job.status}
+${job.notes ? `- Notes: ${job.notes}` : ''}
 
-**YOUR TASK:**
-Write a professional follow-up email that:
+TIMING: ${timingContext}`;
 
-1. **Subject Line** (include this):
-   - Clear and professional
-   - Mentions the position and shows continued interest
-   - Example: "Following Up: [Position Title] Application"
-
-2. **Opening (1-2 sentences)**:
-   - Polite greeting
-   - Reference your application with position title and approximate date
-   - Express continued strong interest
-
-3. **Body (2-3 short paragraphs)**:
-   - Reiterate your enthusiasm for the role and company
-   - Briefly remind them of your key qualifications (1-2 specific points)
-   - Show you've stayed engaged (recent company news, new relevant achievement, etc.)
-   - Offer to provide additional information if needed
-
-4. **Closing (2-3 sentences)**:
-   - Thank them for their time and consideration
-   - Express hope to hear from them soon
-   - Professional closing with availability mention
-
-**TONE & STYLE:**
-- Professional but warm and personable
-- Confident yet respectful
-- Interested but not desperate
-- Brief and to the point (150-250 words)
-- Positive and enthusiastic without being over-the-top
-
-**TIMING CONTEXT:**
-${daysSinceApplication < 7 
-  ? 'This is a relatively early follow-up - keep it brief and acknowledge that the process takes time.'
-  : daysSinceApplication < 14 
-  ? 'Standard follow-up timing - balance enthusiasm with patience.'
-  : 'It\'s been a while - politely inquire about timeline while reaffirming interest.'}
-
-**WHAT TO AVOID:**
-❌ Sounding demanding or entitled to a response
-❌ Being apologetic or self-deprecating
-❌ Lengthy explanations or repeating entire resume
-❌ Appearing desperate or overly eager
-❌ Negative comments about the wait time
-❌ Multiple follow-up questions that feel like an interrogation
-❌ Generic template language
-
-**FORMAT:**
-Return the complete email including:
-1. Subject line (prefixed with "Subject: ")
-2. Greeting
-3. Email body
-4. Closing
-5. Candidate's full name
-
-Generate the follow-up email now:`;
-
-    const response = await queryPerplexity(prompt);
-    
-    if (response.error) {
-      return {
-        content: '',
-        error: true,
-        errorMessage: response.errorMessage || 'Failed to generate follow-up email'
-      };
-    }
-    
-    // Clean up the response
-    let content = response.text || '';
-    
-    // Remove any markdown formatting
-    content = content.replace(/```/g, '').trim();
-    
-    return {
-      content: content
-    };
-  } catch (error) {
-    console.error('Error generating follow-up email:', error);
-    return {
-      content: '',
-      error: true,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
-  }
+  return queryGPT(systemPrompt, userPrompt);
 }
 
 /**
@@ -397,6 +292,160 @@ function buildJobContext(job: JobApplication): string {
   }
   
   return parts.join('\n');
+}
+
+/**
+ * Generates interview preparation questions with suggested approaches
+ */
+export async function generateInterviewPrepQuestions(
+  job: JobApplication,
+  userProfile: UserProfile
+): Promise<EmailGenerationResult> {
+  const userContext = buildUserContext(userProfile);
+  const jobContext = buildJobContext(job);
+
+  const systemPrompt = `You are an expert interview coach. Generate likely interview questions with personalized suggested approaches.
+
+OUTPUT FORMAT (use exactly this structure):
+
+## Technical & Role-Specific Questions
+
+1. **[Question]**
+   💡 *Approach: [Brief suggestion referencing candidate's experience]*
+
+2. **[Question]**
+   💡 *Approach: [Brief suggestion]*
+
+(Continue for 4-5 technical questions)
+
+## Behavioral Questions (STAR Method)
+
+1. **[Question]**
+   💡 *Approach: [Specific experience from CV to reference]*
+
+(Continue for 4-5 behavioral questions)
+
+## Company & Culture Fit
+
+1. **[Question]**
+   💡 *Approach: [How to align with company values]*
+
+(Continue for 2-3 questions)
+
+REQUIREMENTS:
+- Questions specific to THIS role and company
+- Approaches reference candidate's ACTUAL CV experience
+- Mix of common and unique questions
+- Actionable, specific suggestions`;
+
+  const userPrompt = `Generate interview prep questions for:
+
+CANDIDATE:
+${userContext}
+
+JOB:
+${jobContext}`;
+
+  return queryGPT(systemPrompt, userPrompt);
+}
+
+/**
+ * Generates smart questions for the candidate to ask the employer
+ */
+export async function generateQuestionsToAsk(
+  job: JobApplication,
+  userProfile: UserProfile
+): Promise<EmailGenerationResult> {
+  const jobContext = buildJobContext(job);
+  
+  // Determine seniority level from profile
+  const seniorityLevel = userProfile.yearsOfExperience 
+    ? (parseInt(userProfile.yearsOfExperience) > 8 ? 'senior' : parseInt(userProfile.yearsOfExperience) > 3 ? 'mid-level' : 'entry-level')
+    : 'mid-level';
+
+  const systemPrompt = `You are a career strategist helping a ${seniorityLevel} candidate prepare smart questions to ask during their interview.
+
+OUTPUT FORMAT (use exactly this structure):
+
+## About the Role & Day-to-Day
+1. [Question showing research]
+2. [Question about priorities/challenges]
+
+## Team & Collaboration
+3. [Question about team dynamics]
+4. [Question about cross-functional work]
+
+## Growth & Development
+5. [Question about career progression]
+6. [Question about learning opportunities]
+
+## Company Culture & Vision
+7. [Question about company direction]
+8. [Question about team culture]
+
+## Practical Considerations
+9. [Question about success metrics]
+10. [Question about next steps]
+
+REQUIREMENTS:
+- Questions specific to THIS company and role
+- Avoid generic questions
+- Show curiosity and strategic thinking
+- Appropriate for a ${seniorityLevel} professional`;
+
+  const userPrompt = `Generate 10 smart questions to ask for:
+
+JOB:
+${jobContext}`;
+
+  return queryGPT(systemPrompt, userPrompt);
+}
+
+/**
+ * Generates a thank you email to send after an interview
+ */
+export async function generateThankYouEmail(
+  job: JobApplication,
+  userProfile: UserProfile
+): Promise<EmailGenerationResult> {
+  const userContext = buildUserContext(userProfile);
+  const jobContext = buildJobContext(job);
+  
+  // Get interview context if available
+  const latestInterview = job.interviews?.sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  )[0];
+  
+  const interviewContext = latestInterview 
+    ? `Interview Type: ${latestInterview.type}\nDate: ${latestInterview.date}${latestInterview.notes ? `\nNotes: ${latestInterview.notes}` : ''}`
+    : 'No specific interview details - write a general post-interview thank you';
+
+  const systemPrompt = `You are an expert career coach specializing in post-interview thank you emails. Create compelling, professional emails that reinforce fit and leave lasting positive impressions.
+
+STRUCTURE:
+1. Subject Line: Professional, references position (e.g., "Thank You – [Position] Interview")
+2. Opening (2-3 sentences): Gratitude, reference when you met, enthusiasm
+3. Body (2-3 short paragraphs): Reference specific topic discussed, reinforce key qualification
+4. Closing (2-3 sentences): Reaffirm interest, thank them, professional sign-off
+
+TONE: Warm, professional, genuine, concise (150-200 words)
+
+AVOID: Generic language, repeating resume, desperation, clichés
+
+OUTPUT: Return ONLY the email with Subject line, greeting, body, closing, and candidate's name. No explanations.`;
+
+  const userPrompt = `Generate a thank you email for:
+
+CANDIDATE:
+${userContext}
+
+JOB:
+${jobContext}
+
+INTERVIEW:
+${interviewContext}`;
+
+  return queryGPT(systemPrompt, userPrompt);
 }
 
 

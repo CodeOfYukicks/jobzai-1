@@ -18,6 +18,7 @@ import {
   CalendarDays,
   Bell,
   MapPin,
+  Heart,
 } from 'lucide-react';
 import { CalendarEvent } from './types';
 import { CompanyLogo } from '../common/CompanyLogo';
@@ -82,6 +83,7 @@ const UpcomingEventCard = ({
 }) => {
   const navigate = useNavigate();
   const isInterview = event.type === 'interview';
+  const isWishlist = event.type === 'wishlist';
   const resource = event.resource || {};
   const interview = isInterview ? resource.interview : null;
   const companyName = resource?.companyName || 'Company';
@@ -89,11 +91,17 @@ const UpcomingEventCard = ({
 
   const typeInfo = isInterview
     ? getInterviewTypeInfo(interview?.type || 'other')
-    : {
-        icon: <Briefcase className="w-3.5 h-3.5" />,
-        label: 'Application',
-        dotColor: 'bg-blue-500',
-      };
+    : isWishlist
+      ? {
+          icon: <Heart className="w-3.5 h-3.5" />,
+          label: 'Wishlist',
+          dotColor: 'bg-pink-500',
+        }
+      : {
+          icon: <Briefcase className="w-3.5 h-3.5" />,
+          label: 'Application',
+          dotColor: 'bg-blue-500',
+        };
 
   const handlePrepare = (e: React.MouseEvent) => {
     e.stopPropagation();

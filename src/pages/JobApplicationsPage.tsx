@@ -176,11 +176,9 @@ export default function JobApplicationsPage() {
     setSelectedCoverFile(null);
   };
 
-  // Handle gallery select
-  const handleGallerySelect = (blob: Blob) => {
-    setSelectedCoverFile(blob);
-    setIsCoverGalleryOpen(false);
-    setIsCoverCropperOpen(true);
+  // Handle direct cover apply from gallery (no cropper)
+  const handleDirectApplyCover = async (blob: Blob) => {
+    await handleUpdateCover(blob);
   };
 
   useEffect(() => {
@@ -200,6 +198,19 @@ export default function JobApplicationsPage() {
 
     return () => unsubscribe();
   }, [currentUser]);
+
+  // Sync selectedApplication with applications updates (for real-time updates like cvAnalysisId)
+  useEffect(() => {
+    if (selectedApplication && applications.length > 0) {
+      const updatedApp = applications.find(a => a.id === selectedApplication.id);
+      if (updatedApp && (
+        updatedApp.cvAnalysisId !== selectedApplication.cvAnalysisId ||
+        updatedApp.updatedAt !== selectedApplication.updatedAt
+      )) {
+        setSelectedApplication(updatedApp);
+      }
+    }
+  }, [applications]);
 
   // Load automation settings from Firestore
   useEffect(() => {
@@ -2308,13 +2319,22 @@ END:VCALENDAR`;
                 className="flex items-center justify-between mb-2"
               >
                 <div className="flex items-center gap-3">
-              {[
-                { label: 'Applied', count: applications.filter(a => a.status === 'applied').length, color: 'blue' },
-                { label: 'Interview', count: applications.filter(a => a.status === 'interview').length, color: 'purple' },
-                { label: 'Pending', count: applications.filter(a => a.status === 'pending_decision').length, color: 'amber' },
-                { label: 'Offer', count: applications.filter(a => a.status === 'offer').length, color: 'green' },
-                { label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length, color: 'red' }
-              ].map((stat, index) => (
+              {(() => {
+                // Static color mapping for Tailwind JIT compilation
+                const statColorClasses: Record<string, string> = {
+                  blue: 'text-blue-600 dark:text-blue-400',
+                  purple: 'text-purple-600 dark:text-purple-400',
+                  amber: 'text-amber-600 dark:text-amber-400',
+                  green: 'text-green-600 dark:text-green-400',
+                  red: 'text-red-600 dark:text-red-400'
+                };
+                return [
+                  { label: 'Applied', count: applications.filter(a => a.status === 'applied').length, color: 'blue' },
+                  { label: 'Interview', count: applications.filter(a => a.status === 'interview').length, color: 'purple' },
+                  { label: 'Pending', count: applications.filter(a => a.status === 'pending_decision').length, color: 'amber' },
+                  { label: 'Offer', count: applications.filter(a => a.status === 'offer').length, color: 'green' },
+                  { label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length, color: 'red' }
+                ].map((stat, index) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
@@ -2322,17 +2342,15 @@ END:VCALENDAR`;
                   transition={{ duration: 0.3, delay: 0.1 * index }}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${coverPhoto ? 'drop-shadow-lg' : ''}`}
                 >
-                  <div className={`text-lg font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}>
+                  <div className={`text-lg font-bold ${statColorClasses[stat.color]}`}>
                     {stat.count}
                   </div>
-                  <div className={`text-xs ${coverPhoto 
-                    ? (isCoverDark ? 'text-white/90' : 'text-gray-700 dark:text-white/90')
-                    : 'text-gray-600 dark:text-gray-400'
-                  }`}>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
                     {stat.label}
                   </div>
                 </motion.div>
-              ))}
+              ));
+              })()}
                 </div>
 
             {/* View Toggle intégré */}
@@ -2377,19 +2395,9 @@ END:VCALENDAR`;
                   placeholder="Search by company or position..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                        className={`w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 ${
-                          coverPhoto && isCoverDark 
-                            ? 'text-white placeholder-white/60' 
-                            : coverPhoto && !isCoverDark 
-                              ? 'text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/60' 
-                              : ''
-                        }`}
-                      />
-                      <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
-                        coverPhoto 
-                          ? (isCoverDark ? 'text-white/60' : 'text-gray-600 dark:text-white/60') 
-                          : 'text-gray-400'
-                      }`} />
+                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
 
               {/* Filters en ligne */}
@@ -5699,7 +5707,7 @@ END:VCALENDAR`;
         <CoverPhotoGallery
           isOpen={isCoverGalleryOpen}
           onClose={() => setIsCoverGalleryOpen(false)}
-          onSelectBlob={handleGallerySelect}
+          onDirectApply={handleDirectApplyCover}
           onRemove={coverPhoto ? handleRemoveCover : undefined}
           currentCover={coverPhoto || undefined}
         />

@@ -183,14 +183,31 @@ export function useBeforeAfterComparison({
     }
 
     console.log('📊 Computing CV comparison...');
+    console.log('   Original CV:', {
+      experiences: originalCV.experiences?.length || 0,
+      education: originalCV.education?.length || 0,
+      summary: originalCV.summary?.length || 0,
+    });
     console.log('   Current CV:', {
       experiences: currentCVData.experiences?.length || 0,
       education: currentCVData.education?.length || 0,
       summary: currentCVData.summary?.length || 0,
     });
-    // Debug: Log current experience details
-    currentCVData.experiences?.forEach((exp, idx) => {
-      console.log(`   Current exp[${idx}]: ID=${exp.id}, "${exp.title}" at "${exp.company}" - ${exp.bullets?.length || 0} bullets`);
+    
+    // DEBUG: Detailed comparison of experience bullets BEFORE vs AFTER
+    console.log('🔍 DEBUG: Experience bullet comparison (BEFORE vs AFTER):');
+    originalCV.experiences?.forEach((origExp, idx) => {
+      const currExp = currentCVData.experiences?.find(e => e.company === origExp.company) || currentCVData.experiences?.[idx];
+      console.log(`   [${idx}] "${origExp.title}" at "${origExp.company}":`);
+      console.log(`      ORIGINAL bullets (${origExp.bullets?.length || 0}):`, origExp.bullets?.slice(0, 2).map(b => b?.substring(0, 60) + '...'));
+      console.log(`      CURRENT bullets (${currExp?.bullets?.length || 0}):`, currExp?.bullets?.slice(0, 2).map(b => b?.substring(0, 60) + '...'));
+      
+      // Check if bullets are identical (which would indicate the bug)
+      if (origExp.bullets && currExp?.bullets && 
+          origExp.bullets.length > 0 && currExp.bullets.length > 0 &&
+          origExp.bullets[0] === currExp.bullets[0]) {
+        console.warn(`      ⚠️ WARNING: First bullet is IDENTICAL - possible data issue!`);
+      }
     });
 
     try {
@@ -201,6 +218,15 @@ export function useBeforeAfterComparison({
         summaryHasChanges: result.summary?.hasChanges,
         totalStats: result.totalStats,
       });
+      
+      // DEBUG: Log the actual comparison items for experiences
+      console.log('🔍 DEBUG: Experience comparison items:');
+      result.experiences?.items?.forEach((item, idx) => {
+        console.log(`   [${idx}] Status: ${item.status}, ID: ${item.id}`);
+        console.log(`      original.bullets: ${item.original?.bullets?.length || 0}`, item.original?.bullets?.slice(0, 1).map(b => b?.substring(0, 50) + '...'));
+        console.log(`      modified.bullets: ${item.modified?.bullets?.length || 0}`, item.modified?.bullets?.slice(0, 1).map(b => b?.substring(0, 50) + '...'));
+      });
+      
       return result;
     } catch (error) {
       console.error('Error computing CV comparison:', error);

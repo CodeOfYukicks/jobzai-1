@@ -3200,16 +3200,34 @@ export default function CVAnalysisPage() {
       // Use parameter if provided, fallback to state
       const jobToLink = jobApplication || selectedSavedJob;
 
-      // If this analysis is linked to a saved job, update the job application with cvAnalysisId
+      // If this analysis is linked to a saved job, update the job application with cvAnalysisIds
       if (jobToLink?.id) {
         console.log(`🔗 Attempting to link analysis ${docRef.id} to job application ${jobToLink.id}`);
         try {
           const jobRef = doc(db, 'users', currentUser.uid, 'jobApplications', jobToLink.id);
+          
+          // Fetch current job to get existing cvAnalysisIds
+          const jobDoc = await getDoc(jobRef);
+          const existingData = jobDoc.exists() ? jobDoc.data() : {};
+          
+          // Get existing analysis IDs (support both old single ID and new array)
+          const existingIds: string[] = existingData.cvAnalysisIds || [];
+          if (existingData.cvAnalysisId && !existingIds.includes(existingData.cvAnalysisId)) {
+            existingIds.push(existingData.cvAnalysisId);
+          }
+          
+          // Add new analysis ID if not already present
+          if (!existingIds.includes(docRef.id)) {
+            existingIds.push(docRef.id);
+          }
+          
           await updateDoc(jobRef, {
-            cvAnalysisId: docRef.id,
+            cvAnalysisId: docRef.id, // Keep for backwards compatibility
+            cvAnalysisIds: existingIds, // New array field
             updatedAt: serverTimestamp()
           });
           console.log(`✅ Successfully linked analysis ${docRef.id} to job application ${jobToLink.id}`);
+          console.log(`📊 Total analyses linked: ${existingIds.length}`);
           toast.success(`Analysis linked to ${jobToLink.companyName} - ${jobToLink.position}`, {
             duration: 5000
           });
@@ -4114,6 +4132,9 @@ URL to visit: ${jobUrl}
 
   // Fonction pour effectuer l'analyse en arrière-plan
   const handleAnalysis = async () => {
+    // Capture selectedSavedJob at call time to avoid stale closure issues
+    const jobToLink = selectedSavedJob;
+    
     let placeholderId: string | null = null;
 
     try {
@@ -4527,17 +4548,17 @@ URL to visit: ${jobUrl}
             }, { merge: true });
             console.log('✅ Analysis updated in Firestore:', placeholderId);
 
-            // 🔗 Link analysis to job application if selectedSavedJob is set
-            if (selectedSavedJob?.id) {
-              console.log(`🔗 Linking analysis ${placeholderId} to job ${selectedSavedJob.id}`);
+            // 🔗 Link analysis to job application if jobToLink is set
+            if (jobToLink?.id) {
+              console.log(`🔗 Linking analysis ${placeholderId} to job ${jobToLink.id}`);
               try {
-                const jobRef = doc(db, 'users', auth.currentUser.uid, 'jobApplications', selectedSavedJob.id);
+                const jobRef = doc(db, 'users', auth.currentUser.uid, 'jobApplications', jobToLink.id);
                 await updateDoc(jobRef, {
                   cvAnalysisId: placeholderId,
                   updatedAt: serverTimestamp()
                 });
-                console.log(`✅ Successfully linked analysis to ${selectedSavedJob.companyName} - ${selectedSavedJob.position}`);
-                toast.success(`Analysis linked to ${selectedSavedJob.companyName}`);
+                console.log(`✅ Successfully linked analysis to ${jobToLink.companyName} - ${jobToLink.position}`);
+                toast.success(`Analysis linked to ${jobToLink.companyName}`);
               } catch (linkError) {
                 console.error('❌ Error linking analysis:', linkError);
               }
@@ -4758,11 +4779,9 @@ URL to visit: ${jobUrl}
     setSelectedCoverFile(null);
   };
 
-  // Handle gallery select
-  const handleGallerySelect = (blob: Blob) => {
-    setSelectedCoverFile(blob);
-    setIsCoverGalleryOpen(false);
-    setIsCoverCropperOpen(true);
+  // Handle direct cover apply from gallery (no cropper)
+  const handleDirectApplyCover = async (blob: Blob) => {
+    await handleUpdateCover(blob);
   };
 
   // Function to detect if cover image is dark or light
@@ -8336,7 +8355,7 @@ URL to visit: ${jobUrl}
       <CoverPhotoGallery
         isOpen={isCoverGalleryOpen}
         onClose={() => setIsCoverGalleryOpen(false)}
-        onSelectBlob={handleGallerySelect}
+        onDirectApply={handleDirectApplyCover}
         onRemove={coverPhoto ? handleRemoveCover : undefined}
         currentCover={coverPhoto || undefined}
       />

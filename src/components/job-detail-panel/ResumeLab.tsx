@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Sparkles,
     CheckCircle2,
@@ -14,12 +14,16 @@ import {
     AlertCircle,
     TrendingUp,
     TrendingDown,
-    Info
+    Info,
+    ChevronDown,
+    Calendar,
+    Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { format, parseISO, isValid } from 'date-fns';
 
 interface ATSAnalysis {
     id: string;
@@ -62,50 +66,78 @@ interface ATSAnalysis {
     }>;
 }
 
-interface ResumeLabProps {
-    cvAnalysisId: string;
+interface NormalizedAnalysis {
+    id: string;
+    jobTitle: string;
+    company: string;
+    date: string;
+    matchScore: number;
+    categoryScores: {
+        skills: number;
+        experience: number;
+        education: number;
+        industryFit: number;
+    };
+    executiveSummary: string;
+    topStrengths: Array<{
+        name: string;
+        score: number;
+        example_from_resume?: string;
+        why_it_matters?: string;
+    }>;
+    topGaps: Array<{
+        name: string;
+        severity?: 'Low' | 'Medium' | 'High';
+        why_it_matters?: string;
+        how_to_fix?: string;
+    }>;
+    skillsMatch?: {
+        matching: { name: string; relevance: number }[];
+        missing: { name: string; relevance: number }[];
+        alternative: { name: string; alternativeTo: string }[];
+    };
+    keyFindings: string[];
 }
 
-export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
-    const { currentUser } = useAuth();
-    const navigate = useNavigate();
-    const [analysis, setAnalysis] = useState<ATSAnalysis | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+interface JobInfo {
+    id: string;
+    position: string;
+    companyName: string;
+    fullJobDescription?: string;
+    description?: string;
+    url?: string;
+}
 
-    useEffect(() => {
-        const fetchAnalysis = async () => {
-            if (!currentUser || !cvAnalysisId) return;
+interface ResumeLabProps {
+    cvAnalysisIds?: string[];  // Array of analysis IDs
+    cvAnalysisId?: string;     // Backwards compat with single ID
+    job?: JobInfo;             // Job info for navigation to CV Analysis page
+}
 
-            setIsLoading(true);
-            setError(null);
+// Helper function to parse dates safely
+const parseDate = (dateValue: any): Date => {
+    if (!dateValue) return new Date();
+    if (dateValue instanceof Date) return dateValue;
+    if (dateValue?.toDate && typeof dateValue.toDate === 'function') {
+        return dateValue.toDate();
+    }
+    if (typeof dateValue === 'number') {
+        return new Date(dateValue);
+    }
+    if (typeof dateValue === 'string') {
+        const parsed = parseISO(dateValue);
+        return isValid(parsed) ? parsed : new Date();
+    }
+    return new Date();
+};
 
-            try {
-                const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', cvAnalysisId);
-                const analysisDoc = await getDoc(analysisRef);
-
-                if (analysisDoc.exists()) {
-                    const data = analysisDoc.data();
-                    setAnalysis({
-                        id: analysisDoc.id,
-                        ...data
-                    } as ATSAnalysis);
-                } else {
-                    setError('CV analysis not found');
-                }
-            } catch (err) {
-                console.error('Error fetching CV analysis:', err);
-                setError('Failed to load CV analysis');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchAnalysis();
-    }, [currentUser, cvAnalysisId]);
-
-    // Normalize data structure
-    const normalizedData = analysis ? {
+// Normalize analysis data structure
+const normalizeAnalysis = (analysis: ATSAnalysis): NormalizedAnalysis => {
+    return {
+        id: analysis.id,
+        jobTitle: analysis.jobTitle || 'Untitled Analysis',
+        company: analysis.company || '',
+        date: analysis.date || new Date().toISOString(),
         matchScore: analysis.match_scores?.overall_score ?? analysis.matchScore ?? 0,
         categoryScores: {
             skills: analysis.match_scores?.skills_score ?? analysis.categoryScores?.skills ?? 0,
@@ -138,7 +170,97 @@ export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
             : []),
         skillsMatch: analysis.skillsMatch,
         keyFindings: analysis.keyFindings ?? []
-    } : null;
+    };
+};
+
+export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) => {
+    const { currentUser } = useAuth();
+    const navigate = useNavigate();
+    const [analyses, setAnalyses] = useState<NormalizedAnalysis[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+    // Merge IDs from both props for backwards compatibility
+    const allAnalysisIds = useCallback(() => {
+        const ids = new Set<string>();
+        if (cvAnalysisIds) {
+            cvAnalysisIds.forEach(id => ids.add(id));
+        }
+        if (cvAnalysisId && !ids.has(cvAnalysisId)) {
+            ids.add(cvAnalysisId);
+        }
+        return Array.from(ids);
+    }, [cvAnalysisIds, cvAnalysisId]);
+
+    useEffect(() => {
+        const fetchAnalyses = async () => {
+            if (!currentUser) return;
+            
+            const ids = allAnalysisIds();
+            if (ids.length === 0) {
+                setIsLoading(false);
+                return;
+            }
+
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const fetchedAnalyses: NormalizedAnalysis[] = [];
+                
+                for (const id of ids) {
+                    try {
+                        const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', id);
+                        const analysisDoc = await getDoc(analysisRef);
+
+                        if (analysisDoc.exists()) {
+                            const data = analysisDoc.data();
+                            const analysis: ATSAnalysis = {
+                                id: analysisDoc.id,
+                                ...data
+                            } as ATSAnalysis;
+                            fetchedAnalyses.push(normalizeAnalysis(analysis));
+                        }
+                    } catch (err) {
+                        console.error(`Error fetching analysis ${id}:`, err);
+                    }
+                }
+
+                // Sort by date, most recent first
+                fetchedAnalyses.sort((a, b) => {
+                    const dateA = parseDate(a.date).getTime();
+                    const dateB = parseDate(b.date).getTime();
+                    return dateB - dateA;
+                });
+
+                setAnalyses(fetchedAnalyses);
+                
+                if (fetchedAnalyses.length === 0) {
+                    setError('No CV analyses found');
+                }
+            } catch (err) {
+                console.error('Error fetching CV analyses:', err);
+                setError('Failed to load CV analyses');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAnalyses();
+    }, [currentUser, allAnalysisIds]);
+
+    const toggleExpanded = (id: string) => {
+        setExpandedIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
+    };
 
     const getScoreColor = (score: number) => {
         if (score >= 70) return 'text-green-600 dark:text-green-400';
@@ -150,6 +272,12 @@ export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
         if (score >= 70) return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
         if (score >= 50) return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
         return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
+    };
+
+    const getScoreRingColor = (score: number) => {
+        if (score >= 70) return 'ring-green-500/20 dark:ring-green-400/20';
+        if (score >= 50) return 'ring-yellow-500/20 dark:ring-yellow-400/20';
+        return 'ring-red-500/20 dark:ring-red-400/20';
     };
 
     const getScoreGradient = (score: number) => {
@@ -164,22 +292,14 @@ export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
         return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800';
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-purple-600 dark:text-purple-400 animate-spin" />
-            </div>
-        );
-    }
-
-    if (error || !analysis || !normalizedData) {
-        return (
-            <div className="text-center py-12">
-                <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">{error || 'No CV analysis found'}</p>
-            </div>
-        );
-    }
+    const formatAnalysisDate = (dateStr: string) => {
+        try {
+            const date = parseDate(dateStr);
+            return format(date, 'MMM d, yyyy');
+        } catch {
+            return 'Unknown date';
+        }
+    };
 
     const categoryConfig = {
         skills: { icon: Zap, label: 'Skills', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -188,243 +308,230 @@ export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
         industryFit: { icon: Building2, label: 'Industry Fit', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20' },
     };
 
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="space-y-4">
+                {[1, 2].map((i) => (
+                    <div key={i} className="animate-pulse">
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700" />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    // Empty state
+    if (error || analyses.length === 0) {
     return (
-        <div className="space-y-6">
-            {/* Hero Score Section - Notion Style */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm"
+                transition={{ duration: 0.4 }}
+                className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
             >
-                <div className="p-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                        <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 text-sm font-medium mb-4">
-                                <Sparkles className="w-4 h-4" />
-                                <span>AI Analysis Result</span>
-                            </div>
-                            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                                Match Score Analysis
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed max-w-lg">
-                                Based on a detailed comparison of your CV against the job description requirements.
-                            </p>
+                <div className="px-12 py-16 text-center">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="relative inline-flex items-center justify-center mb-8"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-100/50 to-indigo-100/50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl blur-2xl" />
+                        <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center border border-purple-100 dark:border-purple-800/30 shadow-sm">
+                            <Target className="w-12 h-12 text-purple-600 dark:text-purple-400" strokeWidth={1.5} />
                         </div>
+                    </motion.div>
 
-                        {/* Large Score Badge */}
-                        <div className={`relative px-8 py-6 rounded-2xl ${getScoreBgColor(normalizedData.matchScore)} border-2 transition-all`}>
-                            <div className="text-center">
-                                <div className={`text-5xl font-bold ${getScoreColor(normalizedData.matchScore)} mb-1`}>
-                                    {Math.round(normalizedData.matchScore)}%
-                                </div>
-                                <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                                    Match Score
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <motion.h3
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="text-3xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight"
+                    >
+                        No CV Analyses Yet
+                    </motion.h3>
+
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                        className="text-base text-gray-600 dark:text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed"
+                    >
+                        Analyze your CV against this job to get detailed insights, 
+                        match scores, and actionable recommendations to improve your chances.
+                    </motion.p>
+
+                    <motion.button
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => navigate('/cv-analysis', {
+                            state: job ? {
+                                jobTitle: job.position,
+                                company: job.companyName,
+                                jobDescription: job.fullJobDescription || job.description || '',
+                                jobUrl: job.url || '',
+                                fromApplication: true,
+                                jobId: job.id,
+                            } : undefined
+                        })}
+                        className="relative inline-flex items-center gap-2.5 px-6 py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium text-sm transition-all duration-300 shadow-lg shadow-gray-900/10 dark:shadow-white/10 hover:shadow-xl hover:shadow-gray-900/20 dark:hover:shadow-white/20"
+                    >
+                        <Sparkles className="w-4 h-4" strokeWidth={2} />
+                        <span>Start CV Analysis</span>
+                    </motion.button>
                 </div>
             </motion.div>
+        );
+    }
 
-            {/* Executive Summary - Prominent Card */}
-            {normalizedData.executiveSummary && (
+    // Render analysis card content
+    const renderAnalysisContent = (analysis: NormalizedAnalysis) => (
+        <div className="space-y-6 pt-2">
+            {/* Executive Summary */}
+            {analysis.executiveSummary && (
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="rounded-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 border border-gray-200 dark:border-gray-800 p-6 shadow-sm"
+                    transition={{ delay: 0.05 }}
+                    className="rounded-lg bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-100 dark:border-gray-700/50 p-5"
                 >
-                    <div className="flex items-start gap-3 mb-4">
-                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                            <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <div className="flex items-start gap-3 mb-3">
+                        <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                            <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <div>
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                                 Executive Summary
                             </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                AI-generated overview of your fit
-                            </p>
-                        </div>
                     </div>
-                    <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed pl-14">
-                        {normalizedData.executiveSummary}
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed pl-9">
+                        {analysis.executiveSummary}
                     </p>
                 </motion.div>
             )}
 
-            {/* Category Scores Grid - Notion Style Property Blocks */}
+            {/* Category Scores Grid */}
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                transition={{ delay: 0.1 }}
+                className="grid grid-cols-2 lg:grid-cols-4 gap-3"
             >
-                {Object.entries(normalizedData.categoryScores).map(([category, score], index) => {
+                {Object.entries(analysis.categoryScores).map(([category, score], index) => {
                     const config = categoryConfig[category as keyof typeof categoryConfig];
                     const Icon = config?.icon || Zap;
 
                     return (
-                        <motion.div
+                        <div
                             key={category}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.2 + index * 0.05 }}
-                            className="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 hover:shadow-md transition-all"
+                            className="group relative overflow-hidden rounded-lg bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 p-4 hover:shadow-sm transition-all"
                         >
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className={`p-2 rounded-lg ${config.bg}`}>
-                                    <Icon className={`w-5 h-5 ${config.color}`} />
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className={`p-1.5 rounded-md ${config.bg}`}>
+                                    <Icon className={`w-3.5 h-3.5 ${config.color}`} />
                                 </div>
-                                <div className="flex-1">
-                                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                         {config.label}
+                                </span>
                                     </div>
-                                    <div className={`text-2xl font-bold ${getScoreColor(score)} mt-1`}>
+                            <div className={`text-xl font-bold ${getScoreColor(score)} mb-2`}>
                                         {Math.round(score)}%
-                                    </div>
-                                </div>
                             </div>
-                            <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${score}%` }}
-                                    transition={{ duration: 0.8, delay: 0.3 + index * 0.05 }}
+                                    transition={{ duration: 0.6, delay: 0.15 + index * 0.05 }}
                                     className={`h-full rounded-full bg-gradient-to-r ${getScoreGradient(score)}`}
                                 />
                             </div>
-                        </motion.div>
+                        </div>
                     );
                 })}
             </motion.div>
 
-            {/* Top Strengths & Gaps - Two Column Layout */}
-            {(normalizedData.topStrengths.length > 0 || normalizedData.topGaps.length > 0) && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Top Strengths & Gaps */}
+            {(analysis.topStrengths.length > 0 || analysis.topGaps.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* Top Strengths */}
-                    {normalizedData.topStrengths.length > 0 && (
+                    {analysis.topStrengths.length > 0 && (
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-sm"
+                            transition={{ delay: 0.15 }}
+                            className="rounded-lg bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 p-4"
                         >
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                                    <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/30">
+                                    <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
                                 </div>
-                                <div>
-                                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                                         Top Strengths
                                     </h4>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Your strongest assets for this role
-                                    </p>
-                                </div>
                             </div>
-                            <div className="space-y-4">
-                                {normalizedData.topStrengths.slice(0, 5).map((strength, index) => (
-                                    <motion.div
+                            <div className="space-y-2.5">
+                                {analysis.topStrengths.slice(0, 3).map((strength, index) => (
+                                    <div
                                         key={index}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: 0.3 + index * 0.05 }}
-                                        className="p-4 rounded-lg bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                                        className="flex items-center gap-2 p-2.5 rounded-md bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30"
                                     >
-                                        <div className="flex items-start justify-between gap-3 mb-2">
-                                            <div className="flex items-start gap-3 flex-1">
-                                                <div className="mt-0.5 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                                                    <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h5 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">
                                                         {strength.name}
-                                                    </h5>
-                                                    {strength.example_from_resume && (
-                                                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 italic">
-                                                            "{strength.example_from_resume}"
-                                                        </p>
-                                                    )}
-                                                    {strength.why_it_matters && (
-                                                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                                                            {strength.why_it_matters}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className={`px-2.5 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex-shrink-0`}>
+                                        </span>
+                                        <span className="text-xs font-semibold text-green-600 dark:text-green-400 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 rounded">
                                                 {strength.score}%
-                                            </div>
+                                        </span>
                                         </div>
-                                    </motion.div>
                                 ))}
                             </div>
                         </motion.div>
                     )}
 
                     {/* Top Gaps */}
-                    {normalizedData.topGaps.length > 0 && (
+                    {analysis.topGaps.length > 0 && (
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                            className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-sm"
+                            transition={{ delay: 0.2 }}
+                            className="rounded-lg bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 p-4"
                         >
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                                    <TrendingDown className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-900/30">
+                                    <TrendingDown className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                 </div>
-                                <div>
-                                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                                         Areas to Improve
                                     </h4>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Gaps to address for better fit
-                                    </p>
-                                </div>
                             </div>
-                            <div className="space-y-4">
-                                {normalizedData.topGaps.slice(0, 5).map((gap, index) => (
-                                    <motion.div
+                            <div className="space-y-2.5">
+                                {analysis.topGaps.slice(0, 3).map((gap, index) => (
+                                    <div
                                         key={index}
-                                        initial={{ opacity: 0, x: 10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: 0.4 + index * 0.05 }}
-                                        className="p-4 rounded-lg bg-orange-50/50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/30 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                                        className="flex items-center gap-2 p-2.5 rounded-md bg-orange-50/50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/30"
                                     >
-                                        <div className="flex items-start gap-3 mb-2">
-                                            <div className="mt-0.5 w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                                                <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <h5 className="font-semibold text-gray-900 dark:text-white text-sm">
+                                        <AlertCircle className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">
                                                         {gap.name}
-                                                    </h5>
+                                        </span>
                                                     {gap.severity && (
-                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${getSeverityColor(gap.severity)}`}>
+                                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${getSeverityColor(gap.severity)}`}>
                                                             {gap.severity}
                                                         </span>
                                                     )}
                                                 </div>
-                                                {gap.why_it_matters && (
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2">
-                                                        {gap.why_it_matters}
-                                                    </p>
-                                                )}
-                                                {gap.how_to_fix && (
-                                                    <div className="mt-2 pt-2 border-t border-orange-200 dark:border-orange-800">
-                                                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                            How to fix:
-                                                        </p>
-                                                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                                                            {gap.how_to_fix}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </motion.div>
                                 ))}
                             </div>
                         </motion.div>
@@ -432,98 +539,48 @@ export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
                 </div>
             )}
 
-            {/* Skills Overview - Clean Stat Cards */}
-            {normalizedData.skillsMatch && (
+            {/* Skills Overview Stats */}
+            {analysis.skillsMatch && (
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                    transition={{ delay: 0.25 }}
+                    className="grid grid-cols-3 gap-3"
                 >
-                    <div className="rounded-xl bg-green-50/50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/30 p-6 hover:shadow-md transition-all">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <div className="rounded-lg bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 p-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
                             </div>
-                            <div className="flex-1">
-                                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    Matching Skills
-                                </div>
-                                <div className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">
-                                    {normalizedData.skillsMatch.matching?.length || 0}
-                                </div>
-                            </div>
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {analysis.skillsMatch.matching?.length || 0}
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                            Skills found in your CV
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Matching
                         </div>
                     </div>
 
-                    <div className="rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 p-6 hover:shadow-md transition-all">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-                                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <div className="rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30 p-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                             </div>
-                            <div className="flex-1">
-                                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    Missing Skills
-                                </div>
-                                <div className="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">
-                                    {normalizedData.skillsMatch.missing?.length || 0}
-                                </div>
-                            </div>
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {analysis.skillsMatch.missing?.length || 0}
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                            Critical skills to add
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Missing
                         </div>
                     </div>
 
-                    <div className="rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 p-6 hover:shadow-md transition-all">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className="rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 p-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <div className="flex-1">
-                                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    Alternatives
-                                </div>
-                                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                                    {normalizedData.skillsMatch.alternative?.length || 0}
-                                </div>
-                            </div>
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {analysis.skillsMatch.alternative?.length || 0}
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                            Similar skills found
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Alternatives
                         </div>
-                    </div>
-                </motion.div>
-            )}
-
-            {/* Key Findings (Fallback if no top strengths/gaps) */}
-            {normalizedData.keyFindings.length > 0 && normalizedData.topStrengths.length === 0 && normalizedData.topGaps.length === 0 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-sm"
-                >
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
-                            <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                        </div>
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Key Findings</h4>
-                    </div>
-                    <div className="space-y-3">
-                        {normalizedData.keyFindings.slice(0, 5).map((finding, index) => (
-                            <div key={index} className="flex items-start gap-3 group">
-                                <div className="mt-1 w-6 h-6 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40 transition-colors">
-                                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{index + 1}</span>
-                                </div>
-                                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed flex-1">
-                                    {finding}
-                                </p>
-                            </div>
-                        ))}
                     </div>
                 </motion.div>
             )}
@@ -532,17 +589,152 @@ export const ResumeLab = ({ cvAnalysisId }: ResumeLabProps) => {
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="flex justify-center pt-4"
+                transition={{ delay: 0.3 }}
+                className="flex justify-center pt-2"
             >
                 <button
-                    onClick={() => navigate(`/ats-analysis/${cvAnalysisId}`)}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all font-medium shadow-lg shadow-gray-900/10 hover:shadow-xl"
+                    onClick={() => navigate(`/ats-analysis/${analysis.id}`)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all font-medium text-sm shadow-md shadow-gray-900/10 hover:shadow-lg"
                 >
                     <span>View Full Report</span>
                     <ArrowRight className="w-4 h-4" />
                 </button>
             </motion.div>
+        </div>
+    );
+
+    // Main render - collapsible list
+    return (
+        <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                        <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            CV Analyses
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {analyses.length} {analyses.length === 1 ? 'analysis' : 'analyses'} for this job
+                        </p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => navigate('/cv-analysis', {
+                        state: job ? {
+                            jobTitle: job.position,
+                            company: job.companyName,
+                            jobDescription: job.fullJobDescription || job.description || '',
+                            jobUrl: job.url || '',
+                            fromApplication: true,
+                            jobId: job.id,
+                        } : undefined
+                    })}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                >
+                    <Sparkles className="w-4 h-4" />
+                    New Analysis
+                </button>
+            </div>
+
+            {/* Collapsible Analysis Cards */}
+            <div className="space-y-3">
+                {analyses.map((analysis, index) => {
+                    const isExpanded = expandedIds.has(analysis.id);
+                    
+                    return (
+                        <motion.div
+                            key={analysis.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className={`rounded-xl border transition-all duration-300 ${
+                                isExpanded 
+                                    ? 'border-purple-200 dark:border-purple-800/50 shadow-lg shadow-purple-500/5 dark:shadow-purple-500/10 bg-white dark:bg-gray-900' 
+                                    : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700'
+                            }`}
+                        >
+                            {/* Collapsed Header - Always Visible */}
+                            <button
+                                onClick={() => toggleExpanded(analysis.id)}
+                                className="w-full p-5 flex items-center gap-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 rounded-xl"
+                            >
+                                {/* Score Circle */}
+                                <div className={`relative flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center ring-4 ${getScoreRingColor(analysis.matchScore)} ${getScoreBgColor(analysis.matchScore)} border`}>
+                                    <span className={`text-lg font-bold ${getScoreColor(analysis.matchScore)}`}>
+                                        {Math.round(analysis.matchScore)}
+                                    </span>
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                            <Calendar className="w-3 h-3" />
+                                            {formatAnalysisDate(analysis.date)}
+                                        </span>
+                                        {index === 0 && (
+                                            <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-xs font-semibold text-purple-600 dark:text-purple-400">
+                                                Latest
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                                        {analysis.jobTitle}
+                                    </h4>
+                                    {analysis.company && (
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                            {analysis.company}
+                                        </p>
+                                    )}
+                                    {!isExpanded && analysis.executiveSummary && (
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
+                                            {analysis.executiveSummary}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Expand/Collapse Icon */}
+                                <div className={`flex-shrink-0 p-2 rounded-lg transition-all duration-300 ${
+                                    isExpanded 
+                                        ? 'bg-purple-100 dark:bg-purple-900/30' 
+                                        : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-gray-200 dark:group-hover:bg-gray-700'
+                                }`}>
+                                    <motion.div
+                                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <ChevronDown className={`w-5 h-5 ${
+                                            isExpanded 
+                                                ? 'text-purple-600 dark:text-purple-400' 
+                                                : 'text-gray-400 dark:text-gray-500'
+                                        }`} />
+                                    </motion.div>
+                                </div>
+                            </button>
+
+                            {/* Expanded Content */}
+                            <AnimatePresence initial={false}>
+                                {isExpanded && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-800">
+                                            {renderAnalysisContent(analysis)}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    );
+                })}
+            </div>
         </div>
     );
 };

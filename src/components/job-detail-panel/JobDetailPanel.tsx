@@ -357,9 +357,9 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                           { id: 'overview', label: 'Overview', icon: null, badge: null },
                           { id: 'interviews', label: 'Interviews', icon: null, badge: null },
                           { id: 'activity', label: 'Activity', icon: null, badge: null },
-                          { id: 'ai-tools', label: 'AI Tools', icon: Sparkles, badge: 'New' },
+                          { id: 'ai-tools', label: 'Document Studio', icon: Sparkles, badge: null },
                           { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
-                          { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: job.cvAnalysisId ? null : 'link' },
+                          { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: (job.cvAnalysisIds?.length || (job.cvAnalysisId ? 1 : 0)) || 'link' },
                           { id: 'linked-documents', label: 'Linked Documents', icon: FileText, badge: ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) > 0 ? ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) : null },
                         ] as const).map((tab) => (
                           <button
@@ -611,77 +611,18 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                           )}
 
                           {activeTab === 'resume-lab' && (
-                            job.cvAnalysisId ? (
-                              <ResumeLab cvAnalysisId={job.cvAnalysisId} />
-                            ) : (
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.4 }}
-                                className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-                              >
-                                <div className="px-12 py-16 text-center">
-                                  {/* Premium Icon */}
-                                  <motion.div
-                                    initial={{ scale: 0.9, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ duration: 0.5, delay: 0.1 }}
-                                    className="relative inline-flex items-center justify-center mb-8"
-                                  >
-                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-100/50 to-indigo-100/50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl blur-2xl" />
-                                    <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center border border-purple-100 dark:border-purple-800/30 shadow-sm">
-                                      <Target className="w-12 h-12 text-purple-600 dark:text-purple-400" strokeWidth={1.5} />
-                                    </div>
-                                  </motion.div>
-
-                                  {/* Title */}
-                                  <motion.h3
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.5, delay: 0.2 }}
-                                    className="text-3xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight"
-                                  >
-                                    Unlock Your Application Potential
-                                  </motion.h3>
-
-                                  {/* Description */}
-                                  <motion.p
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.5, delay: 0.3 }}
-                                    className="text-base text-gray-600 dark:text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed"
-                                  >
-                                    Get a detailed AI analysis of how well your CV matches this job.
-                                    Identify gaps, optimize keywords, and boost your interview chances.
-                                  </motion.p>
-
-                                  {/* Premium Button */}
-                                  <motion.button
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.5, delay: 0.4 }}
-                                    whileHover={{ scale: 1.02, y: -2 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => {
-                                      navigate('/cv-analysis', {
-                                        state: {
-                                          jobTitle: job.position,
-                                          company: job.companyName,
-                                          jobDescription: job.fullJobDescription || job.description || '',
-                                          jobUrl: job.url || '',
-                                          fromApplication: true,
-                                          jobId: job.id,
-                                        }
-                                      });
-                                    }}
-                                    className="relative inline-flex items-center gap-2.5 px-6 py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium text-sm transition-all duration-300 shadow-lg shadow-gray-900/10 dark:shadow-white/10 hover:shadow-xl hover:shadow-gray-900/20 dark:hover:shadow-white/20"
-                                  >
-                                    <Sparkles className="w-4 h-4" strokeWidth={2} />
-                                    <span>Start CV Analysis</span>
-                                  </motion.button>
-                                </div>
-                              </motion.div>
-                            )
+                            <ResumeLab 
+                              cvAnalysisIds={job.cvAnalysisIds} 
+                              cvAnalysisId={job.cvAnalysisId}
+                              job={{
+                                id: job.id,
+                                position: job.position,
+                                companyName: job.companyName,
+                                fullJobDescription: job.fullJobDescription,
+                                description: job.description,
+                                url: job.url,
+                              }}
+                            />
                           )}
 
                           {activeTab === 'linked-documents' && (

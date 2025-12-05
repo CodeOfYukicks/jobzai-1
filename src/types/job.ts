@@ -24,7 +24,7 @@ export interface StatusChange {
 
 export interface GeneratedEmail {
   id: string;
-  type: 'cover_letter' | 'follow_up';
+  type: 'cover_letter' | 'follow_up' | 'interview_prep' | 'questions_to_ask' | 'thank_you';
   content: string;
   createdAt: string;
   noteId?: string;  // ID of linked NotionDocument in notes collection
@@ -108,7 +108,8 @@ export interface JobApplication {
       currency?: string;
     };
   };
-  cvAnalysisId?: string;  // ID of linked CV analysis from CV Analysis page
+  cvAnalysisId?: string;  // ID of linked CV analysis from CV Analysis page (deprecated - use cvAnalysisIds)
+  cvAnalysisIds?: string[];  // IDs of all linked CV analyses from CV Analysis page
   linkedNoteIds?: string[];  // IDs of linked NotionDocuments from AI-generated content
   linkedResumeIds?: string[];  // IDs of linked CVs/Resumes from Resume Builder
   linkedDocumentIds?: string[];  // IDs of linked PDF Documents from Resume Builder
