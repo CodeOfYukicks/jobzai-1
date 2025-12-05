@@ -372,7 +372,7 @@ export default function FolderHeader({
                   {title}
                 </h1>
               </div>
-              <div className={`flex items-center gap-2 text-base font-semibold mt-2 px-4 ${hasCover ? 'text-white/90 drop-shadow-lg' : 'text-gray-600 dark:text-gray-300'}`}>
+              <div className="flex items-center gap-2 text-base font-semibold mt-2 px-4 text-gray-600 dark:text-gray-300">
                 <span>{subtitle}</span>
               </div>
             </div>

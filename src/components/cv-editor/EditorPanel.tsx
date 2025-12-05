@@ -605,6 +605,7 @@ export default function EditorPanel({
               onReorder={onReorder}
               layoutSettings={layoutSettings}
               onSettingsChange={onLayoutSettingsChange}
+              template={template}
             />
           </motion.div>
         )}

@@ -7,14 +7,16 @@ import {
   ChevronDown, ChevronRight, Edit3, Type, Check, Palette,
   Calendar, AlignLeft, Layers
 } from 'lucide-react';
-import { CVSection, CVLayoutSettings, CVColorScheme } from '../../../types/cvEditor';
+import { CVSection, CVLayoutSettings, CVColorScheme, CVTemplate } from '../../../types/cvEditor';
 import { sortSections } from '../../../lib/cvEditorUtils';
+import { TEMPLATE_INFO } from '../TemplateCard';
 
 interface LayoutStyleTabProps {
   sections: CVSection[];
   onReorder: (sections: CVSection[]) => void;
   layoutSettings: CVLayoutSettings;
   onSettingsChange: (settings: Partial<CVLayoutSettings>) => void;
+  template: CVTemplate;
 }
 
 // Premium font families with their categories
@@ -451,9 +453,13 @@ function OptionSelector({
   );
 }
 
-export default function LayoutStyleTab({ sections, onReorder, layoutSettings, onSettingsChange }: LayoutStyleTabProps) {
+export default function LayoutStyleTab({ sections, onReorder, layoutSettings, onSettingsChange, template }: LayoutStyleTabProps) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
+
+  // Check if current template supports colors
+  const templateInfo = TEMPLATE_INFO.find(t => t.value === template);
+  const hasColors = (templateInfo?.availableColors?.length ?? 0) > 0;
 
   // Debounce fontSize changes to avoid too many re-renders
   useEffect(() => {
@@ -659,13 +665,15 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
           </div>
         </CollapsibleSection>
 
-        {/* Colors - Collapsible */}
-        <CollapsibleSection title="Colors" icon={Palette}>
-          <ColorSwatchPicker
-            selectedColor={layoutSettings.accentColor || 'blue'}
-            onSelect={(color) => onSettingsChange({ accentColor: color })}
-          />
-        </CollapsibleSection>
+        {/* Colors - Collapsible - Only show if template supports colors */}
+        {hasColors && (
+          <CollapsibleSection title="Colors" icon={Palette}>
+            <ColorSwatchPicker
+              selectedColor={layoutSettings.accentColor || 'blue'}
+              onSelect={(color) => onSettingsChange({ accentColor: color })}
+            />
+          </CollapsibleSection>
+        )}
 
         {/* Formatting - Collapsible */}
         <CollapsibleSection title="Formatting" icon={Calendar} defaultOpen={false}>

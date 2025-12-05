@@ -210,7 +210,7 @@ const AllResumesItem = memo(({
       <span className={`text-xs font-medium ${
         isActive
           ? 'text-blue-600/70 dark:text-blue-400/70'
-          : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400'
+          : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400'
       }`}>
         {count}
       </span>
@@ -442,7 +442,7 @@ const FolderItem = memo(({
                   <span className={`text-xs font-medium ${
                       isActive
                       ? 'text-gray-600 dark:text-gray-300'
-                      : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400'
+                      : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400'
                   }`}>
                       {count}
                   </span>
@@ -751,7 +751,7 @@ const UncategorizedItem = memo(({
             className={`text-xs font-medium ${
               isActive
                 ? 'text-gray-600 dark:text-gray-300'
-                : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400'
+                : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400'
             }`}
           >
             {count}
