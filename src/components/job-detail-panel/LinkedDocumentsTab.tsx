@@ -21,7 +21,7 @@ import { WhiteboardDocument, getWhiteboards } from '../../lib/whiteboardDocServi
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import CVPreviewCard from '../resume-builder/CVPreviewCard';
 import NotionPreviewCard from '../notion-editor/NotionPreviewCard';
 import PDFPreviewCard, { ImportedDocument } from '../resume-builder/PDFPreviewCard';

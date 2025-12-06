@@ -1,7 +1,7 @@
 ﻿import OpenAI from 'openai';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 let openaiInstance: OpenAI | null = null;
 

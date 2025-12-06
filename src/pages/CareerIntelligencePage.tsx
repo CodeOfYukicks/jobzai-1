@@ -11,7 +11,7 @@ import NextMoveInsight from '../components/career-intelligence/NextMoveInsight';
 import SkillsInsight from '../components/career-intelligence/SkillsInsight';
 import ActionPlanInsight from '../components/career-intelligence/ActionPlanInsight';
 import { generateCareerInsights, CareerInsightsData } from '../services/careerIntelligence';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 export default function CareerIntelligencePage() {
   const { currentUser } = useAuth();

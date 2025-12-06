@@ -12,7 +12,7 @@ import {
   Link as LinkIcon,
   Code,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface NotesToolbarProps {
   editor: Editor;

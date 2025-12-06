@@ -9,7 +9,7 @@ import DeleteCampaignModal from '../components/DeleteCampaignModal';
 import { CampaignFilters, type CampaignFilters as FiltersType } from '../components/CampaignFilters';
 import CampaignPreview from './CampaignPreview';
 import CampaignDetailsModal from '../components/CampaignDetailsModal';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { httpsCallable } from 'firebase/functions';
 import CampaignCard from '../components/CampaignCard';
 import axios from 'axios';

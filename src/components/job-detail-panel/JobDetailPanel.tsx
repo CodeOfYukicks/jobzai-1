@@ -39,7 +39,7 @@ import { NotesTab } from './NotesTab';
 import { EnhancedJobSummary } from './EnhancedJobSummary';
 import { ResumeLab } from './ResumeLab';
 import { LinkedDocumentsTab } from './LinkedDocumentsTab';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { CompanyLogo } from '../common/CompanyLogo';
 
 // Helper function to safely parse dates from Firestore

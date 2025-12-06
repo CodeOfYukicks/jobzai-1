@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useSwipeable } from 'react-swipeable';
 import { Heart, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import EditTemplateModal from './EditTemplateModal';
 import { toggleTemplateFavorite } from '../lib/templates';
 

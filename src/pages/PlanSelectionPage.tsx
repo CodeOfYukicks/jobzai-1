@@ -5,7 +5,7 @@ import { Check, Loader2, Sparkles, X } from 'lucide-react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { recordCreditHistory } from '../lib/creditHistory';
 import { redirectToStripeCheckout } from '../services/stripe';
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Loader2, Folder, Briefcase, Target, Star, Heart, Zap, Rocket, BookOpen, Code, Palette } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 export interface Folder {
   id: string;

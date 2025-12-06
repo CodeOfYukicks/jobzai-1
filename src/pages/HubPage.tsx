@@ -1,28 +1,49 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
-  LineChart, Mail, Target, Coins, Search,
-  Bell, Settings, ChevronRight, TrendingUp, Users, LogOut, 
-  Calendar, FileText, Briefcase, Sparkles
+  LineChart, Coins, ChevronRight, LogOut, 
+  Calendar, Briefcase, LayoutGrid, ScrollText, FileSearch,
+  Clock, Mic, FileEdit, User, Lightbulb, LayoutDashboard
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserStats } from '../hooks/useUserStats';
 import { db } from '../lib/firebase';
-import { doc, getDoc, collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import type { Activity } from '../types/stats';
-import FirebaseImage from '../components/FirebaseImage';
 import PageTransition from '../components/PageTransition';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import EditableWidgetGrid from '../components/hub/EditableWidgetGrid';
+
+// Navigation groups matching sidebar structure
+const navigationGroups = {
+  apply: [
+    { name: 'Job Board', desc: 'Browse and search job listings', href: '/jobs', icon: LayoutGrid, color: '#635BFF' },
+    { name: 'Campaigns', desc: 'Manage your job search campaigns', href: '/campaigns', icon: ScrollText, color: '#8B5CF6' },
+    { name: 'Resume Lab', desc: 'Analyze and optimize your CV', href: '/cv-analysis', icon: FileSearch, color: '#EC4899' },
+  ],
+  track: [
+    { name: 'Application Tracking', desc: 'Monitor your job applications', href: '/applications', icon: Briefcase, color: '#F59E0B' },
+    { name: 'Calendar', desc: 'View your schedule and interviews', href: '/calendar', icon: Calendar, color: '#10B981' },
+  ],
+  prepare: [
+    { name: 'Interview Hub', desc: 'Prepare for upcoming interviews', href: '/upcoming-interviews', icon: Clock, color: '#3B82F6' },
+    { name: 'Mock Interview', desc: 'Practice with AI simulations', href: '/mock-interview', icon: Mic, color: '#EF4444' },
+    { name: 'Document Manager', desc: 'Manage your resumes and documents', href: '/resume-builder', icon: FileEdit, color: '#14B8A6' },
+  ],
+  improve: [
+    { name: 'Professional Profile', desc: 'Build your professional identity', href: '/professional-profile', icon: User, color: '#8B5CF6' },
+    { name: 'Recommendations', desc: 'Get personalized job suggestions', href: '/recommendations', icon: Lightbulb, color: '#F59E0B' },
+    { name: 'Dashboard', desc: 'View analytics and insights', href: '/dashboard', icon: LayoutDashboard, color: '#10B981' },
+  ],
+};
 
 export default function HubPage() {
   const { currentUser, userData } = useAuth();
-  const { stats, loading: statsLoading } = useUserStats();
-  const [credits, setCredits] = useState<number | null>(null);
+  const { stats } = useUserStats();
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const firstName = userData?.name?.split(' ')[0] || 'there';
   const navigate = useNavigate();
   const isNewUser = new Date(userData?.createdAt || '').getTime() > Date.now() - 24 * 60 * 60 * 1000;
@@ -33,11 +54,11 @@ export default function HubPage() {
     clickPosition: null as { x: number; y: number } | null
   });
   const [totalApplications, setTotalApplications] = useState(0);
-  const [emailTemplates, setEmailTemplates] = useState(0);
   const [activeInterviews, setActiveInterviews] = useState(0);
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const [successRate, setSuccessRate] = useState(0);
 
-  // Charger le logo depuis Firebase Storage
+  // Load logo
   useEffect(() => {
     const loadLogo = async () => {
       try {
@@ -49,51 +70,40 @@ export default function HubPage() {
         console.error('Error loading logo:', error);
       }
     };
-
     loadLogo();
   }, []);
 
-  const handleCardClick = (e: React.MouseEvent, card: any) => {
+  const handleCardClick = (e: React.MouseEvent, item: any) => {
     e.preventDefault();
     e.stopPropagation();
     
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const clickPosition = {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2
     };
 
-    const colorMap = {
-      'purple': '#8D75E5',
-      'green': '#5EBC88',
-      'orange': '#FBBD74',
-      'pink': '#F9A3CA',
-      'blue': '#60A5FA'
-    };
-
     setTransition({
       isOpen: true,
-      color: colorMap[card.colorName as keyof typeof colorMap] || '#ffffff',
-      path: card.path,
+      color: item.color || '#635BFF',
+      path: item.href,
       clickPosition
     });
 
     const isMobile = window.innerWidth <= 768;
     setTimeout(() => {
-      navigate(card.path);
+      navigate(item.href);
     }, isMobile ? 700 : 900);
   };
 
-  // Récupérer les activités récentes
+  // Fetch activities
   useEffect(() => {
     if (!currentUser?.uid) return;
-
     const q = query(
       collection(db, `users/${currentUser.uid}/activities`),
       orderBy('timestamp', 'desc'),
       limit(5)
     );
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newActivities = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -102,86 +112,39 @@ export default function HubPage() {
       })) as Activity[];
       setActivities(newActivities);
     });
-
     return () => unsubscribe();
   }, [currentUser]);
 
-  // Récupérer le nombre total d'applications et calculer le success rate
-  const [successRate, setSuccessRate] = useState(0);
-  
+  // Fetch applications and success rate
   useEffect(() => {
     if (!currentUser?.uid) return;
-
     const applicationsQuery = query(
       collection(db, `users/${currentUser.uid}/jobApplications`)
     );
-
-    const unsubscribeApplications = onSnapshot(applicationsQuery, (snapshot) => {
+    const unsubscribe = onSnapshot(applicationsQuery, (snapshot) => {
       const applications = snapshot.docs.map(doc => doc.data());
       const total = applications.length;
       const successful = applications.filter(app => app.status === 'offer').length;
-      
       setTotalApplications(total);
-      
-      // Calculate success rate based on job applications
       const rate = total > 0 ? (successful / total) * 100 : 0;
       setSuccessRate(rate);
     });
-
-    return () => {
-      unsubscribeApplications();
-    };
+    return () => unsubscribe();
   }, [currentUser]);
 
-  // Récupérer le nombre de templates d'email
+  // Fetch interviews
   useEffect(() => {
     if (!currentUser?.uid) return;
-
-    const templatesQuery = query(
-      collection(db, `users/${currentUser.uid}/emailTemplates`)
-    );
-
-    const unsubscribeTemplates = onSnapshot(templatesQuery, (snapshot) => {
-      setEmailTemplates(snapshot.size);
-    });
-
-    return () => {
-      unsubscribeTemplates();
-    };
-  }, [currentUser]);
-
-  // Récupérer le nombre d'entretiens actifs
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-
     const interviewsQuery = query(
       collection(db, `users/${currentUser.uid}/interviews`),
       where('status', '==', 'scheduled')
     );
-
-    const unsubscribeInterviews = onSnapshot(interviewsQuery, (snapshot) => {
+    const unsubscribe = onSnapshot(interviewsQuery, (snapshot) => {
       setActiveInterviews(snapshot.size);
     });
-
-    return () => {
-      unsubscribeInterviews();
-    };
+    return () => unsubscribe();
   }, [currentUser]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch(e);
-    }
-  };
-
-  // Fonction de déconnexion
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -191,104 +154,71 @@ export default function HubPage() {
     }
   };
 
-  // Cartes des statistiques clés
-  const keyStats = [
-    { 
-      label: 'Total Applications', 
-      value: totalApplications,
-      icon: Briefcase, 
-      colorName: 'purple',
-      color: '#8D75E5',
-      description: 'Applications submitted'
-    },
-    { 
-      label: 'Success Rate', 
-      value: `${successRate.toFixed(1)}%`, 
-      icon: LineChart, 
-      colorName: 'green',
-      color: '#5EBC88',
-      description: 'Job application success rate'
-    },
-    { 
-      label: 'Templates Created', 
-      value: emailTemplates,
-      icon: Mail, 
-      colorName: 'pink',
-      color: '#F9A3CA',
-      description: 'Email templates'
-    }
-  ];
+  // Navigation card component with hover color effect
+  const NavCard = ({ item, index, delay = 0 }: { item: any; index: number; delay?: number }) => (
+    <motion.button
+      onClick={(e) => handleCardClick(e, item)}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: delay + index * 0.05 }}
+      className="group relative overflow-hidden p-4 rounded-2xl bg-white dark:bg-gray-800 
+        border border-gray-200 dark:border-gray-700
+        hover:border-transparent dark:hover:border-transparent
+        transition-all duration-300 text-left w-full"
+      style={{
+        ['--hover-color' as any]: item.color,
+      }}
+    >
+      {/* Hover background */}
+      <motion.div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
+        style={{ backgroundColor: item.color }}
+      />
+      
+      <div className="relative z-10 flex items-center gap-3">
+        {/* Icon */}
+        <div 
+          className="p-2.5 rounded-xl transition-all duration-300
+            bg-gray-100 dark:bg-gray-700 group-hover:bg-white/20"
+        >
+          <item.icon 
+            className="w-5 h-5 transition-colors duration-300 text-gray-600 dark:text-gray-300 group-hover:text-white" 
+          />
+        </div>
+        
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-white transition-colors duration-300 truncate">
+            {item.name}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-white/70 transition-colors duration-300 truncate">
+            {item.desc}
+          </p>
+        </div>
+        
+        {/* Arrow */}
+        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-all duration-300 
+          opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0" />
+      </div>
+    </motion.button>
+  );
 
-  // Cartes principales des fonctionnalités
-  const mainFeatures = [
-    { 
-      title: 'Analytics', 
-      desc: 'Track your application progress', 
-      icon: LineChart, 
-      colorName: 'green',
-      color: '#5EBC88', 
-      path: '/dashboard',
-      stats: { value: `${successRate.toFixed(1)}%`, label: 'Success Rate' }
-    },
-    { 
-      title: 'Application Tracking', 
-      desc: 'Monitor and manage your job applications', 
-      icon: Calendar, 
-      colorName: 'blue',
-      color: '#60A5FA', 
-      path: '/applications',
-      stats: { value: activeInterviews.toString(), label: 'Interviews' }
-    },
-    { 
-      title: 'Recommendations', 
-      desc: 'Discover jobs matched to your profile', 
-      icon: Target, 
-      colorName: 'orange',
-      color: '#FBBD74', 
-      path: '/recommendations',
-      stats: { value: stats?.newMatches?.toString() || '0', label: 'New Matches' }
-    },
-    { 
-      title: 'Professional Profile', 
-      desc: 'Manage your profile and preferences', 
-      icon: Users, 
-      colorName: 'purple',
-      color: '#8D75E5', 
-      path: '/professional-profile',
-      stats: { value: totalApplications.toString(), label: 'Applications' }
-    }
-  ];
-
-  // Cartes secondaires des outils
-  const secondaryTools = [
-    { 
-      title: 'Email Templates', 
-      desc: 'Create and manage your email templates', 
-      icon: Mail, 
-      colorName: 'pink',
-      color: '#F9A3CA', 
-      path: '/email-templates' 
-    },
-    { 
-      title: 'CV Analysis', 
-      desc: 'Get insights and improve your CV', 
-      icon: FileText, 
-      colorName: 'purple',
-      color: '#8D75E5', 
-      path: '/cv-analysis' 
-    },
-    { 
-      title: 'Interview Prep', 
-      desc: 'Practice with AI interview simulations', 
-      icon: Briefcase, 
-      colorName: 'green',
-      color: '#5EBC88', 
-      path: '/upcoming-interviews' 
-    }
-  ];
+  // Section header component
+  const SectionHeader = ({ title, delay = 0 }: { title: string; delay?: number }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay }}
+      className="mb-3"
+    >
+      <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+        {title}
+      </h2>
+    </motion.div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
       <PageTransition 
         {...transition} 
         onAnimationComplete={() => {}} 
@@ -298,40 +228,33 @@ export default function HubPage() {
         animate={{ opacity: transition.isOpen ? 0 : 1 }}
         className="h-full"
       >
+        {/* Header */}
         <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 lg:h-20">
-              <div className="w-1/3"></div>
-              
-              <div className="flex items-center justify-center w-1/3">
-                <Link 
-                  to="/"
-                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                >
+              <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   {logoUrl ? (
-                    <img src={logoUrl} alt="Logo" className="h-8 w-auto" />
+                  <img src={logoUrl} alt="Logo" className="h-10 w-auto" />
                   ) : (
-                    <div className="h-8 w-8 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-full" />
+                  <div className="h-10 w-10 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-full" />
                   )}
                 </Link>
-              </div>
 
-              <div className="flex items-center justify-end gap-4 w-1/3">
+              <div className="flex items-center gap-4">
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex items-center gap-2 bg-gradient-to-r from-[#8D75E5]/10 to-[#8D75E5]/5 dark:from-[#8D75E5]/20 dark:to-[#8D75E5]/10 px-4 py-2 rounded-full"
+                  className="flex items-center gap-2 bg-gradient-to-r from-[#635BFF]/10 to-[#635BFF]/5 dark:from-[#635BFF]/20 dark:to-[#635BFF]/10 px-4 py-2 rounded-full"
                 >
-                  <Coins className="w-4 h-4 text-[#8D75E5]" />
+                  <Coins className="w-4 h-4 text-[#635BFF]" />
                   <span className="font-medium text-gray-900 dark:text-gray-100">{userData?.credits ?? 0}</span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">credits</span>
                 </motion.div>
 
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100
-                    hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 
+                    hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="hidden sm:inline text-sm font-medium">Sign Out</span>
@@ -341,184 +264,114 @@ export default function HubPage() {
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+          {/* Welcome */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="mb-10"
+            className="mb-8"
           >
-            <div className="flex flex-col">
-              <motion.h1 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-gray-900 via-[#8D75E5]/90 to-gray-800 dark:from-gray-100 dark:via-[#8D75E5]/90 dark:to-gray-200 bg-clip-text text-transparent"
-              >
-                {isNewUser 
-                  ? `Welcome to Jobz.ai, ${firstName}! ✨` 
-                  : `Welcome back, ${firstName}`
-                }
-              </motion.h1>
-              <motion.p 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-gray-600 dark:text-gray-400 text-base md:text-lg"
-              >
-                {isNewUser 
-                  ? "Let's start your job search journey. Here's what you can do:"
-                  : "Here's what's happening with your job search today."
-                }
-              </motion.p>
-            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+              {isNewUser ? `Welcome to Jobz.ai, ${firstName}!` : `Welcome back, ${firstName}`}
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              {isNewUser ? "Let's start your job search journey." : "Here's what's happening today."}
+            </p>
+          </motion.div>
+
+          {/* Editable Widgets */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative mb-8 pt-8"
+          >
+            <EditableWidgetGrid />
           </motion.div>
           
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-10">
-            {keyStats.map((stat, index) => (
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-4 mb-8">
               <motion.div 
-                key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600
-                  hover:shadow-sm dark:hover:shadow-md transition-all duration-300 flex flex-col h-full"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-lg" 
-                    style={{ backgroundColor: `${stat.color}15` }}>
-                    <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
-                  </div>
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {stat.description}
-                  </span>
-                </div>
-
-                <div className="mt-auto">
-                  <motion.p 
-                    initial={{ scale: 0.9 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                    className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-1"
-                  >
-                    {stat.value}
-                  </motion.p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {stat.label}
-                  </p>
-                </div>
+              transition={{ delay: 0.15 }}
+              className="bg-[#FF8C42] rounded-2xl p-4 relative overflow-hidden"
+            >
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Applications</div>
+              <div className="text-3xl font-black text-white">{totalApplications}</div>
+              <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 text-white/20" />
               </motion.div>
-            ))}
-          </div>
           
-          {/* Main Feature Cards */}
-          <motion.h2 
-            initial={{ opacity: 0, y: 10 }}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4"
-          >
-            Job Search Dashboard
-          </motion.h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-            {mainFeatures.map((feature, index) => (
-              <motion.button
-                key={feature.title}
-                onClick={(e) => handleCardClick(e, feature)}
+              transition={{ delay: 0.2 }}
+              className="bg-[#14B8A6] rounded-2xl p-4 relative overflow-hidden"
+            >
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Success Rate</div>
+              <div className="text-3xl font-black text-white">{successRate.toFixed(0)}%</div>
+              <LineChart className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 text-white/20" />
+            </motion.div>
+            
+            <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
-                whileHover={{ y: -5 }}
-                className="relative overflow-hidden group p-5 rounded-xl bg-white dark:bg-gray-800 shadow-sm dark:shadow-md
-                  hover:shadow-md dark:hover:shadow-lg transition-all duration-300 text-left border border-gray-100 dark:border-gray-700 flex flex-col h-full"
-              >
-                <div className="relative z-10 h-full flex flex-col">
-                  <div className="p-3 rounded-xl mb-4 w-fit" 
-                    style={{ backgroundColor: `${feature.color}15` }}>
-                    <feature.icon className="w-5 h-5" style={{ color: feature.color }} />
+              transition={{ delay: 0.25 }}
+              className="bg-[#EC4899] rounded-2xl p-4 relative overflow-hidden"
+            >
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Interviews</div>
+              <div className="text-3xl font-black text-white">{activeInterviews}</div>
+              <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 text-white/20" />
+            </motion.div>
                   </div>
                   
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    {feature.title}
-                  </h2>
-                  
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                    {feature.desc}
-                  </p>
-                  
-                  <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
+          {/* Navigation Grid - organized like sidebar */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* APPLY Section */}
                       <div>
-                        <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                          {feature.stats.value}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {feature.stats.label}
-                        </p>
+                <SectionHeader title="Apply" delay={0.3} />
+                <div className="space-y-2">
+                  {navigationGroups.apply.map((item, index) => (
+                    <NavCard key={item.name} item={item} index={index} delay={0.3} />
+                  ))}
+                </div>
                       </div>
                       
-                      <motion.div 
-                        whileHover={{ x: 5 }}
-                        transition={{ duration: 0.2 }}
-                        className="flex items-center text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </motion.div>
+              {/* TRACK Section */}
+              <div>
+                <SectionHeader title="Track" delay={0.4} />
+                <div className="space-y-2">
+                  {navigationGroups.track.map((item, index) => (
+                    <NavCard key={item.name} item={item} index={index} delay={0.4} />
+                  ))}
                     </div>
                   </div>
                 </div>
 
-                <motion.div 
-                  initial={{ scale: 0.8, opacity: 0.5 }}
-                  whileHover={{ scale: 1.5, opacity: 0.8 }}
-                  className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full opacity-10"
-                  style={{ backgroundColor: feature.color }}
-                />
-              </motion.button>
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* PREPARE Section */}
+              <div>
+                <SectionHeader title="Prepare" delay={0.35} />
+                <div className="space-y-2">
+                  {navigationGroups.prepare.map((item, index) => (
+                    <NavCard key={item.name} item={item} index={index} delay={0.35} />
             ))}
           </div>
-          
-          {/* Secondary Tools */}
-          <motion.h2 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4"
-          >
-            Helpful Tools
-          </motion.h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {secondaryTools.map((tool, index) => (
-              <motion.button
-                key={tool.title}
-                onClick={(e) => handleCardClick(e, tool)}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                className="relative overflow-hidden group p-5 rounded-xl bg-white dark:bg-gray-800
-                  hover:shadow-sm dark:hover:shadow-md transition-all duration-300 text-left border border-gray-100 dark:border-gray-700 flex h-full"
-              >
-                <div className="relative z-10 flex items-center gap-4">
-                  <div className="p-3 rounded-xl" 
-                    style={{ backgroundColor: `${tool.color}15` }}>
-                    <tool.icon className="w-5 h-5" style={{ color: tool.color }} />
                   </div>
                   
+              {/* IMPROVE Section */}
                   <div>
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                      {tool.title}
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                      {tool.desc}
-                    </p>
-                  </div>
+                <SectionHeader title="Improve" delay={0.45} />
+                <div className="space-y-2">
+                  {navigationGroups.improve.map((item, index) => (
+                    <NavCard key={item.name} item={item} index={index} delay={0.45} />
+                  ))}
                 </div>
-              </motion.button>
-            ))}
+              </div>
+            </div>
           </div>
         </main>
       </motion.div>

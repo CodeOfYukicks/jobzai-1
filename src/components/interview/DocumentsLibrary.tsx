@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, Trash2, Clock, Search, MoreVertical } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 export interface NoteDocument {
   id: string;

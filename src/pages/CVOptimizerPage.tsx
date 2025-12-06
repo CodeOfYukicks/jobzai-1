@@ -14,7 +14,7 @@ import {
   doc, collection, query, orderBy,
   addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc
 } from 'firebase/firestore';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { db } from '../lib/firebase';
 import { pdfToImages } from '../lib/pdfToImages';
 import { extractCVTextAndTags, CVExtractionResult } from '../lib/cvTextExtraction';

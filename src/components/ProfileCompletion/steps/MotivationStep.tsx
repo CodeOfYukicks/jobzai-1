@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Sparkles, Check, X, RotateCcw } from 'lucide-react';
 import { getOpenAIInstance } from '../../../lib/openai';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface MotivationStepProps {
   value: string;

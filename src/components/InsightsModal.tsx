@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { UserData } from '../types';
-import { toast } from "sonner";
+import { toast } from '@/contexts/ToastContext';
 
 interface InsightsModalProps {
   category: 'timing' | 'salary' | 'keywords' | 'companies' | 'network';

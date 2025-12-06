@@ -10,7 +10,7 @@ import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import ScoreDonut from '../components/ats/ScoreDonut';
 
 interface ATSAnalysis {

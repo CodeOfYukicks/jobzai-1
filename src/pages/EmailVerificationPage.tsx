@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, RefreshCw, Loader2, CheckCircle2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { sendEmailVerification } from 'firebase/auth';
 import { forceLightMode } from '../lib/theme';
 

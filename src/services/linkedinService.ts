@@ -1,7 +1,7 @@
 import { parseLinkedInPdf, mapLinkedInToProfile, ParsedLinkedInProfile } from '../lib/linkedinPdfParser';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 /**
  * LinkedIn Integration Service

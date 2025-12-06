@@ -1,6 +1,6 @@
 ﻿import { ref, getStorage, getDownloadURL } from 'firebase/storage';
 import { storage, auth } from './firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 // Configuration pour les validations
 const VALIDATION_CONFIG = {

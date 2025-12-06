@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Copy, Check, Save, RefreshCw, FileText, Maximize2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { GeneratedEmail } from '../../types/job';
 import NotionEditor from '../notion-editor/NotionEditor';
 import {

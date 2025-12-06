@@ -13,7 +13,7 @@ import {
   FileText,
   Send,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { JobApplication, GeneratedEmail } from '../../types/job';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { 

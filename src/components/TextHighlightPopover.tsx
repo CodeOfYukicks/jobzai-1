@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wand2, MessageSquare, Sparkles, X } from 'lucide-react';
 import { rewriteTextWithAI } from '../lib/emailTemplates';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface TextHighlightPopoverProps {
   position: { x: number, y: number } | null;

@@ -4,7 +4,7 @@ import { X, Eye, EyeOff, Save, Sparkles, ArrowLeft, Tag as TagIcon } from 'lucid
 import { doc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import MergeFieldSelector from './MergeFieldSelector';
 import TemplatePreview from './TemplatePreview';
 import TemplateEditMobile from './mobile/TemplateEditMobile';

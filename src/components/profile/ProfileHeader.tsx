@@ -6,7 +6,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import ProfilePhotoCropper from './ProfilePhotoCropper';
 import CoverPhotoCropper from './CoverPhotoCropper';
 import CoverPhotoGallery from './CoverPhotoGallery';

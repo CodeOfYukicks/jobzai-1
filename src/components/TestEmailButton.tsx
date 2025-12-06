@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { Loader2 } from 'lucide-react';
 
 interface TestEmailButtonProps {

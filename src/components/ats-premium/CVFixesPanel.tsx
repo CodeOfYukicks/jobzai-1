@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FileEdit, Copy, Check, ChevronDown, ChevronRight, TrendingUp } from 'lucide-react';
 import type { CVFixes } from '../../types/premiumATS';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface CVFixesPanelProps {
   cvFixes: CVFixes;

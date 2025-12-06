@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { EMAIL_GOALS, type EmailGoal } from '../lib/constants/emailGoals';

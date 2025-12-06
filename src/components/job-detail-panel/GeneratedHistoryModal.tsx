@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Trash2, Clock, Check, Eye } from 'lucide-react';
 import { GeneratedEmail } from '../../types/job';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface GeneratedHistoryModalProps {
   isOpen: boolean;

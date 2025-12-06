@@ -38,7 +38,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, collection, query, orderBy, limit, getDocs, addDoc, where, Timestamp } from 'firebase/firestore';
 import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { db } from '../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { applyTheme, loadThemeFromStorage, type Theme } from '../lib/theme';
 import { syncUserToBrevo } from '../services/brevo';
 

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { RecommendationsProvider } from './contexts/RecommendationsContext';
 import { RecommendationsLoadingProvider } from './contexts/RecommendationsLoadingContext';
+import { MissionsProvider } from './contexts/MissionsContext';
 import App from './App';
 import './index.css';
 import { initializeTheme } from './lib/theme';
@@ -15,11 +16,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <RecommendationsProvider>
-          <RecommendationsLoadingProvider>
-            <App />
-          </RecommendationsLoadingProvider>
-        </RecommendationsProvider>
+        <MissionsProvider>
+          <RecommendationsProvider>
+            <RecommendationsLoadingProvider>
+              <App />
+            </RecommendationsLoadingProvider>
+          </RecommendationsProvider>
+        </MissionsProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>

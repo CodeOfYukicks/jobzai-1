@@ -11,7 +11,7 @@ import {
   Loader2,
   ChevronRight,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { rewriteTextWithAI } from '../../lib/emailTemplates';
 
 interface NotesAIPopoverProps {

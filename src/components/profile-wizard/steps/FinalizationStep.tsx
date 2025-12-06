@@ -4,7 +4,7 @@ import { FileText, Link, CheckCircle, Upload, X, Loader2 } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { pdfToImages } from '../../../lib/pdfToImages';
 import { extractCVTextAndTags } from '../../../lib/cvTextExtraction';
 

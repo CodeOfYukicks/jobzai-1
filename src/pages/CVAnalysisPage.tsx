@@ -22,7 +22,7 @@ import { CompanyLogo } from '../components/common/CompanyLogo';
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc, Unsubscribe } from 'firebase/firestore';
 import { JobApplication } from '../types/job';
 import { getDownloadURL, ref, getStorage, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { db, storage, auth } from '../lib/firebase';
 import PrivateRoute from '../components/PrivateRoute';
 import * as pdfjsLib from 'pdfjs-dist';

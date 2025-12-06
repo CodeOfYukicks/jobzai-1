@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, query, getDocs, deleteDoc, doc, orderBy, addDoc, serverTimestamp, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { CVData, CVTemplate } from '../types/cvEditor';
 import { generateId } from '../lib/cvEditorUtils';
 import CVPreviewCard from '../components/resume-builder/CVPreviewCard';

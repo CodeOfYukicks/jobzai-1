@@ -3,7 +3,7 @@ import { Briefcase, Plus, MoreVertical, Edit2, Copy, Trash2, Check, Loader2, Inf
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import MonthPicker from '../ui/MonthPicker';
 import { CollapsibleSection, BulletInput, FieldGroup, SectionSkeleton } from '../profile/ui';
 import { CompanyLogo } from '../common/CompanyLogo';

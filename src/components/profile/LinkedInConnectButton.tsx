@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Linkedin, Upload, X, FileText, Check, AlertCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface LinkedInConnectButtonProps {
   onImportComplete?: (data: LinkedInProfileData) => void;

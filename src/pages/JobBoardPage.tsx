@@ -13,7 +13,7 @@ import { FilterState, Job } from '../types/job-board';
 import { GoogleLoader } from '../components/ui/GoogleLoader';
 import { useScrollCollapse } from '../hooks/useScrollCollapse';
 import { useJobInteractions } from '../hooks/useJobInteractions';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { parseSearchQuery, toSearchAPIParams } from '../lib/searchParser';
 import '../components/job-board/premium-search.css';
 

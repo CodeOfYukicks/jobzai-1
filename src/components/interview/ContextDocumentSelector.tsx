@@ -9,7 +9,7 @@ import { Resume } from '../../pages/ResumeBuilderPage';
 import { NotionDocument, getNotes } from '../../lib/notionDocService';
 import { WhiteboardDocument, getWhiteboards } from '../../lib/whiteboardDocService';
 import { ImportedDocument } from '../../components/resume-builder/PDFPreviewCard';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import CVPreviewCard from '../resume-builder/CVPreviewCard';
 import PDFPreviewCard from '../resume-builder/PDFPreviewCard';
 import NotionPreviewCard from '../notion-editor/NotionPreviewCard';

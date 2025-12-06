@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import '../styles/navigation.css';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import MobileNavigation from './mobile/MobileNavigation';

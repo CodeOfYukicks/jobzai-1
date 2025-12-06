@@ -12,7 +12,7 @@ import {
   Target,
   X
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface SuggestedAddition {
   bullet: string;

@@ -11,7 +11,7 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobDetailPanel } from './JobDetailPanel';
 import { JobApplication } from '../../types/job';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 // Example 1: Simple Kanban Board Integration
 export function KanbanBoardExample() {

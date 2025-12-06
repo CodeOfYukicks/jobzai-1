@@ -33,7 +33,7 @@ import {
   createAutoSaver,
   NotionDocument,
 } from '../lib/notionDocService';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';

@@ -5,7 +5,7 @@ import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { applyTheme, loadThemeFromStorage, forceLightMode, type Theme } from '../lib/theme';
 import { syncUserToBrevo } from '../services/brevo';
 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { queryPerplexity } from '../lib/perplexity';
 
 // Answer type for structured answers

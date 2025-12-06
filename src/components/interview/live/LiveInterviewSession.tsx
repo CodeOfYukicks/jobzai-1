@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { LiveSessionConfig, InterviewType, QuestionCount } from './LiveSessionConfig';
 import { LiveInterviewIntro } from './LiveInterviewIntro';
 import { LiveInterviewQuestion } from './LiveInterviewQuestion';

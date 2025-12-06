@@ -1,5 +1,4 @@
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useRecommendationsLoading } from './contexts/RecommendationsLoadingContext';
@@ -7,6 +6,8 @@ import { useAuth } from './contexts/AuthContext';
 import BackgroundLoadingNotification from './components/recommendations/BackgroundLoadingNotification';
 import LoadingStartModal from './components/recommendations/LoadingStartModal';
 import PageLoader from './components/PageLoader';
+import { ToastProvider } from './contexts/ToastContext';
+import ToastInitializer from './components/ToastInitializer';
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -228,46 +229,7 @@ function AppContent() {
       />
       
       
-      <Toaster
-        position="top-right"
-        expand={false}
-        richColors={false}
-        theme="light"
-        className="!font-sans"
-        toastOptions={{
-          style: {
-            background: 'white',
-            border: 'none',
-            color: '#1a1a1a',
-            fontSize: '14px',
-            borderRadius: '14px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-            padding: '12px 16px',
-          },
-          className: 'toast-custom',
-          success: {
-            style: {
-              background: '#f0fdf4',
-              borderLeft: '4px solid #22c55e',
-            },
-            icon: '✓',
-          },
-          error: {
-            style: {
-              background: '#fef2f2',
-              borderLeft: '4px solid #ef4444',
-            },
-            icon: '✕',
-          },
-          warning: {
-            style: {
-              background: '#fffbeb',
-              borderLeft: '4px solid #f59e0b',
-            },
-            icon: '⚠',
-          },
-        }}
-      />
+      {/* Custom dark-themed toast system */}
     </>
   );
 }
@@ -275,7 +237,10 @@ function AppContent() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent />
+      <ToastProvider>
+        <ToastInitializer />
+        <AppContent />
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

@@ -36,7 +36,7 @@ import {
   saveWhiteboardThumbnail,
 } from '../lib/whiteboardDocService';
 import { WhiteboardDocument } from '../types/whiteboardDoc';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 

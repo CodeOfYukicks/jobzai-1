@@ -11,7 +11,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { toResumeJson } from '../lib/resumeAdapter';
 import { db } from '../lib/firebase';
 

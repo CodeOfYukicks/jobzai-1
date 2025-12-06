@@ -4,7 +4,7 @@ import { Check, CreditCard, Loader2, Crown } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface SubscriptionStepProps {
   onComplete: () => void;

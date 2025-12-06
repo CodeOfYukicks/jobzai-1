@@ -4,7 +4,7 @@ import { FileText, Edit2, X, Loader2, Sparkles, Check, RotateCcw } from 'lucide-
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { getOpenAIInstance } from '../../lib/openai';
 import ProfileSectionCard from './ProfileSectionCard';
 

@@ -3,7 +3,7 @@ import { FileText, Link as LinkIcon, Github, Linkedin, Upload, X, ExternalLink, 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { db } from '../../lib/firebase';
 import { pdfToImages } from '../../lib/pdfToImages';
 import { extractCVTextAndTags } from '../../lib/cvTextExtraction';

@@ -9,7 +9,7 @@ import AuthLayout from '../components/AuthLayout';
 import GenerateTemplateModal from '../components/GenerateTemplateModal';
 import DeleteTemplateDialog from '../components/DeleteTemplateDialog';
 import TemplateEditModal from '../components/TemplateEditModal';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import TemplateCard from '../components/TemplateCard';
 import { useSwipeable } from 'react-swipeable';
 

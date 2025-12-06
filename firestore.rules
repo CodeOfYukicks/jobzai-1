@@ -103,6 +103,26 @@ service cloud.firestore {
       match /mockInterviewSessions/{sessionId} {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
+      
+      // Daily Missions subcollection
+      match /dailyMissions/{missionId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
+      // Mission Stats subcollection
+      match /missionStats/{statsId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
+      // Activities subcollection
+      match /activities/{activityId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
+      // Interviews subcollection
+      match /interviews/{interviewId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
     }
 
     // Jobs collection

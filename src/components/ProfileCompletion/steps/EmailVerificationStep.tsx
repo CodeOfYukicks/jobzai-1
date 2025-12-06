@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { sendEmailVerification } from 'firebase/auth';
 
 interface EmailVerificationStepProps {

@@ -16,7 +16,7 @@ import {
   doc, collection, addDoc, updateDoc, getDoc, deleteDoc,
   serverTimestamp, onSnapshot, query, orderBy
 } from 'firebase/firestore';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { db } from '../lib/firebase';
 
 // CV Data Structure

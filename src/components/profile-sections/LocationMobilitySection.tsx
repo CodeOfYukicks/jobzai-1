@@ -3,7 +3,7 @@ import { MapPin, Globe, Building2, Home, Plane, Check } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { motion } from 'framer-motion';
 import { 
   PremiumInput, 

@@ -5,7 +5,7 @@ import { CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { recordCreditHistory } from '../lib/creditHistory';
 
 export default function PaymentSuccessPage() {

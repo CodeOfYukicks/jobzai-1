@@ -4,7 +4,7 @@ import { ArrowLeft, Save, Sparkles, Tag as TagIcon } from 'lucide-react';
 import { doc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import MergeFieldSelector from '../MergeFieldSelector';
 import TextHighlightPopover from '../TextHighlightPopover';
 import { rewriteTextWithAI } from '../../lib/emailTemplates';

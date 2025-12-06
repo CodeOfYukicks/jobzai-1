@@ -7,7 +7,7 @@ import { KeywordsCard } from '../components/KeywordsCard';
 import { Loader2 } from 'lucide-react';
 import { generatePersonalizedInsights } from '../lib/recommendations';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { analyzeCVWithGPT, testCVAnalysis } from '../lib/cvAnalysis';

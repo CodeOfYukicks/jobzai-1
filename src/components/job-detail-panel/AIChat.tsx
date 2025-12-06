@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Sparkles, Loader2, Wand2, MessageSquare, Check } from 'lucide-react';
 import { ChatMessage } from '../../types/job';
 import { sendChatMessage, quickActions, findSection, replaceSection } from '../../lib/aiChatAssistant';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface AIChatProps {
   documentContent: string;

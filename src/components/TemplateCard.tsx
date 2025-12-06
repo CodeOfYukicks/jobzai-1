@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Edit, Trash2, ChevronLeft, ChevronRight, Undo2, Mail, Sparkles, Clock, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import EditTemplateModal from './EditTemplateModal';
 import { toggleTemplateFavorite } from '../lib/templates';
 

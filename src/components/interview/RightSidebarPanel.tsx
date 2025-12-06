@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import NotesDocumentManager from './NotesDocumentManager';
 import { NoteDocument } from './DocumentsLibrary';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import ContextDocumentSelector, { ContextDocument } from './ContextDocumentSelector';
 
 interface ChatMessage {

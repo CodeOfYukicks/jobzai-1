@@ -8,7 +8,7 @@ import {
 import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage } from '../../types/cvEditor';
 import { generateId } from '../../lib/cvEditorUtils';
 import { rewriteSection } from '../../lib/cvSectionAI';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import DiffView from './DiffView';
 import {
   ExperienceInlineForm,

@@ -45,7 +45,7 @@ import {
   Camera,
   Settings,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import confetti from 'canvas-confetti';

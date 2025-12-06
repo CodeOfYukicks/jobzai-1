@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { Loader2 } from 'lucide-react';
 import { getDoc, doc } from 'firebase/firestore';
 

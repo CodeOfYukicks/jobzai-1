@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Clock, FileEdit, Briefcase, Linkedin, Mail, Target, Copy, Check } from 'lucide-react';
 import type { ActionPlan48H } from '../../types/premiumATS';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface ActionPlan48HProps {
   actionPlan: ActionPlan48H;

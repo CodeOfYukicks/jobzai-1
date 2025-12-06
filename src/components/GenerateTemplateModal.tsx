@@ -7,7 +7,7 @@ import {
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { generateEmailTemplate, type GenerateOptions, type LanguageType } from '../lib/emailTemplates';
 import { EMAIL_GOALS, type EmailGoal } from '../lib/constants/emailGoals';
 import { EMAIL_LENGTHS, type EmailLength } from '../lib/constants/emailLength';

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Loader2, RefreshCw, Eye, EyeOff, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { forceLightMode } from '../lib/theme';
 import FirebaseImage from '../components/FirebaseImage';
 

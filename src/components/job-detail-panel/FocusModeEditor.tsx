@@ -3,7 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Save, Check, Loader2, FileText, Undo2, Redo2 } from 'lucide-react';
 import { AIChat } from './AIChat';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface FocusModeEditorProps {
   isOpen: boolean;

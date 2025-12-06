@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Check, ArrowLeft } from 'lucide-react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import debounce from 'lodash/debounce';
 import StepIndicator from './StepIndicator';
 import StepContent from './StepContent';

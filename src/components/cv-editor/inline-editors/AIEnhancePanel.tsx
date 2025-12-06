@@ -5,7 +5,7 @@ import {
   ChevronDown, Send, Loader2, Check, X, RefreshCw
 } from 'lucide-react';
 import { rewriteSection } from '../../../lib/cvSectionAI';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface AIEnhancePanelProps {
   sectionType: 'experience' | 'project' | 'summary';

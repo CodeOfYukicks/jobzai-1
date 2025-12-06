@@ -4,7 +4,7 @@ import {
   Wand2, TrendingUp, Target, Minus, Plus, 
   CheckCircle, X, Loader2, ChevronDown, ChevronUp, Trash2, Sparkles 
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface AIAction {
   id: string;

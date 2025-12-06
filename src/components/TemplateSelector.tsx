@@ -6,7 +6,7 @@ import { Search, Plus, Edit2 } from 'lucide-react';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import CreateTemplateDialog from './CreateTemplateDialog';
 import TemplateEditModal from './TemplateEditModal';
 

@@ -10,7 +10,7 @@ import { EmailGenerator } from './EmailGenerator';
 import { GenerationLoadingScreen } from './GenerationLoadingScreen';
 import { GeneratedHistoryModal } from './GeneratedHistoryModal';
 import { GeneratedContentView } from './GeneratedContentView';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { createNote } from '../../lib/notionDocService';
 import { convertTextToTiptapContent } from '../../lib/textToTiptap';
 

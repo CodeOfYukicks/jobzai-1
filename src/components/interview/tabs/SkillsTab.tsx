@@ -4,7 +4,7 @@ import { Briefcase, Award, MessageSquare, ArrowUp, CheckCircle2, Sparkles, Loade
 import { Interview } from '../../../types/interview';
 import { generateStarStory } from '../../../services/starStoryGenerator';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface SkillsTabProps {
   interview: Interview;

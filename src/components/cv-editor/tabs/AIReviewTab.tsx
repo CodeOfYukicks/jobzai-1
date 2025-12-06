@@ -13,7 +13,7 @@ import {
   HighlightTarget
 } from '../../../types/cvReview';
 import { analyzeCVWithAI } from '../../../services/cvReviewAI';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 interface AIReviewTabProps {
   cvData: CVData;

@@ -1,4 +1,4 @@
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 
 /**
  * Structure for an extracted professional experience

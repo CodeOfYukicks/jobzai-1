@@ -10,7 +10,7 @@ import {
 import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import { CVRewrite, PremiumATSAnalysis, AdaptationLevel } from '../types/premiumATS';
 import { generateCVRewrite, translateCV } from '../lib/cvRewriteService';
 import AdaptationLevelModal from '../components/ats-premium/AdaptationLevelModal';

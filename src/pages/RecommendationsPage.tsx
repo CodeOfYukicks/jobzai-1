@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useRecommendations, getStateKey } from '../contexts/RecommendationsContext';
 import { useRecommendationsLoading } from '../contexts/RecommendationsLoadingContext';
 import { fetchCompleteUserData, CompleteUserData } from '../lib/userDataFetcher';
-import { toast } from 'sonner';
+import { toast } from '@/contexts/ToastContext';
 import LoadingStartModal from '../components/recommendations/LoadingStartModal';
 
 // Import new section components
