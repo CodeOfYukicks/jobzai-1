@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Building, GraduationCap, TrendingUp, Sparkles, Info } from 'lucide-react';
 import { useState } from 'react';
 import { CompleteUserData } from '../../lib/userDataFetcher';
-import PageHeader from '../PageHeader';
 
 interface HeroSectionProps {
   completeUserData: CompleteUserData | null;
@@ -136,29 +135,41 @@ export default function HeroSection({
       transition={{ duration: 0.5 }}
       className="mb-12"
     >
-      {/* Header */}
+      {/* Header - Horizontal Layout like CVAnalysisPage */}
       <div className="mb-8">
-        <PageHeader 
-          title="AI Recommendations"
-          subtitle="Personalized insights to accelerate your career growth"
-        />
-        <div className="flex justify-center mt-6">
-          <button
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex items-center justify-between"
+        >
+          {/* Title left */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              AI Recommendations
+            </h1>
+            <p className="text-sm mt-0.5 text-gray-500 dark:text-gray-400">
+              Personalized insights to accelerate your career growth
+            </p>
+          </div>
+
+          {/* Generate Button right */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onRefresh}
             disabled={isLoading}
-            className={`px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 
-              hover:from-indigo-700 hover:to-violet-700 disabled:from-gray-400 disabled:to-gray-500 
-              text-white rounded-lg text-sm font-semibold flex items-center gap-2
-              transition-all duration-200 ease-out
-              disabled:cursor-not-allowed 
-              shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/30
-              hover:shadow-xl hover:shadow-indigo-500/30 dark:hover:shadow-indigo-900/40
-              disabled:shadow-none disabled:hover:shadow-none`}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg 
+              shadow-sm hover:shadow transition-all duration-200
+              text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 
+              border border-gray-200 dark:border-gray-700 
+              hover:bg-gray-50 dark:hover:bg-gray-700
+              disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Sparkles className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <Sparkles className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Generate Insights</span>
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
 
       {/* Quick Stats Grid */}

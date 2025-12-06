@@ -11,4 +11,5 @@ export { default as AchievementToast } from './AchievementToast';
 export { default as TimeWidget } from './TimeWidget';
 export { default as NoteWidget } from './NoteWidget';
 export { default as HamsterWidget } from './HamsterWidget';
+export { default as PressButtonWidget } from './PressButtonWidget';
 

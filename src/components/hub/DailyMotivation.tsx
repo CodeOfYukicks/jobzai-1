@@ -40,8 +40,14 @@ function getTodayKey(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function getRandomFallbackQuote(): Omit<QuoteData, 'dateKey'> {
-  // Use date as seed for consistent daily quote from fallbacks
+function getRandomFallbackQuote(forceRandom = false): Omit<QuoteData, 'dateKey'> {
+  if (forceRandom) {
+    // On refresh choose any fallback so the click feels responsive even if the API fails
+    const randomIndex = Math.floor(Math.random() * FALLBACK_QUOTES.length);
+    return FALLBACK_QUOTES[randomIndex];
+  }
+
+  // Default: deterministic per day so the initial quote stays stable
   const today = new Date();
   const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
   const index = seed % FALLBACK_QUOTES.length;
@@ -101,7 +107,7 @@ export default function DailyMotivation() {
     } catch (error) {
       console.error('Failed to fetch quote:', error);
       // Use fallback quote
-      const fallback = getRandomFallbackQuote();
+      const fallback = getRandomFallbackQuote(forceRefresh);
       const fallbackQuote: QuoteData = {
         ...fallback,
         dateKey: todayKey,
@@ -118,8 +124,15 @@ export default function DailyMotivation() {
   }, [fetchQuote]);
 
   const handleRefresh = () => {
-    if (!isRefreshing) {
+    if (!isRefreshing && !loading) {
       fetchQuote(true);
+    }
+  };
+
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleRefresh();
     }
   };
 
@@ -151,6 +164,9 @@ export default function DailyMotivation() {
       {/* Main card */}
       <div 
         onClick={handleRefresh}
+        onKeyDown={handleCardKeyDown}
+        role="button"
+        tabIndex={0}
         className="group relative bg-[#B7E219] rounded-2xl h-full min-h-[220px] overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-[#B7E219]/30"
       >
         {/* Header */}

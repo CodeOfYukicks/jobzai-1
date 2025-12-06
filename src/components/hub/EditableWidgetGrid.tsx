@@ -24,16 +24,17 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Pencil, Check, X, GripVertical, Plus, Target, Cloud, Quote, Clock, StickyNote, Heart, Maximize2, Minimize2 } from 'lucide-react';
+import { Pencil, Check, X, GripVertical, Plus, Target, Cloud, Quote, Clock, StickyNote, Heart, Maximize2, Minimize2, CircleDot } from 'lucide-react';
 import DailyMissions from './DailyMissions';
 import DailyMotivation from './DailyMotivation';
 import WeatherCard from './WeatherCard';
 import TimeWidget from './TimeWidget';
 import NoteWidget from './NoteWidget';
 import HamsterWidget from './HamsterWidget';
+import PressButtonWidget from './PressButtonWidget';
 
 // Widget types
-type WidgetType = 'missions' | 'quote' | 'weather' | 'time' | 'note' | 'hamster';
+type WidgetType = 'missions' | 'quote' | 'weather' | 'time' | 'note' | 'hamster' | 'pressButton';
 
 interface Widget {
   id: string;
@@ -100,6 +101,14 @@ const widgetCatalog: {
     color: '#F97316',
     size: 'small'
   },
+  { 
+    type: 'pressButton', 
+    name: 'Press Button', 
+    description: 'Satisfying press animation',
+    icon: CircleDot,
+    color: '#FF5A78',
+    size: 'small'
+  },
 ];
 
 // Default widget configuration
@@ -107,6 +116,7 @@ const defaultWidgets: Widget[] = [
   { id: 'missions-1', type: 'missions', size: 'large' },
   { id: 'quote-1', type: 'quote', size: 'small' },
   { id: 'weather-1', type: 'weather', size: 'small' },
+  { id: 'pressButton-1', type: 'pressButton', size: 'small' },
 ];
 
 const STORAGE_KEY = 'hubWidgetConfig';
@@ -126,6 +136,8 @@ const WidgetContent = ({ type, size }: { type: WidgetType; size: 'small' | 'medi
       return <NoteWidget />;
     case 'hamster':
       return <HamsterWidget />;
+    case 'pressButton':
+      return <PressButtonWidget />;
     default:
       return null;
   }

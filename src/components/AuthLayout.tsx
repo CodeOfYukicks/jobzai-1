@@ -356,6 +356,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/interview-prep/') || 
     location.pathname === '/resume-builder' ||
     location.pathname === '/cv-analysis' ||
+    location.pathname === '/recommendations' ||
     (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor')) ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
     location.pathname.startsWith('/notes/');
@@ -371,7 +372,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/resume-builder') ||
     location.pathname === '/professional-profile' ||
     location.pathname === '/campaigns' ||
+    location.pathname === '/recommendations' ||
     location.pathname.startsWith('/notes/');
+
+  // Pages that should not be wrapped in a white card so they inherit the layout background
+  const isPlainBackground = location.pathname === '/recommendations' || location.pathname === '/recommendations-legacy';
 
   return (
     <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden`}>
@@ -1050,10 +1055,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             ) : (
               // Mode normal avec max-width pour les autres pages
               <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-                {/* Wrapper pour le contenu principal avec fond blanc */}
-                <div className="md:bg-white md:dark:bg-gray-800 md:rounded-xl md:shadow-sm overflow-hidden">
-                  {children}
-                </div>
+                {isPlainBackground ? (
+                  children
+                ) : (
+                  /* Wrapper pour le contenu principal avec fond blanc */
+                  <div className="md:bg-white md:dark:bg-gray-800 md:rounded-xl md:shadow-sm overflow-hidden">
+                    {children}
+                  </div>
+                )}
               </div>
             )}
           </div>

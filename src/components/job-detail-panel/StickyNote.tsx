@@ -14,6 +14,30 @@ export const StickyNote = ({ note, onEdit, onDelete }: StickyNoteProps) => {
   const [editedContent, setEditedContent] = useState(note.content);
   const [showMenu, setShowMenu] = useState(false);
 
+  // Helpers to derive subtle overlays from the note color so the enlarged view
+  // keeps the same sticky vibe as the original card.
+  const hexToRgb = (hex: string) => {
+    const normalized = hex.replace('#', '');
+    const matches = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(normalized);
+    if (!matches) return null;
+    return {
+      r: parseInt(matches[1], 16),
+      g: parseInt(matches[2], 16),
+      b: parseInt(matches[3], 16),
+    };
+  };
+
+  const toRgba = (hex: string, alpha: number) => {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return `rgba(254,243,199,${alpha})`; // fall back to soft yellow
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+  };
+
+  const noteColor = note.color || '#FEF3C7';
+  const sheenOverlay = toRgba(noteColor, 0.32);
+  const depthOverlay = toRgba(noteColor, 0.18);
+  const edgeOverlay = toRgba(noteColor, 0.45);
+
   const handleSave = () => {
     if (editedContent.trim()) {
       onEdit(note.id, editedContent);
@@ -46,15 +70,24 @@ export const StickyNote = ({ note, onEdit, onDelete }: StickyNoteProps) => {
       exit={{ opacity: 0, scale: 0.9 }}
       className="relative group"
     >
+      {/* Tape effect for premium sticky feel */}
+      <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-3 w-16 h-4 rounded-sm bg-black/10 border border-white/40 shadow-sm rotate-[-2deg] backdrop-blur-[2px]" />
+
       <div 
-        className="h-64 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+        className="relative min-h-[280px] h-72 p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-shadow border border-black/5 overflow-hidden"
         style={{
-          backgroundColor: note.color || '#FEF3C7', // Beige clair par défaut
+          backgroundColor: noteColor,
+          backgroundImage: `
+            linear-gradient(180deg, ${sheenOverlay} 0%, transparent 45%),
+            linear-gradient(135deg, ${depthOverlay} 0%, transparent 60%),
+            linear-gradient(90deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 30%)
+          `,
+          boxShadow: '0 18px 38px -20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.35)',
         }}
       >
         {/* Header with Menu */}
         <div className="flex items-start justify-between mb-3">
-          <span className="text-xs text-gray-600 font-medium">{formattedDate}</span>
+          <span className="text-xs text-gray-700 font-medium drop-shadow-sm">{formattedDate}</span>
           
           <div className="relative">
             <button
@@ -110,7 +143,10 @@ export const StickyNote = ({ note, onEdit, onDelete }: StickyNoteProps) => {
             <textarea
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
-              className="flex-1 w-full p-2 bg-white/50 rounded border border-gray-300 dark:border-gray-600 focus:border-gray-400 focus:outline-none resize-none text-sm"
+              className="flex-1 w-full p-3 rounded-xl border border-white/50 bg-white/25 backdrop-blur-[2px] shadow-inner focus:border-black/10 focus:outline-none resize-none text-sm text-gray-900 placeholder:text-gray-600"
+              style={{
+                boxShadow: `inset 0 1px 0 ${edgeOverlay}, inset 0 -12px 24px ${toRgba('#000000', 0.08)}`,
+              }}
               autoFocus
             />
             <div className="flex items-center justify-end gap-2 mt-2">
