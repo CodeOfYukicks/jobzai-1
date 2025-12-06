@@ -634,6 +634,13 @@ export default function MockInterviewPage() {
     return 'text-gray-500';
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   const isSessionActive = connectionStatus === 'connecting' || connectionStatus === 'ready' || connectionStatus === 'live';
 
   // Delete a past session
@@ -705,9 +712,17 @@ export default function MockInterviewPage() {
         transition={{ delay: 0.1 }}
         className="text-center mb-10"
       >
-        <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-violet-600/10 to-cyan-600/10 dark:from-violet-600/20 dark:to-cyan-600/20 border border-gray-200 dark:border-white/10 mb-4">
-          <Mic className="h-6 w-6 text-violet-500 dark:text-violet-400" />
-        </div>
+        {/* Personalized Greeting */}
+        {userProfile?.firstName && (
+          <motion.p
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="text-xl font-medium text-gray-400 dark:text-gray-500 mb-3"
+          >
+            {getGreeting()}, {userProfile.firstName}
+          </motion.p>
+        )}
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
           Mock Interview
         </h1>
