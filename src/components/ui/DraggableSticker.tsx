@@ -118,10 +118,6 @@ export function DraggableSticker({
       }}
       animate={{
         scale: isDragging ? 1.15 : 1,
-        boxShadow: isDragging
-          ? '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(255, 255, 255, 0.1)'
-          : '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1)',
-        filter: isDragging ? 'brightness(1.05)' : 'brightness(1)',
       }}
       transition={{
         type: 'spring',
@@ -134,23 +130,7 @@ export function DraggableSticker({
         src={src}
         alt="Sticker"
         className="w-full h-full object-contain pointer-events-none"
-        style={{
-          filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15))',
-        }}
         draggable={false}
-      />
-      
-      {/* Subtle shine effect when dragging */}
-      <motion.div
-        className="absolute inset-0 rounded-lg pointer-events-none"
-        style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%, transparent 100%)',
-          opacity: isDragging ? 0.6 : 0,
-        }}
-        animate={{
-          opacity: isDragging ? 0.6 : 0,
-        }}
-        transition={{ duration: 0.2 }}
       />
     </motion.div>
   );
