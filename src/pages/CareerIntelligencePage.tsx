@@ -40,7 +40,10 @@ export default function CareerIntelligencePage() {
   const [isCoverDark, setIsCoverDark] = useState<boolean | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load user data
+  // Track if we've already tried to generate
+  const hasTriedGenerating = useRef(false);
+
+  // Load user data and saved insights
   useEffect(() => {
     if (!currentUser) {
       navigate('/login');
@@ -50,8 +53,25 @@ export default function CareerIntelligencePage() {
     const loadData = async () => {
       try {
         setIsLoading(true);
+        
+        // Load user data
         const data = await fetchCompleteUserData(currentUser.uid);
         setUserData(data);
+        
+        // Try to load saved insights from user's pagePreferences
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.careerInsights) {
+              setInsights(userData.careerInsights.data as CareerInsightsData);
+              setLastUpdated(userData.careerInsights.updatedAt?.toDate() || new Date());
+              console.log('Loaded saved career insights from user doc');
+            }
+          }
+        } catch (insightsError) {
+          console.log('Could not load saved insights:', insightsError);
+        }
       } catch (error) {
         console.error('Error loading user data:', error);
         toast.error('Failed to load your profile');
@@ -63,6 +83,24 @@ export default function CareerIntelligencePage() {
     loadData();
   }, [currentUser, navigate]);
 
+  // Save insights to user document
+  const saveInsightsToFirestore = async (insightsData: CareerInsightsData) => {
+    if (!currentUser) return;
+    
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        careerInsights: {
+          data: insightsData,
+          updatedAt: new Date()
+        }
+      });
+      console.log('Career insights saved successfully');
+    } catch (error) {
+      console.error('Error saving insights:', error);
+    }
+  };
+
   // Generate insights
   const handleGenerateInsights = async () => {
     if (!userData) return;
@@ -72,7 +110,11 @@ export default function CareerIntelligencePage() {
       const result = await generateCareerInsights(userData);
       setInsights(result);
       setLastUpdated(new Date());
-      toast.success('Insights generated successfully');
+      
+      // Save to Firestore
+      await saveInsightsToFirestore(result);
+      
+      toast.success('Insights generated and saved');
     } catch (error) {
       console.error('Error generating insights:', error);
       toast.error('Failed to generate insights');
@@ -81,12 +123,13 @@ export default function CareerIntelligencePage() {
     }
   };
 
-  // Auto-generate on first load with data
+  // Auto-generate only if no saved insights exist (and only once)
   useEffect(() => {
-    if (userData && !insights && !isGenerating) {
+    if (userData && !insights && !isGenerating && !isLoading && !hasTriedGenerating.current) {
+      hasTriedGenerating.current = true;
       handleGenerateInsights();
     }
-  }, [userData]);
+  }, [userData, insights, isLoading, isGenerating]);
 
   const handleOpenInsight = (type: InsightType) => {
     setSelectedInsight(type);
@@ -696,7 +739,7 @@ export default function CareerIntelligencePage() {
           )}
 
           {/* Footer */}
-          {lastUpdated && (
+          {lastUpdated && insights && (
             <motion.footer
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -704,14 +747,22 @@ export default function CareerIntelligencePage() {
               className="mt-12 pt-6 border-t border-gray-100 dark:border-gray-800"
             >
               <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                Last updated {lastUpdated.toLocaleTimeString()} · 
+                Insights saved · Last updated {(() => {
+                  const now = new Date();
+                  const isToday = lastUpdated.toDateString() === now.toDateString();
+                  if (isToday) {
+                    return `today at ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                  }
+                  return lastUpdated.toLocaleDateString([], { month: 'short', day: 'numeric' }) + 
+                    ` at ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                })()} · 
                 <button 
                   onClick={() => navigate('/profile')}
                   className="ml-1 text-indigo-500 hover:text-indigo-600 transition-colors"
                 >
                   Update your profile
                 </button>
-                {' '}for better recommendations
+                {' '}then click Refresh for better results
               </p>
             </motion.footer>
           )}
