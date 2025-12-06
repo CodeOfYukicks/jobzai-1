@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Briefcase, Video, Users, Building, Trophy, Clock, Heart } from 'lucide-react';
+import { Briefcase, Video, Users, Building, Trophy, Clock, Heart, MapPin } from 'lucide-react';
 import { CalendarEvent } from './types';
 import { CompanyLogo } from '../common/CompanyLogo';
 import moment from 'moment';
@@ -15,174 +15,166 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
   const getEventColors = () => {
     if (event.type === 'application') {
       return {
-        bg: 'bg-gradient-to-br from-blue-500 to-blue-600',
-        border: 'border-blue-400/30',
-        icon: <Briefcase className="w-3.5 h-3.5" />,
+        // Apple-like blue gradient
+        bgGradient: 'linear-gradient(135deg, #007AFF 0%, #0055D4 100%)',
+        lightBg: 'rgba(0, 122, 255, 0.12)',
+        accentColor: '#007AFF',
+        icon: <Briefcase className="w-3 h-3" />,
         badge: 'Applied',
-        badgeBg: 'bg-blue-400/20',
       };
     }
 
     if (event.type === 'wishlist') {
       return {
-        bg: 'bg-gradient-to-br from-pink-500 to-rose-500',
-        border: 'border-pink-400/30',
-        icon: <Heart className="w-3.5 h-3.5" />,
+        bgGradient: 'linear-gradient(135deg, #FF2D55 0%, #D91A40 100%)',
+        lightBg: 'rgba(255, 45, 85, 0.12)',
+        accentColor: '#FF2D55',
+        icon: <Heart className="w-3 h-3" />,
         badge: 'Wishlist',
-        badgeBg: 'bg-pink-400/20',
       };
     }
 
-    // Interview type colors
+    // Interview type colors - Apple palette
     const interview = event.resource?.interview;
     const interviewType = interview?.type || 'technical';
 
     switch (interviewType) {
       case 'technical':
         return {
-          bg: 'bg-gradient-to-br from-emerald-500 to-teal-600',
-          border: 'border-emerald-400/30',
-          icon: <Video className="w-3.5 h-3.5" />,
+          bgGradient: 'linear-gradient(135deg, #30D158 0%, #248A3D 100%)',
+          lightBg: 'rgba(48, 209, 88, 0.12)',
+          accentColor: '#30D158',
+          icon: <Video className="w-3 h-3" />,
           badge: 'Technical',
-          badgeBg: 'bg-emerald-400/20',
         };
       case 'hr':
         return {
-          bg: 'bg-gradient-to-br from-pink-500 to-rose-600',
-          border: 'border-pink-400/30',
-          icon: <Users className="w-3.5 h-3.5" />,
+          bgGradient: 'linear-gradient(135deg, #BF5AF2 0%, #8944AB 100%)',
+          lightBg: 'rgba(191, 90, 242, 0.12)',
+          accentColor: '#BF5AF2',
+          icon: <Users className="w-3 h-3" />,
           badge: 'HR',
-          badgeBg: 'bg-pink-400/20',
         };
       case 'manager':
         return {
-          bg: 'bg-gradient-to-br from-amber-500 to-orange-600',
-          border: 'border-amber-400/30',
-          icon: <Building className="w-3.5 h-3.5" />,
+          bgGradient: 'linear-gradient(135deg, #FF9F0A 0%, #C77700 100%)',
+          lightBg: 'rgba(255, 159, 10, 0.12)',
+          accentColor: '#FF9F0A',
+          icon: <Building className="w-3 h-3" />,
           badge: 'Manager',
-          badgeBg: 'bg-amber-400/20',
         };
       case 'final':
         return {
-          bg: 'bg-gradient-to-br from-green-500 to-emerald-600',
-          border: 'border-green-400/30',
-          icon: <Trophy className="w-3.5 h-3.5" />,
+          bgGradient: 'linear-gradient(135deg, #34C759 0%, #248A3D 100%)',
+          lightBg: 'rgba(52, 199, 89, 0.12)',
+          accentColor: '#34C759',
+          icon: <Trophy className="w-3 h-3" />,
           badge: 'Final',
-          badgeBg: 'bg-green-400/20',
         };
       default:
         return {
-          bg: 'bg-gradient-to-br from-purple-500 to-indigo-600',
-          border: 'border-purple-400/30',
-          icon: <Video className="w-3.5 h-3.5" />,
+          bgGradient: 'linear-gradient(135deg, #5856D6 0%, #3634A3 100%)',
+          lightBg: 'rgba(88, 86, 214, 0.12)',
+          accentColor: '#5856D6',
+          icon: <Video className="w-3 h-3" />,
           badge: 'Interview',
-          badgeBg: 'bg-purple-400/20',
         };
     }
   };
 
-  const { bg, border, icon, badge, badgeBg } = getEventColors();
+  const { bgGradient, lightBg, accentColor, icon, badge } = getEventColors();
   const app = (event.type === 'application' || event.type === 'wishlist') ? event.resource : (event.resource?.application || event.resource);
   const companyName = app?.companyName || 'Company';
   const position = app?.position || 'Position';
+  const location = app?.location;
   const showTime = !event.allDay && variant !== 'month';
-  const time = showTime ? moment(event.start).format('HH:mm') : null;
+  const time = showTime ? moment(event.start).format('h:mm A') : null;
 
-  // Version pour month view (compacte avec logo) - Optimized density
+  // Compact Apple-style month view card - Readable & fits cells
   if (variant === 'month') {
     return (
       <div
         onClick={onClick}
-        className={`
-          ${bg}
-          rounded-md
-          border border-white/30
-          px-1.5 py-0.5
-          text-white
-          cursor-pointer
-          transition-all duration-150
-          hover:shadow-md hover:shadow-black/25
-          hover:scale-[1.02]
-          overflow-hidden
-          group
-          min-h-[22px]
-        `}
+        className="event-pill-apple group flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer overflow-hidden"
         style={{ 
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          MozUserSelect: 'none',
-          msUserSelect: 'none'
+          background: bgGradient,
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'all 0.15s ease-out',
+          minHeight: '22px',
         }}
       >
-        <div className="flex items-center gap-1.5 min-w-0">
-          <CompanyLogo 
-            companyName={companyName} 
-            size="sm" 
-            className="flex-shrink-0 ring-1 ring-white/30"
-          />
-          <div className="flex-1 min-w-0 flex items-center gap-1">
-            <div className="font-semibold text-[10.5px] truncate leading-tight">
-              {companyName}
-            </div>
-            <span className="text-white/60 text-[10px]">•</span>
-            <div className="text-[9.5px] opacity-80 truncate leading-tight">
-              {position.length > 20 ? position.substring(0, 20) + '...' : position}
-            </div>
-          </div>
-          <div className={`${badgeBg} px-1.5 py-0.5 rounded text-[7.5px] font-semibold flex-shrink-0 backdrop-blur-sm uppercase tracking-wide`}>
-            {badge}
-          </div>
-        </div>
+        {/* Small Company Logo */}
+        <CompanyLogo 
+          companyName={companyName} 
+          size="sm" 
+          className="flex-shrink-0 rounded"
+        />
+        
+        {/* Company Name - Truncated */}
+        <span className="text-[11px] font-medium text-white truncate flex-1 min-w-0">
+          {companyName}
+        </span>
+        
+        {/* Compact Badge */}
+        <span 
+          className="flex-shrink-0 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase text-white/90"
+          style={{ background: 'rgba(255, 255, 255, 0.2)' }}
+        >
+          {badge}
+        </span>
       </div>
     );
   }
 
-  // Version pour week/day view (plus détaillée)
+  // Week/day view card - More detailed
   return (
-    <motion.div
-      whileHover={{ scale: 1.01, x: 2 }}
-      whileTap={{ scale: 0.99 }}
+    <div
       onClick={onClick}
-      className={`
-        ${bg}
-        rounded-lg
-        border border-white/20
-        p-2.5
-        text-white
-        cursor-pointer
-        transition-all duration-200
-        hover:shadow-lg hover:shadow-black/20
-        overflow-hidden
-        h-full
-        flex flex-col
-      `}
+      className="event-pill-apple-expanded group h-full flex flex-col p-2.5 rounded-lg cursor-pointer overflow-hidden"
+      style={{
+        background: bgGradient,
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        transition: 'all 0.15s ease-out',
+      }}
     >
-      <div className="flex items-start gap-2 mb-2">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1.5">
         <CompanyLogo 
           companyName={companyName} 
           size="md" 
-          className="flex-shrink-0 ring-1 ring-white/20"
+          className="flex-shrink-0 rounded"
         />
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm truncate leading-tight">
+          <h4 className="font-semibold text-xs text-white truncate">
             {companyName}
-          </div>
+          </h4>
           {time && (
-            <div className="flex items-center gap-1 text-xs opacity-90 mt-1">
-              <Clock className="w-3 h-3" />
-              {time}
+            <div className="flex items-center gap-1 text-white/70 mt-0.5">
+              <Clock className="w-2.5 h-2.5" />
+              <span className="text-[10px]">{time}</span>
             </div>
           )}
         </div>
-        {icon}
       </div>
-      <div className="text-xs opacity-90 truncate mb-2">
+      
+      {/* Position */}
+      <p className="text-[10px] text-white/75 truncate mb-1.5">
         {position}
+      </p>
+      
+      {/* Badge */}
+      <div className="mt-auto">
+        <span 
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase text-white/90"
+          style={{ background: 'rgba(255, 255, 255, 0.18)' }}
+        >
+          {icon}
+          {badge}
+        </span>
       </div>
-      <div className={`${badgeBg} px-2 py-1 rounded text-xs font-medium backdrop-blur-sm w-fit`}>
-        {badge}
-      </div>
-    </motion.div>
+    </div>
   );
 };
 

@@ -7,6 +7,7 @@ import { toast } from '@/contexts/ToastContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { syncUserToBrevo } from '../services/brevo';
+import { StickerLayer } from '../components/ui/StickerLayer';
 
 // Sample job cards data
 const jobCards = [
@@ -119,6 +120,9 @@ export default function CampaignsEarlyAccessPage() {
 
   return (
     <AuthLayout>
+      {/* Interactive draggable stickers */}
+      <StickerLayer />
+      
       <div className="min-h-screen flex items-center justify-center px-4 py-6 sm:py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

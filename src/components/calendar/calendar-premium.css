@@ -44,24 +44,24 @@
 /* ==================== DAY CELLS ==================== */
 .rbc-day-bg {
   background-color: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  transition: background-color 0.15s ease !important;
-  min-height: 110px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.15s ease-out !important;
+  min-height: 100px !important;
 }
 
 .rbc-day-bg:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .dark .rbc-day-bg {
   background-color: rgba(255, 255, 255, 0.02) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .dark .rbc-day-bg:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* ==================== DATE NUMBERS ==================== */
@@ -143,16 +143,26 @@
 .rbc-month-row {
   border: none !important;
   overflow: visible !important;
-  min-height: 110px !important;
+  min-height: 100px !important;
 }
 
-/* ==================== EVENTS - Keep default positioning ==================== */
+/* Better event spacing in month view */
+.rbc-month-view .rbc-row-content {
+  padding: 2px 0 !important;
+}
+
+.rbc-month-view .rbc-row-content .rbc-row {
+  margin-bottom: 1px !important;
+}
+
+/* ==================== EVENTS - Compact styling ==================== */
 .rbc-event {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  padding: 1px 3px !important;
+  padding: 0 1px !important;
   cursor: pointer !important;
+  margin-bottom: 1px !important;
 }
 
 .rbc-event:hover {
@@ -173,7 +183,23 @@
 }
 
 .rbc-row-segment {
-  padding: 1px 3px !important;
+  padding: 1px 2px !important;
+}
+
+/* Compact Event Pill Styles */
+.event-pill-apple {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.event-pill-apple:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.event-pill-apple-expanded:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 }
 
 /* ==================== SHOW MORE LINK ==================== */
@@ -209,24 +235,35 @@
   box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3) !important;
 }
 
-/* ==================== DRAG AND DROP ==================== */
+/* ==================== DRAG AND DROP - Premium Apple-like ==================== */
 .rbc-addons-dnd .rbc-addons-dnd-resizable {
-  cursor: move !important;
+  cursor: grab !important;
+}
+
+.rbc-addons-dnd .rbc-addons-dnd-resizable:active {
+  cursor: grabbing !important;
 }
 
 .rbc-addons-dnd-drag-preview {
-  opacity: 0.85 !important;
-  transform: rotate(2deg) scale(1.05) !important;
-  box-shadow: 0 12px 32px rgba(147, 51, 234, 0.5) !important;
+  opacity: 0.95 !important;
+  transform: rotate(2deg) scale(1.03) !important;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.2),
+    0 10px 20px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
   z-index: 1000 !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(4px) !important;
 }
 
 .rbc-addons-dnd-dragging {
-  opacity: 0.3 !important;
+  opacity: 0.4 !important;
+  transform: scale(0.98) !important;
 }
 
 .rbc-addons-dnd-over {
-  background-color: rgba(147, 51, 234, 0.08) !important;
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.08) 0%, rgba(0, 122, 255, 0.04) 100%) !important;
+  border-color: rgba(0, 122, 255, 0.2) !important;
 }
 
 /* ==================== TOOLBAR ==================== */
@@ -401,9 +438,29 @@
     min-height: 90px !important;
   }
   
+  .rbc-day-bg {
+    min-height: 90px !important;
+  }
+  
   .rbc-overlay {
     min-width: 260px !important;
     max-width: calc(100vw - 32px) !important;
+  }
+  
+  .event-pill-apple {
+    padding: 4px 6px !important;
+    border-radius: 6px !important;
+  }
+}
+
+/* Large screens - more spacious */
+@media (min-width: 1400px) {
+  .rbc-month-row {
+    min-height: 120px !important;
+  }
+  
+  .rbc-day-bg {
+    min-height: 120px !important;
   }
 }
 

@@ -337,27 +337,21 @@ export default function CalendarView() {
       (showWishlists && event.type === 'wishlist')
   );
 
-  // Event style getter
+  // Event style getter - Minimal styling, EventPill handles the rest
   const eventStyleGetter = (event: CalendarEvent) => {
-    const baseColor = event.color || '#8b5cf6';
-    
     return {
       style: {
-        backgroundColor: baseColor,
-        borderRadius: '8px',
-        opacity: isDragging ? 0.5 : 1,
-        color: 'white',
+        backgroundColor: 'transparent',
         border: 'none',
-        display: 'block',
-        fontWeight: 500,
         padding: '0',
-        marginBottom: '3px',
-        boxShadow: isDragging ? '0 8px 24px rgba(0, 0, 0, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.25)',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        margin: '0',
+        boxShadow: 'none',
         cursor: 'grab',
-        transform: isDragging ? 'scale(0.98)' : 'scale(1)',
-        minHeight: selectedView === 'month' ? '24px' : '32px',
-        overflow: 'hidden',
+        opacity: isDragging ? 0.5 : 1,
+        transform: isDragging ? 'scale(0.97)' : 'scale(1)',
+        transition: 'all 0.12s ease-out',
+        minHeight: selectedView === 'month' ? '22px' : '36px',
+        overflow: 'visible',
         position: 'relative' as const,
       },
     };

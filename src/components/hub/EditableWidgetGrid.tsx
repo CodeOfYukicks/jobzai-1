@@ -24,13 +24,16 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Pencil, Check, X, GripVertical, Plus, Target, Cloud, Quote } from 'lucide-react';
+import { Pencil, Check, X, GripVertical, Plus, Target, Cloud, Quote, Clock, StickyNote, Heart, Maximize2, Minimize2 } from 'lucide-react';
 import DailyMissions from './DailyMissions';
 import DailyMotivation from './DailyMotivation';
 import WeatherCard from './WeatherCard';
+import TimeWidget from './TimeWidget';
+import NoteWidget from './NoteWidget';
+import HamsterWidget from './HamsterWidget';
 
 // Widget types
-type WidgetType = 'missions' | 'quote' | 'weather';
+type WidgetType = 'missions' | 'quote' | 'weather' | 'time' | 'note' | 'hamster';
 
 interface Widget {
   id: string;
@@ -46,6 +49,7 @@ const widgetCatalog: {
   icon: React.ElementType;
   color: string;
   size: 'small' | 'large';
+  resizable?: boolean;
 }[] = [
   { 
     type: 'missions', 
@@ -53,7 +57,8 @@ const widgetCatalog: {
     description: 'Track your daily goals',
     icon: Target,
     color: '#635BFF',
-    size: 'large'
+    size: 'large',
+    resizable: true
   },
   { 
     type: 'quote', 
@@ -71,6 +76,30 @@ const widgetCatalog: {
     color: '#22272B',
     size: 'small'
   },
+  { 
+    type: 'time', 
+    name: 'Clock', 
+    description: 'Retro digital watch',
+    icon: Clock,
+    color: '#dddf8f',
+    size: 'small'
+  },
+  { 
+    type: 'note', 
+    name: 'Quick Note', 
+    description: 'Write quick notes',
+    icon: StickyNote,
+    color: '#D97706',
+    size: 'small'
+  },
+  { 
+    type: 'hamster', 
+    name: 'Hamster', 
+    description: 'Cute motivational pet',
+    icon: Heart,
+    color: '#F97316',
+    size: 'small'
+  },
 ];
 
 // Default widget configuration
@@ -83,28 +112,42 @@ const defaultWidgets: Widget[] = [
 const STORAGE_KEY = 'hubWidgetConfig';
 
 // Render widget based on type
-const WidgetContent = ({ type }: { type: WidgetType }) => {
+const WidgetContent = ({ type, size }: { type: WidgetType; size: 'small' | 'medium' | 'large' }) => {
   switch (type) {
     case 'missions':
-      return <DailyMissions />;
+      return <DailyMissions size={size === 'large' ? 'large' : 'small'} />;
     case 'quote':
       return <DailyMotivation />;
     case 'weather':
       return <WeatherCard />;
+    case 'time':
+      return <TimeWidget />;
+    case 'note':
+      return <NoteWidget />;
+    case 'hamster':
+      return <HamsterWidget />;
     default:
       return null;
   }
+};
+
+// Check if widget type is resizable
+const isWidgetResizable = (type: WidgetType): boolean => {
+  const catalogItem = widgetCatalog.find(w => w.type === type);
+  return catalogItem?.resizable ?? false;
 };
 
 // Sortable widget item
 function SortableWidget({ 
   widget, 
   isEditMode, 
-  onRemove 
+  onRemove,
+  onResize
 }: { 
   widget: Widget; 
   isEditMode: boolean; 
   onRemove: (id: string) => void;
+  onResize: (id: string) => void;
 }) {
   const {
     attributes,
@@ -120,6 +163,8 @@ function SortableWidget({
     transition,
     zIndex: isDragging ? 50 : 1,
   };
+
+  const canResize = isWidgetResizable(widget.type);
 
   return (
     <div
@@ -151,7 +196,7 @@ function SortableWidget({
         )}
       </AnimatePresence>
 
-      {/* Drag handle and remove button */}
+      {/* Drag handle, resize button, and remove button */}
       <AnimatePresence>
         {isEditMode && (
           <>
@@ -168,6 +213,27 @@ function SortableWidget({
               <GripVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
             </motion.button>
 
+            {/* Resize button - only for resizable widgets */}
+            {canResize && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                onClick={() => onResize(widget.id)}
+                className="absolute top-2 left-12 z-20 p-1.5 rounded-lg bg-white/90 dark:bg-gray-800/90 
+                  shadow-lg border border-gray-200 dark:border-gray-700
+                  hover:bg-[#635BFF] hover:border-[#635BFF] hover:text-white
+                  active:scale-95 transition-all group"
+                title={widget.size === 'large' ? 'Make smaller' : 'Make larger'}
+              >
+                {widget.size === 'large' ? (
+                  <Minimize2 className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-white" />
+                ) : (
+                  <Maximize2 className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-white" />
+                )}
+              </motion.button>
+            )}
+
             <motion.button
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -183,7 +249,7 @@ function SortableWidget({
       </AnimatePresence>
 
       <div className={`h-full ${isEditMode ? 'pointer-events-none' : ''}`}>
-        <WidgetContent type={widget.type} />
+        <WidgetContent type={widget.type} size={widget.size} />
       </div>
     </div>
   );
@@ -200,7 +266,7 @@ function WidgetPreview({ widget }: { widget: Widget }) {
       style={{ opacity: 0.95 }}
     >
       <div className="pointer-events-none">
-        <WidgetContent type={widget.type} />
+        <WidgetContent type={widget.type} size={widget.size} />
       </div>
     </div>
   );
@@ -331,6 +397,22 @@ export default function EditableWidgetGrid() {
     });
   };
 
+  const handleResizeWidget = (id: string) => {
+    setWidgets((items) => {
+      const newItems = items.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            size: item.size === 'large' ? 'small' as const : 'large' as const,
+          };
+        }
+        return item;
+      });
+      saveConfig(newItems);
+      return newItems;
+    });
+  };
+
   const handleAddWidget = (type: WidgetType) => {
     if (widgets.some(w => w.type === type)) return;
     const catalogItem = widgetCatalog.find(w => w.type === type);
@@ -415,6 +497,7 @@ export default function EditableWidgetGrid() {
                 widget={widget}
                 isEditMode={isEditMode}
                 onRemove={handleRemoveWidget}
+                onResize={handleResizeWidget}
               />
             ))}
 

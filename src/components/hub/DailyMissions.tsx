@@ -1,6 +1,7 @@
 /**
  * DailyMissions Component
  * Clean, modern missions card matching Quote & Weather widget aesthetic
+ * Supports both compact (1x1) and expanded (2x1) sizes
  */
 
 import { useMemo } from 'react';
@@ -15,7 +16,11 @@ import {
 } from 'lucide-react';
 import { useMissions } from '../../contexts/MissionsContext';
 
-export default function DailyMissions() {
+interface DailyMissionsProps {
+  size?: 'small' | 'large';
+}
+
+export default function DailyMissions({ size = 'large' }: DailyMissionsProps) {
   const { 
     missions, 
     stats, 
@@ -34,18 +39,20 @@ export default function DailyMissions() {
     return (completedCount / missions.length) * 100;
   }, [missions, completedCount]);
 
+  const isCompact = size === 'small';
+
   // Loading state
   if (loading) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[#635BFF] rounded-2xl h-full min-h-[220px] flex items-center justify-center"
+        className="bg-[#635BFF] rounded-2xl h-full min-h-[180px] flex items-center justify-center"
       >
         <div className="flex items-center gap-2">
           <Loader2 className="w-4 h-4 animate-spin text-white/70" />
           <span className="text-sm text-white/70 font-medium">
-            Loading missions...
+            Loading...
           </span>
         </div>
       </motion.div>
@@ -58,20 +65,148 @@ export default function DailyMissions() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[#635BFF] rounded-2xl h-full min-h-[220px] flex flex-col items-center justify-center p-6"
+        className="bg-[#635BFF] rounded-2xl h-full min-h-[180px] flex flex-col items-center justify-center p-4"
       >
-        <p className="text-sm text-white/70 mb-3">{error}</p>
+        <p className="text-xs text-white/70 mb-2">{error}</p>
         <button
           onClick={refreshMissions}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#635BFF] bg-white rounded-lg hover:bg-white/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#635BFF] bg-white rounded-lg hover:bg-white/90 transition-colors"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Try Again
+          <RefreshCw className="w-3 h-3" />
+          Retry
         </button>
       </motion.div>
     );
   }
 
+  // Compact 1x1 version
+  if (isCompact) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+        className="relative h-full"
+      >
+        <div className="group relative bg-[#635BFF] rounded-2xl h-full min-h-[180px] overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-[#635BFF]/30 flex flex-col">
+          {/* Compact Header */}
+          <div className="px-4 pt-4 pb-2">
+            <div className="flex items-center justify-between mb-2">
+              <div className="uppercase font-bold text-white/60 text-[10px] tracking-wide">
+                Missions
+              </div>
+              {stats && stats.currentStreak > 0 && (
+                <div className="flex items-center gap-1 text-white/80">
+                  <Flame className="w-3 h-3 text-orange-300" />
+                  <span className="text-[10px] font-bold">{stats.currentStreak}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Circular Progress */}
+            <div className="flex items-center justify-center py-2">
+              <div className="relative">
+                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    className="text-white/10"
+                    strokeWidth="3"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="15.5"
+                    cx="18"
+                    cy="18"
+                  />
+                  <motion.circle
+                    className="text-white"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="15.5"
+                    cx="18"
+                    cy="18"
+                    initial={{ strokeDasharray: "0 100" }}
+                    animate={{ strokeDasharray: `${overallProgress} 100` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-black text-white leading-none">
+                    {completedCount}
+                  </span>
+                  <span className="text-[9px] text-white/50 font-medium">
+                    of {missions.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mini Mission List */}
+          <div className="px-3 pb-3 space-y-1.5 flex-1 overflow-hidden">
+            {missions.slice(0, 2).map((mission, index) => {
+              const isComplete = mission.status === 'completed';
+              return (
+                <motion.div
+                  key={mission.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`
+                    flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs
+                    ${isComplete ? 'bg-white/20' : 'bg-white/10'}
+                  `}
+                >
+                  {isComplete ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-300 flex-shrink-0" />
+                  ) : (
+                    <Circle className="w-3.5 h-3.5 text-white/40 flex-shrink-0" />
+                  )}
+                  <span className={`truncate font-medium ${isComplete ? 'text-white/60 line-through' : 'text-white'}`}>
+                    {mission.title}
+                  </span>
+                </motion.div>
+              );
+            })}
+            {missions.length > 2 && (
+              <div className="text-[10px] text-white/40 text-center font-medium">
+                +{missions.length - 2} more
+              </div>
+            )}
+          </div>
+
+          {/* Progress bar at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+            <motion.div
+              className="h-full bg-white/40"
+              initial={{ width: 0 }}
+              animate={{ width: `${overallProgress}%` }}
+              transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
+            />
+          </div>
+
+          {/* All complete celebration */}
+          {overallProgress === 100 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute top-3 right-3"
+            >
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="text-lg"
+              >
+                🎉
+              </motion.div>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Full 2x1 version
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
