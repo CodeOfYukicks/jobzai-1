@@ -60,6 +60,7 @@ import MockInterviewPage from './pages/MockInterviewPage';
 import MockInterviewResultPage from './pages/MockInterviewResultPage';
 import MockIntroScene from './pages/MockIntroScene';
 import CareerIntelligencePage from './pages/CareerIntelligencePage';
+import CampaignsAutoPage from './pages/CampaignsAutoPage';
 
 import { initNotificationService } from './services/notificationService';
 import { useBackgroundTasks } from './hooks/useBackgroundTasks';
@@ -176,6 +177,7 @@ function AppContent() {
             } 
           />
           <Route path="/campaign-emails" element={<CampaignEmailsPage />} />
+          <Route path="/campaigns-auto" element={<CampaignsAutoPage />} />
           <Route path="/recommendations" element={<CareerIntelligencePage />} />
           <Route path="/recommendations-legacy" element={<RecommendationsPage />} />
           <Route path="/billing" element={<BillingPage />} />
