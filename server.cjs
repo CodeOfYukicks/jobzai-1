@@ -125,8 +125,8 @@ app.use(cors({
       callback(null, true); // En production, on pourrait être plus restrictif ici
     }
   },
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'x-api-key', 'anthropic-version'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-api-key', 'anthropic-version', 'Authorization'],
   credentials: true
 }));
 
@@ -3434,6 +3434,307 @@ Job:
 });
 
 // OLD DUPLICATE/CORRUPTED CODE REMOVED - analyze-interview endpoint is defined earlier
+
+// ============================================
+// APOLLO LEAD SOURCING API
+// ============================================
+
+// Helper to verify Firebase ID token
+async function verifyFirebaseToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized - Missing token' });
+  }
+  
+  const idToken = authHeader.split('Bearer ')[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    req.user = decodedToken;
+    next();
+  } catch (error) {
+    console.error('Token verification failed:', error.message);
+    return res.status(401).json({ error: 'Unauthorized - Invalid token' });
+  }
+}
+
+// Get Apollo API key from Firestore
+async function getApolloApiKey() {
+  try {
+    const settingsDoc = await admin.firestore().collection('settings').doc('apollo').get();
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      return data?.API_KEY || data?.apiKey;
+    }
+  } catch (error) {
+    console.error('Failed to get Apollo API key:', error.message);
+  }
+  return null;
+}
+
+// Apollo People Search endpoint
+app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
+  console.log('🔍 Apollo search request from user:', req.user.uid);
+  
+  try {
+    const { campaignId, targeting, maxResults = 100 } = req.body;
+    
+    if (!campaignId || !targeting) {
+      return res.status(400).json({ error: 'Missing campaignId or targeting' });
+    }
+    
+    // Get Apollo API key
+    const apiKey = await getApolloApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Apollo API key not configured' });
+    }
+    
+    // Map seniority values to Apollo format
+    const SENIORITY_MAPPING = {
+      'entry': 'entry',
+      'senior': 'senior',
+      'manager': 'manager',
+      'director': 'director',
+      'vp': 'vp',
+      'c_suite': 'c_suite'
+    };
+    
+    // Map company size to Apollo ranges
+    const COMPANY_SIZE_MAPPING = {
+      '1-10': '1,10',
+      '11-50': '11,50',
+      '51-200': '51,200',
+      '201-500': '201,500',
+      '501-1000': '501,1000',
+      '1001-5000': '1001,5000',
+      '5001+': '5001,10000'
+    };
+    
+    // Build Apollo search params
+    const searchParams = {
+      per_page: Math.min(maxResults, 100),
+      page: 1
+    };
+    
+    if (targeting.personTitles?.length > 0) {
+      searchParams.person_titles = targeting.personTitles;
+    }
+    
+    if (targeting.personLocations?.length > 0) {
+      searchParams.person_locations = targeting.personLocations;
+    }
+    
+    if (targeting.seniorities?.length > 0) {
+      searchParams.person_seniorities = targeting.seniorities.map(
+        s => SENIORITY_MAPPING[s] || s
+      );
+    }
+    
+    if (targeting.companySizes?.length > 0) {
+      searchParams.organization_num_employees_ranges = targeting.companySizes.map(
+        s => COMPANY_SIZE_MAPPING[s] || s
+      );
+    }
+    
+    console.log('📡 Apollo search params:', JSON.stringify(searchParams));
+    
+    // Call Apollo People Search API
+    const apolloResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'X-Api-Key': apiKey
+      },
+      body: JSON.stringify(searchParams)
+    });
+    
+    if (!apolloResponse.ok) {
+      const errorText = await apolloResponse.text();
+      console.error('❌ Apollo API error:', apolloResponse.status, errorText);
+      return res.status(500).json({ error: `Apollo API error: ${apolloResponse.status}`, details: errorText });
+    }
+    
+    const data = await apolloResponse.json();
+    console.log('✅ Apollo returned', data.people?.length || 0, 'people');
+    
+    // Filter out excluded companies
+    const excludedCompanies = targeting.excludedCompanies || [];
+    const excludedLower = excludedCompanies.map(c => c.toLowerCase());
+    
+    let filteredPeople = (data.people || []).filter(person => {
+      if (!person.organization?.name) return true;
+      return !excludedLower.some(excluded => 
+        person.organization.name.toLowerCase().includes(excluded)
+      );
+    });
+    
+    console.log('📧 Enriching contacts to reveal emails...');
+    
+    // Enrich contacts to get real emails (in batches of 10 for rate limiting)
+    const enrichedPeople = [];
+    const BATCH_SIZE = 10;
+    
+    for (let i = 0; i < filteredPeople.length; i += BATCH_SIZE) {
+      const batch = filteredPeople.slice(i, i + BATCH_SIZE);
+      
+      const enrichPromises = batch.map(async (person) => {
+        // Skip if already has a valid email (not the placeholder)
+        if (person.email && !person.email.includes('not_unlocked')) {
+          return person;
+        }
+        
+        try {
+          // Use Apollo People Match API to reveal email
+          const enrichResponse = await fetch('https://api.apollo.io/v1/people/match', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'X-Api-Key': apiKey
+            },
+            body: JSON.stringify({
+              id: person.id,
+              reveal_personal_emails: false,
+              reveal_phone_number: false
+            })
+          });
+          
+          if (enrichResponse.ok) {
+            const enrichData = await enrichResponse.json();
+            if (enrichData.person?.email) {
+              console.log(`  ✅ Revealed email for ${person.name}`);
+              return { ...person, email: enrichData.person.email };
+            }
+          }
+        } catch (error) {
+          console.error(`  ⚠️ Failed to enrich ${person.name}:`, error.message);
+        }
+        
+        return person;
+      });
+      
+      const batchResults = await Promise.all(enrichPromises);
+      enrichedPeople.push(...batchResults);
+      
+      // Small delay between batches to respect rate limits
+      if (i + BATCH_SIZE < filteredPeople.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+    
+    const emailsRevealed = enrichedPeople.filter(p => p.email && !p.email.includes('not_unlocked')).length;
+    console.log(`📧 Revealed ${emailsRevealed}/${enrichedPeople.length} emails`);
+    
+    // Store contacts in Firestore
+    const db = admin.firestore();
+    const firestoreBatch = db.batch();
+    const campaignRef = db.collection('campaigns').doc(campaignId);
+    const recipientsRef = campaignRef.collection('recipients');
+    
+    const contacts = enrichedPeople.map(person => ({
+      apolloId: person.id,
+      firstName: person.first_name,
+      lastName: person.last_name,
+      fullName: person.name,
+      title: person.title,
+      email: (person.email && !person.email.includes('not_unlocked')) ? person.email : null,
+      linkedinUrl: person.linkedin_url,
+      company: person.organization?.name || null,
+      companyWebsite: person.organization?.website_url || null,
+      companyIndustry: person.organization?.industry || null,
+      companySize: person.organization?.estimated_num_employees || null,
+      location: [person.city, person.state, person.country].filter(Boolean).join(', ') || null,
+      status: 'pending',
+      emailGenerated: false,
+      emailContent: null,
+      emailSubject: null,
+      sentAt: null,
+      openedAt: null,
+      repliedAt: null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    }));
+    
+    // Add each contact to Firestore batch
+    contacts.forEach(contact => {
+      const docRef = recipientsRef.doc();
+      firestoreBatch.set(docRef, contact);
+    });
+    
+    // Update campaign stats
+    const emailCount = contacts.filter(c => c.email).length;
+    firestoreBatch.update(campaignRef, {
+      'stats.contactsFound': contacts.length,
+      'stats.emailsRevealed': emailCount,
+      status: 'contacts_fetched',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    await firestoreBatch.commit();
+    console.log('✅ Stored', contacts.length, 'contacts in Firestore');
+    
+    res.json({
+      success: true,
+      contactsFound: contacts.length,
+      emailsRevealed: emailCount,
+      totalAvailable: data.pagination?.total_entries || 0,
+      contacts: contacts.map(c => ({
+        fullName: c.fullName,
+        title: c.title,
+        company: c.company,
+        email: c.email,
+        hasEmail: !!c.email
+      }))
+    });
+    
+  } catch (error) {
+    console.error('❌ Apollo search error:', error);
+    res.status(500).json({ error: 'Failed to search Apollo', details: error.message });
+  }
+});
+
+// Apollo Contact Enrichment endpoint
+app.post('/api/apollo/enrich', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { apolloId } = req.body;
+    
+    if (!apolloId) {
+      return res.status(400).json({ error: 'Missing apolloId' });
+    }
+    
+    const apiKey = await getApolloApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Apollo API key not configured' });
+    }
+    
+    const apolloResponse = await fetch('https://api.apollo.io/v1/people/match', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': apiKey
+      },
+      body: JSON.stringify({
+        id: apolloId,
+        reveal_personal_emails: false
+      })
+    });
+    
+    if (!apolloResponse.ok) {
+      return res.status(500).json({ error: 'Failed to enrich contact' });
+    }
+    
+    const data = await apolloResponse.json();
+    
+    res.json({
+      success: true,
+      email: data.person?.email || null,
+      linkedinUrl: data.person?.linkedin_url || null
+    });
+    
+  } catch (error) {
+    console.error('❌ Apollo enrich error:', error);
+    res.status(500).json({ error: 'Failed to enrich contact', details: error.message });
+  }
+});
 
 // En production, pour toutes les autres routes, servir index.html
 // Cela permet à React Router de gérer les routes côté client

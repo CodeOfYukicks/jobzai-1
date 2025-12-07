@@ -49,6 +49,13 @@ export {
 	getDatabaseStats,
 } from './maintenance';
 
+// 🚀 APOLLO LEAD SOURCING
+// Search and enrich contacts from Apollo.io
+export {
+	searchApolloContacts,
+	enrichApolloContact,
+} from './apollo';
+
 // 🔍 COMPANY DISCOVERY
 // Automatic discovery of new companies from ATS sitemaps
 export {

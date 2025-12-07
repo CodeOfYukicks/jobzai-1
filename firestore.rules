@@ -157,5 +157,22 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false; // Interactions are immutable
     }
+
+    // Gmail Tokens collection - Users can only access their own tokens
+    match /gmailTokens/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
+
+    // Campaigns collection (root level) - Users can only access their own campaigns
+    match /campaigns/{campaignId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Recipients subcollection
+      match /recipients/{recipientId} {
+        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/campaigns/$(campaignId)).data.userId == request.auth.uid;
+      }
+    }
   }
 } 
