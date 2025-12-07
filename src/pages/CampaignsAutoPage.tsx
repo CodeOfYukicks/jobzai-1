@@ -26,10 +26,16 @@ import {
   Trash2,
   Pencil,
   Check,
-  Filter
+  Filter,
+  Send,
+  RefreshCw,
+  Wand2,
+  Play,
+  CheckCircle2
 } from 'lucide-react';
 import { toast } from '@/contexts/ToastContext';
 import { getDoc, doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
@@ -163,6 +169,21 @@ export default function CampaignsAutoPage() {
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
   const [editingCampaignName, setEditingCampaignName] = useState('');
 
+  // Email operation states
+  const [isGeneratingEmails, setIsGeneratingEmails] = useState(false);
+  const [isSendingEmails, setIsSendingEmails] = useState(false);
+  const [isCheckingReplies, setIsCheckingReplies] = useState(false);
+  const [emailProgress, setEmailProgress] = useState<{ generated: number; total: number } | null>(null);
+  const [sendProgress, setSendProgress] = useState<{ sent: number; remaining: number } | null>(null);
+
+  // Email preview modal
+  const [emailPreviewRecipient, setEmailPreviewRecipient] = useState<CampaignRecipient | null>(null);
+
+  // Reply preview modal
+  const [replyPreviewRecipient, setReplyPreviewRecipient] = useState<CampaignRecipient | null>(null);
+  const [replyContent, setReplyContent] = useState<{ from: string; subject: string; body: string; date: string } | null>(null);
+  const [isLoadingReply, setIsLoadingReply] = useState(false);
+
   // Column resize state (percentages)
   const [columnWidths, setColumnWidths] = useState({
     contact: 14,
@@ -280,8 +301,8 @@ export default function CampaignsAutoPage() {
 
     return () => unsubscribe();
   }, [selectedCampaignId]);
-
-  // Load cover photo preference
+        
+        // Load cover photo preference
   useEffect(() => {
     const loadCoverPhoto = async () => {
       if (!currentUser) return;
@@ -545,6 +566,179 @@ export default function CampaignsAutoPage() {
     }
   }, []);
 
+  // Get backend URL
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+  // Handle generate emails for all recipients
+  const handleGenerateEmails = useCallback(async () => {
+    console.log('🔥 handleGenerateEmails called');
+    console.log('selectedCampaignId:', selectedCampaignId);
+    console.log('currentUser:', currentUser?.uid);
+    
+    if (!selectedCampaignId || !currentUser) {
+      console.log('❌ Missing selectedCampaignId or currentUser');
+      return;
+    }
+    
+    setIsGeneratingEmails(true);
+    setEmailProgress({ generated: 0, total: recipients.filter(r => !r.emailGenerated).length });
+    
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      console.log('Token obtained:', token ? 'yes' : 'no');
+      console.log('Making request to:', `${BACKEND_URL}/api/campaigns/${selectedCampaignId}/generate-emails`);
+      
+      const response = await fetch(`${BACKEND_URL}/api/campaigns/${selectedCampaignId}/generate-emails`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          tone: selectedCampaign?.emailPreferences?.tone || 'casual',
+          language: selectedCampaign?.emailPreferences?.language || 'en'
+        })
+      });
+      
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (data.success) {
+        setEmailProgress({ generated: data.generated, total: data.total });
+        toast.success(`Generated ${data.generated} emails!`);
+      } else {
+        toast.error(data.error || 'Failed to generate emails');
+      }
+    } catch (error) {
+      console.error('❌ Error generating emails:', error);
+      toast.error('Failed to generate emails');
+    } finally {
+      setIsGeneratingEmails(false);
+      setEmailProgress(null);
+    }
+  }, [selectedCampaignId, currentUser, recipients, selectedCampaign, BACKEND_URL]);
+
+  // Handle send emails in batch
+  const handleSendEmails = useCallback(async () => {
+    if (!selectedCampaignId || !currentUser) return;
+    
+    // Check if Gmail is connected
+    if (!selectedCampaign?.gmail?.connected) {
+      toast.error('Please connect Gmail first in campaign settings');
+      return;
+    }
+    
+    setIsSendingEmails(true);
+    
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      
+      const response = await fetch(`${BACKEND_URL}/api/campaigns/${selectedCampaignId}/send-emails`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ batchSize: 10 })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSendProgress({ sent: data.sent, remaining: data.remaining });
+        if (data.sent > 0) {
+          toast.success(`Sent ${data.sent} emails! ${data.remaining} remaining.`);
+        } else {
+          toast.info(data.message || 'No emails to send');
+        }
+      } else {
+        toast.error(data.error || 'Failed to send emails');
+      }
+    } catch (error) {
+      console.error('Error sending emails:', error);
+      toast.error('Failed to send emails');
+    } finally {
+      setIsSendingEmails(false);
+      setSendProgress(null);
+    }
+  }, [selectedCampaignId, currentUser, selectedCampaign, BACKEND_URL]);
+
+  // Handle view reply content
+  const handleViewReply = useCallback(async (recipient: CampaignRecipient) => {
+    if (!recipient.gmailThreadId || recipient.status !== 'replied') return;
+    
+    setReplyPreviewRecipient(recipient);
+    setIsLoadingReply(true);
+    setReplyContent(null);
+    
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      
+      const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${recipient.gmailThreadId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.reply) {
+        setReplyContent(data.reply);
+      } else if (data.needsReconnect) {
+        toast.error('Gmail token expired. Please reconnect Gmail in a new campaign.');
+      } else {
+        toast.error(data.message || 'Could not load reply');
+      }
+    } catch (error) {
+      console.error('Error loading reply:', error);
+      toast.error('Failed to load reply');
+    } finally {
+      setIsLoadingReply(false);
+    }
+  }, [BACKEND_URL]);
+
+  // Handle check for replies
+  const handleCheckReplies = useCallback(async () => {
+    if (!selectedCampaignId || !currentUser) return;
+    
+    setIsCheckingReplies(true);
+    
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      
+      const response = await fetch(`${BACKEND_URL}/api/campaigns/${selectedCampaignId}/check-replies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.repliesFound > 0) {
+          toast.success(`Found ${data.repliesFound} new replies!`);
+        } else {
+          toast.info('No new replies found');
+        }
+      } else {
+        toast.error(data.error || 'Failed to check replies');
+      }
+    } catch (error) {
+      console.error('Error checking replies:', error);
+      toast.error('Failed to check replies');
+    } finally {
+      setIsCheckingReplies(false);
+    }
+  }, [selectedCampaignId, currentUser, BACKEND_URL]);
+
   // Filter recipients based on search query
   const filteredRecipients = searchQuery.trim() 
     ? recipients.filter(r => {
@@ -559,10 +753,12 @@ export default function CampaignsAutoPage() {
       })
     : recipients;
 
-  // Stats for selected campaign
-  const stats = selectedCampaign?.stats || {
+  // Stats for selected campaign (compute from recipients for real-time accuracy)
+  const stats = {
     contactsFound: recipients.length,
+    emailsGenerated: recipients.filter(r => r.emailGenerated).length,
     emailsSent: recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length,
+    opened: recipients.filter(r => r.status === 'opened' || r.status === 'replied').length,
     replied: recipients.filter(r => r.status === 'replied').length
   };
 
@@ -805,7 +1001,7 @@ export default function CampaignsAutoPage() {
                               >
                                 <X className="w-4 h-4" />
                               </button>
-                            </div>
+            </div>
                           ) : (
                             <>
                               <button
@@ -823,7 +1019,7 @@ export default function CampaignsAutoPage() {
                                     {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
                                     {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}
                                   </p>
-                                </div>
+            </div>
                                 <div className="text-right flex-shrink-0">
                                   <p className="text-[12px] font-medium text-gray-700 dark:text-gray-300 tabular-nums">
                                     {campaign.stats?.contactsFound || 0}
@@ -831,7 +1027,7 @@ export default function CampaignsAutoPage() {
                                   <p className="text-[10px] text-gray-500 uppercase tracking-wide">
                                     contacts
                                   </p>
-                                </div>
+            </div>
                               </button>
                               <button
                                 onClick={(e) => {
@@ -861,30 +1057,120 @@ export default function CampaignsAutoPage() {
                           )}
                         </div>
                       ))}
-                    </motion.div>
+          </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             )}
 
             {/* Stats - Premium minimal style */}
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6">
               <div className="flex flex-col items-end">
                 <span className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats.contactsFound}</span>
                 <span className="text-[11px] text-gray-500 uppercase tracking-wider">contacts</span>
               </div>
               <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
               <div className="flex flex-col items-end">
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats.emailsSent}</span>
+                <span className="text-2xl font-semibold text-purple-600 dark:text-purple-400 tabular-nums">{stats.emailsGenerated}</span>
+                <span className="text-[11px] text-gray-500 uppercase tracking-wider">generated</span>
+              </div>
+              <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
+              <div className="flex flex-col items-end">
+                <span className="text-2xl font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{stats.emailsSent}</span>
                 <span className="text-[11px] text-gray-500 uppercase tracking-wider">sent</span>
               </div>
               <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
               <div className="flex flex-col items-end">
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats.replied}</span>
+                <span className="text-2xl font-semibold text-blue-600 dark:text-blue-400 tabular-nums">{stats.opened}</span>
+                <span className="text-[11px] text-gray-500 uppercase tracking-wider">opened</span>
+              </div>
+              <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
+              <div className="flex flex-col items-end">
+                <span className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.replied}</span>
                 <span className="text-[11px] text-gray-500 uppercase tracking-wider">replied</span>
               </div>
             </div>
           </motion.div>
+
+          {/* Action Buttons Row */}
+          {selectedCampaign && recipients.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.25 }}
+              className="flex items-center gap-3 mb-5 px-6"
+            >
+              {/* Generate Emails Button */}
+              <button
+                onClick={handleGenerateEmails}
+                disabled={isGeneratingEmails || recipients.filter(r => !r.emailGenerated).length === 0}
+                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                  ${recipients.filter(r => !r.emailGenerated).length > 0
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30'
+                    : 'bg-gray-100 dark:bg-white/[0.05] text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                  }`}
+              >
+                {isGeneratingEmails ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : recipients.filter(r => !r.emailGenerated).length === 0 ? (
+                  <CheckCircle2 className="w-4 h-4" />
+                ) : (
+                  <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                )}
+                <span>
+                  {isGeneratingEmails 
+                    ? `Generating${emailProgress ? ` (${emailProgress.generated}/${emailProgress.total})` : '...'}` 
+                    : recipients.filter(r => !r.emailGenerated).length === 0
+                      ? 'All Emails Generated'
+                      : `Generate Emails (${recipients.filter(r => !r.emailGenerated).length})`
+                  }
+                </span>
+              </button>
+
+              {/* Send Emails Button */}
+              <button
+                onClick={handleSendEmails}
+                disabled={isSendingEmails || recipients.filter(r => r.status === 'email_generated').length === 0}
+                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                  ${recipients.filter(r => r.status === 'email_generated').length > 0
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30'
+                    : 'bg-gray-100 dark:bg-white/[0.05] text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                  }`}
+              >
+                {isSendingEmails ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                )}
+                <span>
+                  {isSendingEmails
+                    ? `Sending${sendProgress ? ` (${sendProgress.sent} sent)` : '...'}`
+                    : recipients.filter(r => r.status === 'email_generated').length > 0
+                      ? `Send Batch (${Math.min(10, recipients.filter(r => r.status === 'email_generated').length)})`
+                      : 'No Emails Ready'
+                  }
+                </span>
+              </button>
+
+              {/* Check Replies Button */}
+              <button
+                onClick={handleCheckReplies}
+                disabled={isCheckingReplies || recipients.filter(r => r.status === 'sent' || r.status === 'opened').length === 0}
+                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                  ${recipients.filter(r => r.status === 'sent' || r.status === 'opened').length > 0
+                    ? 'bg-white dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'
+                    : 'bg-gray-100 dark:bg-white/[0.03] text-gray-400 dark:text-gray-600 cursor-not-allowed border border-transparent'
+                  }`}
+              >
+                {isCheckingReplies ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                )}
+                <span>Check Replies</span>
+              </button>
+            </motion.div>
+          )}
 
           {/* Search & Targeting Row */}
           {selectedCampaign && (
@@ -975,58 +1261,58 @@ export default function CampaignsAutoPage() {
           >
             <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
               <table ref={tableRef} className="w-full border-collapse table-fixed">
-                <thead className="sticky top-0 z-10">
-                  <tr className="border-b border-gray-200 dark:border-white/[0.06]">
-                    <th style={{ width: `${columnWidths.contact}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
+                <thead className="sticky top-0 z-20">
+                  <tr className="border-b border-gray-200 dark:border-[#2a2a2a]">
+                    <th style={{ width: `${columnWidths.contact}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
                       Contact
                       <div 
                         onMouseDown={(e) => handleResizeStart(e, 'contact')}
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.title}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
+                    <th style={{ width: `${columnWidths.title}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
                       Title
                       <div 
                         onMouseDown={(e) => handleResizeStart(e, 'title')}
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.company}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
+                    <th style={{ width: `${columnWidths.company}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
                       Company
                       <div 
                         onMouseDown={(e) => handleResizeStart(e, 'company')}
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.location}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
+                    <th style={{ width: `${columnWidths.location}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
                       Location
                       <div 
                         onMouseDown={(e) => handleResizeStart(e, 'location')}
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.email}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
+                    <th style={{ width: `${columnWidths.email}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
                       Email
                       <div 
                         onMouseDown={(e) => handleResizeStart(e, 'email')}
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.linkedin}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
+                    <th style={{ width: `${columnWidths.linkedin}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
                       LinkedIn
                       <div 
                         onMouseDown={(e) => handleResizeStart(e, 'linkedin')}
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.status}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
+                    <th style={{ width: `${columnWidths.status}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
                       Status
                       <div 
                         onMouseDown={(e) => handleResizeStart(e, 'status')}
                         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.actions}%` }} className="px-3 py-2.5 text-center text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03]">
+                    <th style={{ width: `${columnWidths.actions}%` }} className="px-4 py-3 text-center text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414]">
                       Actions
                     </th>
                   </tr>
@@ -1078,8 +1364,8 @@ export default function CampaignsAutoPage() {
                         transition={{ duration: 0.15, delay: 0.01 * Math.min(index, 15) }}
                         className="group hover:bg-[#f7f7f5] dark:hover:bg-white/[0.02] transition-colors duration-100
                           border-b border-gray-100 dark:border-white/[0.04]"
-                      >
-                        {/* Name */}
+                    >
+                      {/* Name */}
                         <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
                           <span className="text-[13px] text-gray-900 dark:text-gray-200 truncate block">
                             {recipient.fullName}
@@ -1090,10 +1376,10 @@ export default function CampaignsAutoPage() {
                         <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
                           <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate block">
                             {recipient.title || '—'}
-                          </span>
-                        </td>
-                        
-                        {/* Company */}
+                        </span>
+                      </td>
+                      
+                      {/* Company */}
                         <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
                           <div className="flex items-center gap-2">
                             {recipient.company && (
@@ -1101,9 +1387,9 @@ export default function CampaignsAutoPage() {
                             )}
                             <span className="text-[13px] text-gray-900 dark:text-gray-200 truncate">
                               {recipient.company || '—'}
-                            </span>
+                        </span>
                           </div>
-                        </td>
+                      </td>
                       
                         {/* Location */}
                         <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
@@ -1111,7 +1397,7 @@ export default function CampaignsAutoPage() {
                             <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                             <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate">
                               {recipient.location || '—'}
-                            </span>
+                        </span>
                           </div>
                         </td>
                       
@@ -1129,15 +1415,15 @@ export default function CampaignsAutoPage() {
                           ) : (
                             <span className="text-[13px] text-gray-400 dark:text-gray-600">—</span>
                           )}
-                        </td>
+                      </td>
                       
-                        {/* LinkedIn */}
+                      {/* LinkedIn */}
                         <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
                           {recipient.linkedinUrl ? (
-                            <a
+                        <a
                               href={recipient.linkedinUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                          target="_blank"
+                          rel="noopener noreferrer"
                               className="inline-flex items-center justify-center w-8 h-8 rounded-lg
                                 text-[#0A66C2] dark:text-[#71b7fb] 
                                 hover:bg-[#0A66C2]/10 dark:hover:bg-[#71b7fb]/10 
@@ -1149,9 +1435,9 @@ export default function CampaignsAutoPage() {
                           ) : (
                             <span className="text-[13px] text-gray-400 dark:text-gray-600">—</span>
                           )}
-                        </td>
+                      </td>
                       
-                        {/* Status */}
+                      {/* Status */}
                         <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
                           <span className="inline-flex items-center gap-1.5 text-[12px] font-medium">
                             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
@@ -1171,32 +1457,42 @@ export default function CampaignsAutoPage() {
                         </span>
                       </td>
                       
-                        {/* Actions */}
+                      {/* Actions */}
                         <td className="px-3 py-2.5">
                           <div className="flex items-center justify-center gap-0.5">
-                            <button
+                          <button
+                            onClick={() => setEmailPreviewRecipient(recipient)}
+                            disabled={!recipient.emailGenerated}
+                            className={`p-1.5 rounded transition-colors ${
+                              recipient.emailGenerated 
+                                ? 'text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10'
+                                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                            }`}
+                            title={recipient.emailGenerated ? "View email" : "Email not generated yet"}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleViewReply(recipient)}
+                            disabled={recipient.status !== 'replied'}
+                            className={`p-1.5 rounded transition-colors ${
+                              recipient.status === 'replied'
+                                ? 'text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
+                                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                            }`}
+                            title={recipient.status === 'replied' ? "View reply" : "No reply yet"}
+                          >
+                            <Reply className="w-4 h-4" />
+                          </button>
+                          <button
                               className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
                                 hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
-                              title="View email"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
-                                hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
-                              title="Reply"
-                            >
-                              <Reply className="w-4 h-4" />
-                            </button>
-                            <button
-                              className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
-                                hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
-                              title="More options"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
+                            title="More options"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
                     </motion.tr>
                     ))
                   )}
@@ -1254,7 +1550,7 @@ export default function CampaignsAutoPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Finding contacts matching your criteria...
                   </p>
-                </motion.div>
+          </motion.div>
           </motion.div>
             )}
           </AnimatePresence>
@@ -1333,6 +1629,250 @@ export default function CampaignsAutoPage() {
           </motion.div>
         </div>
       )}
+
+      {/* Reply Preview Modal */}
+      <AnimatePresence>
+        {replyPreviewRecipient && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => {
+              setReplyPreviewRecipient(null);
+              setReplyContent(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white">
+                    <Reply className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Reply from {replyPreviewRecipient.fullName}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {replyPreviewRecipient.company}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setReplyPreviewRecipient(null);
+                    setReplyContent(null);
+                  }}
+                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {isLoadingReply ? (
+                  <div className="flex flex-col items-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400">Loading reply...</p>
+                  </div>
+                ) : replyContent ? (
+                  <>
+                    {/* Reply metadata */}
+                    <div className="flex items-center gap-4 mb-4 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-4 h-4" />
+                        {replyContent.from}
+                      </span>
+                      <span>•</span>
+                      <span>{replyContent.date}</span>
+                    </div>
+
+                    {/* Subject */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                        Subject
+                      </label>
+                      <div className="px-4 py-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-white/[0.08]">
+                        <p className="text-gray-900 dark:text-white font-medium">
+                          {replyContent.subject || 'Re: ' + (replyPreviewRecipient.emailSubject || 'No subject')}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                        Message
+                      </label>
+                      <div className="px-4 py-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-200 dark:border-emerald-800/30">
+                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                          {replyContent.body}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                      <Reply className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Could not load reply content
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+                <button
+                  onClick={() => {
+                    setReplyPreviewRecipient(null);
+                    setReplyContent(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Email Preview Modal */}
+      <AnimatePresence>
+        {emailPreviewRecipient && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => setEmailPreviewRecipient(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-medium">
+                    {emailPreviewRecipient.firstName?.charAt(0)}{emailPreviewRecipient.lastName?.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Email to {emailPreviewRecipient.fullName}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {emailPreviewRecipient.title} at {emailPreviewRecipient.company}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEmailPreviewRecipient(null)}
+                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Email Content */}
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {emailPreviewRecipient.emailGenerated ? (
+                  <>
+                    {/* Subject */}
+                    <div className="mb-6">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                        Subject
+                      </label>
+                      <div className="px-4 py-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-white/[0.08]">
+                        <p className="text-gray-900 dark:text-white font-medium">
+                          {emailPreviewRecipient.emailSubject || 'No subject'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                        Message
+                      </label>
+                      <div className="px-4 py-4 bg-gray-50 dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-white/[0.08]">
+                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                          {emailPreviewRecipient.emailContent || 'No content'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="mt-6 flex items-center gap-3">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${getStatusStyles(emailPreviewRecipient.status)}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          emailPreviewRecipient.status === 'replied' ? 'bg-emerald-500' :
+                          emailPreviewRecipient.status === 'opened' ? 'bg-blue-500' :
+                          emailPreviewRecipient.status === 'sent' ? 'bg-amber-500' :
+                          'bg-purple-500'
+                        }`} />
+                        {getStatusLabel(emailPreviewRecipient.status)}
+                      </span>
+                      {emailPreviewRecipient.sentAt && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Sent {new Date(emailPreviewRecipient.sentAt.toDate?.() || emailPreviewRecipient.sentAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                      <Mail className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Email not generated yet
+                    </p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                      Click "Generate Emails" to create personalized emails
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
+                <button
+                  onClick={() => setEmailPreviewRecipient(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+                {emailPreviewRecipient.emailGenerated && emailPreviewRecipient.email && (
+                  <a
+                    href={`mailto:${emailPreviewRecipient.email}?subject=${encodeURIComponent(emailPreviewRecipient.emailSubject || '')}&body=${encodeURIComponent(emailPreviewRecipient.emailContent || '')}`}
+                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors inline-flex items-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    Open in Mail
+                  </a>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AuthLayout>
   );
 }

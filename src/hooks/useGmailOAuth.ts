@@ -146,7 +146,7 @@ export function useGmailOAuth(): UseGmailOAuthReturn {
     }
   }, [currentUser]);
 
-  // Connect Gmail account using implicit grant flow (for client-side)
+  // Connect Gmail account using Authorization Code flow (to get refresh token)
   const connect = useCallback(async () => {
     if (!currentUser) {
       setError('Please sign in first');
@@ -164,10 +164,11 @@ export function useGmailOAuth(): UseGmailOAuthReturn {
     try {
       await loadGoogleScript();
 
-      // Use implicit grant flow (access token directly)
-      const client = window.google!.accounts.oauth2.initTokenClient({
+      // Use Authorization Code flow to get refresh token
+      const client = window.google!.accounts.oauth2.initCodeClient({
         client_id: gmailSettings.CLIENT_ID,
         scope: GMAIL_SCOPES,
+        ux_mode: 'popup',
         callback: async (response) => {
           if (response.error) {
             setError(response.error);
@@ -175,31 +176,34 @@ export function useGmailOAuth(): UseGmailOAuthReturn {
             return;
           }
 
-          if (response.access_token) {
+          if (response.code) {
             try {
-              // Get user email from Google
-              const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+              // Get Firebase ID token for auth
+              const { getAuth } = await import('firebase/auth');
+              const auth = getAuth();
+              const idToken = await auth.currentUser?.getIdToken();
+
+              // Exchange code for tokens on server
+              const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+              const exchangeResponse = await fetch(`${BACKEND_URL}/api/gmail/exchange-code`, {
+                method: 'POST',
                 headers: {
-                  Authorization: `Bearer ${response.access_token}`
-                }
-              });
-              
-              const userInfo = await userInfoResponse.json();
-              const userEmail = userInfo.email;
-
-              // Store tokens in Firestore
-              await setDoc(doc(db, 'gmailTokens', currentUser.uid), {
-                accessToken: response.access_token,
-                email: userEmail,
-                expiresAt: Date.now() + (response.expires_in || 3600) * 1000,
-                connectedAt: serverTimestamp(),
-                userId: currentUser.uid
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({ code: response.code })
               });
 
-              setIsConnected(true);
-              setEmail(userEmail);
+              const data = await exchangeResponse.json();
+
+              if (data.success) {
+                setIsConnected(true);
+                setEmail(data.email);
+              } else {
+                setError(data.error || 'Failed to exchange code');
+              }
             } catch (err) {
-              console.error('Error saving tokens:', err);
+              console.error('Error exchanging code:', err);
               setError('Failed to complete Gmail connection');
             }
           }
@@ -213,7 +217,7 @@ export function useGmailOAuth(): UseGmailOAuthReturn {
       });
 
       // Trigger the OAuth flow
-      client.requestAccessToken();
+      client.requestCode();
     } catch (err) {
       console.error('Error initiating Gmail OAuth:', err);
       setError('Failed to start Gmail connection');

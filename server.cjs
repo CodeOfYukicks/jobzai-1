@@ -5,9 +5,41 @@ const fetch = require('node-fetch');
 const path = require('path');
 const dotenv = require('dotenv');
 const admin = require('firebase-admin');
+const OpenAI = require('openai');
 
 // Load environment variables
 dotenv.config();
+
+// OpenAI client - will be initialized lazily
+let openai = null;
+
+async function getOpenAIClient() {
+  if (openai) return openai;
+  
+  // Try environment variable first
+  let apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+  
+  // If not in env, try Firestore
+  if (!apiKey) {
+    try {
+      const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
+      if (settingsDoc.exists) {
+        const data = settingsDoc.data();
+        apiKey = data?.API_KEY || data?.apiKey;
+      }
+    } catch (error) {
+      console.error('Failed to get OpenAI API key from Firestore:', error.message);
+    }
+  }
+  
+  if (!apiKey) {
+    throw new Error('OpenAI API key not found in environment or Firestore');
+  }
+  
+  openai = new OpenAI({ apiKey });
+  console.log('✅ OpenAI client initialized');
+  return openai;
+}
 
 // Initialize Firebase Admin SDK
 try {
@@ -3441,8 +3473,10 @@ Job:
 
 // Helper to verify Firebase ID token
 async function verifyFirebaseToken(req, res, next) {
+  console.log('🔐 Token verification for:', req.method, req.path);
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ No auth header found');
     return res.status(401).json({ error: 'Unauthorized - Missing token' });
   }
   
@@ -3450,9 +3484,10 @@ async function verifyFirebaseToken(req, res, next) {
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     req.user = decodedToken;
+    console.log('✅ Token verified for user:', decodedToken.uid);
     next();
   } catch (error) {
-    console.error('Token verification failed:', error.message);
+    console.error('❌ Token verification failed:', error.message);
     return res.status(401).json({ error: 'Unauthorized - Invalid token' });
   }
 }
@@ -3476,7 +3511,7 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
   console.log('🔍 Apollo search request from user:', req.user.uid);
   
   try {
-    const { campaignId, targeting, maxResults = 100 } = req.body;
+    const { campaignId, targeting, maxResults = 20 } = req.body;  // Test mode: 20 contacts
     
     if (!campaignId || !targeting) {
       return res.status(400).json({ error: 'Missing campaignId or targeting' });
@@ -3568,62 +3603,17 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
       );
     });
     
-    console.log('📧 Enriching contacts to reveal emails...');
+    // TEST MODE: Skip Apollo email enrichment to save credits
+    // Assign test emails alternating between two addresses
+    const TEST_EMAILS = ['rouchdi.touil@gmail.com', 'rouchdi.touil94@gmail.com'];
+    console.log('🧪 TEST MODE: Assigning test emails instead of Apollo enrichment');
     
-    // Enrich contacts to get real emails (in batches of 10 for rate limiting)
-    const enrichedPeople = [];
-    const BATCH_SIZE = 10;
+    const enrichedPeople = filteredPeople.map((person, index) => ({
+      ...person,
+      email: TEST_EMAILS[index % 2]  // Alternate between the two test emails
+    }));
     
-    for (let i = 0; i < filteredPeople.length; i += BATCH_SIZE) {
-      const batch = filteredPeople.slice(i, i + BATCH_SIZE);
-      
-      const enrichPromises = batch.map(async (person) => {
-        // Skip if already has a valid email (not the placeholder)
-        if (person.email && !person.email.includes('not_unlocked')) {
-          return person;
-        }
-        
-        try {
-          // Use Apollo People Match API to reveal email
-          const enrichResponse = await fetch('https://api.apollo.io/v1/people/match', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache',
-              'X-Api-Key': apiKey
-            },
-            body: JSON.stringify({
-              id: person.id,
-              reveal_personal_emails: false,
-              reveal_phone_number: false
-            })
-          });
-          
-          if (enrichResponse.ok) {
-            const enrichData = await enrichResponse.json();
-            if (enrichData.person?.email) {
-              console.log(`  ✅ Revealed email for ${person.name}`);
-              return { ...person, email: enrichData.person.email };
-            }
-          }
-        } catch (error) {
-          console.error(`  ⚠️ Failed to enrich ${person.name}:`, error.message);
-        }
-        
-        return person;
-      });
-      
-      const batchResults = await Promise.all(enrichPromises);
-      enrichedPeople.push(...batchResults);
-      
-      // Small delay between batches to respect rate limits
-      if (i + BATCH_SIZE < filteredPeople.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-    }
-    
-    const emailsRevealed = enrichedPeople.filter(p => p.email && !p.email.includes('not_unlocked')).length;
-    console.log(`📧 Revealed ${emailsRevealed}/${enrichedPeople.length} emails`);
+    console.log(`📧 Assigned ${enrichedPeople.length} test emails`);
     
     // Store contacts in Firestore
     const db = admin.firestore();
@@ -3733,6 +3723,964 @@ app.post('/api/apollo/enrich', verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error('❌ Apollo enrich error:', error);
     res.status(500).json({ error: 'Failed to enrich contact', details: error.message });
+  }
+});
+
+// ============================================================================
+// CAMPAIGN EMAIL SYSTEM
+// ============================================================================
+
+// Generate personalized emails for all recipients in a campaign
+app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, async (req, res) => {
+  console.log('🔥 GENERATE EMAILS ENDPOINT HIT');
+  console.log('Request params:', req.params);
+  console.log('Request body:', req.body);
+  console.log('User:', req.user?.uid);
+  
+  const { campaignId } = req.params;
+  const { tone = 'casual', language = 'en' } = req.body;
+  const userId = req.user.uid;
+  
+  console.log(`📧 Generating emails for campaign ${campaignId}`);
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get campaign data
+    const campaignRef = db.collection('campaigns').doc(campaignId);
+    const campaignDoc = await campaignRef.get();
+    
+    if (!campaignDoc.exists) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const campaignData = campaignDoc.data();
+    if (campaignData.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    
+    // Get user profile for email generation context
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userProfile = userDoc.exists ? userDoc.data() : {};
+    
+    // Get all recipients without generated emails
+    // Note: We get ALL recipients and filter in code because Firestore can't query for missing fields
+    console.log(`📂 Getting recipients from campaigns/${campaignId}/recipients`);
+    const allRecipientsSnapshot = await campaignRef.collection('recipients').get();
+    console.log(`📂 Found ${allRecipientsSnapshot.size} total recipients in collection`);
+    
+    if (allRecipientsSnapshot.empty) {
+      console.log('⚠️ No recipients found in subcollection!');
+      return res.json({ success: true, generated: 0, message: 'No recipients in campaign' });
+    }
+    
+    // Log first recipient for debugging
+    if (allRecipientsSnapshot.docs.length > 0) {
+      const firstDoc = allRecipientsSnapshot.docs[0].data();
+      console.log('📋 First recipient sample:', {
+        fullName: firstDoc.fullName,
+        email: firstDoc.email,
+        emailGenerated: firstDoc.emailGenerated,
+        status: firstDoc.status
+      });
+    }
+    
+    // Filter to only those without generated emails (emailGenerated is false or doesn't exist)
+    const recipientDocs = allRecipientsSnapshot.docs.filter(doc => {
+      const data = doc.data();
+      return data.emailGenerated !== true;
+    });
+    
+    console.log(`📧 After filter: ${recipientDocs.length} recipients need email generation`);
+    
+    if (recipientDocs.length === 0) {
+      return res.json({ success: true, generated: 0, message: 'All emails already generated' });
+    }
+    
+    console.log(`📧 Found ${recipientDocs.length} recipients needing email generation`);
+    
+    // Build user context for AI prompt
+    const userContext = buildUserContext(userProfile, campaignData.targeting);
+    
+    // Generate emails for each recipient
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const recipientDoc of recipientDocs) {
+      const recipient = recipientDoc.data();
+      
+      try {
+        // Generate personalized email using OpenAI
+        const { subject, body } = await generateEmailForRecipient(
+          userContext,
+          recipient,
+          tone,
+          language,
+          userProfile
+        );
+        
+        // Update recipient with generated email
+        await recipientDoc.ref.update({
+          emailSubject: subject,
+          emailContent: body,
+          emailGenerated: true,
+          emailTone: tone,
+          status: 'email_generated',
+          generatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        results.push({ id: recipientDoc.id, success: true, subject });
+        successCount++;
+        console.log(`  ✅ Generated email for ${recipient.fullName}`);
+        
+      } catch (error) {
+        console.error(`  ❌ Failed to generate for ${recipient.fullName}:`, error.message);
+        results.push({ id: recipientDoc.id, success: false, error: error.message });
+        errorCount++;
+      }
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    // Update campaign stats
+    await campaignRef.update({
+      'stats.emailsGenerated': admin.firestore.FieldValue.increment(successCount),
+      status: successCount > 0 ? 'emails_generated' : campaignData.status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    res.json({
+      success: true,
+      generated: successCount,
+      failed: errorCount,
+      total: recipientDocs.length,
+      results
+    });
+    
+  } catch (error) {
+    console.error('❌ Email generation error:', error);
+    res.status(500).json({ error: 'Failed to generate emails', details: error.message });
+  }
+});
+
+// Helper function to build user context for AI
+function buildUserContext(userProfile, targeting) {
+  const parts = [];
+  
+  if (userProfile.firstName) {
+    parts.push(`Sender's name: ${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`);
+  }
+  if (userProfile.currentPosition) {
+    parts.push(`Current role: ${userProfile.currentPosition}`);
+  }
+  if (userProfile.yearsOfExperience) {
+    parts.push(`Experience: ${userProfile.yearsOfExperience} years`);
+  }
+  if (userProfile.skills && userProfile.skills.length > 0) {
+    parts.push(`Key skills: ${userProfile.skills.slice(0, 5).join(', ')}`);
+  }
+  if (targeting?.personTitles?.length > 0) {
+    parts.push(`Looking for: ${targeting.personTitles[0]} positions`);
+  }
+  if (targeting?.industries?.length > 0) {
+    parts.push(`Target industry: ${targeting.industries[0]}`);
+  }
+  if (targeting?.personLocations?.length > 0) {
+    parts.push(`Preferred location: ${targeting.personLocations[0]}`);
+  }
+  if (userProfile.professionalHistory && userProfile.professionalHistory.length > 0) {
+    const recentJob = userProfile.professionalHistory[0];
+    parts.push(`Recent experience: ${recentJob.title} at ${recentJob.company}`);
+  }
+  
+  return parts.join('\n');
+}
+
+// Helper function to generate email for a single recipient
+async function generateEmailForRecipient(userContext, recipient, tone, language, userProfile) {
+  const toneInstructions = {
+    casual: language === 'fr' 
+      ? 'Ton décontracté et amical, comme un message LinkedIn entre professionnels.'
+      : 'Casual and friendly tone, like a LinkedIn message between professionals.',
+    professional: language === 'fr'
+      ? 'Ton professionnel mais chaleureux, pas corporate ou robotique.'
+      : 'Professional but warm tone, not corporate or robotic.',
+    bold: language === 'fr'
+      ? 'Ton direct et confiant, qui va droit au but sans être arrogant.'
+      : 'Direct and confident tone, straight to the point without being arrogant.'
+  };
+  
+  const systemPrompt = language === 'fr' ? `Tu es un expert en rédaction d'emails de candidature spontanée.
+
+OBJECTIF: Écrire un email court et percutant pour demander un échange informel.
+
+RÈGLES:
+1. Maximum 4-6 lignes de contenu
+2. Phrases courtes et variées
+3. JAMAIS de mots comme "passionné", "opportunité incroyable"
+4. Demande une DISCUSSION, pas un job
+5. Personnalise avec le nom de l'entreprise et le poste du contact
+
+TON: ${toneInstructions[tone]}
+
+DESTINATAIRE:
+- Prénom: ${recipient.firstName}
+- Nom: ${recipient.lastName}
+- Entreprise: ${recipient.company || 'leur entreprise'}
+- Poste: ${recipient.title || 'leur poste'}
+
+Format: 
+SUBJECT: [objet court, max 6 mots]
+---
+[corps de l'email avec signature prénom]` : `You are an expert at writing spontaneous outreach emails.
+
+GOAL: Write a short, punchy email asking for an informal chat.
+
+RULES:
+1. Maximum 4-6 lines of content
+2. Short, varied sentences
+3. NEVER use "passionate", "amazing opportunity"
+4. Ask for a CONVERSATION, not a job
+5. Personalize with company name and contact's position
+
+TONE: ${toneInstructions[tone]}
+
+RECIPIENT:
+- First name: ${recipient.firstName}
+- Last name: ${recipient.lastName}
+- Company: ${recipient.company || 'their company'}
+- Position: ${recipient.title || 'their role'}
+
+Format:
+SUBJECT: [short subject, max 6 words]
+---
+[email body with first name signature]`;
+
+  const openaiClient = await getOpenAIClient();
+  const completion = await openaiClient.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `SENDER CONTEXT:\n${userContext}\n\nGenerate a personalized email for ${recipient.firstName} at ${recipient.company}. Sign with "${userProfile.firstName || 'Me'}".` }
+    ],
+    temperature: 0.85,
+    max_tokens: 400
+  });
+  
+  const content = completion.choices[0]?.message?.content || '';
+  
+  // Parse subject and body
+  const subjectMatch = content.match(/SUBJECT:\s*(.+)/i);
+  const subject = subjectMatch ? subjectMatch[1].trim() : `Quick question`;
+  
+  const bodyMatch = content.split(/---+/);
+  const body = bodyMatch.length > 1 ? bodyMatch[1].trim() : content.replace(/SUBJECT:.+/i, '').trim();
+  
+  return { subject, body };
+}
+
+// Send emails in batch (max 10 per request to avoid spam filters)
+app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (req, res) => {
+  const { campaignId } = req.params;
+  const { batchSize = 10 } = req.body;
+  const userId = req.user.uid;
+  
+  console.log(`📤 Sending emails for campaign ${campaignId}`);
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get campaign
+    const campaignRef = db.collection('campaigns').doc(campaignId);
+    const campaignDoc = await campaignRef.get();
+    
+    if (!campaignDoc.exists) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const campaignData = campaignDoc.data();
+    if (campaignData.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    
+    // Get Gmail tokens and refresh if needed
+    let accessToken;
+    try {
+      accessToken = await refreshGmailToken(userId);
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError.message);
+      return res.status(401).json({ 
+        error: 'Gmail token expired', 
+        message: refreshError.message,
+        needsReconnect: true 
+      });
+    }
+    
+    const gmailTokenDoc = await db.collection('gmailTokens').doc(userId).get();
+    const gmailTokens = gmailTokenDoc.data();
+    const senderEmail = gmailTokens.email;
+    
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Gmail access token missing. Please reconnect Gmail.' });
+    }
+    
+    // Get recipients with generated emails but not yet sent
+    const recipientsSnapshot = await campaignRef.collection('recipients')
+      .where('emailGenerated', '==', true)
+      .where('status', '==', 'email_generated')
+      .limit(batchSize)
+      .get();
+    
+    if (recipientsSnapshot.empty) {
+      return res.json({ success: true, sent: 0, message: 'No emails to send' });
+    }
+    
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
+    const TRACKING_BASE_URL = process.env.TRACKING_URL || `http://localhost:${PORT}`;
+    
+    for (const recipientDoc of recipientsSnapshot.docs) {
+      const recipient = recipientDoc.data();
+      
+      if (!recipient.email) {
+        console.log(`  ⚠️ Skipping ${recipient.fullName} - no email`);
+        results.push({ id: recipientDoc.id, success: false, error: 'No email address' });
+        errorCount++;
+        continue;
+      }
+      
+      try {
+        // Create tracking pixel URL
+        const trackingId = `${campaignId}_${recipientDoc.id}`;
+        const trackingPixel = `<img src="${TRACKING_BASE_URL}/api/track/open/${trackingId}" width="1" height="1" style="display:none;" />`;
+        
+        // Build email with tracking pixel
+        const emailBody = `${recipient.emailContent}\n\n${trackingPixel}`;
+        
+        // Create raw email in RFC 2822 format
+        const rawEmail = createRawEmail({
+          from: senderEmail,
+          to: recipient.email,
+          subject: recipient.emailSubject,
+          body: emailBody
+        });
+        
+        // Send via Gmail API
+        const sendResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ raw: rawEmail })
+        });
+        
+        if (!sendResponse.ok) {
+          const errorData = await sendResponse.json();
+          throw new Error(errorData.error?.message || 'Gmail API error');
+        }
+        
+        const sendData = await sendResponse.json();
+        
+        // Update recipient status
+        await recipientDoc.ref.update({
+          status: 'sent',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          gmailMessageId: sendData.id,
+          gmailThreadId: sendData.threadId,
+          trackingId: trackingId
+        });
+        
+        results.push({ id: recipientDoc.id, success: true, messageId: sendData.id });
+        successCount++;
+        console.log(`  ✅ Sent email to ${recipient.fullName} (${recipient.email})`);
+        
+        // Small delay between sends
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (error) {
+        console.error(`  ❌ Failed to send to ${recipient.fullName}:`, error.message);
+        
+        await recipientDoc.ref.update({
+          status: 'send_failed',
+          sendError: error.message,
+          lastSendAttempt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        results.push({ id: recipientDoc.id, success: false, error: error.message });
+        errorCount++;
+      }
+    }
+    
+    // Update campaign stats
+    await campaignRef.update({
+      'stats.emailsSent': admin.firestore.FieldValue.increment(successCount),
+      status: successCount > 0 ? 'sending' : campaignData.status,
+      lastSendBatch: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Calculate remaining to send
+    const remainingSnapshot = await campaignRef.collection('recipients')
+      .where('status', '==', 'email_generated')
+      .get();
+    
+    res.json({
+      success: true,
+      sent: successCount,
+      failed: errorCount,
+      remaining: remainingSnapshot.size,
+      results
+    });
+    
+  } catch (error) {
+    console.error('❌ Email sending error:', error);
+    res.status(500).json({ error: 'Failed to send emails', details: error.message });
+  }
+});
+
+// Helper function to create RFC 2822 raw email for Gmail API
+function createRawEmail({ from, to, subject, body }) {
+  // Create HTML email with proper formatting
+  const htmlBody = body
+    .replace(/\n/g, '<br>')
+    .replace(/(<img[^>]*>)/g, '$1'); // Keep image tags intact
+  
+  const email = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    htmlBody
+  ].join('\r\n');
+  
+  // Base64url encode
+  return Buffer.from(email)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+// Tracking pixel endpoint - returns 1x1 transparent GIF
+app.get('/api/track/open/:trackingId', async (req, res) => {
+  const { trackingId } = req.params;
+  
+  console.log(`👁️ Email opened: ${trackingId}`);
+  
+  try {
+    // Parse tracking ID: campaignId_recipientId
+    const [campaignId, recipientId] = trackingId.split('_');
+    
+    if (campaignId && recipientId) {
+      const db = admin.firestore();
+      const recipientRef = db.collection('campaigns').doc(campaignId).collection('recipients').doc(recipientId);
+      const recipientDoc = await recipientRef.get();
+      
+      if (recipientDoc.exists) {
+        const recipient = recipientDoc.data();
+        
+        // Only update if not already opened and status is 'sent'
+        if (recipient.status === 'sent') {
+          await recipientRef.update({
+            status: 'opened',
+            openedAt: admin.firestore.FieldValue.serverTimestamp(),
+            openCount: admin.firestore.FieldValue.increment(1)
+          });
+          
+          // Update campaign stats
+          await db.collection('campaigns').doc(campaignId).update({
+            'stats.opened': admin.firestore.FieldValue.increment(1),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          console.log(`  ✅ Marked as opened`);
+        } else if (recipient.status === 'opened' || recipient.status === 'replied') {
+          // Just increment open count
+          await recipientRef.update({
+            openCount: admin.firestore.FieldValue.increment(1)
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Tracking error:', error);
+    // Don't fail the request - still return the pixel
+  }
+  
+  // Return 1x1 transparent GIF
+  const transparentGif = Buffer.from(
+    'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    'base64'
+  );
+  
+  res.set({
+    'Content-Type': 'image/gif',
+    'Content-Length': transparentGif.length,
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  
+  res.send(transparentGif);
+});
+
+// Check for replies in Gmail inbox
+app.post('/api/campaigns/:campaignId/check-replies', verifyFirebaseToken, async (req, res) => {
+  const { campaignId } = req.params;
+  const userId = req.user.uid;
+  
+  console.log(`📬 Checking replies for campaign ${campaignId}`);
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get campaign
+    const campaignRef = db.collection('campaigns').doc(campaignId);
+    const campaignDoc = await campaignRef.get();
+    
+    if (!campaignDoc.exists) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const campaignData = campaignDoc.data();
+    if (campaignData.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    
+    // Get Gmail tokens and refresh if needed
+    let accessToken;
+    try {
+      accessToken = await refreshGmailToken(userId);
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError.message);
+      return res.status(401).json({ 
+        error: 'Gmail token expired', 
+        message: refreshError.message,
+        needsReconnect: true 
+      });
+    }
+    
+    const gmailTokenDoc = await db.collection('gmailTokens').doc(userId).get();
+    const gmailTokens = gmailTokenDoc.data();
+    
+    // Get sent recipients that haven't replied yet
+    console.log('📬 Querying for sent/opened recipients...');
+    const recipientsSnapshot = await campaignRef.collection('recipients')
+      .where('status', 'in', ['sent', 'opened'])
+      .get();
+    
+    console.log(`📬 Found ${recipientsSnapshot.size} recipients with sent/opened status`);
+    
+    if (recipientsSnapshot.empty) {
+      return res.json({ success: true, repliesFound: 0, message: 'No sent emails to check' });
+    }
+    
+    let repliesFound = 0;
+    const results = [];
+    
+    for (const recipientDoc of recipientsSnapshot.docs) {
+      const recipient = recipientDoc.data();
+      
+      console.log(`  Checking ${recipient.fullName}: threadId=${recipient.gmailThreadId}, status=${recipient.status}`);
+      
+      if (!recipient.gmailThreadId) {
+        console.log(`  ⚠️ Skipping ${recipient.fullName} - no threadId`);
+        continue;
+      }
+      
+      try {
+        // Get thread to check for replies
+        console.log(`  📨 Fetching Gmail thread ${recipient.gmailThreadId}...`);
+        const threadResponse = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/threads/${recipient.gmailThreadId}`,
+          {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          }
+        );
+        
+        if (!threadResponse.ok) {
+          const errorText = await threadResponse.text();
+          console.log(`  ❌ Gmail API error for ${recipient.fullName}: ${threadResponse.status} - ${errorText}`);
+          continue;
+        }
+        
+        const threadData = await threadResponse.json();
+        console.log(`  📧 Thread has ${threadData.messages?.length || 0} messages`);
+        
+        // If thread has more than 1 message, there's a reply
+        if (threadData.messages && threadData.messages.length > 1) {
+          // Check if any message is not from us (it's a reply)
+          const senderEmail = gmailTokens.email.toLowerCase();
+          console.log(`  🔍 Checking for replies (sender: ${senderEmail})`);
+          
+          // In test mode, emails are sent to ourselves, so we check if there's more than 1 message
+          // by checking if any message after the first one exists (that's the reply)
+          const firstMessageId = threadData.messages[0]?.id;
+          const hasReply = threadData.messages.some((msg, index) => {
+            // Skip the first message (the one we sent)
+            if (index === 0) return false;
+            
+            // Check if this is a different message (a reply)
+            const fromHeader = msg.payload?.headers?.find(h => h.name.toLowerCase() === 'from');
+            const from = fromHeader?.value?.toLowerCase() || '';
+            
+            // In test mode: any message after the first is a reply
+            // In production: check if from is different from sender
+            const isTestMode = recipient.email?.includes('rouchdi.touil');
+            const isReply = isTestMode ? true : !from.includes(senderEmail);
+            
+            if (isReply) console.log(`  📩 Found reply from: ${from} (msg ${index + 1}/${threadData.messages.length})`);
+            return isReply;
+          });
+          
+          if (hasReply && recipient.status !== 'replied') {
+            await recipientDoc.ref.update({
+              status: 'replied',
+              repliedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            repliesFound++;
+            results.push({ id: recipientDoc.id, name: recipient.fullName, replied: true });
+            console.log(`  ✅ Found reply from ${recipient.fullName}`);
+          }
+        }
+        
+      } catch (error) {
+        console.error(`  ⚠️ Error checking thread for ${recipient.fullName}:`, error.message);
+      }
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Update campaign stats if we found replies
+    if (repliesFound > 0) {
+      await campaignRef.update({
+        'stats.replied': admin.firestore.FieldValue.increment(repliesFound),
+        lastReplyCheck: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    
+    res.json({
+      success: true,
+      repliesFound,
+      checked: recipientsSnapshot.size,
+      results
+    });
+    
+  } catch (error) {
+    console.error('❌ Reply check error:', error);
+    res.status(500).json({ error: 'Failed to check replies', details: error.message });
+  }
+});
+
+// Exchange Gmail authorization code for tokens (with refresh token)
+app.post('/api/gmail/exchange-code', verifyFirebaseToken, async (req, res) => {
+  const { code } = req.body;
+  const userId = req.user.uid;
+  
+  console.log('🔑 Exchanging Gmail authorization code for tokens');
+  
+  if (!code) {
+    return res.status(400).json({ error: 'Missing authorization code' });
+  }
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get Gmail OAuth credentials from Firestore
+    const gmailSettingsDoc = await db.collection('settings').doc('gmail').get();
+    if (!gmailSettingsDoc.exists) {
+      return res.status(500).json({ error: 'Gmail OAuth not configured' });
+    }
+    
+    const gmailSettings = gmailSettingsDoc.data();
+    const clientId = gmailSettings.CLIENT_ID;
+    const clientSecret = gmailSettings.CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      return res.status(500).json({ error: 'Gmail OAuth credentials missing' });
+    }
+    
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: 'postmessage', // For popup flow
+        grant_type: 'authorization_code'
+      })
+    });
+    
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.error) {
+      console.error('Token exchange error:', tokenData);
+      return res.status(400).json({ error: tokenData.error_description || tokenData.error });
+    }
+    
+    const { access_token, refresh_token, expires_in } = tokenData;
+    
+    // Get user email
+    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': `Bearer ${access_token}` }
+    });
+    const userInfo = await userInfoResponse.json();
+    const userEmail = userInfo.email;
+    
+    // Store tokens in Firestore
+    await db.collection('gmailTokens').doc(userId).set({
+      accessToken: access_token,
+      refreshToken: refresh_token,
+      email: userEmail,
+      expiresAt: Date.now() + (expires_in || 3600) * 1000,
+      connectedAt: admin.firestore.FieldValue.serverTimestamp(),
+      userId: userId
+    });
+    
+    console.log(`✅ Gmail connected for ${userEmail} with refresh token`);
+    
+    res.json({
+      success: true,
+      email: userEmail,
+      hasRefreshToken: !!refresh_token
+    });
+    
+  } catch (error) {
+    console.error('Error exchanging Gmail code:', error);
+    res.status(500).json({ error: 'Failed to exchange code', details: error.message });
+  }
+});
+
+// Helper function to refresh Gmail access token
+async function refreshGmailToken(userId) {
+  const db = admin.firestore();
+  
+  // Get stored tokens
+  const tokenDoc = await db.collection('gmailTokens').doc(userId).get();
+  if (!tokenDoc.exists) {
+    throw new Error('No Gmail tokens found');
+  }
+  
+  const tokenData = tokenDoc.data();
+  
+  // Check if token is still valid (with 5 min buffer)
+  if (tokenData.expiresAt > Date.now() + 5 * 60 * 1000) {
+    return tokenData.accessToken;
+  }
+  
+  // Need to refresh
+  if (!tokenData.refreshToken) {
+    throw new Error('No refresh token available - please reconnect Gmail');
+  }
+  
+  console.log(`🔄 Refreshing Gmail token for user ${userId}`);
+  
+  // Get OAuth credentials
+  const gmailSettingsDoc = await db.collection('settings').doc('gmail').get();
+  const gmailSettings = gmailSettingsDoc.data();
+  
+  // Refresh the token
+  const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: gmailSettings.CLIENT_ID,
+      client_secret: gmailSettings.CLIENT_SECRET,
+      refresh_token: tokenData.refreshToken,
+      grant_type: 'refresh_token'
+    })
+  });
+  
+  const refreshData = await refreshResponse.json();
+  
+  if (refreshData.error) {
+    console.error('Token refresh error:', refreshData);
+    throw new Error(refreshData.error_description || 'Failed to refresh token');
+  }
+  
+  // Update stored token
+  await db.collection('gmailTokens').doc(userId).update({
+    accessToken: refreshData.access_token,
+    expiresAt: Date.now() + (refreshData.expires_in || 3600) * 1000
+  });
+  
+  console.log(`✅ Gmail token refreshed successfully`);
+  
+  return refreshData.access_token;
+}
+
+// Get Gmail thread reply content
+app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => {
+  const { threadId } = req.params;
+  const userId = req.user.uid;
+  
+  console.log(`📨 Fetching Gmail thread ${threadId} for reply content`);
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get Gmail tokens and refresh if needed
+    let accessToken;
+    try {
+      accessToken = await refreshGmailToken(userId);
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError.message);
+      return res.status(401).json({ 
+        error: 'Gmail token expired', 
+        message: refreshError.message,
+        needsReconnect: true 
+      });
+    }
+    
+    const gmailTokenDoc = await db.collection('gmailTokens').doc(userId).get();
+    const gmailTokens = gmailTokenDoc.data();
+    const senderEmail = gmailTokens.email?.toLowerCase();
+    
+    // Fetch thread with full message content
+    const threadResponse = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=full`,
+      {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      }
+    );
+    
+    if (!threadResponse.ok) {
+      const errorText = await threadResponse.text();
+      console.error('Gmail API error:', errorText);
+      
+      // Check for expired token
+      if (threadResponse.status === 401) {
+        return res.status(401).json({ 
+          error: 'Gmail token expired', 
+          message: 'Please reconnect Gmail to refresh your access token',
+          needsReconnect: true 
+        });
+      }
+      return res.status(500).json({ error: 'Failed to fetch thread' });
+    }
+    
+    const threadData = await threadResponse.json();
+    
+    if (!threadData.messages || threadData.messages.length < 2) {
+      return res.json({ success: true, reply: null, message: 'No reply found' });
+    }
+    
+    // Find the reply message (not from us)
+    let replyMessage = null;
+    for (let i = threadData.messages.length - 1; i >= 0; i--) {
+      const msg = threadData.messages[i];
+      const fromHeader = msg.payload?.headers?.find(h => h.name.toLowerCase() === 'from');
+      const from = fromHeader?.value || '';
+      
+      // In test mode, take any message after the first
+      // In production, take message not from sender
+      if (i > 0) {
+        replyMessage = msg;
+        break;
+      }
+    }
+    
+    if (!replyMessage) {
+      return res.json({ success: true, reply: null, message: 'No reply found' });
+    }
+    
+    // Extract reply details
+    const headers = replyMessage.payload?.headers || [];
+    const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || 'Unknown';
+    const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
+    const dateHeader = headers.find(h => h.name.toLowerCase() === 'date')?.value || '';
+    
+    // Extract body content
+    let body = '';
+    
+    function extractBody(payload) {
+      if (payload.body?.data) {
+        return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+      }
+      if (payload.parts) {
+        for (const part of payload.parts) {
+          if (part.mimeType === 'text/plain' && part.body?.data) {
+            return Buffer.from(part.body.data, 'base64').toString('utf-8');
+          }
+          if (part.parts) {
+            const nested = extractBody(part);
+            if (nested) return nested;
+          }
+        }
+        // Fallback to HTML if no plain text
+        for (const part of payload.parts) {
+          if (part.mimeType === 'text/html' && part.body?.data) {
+            const html = Buffer.from(part.body.data, 'base64').toString('utf-8');
+            // Basic HTML to text conversion
+            return html
+              .replace(/<br\s*\/?>/gi, '\n')
+              .replace(/<\/p>/gi, '\n\n')
+              .replace(/<[^>]+>/g, '')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .trim();
+          }
+        }
+      }
+      return '';
+    }
+    
+    body = extractBody(replyMessage.payload);
+    
+    // Clean up the body (remove quoted text)
+    const lines = body.split('\n');
+    const cleanLines = [];
+    for (const line of lines) {
+      // Stop at quoted text indicators
+      if (line.startsWith('>') || line.startsWith('On ') && line.includes(' wrote:')) {
+        break;
+      }
+      if (line.includes('wrote:') && line.includes('@')) {
+        break;
+      }
+      cleanLines.push(line);
+    }
+    body = cleanLines.join('\n').trim();
+    
+    // Format date
+    let formattedDate = dateHeader;
+    try {
+      const date = new Date(dateHeader);
+      formattedDate = date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {}
+    
+    res.json({
+      success: true,
+      reply: {
+        from: fromHeader,
+        subject: subjectHeader,
+        body: body || '(No text content)',
+        date: formattedDate
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching thread:', error);
+    res.status(500).json({ error: 'Failed to fetch reply', details: error.message });
   }
 });
 
