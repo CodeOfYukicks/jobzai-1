@@ -22,10 +22,14 @@ import {
   MapPin,
   ChevronDown,
   Search,
-  Zap
+  Zap,
+  Trash2,
+  Pencil,
+  Check,
+  Filter
 } from 'lucide-react';
 import { toast } from '@/contexts/ToastContext';
-import { getDoc, doc, updateDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { getDoc, doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
@@ -62,6 +66,7 @@ interface CampaignRecipient {
 
 interface Campaign {
   id: string;
+  name?: string;
   status: 'pending' | 'contacts_fetched' | 'emails_generated' | 'ready_to_send' | 'sent';
   targeting: ApolloTargeting;
   gmail: {
@@ -147,6 +152,65 @@ export default function CampaignsAutoPage() {
 
   // Campaign dropdown
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
+
+  // Delete campaign modal
+  const [deleteCampaignModal, setDeleteCampaignModal] = useState<{ show: boolean; campaign?: Campaign }>({ show: false });
+
+  // Search/filter state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Edit campaign name state
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
+  const [editingCampaignName, setEditingCampaignName] = useState('');
+
+  // Column resize state (percentages)
+  const [columnWidths, setColumnWidths] = useState({
+    contact: 14,
+    title: 16,
+    company: 14,
+    location: 14,
+    email: 18,
+    linkedin: 9,
+    status: 8,
+    actions: 7
+  });
+  const resizingColumnRef = useRef<string | null>(null);
+  const startXRef = useRef<number>(0);
+  const startWidthRef = useRef<number>(0);
+
+  const tableRef = useRef<HTMLTableElement>(null);
+  
+  const handleResizeStart = useCallback((e: React.MouseEvent, column: string) => {
+    e.preventDefault();
+    resizingColumnRef.current = column;
+    startXRef.current = e.clientX;
+    startWidthRef.current = columnWidths[column as keyof typeof columnWidths];
+    const tableWidth = tableRef.current?.offsetWidth || 1000;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingColumnRef.current) return;
+      const diff = e.clientX - startXRef.current;
+      const diffPercent = (diff / tableWidth) * 100;
+      const newWidth = Math.max(5, Math.min(40, startWidthRef.current + diffPercent));
+      setColumnWidths(prev => ({
+        ...prev,
+        [resizingColumnRef.current!]: newWidth
+      }));
+    };
+    
+    const handleMouseUp = () => {
+      resizingColumnRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [columnWidths]);
 
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
 
@@ -403,7 +467,7 @@ export default function CampaignsAutoPage() {
     try {
       toast.info('Searching Apollo for contacts...');
       
-      const result = await searchApolloContacts(campaignId, targeting, 50);
+      const result = await searchApolloContacts(campaignId, targeting, 100);
       
       if (result.success) {
         toast.success(`Found ${result.contactsFound} contacts! (${result.totalAvailable} available)`);
@@ -434,6 +498,66 @@ export default function CampaignsAutoPage() {
       console.error('Error fetching campaign for Apollo search:', error);
     }
   }, [handleSearchApollo]);
+
+  // Handle campaign deletion
+  const handleDeleteCampaign = useCallback(async () => {
+    if (!deleteCampaignModal.campaign) return;
+    
+    try {
+      const campaignId = deleteCampaignModal.campaign.id;
+      
+      // Delete all recipients in the campaign first
+      const recipientsRef = collection(db, 'campaigns', campaignId, 'recipients');
+      const recipientsSnapshot = await getDocs(recipientsRef);
+      
+      const deletePromises = recipientsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      // Delete the campaign itself
+      await deleteDoc(doc(db, 'campaigns', campaignId));
+      
+      // Clear selection if this was the selected campaign
+      if (selectedCampaignId === campaignId) {
+        setSelectedCampaignId(null);
+        setRecipients([]);
+      }
+      
+      setDeleteCampaignModal({ show: false });
+      toast.success('Campaign deleted successfully');
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      toast.error('Failed to delete campaign');
+    }
+  }, [deleteCampaignModal.campaign, selectedCampaignId]);
+
+  // Handle campaign name update
+  const handleUpdateCampaignName = useCallback(async (campaignId: string, newName: string) => {
+    try {
+      await updateDoc(doc(db, 'campaigns', campaignId), {
+        name: newName.trim(),
+        updatedAt: new Date()
+      });
+      setEditingCampaignId(null);
+      toast.success('Campaign renamed');
+    } catch (error) {
+      console.error('Error updating campaign name:', error);
+      toast.error('Failed to rename campaign');
+    }
+  }, []);
+
+  // Filter recipients based on search query
+  const filteredRecipients = searchQuery.trim() 
+    ? recipients.filter(r => {
+        const query = searchQuery.toLowerCase();
+        return (
+          r.fullName?.toLowerCase().includes(query) ||
+          r.title?.toLowerCase().includes(query) ||
+          r.company?.toLowerCase().includes(query) ||
+          r.email?.toLowerCase().includes(query) ||
+          r.location?.toLowerCase().includes(query)
+        );
+      })
+    : recipients;
 
   // Stats for selected campaign
   const stats = selectedCampaign?.stats || {
@@ -610,26 +734,28 @@ export default function CampaignsAutoPage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-4 pb-6 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="px-0 pt-6 pb-6 flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Campaign Selector & Stats Row */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="flex items-center justify-between gap-4 mb-4 px-4 sm:px-6"
+            className="flex items-center justify-between gap-6 mb-5 px-6"
           >
             {/* Campaign Dropdown */}
             {campaigns.length > 0 && (
               <div className="relative">
                 <button
                   onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] rounded-lg 
+                    hover:bg-gray-100 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-200"
                 >
-                  <Zap className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {selectedCampaign ? `Campaign ${campaigns.indexOf(selectedCampaign) + 1}` : 'Select Campaign'}
+                  <span className="text-[14px] font-medium text-gray-900 dark:text-gray-100 truncate max-w-[220px]">
+                    {selectedCampaign 
+                      ? (selectedCampaign.name || `Campaign ${campaigns.indexOf(selectedCampaign) + 1}`)
+                      : 'Select Campaign'}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
                 
                 <AnimatePresence>
@@ -638,39 +764,102 @@ export default function CampaignsAutoPage() {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute z-50 mt-2 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden"
+                      className="absolute z-50 mt-2 w-80 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl dark:shadow-2xl overflow-hidden backdrop-blur-xl"
                     >
                       {campaigns.map((campaign, index) => (
-                        <button
+                        <div
                           key={campaign.id}
-                          onClick={() => {
-                            setSelectedCampaignId(campaign.id);
-                            setIsCampaignDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
+                          className={`group flex items-center gap-2 px-4 py-3 transition-all duration-150
                             ${selectedCampaignId === campaign.id 
-                              ? 'bg-purple-50 dark:bg-purple-500/10' 
-                              : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                              ? 'bg-gray-50 dark:bg-white/[0.06]' 
+                              : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                             }`}
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              Campaign {index + 1}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
-                              {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs font-medium text-gray-900 dark:text-white">
-                              {campaign.stats?.contactsFound || 0} contacts
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {campaign.stats?.emailsSent || 0} sent
-                            </p>
-                          </div>
-                        </button>
+                          {editingCampaignId === campaign.id ? (
+                            <div className="flex-1 flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={editingCampaignName}
+                                onChange={(e) => setEditingCampaignName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleUpdateCampaignName(campaign.id, editingCampaignName);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingCampaignId(null);
+                                  }
+                                }}
+                                autoFocus
+                                className="flex-1 px-2.5 py-1.5 text-sm bg-white dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.1] rounded-lg 
+                                  focus:outline-none focus:border-gray-400 dark:focus:border-white/[0.2] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                                placeholder="Campaign name..."
+                              />
+                              <button
+                                onClick={() => handleUpdateCampaignName(campaign.id, editingCampaignName)}
+                                className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setEditingCampaignId(null)}
+                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setSelectedCampaignId(campaign.id);
+                                  setIsCampaignDropdownOpen(false);
+                                }}
+                                className="flex-1 flex items-center gap-3 text-left min-w-0"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate">
+                                    {campaign.name || `Campaign ${index + 1}`}
+                                  </p>
+                                  <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                                    {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
+                                    {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}
+                                  </p>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-[12px] font-medium text-gray-700 dark:text-gray-300 tabular-nums">
+                                    {campaign.stats?.contactsFound || 0}
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 uppercase tracking-wide">
+                                    contacts
+                                  </p>
+                                </div>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingCampaignId(campaign.id);
+                                  setEditingCampaignName(campaign.name || `Campaign ${index + 1}`);
+                                }}
+                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]
+                                  opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                title="Rename campaign"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteCampaignModal({ show: true, campaign });
+                                  setIsCampaignDropdownOpen(false);
+                                }}
+                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10
+                                  opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                title="Delete campaign"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       ))}
                     </motion.div>
                   )}
@@ -678,83 +867,166 @@ export default function CampaignsAutoPage() {
               </div>
             )}
 
-            {/* Stats */}
-            <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Users className="w-4 h-4" />
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">{stats.contactsFound}</span>
-              <span className="text-sm">contacts</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <Mail className="w-4 h-4" />
-                <span className="text-sm">{stats.emailsSent} sent</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <MessageSquare className="w-4 h-4" />
-              <span className="text-sm">{stats.replied} replied</span>
+            {/* Stats - Premium minimal style */}
+            <div className="flex items-center gap-8">
+              <div className="flex flex-col items-end">
+                <span className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats.contactsFound}</span>
+                <span className="text-[11px] text-gray-500 uppercase tracking-wider">contacts</span>
+              </div>
+              <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
+              <div className="flex flex-col items-end">
+                <span className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats.emailsSent}</span>
+                <span className="text-[11px] text-gray-500 uppercase tracking-wider">sent</span>
+              </div>
+              <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
+              <div className="flex flex-col items-end">
+                <span className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats.replied}</span>
+                <span className="text-[11px] text-gray-500 uppercase tracking-wider">replied</span>
               </div>
             </div>
           </motion.div>
 
-          {/* Targeting Summary */}
+          {/* Search & Targeting Row */}
           {selectedCampaign && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-wrap items-center gap-2 mb-4 px-4 sm:px-6"
+              className="flex items-center gap-4 mb-5 px-6"
             >
-              {selectedCampaign.targeting?.personTitles?.map(title => (
-                <span key={title} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs rounded-full">
-                  <Search className="w-3 h-3" />
-                  {title}
+              {/* Search Bar */}
+              {recipients.length > 0 && (
+                <div className="relative w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search contacts..."
+                    className="w-full pl-10 pr-4 py-2 text-[13px] bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] 
+                      rounded-lg focus:outline-none focus:border-gray-300 dark:focus:border-white/[0.15] focus:bg-white dark:focus:bg-white/[0.05]
+                      text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {/* Separator */}
+              {recipients.length > 0 && (
+                <div className="w-px h-6 bg-gray-200 dark:bg-white/[0.06]" />
+              )}
+              
+              {/* Premium Tags */}
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1">
+                {selectedCampaign.targeting?.personTitles?.map(title => (
+                  <span 
+                    key={title} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                      text-gray-600 dark:text-gray-300 text-[12px] rounded-md whitespace-nowrap hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+                  >
+                    <Search className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                    {title}
+                  </span>
+                ))}
+                {selectedCampaign.targeting?.personLocations?.map(loc => (
+                  <span 
+                    key={loc} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                      text-gray-600 dark:text-gray-300 text-[12px] rounded-md whitespace-nowrap hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+                  >
+                    <MapPin className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                    {loc}
+                  </span>
+                ))}
+                {selectedCampaign.targeting?.industries?.map(ind => (
+                  <span 
+                    key={ind} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                      text-gray-600 dark:text-gray-300 text-[12px] rounded-md whitespace-nowrap hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+                  >
+                    <Building2 className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                    {ind}
+                  </span>
+                ))}
+              </div>
+              
+              {/* Search results count */}
+              {searchQuery && (
+                <span className="text-[12px] text-gray-500 whitespace-nowrap">
+                  {filteredRecipients.length}/{recipients.length}
                 </span>
-              ))}
-              {selectedCampaign.targeting?.personLocations?.map(loc => (
-                <span key={loc} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-                  <MapPin className="w-3 h-3" />
-                  {loc}
-                </span>
-              ))}
-              {selectedCampaign.targeting?.industries?.slice(0, 3).map(ind => (
-                <span key={ind} className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 text-xs rounded-full">
-                  <Building2 className="w-3 h-3" />
-                  {ind}
-                </span>
-              ))}
+              )}
             </motion.div>
           )}
 
-          {/* Spreadsheet Table - Show when campaigns OR recipients exist */}
+          {/* Premium Spreadsheet Table - Notion/Google Sheets Style */}
           {(campaigns.length > 0 || recipients.length > 0) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
-            className="flex-1 min-h-0 bg-white dark:bg-[#111113] rounded-xl mx-4 sm:mx-6 border border-gray-200/60 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col"
+            className="flex-1 min-h-0 bg-white dark:bg-white/[0.02] mx-6 border border-gray-200 dark:border-white/[0.06] rounded-lg overflow-hidden flex flex-col backdrop-blur-sm"
           >
-            <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent">
-              <table className="w-full border-collapse">
+            <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
+              <table ref={tableRef} className="w-full border-collapse table-fixed">
                 <thead className="sticky top-0 z-10">
-                  <tr className="border-b border-gray-200/60 dark:border-gray-700/60">
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900/50 backdrop-blur-sm">
+                  <tr className="border-b border-gray-200 dark:border-white/[0.06]">
+                    <th style={{ width: `${columnWidths.contact}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
                       Contact
+                      <div 
+                        onMouseDown={(e) => handleResizeStart(e, 'contact')}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                      />
                     </th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900/50 backdrop-blur-sm">
+                    <th style={{ width: `${columnWidths.title}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
+                      Title
+                      <div 
+                        onMouseDown={(e) => handleResizeStart(e, 'title')}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                      />
+                    </th>
+                    <th style={{ width: `${columnWidths.company}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
                       Company
+                      <div 
+                        onMouseDown={(e) => handleResizeStart(e, 'company')}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                      />
                     </th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900/50 backdrop-blur-sm">
+                    <th style={{ width: `${columnWidths.location}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
                       Location
+                      <div 
+                        onMouseDown={(e) => handleResizeStart(e, 'location')}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                      />
                     </th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900/50 backdrop-blur-sm">
+                    <th style={{ width: `${columnWidths.email}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
                       Email
+                      <div 
+                        onMouseDown={(e) => handleResizeStart(e, 'email')}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                      />
                     </th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900/50 backdrop-blur-sm">
+                    <th style={{ width: `${columnWidths.linkedin}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
                       LinkedIn
+                      <div 
+                        onMouseDown={(e) => handleResizeStart(e, 'linkedin')}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                      />
                     </th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900/50 backdrop-blur-sm">
+                    <th style={{ width: `${columnWidths.status}%` }} className="relative px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03] border-r border-gray-100 dark:border-white/[0.04]">
                       Status
+                      <div 
+                        onMouseDown={(e) => handleResizeStart(e, 'status')}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                      />
                     </th>
-                    <th className="px-5 py-3.5 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900/50 backdrop-blur-sm">
+                    <th style={{ width: `${columnWidths.actions}%` }} className="px-3 py-2.5 text-center text-[13px] font-medium text-gray-500 dark:text-gray-500 bg-[#fafafa] dark:bg-white/[0.03]">
                       Actions
                     </th>
                   </tr>
@@ -762,166 +1034,169 @@ export default function CampaignsAutoPage() {
                 <tbody>
                   {isLoadingRecipients ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-16 text-center">
+                      <td colSpan={8} className="px-6 py-16 text-center">
                         <div className="flex flex-col items-center">
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full border-2 border-purple-200 dark:border-purple-800 animate-pulse" />
-                            <Loader2 className="w-6 h-6 animate-spin text-purple-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                          </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Loading contacts...</p>
+                          <Loader2 className="w-5 h-5 animate-spin text-gray-400 dark:text-gray-500" />
+                          <p className="text-sm text-gray-400 dark:text-gray-500 mt-3">Loading contacts...</p>
                         </div>
                       </td>
                     </tr>
                   ) : recipients.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-16 text-center">
+                      <td colSpan={8} className="px-6 py-16 text-center">
                         <div className="flex flex-col items-center">
-                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center mb-4">
-                            <Users className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                          </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                          <Users className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-3" />
+                          <p className="text-sm text-gray-400 dark:text-gray-500">
                             {selectedCampaign ? 'No contacts found. Try adjusting your targeting.' : 'Select or create a campaign to see contacts.'}
                           </p>
                         </div>
                       </td>
                     </tr>
-                  ) : (
-                    recipients.map((recipient, index) => (
-                    <motion.tr 
-                        key={recipient.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2, delay: 0.015 * Math.min(index, 20) }}
-                        className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-transparent 
-                          dark:hover:from-purple-500/5 dark:hover:to-transparent transition-all duration-200
-                          border-b border-gray-100/50 dark:border-gray-700/30"
-                      >
-                        {/* Name with Avatar */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 
-                              flex items-center justify-center text-white text-sm font-medium shadow-sm">
-                              {recipient.firstName?.charAt(0)}{recipient.lastName?.charAt(0)}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                {recipient.fullName}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">
-                                {recipient.title}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        
-                        {/* Company with Logo */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2.5">
-                            {recipient.company && (
-                              <CompanyLogo companyName={recipient.company} size="md" />
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                {recipient.company || '—'}
-                              </p>
-                              {recipient.companyIndustry && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                  {recipient.companyIndustry}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                      </td>
-                      
-                        {/* Location */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                            <span className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[150px]">
-                              {recipient.location || '—'}
-                        </span>
-                          </div>
-                      </td>
-                      
-                        {/* Email */}
-                        <td className="px-5 py-4">
-                          {recipient.email && !recipient.email.includes('not_unlocked') ? (
-                            <a 
-                              href={`mailto:${recipient.email}`}
-                              className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 
-                                hover:text-purple-600 dark:hover:text-purple-400 transition-colors group/email"
-                            >
-                              <Mail className="w-3.5 h-3.5 opacity-50 group-hover/email:opacity-100" />
-                              <span className="truncate max-w-[180px]">{recipient.email}</span>
-                            </a>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-                              <Mail className="w-3.5 h-3.5 opacity-40" />
-                              <span className="italic">Not available</span>
-                        </span>
-                          )}
-                      </td>
-                      
-                      {/* LinkedIn */}
-                        <td className="px-5 py-4">
-                          {recipient.linkedinUrl ? (
-                        <a
-                              href={recipient.linkedinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
-                                bg-[#0077B5]/10 text-[#0077B5] hover:bg-[#0077B5]/20 
-                                transition-all duration-200 text-xs font-medium"
-                        >
-                          <Linkedin className="w-3.5 h-3.5" />
-                          <span>Profile</span>
-                              <ExternalLink className="w-3 h-3 opacity-60" />
-                        </a>
-                          ) : (
-                            <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
-                          )}
-                      </td>
-                      
-                      {/* Status */}
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium 
-                            shadow-sm ${getStatusStyles(recipient.status)}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              recipient.status === 'replied' ? 'bg-emerald-500' :
-                              recipient.status === 'opened' ? 'bg-blue-500' :
-                              recipient.status === 'sent' ? 'bg-amber-500' :
-                              'bg-gray-400'
-                            }`} />
-                            {getStatusLabel(recipient.status)}
-                        </span>
-                      </td>
-                      
-                      {/* Actions */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  ) : filteredRecipients.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-16 text-center">
+                        <div className="flex flex-col items-center">
+                          <Search className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-3" />
+                          <p className="text-sm text-gray-400 dark:text-gray-500">
+                            No contacts match "{searchQuery}"
+                          </p>
                           <button
-                              className="p-2 rounded-lg text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 
-                                hover:bg-purple-50 dark:hover:bg-purple-500/10 transition-all duration-200"
-                            title="View email"
+                            onClick={() => setSearchQuery('')}
+                            className="mt-2 text-sm text-purple-600 dark:text-purple-400 hover:underline"
                           >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                              className="p-2 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 
-                                hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all duration-200"
-                            title="Reply"
-                          >
-                            <Reply className="w-4 h-4" />
-                          </button>
-                          <button
-                              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 
-                                hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-                            title="More options"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
+                            Clear search
                           </button>
                         </div>
                       </td>
+                    </tr>
+                  ) : (
+                    filteredRecipients.map((recipient, index) => (
+                    <motion.tr 
+                        key={recipient.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                        transition={{ duration: 0.15, delay: 0.01 * Math.min(index, 15) }}
+                        className="group hover:bg-[#f7f7f5] dark:hover:bg-white/[0.02] transition-colors duration-100
+                          border-b border-gray-100 dark:border-white/[0.04]"
+                      >
+                        {/* Name */}
+                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
+                          <span className="text-[13px] text-gray-900 dark:text-gray-200 truncate block">
+                            {recipient.fullName}
+                          </span>
+                        </td>
+                        
+                        {/* Title */}
+                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
+                          <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate block">
+                            {recipient.title || '—'}
+                          </span>
+                        </td>
+                        
+                        {/* Company */}
+                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
+                          <div className="flex items-center gap-2">
+                            {recipient.company && (
+                              <CompanyLogo companyName={recipient.company} size="sm" />
+                            )}
+                            <span className="text-[13px] text-gray-900 dark:text-gray-200 truncate">
+                              {recipient.company || '—'}
+                            </span>
+                          </div>
+                        </td>
+                      
+                        {/* Location */}
+                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                            <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate">
+                              {recipient.location || '—'}
+                            </span>
+                          </div>
+                        </td>
+                      
+                        {/* Email */}
+                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
+                          {recipient.email && !recipient.email.includes('not_unlocked') ? (
+                            <a 
+                              href={`mailto:${recipient.email}`}
+                              className="inline-flex items-center gap-1.5 text-[13px] text-gray-600 dark:text-gray-400 
+                                hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                            >
+                              <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                              <span className="truncate">{recipient.email}</span>
+                            </a>
+                          ) : (
+                            <span className="text-[13px] text-gray-400 dark:text-gray-600">—</span>
+                          )}
+                        </td>
+                      
+                        {/* LinkedIn */}
+                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
+                          {recipient.linkedinUrl ? (
+                            <a
+                              href={recipient.linkedinUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg
+                                text-[#0A66C2] dark:text-[#71b7fb] 
+                                hover:bg-[#0A66C2]/10 dark:hover:bg-[#71b7fb]/10 
+                                transition-all duration-200"
+                              title="View LinkedIn Profile"
+                            >
+                              <Linkedin className="w-4 h-4" />
+                            </a>
+                          ) : (
+                            <span className="text-[13px] text-gray-400 dark:text-gray-600">—</span>
+                          )}
+                        </td>
+                      
+                        {/* Status */}
+                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
+                          <span className="inline-flex items-center gap-1.5 text-[12px] font-medium">
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                              recipient.status === 'replied' ? 'bg-emerald-500' :
+                              recipient.status === 'opened' ? 'bg-blue-500' :
+                              recipient.status === 'sent' ? 'bg-amber-500' :
+                              'bg-gray-400 dark:bg-gray-600'
+                            }`} />
+                            <span className={`${
+                              recipient.status === 'replied' ? 'text-emerald-700 dark:text-emerald-400' :
+                              recipient.status === 'opened' ? 'text-blue-700 dark:text-blue-400' :
+                              recipient.status === 'sent' ? 'text-amber-700 dark:text-amber-400' :
+                              'text-gray-500 dark:text-gray-500'
+                            }`}>
+                            {getStatusLabel(recipient.status)}
+                            </span>
+                        </span>
+                      </td>
+                      
+                        {/* Actions */}
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center justify-center gap-0.5">
+                            <button
+                              className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
+                                hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
+                              title="View email"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
+                                hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
+                              title="Reply"
+                            >
+                              <Reply className="w-4 h-4" />
+                            </button>
+                            <button
+                              className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
+                                hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
+                              title="More options"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
                     </motion.tr>
                     ))
                   )}
@@ -1013,6 +1288,52 @@ export default function CampaignsAutoPage() {
         onRemove={coverPhoto ? handleRemoveCover : undefined}
         currentCover={coverPhoto || undefined}
       />
+
+      {/* Delete Campaign Confirmation Modal */}
+      {deleteCampaignModal.show && deleteCampaignModal.campaign && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md"
+          >
+            <div className="flex justify-between items-center mb-1">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Campaign</h2>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setDeleteCampaignModal({ show: false })}
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </motion.button>
+            </div>
+
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Are you sure you want to delete <strong>Campaign {campaigns.indexOf(deleteCampaignModal.campaign) + 1}</strong>? 
+              This will permanently delete all {deleteCampaignModal.campaign.stats?.contactsFound || 0} contacts and cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteCampaignModal({ show: false })}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg flex-1 sm:flex-initial"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteCampaign}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-lg flex-1 sm:flex-initial"
+              >
+                Delete
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </AuthLayout>
   );
 }
+

@@ -18,6 +18,9 @@ export type Seniority = 'entry' | 'senior' | 'manager' | 'director' | 'vp' | 'c_
 export type CompanySize = '1-10' | '11-50' | '51-200' | '201-500' | '501-1000' | '1001-5000' | '5001+';
 
 export interface CampaignData {
+  // Campaign name
+  name: string;
+  
   // Step 1: Targeting (Apollo-ready)
   personTitles: string[];           // ["Software Engineer", "Tech Lead"]
   personLocations: string[];        // ["Paris, France", "Remote"]
@@ -70,6 +73,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [campaignData, setCampaignData] = useState<CampaignData>({
+    name: '',
     personTitles: [],
     personLocations: [],
     seniorities: [],
@@ -151,6 +155,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     try {
       const campaignDoc = {
         userId: currentUser.uid,
+        name: campaignData.name.trim() || null,
         status: 'pending', // Pending until Apollo fetches contacts
         targeting: {
           personTitles: campaignData.personTitles,
@@ -255,11 +260,17 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                   )}
                 </button>
                 
-                {/* Title */}
-                <div>
-                  <h2 className="text-[15px] font-medium text-gray-900 dark:text-white tracking-tight">
-                    New Campaign
-                  </h2>
+                {/* Title with editable name */}
+                <div className="flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={campaignData.name}
+                    onChange={(e) => updateCampaignData({ name: e.target.value })}
+                    placeholder="Untitled Campaign"
+                    className="w-full text-[15px] font-medium text-gray-900 dark:text-white tracking-tight 
+                      bg-transparent border-none outline-none focus:ring-0 p-0
+                      placeholder-gray-400 dark:placeholder-white/30"
+                  />
                   <p className="text-[13px] text-gray-500 dark:text-white/40 mt-0.5">
                     {STEP_CONFIG[currentStep].subtitle}
                   </p>
