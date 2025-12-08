@@ -139,14 +139,14 @@ const Toggle = ({
       relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full 
       transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 
       focus-visible:ring-gray-900 focus-visible:ring-offset-2
-      ${enabled ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
+      ${enabled ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-[#3d3c3e]'}
       ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
     `}
   >
     <span
       className={`
         pointer-events-none inline-block h-5 w-5 transform rounded-full 
-        bg-white dark:bg-gray-900 shadow-lg ring-0 
+        bg-white dark:bg-[#242325] shadow-lg ring-0 
         transition duration-200 ease-in-out
         ${enabled ? 'translate-x-5' : 'translate-x-0.5'}
         mt-0.5
@@ -174,14 +174,14 @@ const SettingRow = ({
   <div
     className={`
       flex items-center justify-between py-4 
-      ${onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 -mx-4 px-4 rounded-lg transition-colors' : ''}
+      ${onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2b2a2c]/50 -mx-4 px-4 rounded-lg transition-colors' : ''}
       ${className}
     `}
     onClick={onClick}
   >
     <div className="flex items-center gap-4 min-w-0 flex-1">
       {Icon && (
-        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center">
           <Icon className="w-4.5 h-4.5 text-gray-600 dark:text-gray-400" strokeWidth={1.5} />
         </div>
       )}
@@ -229,8 +229,8 @@ const PremiumSelect = ({
       onChange={(e) => onChange(e.target.value)}
       className="
         appearance-none w-full px-4 py-2.5 pr-10 rounded-lg 
-        border border-gray-200 dark:border-gray-700 
-        bg-white dark:bg-gray-800 
+        border border-gray-200 dark:border-[#3d3c3e] 
+        bg-white dark:bg-[#2b2a2c] 
         text-gray-900 dark:text-white text-[15px]
         focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-300
         transition-all cursor-pointer
@@ -282,7 +282,7 @@ const ActivityItem = ({
     >
       {/* Timeline line */}
       {!isLast && (
-        <div className="absolute left-[18px] top-10 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
+        <div className="absolute left-[18px] top-10 bottom-0 w-px bg-gray-200 dark:bg-[#3d3c3e]" />
       )}
       
       <div 
@@ -295,7 +295,7 @@ const ActivityItem = ({
           flex items-center justify-center
           transition-all duration-200
           ${event.type === 'login' ? 'bg-green-100 dark:bg-green-900/30' :
-            event.type === 'logout' ? 'bg-gray-100 dark:bg-gray-800' :
+            event.type === 'logout' ? 'bg-gray-100 dark:bg-[#2b2a2c]' :
             event.type === 'password_change' || event.type === 'security_change' ? 'bg-amber-100 dark:bg-amber-900/30' :
             'bg-blue-100 dark:bg-blue-900/30'}
           group-hover:scale-105
@@ -347,7 +347,7 @@ const ActivityItem = ({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-sm"
+                className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-[#2b2a2c]/50 text-sm"
               >
                 {Object.entries(event.details).map(([key, value]) => (
                   <div key={key} className="flex justify-between py-1">
@@ -379,7 +379,7 @@ const SecurityScore = ({ score }: { score: number }) => {
   };
 
   return (
-    <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+    <div className="p-5 rounded-xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
       <div className="flex items-center justify-between mb-4">
         <div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Account Security</p>
@@ -391,7 +391,7 @@ const SecurityScore = ({ score }: { score: number }) => {
           <Shield className={`w-7 h-7 ${getColor()}`} strokeWidth={1.5} />
         </div>
       </div>
-      <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${score}%` }}
@@ -876,7 +876,7 @@ export default function SettingsPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="min-h-screen bg-white dark:bg-[#333234]">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -913,8 +913,8 @@ export default function SettingsPage() {
                             w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left
                             transition-all duration-150
                             ${activeSection === item.id
-                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'
+                              ? 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-900 dark:text-white'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2b2a2c]/50 hover:text-gray-900 dark:hover:text-white'
                             }
                           `}
                         >
@@ -947,7 +947,7 @@ export default function SettingsPage() {
                     />
 
                     {/* Profile Card */}
-                    <div className="flex items-center gap-5 p-5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                    <div className="flex items-center gap-5 p-5 rounded-xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-2xl font-semibold text-gray-600 dark:text-gray-300">
                         {userData?.firstName?.[0] || currentUser?.email?.[0]?.toUpperCase() || 'U'}
                       </div>
@@ -962,20 +962,20 @@ export default function SettingsPage() {
                           {currentUser?.email}
                         </p>
                       </div>
-                      <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-[#3d3c3e] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2b2a2c] transition-colors">
                         Edit
                       </button>
                     </div>
 
                     {/* Connected Account */}
                     {isGoogleUser && (
-                      <div className="border-t border-gray-100 dark:border-gray-800 pt-6">
+                      <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-6">
                         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                           Connected Account
                         </h3>
-                        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/30">
+                        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c]/30">
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] flex items-center justify-center">
                               <svg className="w-5 h-5" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1004,7 +1004,7 @@ export default function SettingsPage() {
 
                     {/* Email/Password for non-Google users */}
                     {!isGoogleUser && (
-                      <div className="border-t border-gray-100 dark:border-gray-800 pt-6 space-y-6">
+                      <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-6 space-y-6">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Email Address
@@ -1014,7 +1014,7 @@ export default function SettingsPage() {
                               type="email"
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10"
+                              className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10"
                             />
                             <button
                               onClick={handleEmailUpdate}
@@ -1050,7 +1050,7 @@ export default function SettingsPage() {
 
                     {/* Password Change - Only for non-Google users */}
                     {!isGoogleUser && (
-                      <div className="border-t border-gray-100 dark:border-gray-800 pt-6">
+                      <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-6">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                           Change Password
                         </h3>
@@ -1065,7 +1065,7 @@ export default function SettingsPage() {
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
                                 placeholder="Enter current password"
-                                className={`w-full px-4 py-2.5 pr-12 rounded-lg border ${passwordErrors.current ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10`}
+                                className={`w-full px-4 py-2.5 pr-12 rounded-lg border ${passwordErrors.current ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-[#3d3c3e]'} bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10`}
                               />
                               <button
                                 type="button"
@@ -1090,7 +1090,7 @@ export default function SettingsPage() {
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 placeholder="Enter new password"
-                                className={`w-full px-4 py-2.5 pr-12 rounded-lg border ${passwordErrors.new ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10`}
+                                className={`w-full px-4 py-2.5 pr-12 rounded-lg border ${passwordErrors.new ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-[#3d3c3e]'} bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10`}
                               />
                               <button
                                 type="button"
@@ -1109,7 +1109,7 @@ export default function SettingsPage() {
                                       className={`h-1 flex-1 rounded-full transition-colors ${
                                         passwordStrength >= level
                                           ? passwordStrength <= 2 ? 'bg-red-500' : passwordStrength <= 3 ? 'bg-amber-500' : 'bg-green-500'
-                                          : 'bg-gray-200 dark:bg-gray-700'
+                                          : 'bg-gray-200 dark:bg-[#3d3c3e]'
                                       }`}
                                     />
                                   ))}
@@ -1134,7 +1134,7 @@ export default function SettingsPage() {
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 placeholder="Confirm new password"
-                                className={`w-full px-4 py-2.5 pr-12 rounded-lg border ${passwordErrors.confirm ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10`}
+                                className={`w-full px-4 py-2.5 pr-12 rounded-lg border ${passwordErrors.confirm ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-[#3d3c3e]'} bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10`}
                               />
                               <button
                                 type="button"
@@ -1176,7 +1176,7 @@ export default function SettingsPage() {
                     )}
 
                     {/* Two-Factor Authentication */}
-                    <div className="border-t border-gray-100 dark:border-gray-800 pt-6">
+                    <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-6">
                       <SettingRow
                         icon={Shield}
                         title="Two-Factor Authentication"
@@ -1205,7 +1205,7 @@ export default function SettingsPage() {
                       description="Choose how you want to be notified" 
                     />
 
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                    <div className="divide-y divide-gray-100 dark:divide-[#3d3c3e]">
                       <SettingRow
                         icon={Mail}
                         title="Email Notifications"
@@ -1274,8 +1274,8 @@ export default function SettingsPage() {
                             className={`
                               relative p-4 rounded-xl border-2 transition-all duration-200
                               ${theme === option.value
-                                ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-[#2b2a2c]'
+                                : 'border-gray-200 dark:border-[#3d3c3e] hover:border-gray-300 dark:hover:border-gray-600'
                               }
                             `}
                           >
@@ -1308,7 +1308,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Regional Settings */}
-                    <div className="border-t border-gray-100 dark:border-gray-800 pt-6 space-y-5">
+                    <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-6 space-y-5">
                       <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Regional
                       </h3>
@@ -1438,10 +1438,10 @@ export default function SettingsPage() {
                     />
 
                     {/* Export */}
-                    <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                    <div className="p-5 rounded-xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-lg bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] flex items-center justify-center">
                             <Download className="w-5 h-5 text-gray-600 dark:text-gray-400" strokeWidth={1.5} />
                           </div>
                           <div>
@@ -1459,7 +1459,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Danger Zone */}
-                    <div className="border-t border-gray-100 dark:border-gray-800 pt-6">
+                    <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-6">
                       <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider mb-4">
                         Danger Zone
                       </h3>
@@ -1505,7 +1505,7 @@ export default function SettingsPage() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 transition={{ duration: 0.2 }}
-                className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 dark:border-gray-800"
+                className="bg-white dark:bg-[#242325] rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 dark:border-[#3d3c3e]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-4 mb-4">
@@ -1532,7 +1532,7 @@ export default function SettingsPage() {
                     type="text"
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
                     placeholder="DELETE"
                   />
                 </div>
@@ -1543,7 +1543,7 @@ export default function SettingsPage() {
                       setShowDeleteModal(false);
                       setDeleteConfirmText('');
                     }}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-[#2b2a2c] transition-colors"
                   >
                     Cancel
                   </button>

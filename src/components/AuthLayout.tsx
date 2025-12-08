@@ -485,7 +485,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   </p>
               ) : (
                 <div className="flex justify-center py-2">
-                  <div className="w-6 h-[3px] rounded-full bg-[#b7e219]/60" />
+                  <div className="w-6 h-[3px] rounded-full bg-gray-300 dark:bg-gray-600" />
                 </div>
               )}
                 
@@ -511,7 +511,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   </p>
               ) : (
                 <div className="flex justify-center py-2 mt-1">
-                  <div className="w-6 h-[3px] rounded-full bg-[#b7e219]/60" />
+                  <div className="w-6 h-[3px] rounded-full bg-gray-300 dark:bg-gray-600" />
                 </div>
               )}
                 {navigationGroups.track.map((item) => (
@@ -558,7 +558,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   </p>
               ) : (
                 <div className="flex justify-center py-2 mt-1">
-                  <div className="w-6 h-[3px] rounded-full bg-[#b7e219]/60" />
+                  <div className="w-6 h-[3px] rounded-full bg-gray-300 dark:bg-gray-600" />
                 </div>
               )}
                 {navigationGroups.prepare.map((item) => (
@@ -605,7 +605,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   </p>
               ) : (
                 <div className="flex justify-center py-2 mt-1">
-                  <div className="w-6 h-[3px] rounded-full bg-[#b7e219]/60" />
+                  <div className="w-6 h-[3px] rounded-full bg-gray-300 dark:bg-gray-600" />
                 </div>
               )}
                 {navigationGroups.improve.map((item) => (
