@@ -152,7 +152,7 @@ export default function TopBar({
 
           {/* Assistant Button */}
           <button
-            className="flex items-center gap-1.5 h-8 px-3 rounded-full
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg
               bg-[#b7e219]
               border border-gray-200 dark:border-[#4a494b]
               text-gray-900
