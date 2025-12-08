@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -19,6 +19,7 @@ import {
   ExternalLink,
   FileIcon,
   FileText,
+  LayoutGrid,
   LineChart,
   MapPin,
   MessageSquare,
@@ -27,6 +28,7 @@ import {
   Plus,
   PlusCircle,
   Search,
+  Send,
   Trash2,
   TrendingUp,
   Target,
@@ -44,6 +46,7 @@ import {
   Image,
   Camera,
   Settings,
+  FolderKanban,
 } from 'lucide-react';
 import { toast } from '@/contexts/ToastContext';
 import AuthLayout from '../components/AuthLayout';
@@ -52,13 +55,14 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractJobInfo, DetailedJobInfo } from '../lib/jobExtractor';
 import DatePicker from '../components/ui/DatePicker';
-import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings } from '../types/job';
+import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings, KanbanBoard, BOARD_COLORS, BOARD_TYPE_COLUMNS, JOB_COLUMN_LABELS, CAMPAIGN_COLUMN_LABELS, CAMPAIGN_COLUMN_COLORS, BoardType } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
 import { JobDetailPanel } from '../components/job-detail-panel';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 import AutomationSettingsModal from '../components/application/AutomationSettingsModal';
 import { checkAndApplyAutomations, isApplicationInactive, getInactiveDays } from '../lib/automationEngine';
+import { BoardSettingsModal, BoardsOverview, MoveToBoardModal } from '../components/boards';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -94,7 +98,7 @@ export default function JobApplicationsPage() {
   const [linkedApplicationId, setLinkedApplicationId] = useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [timelineModal, setTimelineModal] = useState(false);
-  const [view, setView] = useState<'kanban' | 'analytics'>('kanban');
+  const [view, setView] = useState<'kanban' | 'analytics' | 'boards'>('boards');
   const [isAnalyzingJob, setIsAnalyzingJob] = useState(false);
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
   const [newInterview, setNewInterview] = useState<Partial<Interview>>({
@@ -155,6 +159,20 @@ export default function JobApplicationsPage() {
   const [automationSettings, setAutomationSettings] = useState<AutomationSettings>(defaultAutomationSettings);
   const [showAutomationSettingsModal, setShowAutomationSettingsModal] = useState(false);
   const automationIntervalRef = useRef<number | null>(null);
+
+  // Multi-board states
+  const [boards, setBoards] = useState<KanbanBoard[]>([]);
+  const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
+  const [showBoardSettingsModal, setShowBoardSettingsModal] = useState(false);
+  const [editingBoard, setEditingBoard] = useState<KanbanBoard | null>(null);
+  const [showMoveToBoardModal, setShowMoveToBoardModal] = useState(false);
+  const [applicationToMove, setApplicationToMove] = useState<JobApplication | null>(null);
+
+  // Get effective cover photo (board cover takes priority when in a board)
+  const currentBoard = boards.find(b => b.id === currentBoardId);
+  const effectiveCoverPhoto = view !== 'boards' && currentBoard?.coverPhoto 
+    ? currentBoard.coverPhoto 
+    : coverPhoto;
 
   // Handle file select for cover
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,6 +250,177 @@ export default function JobApplicationsPage() {
 
     loadAutomationSettings();
   }, [currentUser]);
+
+  // Load boards from Firestore and create default if needed
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let isCreatingBoard = false;
+    const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+    const q = query(boardsRef, orderBy('createdAt', 'asc'));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const boardsData: KanbanBoard[] = [];
+      snapshot.forEach((docSnap) => {
+        boardsData.push({ id: docSnap.id, ...docSnap.data() } as KanbanBoard);
+      });
+
+      console.log('[Boards] Loaded boards:', boardsData.length);
+      setBoards(boardsData);
+
+      // Create default board if none exists (prevent duplicate creation)
+      if (boardsData.length === 0 && !isCreatingBoard) {
+        isCreatingBoard = true;
+        console.log('[Boards] No boards found, creating default board...');
+        try {
+          const defaultBoard = {
+            name: 'My Applications',
+            description: 'Default board for job applications',
+            icon: '📋',
+            color: BOARD_COLORS[0],
+            isDefault: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
+          const docRef = await addDoc(boardsRef, defaultBoard);
+          console.log('[Boards] Default board created with ID:', docRef.id);
+          // The snapshot listener will pick up the new board automatically
+        } catch (error) {
+          console.error('[Boards] Error creating default board:', error);
+          isCreatingBoard = false;
+        }
+      }
+    }, (error) => {
+      console.error('[Boards] Error listening to boards:', error);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Board management functions
+  const handleCreateBoard = async (boardData: Partial<KanbanBoard>) => {
+    if (!currentUser) return;
+
+    try {
+      // Filter out undefined values (Firebase doesn't accept undefined)
+      const cleanBoardData = Object.fromEntries(
+        Object.entries(boardData).filter(([_, v]) => v !== undefined)
+      );
+      
+      const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+      await addDoc(boardsRef, {
+        ...cleanBoardData,
+        isDefault: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      toast.success('Board created successfully!');
+    } catch (error) {
+      console.error('Error creating board:', error);
+      toast.error('Failed to create board');
+      throw error;
+    }
+  };
+
+  const handleUpdateBoard = async (boardData: Partial<KanbanBoard>) => {
+    if (!currentUser || !editingBoard) return;
+
+    try {
+      // Filter out undefined values (Firebase doesn't accept undefined)
+      const cleanBoardData = Object.fromEntries(
+        Object.entries(boardData).filter(([_, v]) => v !== undefined)
+      );
+      
+      const boardRef = doc(db, 'users', currentUser.uid, 'boards', editingBoard.id);
+      await updateDoc(boardRef, {
+        ...cleanBoardData,
+        updatedAt: serverTimestamp(),
+      });
+      toast.success('Board updated successfully!');
+    } catch (error) {
+      console.error('Error updating board:', error);
+      toast.error('Failed to update board');
+      throw error;
+    }
+  };
+
+  const handleDeleteBoard = async () => {
+    if (!currentUser || !editingBoard || editingBoard.isDefault) return;
+
+    try {
+      // Move all applications from this board to default board
+      const defaultBoard = boards.find(b => b.isDefault);
+      if (defaultBoard) {
+        const boardApplications = applications.filter(app => app.boardId === editingBoard.id);
+        for (const app of boardApplications) {
+          const appRef = doc(db, 'users', currentUser.uid, 'jobApplications', app.id);
+          await updateDoc(appRef, {
+            boardId: defaultBoard.id,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+
+      // Delete the board
+      const boardRef = doc(db, 'users', currentUser.uid, 'boards', editingBoard.id);
+      await deleteDoc(boardRef);
+
+      // Switch to default board if we were on the deleted one
+      if (currentBoardId === editingBoard.id) {
+        const defaultBoard = boards.find(b => b.isDefault);
+        setCurrentBoardId(defaultBoard?.id || null);
+      }
+
+      toast.success('Board deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting board:', error);
+      toast.error('Failed to delete board');
+      throw error;
+    }
+  };
+
+  const handleDuplicateBoard = async (board: KanbanBoard) => {
+    if (!currentUser) return;
+
+    try {
+      const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+      await addDoc(boardsRef, {
+        name: `${board.name} (Copy)`,
+        description: board.description,
+        icon: board.icon,
+        color: board.color,
+        customColumns: board.customColumns,
+        isDefault: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      toast.success('Board duplicated successfully!');
+    } catch (error) {
+      console.error('Error duplicating board:', error);
+      toast.error('Failed to duplicate board');
+    }
+  };
+
+  const handleMoveApplicationToBoard = async (targetBoardId: string) => {
+    if (!currentUser || !applicationToMove) return;
+
+    try {
+      const appRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationToMove.id);
+      await updateDoc(appRef, {
+        boardId: targetBoardId,
+        updatedAt: serverTimestamp(),
+      });
+      
+      const targetBoard = boards.find(b => b.id === targetBoardId);
+      toast.success(`Moved to ${targetBoard?.name || 'board'}`);
+      setShowMoveToBoardModal(false);
+      setApplicationToMove(null);
+    } catch (error) {
+      console.error('Error moving application:', error);
+      toast.error('Failed to move application');
+      throw error;
+    }
+  };
 
   // Save automation settings to Firestore
   const handleSaveAutomationSettings = async (settings: AutomationSettings) => {
@@ -536,24 +725,30 @@ export default function JobApplicationsPage() {
     }, 450);
   };
 
-  // Handle cover photo update
+  // Handle cover photo update - context aware (board or global page)
   const handleUpdateCover = async (blob: Blob) => {
     if (!currentUser) return;
 
     setIsUpdatingCover(true);
     try {
       const timestamp = Date.now();
-      const fileName = `applications_cover_${timestamp}.jpg`;
-      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+      const isInBoard = view !== 'boards' && currentBoardId;
+      const fileName = isInBoard 
+        ? `board_cover_${currentBoardId}_${timestamp}.jpg`
+        : `applications_cover_${timestamp}.jpg`;
+      const storagePath = isInBoard
+        ? `board-covers/${currentUser.uid}/${fileName}`
+        : `cover-photos/${currentUser.uid}/${fileName}`;
+      const coverRef = ref(storage, storagePath);
 
       await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
       const coverUrl = await getDownloadURL(coverRef);
 
-      // Delete old cover if exists - extract path from URL
-      if (coverPhoto) {
+      // Delete old cover if exists
+      const oldCover = isInBoard ? currentBoard?.coverPhoto : coverPhoto;
+      if (oldCover) {
         try {
-          // Extract the path from the full URL
-          const urlParts = coverPhoto.split('/o/');
+          const urlParts = oldCover.split('/o/');
           if (urlParts.length > 1) {
             const pathPart = urlParts[1].split('?')[0];
             const decodedPath = decodeURIComponent(pathPart);
@@ -565,7 +760,16 @@ export default function JobApplicationsPage() {
         }
       }
 
-      // Save to Firestore
+      if (isInBoard && currentBoardId) {
+        // Update board cover in Firestore
+        const boardRef = doc(db, 'users', currentUser.uid, 'boards', currentBoardId);
+        await updateDoc(boardRef, {
+          coverPhoto: coverUrl,
+          updatedAt: serverTimestamp(),
+        });
+        toast.success('Board cover updated');
+      } else {
+        // Update global page cover in Firestore
       const userRef = doc(db, 'users', currentUser.uid);
       const userDoc = await getDoc(userRef);
       const currentData = userDoc.exists() ? userDoc.data() : {};
@@ -583,12 +787,12 @@ export default function JobApplicationsPage() {
       });
 
       setCoverPhoto(coverUrl);
+        toast.success('Cover updated');
+      }
       
       // Detect brightness of new cover
       const isDark = await detectCoverBrightness(coverUrl);
       setIsCoverDark(isDark);
-      
-      toast.success('Cover updated');
     } catch (error) {
       console.error('Error updating cover:', error);
       toast.error('Failed to update cover');
@@ -597,16 +801,20 @@ export default function JobApplicationsPage() {
     }
   };
 
-  // Handle cover photo removal
+  // Handle cover photo removal - context aware (board or global page)
   const handleRemoveCover = async () => {
-    if (!currentUser || !coverPhoto) return;
+    if (!currentUser) return;
+
+    const isInBoard = view !== 'boards' && currentBoardId;
+    const targetCover = isInBoard ? currentBoard?.coverPhoto : coverPhoto;
+    
+    if (!targetCover) return;
 
     setIsUpdatingCover(true);
     try {
-      // Delete from storage - extract path from URL
+      // Delete from storage
       try {
-        // Extract the path from the full URL
-        const urlParts = coverPhoto.split('/o/');
+        const urlParts = targetCover.split('/o/');
         if (urlParts.length > 1) {
           const pathPart = urlParts[1].split('?')[0];
           const decodedPath = decodeURIComponent(pathPart);
@@ -617,7 +825,16 @@ export default function JobApplicationsPage() {
         console.warn('Could not delete cover photo from storage', e);
       }
 
-      // Remove from Firestore
+      if (isInBoard && currentBoardId) {
+        // Remove board cover from Firestore
+        const boardRef = doc(db, 'users', currentUser.uid, 'boards', currentBoardId);
+        await updateDoc(boardRef, {
+          coverPhoto: null,
+          updatedAt: serverTimestamp(),
+        });
+        toast.success('Board cover removed');
+      } else {
+        // Remove global page cover from Firestore
       const userRef = doc(db, 'users', currentUser.uid);
       const userDoc = await getDoc(userRef);
       const currentData = userDoc.exists() ? userDoc.data() : {};
@@ -635,8 +852,10 @@ export default function JobApplicationsPage() {
       });
 
       setCoverPhoto(null);
-      setIsCoverDark(null);
       toast.success('Cover removed');
+      }
+      
+      setIsCoverDark(null);
     } catch (error) {
       console.error('Error removing cover:', error);
       toast.error('Failed to remove cover');
@@ -728,12 +947,25 @@ export default function JobApplicationsPage() {
 
     try {
       if (eventType === 'application') {
+        // Determine default status based on board type
+        const defaultStatus = currentBoardType === 'campaigns' ? 'targets' : 'applied';
+        
+        // For campaigns, use contactRole as position if position is empty
+        const effectivePosition = currentBoardType === 'campaigns' 
+          ? (formData.position || formData.contactRole || 'Outreach')
+          : formData.position;
+        
+        // For campaigns, location is optional
+        const effectiveLocation = currentBoardType === 'campaigns'
+          ? (formData.location || '')
+          : formData.location;
+
         // Formatage des données avant envoi
-        const newApplication = {
+        const newApplication: any = {
           companyName: formData.companyName,
-          position: formData.position,
-          location: formData.location,
-          status: formData.status || 'applied',
+          position: effectivePosition,
+          location: effectiveLocation,
+          status: formData.status || defaultStatus,
           appliedDate: formData.appliedDate,
           url: formData.url || '',
           description: formData.description || '',  // AI-powered summary (3 bullet points)
@@ -752,13 +984,29 @@ export default function JobApplicationsPage() {
           // Initialize jobInsights if extracted by AI
           ...(formData.jobInsights && { jobInsights: formData.jobInsights }),
           // Initialize jobTags if extracted by AI
-          ...(formData.jobTags && { jobTags: formData.jobTags })
+          ...(formData.jobTags && { jobTags: formData.jobTags }),
+          // Campaign-specific fields
+          ...(currentBoardType === 'campaigns' && {
+            contactRole: formData.contactRole || '',
+            contactLinkedIn: formData.contactLinkedIn || '',
+            outreachChannel: formData.outreachChannel || 'email',
+            messageSent: formData.messageSent || '',
+          }),
+          // Associate with current board
+          ...(currentBoardId && { boardId: currentBoardId }),
         };
 
-        // Vérification des champs requis
-        if (!newApplication.companyName || !newApplication.position || !newApplication.location || !newApplication.appliedDate) {
-          toast.error('Please fill in all required fields');
-          return;
+        // Vérification des champs requis - different for jobs vs campaigns
+        if (currentBoardType === 'campaigns') {
+          if (!newApplication.companyName || !newApplication.contactName || !newApplication.appliedDate) {
+            toast.error('Please fill in Company Name, Contact Name and Contact Date');
+            return;
+          }
+        } else {
+          if (!newApplication.companyName || !newApplication.position || !newApplication.location || !newApplication.appliedDate) {
+            toast.error('Please fill in all required fields');
+            return;
+          }
         }
 
         // Création du document dans Firestore
@@ -1140,6 +1388,18 @@ export default function JobApplicationsPage() {
   // Main filter function that combines all filters
   const applyFilters = (apps: JobApplication[]): JobApplication[] => {
     let filtered = [...apps];
+
+    // Board filter - filter by current board
+    if (currentBoardId && view !== 'boards') {
+      const defaultBoard = boards.find(b => b.isDefault);
+      filtered = filtered.filter(app => {
+        // Applications without boardId belong to the default board
+        if (!app.boardId) {
+          return defaultBoard?.id === currentBoardId;
+        }
+        return app.boardId === currentBoardId;
+      });
+    }
 
     // Text search filter
     if (searchQuery.trim()) {
@@ -1606,36 +1866,68 @@ export default function JobApplicationsPage() {
     setSortOrder('desc');
   };
 
-  const applicationsByStatus = {
-    wishlist: filteredApplications.filter(app => app.status === 'wishlist'),
-    applied: filteredApplications.filter(app => app.status === 'applied'),
-    interview: filteredApplications.filter(app => app.status === 'interview'),
-    pending_decision: filteredApplications.filter(app => app.status === 'pending_decision'),
-    offer: filteredApplications.filter(app => app.status === 'offer'),
-    rejected: filteredApplications.filter(app => app.status === 'rejected'),
-    archived: filteredApplications.filter(app => app.status === 'archived')
-  };
+  // Get current board type (defaults to 'jobs')
+  const currentBoardType: BoardType = currentBoard?.boardType || 'jobs';
+  
+  // Get column order based on board type
+  const columnOrder = [...BOARD_TYPE_COLUMNS[currentBoardType]];
 
-  const columnOrder = ['wishlist', 'applied', 'interview', 'pending_decision', 'offer', 'rejected', 'archived'];
+  // Applications filtered by current board only (for analytics - without search/status filters)
+  const boardApplications = useMemo(() => {
+    if (!currentBoardId || view === 'boards') {
+      return applications;
+    }
+    const defaultBoard = boards.find(b => b.isDefault);
+    return applications.filter(app => {
+      if (!app.boardId) {
+        return defaultBoard?.id === currentBoardId;
+      }
+      return app.boardId === currentBoardId;
+    });
+  }, [applications, currentBoardId, boards, view]);
+  
+  // Get column labels based on board type
+  const columnLabels = currentBoardType === 'jobs' ? JOB_COLUMN_LABELS : CAMPAIGN_COLUMN_LABELS;
 
-  // Analytics helper functions
+  // Build applicationsByStatus dynamically based on board type
+  const applicationsByStatus: Record<string, JobApplication[]> = {};
+  columnOrder.forEach(status => {
+    applicationsByStatus[status] = filteredApplications.filter(app => app.status === status);
+  });
+
+  // Analytics helper functions - now filtered by current board
   const getMonthlyApplicationData = () => {
-    const monthData: { [key: string]: { applied: number, interviews: number, pending: number, offers: number, rejected: number } } = {};
+    // For jobs: applied, interviews, pending, offers, rejected
+    // For campaigns: targets, contacted, follow_up, replied, meeting, opportunity
+    const monthData: { [key: string]: Record<string, number> } = {};
 
-    applications.forEach(app => {
+    boardApplications.forEach(app => {
       const date = new Date(app.appliedDate);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       if (!monthData[monthKey]) {
+        if (currentBoardType === 'jobs') {
         monthData[monthKey] = { applied: 0, interviews: 0, pending: 0, offers: 0, rejected: 0 };
+        } else {
+          monthData[monthKey] = { targets: 0, contacted: 0, follow_up: 0, replied: 0, meeting: 0, opportunity: 0 };
+        }
       }
 
       // Count applications by current status
+      if (currentBoardType === 'jobs') {
       if (app.status === 'applied') monthData[monthKey].applied++;
       else if (app.status === 'interview') monthData[monthKey].interviews++;
       else if (app.status === 'pending_decision') monthData[monthKey].pending++;
       else if (app.status === 'offer') monthData[monthKey].offers++;
       else if (app.status === 'rejected') monthData[monthKey].rejected++;
+      } else {
+        if (app.status === 'targets') monthData[monthKey].targets++;
+        else if (app.status === 'contacted') monthData[monthKey].contacted++;
+        else if (app.status === 'follow_up') monthData[monthKey].follow_up++;
+        else if (app.status === 'replied') monthData[monthKey].replied++;
+        else if (app.status === 'meeting') monthData[monthKey].meeting++;
+        else if (app.status === 'opportunity') monthData[monthKey].opportunity++;
+      }
     });
 
     // Sort by month
@@ -1646,13 +1938,13 @@ export default function JobApplicationsPage() {
 
   const getApplicationSourceData = () => {
     // In a real app, you would track the source of each application
-    // Here we'll simulate some sample data
+    // Here we'll simulate some sample data based on board applications
     return [
-      { source: 'LinkedIn', count: Math.floor(applications.length * 0.4) },
-      { source: 'Company Website', count: Math.floor(applications.length * 0.3) },
-      { source: 'Referral', count: Math.floor(applications.length * 0.15) },
-      { source: 'Job Board', count: Math.floor(applications.length * 0.1) },
-      { source: 'Other', count: applications.length - Math.floor(applications.length * 0.95) }
+      { source: 'LinkedIn', count: Math.floor(boardApplications.length * 0.4) },
+      { source: 'Company Website', count: Math.floor(boardApplications.length * 0.3) },
+      { source: 'Referral', count: Math.floor(boardApplications.length * 0.15) },
+      { source: 'Job Board', count: Math.floor(boardApplications.length * 0.1) },
+      { source: 'Other', count: boardApplications.length - Math.floor(boardApplications.length * 0.95) }
     ].filter(item => item.count > 0);
   };
 
@@ -1660,31 +1952,35 @@ export default function JobApplicationsPage() {
     const now = new Date();
     const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
     
-    const total = applications.length;
-    const responses = applications.filter(app => app.status !== 'applied').length;
-    const interviews = applications.filter(app => app.status === 'interview' || app.status === 'offer' ||
+    const total = boardApplications.length;
+    
+    // For jobs: responses = not applied, interviews, offers
+    // For campaigns: responses = replied, meetings, opportunities
+    if (currentBoardType === 'jobs') {
+      const responses = boardApplications.filter(app => app.status !== 'applied' && app.status !== 'wishlist').length;
+      const interviews = boardApplications.filter(app => app.status === 'interview' || app.status === 'offer' ||
       (app.interviews && app.interviews.length > 0)).length;
-    const offers = applications.filter(app => app.status === 'offer').length;
+      const offers = boardApplications.filter(app => app.status === 'offer').length;
 
     // Calculate rates for current month
-    const currentMonthApps = applications.filter(app => {
+      const currentMonthApps = boardApplications.filter(app => {
       const appDate = new Date(app.appliedDate);
       return appDate >= oneMonthAgo;
     });
     const currentMonthTotal = currentMonthApps.length;
-    const currentMonthResponses = currentMonthApps.filter(app => app.status !== 'applied').length;
+      const currentMonthResponses = currentMonthApps.filter(app => app.status !== 'applied' && app.status !== 'wishlist').length;
     const currentMonthInterviews = currentMonthApps.filter(app => app.status === 'interview' || app.status === 'offer' ||
       (app.interviews && app.interviews.length > 0)).length;
     const currentMonthOffers = currentMonthApps.filter(app => app.status === 'offer').length;
 
     // Calculate rates for previous month
     const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
-    const previousMonthApps = applications.filter(app => {
+      const previousMonthApps = boardApplications.filter(app => {
       const appDate = new Date(app.appliedDate);
       return appDate >= twoMonthsAgo && appDate < oneMonthAgo;
     });
     const previousMonthTotal = previousMonthApps.length;
-    const previousMonthResponses = previousMonthApps.filter(app => app.status !== 'applied').length;
+      const previousMonthResponses = previousMonthApps.filter(app => app.status !== 'applied' && app.status !== 'wishlist').length;
     const previousMonthInterviews = previousMonthApps.filter(app => app.status === 'interview' || app.status === 'offer' ||
       (app.interviews && app.interviews.length > 0)).length;
     const previousMonthOffers = previousMonthApps.filter(app => app.status === 'offer').length;
@@ -1704,15 +2000,61 @@ export default function JobApplicationsPage() {
       interviewRateTrend: currentInterviewRate - previousInterviewRate,
       offerRateTrend: currentOfferRate - previousOfferRate,
     };
+    } else {
+      // Campaign metrics
+      const contacted = boardApplications.filter(app => app.status !== 'targets').length;
+      const replied = boardApplications.filter(app => ['replied', 'meeting', 'opportunity', 'closed'].includes(app.status)).length;
+      const meetings = boardApplications.filter(app => ['meeting', 'opportunity'].includes(app.status)).length;
+      const opportunities = boardApplications.filter(app => app.status === 'opportunity').length;
+
+      // Calculate rates for current month
+      const currentMonthApps = boardApplications.filter(app => {
+        const appDate = new Date(app.appliedDate);
+        return appDate >= oneMonthAgo;
+      });
+      const currentMonthTotal = currentMonthApps.length;
+      const currentMonthContacted = currentMonthApps.filter(app => app.status !== 'targets').length;
+      const currentMonthReplied = currentMonthApps.filter(app => ['replied', 'meeting', 'opportunity', 'closed'].includes(app.status)).length;
+      const currentMonthMeetings = currentMonthApps.filter(app => ['meeting', 'opportunity'].includes(app.status)).length;
+
+      // Calculate rates for previous month
+      const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+      const previousMonthApps = boardApplications.filter(app => {
+        const appDate = new Date(app.appliedDate);
+        return appDate >= twoMonthsAgo && appDate < oneMonthAgo;
+      });
+      const previousMonthTotal = previousMonthApps.length;
+      const previousMonthContacted = previousMonthApps.filter(app => app.status !== 'targets').length;
+      const previousMonthReplied = previousMonthApps.filter(app => ['replied', 'meeting', 'opportunity', 'closed'].includes(app.status)).length;
+      const previousMonthMeetings = previousMonthApps.filter(app => ['meeting', 'opportunity'].includes(app.status)).length;
+
+      const currentContactRate = currentMonthTotal > 0 ? (currentMonthContacted / currentMonthTotal) * 100 : 0;
+      const previousContactRate = previousMonthTotal > 0 ? (previousMonthContacted / previousMonthTotal) * 100 : 0;
+      const currentReplyRate = currentMonthContacted > 0 ? (currentMonthReplied / currentMonthContacted) * 100 : 0;
+      const previousReplyRate = previousMonthContacted > 0 ? (previousMonthReplied / previousMonthContacted) * 100 : 0;
+      const currentMeetingRate = currentMonthContacted > 0 ? (currentMonthMeetings / currentMonthContacted) * 100 : 0;
+      const previousMeetingRate = previousMonthContacted > 0 ? (previousMonthMeetings / previousMonthContacted) * 100 : 0;
+
+      return {
+        // Reuse field names but with campaign metrics
+        responseRate: contacted > 0 ? (replied / contacted) * 100 : 0, // Reply rate
+        interviewRate: contacted > 0 ? (meetings / contacted) * 100 : 0, // Meeting rate  
+        offerRate: contacted > 0 ? (opportunities / contacted) * 100 : 0, // Opportunity rate
+        responseRateTrend: currentReplyRate - previousReplyRate,
+        interviewRateTrend: currentMeetingRate - previousMeetingRate,
+        offerRateTrend: 0,
+      };
+    }
   };
 
   const getAverageTimeData = () => {
+    if (currentBoardType === 'jobs') {
     let totalApplicationToInterview = 0;
     let totalInterviewToOffer = 0;
     let applicationsWithInterviews = 0;
     let interviewsWithOffers = 0;
 
-    applications.forEach(app => {
+      boardApplications.forEach(app => {
       if (app.statusHistory && app.statusHistory.length > 1) {
         const appliedEntry = app.statusHistory.find(h => h.status === 'applied');
         const interviewEntry = app.statusHistory.find(h => h.status === 'interview');
@@ -1746,26 +2088,80 @@ export default function JobApplicationsPage() {
       avgDaysToInterview: applicationsWithInterviews ? Math.round(totalApplicationToInterview / applicationsWithInterviews) : 0,
       avgDaysToOffer: interviewsWithOffers ? Math.round(totalInterviewToOffer / interviewsWithOffers) : 0
     };
+    } else {
+      // Campaign: time to reply, time to meeting
+      let totalContactedToReply = 0;
+      let totalReplyToMeeting = 0;
+      let contactsWithReplies = 0;
+      let repliesWithMeetings = 0;
+
+      boardApplications.forEach(app => {
+        if (app.statusHistory && app.statusHistory.length > 1) {
+          const contactedEntry = app.statusHistory.find(h => h.status === 'contacted');
+          const repliedEntry = app.statusHistory.find(h => h.status === 'replied');
+          const meetingEntry = app.statusHistory.find(h => h.status === 'meeting');
+
+          if (contactedEntry && repliedEntry) {
+            const contactedDate = new Date(contactedEntry.date);
+            const repliedDate = new Date(repliedEntry.date);
+            const daysDiff = Math.round((repliedDate.getTime() - contactedDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (daysDiff >= 0) {
+              totalContactedToReply += daysDiff;
+              contactsWithReplies++;
+            }
+          }
+
+          if (repliedEntry && meetingEntry) {
+            const repliedDate = new Date(repliedEntry.date);
+            const meetingDate = new Date(meetingEntry.date);
+            const daysDiff = Math.round((meetingDate.getTime() - repliedDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (daysDiff >= 0) {
+              totalReplyToMeeting += daysDiff;
+              repliesWithMeetings++;
+            }
+          }
+        }
+      });
+
+      return {
+        avgDaysToInterview: contactsWithReplies ? Math.round(totalContactedToReply / contactsWithReplies) : 0, // Avg days to reply
+        avgDaysToOffer: repliesWithMeetings ? Math.round(totalReplyToMeeting / repliesWithMeetings) : 0 // Avg days to meeting
+      };
+    }
   };
 
-  // New Analytics Functions - Tag-based analysis
+  // New Analytics Functions - Tag-based analysis (filtered by board)
 
   // Distribution by industry
   const getIndustryDistribution = () => {
-    const industryCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    const industryCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
     
-    applications.forEach(app => {
+    // For jobs: positive = interviews, success = offers
+    // For campaigns: positive = replied, success = opportunities
+    boardApplications.forEach(app => {
       if (app.jobTags?.industry && app.jobTags.industry.length > 0) {
         app.jobTags.industry.forEach(industry => {
           if (!industryCounts[industry]) {
-            industryCounts[industry] = { count: 0, interviews: 0, offers: 0 };
+            industryCounts[industry] = { count: 0, positive: 0, success: 0 };
           }
           industryCounts[industry].count++;
+          
+          if (currentBoardType === 'jobs') {
           if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
-            industryCounts[industry].interviews++;
+              industryCounts[industry].positive++;
           }
           if (app.status === 'offer') {
-            industryCounts[industry].offers++;
+              industryCounts[industry].success++;
+            }
+          } else {
+            if (['replied', 'meeting', 'opportunity'].includes(app.status)) {
+              industryCounts[industry].positive++;
+            }
+            if (app.status === 'opportunity') {
+              industryCounts[industry].success++;
+            }
           }
         });
       }
@@ -1775,8 +2171,8 @@ export default function JobApplicationsPage() {
       .map(([industry, data]) => ({
         industry,
         count: data.count,
-        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
-        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+        interviewRate: data.count > 0 ? (data.positive / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.success / data.count) * 100 : 0,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
@@ -1784,20 +2180,30 @@ export default function JobApplicationsPage() {
 
   // Distribution by technologies
   const getTechnologyDistribution = () => {
-    const techCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    const techCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
     
-    applications.forEach(app => {
+    boardApplications.forEach(app => {
       if (app.jobTags?.technologies && app.jobTags.technologies.length > 0) {
         app.jobTags.technologies.forEach(tech => {
           if (!techCounts[tech]) {
-            techCounts[tech] = { count: 0, interviews: 0, offers: 0 };
+            techCounts[tech] = { count: 0, positive: 0, success: 0 };
           }
           techCounts[tech].count++;
+          
+          if (currentBoardType === 'jobs') {
           if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
-            techCounts[tech].interviews++;
+              techCounts[tech].positive++;
           }
           if (app.status === 'offer') {
-            techCounts[tech].offers++;
+              techCounts[tech].success++;
+            }
+          } else {
+            if (['replied', 'meeting', 'opportunity'].includes(app.status)) {
+              techCounts[tech].positive++;
+            }
+            if (app.status === 'opportunity') {
+              techCounts[tech].success++;
+            }
           }
         });
       }
@@ -1807,8 +2213,8 @@ export default function JobApplicationsPage() {
       .map(([tech, data]) => ({
         tech,
         count: data.count,
-        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
-        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+        interviewRate: data.count > 0 ? (data.positive / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.success / data.count) * 100 : 0,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
@@ -1816,19 +2222,29 @@ export default function JobApplicationsPage() {
 
   // Distribution by seniority
   const getSeniorityDistribution = () => {
-    const seniorityCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    const seniorityCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
     
-    applications.forEach(app => {
+    boardApplications.forEach(app => {
       const seniority = app.jobTags?.seniority || 'Not specified';
       if (!seniorityCounts[seniority]) {
-        seniorityCounts[seniority] = { count: 0, interviews: 0, offers: 0 };
+        seniorityCounts[seniority] = { count: 0, positive: 0, success: 0 };
       }
       seniorityCounts[seniority].count++;
+      
+      if (currentBoardType === 'jobs') {
       if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
-        seniorityCounts[seniority].interviews++;
+          seniorityCounts[seniority].positive++;
       }
       if (app.status === 'offer') {
-        seniorityCounts[seniority].offers++;
+          seniorityCounts[seniority].success++;
+        }
+      } else {
+        if (['replied', 'meeting', 'opportunity'].includes(app.status)) {
+          seniorityCounts[seniority].positive++;
+        }
+        if (app.status === 'opportunity') {
+          seniorityCounts[seniority].success++;
+        }
       }
     });
 
@@ -1836,18 +2252,18 @@ export default function JobApplicationsPage() {
       .map(([seniority, data]) => ({
         seniority,
         count: data.count,
-        percentage: applications.length > 0 ? (data.count / applications.length) * 100 : 0,
-        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
-        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+        percentage: boardApplications.length > 0 ? (data.count / boardApplications.length) * 100 : 0,
+        interviewRate: data.count > 0 ? (data.positive / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.success / data.count) * 100 : 0,
       }))
       .sort((a, b) => b.count - a.count);
   };
 
   // Location insights
   const getLocationInsights = () => {
-    const locationCounts: { [key: string]: { count: number; interviews: number; offers: number; type: string } } = {};
+    const locationCounts: { [key: string]: { count: number; positive: number; success: number; type: string } } = {};
     
-    applications.forEach(app => {
+    boardApplications.forEach(app => {
       let locationKey = 'Not specified';
       let locationType = 'Not specified';
       
@@ -1878,27 +2294,37 @@ export default function JobApplicationsPage() {
       }
 
       if (!locationCounts[locationKey]) {
-        locationCounts[locationKey] = { count: 0, interviews: 0, offers: 0, type: locationType };
+        locationCounts[locationKey] = { count: 0, positive: 0, success: 0, type: locationType };
       }
       locationCounts[locationKey].count++;
+      
+      if (currentBoardType === 'jobs') {
       if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
-        locationCounts[locationKey].interviews++;
+          locationCounts[locationKey].positive++;
       }
       if (app.status === 'offer') {
-        locationCounts[locationKey].offers++;
+          locationCounts[locationKey].success++;
+        }
+      } else {
+        if (['replied', 'meeting', 'opportunity'].includes(app.status)) {
+          locationCounts[locationKey].positive++;
+        }
+        if (app.status === 'opportunity') {
+          locationCounts[locationKey].success++;
+        }
       }
     });
 
     // Group by type (Remote, Hybrid, On-site)
-    const typeGroups: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    const typeGroups: { [key: string]: { count: number; positive: number; success: number } } = {};
     Object.values(locationCounts).forEach(data => {
       const type = data.type;
       if (!typeGroups[type]) {
-        typeGroups[type] = { count: 0, interviews: 0, offers: 0 };
+        typeGroups[type] = { count: 0, positive: 0, success: 0 };
       }
       typeGroups[type].count += data.count;
-      typeGroups[type].interviews += data.interviews;
-      typeGroups[type].offers += data.offers;
+      typeGroups[type].positive += data.positive;
+      typeGroups[type].success += data.success;
     });
 
     return {
@@ -1907,8 +2333,8 @@ export default function JobApplicationsPage() {
           location,
           count: data.count,
           type: data.type,
-          interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
-          offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+          interviewRate: data.count > 0 ? (data.positive / data.count) * 100 : 0,
+          offerRate: data.count > 0 ? (data.success / data.count) * 100 : 0,
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 10),
@@ -1916,8 +2342,8 @@ export default function JobApplicationsPage() {
         .map(([type, data]) => ({
           type,
           count: data.count,
-          interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
-          offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+          interviewRate: data.count > 0 ? (data.positive / data.count) * 100 : 0,
+          offerRate: data.count > 0 ? (data.success / data.count) * 100 : 0,
         }))
         .sort((a, b) => b.count - a.count),
     };
@@ -1925,33 +2351,53 @@ export default function JobApplicationsPage() {
 
   // Employment type distribution
   const getEmploymentTypeDistribution = () => {
-    const typeCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    const typeCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
     
-    applications.forEach(app => {
+    boardApplications.forEach(app => {
       const types = app.jobTags?.employmentType || [];
       if (types.length === 0) {
         const defaultType = 'Not specified';
         if (!typeCounts[defaultType]) {
-          typeCounts[defaultType] = { count: 0, interviews: 0, offers: 0 };
+          typeCounts[defaultType] = { count: 0, positive: 0, success: 0 };
         }
         typeCounts[defaultType].count++;
+        
+        if (currentBoardType === 'jobs') {
         if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
-          typeCounts[defaultType].interviews++;
+            typeCounts[defaultType].positive++;
         }
         if (app.status === 'offer') {
-          typeCounts[defaultType].offers++;
+            typeCounts[defaultType].success++;
+          }
+        } else {
+          if (['replied', 'meeting', 'opportunity'].includes(app.status)) {
+            typeCounts[defaultType].positive++;
+          }
+          if (app.status === 'opportunity') {
+            typeCounts[defaultType].success++;
+          }
         }
       } else {
         types.forEach(type => {
           if (!typeCounts[type]) {
-            typeCounts[type] = { count: 0, interviews: 0, offers: 0 };
+            typeCounts[type] = { count: 0, positive: 0, success: 0 };
           }
           typeCounts[type].count++;
+          
+          if (currentBoardType === 'jobs') {
           if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
-            typeCounts[type].interviews++;
+              typeCounts[type].positive++;
           }
           if (app.status === 'offer') {
-            typeCounts[type].offers++;
+              typeCounts[type].success++;
+            }
+          } else {
+            if (['replied', 'meeting', 'opportunity'].includes(app.status)) {
+              typeCounts[type].positive++;
+            }
+            if (app.status === 'opportunity') {
+              typeCounts[type].success++;
+            }
           }
         });
       }
@@ -1961,27 +2407,37 @@ export default function JobApplicationsPage() {
       .map(([type, data]) => ({
         type,
         count: data.count,
-        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
-        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+        interviewRate: data.count > 0 ? (data.positive / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.success / data.count) * 100 : 0,
       }))
       .sort((a, b) => b.count - a.count);
   };
 
   // Company size distribution
   const getCompanySizeDistribution = () => {
-    const sizeCounts: { [key: string]: { count: number; interviews: number; offers: number } } = {};
+    const sizeCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
     
-    applications.forEach(app => {
+    boardApplications.forEach(app => {
       const size = app.jobTags?.companySize || 'Not specified';
       if (!sizeCounts[size]) {
-        sizeCounts[size] = { count: 0, interviews: 0, offers: 0 };
+        sizeCounts[size] = { count: 0, positive: 0, success: 0 };
       }
       sizeCounts[size].count++;
-      if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
-        sizeCounts[size].interviews++;
-      }
-      if (app.status === 'offer') {
-        sizeCounts[size].offers++;
+      
+      if (currentBoardType === 'jobs') {
+        if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+          sizeCounts[size].positive++;
+        }
+        if (app.status === 'offer') {
+          sizeCounts[size].success++;
+        }
+      } else {
+        if (['replied', 'meeting', 'opportunity'].includes(app.status)) {
+          sizeCounts[size].positive++;
+        }
+        if (app.status === 'opportunity') {
+          sizeCounts[size].success++;
+        }
       }
     });
 
@@ -1989,9 +2445,9 @@ export default function JobApplicationsPage() {
       .map(([size, data]) => ({
         size,
         count: data.count,
-        percentage: applications.length > 0 ? (data.count / applications.length) * 100 : 0,
-        interviewRate: data.count > 0 ? (data.interviews / data.count) * 100 : 0,
-        offerRate: data.count > 0 ? (data.offers / data.count) * 100 : 0,
+        percentage: boardApplications.length > 0 ? (data.count / boardApplications.length) * 100 : 0,
+        interviewRate: data.count > 0 ? (data.positive / data.count) * 100 : 0,
+        offerRate: data.count > 0 ? (data.success / data.count) * 100 : 0,
       }))
       .sort((a, b) => b.count - a.count);
   };
@@ -2152,13 +2608,13 @@ END:VCALENDAR`;
           onMouseLeave={() => setIsHoveringCover(false)}
         >
           {/* Cover Photo Area - Height adjusted to contain all header elements */}
-          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[200px] sm:min-h-[220px]' : 'h-auto min-h-[150px] sm:min-h-[170px]'}`}>
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${effectiveCoverPhoto ? 'h-auto min-h-[200px] sm:min-h-[220px]' : 'h-auto min-h-[150px] sm:min-h-[170px]'}`}>
             {/* Cover Background */}
-            {coverPhoto ? (
+            {effectiveCoverPhoto ? (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
                 <img 
-                  key={coverPhoto}
-                  src={coverPhoto} 
+                  key={effectiveCoverPhoto}
+                  src={effectiveCoverPhoto} 
                   alt="Applications cover" 
                   className="w-full h-full object-cover animate-in fade-in duration-500"
                 />
@@ -2175,10 +2631,10 @@ END:VCALENDAR`;
               </div>
             )}
 
-            {/* Cover Controls - Visible on hover - Centered */}
+            {/* Cover Controls - Visible on hover - Context-aware (modifies board cover when in a board, or global cover when in boards view) */}
             <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
               <AnimatePresence>
-                {(isHoveringCover || !coverPhoto) && (
+                {(isHoveringCover || !effectiveCoverPhoto) && (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -2186,7 +2642,7 @@ END:VCALENDAR`;
                     transition={{ duration: 0.2 }}
                     className="flex items-center gap-2 pointer-events-auto"
                   >
-                    {!coverPhoto ? (
+                    {!effectiveCoverPhoto ? (
                       <button
                         onClick={() => setIsCoverGalleryOpen(true)}
                         className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
@@ -2195,17 +2651,23 @@ END:VCALENDAR`;
                           hover:shadow-md group"
                       >
                         <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
-                        <span>Add cover</span>
+                        <span>Add {view !== 'boards' && currentBoardId ? 'board' : ''} cover</span>
                       </button>
                     ) : (
                       <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                        {/* Indicator showing which cover is being edited */}
+                        {view !== 'boards' && currentBoardId && (
+                          <span className="px-2 py-1 text-[10px] font-semibold text-[#635BFF] bg-[#635BFF]/10 rounded-md mr-1">
+                            Board Cover
+                          </span>
+                        )}
                         <button
                           onClick={() => setIsCoverGalleryOpen(true)}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
                             hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
                         >
                           <Image className="w-3.5 h-3.5" />
-                          Change cover
+                          Change
                         </button>
                         
                         <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
@@ -2241,31 +2703,124 @@ END:VCALENDAR`;
               </AnimatePresence>
             </div>
 
-            {/* All Header Content - Positioned directly on cover */}
-            <div className="relative z-10 px-4 sm:px-6 pt-4 pb-4 flex flex-col gap-3">
-              {/* Title and Add Button Row */}
+            {/* All Header Content - Premium Restructured Layout */}
+            <div className="relative z-10 px-4 sm:px-6 pt-4 pb-4">
+              {/* Main Header Row */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-                className="flex items-center justify-between mb-2"
+                className="flex items-center justify-between"
               >
-            {/* Titre à gauche */}
+                {/* Left Section: Title & Board Info */}
+                <div className="flex items-center gap-4">
+                  {/* Board Icon/Avatar */}
+                  {view !== 'boards' && currentBoardId && (() => {
+                    const currentBoard = boards.find(b => b.id === currentBoardId);
+                    return (
+                      <div 
+                        className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-lg"
+                        style={{ backgroundColor: currentBoard?.color || '#635BFF' }}
+                      >
+                        <span className="text-white">{currentBoard?.icon || '📋'}</span>
+                      </div>
+                    );
+                  })()}
+                  
             <div>
-                  <h1 className={`text-2xl font-bold ${coverPhoto 
+                    <div className="flex items-center gap-3">
+                  <h1 className={`text-2xl font-bold ${effectiveCoverPhoto 
                     ? 'text-white drop-shadow-2xl'
                     : 'text-gray-900 dark:text-white'
-                  }`}>Applications</h1>
-                  <p className={`text-sm mt-0.5 ${coverPhoto 
-                    ? 'text-white/90 drop-shadow-lg'
+                      }`}>
+                        {view === 'boards' 
+                          ? 'My Boards' 
+                          : (() => {
+                              const currentBoard = boards.find(b => b.id === currentBoardId);
+                              return currentBoard?.name || 'Applications';
+                            })()
+                        }
+                      </h1>
+                      
+                      {/* Board Navigation Badge - only when inside a board */}
+                      {view !== 'boards' && currentBoardId && (
+                        <button
+                          onClick={() => {
+                            setView('boards');
+                            setCurrentBoardId(null);
+                          }}
+                          className={`group inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full transition-all duration-200
+                            ${effectiveCoverPhoto 
+                              ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-[#635BFF]/10 hover:text-[#635BFF]'
+                            }`}
+                        >
+                          <LayoutGrid className="w-3 h-3" />
+                          <span>All Boards</span>
+                        </button>
+                      )}
+                    </div>
+                    
+                  <p className={`text-sm mt-0.5 ${effectiveCoverPhoto 
+                      ? 'text-white/80 drop-shadow-lg'
                     : 'text-gray-500 dark:text-gray-400'
                   }`}>
-                Track and manage your job applications
+                      {view === 'boards' 
+                        ? `${boards.length} board${boards.length !== 1 ? 's' : ''} • ${applications.length} total applications`
+                        : `${filteredApplications.length} applications in this board`
+                      }
               </p>
+                  </div>
             </div>
 
-            {/* Boutons Add et Settings à droite */}
-            <div className="flex items-center gap-2">
+                {/* Right Section: Actions */}
+                <div className="flex items-center gap-3">
+                  {view === 'boards' ? (
+                    /* New Board button when in boards overview */
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setEditingBoard(null);
+                        setShowBoardSettingsModal(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-lg bg-gradient-to-r from-[#635BFF] to-[#7c75ff] text-white hover:from-[#5850e6] hover:to-[#6b64e6] hover:shadow-xl transition-all duration-200"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>New Board</span>
+                    </motion.button>
+                  ) : (
+                    /* Actions when inside a board */
+                    <>
+                      {/* View Toggle Pills */}
+                      <div className={`p-1 rounded-xl flex ${effectiveCoverPhoto ? 'bg-black/20 backdrop-blur-sm' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                        <button
+                          onClick={() => setView('kanban')}
+                          className={`px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${view === 'kanban'
+                            ? 'bg-white dark:bg-gray-700 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
+                            : effectiveCoverPhoto 
+                              ? 'text-white/80 hover:text-white'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                          }`}
+                        >
+                          <FolderKanban className="w-4 h-4" />
+                          <span>Kanban</span>
+                        </button>
+                        <button
+                          onClick={() => setView('analytics')}
+                          className={`px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${view === 'analytics'
+                            ? 'bg-white dark:bg-gray-700 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
+                            : effectiveCoverPhoto 
+                              ? 'text-white/80 hover:text-white'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                          }`}
+                        >
+                          <LineChart className="w-4 h-4" />
+                          <span>Analytics</span>
+                        </button>
+                      </div>
+
+                      {/* Add Application Button */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -2277,13 +2832,7 @@ END:VCALENDAR`;
                   setShowLookupDropdown(false);
                   setNewApplicationModal(true);
                 }}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
-                  ${coverPhoto 
-                    ? (isCoverDark 
-                      ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
-                      : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
-                    : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-lg bg-gradient-to-r from-[#635BFF] to-[#7c75ff] text-white hover:from-[#5850e6] hover:to-[#6b64e6] hover:shadow-xl transition-all duration-200"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Application</span>
@@ -2291,92 +2840,61 @@ END:VCALENDAR`;
 
               {/* Settings Button */}
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                 onClick={() => setShowAutomationSettingsModal(true)}
-                className={`relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
-                  ${coverPhoto 
-                    ? (isCoverDark 
-                      ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
-                      : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
-                    : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        className={`relative p-2.5 rounded-xl transition-all duration-200
+                  ${effectiveCoverPhoto 
+                            ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 title="Automation Settings"
               >
-                <Settings className="w-4 h-4" />
+                        <Settings className="w-5 h-5" />
                 {Object.values(automationSettings).some((s: any) => (s as { enabled?: boolean }).enabled) && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full" />
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#635BFF] rounded-full border-2 border-white dark:border-gray-900" />
                 )}
               </motion.button>
+                    </>
+                  )}
             </div>
               </motion.div>
 
-              {/* Stats and View Toggle Row */}
+              {/* Stats Row - Only show when inside a board (Kanban view) */}
+              {view === 'kanban' && currentBoardId && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex items-center justify-between mb-2"
-              >
-                <div className="flex items-center gap-3">
-              {(() => {
-                // Static color mapping for Tailwind JIT compilation
-                const statColorClasses: Record<string, string> = {
-                  blue: 'text-blue-600 dark:text-blue-400',
-                  purple: 'text-purple-600 dark:text-purple-400',
-                  amber: 'text-amber-600 dark:text-amber-400',
-                  green: 'text-green-600 dark:text-green-400',
-                  red: 'text-red-600 dark:text-red-400'
-                };
-                return [
-                  { label: 'Applied', count: applications.filter(a => a.status === 'applied').length, color: 'blue' },
-                  { label: 'Interview', count: applications.filter(a => a.status === 'interview').length, color: 'purple' },
-                  { label: 'Pending', count: applications.filter(a => a.status === 'pending_decision').length, color: 'amber' },
-                  { label: 'Offer', count: applications.filter(a => a.status === 'offer').length, color: 'green' },
-                  { label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length, color: 'red' }
-                ].map((stat, index) => (
-                <motion.div
-                  key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 * index }}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${coverPhoto ? 'drop-shadow-lg' : ''}`}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="flex items-center gap-2 mt-4"
                 >
-                  <div className={`text-lg font-bold ${statColorClasses[stat.color]}`}>
-                    {stat.count}
-                  </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                    {stat.label}
-                  </div>
+              {(() => {
+                    const stats = [
+                      { label: 'Applied', count: filteredApplications.filter(a => a.status === 'applied').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
+                      { label: 'Interview', count: filteredApplications.filter(a => a.status === 'interview').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
+                      { label: 'Pending', count: filteredApplications.filter(a => a.status === 'pending_decision').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
+                      { label: 'Offer', count: filteredApplications.filter(a => a.status === 'offer').length, color: '#10B981', bg: 'bg-emerald-500/10' },
+                      { label: 'Rejected', count: filteredApplications.filter(a => a.status === 'rejected').length, color: '#EF4444', bg: 'bg-red-500/10' }
+                    ];
+                    return stats.map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.05 * index }}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${effectiveCoverPhoto ? 'bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}
+                      >
+                        <span 
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: stat.color }}
+                        />
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{stat.count}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</span>
                 </motion.div>
               ));
               })()}
-                </div>
-
-            {/* View Toggle intégré */}
-                <div className="p-1 rounded-lg flex bg-gray-100 dark:bg-gray-800">
-              <button
-                onClick={() => setView('kanban')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${view === 'kanban'
-                    ? 'bg-gradient-to-r from-[#635BFF]/10 to-[#7c75ff]/10 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-[#635BFF] dark:hover:text-[#a5a0ff]'
-                  }`}
-              >
-                <PieChart className="w-4 h-4" />
-                <span>Kanban</span>
-              </button>
-              <button
-                onClick={() => setView('analytics')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${view === 'analytics'
-                    ? 'bg-gradient-to-r from-[#635BFF]/10 to-[#7c75ff]/10 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-[#635BFF] dark:hover:text-[#a5a0ff]'
-                  }`}
-              >
-                <LineChart className="w-4 h-4" />
-                <span>Analytics</span>
-              </button>
-          </div>
         </motion.div>
+              )}
 
               {/* Search and Filters Row - Only show for kanban view */}
         {view === 'kanban' && (
@@ -2384,7 +2902,7 @@ END:VCALENDAR`;
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-                  className=""
+                  className="mt-6"
                 >
             {/* Search bar + Filters en une ligne */}
             <div className="flex items-center gap-3">
@@ -2579,9 +3097,41 @@ END:VCALENDAR`;
 
         {/* Main Content Area */}
         <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
-        {/* Main content area - switch between kanban and analytics */}
+        {/* Main content area - switch between kanban, boards, and analytics */}
         <AnimatePresence mode="wait">
-          {view === 'kanban' ? (
+          {view === 'boards' ? (
+            <motion.div
+              key="boards"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1"
+            >
+              <BoardsOverview
+                boards={boards}
+                applications={applications}
+                onSelectBoard={(boardId) => {
+                  setCurrentBoardId(boardId);
+                  setView('kanban');
+                }}
+                onCreateBoard={() => {
+                  setEditingBoard(null);
+                  setShowBoardSettingsModal(true);
+                }}
+                onEditBoard={(board) => {
+                  setEditingBoard(board);
+                  setShowBoardSettingsModal(true);
+                }}
+                onDeleteBoard={(board) => {
+                  setEditingBoard(board);
+                  // Show confirmation in BoardSettingsModal
+                  setShowBoardSettingsModal(true);
+                }}
+                onDuplicateBoard={handleDuplicateBoard}
+              />
+            </motion.div>
+          ) : view === 'kanban' ? (
             <motion.div
               key="kanban"
               initial={{ opacity: 0, x: -20 }}
@@ -2603,9 +3153,13 @@ END:VCALENDAR`;
                   className="flex-1 overflow-x-auto min-h-0"
                 >
                   <div className="flex gap-0 h-full min-w-min">
-                    {['wishlist', 'applied', 'interview', 'pending_decision', 'offer', 'rejected'].map((status, columnIndex) => {
+                    {/* Exclude 'archived' from visible columns - only show main workflow columns */}
+                    {columnOrder.filter(col => col !== 'archived').map((status, columnIndex) => {
+                      const visibleColumns = columnOrder.filter(col => col !== 'archived');
                       const statusCount = filteredApplications.filter(a => a.status === status).length;
-                      const isLastColumn = columnIndex === ['wishlist', 'applied', 'interview', 'pending_decision', 'offer', 'rejected'].length - 1;
+                      const isLastColumn = columnIndex === visibleColumns.length - 1;
+                      // Get column color for campaigns
+                      const columnColor = currentBoardType === 'campaigns' ? CAMPAIGN_COLUMN_COLORS[status] : undefined;
 
                       return (
                         <div key={status} className="flex items-stretch h-full">
@@ -2621,11 +3175,14 @@ END:VCALENDAR`;
                               >
                               <div className="mb-2 sm:mb-3 text-center">
                                 <div className="mb-2">
-                                  <h3 className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm mb-1">
-                                    {status === 'pending_decision' ? 'PENDING DECISION' : status.toUpperCase()}
+                                  <h3 
+                                    className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm mb-1"
+                                    style={columnColor ? { color: columnColor } : undefined}
+                                  >
+                                    {columnLabels[status] || status.replace('_', ' ').toUpperCase()}
                                   </h3>
                                   <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                    {statusCount} {statusCount === 1 ? 'job' : 'jobs'}
+                                    {statusCount} {statusCount === 1 ? (currentBoardType === 'jobs' ? 'job' : 'contact') : (currentBoardType === 'jobs' ? 'jobs' : 'contacts')}
                                   </span>
                                 </div>
                                 <motion.button
@@ -2641,7 +3198,7 @@ END:VCALENDAR`;
                                       companyName: '',
                                       position: '',
                                       location: '',
-                                      status: status as 'wishlist' | 'applied' | 'interview' | 'pending_decision' | 'offer' | 'rejected',
+                                      status: status as JobApplication['status'],
                                       appliedDate: new Date().toISOString().split('T')[0],
                                       url: '',
                                       description: '',
@@ -2695,6 +3252,12 @@ END:VCALENDAR`;
                                   onCardDelete={(app) => {
                                     setDeleteModal({ show: true, application: app });
                                   }}
+                                  showMoveToBoard={boards.length > 1}
+                                  onMoveToBoard={(app) => {
+                                    setApplicationToMove(app);
+                                    setShowMoveToBoardModal(true);
+                                  }}
+                                  boardType={currentBoardType}
                                 />
                                 {provided.placeholder}
                               </div>
@@ -2762,7 +3325,8 @@ END:VCALENDAR`;
                         return { text: 'Needs Improvement', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' };
                       };
                       
-                      return [
+                      // Different metrics for jobs vs campaigns
+                      const metrics = currentBoardType === 'jobs' ? [
                         {
                           label: 'Response Rate',
                           value: `${rateData.responseRate.toFixed(0)}%`,
@@ -2787,7 +3351,34 @@ END:VCALENDAR`;
                           trend: rateData.offerRateTrend,
                           badge: getPerformanceBadge(rateData.offerRate)
                         }
-                      ].map((metric, i) => (
+                      ] : [
+                        {
+                          label: 'Reply Rate',
+                          value: `${rateData.responseRate.toFixed(0)}%`,
+                          desc: 'Contacts that replied to your outreach',
+                          icon: <MessageSquare className="text-purple-500" />,
+                          trend: rateData.responseRateTrend,
+                          badge: getPerformanceBadge(rateData.responseRate)
+                        },
+                        {
+                          label: 'Meeting Rate',
+                          value: `${rateData.interviewRate.toFixed(0)}%`,
+                          desc: 'Contacts that led to meetings',
+                          icon: <Users className="text-blue-500" />,
+                          trend: rateData.interviewRateTrend,
+                          badge: getPerformanceBadge(rateData.interviewRate)
+                        },
+                        {
+                          label: 'Opportunity Rate',
+                          value: `${rateData.offerRate.toFixed(0)}%`,
+                          desc: 'Contacts that became opportunities',
+                          icon: <Check className="text-green-500" />,
+                          trend: rateData.offerRateTrend,
+                          badge: getPerformanceBadge(rateData.offerRate)
+                        }
+                      ];
+                      
+                      return metrics.map((metric, i) => (
                         <motion.div
                           key={metric.label}
                           initial={{ opacity: 0, y: 20 }}
@@ -2854,9 +3445,9 @@ END:VCALENDAR`;
                                 <div className="flex items-center justify-between text-sm">
                                   <span className="font-medium text-gray-900 dark:text-white">{item.industry}</span>
                                   <div className="flex items-center gap-3">
-                                    <span className="text-xs text-gray-500">{item.count} apps</span>
+                                    <span className="text-xs text-gray-500">{item.count} {currentBoardType === 'jobs' ? 'apps' : 'contacts'}</span>
                                     <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                                      {item.interviewRate.toFixed(0)}% interview
+                                      {item.interviewRate.toFixed(0)}% {currentBoardType === 'jobs' ? 'interview' : 'reply'}
                                     </span>
                                   </div>
                                 </div>
@@ -2874,7 +3465,7 @@ END:VCALENDAR`;
                         </div>
                       ) : (
                         <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
-                          No industry data available. Add jobs with AI extraction to see industry insights.
+                          No industry data available. Add {currentBoardType === 'jobs' ? 'jobs' : 'contacts'} with AI extraction to see industry insights.
                         </div>
                       )}
                     </motion.div>
@@ -2964,7 +3555,7 @@ END:VCALENDAR`;
                                   <div className="flex items-center gap-3">
                                     <span className="text-xs text-gray-500">{item.count} ({percentage.toFixed(0)}%)</span>
                                     <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                                      {item.interviewRate.toFixed(0)}% interview
+                                      {item.interviewRate.toFixed(0)}% {currentBoardType === 'jobs' ? 'interview' : 'reply'}
                                     </span>
                                   </div>
                                 </div>
@@ -3009,7 +3600,7 @@ END:VCALENDAR`;
                                   <div className="flex items-center gap-3">
                                     <span className="text-xs text-gray-500">{item.count}</span>
                                     <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                                      {item.interviewRate.toFixed(0)}% interview
+                                      {item.interviewRate.toFixed(0)}% {currentBoardType === 'jobs' ? 'interview' : 'reply'}
                                     </span>
                                   </div>
                                 </div>
@@ -3060,7 +3651,7 @@ END:VCALENDAR`;
                                   <div className="flex items-center gap-4">
                                     <span className="text-xs text-gray-500">{item.count}</span>
                                     <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                                      {item.interviewRate.toFixed(0)}% interview
+                                      {item.interviewRate.toFixed(0)}% {currentBoardType === 'jobs' ? 'interview' : 'reply'}
                                     </span>
                                   </div>
                                 </div>
@@ -3098,6 +3689,7 @@ END:VCALENDAR`;
                   >
                     {(() => {
                       const patterns = getSuccessPatterns();
+                      const rateLabel = currentBoardType === 'jobs' ? 'interview rate' : 'reply rate';
                       return [
                         patterns.topIndustries.length > 0 && {
                           title: 'Best Performing Industries',
@@ -3108,7 +3700,7 @@ END:VCALENDAR`;
                                 <div key={ind.industry} className="flex items-center justify-between text-sm">
                                   <span className="font-medium text-gray-900 dark:text-white">{ind.industry}</span>
                                   <span className="text-purple-600 dark:text-purple-400 font-medium">
-                                    {ind.interviewRate.toFixed(0)}% interview rate
+                                    {ind.interviewRate.toFixed(0)}% {rateLabel}
                                   </span>
                                 </div>
                               ))}
@@ -3140,7 +3732,7 @@ END:VCALENDAR`;
                                 {patterns.bestSeniority.seniority}
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {patterns.bestSeniority.interviewRate.toFixed(0)}% interview rate
+                                {patterns.bestSeniority.interviewRate.toFixed(0)}% {rateLabel}
                               </p>
                             </div>
                           ),
@@ -3154,7 +3746,7 @@ END:VCALENDAR`;
                                 {patterns.bestLocationType.type}
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {patterns.bestLocationType.interviewRate.toFixed(0)}% interview rate
+                                {patterns.bestLocationType.interviewRate.toFixed(0)}% {rateLabel}
                               </p>
                             </div>
                           ),
@@ -3185,25 +3777,38 @@ END:VCALENDAR`;
                     className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
                   >
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-medium">Applications Over Time</h3>
+                      <h3 className="font-medium">{currentBoardType === 'jobs' ? 'Applications' : 'Outreach'} Over Time</h3>
                       <div className="text-xs text-gray-500">Last 6 months</div>
                     </div>
 
                     <div className="h-60 flex items-end justify-between px-2">
                       {getMonthlyApplicationData().map(([month, data], i) => {
-                        const total = data.applied + data.interviews + data.pending + data.offers + data.rejected;
+                        // Calculate total based on board type
+                        const total = currentBoardType === 'jobs' 
+                          ? (data.applied || 0) + (data.interviews || 0) + (data.pending || 0) + (data.offers || 0) + (data.rejected || 0)
+                          : (data.targets || 0) + (data.contacted || 0) + (data.follow_up || 0) + (data.replied || 0) + (data.meeting || 0) + (data.opportunity || 0);
                         const maxHeight = 200;
+
+                        // Different segments for jobs vs campaigns
+                        const segments = currentBoardType === 'jobs' ? [
+                          { type: 'rejected', count: data.rejected || 0, color: 'bg-red-500' },
+                          { type: 'offers', count: data.offers || 0, color: 'bg-green-500' },
+                          { type: 'pending', count: data.pending || 0, color: 'bg-amber-500' },
+                          { type: 'interviews', count: data.interviews || 0, color: 'bg-purple-500' },
+                          { type: 'applied', count: data.applied || 0, color: 'bg-blue-500' }
+                        ] : [
+                          { type: 'opportunity', count: data.opportunity || 0, color: 'bg-green-500' },
+                          { type: 'meeting', count: data.meeting || 0, color: 'bg-purple-500' },
+                          { type: 'replied', count: data.replied || 0, color: 'bg-cyan-500' },
+                          { type: 'follow_up', count: data.follow_up || 0, color: 'bg-amber-500' },
+                          { type: 'contacted', count: data.contacted || 0, color: 'bg-blue-500' },
+                          { type: 'targets', count: data.targets || 0, color: 'bg-gray-400' }
+                        ];
 
                         return (
                           <div key={month} className="flex flex-col items-center gap-2 w-1/6">
                             <div className="relative w-12 flex flex-col-reverse items-center">
-                              {[
-                                { type: 'rejected', count: data.rejected, color: 'bg-red-500' },
-                                { type: 'offers', count: data.offers, color: 'bg-green-500' },
-                                { type: 'pending', count: data.pending, color: 'bg-amber-500' },
-                                { type: 'interviews', count: data.interviews, color: 'bg-purple-500' },
-                                { type: 'applied', count: data.applied, color: 'bg-blue-500' }
-                              ].map((segment, j) => {
+                              {segments.map((segment, j) => {
                                 const height = total > 0 ? (segment.count / total) * maxHeight : 0;
                                 return (
                                   <motion.div
@@ -3225,14 +3830,21 @@ END:VCALENDAR`;
                       })}
                     </div>
 
-                    <div className="flex justify-center mt-4 gap-4 text-xs">
-                      {[
+                    <div className="flex justify-center mt-4 gap-4 text-xs flex-wrap">
+                      {(currentBoardType === 'jobs' ? [
                         { label: 'Applied', color: 'bg-blue-500' },
                         { label: 'Interviews', color: 'bg-purple-500' },
                         { label: 'Pending', color: 'bg-amber-500' },
                         { label: 'Offers', color: 'bg-green-500' },
                         { label: 'Rejected', color: 'bg-red-500' }
-                      ].map(item => (
+                      ] : [
+                        { label: 'Targets', color: 'bg-gray-400' },
+                        { label: 'Contacted', color: 'bg-blue-500' },
+                        { label: 'Follow-up', color: 'bg-amber-500' },
+                        { label: 'Replied', color: 'bg-cyan-500' },
+                        { label: 'Meeting', color: 'bg-purple-500' },
+                        { label: 'Opportunity', color: 'bg-green-500' }
+                      ]).map(item => (
                         <div key={item.label} className="flex items-center gap-1">
                           <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
                           <span>{item.label}</span>
@@ -3243,7 +3855,7 @@ END:VCALENDAR`;
 
                   {/* Section 6: Métriques temporelles améliorées */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
+                    {(currentBoardType === 'jobs' ? [
                       {
                         label: 'Avg. Days to Interview',
                         value: getAverageTimeData().avgDaysToInterview,
@@ -3254,7 +3866,18 @@ END:VCALENDAR`;
                         value: getAverageTimeData().avgDaysToOffer,
                         icon: <Activity className="text-green-500" />
                       }
-                    ].map((metric, i) => (
+                    ] : [
+                      {
+                        label: 'Avg. Days to Reply',
+                        value: getAverageTimeData().avgDaysToInterview,
+                        icon: <Calendar className="text-blue-500" />
+                      },
+                      {
+                        label: 'Avg. Days to Meeting',
+                        value: getAverageTimeData().avgDaysToOffer,
+                        icon: <Activity className="text-green-500" />
+                      }
+                    ]).map((metric, i) => (
                       <motion.div
                         key={metric.label}
                         initial={{ opacity: 0, y: 20 }}
@@ -3802,10 +4425,14 @@ END:VCALENDAR`;
                 <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl z-10 sticky top-0">
                   <div>
                     <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
-                      {eventType ? (eventType === 'application' ? 'New Application' : 'Schedule Interview') : 'Add to Tracker'}
+                      {eventType ? (eventType === 'application' 
+                        ? (currentBoardType === 'campaigns' ? 'New Outreach' : 'New Application') 
+                        : 'Schedule Interview') : 'Add to Tracker'}
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                      {eventType ? (eventType === 'application' ? 'Track a new job opportunity' : 'Add an upcoming interview') : 'Select an event type'}
+                      {eventType ? (eventType === 'application' 
+                        ? (currentBoardType === 'campaigns' ? 'Track a new outreach contact' : 'Track a new job opportunity') 
+                        : 'Add an upcoming interview') : 'Select an event type'}
                     </p>
                   </div>
                   <button
@@ -3852,14 +4479,18 @@ END:VCALENDAR`;
                         >
                           <div className="flex flex-col items-start gap-4">
                             <div className="p-3.5 rounded-xl bg-white dark:bg-[#252525] shadow-sm group-hover:scale-110 transition-transform duration-300">
-                              <Briefcase className="w-6 h-6 text-gray-900 dark:text-white" />
+                              {currentBoardType === 'campaigns' ? (
+                                <Send className="w-6 h-6 text-gray-900 dark:text-white" />
+                              ) : (
+                                <Briefcase className="w-6 h-6 text-gray-900 dark:text-white" />
+                              )}
                             </div>
                             <div>
                               <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                                Job Application
+                                {currentBoardType === 'campaigns' ? 'Outreach' : 'Job Application'}
                               </h3>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Track a new job application
+                                {currentBoardType === 'campaigns' ? 'Add a new contact to reach out' : 'Track a new job application'}
                               </p>
                             </div>
                           </div>
@@ -3881,10 +4512,10 @@ END:VCALENDAR`;
                             </div>
                             <div>
                               <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                                Interview
+                                {currentBoardType === 'campaigns' ? 'Meeting' : 'Interview'}
                               </h3>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Schedule an interview
+                                {currentBoardType === 'campaigns' ? 'Schedule a meeting' : 'Schedule an interview'}
                               </p>
                             </div>
                           </div>
@@ -3913,7 +4544,7 @@ END:VCALENDAR`;
                               }}
                             />
                             
-                            {/* Application button */}
+                            {/* Application/Outreach button */}
                             <button
                               type="button"
                               onClick={() => {
@@ -3926,20 +4557,28 @@ END:VCALENDAR`;
                               }}
                               className="relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150"
                             >
-                              <Briefcase className={`w-4 h-4 transition-colors duration-150 ${
-                                eventType === 'application' 
-                                  ? 'text-gray-900 dark:text-white' 
-                                  : 'text-gray-400 dark:text-gray-500'
-                              }`} />
+                              {currentBoardType === 'campaigns' ? (
+                                <Send className={`w-4 h-4 transition-colors duration-150 ${
+                                  eventType === 'application' 
+                                    ? 'text-gray-900 dark:text-white' 
+                                    : 'text-gray-400 dark:text-gray-500'
+                                }`} />
+                              ) : (
+                                <Briefcase className={`w-4 h-4 transition-colors duration-150 ${
+                                  eventType === 'application' 
+                                    ? 'text-gray-900 dark:text-white' 
+                                    : 'text-gray-400 dark:text-gray-500'
+                                }`} />
+                              )}
                               <span className={eventType === 'application' 
                                 ? 'text-gray-900 dark:text-white' 
                                 : 'text-gray-500 dark:text-gray-400'
                               }>
-                                Application
+                                {currentBoardType === 'campaigns' ? 'Outreach' : 'Application'}
                               </span>
                             </button>
                             
-                            {/* Interview button */}
+                            {/* Interview/Meeting button */}
                             <button
                               type="button"
                               onClick={() => {
@@ -3957,14 +4596,14 @@ END:VCALENDAR`;
                                 ? 'text-gray-900 dark:text-white' 
                                 : 'text-gray-500 dark:text-gray-400'
                               }>
-                                Interview
+                                {currentBoardType === 'campaigns' ? 'Meeting' : 'Interview'}
                               </span>
                             </button>
                           </div>
                         </div>
 
-                        {/* Job URL (Application only) */}
-                        {eventType === 'application' && (
+                        {/* Job URL (Application only - Jobs board) */}
+                        {eventType === 'application' && currentBoardType === 'jobs' && (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">
@@ -4004,6 +4643,39 @@ END:VCALENDAR`;
                                   </motion.button>
                                 </div>
                               </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Campaigns: Quick add fields at the top */}
+                        {eventType === 'application' && currentBoardType === 'campaigns' && !showFullForm && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                Company Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={formData.companyName || ''}
+                                onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                placeholder="e.g. Google, Spotify..."
+                                autoFocus
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                Contact Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={formData.contactName || ''}
+                                onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                placeholder="e.g. John Doe"
+                              />
                             </div>
                           </div>
                         )}
@@ -4167,8 +4839,8 @@ END:VCALENDAR`;
                               exit={{ opacity: 0, height: 0 }}
                               className="space-y-6 overflow-hidden"
                             >
-                              {/* Main Fields - Only for Applications */}
-                              {eventType === 'application' && (
+                              {/* Main Fields - Jobs Board */}
+                              {eventType === 'application' && currentBoardType === 'jobs' && (
                                 <div className="grid grid-cols-1 gap-5">
                                   <div>
                                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
@@ -4214,12 +4886,136 @@ END:VCALENDAR`;
                                 </div>
                               )}
 
+                              {/* Main Fields - Campaigns Board */}
+                              {eventType === 'application' && currentBoardType === 'campaigns' && (
+                                <div className="grid grid-cols-1 gap-5">
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                      Company Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={formData.companyName || ''}
+                                      onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                      placeholder="e.g. Google, Spotify..."
+                                    />
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                        Contact Name <span className="text-red-500">*</span>
+                                      </label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={formData.contactName || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                        placeholder="e.g. John Doe"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                        Contact Role
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={formData.contactRole || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, contactRole: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                        placeholder="e.g. Head of Engineering"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                        Contact Email
+                                      </label>
+                                      <input
+                                        type="email"
+                                        value={formData.contactEmail || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                        placeholder="john@company.com"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                        LinkedIn Profile
+                                      </label>
+                                      <input
+                                        type="url"
+                                        value={formData.contactLinkedIn || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, contactLinkedIn: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                        placeholder="linkedin.com/in/..."
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                      Outreach Channel <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                      {[
+                                        { value: 'email', label: 'Email', icon: '✉️' },
+                                        { value: 'linkedin', label: 'LinkedIn', icon: '💼' },
+                                        { value: 'referral', label: 'Referral', icon: '🤝' },
+                                        { value: 'event', label: 'Event', icon: '🎤' },
+                                        { value: 'cold_call', label: 'Call', icon: '📞' },
+                                        { value: 'other', label: 'Other', icon: '📋' },
+                                      ].map((channel) => (
+                                        <button
+                                          key={channel.value}
+                                          type="button"
+                                          onClick={() => setFormData(prev => ({ ...prev, outreachChannel: channel.value as any }))}
+                                          className={`p-2.5 rounded-xl border-2 transition-all text-center ${
+                                            formData.outreachChannel === channel.value
+                                              ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-500 dark:border-purple-400'
+                                              : 'bg-gray-50 dark:bg-[#1A1A1A] border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                                          }`}
+                                        >
+                                          <span className="text-lg block mb-0.5">{channel.icon}</span>
+                                          <span className={`text-[10px] font-medium ${
+                                            formData.outreachChannel === channel.value
+                                              ? 'text-purple-700 dark:text-purple-300'
+                                              : 'text-gray-600 dark:text-gray-400'
+                                          }`}>{channel.label}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                      Message Sent
+                                    </label>
+                                    <textarea
+                                      value={formData.messageSent || ''}
+                                      onChange={(e) => setFormData(prev => ({ ...prev, messageSent: e.target.value }))}
+                                      rows={3}
+                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
+                                      placeholder="Summary of your outreach message..."
+                                    />
+                                  </div>
+
+                                  {/* Hidden position field for campaigns - use contact role as position for display */}
+                                  <input type="hidden" value={formData.contactRole || 'Outreach'} />
+                                </div>
+                              )}
+
                               {/* Date & Time Grid */}
                               <div className={eventType === 'application' ? '' : 'grid grid-cols-2 gap-5'}>
                                 {eventType === 'application' ? (
                                   <div>
                                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Applied Date <span className="text-red-500">*</span>
+                                      {currentBoardType === 'campaigns' ? 'Contact Date' : 'Applied Date'} <span className="text-red-500">*</span>
                                     </label>
                                     <DatePicker
                                       value={formData.appliedDate || ''}
@@ -5722,6 +6518,32 @@ END:VCALENDAR`;
           settings={automationSettings}
           onSave={handleSaveAutomationSettings}
           applications={applications}
+        />
+
+        {/* Board Settings Modal */}
+        <BoardSettingsModal
+          isOpen={showBoardSettingsModal}
+          onClose={() => {
+            setShowBoardSettingsModal(false);
+            setEditingBoard(null);
+          }}
+          onSave={editingBoard ? handleUpdateBoard : handleCreateBoard}
+          onDelete={editingBoard && !editingBoard.isDefault ? handleDeleteBoard : undefined}
+          board={editingBoard}
+          mode={editingBoard ? 'edit' : 'create'}
+        />
+
+        {/* Move to Board Modal */}
+        <MoveToBoardModal
+          isOpen={showMoveToBoardModal}
+          onClose={() => {
+            setShowMoveToBoardModal(false);
+            setApplicationToMove(null);
+          }}
+          onMove={handleMoveApplicationToBoard}
+          boards={boards}
+          currentBoardId={applicationToMove?.boardId || (boards.find(b => b.isDefault)?.id || null)}
+          applicationName={applicationToMove ? `${applicationToMove.companyName} - ${applicationToMove.position}` : ''}
         />
       </div>
     </AuthLayout>

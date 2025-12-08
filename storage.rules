@@ -65,6 +65,15 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
     
+    // Board covers - private to each user
+    match /board-covers/{userId}/{fileName} {
+      allow read: if isSignedIn() && isOwner(userId);
+      allow write: if isSignedIn() && isOwner(userId)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+    
     // Profile photos (alternative path - in case files were uploaded to profilePhotos)
     match /profilePhotos/{userId}/{fileName} {
       allow read: if isSignedIn() && isOwner(userId);

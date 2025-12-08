@@ -14,14 +14,42 @@ interface QuoteData {
   dateKey: string;
 }
 
-// Fallback quotes (mix of career and general motivation)
+// Fallback quotes - extensive collection organized by theme
 const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
+  // ═══════════════════════════════════════════════════════════
+  // CAREER & WORK
+  // ═══════════════════════════════════════════════════════════
   { content: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { content: "Choose a job you love, and you will never have to work a day in your life.", author: "Confucius" },
+  { content: "Your work is going to fill a large part of your life. The only way to be truly satisfied is to do great work.", author: "Steve Jobs" },
+  { content: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+  { content: "Don't be afraid to give up the good to go for the great.", author: "John D. Rockefeller" },
+  { content: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+  { content: "Your career is like a garden. It can hold a huge variety of things if you put the work in.", author: "Jennifer Aniston" },
+  { content: "The expert in anything was once a beginner.", author: "Helen Hayes" },
+  { content: "Build your own dreams, or someone else will hire you to build theirs.", author: "Farrah Gray" },
+  { content: "Don't let yesterday take up too much of today.", author: "Will Rogers" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // SUCCESS & ACHIEVEMENT
+  // ═══════════════════════════════════════════════════════════
   { content: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { content: "Success usually comes to those who are too busy to be looking for it.", author: "Henry David Thoreau" },
+  { content: "Don't be afraid of failure. This is the way to succeed.", author: "LeBron James" },
+  { content: "I find that the harder I work, the more luck I seem to have.", author: "Thomas Jefferson" },
+  { content: "Success is walking from failure to failure with no loss of enthusiasm.", author: "Winston Churchill" },
+  { content: "The road to success and the road to failure are almost exactly the same.", author: "Colin R. Davis" },
+  { content: "Try not to become a person of success, but rather a person of value.", author: "Albert Einstein" },
+  { content: "The successful warrior is the average man, with laser-like focus.", author: "Bruce Lee" },
+  { content: "Success is not how high you have climbed, but how you make a positive difference.", author: "Roy T. Bennett" },
+  { content: "There are no secrets to success. It is the result of preparation, hard work, and learning.", author: "Colin Powell" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // MOTIVATION & DRIVE
+  // ═══════════════════════════════════════════════════════════
   { content: "Your time is limited, don't waste it living someone else's life.", author: "Steve Jobs" },
   { content: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
   { content: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
-  { content: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
   { content: "The best way to predict the future is to create it.", author: "Peter Drucker" },
   { content: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
   { content: "Everything you've ever wanted is on the other side of fear.", author: "George Addair" },
@@ -32,6 +60,148 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "Push yourself, because no one else is going to do it for you.", author: "Unknown" },
   { content: "Great things never come from comfort zones.", author: "Unknown" },
   { content: "Fortune favors the bold.", author: "Virgil" },
+  { content: "What you get by achieving your goals is not as important as what you become.", author: "Zig Ziglar" },
+  { content: "If you want to achieve greatness, stop asking for permission.", author: "Unknown" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // PERSISTENCE & RESILIENCE
+  // ═══════════════════════════════════════════════════════════
+  { content: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+  { content: "Our greatest glory is not in never falling, but in rising every time we fall.", author: "Confucius" },
+  { content: "Fall seven times, stand up eight.", author: "Japanese Proverb" },
+  { content: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
+  { content: "I have not failed. I've just found 10,000 ways that won't work.", author: "Thomas Edison" },
+  { content: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+  { content: "Strength does not come from winning. Your struggles develop your strengths.", author: "Arnold Schwarzenegger" },
+  { content: "The only way to guarantee failure is to quit.", author: "John C. Maxwell" },
+  { content: "A river cuts through rock not because of its power, but because of its persistence.", author: "Jim Watkins" },
+  { content: "Perseverance is not a long race; it is many short races one after the other.", author: "Walter Elliot" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // MINDSET & ATTITUDE
+  // ═══════════════════════════════════════════════════════════
+  { content: "Whether you think you can or think you can't, you're right.", author: "Henry Ford" },
+  { content: "The mind is everything. What you think you become.", author: "Buddha" },
+  { content: "Your attitude determines your direction.", author: "Unknown" },
+  { content: "Change your thoughts and you change your world.", author: "Norman Vincent Peale" },
+  { content: "Positive thinking will let you do everything better than negative thinking will.", author: "Zig Ziglar" },
+  { content: "The only person you are destined to become is the person you decide to be.", author: "Ralph Waldo Emerson" },
+  { content: "What lies behind us and what lies before us are tiny matters compared to what lies within us.", author: "Ralph Waldo Emerson" },
+  { content: "Life is 10% what happens to you and 90% how you react to it.", author: "Charles R. Swindoll" },
+  { content: "Be the change that you wish to see in the world.", author: "Mahatma Gandhi" },
+  { content: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // ACTION & INITIATIVE
+  // ═══════════════════════════════════════════════════════════
+  { content: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { content: "Do what you can, with what you have, where you are.", author: "Theodore Roosevelt" },
+  { content: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+  { content: "Action is the foundational key to all success.", author: "Pablo Picasso" },
+  { content: "A year from now you may wish you had started today.", author: "Karen Lamb" },
+  { content: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+  { content: "Start where you are. Use what you have. Do what you can.", author: "Arthur Ashe" },
+  { content: "Don't wait for opportunity. Create it.", author: "Unknown" },
+  { content: "Small steps in the right direction can turn out to be the biggest step of your life.", author: "Unknown" },
+  { content: "The beginning is always today.", author: "Mary Shelley" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // LEARNING & GROWTH
+  // ═══════════════════════════════════════════════════════════
+  { content: "Live as if you were to die tomorrow. Learn as if you were to live forever.", author: "Mahatma Gandhi" },
+  { content: "Education is not the learning of facts, but the training of the mind to think.", author: "Albert Einstein" },
+  { content: "Anyone who stops learning is old, whether at twenty or eighty.", author: "Henry Ford" },
+  { content: "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice.", author: "Brian Herbert" },
+  { content: "In learning you will teach, and in teaching you will learn.", author: "Phil Collins" },
+  { content: "Mistakes are the portals of discovery.", author: "James Joyce" },
+  { content: "The more that you read, the more things you will know. The more that you learn, the more places you'll go.", author: "Dr. Seuss" },
+  { content: "I am always doing that which I cannot do, in order that I may learn how to do it.", author: "Pablo Picasso" },
+  { content: "Develop a passion for learning. If you do, you will never cease to grow.", author: "Anthony J. D'Angelo" },
+  { content: "Growth is never by mere chance; it is the result of forces working together.", author: "James Cash Penney" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // COURAGE & RISK
+  // ═══════════════════════════════════════════════════════════
+  { content: "Courage is not the absence of fear, but rather the judgment that something else is more important.", author: "Ambrose Redmoon" },
+  { content: "You gain strength, courage and confidence by every experience in which you really stop to look fear in the face.", author: "Eleanor Roosevelt" },
+  { content: "Life shrinks or expands in proportion to one's courage.", author: "Anaïs Nin" },
+  { content: "Only those who will risk going too far can possibly find out how far one can go.", author: "T.S. Eliot" },
+  { content: "Take risks: if you win, you will be happy; if you lose, you will be wise.", author: "Unknown" },
+  { content: "Twenty years from now you will be more disappointed by the things you didn't do than by the ones you did.", author: "Mark Twain" },
+  { content: "Security is mostly a superstition. Life is either a daring adventure or nothing.", author: "Helen Keller" },
+  { content: "If you're not failing, you're not trying hard enough.", author: "Unknown" },
+  { content: "Feel the fear and do it anyway.", author: "Susan Jeffers" },
+  { content: "Be brave enough to be bad at something new.", author: "Unknown" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // CREATIVITY & INNOVATION
+  // ═══════════════════════════════════════════════════════════
+  { content: "Creativity is intelligence having fun.", author: "Albert Einstein" },
+  { content: "The people who are crazy enough to think they can change the world are the ones who do.", author: "Steve Jobs" },
+  { content: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
+  { content: "Don't be satisfied with stories, how things have gone with others. Unfold your own myth.", author: "Rumi" },
+  { content: "The desire to create is one of the deepest yearnings of the human soul.", author: "Dieter F. Uchtdorf" },
+  { content: "Every artist was first an amateur.", author: "Ralph Waldo Emerson" },
+  { content: "Imagination is the beginning of creation.", author: "George Bernard Shaw" },
+  { content: "You can't use up creativity. The more you use, the more you have.", author: "Maya Angelou" },
+  { content: "Think left and think right and think low and think high.", author: "Dr. Seuss" },
+  { content: "Have no fear of perfection—you'll never reach it.", author: "Salvador Dalí" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // LEADERSHIP & INFLUENCE
+  // ═══════════════════════════════════════════════════════════
+  { content: "A leader is one who knows the way, goes the way, and shows the way.", author: "John C. Maxwell" },
+  { content: "The greatest leader is not necessarily one who does the greatest things.", author: "Ronald Reagan" },
+  { content: "Lead from the heart, not the head.", author: "Princess Diana" },
+  { content: "Before you are a leader, success is all about growing yourself. When you become a leader, success is about growing others.", author: "Jack Welch" },
+  { content: "Leadership is not about being in charge. It's about taking care of those in your charge.", author: "Simon Sinek" },
+  { content: "The task of leadership is not to put greatness into people, but to elicit it.", author: "John Buchan" },
+  { content: "Management is about arranging. Leadership is about inspiring.", author: "Simon Sinek" },
+  { content: "If your actions inspire others to dream more, learn more, do more, you are a leader.", author: "John Quincy Adams" },
+  { content: "Great leaders don't set out to be a leader. They set out to make a difference.", author: "Unknown" },
+  { content: "The quality of a leader is reflected in the standards they set for themselves.", author: "Ray Kroc" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // PURPOSE & PASSION
+  // ═══════════════════════════════════════════════════════════
+  { content: "The purpose of life is not to be happy. It is to be useful, to be honorable, to make some difference.", author: "Ralph Waldo Emerson" },
+  { content: "Passion is energy. Feel the power that comes from focusing on what excites you.", author: "Oprah Winfrey" },
+  { content: "Follow your passion, be prepared to work hard and sacrifice, and above all don't let anyone limit your dreams.", author: "Donovan Bailey" },
+  { content: "Nothing great in the world has ever been accomplished without passion.", author: "Georg Wilhelm Friedrich Hegel" },
+  { content: "The only way to find true satisfaction is to pursue something with passion.", author: "Unknown" },
+  { content: "Your purpose in life is to find your purpose and give your whole heart and soul to it.", author: "Buddha" },
+  { content: "When you do what you love, you'll never work a day in your life.", author: "Marc Anthony" },
+  { content: "Passion is the genesis of genius.", author: "Tony Robbins" },
+  { content: "Find what makes your heart sing and create your own music.", author: "Mac Anderson" },
+  { content: "Don't ask what the world needs. Ask what makes you come alive and go do it.", author: "Howard Thurman" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // SELF-BELIEF & CONFIDENCE
+  // ═══════════════════════════════════════════════════════════
+  { content: "Believe in yourself and all that you are. Know that there is something inside you that is greater than any obstacle.", author: "Christian D. Larson" },
+  { content: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis" },
+  { content: "The only limit to our realization of tomorrow will be our doubts of today.", author: "Franklin D. Roosevelt" },
+  { content: "Trust yourself. You know more than you think you do.", author: "Benjamin Spock" },
+  { content: "No one can make you feel inferior without your consent.", author: "Eleanor Roosevelt" },
+  { content: "You yourself, as much as anybody in the entire universe, deserve your love and affection.", author: "Buddha" },
+  { content: "With confidence, you have won before you have started.", author: "Marcus Garvey" },
+  { content: "To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.", author: "Ralph Waldo Emerson" },
+  { content: "You are braver than you believe, stronger than you seem, and smarter than you think.", author: "A.A. Milne" },
+  { content: "Self-confidence is the first requisite to great undertakings.", author: "Samuel Johnson" },
+  
+  // ═══════════════════════════════════════════════════════════
+  // WISDOM & REFLECTION
+  // ═══════════════════════════════════════════════════════════
+  { content: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle" },
+  { content: "The only true wisdom is in knowing you know nothing.", author: "Socrates" },
+  { content: "Yesterday is history, tomorrow is a mystery, today is a gift. That's why we call it the present.", author: "Alice Morse Earle" },
+  { content: "In three words I can sum up everything I've learned about life: it goes on.", author: "Robert Frost" },
+  { content: "The journey of a thousand miles begins with one step.", author: "Lao Tzu" },
+  { content: "Happiness is not something ready-made. It comes from your own actions.", author: "Dalai Lama" },
+  { content: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
+  { content: "The unexamined life is not worth living.", author: "Socrates" },
+  { content: "Time you enjoy wasting is not wasted time.", author: "Marthe Troly-Curtin" },
+  { content: "The best revenge is massive success.", author: "Frank Sinatra" },
 ];
 
 const STORAGE_KEY = 'dailyMotivation';

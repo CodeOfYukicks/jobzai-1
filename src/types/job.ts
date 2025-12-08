@@ -11,13 +11,23 @@ export interface Interview {
 
 export interface StatusChange {
   status:
+  // Job Application statuses
   | 'applied'
   | 'interview'
   | 'offer'
   | 'rejected'
   | 'archived'
   | 'pending_decision'
-  | 'wishlist';
+  | 'wishlist'
+  // Campaign/Outreach statuses
+  | 'targets'
+  | 'contacted'
+  | 'follow_up'
+  | 'replied'
+  | 'meeting'
+  | 'opportunity'
+  | 'no_response'
+  | 'closed';
   date: string;
   notes?: string;
 }
@@ -56,18 +66,32 @@ export interface JobApplication {
   position: string;
   location: string;
   status:
+  // Job Application statuses
   | 'applied'
   | 'interview'
   | 'offer'
   | 'rejected'
   | 'archived'
   | 'pending_decision'
-  | 'wishlist';
+  | 'wishlist'
+  // Campaign/Outreach statuses
+  | 'targets'
+  | 'contacted'
+  | 'follow_up'
+  | 'replied'
+  | 'meeting'
+  | 'opportunity'
+  | 'no_response'
+  | 'closed';
   appliedDate: string;
   url?: string;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
+  contactRole?: string;           // Campaign: Contact's job title (e.g., "Head of Engineering")
+  contactLinkedIn?: string;       // Campaign: Contact's LinkedIn URL
+  outreachChannel?: 'email' | 'linkedin' | 'referral' | 'event' | 'cold_call' | 'other';  // Campaign: How you reached out
+  messageSent?: string;           // Campaign: Summary of the outreach message
   salary?: string;
   workType?: string;
   platform?: string;
@@ -114,6 +138,7 @@ export interface JobApplication {
   linkedResumeIds?: string[];  // IDs of linked CVs/Resumes from Resume Builder
   linkedDocumentIds?: string[];  // IDs of linked PDF Documents from Resume Builder
   linkedWhiteboardIds?: string[];  // IDs of linked Whiteboards from Resume Builder
+  boardId?: string;  // ID of the Kanban board this application belongs to (null/undefined = default board)
 }
 
 export interface AutomationSettings {
@@ -177,6 +202,98 @@ export interface AutomationUpdate {
   newStatus: JobApplication['status'];
   reason: string;
 }
+
+// Custom column for Kanban boards
+export interface CustomColumn {
+  id: string;
+  name: string;
+  color: string;
+  order: number;
+}
+
+// Board type - Jobs (classic job applications) or Campaigns (spontaneous applications)
+export type BoardType = 'jobs' | 'campaigns';
+
+// Kanban Board interface for multi-board feature
+export interface KanbanBoard {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;           // emoji or icon name
+  color?: string;          // board accent color
+  coverPhoto?: string;     // board-specific cover photo
+  customColumns?: CustomColumn[];  // additional custom columns
+  isDefault?: boolean;     // true for the default board
+  boardType?: BoardType;   // 'jobs' (default) or 'campaigns'
+  createdAt: any;          // Firestore Timestamp
+  updatedAt: any;          // Firestore Timestamp
+}
+
+// Standard Kanban columns (always present)
+export const STANDARD_COLUMNS = [
+  'wishlist',
+  'applied', 
+  'interview',
+  'pending_decision',
+  'offer',
+  'rejected',
+  'archived'
+] as const;
+
+export type StandardColumnType = typeof STANDARD_COLUMNS[number];
+
+// Board color presets
+export const BOARD_COLORS = [
+  '#635BFF', // Indigo (default)
+  '#10B981', // Emerald
+  '#F59E0B', // Amber
+  '#EF4444', // Red
+  '#8B5CF6', // Purple
+  '#EC4899', // Pink
+  '#06B6D4', // Cyan
+  '#84CC16', // Lime
+] as const;
+
+// Columns per board type
+export const BOARD_TYPE_COLUMNS = {
+  jobs: ['wishlist', 'applied', 'interview', 'pending_decision', 'offer', 'rejected', 'archived'],
+  campaigns: ['targets', 'contacted', 'follow_up', 'replied', 'meeting', 'opportunity', 'no_response', 'closed'],
+} as const;
+
+// Column labels for Jobs board type
+export const JOB_COLUMN_LABELS: Record<string, string> = {
+  wishlist: 'Wishlist',
+  applied: 'Applied',
+  interview: 'Interview',
+  pending_decision: 'Pending',
+  offer: 'Offer',
+  rejected: 'Rejected',
+  archived: 'Archived',
+};
+
+// Column labels for Campaigns board type
+export const CAMPAIGN_COLUMN_LABELS: Record<string, string> = {
+  targets: 'Targets',
+  contacted: 'Contacted',
+  follow_up: 'Follow-up',
+  replied: 'Replied',
+  meeting: 'Meeting',
+  opportunity: 'Opportunity',
+  no_response: 'No Response',
+  closed: 'Closed',
+};
+
+// Column colors for Campaigns board type
+export const CAMPAIGN_COLUMN_COLORS: Record<string, string> = {
+  targets: '#8B5CF6',      // Purple
+  contacted: '#3B82F6',    // Blue
+  follow_up: '#F59E0B',    // Amber
+  replied: '#06B6D4',      // Cyan
+  meeting: '#6366F1',      // Indigo
+  opportunity: '#10B981',  // Emerald
+  no_response: '#6B7280',  // Gray
+  closed: '#374151',       // Dark Gray
+};
 
 
 

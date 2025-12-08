@@ -1,20 +1,26 @@
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { JobApplication } from '../../types/job';
+import { JobApplication, BoardType } from '../../types/job';
 import { ApplicationCard } from './ApplicationCard';
 
 export function ApplicationList({
   applications,
   onCardClick,
   onCardDelete,
+  onMoveToBoard,
   getIsInactive,
   getInactiveDays,
+  showMoveToBoard = false,
+  boardType = 'jobs',
 }: {
   applications: JobApplication[];
   onCardClick: (app: JobApplication) => void;
   onCardDelete: (app: JobApplication) => void;
+  onMoveToBoard?: (app: JobApplication) => void;
   getIsInactive?: (app: JobApplication) => boolean;
   getInactiveDays?: (app: JobApplication) => number;
+  showMoveToBoard?: boolean;
+  boardType?: BoardType;
 }) {
   return (
     <>
@@ -36,9 +42,11 @@ export function ApplicationList({
                   app={app}
                   onClick={() => onCardClick(app)}
                   onDelete={() => onCardDelete(app)}
+                  onMoveToBoard={showMoveToBoard && onMoveToBoard ? () => onMoveToBoard(app) : undefined}
                   isDragging={snapshot.isDragging}
                   isInactive={isInactive}
                   inactiveDays={inactiveDays}
+                  boardType={boardType}
                 />
               </div>
             )}

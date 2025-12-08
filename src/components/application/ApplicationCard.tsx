@@ -1,6 +1,6 @@
 import React from 'react';
-import { Trash2, Calendar, MapPin, Users } from 'lucide-react';
-import { JobApplication } from '../../types/job';
+import { Trash2, Calendar, MapPin, Users, FolderInput, Mail, Linkedin, Phone, Send, User } from 'lucide-react';
+import { JobApplication, BoardType } from '../../types/job';
 import { StepChip } from './StepChip';
 import { CompanyLogo } from '../common/CompanyLogo';
 
@@ -13,22 +13,38 @@ function formatDate(dateString: string): string {
   }
 }
 
+// Outreach channel icons and labels
+const OUTREACH_CHANNELS: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  email: { icon: <Mail className="w-3 h-3" />, label: 'Email', color: 'text-blue-500' },
+  linkedin: { icon: <Linkedin className="w-3 h-3" />, label: 'LinkedIn', color: 'text-[#0A66C2]' },
+  referral: { icon: <Users className="w-3 h-3" />, label: 'Referral', color: 'text-green-500' },
+  event: { icon: <Calendar className="w-3 h-3" />, label: 'Event', color: 'text-purple-500' },
+  cold_call: { icon: <Phone className="w-3 h-3" />, label: 'Call', color: 'text-orange-500' },
+  other: { icon: <Send className="w-3 h-3" />, label: 'Other', color: 'text-gray-500' },
+};
+
 export function ApplicationCard({
-  app, onDelete, onClick, isDragging = false,
+  app, onDelete, onClick, onMoveToBoard, isDragging = false,
   isInactive = false,
   inactiveDays = 0,
+  boardType = 'jobs',
 }: {
   app: JobApplication;
   onDelete: () => void;
   onClick: () => void;
+  onMoveToBoard?: () => void;
   isDragging?: boolean;
   isInactive?: boolean;
   inactiveDays?: number;
+  boardType?: BoardType;
 }) {
   const interviewTypes =
     app.interviews?.map((i) => i.type).filter((v, i, a) => a.indexOf(v) === i) || [];
   const hasInterviews = (app.interviews?.length || 0) > 0;
   const interviewCount = app.interviews?.length || 0;
+
+  // Get outreach channel info for campaigns
+  const outreachChannel = app.outreachChannel ? OUTREACH_CHANNELS[app.outreachChannel] : null;
 
   return (
     <div
@@ -56,43 +72,61 @@ export function ApplicationCard({
           </div>
         )}
 
-        {/* Section 1: Header - Position avec logo */}
+        {/* Section 1: Header - Position/Contact avec logo */}
         <div className="flex items-start gap-3 mb-3 flex-shrink-0">
           <CompanyLogo 
             companyName={app.companyName} 
             size="lg"
             className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
           />
-          <h3
-            className="text-base font-medium text-gray-900 dark:text-white leading-tight flex-1 min-w-0"
-            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-          >
-            {app.position}
-          </h3>
+          <div className="flex-1 min-w-0">
+            <h3
+              className="text-base font-medium text-gray-900 dark:text-white leading-tight"
+              style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+            >
+              {boardType === 'campaigns' && app.contactName ? app.contactName : app.position}
+            </h3>
+            {/* For campaigns: show contact role below name */}
+            {boardType === 'campaigns' && app.contactRole && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                {app.contactRole}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Section 2: Métadonnées avec icônes */}
         <div className="flex flex-wrap items-center gap-3 mb-3 flex-shrink-0">
-          {/* Date d'application */}
+          {/* Date */}
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
             <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(app.appliedDate)}</span>
           </div>
 
-          {/* Location */}
-          {app.location && (
+          {/* For Jobs: Location */}
+          {boardType === 'jobs' && app.location && (
             <div className="flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
               <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{app.location}</span>
             </div>
           )}
 
-          {/* Interviews */}
+          {/* For Campaigns: Outreach Channel */}
+          {boardType === 'campaigns' && outreachChannel && (
+            <div className={`flex items-center gap-1.5 ${outreachChannel.color}`}>
+              {outreachChannel.icon}
+              <span className="text-sm">{outreachChannel.label}</span>
+            </div>
+          )}
+
+          {/* Interviews/Meetings */}
           {hasInterviews && (
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                {interviewCount} {interviewCount === 1 ? 'interview' : 'interviews'}
+                {interviewCount} {boardType === 'campaigns' 
+                  ? (interviewCount === 1 ? 'meeting' : 'meetings')
+                  : (interviewCount === 1 ? 'interview' : 'interviews')}
               </span>
             </div>
           )}
@@ -106,13 +140,31 @@ export function ApplicationCard({
           </div>
         </div>
 
-        {/* Section 4: Tags d'interviews */}
-        {hasInterviews && interviewTypes.length > 0 && (
+        {/* Section 4: Tags - For Jobs: interview types, For Campaigns: contact info */}
+        {boardType === 'jobs' && hasInterviews && interviewTypes.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 mb-3 flex-shrink-0">
             {interviewTypes.slice(0, 3).map((t) => <StepChip key={t} type={t} />)}
             {interviewTypes.length > 3 && (
               <span className="text-[10px] text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
                 +{interviewTypes.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* For Campaigns: Show contact email or LinkedIn if available */}
+        {boardType === 'campaigns' && (app.contactEmail || app.contactLinkedIn) && (
+          <div className="flex flex-wrap items-center gap-2 mb-3 flex-shrink-0">
+            {app.contactEmail && (
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                <Mail className="w-2.5 h-2.5" />
+                {app.contactEmail.length > 20 ? app.contactEmail.substring(0, 20) + '...' : app.contactEmail}
+              </span>
+            )}
+            {app.contactLinkedIn && (
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[#0A66C2]/10 text-[#0A66C2] border border-[#0A66C2]/30">
+                <Linkedin className="w-2.5 h-2.5" />
+                LinkedIn
               </span>
             )}
           </div>
@@ -125,6 +177,19 @@ export function ApplicationCard({
         <div className="flex items-center justify-end pt-3 border-t border-gray-100 dark:border-gray-700/50 flex-shrink-0">
           {/* Actions visibles au hover */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onMoveToBoard && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveToBoard();
+                }}
+                className="p-1.5 rounded-md hover:bg-[#635BFF]/10 text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors"
+                aria-label="Move to another board"
+                title="Move to board"
+              >
+                <FolderInput className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();

@@ -49,6 +49,11 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
       
+      // Kanban Boards subcollection
+      match /boards/{boardId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
       // Analyses subcollection - NOUVEAU
       match /analyses/{analysisId} {
         allow read, write: if isSignedIn() && isOwner(userId);
