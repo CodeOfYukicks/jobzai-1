@@ -95,7 +95,7 @@ export const FocusModeView = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-md"
+        className="fixed inset-0 z-50 bg-gray-900/60 dark:bg-[#1a1a1c]/80 backdrop-blur-md"
         onClick={onClose}
       >
         <motion.div
@@ -104,10 +104,10 @@ export const FocusModeView = ({
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="absolute inset-0 flex flex-col bg-white dark:bg-gray-900 shadow-2xl"
+          className="absolute inset-0 flex flex-col bg-white dark:bg-[#242325] shadow-2xl"
         >
           {/* Header - Minimaliste avec seulement le bouton de fermeture */}
-          <div className="flex items-center justify-end px-8 py-4 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+          <div className="flex items-center justify-end px-8 py-4 border-b border-gray-100 dark:border-[#3d3c3e] bg-white/80 dark:bg-[#242325]/80 backdrop-blur-xl">
             <button
               onClick={onClose}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
@@ -118,7 +118,7 @@ export const FocusModeView = ({
           </div>
 
           {/* Content Area - Style Notion comme dans ResumeBuilderPage */}
-          <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
+          <div className="flex-1 overflow-y-auto bg-white dark:bg-[#242325]">
             <div className="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 pb-48 pt-12">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -145,13 +145,13 @@ export const FocusModeView = ({
           </div>
 
           {/* Barre d'actions simplifiée */}
-          <div className="border-t border-gray-100 dark:border-gray-800 px-8 py-5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+          <div className="border-t border-gray-100 dark:border-[#3d3c3e] px-8 py-5 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-xl">
             <div className="max-w-6xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {onRegenerate && (
                   <button
                     onClick={onRegenerate}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:shadow-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-lg transition-all duration-200 hover:shadow-sm"
                   >
                     <RefreshCw className="w-4 h-4" />
                     <span>Regenerate</span>
@@ -161,7 +161,7 @@ export const FocusModeView = ({
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleCopy}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:shadow-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-lg transition-all duration-200 hover:shadow-sm"
                 >
                   {isCopied ? (
                     <>

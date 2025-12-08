@@ -126,9 +126,9 @@ export const GeneratedContentView = ({
   }
 
   return (
-    <div className="min-h-[500px] flex flex-col bg-white dark:bg-gray-900">
+    <div className="min-h-[500px] flex flex-col bg-white dark:bg-[#242325]">
       {/* Header - Simplifié */}
-      <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
@@ -159,7 +159,7 @@ export const GeneratedContentView = ({
           className="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 xl:px-20 py-12"
         >
           {/* Document Header - Épuré */}
-          <div className="mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="mb-6 pb-4 border-b border-gray-100 dark:border-[#3d3c3e]">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-100 dark:border-purple-800/30">
                 <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -176,7 +176,7 @@ export const GeneratedContentView = ({
           </div>
 
           {/* Zone d'édition - Premium */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100/50 dark:border-gray-800/50 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="bg-white dark:bg-[#242325] rounded-2xl p-6 border border-gray-100/50 dark:border-[#3d3c3e]/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <NotionEditor
               content={tiptapContent}
               onChange={handleEditorChange}
@@ -203,7 +203,7 @@ export const GeneratedContentView = ({
       </div>
 
       {/* Action Bar - Premium Design */}
-      <div className="border-t border-gray-100/50 dark:border-gray-800/50 px-8 sm:px-12 lg:px-16 xl:px-20 py-6 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl">
+      <div className="border-t border-gray-100/50 dark:border-[#3d3c3e]/50 px-8 sm:px-12 lg:px-16 xl:px-20 py-6 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             {onRegenerate && (
@@ -211,7 +211,7 @@ export const GeneratedContentView = ({
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onRegenerate}
-                className="group inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-lg bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50"
+                className="group inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-lg bg-white/80 dark:bg-[#2b2a2c]/80 border border-gray-200/50 dark:border-[#3d3c3e]/50 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50"
               >
                 <motion.div
                   animate={{ rotate: 0 }}
@@ -229,7 +229,7 @@ export const GeneratedContentView = ({
               whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsFocusMode(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-lg bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-lg bg-white/80 dark:bg-[#2b2a2c]/80 border border-gray-200/50 dark:border-[#3d3c3e]/50 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50"
               title="Enter focus mode for distraction-free editing"
             >
               <Maximize2 className="w-4 h-4" />
@@ -242,7 +242,7 @@ export const GeneratedContentView = ({
               className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 backdrop-blur-lg border ${
                 isCopied
                   ? 'bg-green-50/80 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/50 text-green-700 dark:text-green-400 shadow-lg shadow-green-200/50 dark:shadow-green-900/50'
-                  : 'bg-white/80 dark:bg-gray-800/80 border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50'
+                  : 'bg-white/80 dark:bg-[#2b2a2c]/80 border-gray-200/50 dark:border-[#3d3c3e]/50 text-gray-700 dark:text-gray-300 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50'
               }`}
             >
               {isCopied ? (

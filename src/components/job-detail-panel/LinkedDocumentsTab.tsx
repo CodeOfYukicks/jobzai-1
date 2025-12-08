@@ -422,7 +422,7 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
   return (
     <div className="space-y-6">
       {/* Section Toggle */}
-      <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 pb-4">
+      <div className="flex items-center gap-3 border-b border-gray-200 dark:border-[#3d3c3e] pb-4">
         <button
           onClick={() => setActiveSection('linked')}
           className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
@@ -453,7 +453,7 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search CVs, Notes, Documents, and Whiteboards..."
-          className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 text-sm text-gray-900 dark:text-white placeholder-gray-400"
+          className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 text-sm text-gray-900 dark:text-white placeholder-gray-400"
         />
         {searchQuery && (
           <button
@@ -632,8 +632,8 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
 
           {/* Empty State - Linked */}
           {filteredLinkedResumes.length === 0 && filteredLinkedNotes.length === 0 && filteredLinkedDocuments.length === 0 && filteredLinkedWhiteboards.length === 0 && (
-            <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-              <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="text-center py-16 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border border-dashed border-gray-200 dark:border-[#3d3c3e]">
+              <div className="w-16 h-16 bg-white dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
                 <Link2 className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
               <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
@@ -647,7 +647,7 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
               {!searchQuery && (
                 <button
                   onClick={() => setActiveSection('available')}
-                  className="px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-medium text-sm inline-flex items-center gap-2 shadow-sm"
+                  className="px-5 py-2.5 bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-all font-medium text-sm inline-flex items-center gap-2 shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Browse Available Documents
@@ -825,8 +825,8 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
 
           {/* Empty State - Available */}
           {filteredAvailableResumes.length === 0 && filteredAvailableNotes.length === 0 && filteredAvailableDocuments.length === 0 && filteredAvailableWhiteboards.length === 0 && (
-            <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-              <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="text-center py-16 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border border-dashed border-gray-200 dark:border-[#3d3c3e]">
+              <div className="w-16 h-16 bg-white dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
                 <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
               <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
@@ -840,7 +840,7 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
               {!searchQuery && (
                 <a
                   href="/resume-builder"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-medium text-sm shadow-sm"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-all font-medium text-sm shadow-sm"
                 >
                   <ExternalLink className="w-4 h-4" />
                   Go to Resume Builder

@@ -172,9 +172,9 @@ export const FocusModeEditor = ({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full h-screen flex flex-col bg-white dark:bg-gray-900">
+              <Dialog.Panel className="w-full h-screen flex flex-col bg-white dark:bg-[#242325]">
                 {/* Header */}
-                <div className="flex-shrink-0 px-8 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <div className="flex-shrink-0 px-8 py-4 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500">
@@ -201,7 +201,7 @@ export const FocusModeEditor = ({
                     {/* Actions */}
                     <div className="flex items-center gap-2">
                       {/* Undo/Redo buttons */}
-                      <div className="flex items-center gap-1 mr-2 border-r border-gray-200 dark:border-gray-700 pr-2">
+                      <div className="flex items-center gap-1 mr-2 border-r border-gray-200 dark:border-[#3d3c3e] pr-2">
                         <button
                           onClick={handleUndo}
                           disabled={historyIndex <= 0}
@@ -227,7 +227,7 @@ export const FocusModeEditor = ({
 
                       <button
                         onClick={handleCopy}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                       >
                         {isCopied ? (
                           <>
@@ -275,13 +275,13 @@ export const FocusModeEditor = ({
                 {/* Split-screen Content */}
                 <div className="flex-1 flex overflow-hidden">
                   {/* Editor (Left - 60%) */}
-                  <div className="w-[60%] flex flex-col border-r border-gray-200 dark:border-gray-700">
+                  <div className="w-[60%] flex flex-col border-r border-gray-200 dark:border-[#3d3c3e]">
                     <div className="flex-1 overflow-y-auto p-8">
                       <textarea
                         ref={textareaRef}
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        className="w-full h-full min-h-[600px] p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all resize-none font-sans text-base leading-relaxed"
+                        className="w-full h-full min-h-[600px] p-6 rounded-xl border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-gray-100 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all resize-none font-sans text-base leading-relaxed"
                         placeholder="Start writing or paste your content here..."
                         autoFocus
                       />

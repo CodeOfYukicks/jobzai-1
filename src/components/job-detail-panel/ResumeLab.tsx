@@ -314,14 +314,14 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
             <div className="space-y-4">
                 {[1, 2].map((i) => (
                     <div key={i} className="animate-pulse">
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
+                        <div className="rounded-xl border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] p-5">
                             <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-[#3d3c3e]" />
                                 <div className="flex-1 space-y-2">
-                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
-                                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                                    <div className="h-4 bg-gray-200 dark:bg-[#3d3c3e] rounded w-1/3" />
+                                    <div className="h-3 bg-gray-200 dark:bg-[#3d3c3e] rounded w-1/2" />
                                 </div>
-                                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#3d3c3e]" />
                             </div>
                         </div>
                     </div>
@@ -337,7 +337,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+                className="relative overflow-hidden rounded-xl bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e]"
             >
                 <div className="px-8 py-10 text-center">
                     <motion.div
@@ -406,7 +406,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 }}
-                    className="rounded-lg bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-100 dark:border-gray-700/50 p-5"
+                    className="rounded-lg bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-100 dark:border-[#3d3c3e]/50 p-5"
                 >
                     <div className="flex items-start gap-3 mb-3">
                         <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
@@ -436,7 +436,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                     return (
                         <div
                             key={category}
-                            className="group relative overflow-hidden rounded-lg bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 p-4 hover:shadow-sm transition-all"
+                            className="group relative overflow-hidden rounded-lg bg-white dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50 p-4 hover:shadow-sm transition-all"
                         >
                             <div className="flex items-center gap-2 mb-3">
                                 <div className={`p-1.5 rounded-md ${config.bg}`}>
@@ -449,7 +449,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                             <div className={`text-xl font-bold ${getScoreColor(score)} mb-2`}>
                                         {Math.round(score)}%
                             </div>
-                            <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${score}%` }}
@@ -471,7 +471,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.15 }}
-                            className="rounded-lg bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 p-4"
+                            className="rounded-lg bg-white dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50 p-4"
                         >
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/30">
@@ -506,7 +506,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="rounded-lg bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 p-4"
+                            className="rounded-lg bg-white dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50 p-4"
                         >
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-900/30">
@@ -632,7 +632,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                             jobId: job.id,
                         } : undefined
                     })}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-all"
                 >
                     <Sparkles className="w-4 h-4" />
                     New Analysis
@@ -652,8 +652,8 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                             transition={{ delay: index * 0.05 }}
                             className={`rounded-xl border transition-all duration-300 ${
                                 isExpanded 
-                                    ? 'border-purple-200 dark:border-purple-800/50 shadow-lg shadow-purple-500/5 dark:shadow-purple-500/10 bg-white dark:bg-gray-900' 
-                                    : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700'
+                                    ? 'border-purple-200 dark:border-purple-800/50 shadow-lg shadow-purple-500/5 dark:shadow-purple-500/10 bg-white dark:bg-[#242325]' 
+                                    : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700'
                             }`}
                         >
                             {/* Collapsed Header - Always Visible */}
@@ -671,7 +671,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
                                             <Calendar className="w-3 h-3" />
                                             {formatAnalysisDate(analysis.date)}
                                         </span>
@@ -700,7 +700,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                                 <div className={`flex-shrink-0 p-2 rounded-lg transition-all duration-300 ${
                                     isExpanded 
                                         ? 'bg-purple-100 dark:bg-purple-900/30' 
-                                        : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-gray-200 dark:group-hover:bg-gray-700'
+                                        : 'bg-gray-100 dark:bg-[#2b2a2c] group-hover:bg-gray-200 dark:group-hover:bg-gray-700'
                                 }`}>
                                     <motion.div
                                         animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -725,7 +725,7 @@ export const ResumeLab = ({ cvAnalysisIds, cvAnalysisId, job }: ResumeLabProps) 
                                         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                                         className="overflow-hidden"
                                     >
-                                        <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-800">
+                                        <div className="px-5 pb-5 border-t border-gray-100 dark:border-[#3d3c3e]">
                                             {renderAnalysisContent(analysis)}
                                         </div>
                                     </motion.div>

@@ -65,8 +65,8 @@ const statusConfig = {
   archived: {
     icon: Archive,
     color: 'text-gray-600 dark:text-gray-400',
-    bg: 'bg-gray-100 dark:bg-gray-800',
-    border: 'border-gray-200 dark:border-gray-700'
+    bg: 'bg-gray-100 dark:bg-[#2b2a2c]',
+    border: 'border-gray-200 dark:border-[#3d3c3e]'
   },
   pending_decision: {
     icon: AlertCircle,
@@ -96,7 +96,7 @@ export const TimelineItem = ({ change, isLast, index }: TimelineItemProps) => {
     >
       {/* Timeline Line */}
       {!isLast && (
-        <div className="absolute left-[19px] top-10 bottom-[-16px] w-[2px] bg-gray-100 dark:bg-gray-800" />
+        <div className="absolute left-[19px] top-10 bottom-[-16px] w-[2px] bg-gray-100 dark:bg-[#2b2a2c]" />
       )}
 
       {/* Icon */}
@@ -108,19 +108,19 @@ export const TimelineItem = ({ change, isLast, index }: TimelineItemProps) => {
 
       {/* Content */}
       <div className="flex-1 pb-6">
-        <div className="bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700/50 p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
+        <div className="bg-white dark:bg-[#2b2a2c]/50 rounded-2xl border border-gray-100 dark:border-[#3d3c3e]/50 p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
             <h4 className="font-semibold text-gray-900 dark:text-white capitalize text-base flex items-center gap-2">
               {change.status.replace('_', ' ')}
             </h4>
-            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-full border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#2b2a2c] px-2.5 py-1 rounded-full border border-gray-100 dark:border-[#3d3c3e]">
               <Calendar className="w-3.5 h-3.5" />
               <time>{format(date, 'MMM d, yyyy')}</time>
             </div>
           </div>
 
           {change.notes ? (
-            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mt-2 bg-gray-50 dark:bg-gray-900/30 p-3 rounded-xl border border-gray-100 dark:border-gray-800/50">
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mt-2 bg-gray-50 dark:bg-[#242325]/30 p-3 rounded-xl border border-gray-100 dark:border-[#3d3c3e]/50">
               {change.notes}
             </p>
           ) : (

@@ -215,7 +215,7 @@ END:VCALENDAR`;
             damping: 30
           }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-900 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200/20 dark:border-gray-700/20"
+          className="bg-white dark:bg-[#242325] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200/20 dark:border-[#3d3c3e]/20"
         >
           {/* Header - Google Style */}
           <div className="relative">
@@ -381,7 +381,7 @@ END:VCALENDAR`;
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 }}
-                className="px-4 py-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/30"
+                className="px-4 py-3 rounded-xl bg-gray-50/50 dark:bg-[#2b2a2c]/30"
               >
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2 uppercase tracking-wide">
                   <FileText className="w-3.5 h-3.5" />
@@ -395,7 +395,7 @@ END:VCALENDAR`;
           </div>
 
           {/* Footer with Actions - Google Style */}
-          <div className="px-6 py-4 border-t border-gray-200/30 dark:border-gray-700/30">
+          <div className="px-6 py-4 border-t border-gray-200/30 dark:border-[#3d3c3e]/30">
             <div className="flex items-center justify-between gap-3">
               {/* Left side - Close button (Google text button style) */}
               <motion.button
@@ -416,7 +416,7 @@ END:VCALENDAR`;
                       whileHover={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
                       whileTap={{ scale: 0.97 }}
                       onClick={generateICSFile}
-                      className="px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-full transition-all flex items-center gap-2 border border-gray-300/30 dark:border-gray-600/30"
+                      className="px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-full transition-all flex items-center gap-2 border border-gray-300/30 dark:border-[#4a494b]/30"
                     >
                       <Download className="w-4 h-4" />
                       Add to Calendar

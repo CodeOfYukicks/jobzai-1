@@ -160,9 +160,9 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-[#242325]">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c]">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500">
             <Sparkles className="w-5 h-5 text-white" />
@@ -177,7 +177,7 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
       </div>
 
       {/* Quick Actions */}
-      <div className="flex-shrink-0 px-6 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex-shrink-0 px-6 py-3 bg-white dark:bg-[#2b2a2c] border-b border-gray-200 dark:border-[#3d3c3e]">
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => handleQuickAction('improveTone')}
@@ -229,7 +229,7 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
                     className={`rounded-2xl px-4 py-3 ${
                       message.role === 'user'
                         ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white'
-                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-sm'
+                        : 'bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#3d3c3e] shadow-sm'
                     }`}
                   >
                     {message.role === 'assistant' && (
@@ -280,7 +280,7 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
             animate={{ opacity: 1, y: 0 }}
             className="flex justify-start"
           >
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 shadow-sm">
+            <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-2xl px-4 py-3 shadow-sm">
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
                 <span className="text-sm text-gray-500 dark:text-gray-400">Thinking...</span>
@@ -293,7 +293,7 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 px-6 py-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex-shrink-0 px-6 py-4 bg-white dark:bg-[#2b2a2c] border-t border-gray-200 dark:border-[#3d3c3e]">
         <div className="flex items-end gap-3">
           <div className="flex-1">
             <textarea
@@ -302,7 +302,7 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything or describe what you'd like to change..."
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all resize-none text-sm"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all resize-none text-sm"
               rows={1}
               style={{ minHeight: '44px', maxHeight: '120px' }}
               onInput={(e) => {

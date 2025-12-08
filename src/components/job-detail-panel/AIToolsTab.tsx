@@ -201,7 +201,7 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-50 bg-white dark:bg-gray-800 rounded-xl"
+          className="absolute inset-0 z-50 bg-white dark:bg-[#2b2a2c] rounded-xl"
         >
           <GenerationLoadingScreen
             onBack={handleCloseGenerator}

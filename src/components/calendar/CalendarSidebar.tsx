@@ -56,7 +56,7 @@ const TooltipButton = ({ icon, label, onClick, active = false, badge }: TooltipB
             transition={{ duration: 0.15 }}
             className="absolute left-16 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
           >
-            <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+            <div className="bg-gray-900 dark:bg-[#3d3c3e] text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
               {label}
               <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-700" />
             </div>
@@ -83,7 +83,7 @@ export const CalendarSidebar = ({
   const activeFilters = [!showApplications, !showInterviews].filter(Boolean).length;
 
   return (
-    <div className="hidden lg:flex fixed left-0 top-16 bottom-0 w-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 flex-col items-center py-6 gap-2 z-[40]">
+    <div className="hidden lg:flex fixed left-0 top-16 bottom-0 w-16 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-[#3d3c3e]/50 flex-col items-center py-6 gap-2 z-[40]">
       {/* Logo/Brand */}
       <div className="mb-4">
         <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
@@ -116,7 +116,7 @@ export const CalendarSidebar = ({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute left-16 top-0 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[140px]"
+                className="absolute left-16 top-0 z-50 bg-white dark:bg-[#2b2a2c] rounded-xl shadow-lg border border-gray-200 dark:border-[#3d3c3e] py-2 min-w-[140px]"
               >
                 {(['month', 'week', 'day'] as CalendarView[]).map((view) => (
                   <button
@@ -128,7 +128,7 @@ export const CalendarSidebar = ({
                     className={`w-full px-4 py-2 text-left text-sm font-medium transition-colors ${
                       selectedView === view
                         ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                     }`}
                   >
                     {view.charAt(0).toUpperCase() + view.slice(1)}
@@ -163,21 +163,21 @@ export const CalendarSidebar = ({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute left-16 top-0 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[180px]"
+                className="absolute left-16 top-0 z-50 bg-white dark:bg-[#2b2a2c] rounded-xl shadow-lg border border-gray-200 dark:border-[#3d3c3e] py-2 min-w-[180px]"
               >
                 <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   Event Types
                 </div>
                 <button
                   onClick={onToggleApplications}
-                  className="w-full px-4 py-2 text-left text-sm font-medium transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="w-full px-4 py-2 text-left text-sm font-medium transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]"
                 >
                   <span className={showApplications ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'}>
                     Applications
                   </span>
                   <div
                     className={`w-9 h-5 rounded-full transition-colors ${
-                      showApplications ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+                      showApplications ? 'bg-purple-600' : 'bg-gray-300 dark:bg-[#4a494b]'
                     }`}
                   >
                     <div
@@ -189,14 +189,14 @@ export const CalendarSidebar = ({
                 </button>
                 <button
                   onClick={onToggleInterviews}
-                  className="w-full px-4 py-2 text-left text-sm font-medium transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="w-full px-4 py-2 text-left text-sm font-medium transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]"
                 >
                   <span className={showInterviews ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'}>
                     Interviews
                   </span>
                   <div
                     className={`w-9 h-5 rounded-full transition-colors ${
-                      showInterviews ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+                      showInterviews ? 'bg-purple-600' : 'bg-gray-300 dark:bg-[#4a494b]'
                     }`}
                   >
                     <div
@@ -211,7 +211,7 @@ export const CalendarSidebar = ({
           </AnimatePresence>
         </div>
 
-        <div className="h-px bg-gray-200 dark:bg-gray-800 my-2" />
+        <div className="h-px bg-gray-200 dark:bg-[#2b2a2c] my-2" />
 
         {/* Add Event Button */}
         <TooltipButton

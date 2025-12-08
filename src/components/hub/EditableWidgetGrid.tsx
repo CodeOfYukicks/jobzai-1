@@ -24,7 +24,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Pencil, Check, X, GripVertical, Plus, Target, Cloud, Quote, Clock, StickyNote, Heart, Maximize2, Minimize2, CircleDot } from 'lucide-react';
+import { Pencil, Check, X, GripVertical, Plus, Target, Cloud, Quote, Clock, StickyNote, Heart, Maximize2, Minimize2, CircleDot, Eye } from 'lucide-react';
 import DailyMissions from './DailyMissions';
 import DailyMotivation from './DailyMotivation';
 import WeatherCard from './WeatherCard';
@@ -32,9 +32,10 @@ import TimeWidget from './TimeWidget';
 import NoteWidget from './NoteWidget';
 import HamsterWidget from './HamsterWidget';
 import PressButtonWidget from './PressButtonWidget';
+import EyeButtonWidget from './EyeButtonWidget';
 
 // Widget types
-type WidgetType = 'missions' | 'quote' | 'weather' | 'time' | 'note' | 'hamster' | 'pressButton';
+type WidgetType = 'missions' | 'quote' | 'weather' | 'time' | 'note' | 'hamster' | 'pressButton' | 'eyeButton';
 
 interface Widget {
   id: string;
@@ -109,6 +110,14 @@ const widgetCatalog: {
     color: '#FF5A78',
     size: 'small'
   },
+  { 
+    type: 'eyeButton', 
+    name: 'Eye Button', 
+    description: 'Eyes that follow your cursor',
+    icon: Eye,
+    color: '#3B82F6',
+    size: 'small'
+  },
 ];
 
 // Default widget configuration
@@ -138,6 +147,8 @@ const WidgetContent = ({ type, size }: { type: WidgetType; size: 'small' | 'medi
       return <HamsterWidget />;
     case 'pressButton':
       return <PressButtonWidget />;
+    case 'eyeButton':
+      return <EyeButtonWidget />;
     default:
       return null;
   }

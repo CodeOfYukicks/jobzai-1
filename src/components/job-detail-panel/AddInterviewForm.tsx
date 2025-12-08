@@ -58,7 +58,7 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
       transition={{ duration: 0.3, ease: "easeOut" }}
       className="mb-4"
     >
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-5 shadow-xl shadow-gray-200/50 dark:shadow-none">
+      <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-2xl p-4 sm:p-5 shadow-xl shadow-gray-200/50 dark:shadow-none">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h5 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
@@ -70,7 +70,7 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
           </div>
           <button
             onClick={onCancel}
-            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
           >
             <X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
           </button>
@@ -90,7 +90,7 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
                   required
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#242325]/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                 />
               </div>
             </div>
@@ -105,7 +105,7 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
                   required
                   value={formData.time}
                   onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#242325]/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                 />
               </div>
             </div>
@@ -121,7 +121,7 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Interview['type'] }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#242325]/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none"
                 >
                   <option value="technical">Technical Interview</option>
                   <option value="hr">HR Screening</option>
@@ -147,7 +147,7 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
                   value={formData.location}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="Zoom, Office, etc."
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none placeholder:text-gray-400"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#242325]/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none placeholder:text-gray-400"
                 />
               </div>
             </div>
@@ -168,13 +168,13 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
                     onChange={(e) => setInterviewerInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInterviewer())}
                     placeholder="Add interviewer name"
-                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none placeholder:text-gray-400"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#242325]/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none placeholder:text-gray-400"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={handleAddInterviewer}
-                  className="px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-xl hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
+                  className="px-3 py-2 bg-gray-900 dark:bg-[#3d3c3e] text-white rounded-xl hover:bg-gray-800 dark:hover:bg-[#4a494b] transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -216,17 +216,17 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Any preparation notes..."
                 rows={2}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none placeholder:text-gray-400"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#242325]/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none placeholder:text-gray-400"
               />
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex gap-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-all"
+              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-xl transition-all"
             >
               Cancel
             </button>

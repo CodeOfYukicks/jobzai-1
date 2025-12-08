@@ -60,7 +60,7 @@ export const CompactHistoryList = ({ emails, onLoad, onDelete }: CompactHistoryL
             >
               <button
                 onClick={() => onLoad(email)}
-                className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-600 transition-all text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-600 transition-all text-left"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">

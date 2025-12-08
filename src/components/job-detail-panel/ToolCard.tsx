@@ -66,7 +66,7 @@ export const ToolCard = ({
       className={`
         relative overflow-hidden
         p-4 rounded-lg
-        bg-white dark:bg-gray-800
+        bg-white dark:bg-[#2b2a2c]
         border ${colors.border}
         shadow-sm hover:shadow-md
         transition-all duration-200
@@ -116,7 +116,7 @@ export const ToolCard = ({
               </button>
             )}
             {disabled && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-[#3d3c3e] text-gray-500 dark:text-gray-400">
                 Coming Soon
               </span>
             )}

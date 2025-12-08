@@ -124,7 +124,7 @@ const getStatusStyles = (status: RecipientStatus) => {
       return 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400';
     case 'pending':
     default:
-      return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
+      return 'bg-gray-100 text-gray-600 dark:bg-[#3d3c3e] dark:text-gray-400';
   }
 };
 
@@ -932,7 +932,7 @@ export default function CampaignsAutoPage() {
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-[#242325]/50 dark:via-[#2b2a2c]/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
                    style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
                 />
@@ -956,31 +956,31 @@ export default function CampaignsAutoPage() {
                       <button
                         onClick={() => setIsCoverGalleryOpen(true)}
                         className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
-                          bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
-                          border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                          bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm hover:bg-white dark:hover:bg-[#2b2a2c]
+                          border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
                           hover:shadow-md group"
                       >
                         <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
                         <span>Add cover</span>
                       </button>
                     ) : (
-                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
                         <button
                           onClick={() => setIsCoverGalleryOpen(true)}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#2b2a2c] rounded-md transition-colors"
                         >
                           <Image className="w-3.5 h-3.5" />
                           Change cover
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={() => coverFileInputRef.current?.click()}
                           disabled={isUpdatingCover}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#2b2a2c] rounded-md transition-colors"
                         >
                           {isUpdatingCover ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -990,7 +990,7 @@ export default function CampaignsAutoPage() {
                           Upload
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={handleRemoveCover}
@@ -1036,8 +1036,8 @@ export default function CampaignsAutoPage() {
                     ${coverPhoto 
                       ? (isCoverDark 
                         ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
-                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
-                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200 dark:border-[#3d3c3e] hover:bg-white dark:hover:bg-[#2b2a2c]')
+                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                     }`}
                 >
                   <Sparkles className="w-4 h-4" />
@@ -1059,325 +1059,345 @@ export default function CampaignsAutoPage() {
 
         {/* Main Content */}
         <div className="px-0 pt-6 pb-6 flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Campaign Selector & Stats Row */}
+          {/* Premium Header Section */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="flex items-center justify-between gap-6 mb-5 px-6"
+            className="mb-5 px-6"
           >
-            {/* Campaign Dropdown */}
-            {campaigns.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] rounded-lg 
-                    hover:bg-gray-100 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-200"
-                >
-                  <span className="text-[14px] font-medium text-gray-900 dark:text-gray-100 truncate max-w-[220px]">
-                    {selectedCampaign 
-                      ? (selectedCampaign.name || `Campaign ${campaigns.indexOf(selectedCampaign) + 1}`)
-                      : 'Select Campaign'}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                <AnimatePresence>
-                  {isCampaignDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute z-50 mt-2 w-80 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl dark:shadow-2xl overflow-hidden backdrop-blur-xl"
-                    >
-                      {campaigns.map((campaign, index) => (
-                        <div
-                          key={campaign.id}
-                          className={`group flex items-center gap-2 px-4 py-3 transition-all duration-150
-                            ${selectedCampaignId === campaign.id 
-                              ? 'bg-gray-50 dark:bg-white/[0.06]' 
-                              : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
-                            }`}
-                        >
-                          {editingCampaignId === campaign.id ? (
-                            <div className="flex-1 flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={editingCampaignName}
-                                onChange={(e) => setEditingCampaignName(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleUpdateCampaignName(campaign.id, editingCampaignName);
-                                  } else if (e.key === 'Escape') {
-                                    setEditingCampaignId(null);
-                                  }
-                                }}
-                                autoFocus
-                                className="flex-1 px-2.5 py-1.5 text-sm bg-white dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.1] rounded-lg 
-                                  focus:outline-none focus:border-gray-400 dark:focus:border-white/[0.2] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                placeholder="Campaign name..."
-                              />
-                              <button
-                                onClick={() => handleUpdateCampaignName(campaign.id, editingCampaignName)}
-                                className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setEditingCampaignId(null)}
-                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-            </div>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setSelectedCampaignId(campaign.id);
-                                  setIsCampaignDropdownOpen(false);
-                                }}
-                                className="flex-1 flex items-center gap-3 text-left min-w-0"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate">
-                                    {campaign.name || `Campaign ${index + 1}`}
-                                  </p>
-                                  <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                                    {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
-                                    {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}
-                                  </p>
-            </div>
-                                <div className="text-right flex-shrink-0">
-                                  <p className="text-[12px] font-medium text-gray-700 dark:text-gray-300 tabular-nums">
-                                    {campaign.stats?.contactsFound || 0}
-                                  </p>
-                                  <p className="text-[10px] text-gray-500 uppercase tracking-wide">
-                                    contacts
-                                  </p>
-            </div>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingCampaignId(campaign.id);
-                                  setEditingCampaignName(campaign.name || `Campaign ${index + 1}`);
-                                }}
-                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]
-                                  opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                                title="Rename campaign"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteCampaignModal({ show: true, campaign });
-                                  setIsCampaignDropdownOpen(false);
-                                }}
-                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10
-                                  opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                                title="Delete campaign"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      ))}
-          </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-
-            {/* Stats - Premium minimal style */}
-            <div className="flex items-center gap-6">
-              <div className="flex flex-col items-end">
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats.contactsFound}</span>
-                <span className="text-[11px] text-gray-500 uppercase tracking-wider">contacts</span>
-              </div>
-              <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
-              <div className="flex flex-col items-end">
-                <span className="text-2xl font-semibold text-purple-600 dark:text-purple-400 tabular-nums">{stats.emailsGenerated}</span>
-                <span className="text-[11px] text-gray-500 uppercase tracking-wider">generated</span>
-              </div>
-              <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
-              <div className="flex flex-col items-end">
-                <span className="text-2xl font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{stats.emailsSent}</span>
-                <span className="text-[11px] text-gray-500 uppercase tracking-wider">sent</span>
-              </div>
-              <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
-              <div className="flex flex-col items-end">
-                <span className="text-2xl font-semibold text-blue-600 dark:text-blue-400 tabular-nums">{stats.opened}</span>
-                <span className="text-[11px] text-gray-500 uppercase tracking-wider">opened</span>
-              </div>
-              <div className="w-px h-8 bg-gray-200 dark:bg-white/[0.06]" />
-              <div className="flex flex-col items-end">
-                <span className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.replied}</span>
-                <span className="text-[11px] text-gray-500 uppercase tracking-wider">replied</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Action Buttons Row */}
-          {selectedCampaign && recipients.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.25 }}
-              className="flex items-center gap-3 mb-5 px-6"
-            >
-              {/* Generate Emails Button */}
-              <button
-                onClick={handleGenerateEmails}
-                disabled={isGeneratingEmails || recipients.filter(r => !r.emailGenerated).length === 0}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                  ${recipients.filter(r => !r.emailGenerated).length > 0
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30'
-                    : 'bg-gray-100 dark:bg-white/[0.05] text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                  }`}
-              >
-                {isGeneratingEmails ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : recipients.filter(r => !r.emailGenerated).length === 0 ? (
-                  <CheckCircle2 className="w-4 h-4" />
-                ) : (
-                  <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                )}
-                <span>
-                  {isGeneratingEmails 
-                    ? `Generating${emailProgress ? ` (${emailProgress.generated}/${emailProgress.total})` : '...'}` 
-                    : recipients.filter(r => !r.emailGenerated).length === 0
-                      ? 'All Emails Generated'
-                      : `Generate Emails (${recipients.filter(r => !r.emailGenerated).length})`
-                  }
-                </span>
-              </button>
-
-              {/* Send Emails Button */}
-              <button
-                onClick={handleSendEmails}
-                disabled={isSendingEmails || recipients.filter(r => r.status === 'email_generated').length === 0}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                  ${recipients.filter(r => r.status === 'email_generated').length > 0
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30'
-                    : 'bg-gray-100 dark:bg-white/[0.05] text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                  }`}
-              >
-                {isSendingEmails ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                )}
-                <span>
-                  {isSendingEmails
-                    ? `Sending${sendProgress ? ` (${sendProgress.sent} sent)` : '...'}`
-                    : recipients.filter(r => r.status === 'email_generated').length > 0
-                      ? `Send Batch (${Math.min(10, recipients.filter(r => r.status === 'email_generated').length)})`
-                      : 'No Emails Ready'
-                  }
-                </span>
-              </button>
-
-              {/* Check Replies Button */}
-              <button
-                onClick={handleCheckReplies}
-                disabled={isCheckingReplies || recipients.filter(r => r.status === 'sent' || r.status === 'opened').length === 0}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                  ${recipients.filter(r => r.status === 'sent' || r.status === 'opened').length > 0
-                    ? 'bg-white dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'
-                    : 'bg-gray-100 dark:bg-white/[0.03] text-gray-400 dark:text-gray-600 cursor-not-allowed border border-transparent'
-                  }`}
-              >
-                {isCheckingReplies ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-                )}
-                <span>Check Replies</span>
-              </button>
-            </motion.div>
-          )}
-
-          {/* Search & Targeting Row */}
-          {selectedCampaign && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-4 mb-5 px-6"
-            >
-              {/* Search Bar */}
-              {recipients.length > 0 && (
-                <div className="relative w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search contacts..."
-                    className="w-full pl-10 pr-4 py-2 text-[13px] bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] 
-                      rounded-lg focus:outline-none focus:border-gray-300 dark:focus:border-white/[0.15] focus:bg-white dark:focus:bg-white/[0.05]
-                      text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+            {/* Top Row: Campaign Selector + Stats Cards */}
+            <div className="flex items-stretch justify-between gap-6 mb-4">
+              {/* Left: Campaign Dropdown */}
+              {campaigns.length > 0 && (
+                <div className="relative flex-shrink-0">
+                  <button
+                    onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
+                    className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] rounded-xl 
+                      hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-200 h-full min-w-[200px]"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex flex-col items-start flex-1 min-w-0">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-500">Campaign</span>
+                      <span className="text-[14px] font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[180px]">
+                        {selectedCampaign 
+                          ? (selectedCampaign.name || `Campaign ${campaigns.indexOf(selectedCampaign) + 1}`)
+                          : 'Select Campaign'}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 flex-shrink-0 ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {isCampaignDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute z-50 mt-2 w-80 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl dark:shadow-2xl overflow-hidden backdrop-blur-xl"
+                      >
+                        {campaigns.map((campaign, index) => (
+                          <div
+                            key={campaign.id}
+                            className={`group flex items-center gap-2 px-4 py-3 transition-all duration-150
+                              ${selectedCampaignId === campaign.id 
+                                ? 'bg-gray-50 dark:bg-white/[0.06]' 
+                                : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                              }`}
+                          >
+                            {editingCampaignId === campaign.id ? (
+                              <div className="flex-1 flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={editingCampaignName}
+                                  onChange={(e) => setEditingCampaignName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleUpdateCampaignName(campaign.id, editingCampaignName);
+                                    } else if (e.key === 'Escape') {
+                                      setEditingCampaignId(null);
+                                    }
+                                  }}
+                                  autoFocus
+                                  className="flex-1 px-2.5 py-1.5 text-sm bg-white dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.1] rounded-lg 
+                                    focus:outline-none focus:border-gray-400 dark:focus:border-white/[0.2] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                                  placeholder="Campaign name..."
+                                />
+                                <button
+                                  onClick={() => handleUpdateCampaignName(campaign.id, editingCampaignName)}
+                                  className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingCampaignId(null)}
+                                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setSelectedCampaignId(campaign.id);
+                                    setIsCampaignDropdownOpen(false);
+                                  }}
+                                  className="flex-1 flex items-center gap-3 text-left min-w-0"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate">
+                                      {campaign.name || `Campaign ${index + 1}`}
+                                    </p>
+                                    <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                                      {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
+                                      {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}
+                                    </p>
+                                  </div>
+                                  <div className="text-right flex-shrink-0">
+                                    <p className="text-[12px] font-medium text-gray-700 dark:text-gray-300 tabular-nums">
+                                      {campaign.stats?.contactsFound || 0}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-wide">
+                                      contacts
+                                    </p>
+                                  </div>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingCampaignId(campaign.id);
+                                    setEditingCampaignName(campaign.name || `Campaign ${index + 1}`);
+                                  }}
+                                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]
+                                    opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                  title="Rename campaign"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteCampaignModal({ show: true, campaign });
+                                    setIsCampaignDropdownOpen(false);
+                                  }}
+                                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10
+                                    opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                  title="Delete campaign"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
-              
-              {/* Separator */}
-              {recipients.length > 0 && (
-                <div className="w-px h-6 bg-gray-200 dark:bg-white/[0.06]" />
-              )}
-              
-              {/* Premium Tags */}
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1">
-                {selectedCampaign.targeting?.personTitles?.map(title => (
-                  <span 
-                    key={title} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
-                      text-gray-600 dark:text-gray-300 text-[12px] rounded-md whitespace-nowrap hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-                  >
-                    <Search className="w-3 h-3 text-gray-400 dark:text-gray-500" />
-                    {title}
-                  </span>
-                ))}
-                {selectedCampaign.targeting?.personLocations?.map(loc => (
-                  <span 
-                    key={loc} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
-                      text-gray-600 dark:text-gray-300 text-[12px] rounded-md whitespace-nowrap hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-                  >
-                    <MapPin className="w-3 h-3 text-gray-400 dark:text-gray-500" />
-                    {loc}
-                  </span>
-                ))}
-                {selectedCampaign.targeting?.industries?.map(ind => (
-                  <span 
-                    key={ind} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
-                      text-gray-600 dark:text-gray-300 text-[12px] rounded-md whitespace-nowrap hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-                  >
-                    <Building2 className="w-3 h-3 text-gray-400 dark:text-gray-500" />
-                    {ind}
-                  </span>
-                ))}
+
+              {/* Right: Premium Stats Cards */}
+              <div className="flex items-center gap-2 flex-1 justify-end">
+                {/* Contacts */}
+                <div className="group flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/[0.06] rounded-xl hover:border-gray-300 dark:hover:border-white/[0.1] transition-all min-w-[100px]">
+                  <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/[0.05] flex items-center justify-center">
+                    <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold text-gray-900 dark:text-white tabular-nums leading-tight">{stats.contactsFound}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-wider">Contacts</span>
+                  </div>
+                </div>
+
+                {/* Generated */}
+                <div className="group flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-500/[0.08] dark:to-indigo-500/[0.05] border border-purple-200/60 dark:border-purple-500/20 rounded-xl hover:border-purple-300 dark:hover:border-purple-500/30 transition-all min-w-[100px]">
+                  <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold text-purple-700 dark:text-purple-400 tabular-nums leading-tight">{stats.emailsGenerated}</span>
+                    <span className="text-[10px] text-purple-600/70 dark:text-purple-400/60 uppercase tracking-wider">Generated</span>
+                  </div>
+                </div>
+
+                {/* Sent */}
+                <div className="group flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/[0.08] dark:to-orange-500/[0.05] border border-amber-200/60 dark:border-amber-500/20 rounded-xl hover:border-amber-300 dark:hover:border-amber-500/30 transition-all min-w-[100px]">
+                  <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                    <Send className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold text-amber-700 dark:text-amber-400 tabular-nums leading-tight">{stats.emailsSent}</span>
+                    <span className="text-[10px] text-amber-600/70 dark:text-amber-400/60 uppercase tracking-wider">Sent</span>
+                  </div>
+                </div>
+
+                {/* Opened */}
+                <div className="group flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/[0.08] dark:to-cyan-500/[0.05] border border-blue-200/60 dark:border-blue-500/20 rounded-xl hover:border-blue-300 dark:hover:border-blue-500/30 transition-all min-w-[100px]">
+                  <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold text-blue-700 dark:text-blue-400 tabular-nums leading-tight">{stats.opened}</span>
+                    <span className="text-[10px] text-blue-600/70 dark:text-blue-400/60 uppercase tracking-wider">Opened</span>
+                  </div>
+                </div>
+
+                {/* Replied */}
+                <div className="group flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/[0.08] dark:to-teal-500/[0.05] border border-emerald-200/60 dark:border-emerald-500/20 rounded-xl hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-all min-w-[100px]">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                    <Reply className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums leading-tight">{stats.replied}</span>
+                    <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/60 uppercase tracking-wider">Replied</span>
+                  </div>
+                </div>
               </div>
-              
-              {/* Search results count */}
-              {searchQuery && (
-                <span className="text-[12px] text-gray-500 whitespace-nowrap">
-                  {filteredRecipients.length}/{recipients.length}
-                </span>
-              )}
-            </motion.div>
-          )}
+            </div>
+
+            {/* Bottom Row: Search + Targeting Tags + Dev Buttons */}
+            {selectedCampaign && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50/50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/[0.04]">
+                {/* Search Bar */}
+                {recipients.length > 0 && (
+                  <div className="relative w-64 flex-shrink-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search contacts..."
+                      className="w-full pl-10 pr-4 py-2 text-[13px] bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                        rounded-lg focus:outline-none focus:border-gray-300 dark:focus:border-white/[0.15] focus:ring-2 focus:ring-gray-100 dark:focus:ring-white/[0.05]
+                        text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Targeting Tags */}
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1 py-0.5">
+                  {selectedCampaign.targeting?.personTitles?.map(title => (
+                    <span 
+                      key={title} 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                        text-gray-600 dark:text-gray-300 text-[11px] font-medium rounded-lg whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      <Briefcase className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                      {title}
+                    </span>
+                  ))}
+                  {selectedCampaign.targeting?.personLocations?.map(loc => (
+                    <span 
+                      key={loc} 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                        text-gray-600 dark:text-gray-300 text-[11px] font-medium rounded-lg whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      <MapPin className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                      {loc}
+                    </span>
+                  ))}
+                  {selectedCampaign.targeting?.industries?.map(ind => (
+                    <span 
+                      key={ind} 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                        text-gray-600 dark:text-gray-300 text-[11px] font-medium rounded-lg whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      <Building2 className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                      {ind}
+                    </span>
+                  ))}
+                  {searchQuery && (
+                    <span className="text-[11px] text-gray-500 whitespace-nowrap ml-auto">
+                      {filteredRecipients.length}/{recipients.length} results
+                    </span>
+                  )}
+                </div>
+
+                {/* Dev Action Buttons (temporary) */}
+                {recipients.length > 0 && (
+                  <div className="flex items-center gap-2 flex-shrink-0 pl-3 border-l border-gray-200 dark:border-white/[0.08]">
+                    <button
+                      onClick={handleGenerateEmails}
+                      disabled={isGeneratingEmails || recipients.filter(r => !r.emailGenerated).length === 0}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200
+                        ${recipients.filter(r => !r.emailGenerated).length > 0
+                          ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-500/30'
+                          : 'bg-gray-100 dark:bg-white/[0.05] text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        }`}
+                    >
+                      {isGeneratingEmails ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : recipients.filter(r => !r.emailGenerated).length === 0 ? (
+                        <CheckCircle2 className="w-3 h-3" />
+                      ) : (
+                        <Wand2 className="w-3 h-3" />
+                      )}
+                      <span>
+                        {isGeneratingEmails 
+                          ? `${emailProgress ? `${emailProgress.generated}/${emailProgress.total}` : '...'}` 
+                          : recipients.filter(r => !r.emailGenerated).length === 0
+                            ? 'All Generated'
+                            : `Generate (${recipients.filter(r => !r.emailGenerated).length})`
+                        }
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={handleSendEmails}
+                      disabled={isSendingEmails || recipients.filter(r => r.status === 'email_generated').length === 0}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200
+                        ${recipients.filter(r => r.status === 'email_generated').length > 0
+                          ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-500/30'
+                          : 'bg-gray-100 dark:bg-white/[0.05] text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        }`}
+                    >
+                      {isSendingEmails ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Send className="w-3 h-3" />
+                      )}
+                      <span>
+                        {isSendingEmails
+                          ? `${sendProgress ? sendProgress.sent : '...'}`
+                          : recipients.filter(r => r.status === 'email_generated').length > 0
+                            ? `Send (${Math.min(10, recipients.filter(r => r.status === 'email_generated').length)})`
+                            : 'No Ready'
+                        }
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={handleCheckReplies}
+                      disabled={isCheckingReplies || recipients.filter(r => r.status === 'sent' || r.status === 'opened').length === 0}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200
+                        ${recipients.filter(r => r.status === 'sent' || r.status === 'opened').length > 0
+                          ? 'bg-white dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.08]'
+                          : 'bg-gray-100 dark:bg-white/[0.03] text-gray-400 dark:text-gray-600 cursor-not-allowed border border-transparent'
+                        }`}
+                    >
+                      {isCheckingReplies ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3 h-3" />
+                      )}
+                      <span>Check Replies</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
 
           {/* Premium Data Table - Linear/Notion Style */}
           {(campaigns.length > 0 || recipients.length > 0) && (
@@ -1408,7 +1428,7 @@ export default function CampaignsAutoPage() {
                               ? 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-500 shadow-sm shadow-violet-500/25'
                               : selectedRows.size > 0
                                 ? 'bg-gradient-to-br from-violet-500/50 to-purple-600/50 border-violet-400'
-                                : 'border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-500'
+                                : 'border-gray-300 dark:border-[#4a494b] hover:border-violet-400 dark:hover:border-violet-500'
                             }`}
                         >
                           {selectedRows.size === filteredRecipients.length && filteredRecipients.length > 0 ? (
@@ -1708,7 +1728,7 @@ export default function CampaignsAutoPage() {
                               className={`w-4.5 h-4.5 rounded-[4px] border-2 flex items-center justify-center transition-all duration-200 
                                 ${selectedRows.has(recipient.id)
                                   ? 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-500 shadow-sm shadow-violet-500/25 scale-105'
-                                  : 'border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-500 hover:scale-105'
+                                  : 'border-gray-300 dark:border-[#4a494b] hover:border-violet-400 dark:hover:border-violet-500 hover:scale-105'
                                 }`}
                             >
                               {selectedRows.has(recipient.id) && (
@@ -1857,7 +1877,7 @@ export default function CampaignsAutoPage() {
                               recipient.status === 'opened' ? 'bg-blue-500' :
                               recipient.status === 'sent' ? 'bg-amber-500 animate-pulse' :
                               recipient.status === 'email_generated' || recipient.status === 'email_ready' ? 'bg-violet-500' :
-                              'bg-gray-400 dark:bg-gray-600'
+                              'bg-gray-400 dark:bg-[#4a494b]'
                             }`} />
                             {getStatusLabel(recipient.status)}
                           </span>
@@ -2003,8 +2023,8 @@ export default function CampaignsAutoPage() {
 
           {/* Empty State - Only show when NO campaigns AND NO recipients exist */}
           {campaigns.length === 0 && recipients.length === 0 && !isLoadingRecipients && (
-            <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-gray-800 border-y border-gray-200 dark:border-gray-700">
-                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-[#2b2a2c] border-y border-gray-200 dark:border-[#3d3c3e]">
+                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mb-4">
                   <Mail className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
@@ -2015,7 +2035,7 @@ export default function CampaignsAutoPage() {
                 </p>
               <button 
                 onClick={() => setIsNewCampaignModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
               >
                   <Sparkles className="w-4 h-4" />
                   <span>New Campaign</span>
@@ -2036,7 +2056,7 @@ export default function CampaignsAutoPage() {
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center"
+                  className="bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 shadow-2xl flex flex-col items-center"
                 >
                   <div className="relative w-16 h-16 mb-4">
                     <div className="absolute inset-0 border-4 border-purple-200 dark:border-purple-900 rounded-full" />
@@ -2091,7 +2111,7 @@ export default function CampaignsAutoPage() {
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 w-full max-w-md"
           >
             <div className="flex justify-between items-center mb-1">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Campaign</h2>
@@ -2099,7 +2119,7 @@ export default function CampaignsAutoPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setDeleteCampaignModal({ show: false })}
-                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -2114,7 +2134,7 @@ export default function CampaignsAutoPage() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteCampaignModal({ show: false })}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg flex-1 sm:flex-initial"
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-[#3d3c3e] rounded-lg flex-1 sm:flex-initial"
               >
                 Cancel
               </button>
@@ -2151,7 +2171,7 @@ export default function CampaignsAutoPage() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e] flex items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white">
                     <Reply className="w-5 h-5" />
@@ -2170,7 +2190,7 @@ export default function CampaignsAutoPage() {
                     setReplyPreviewRecipient(null);
                     setReplyContent(null);
                   }}
-                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2221,7 +2241,7 @@ export default function CampaignsAutoPage() {
                   </>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center mx-auto mb-4">
                       <Reply className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 dark:text-gray-400">
@@ -2232,13 +2252,13 @@ export default function CampaignsAutoPage() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e] flex justify-end">
                 <button
                   onClick={() => {
                     setReplyPreviewRecipient(null);
                     setReplyContent(null);
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] rounded-lg transition-colors"
                 >
                   Close
                 </button>
@@ -2267,7 +2287,7 @@ export default function CampaignsAutoPage() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-medium">
                     {emailPreviewRecipient.firstName?.charAt(0)}{emailPreviewRecipient.lastName?.charAt(0)}
@@ -2283,7 +2303,7 @@ export default function CampaignsAutoPage() {
                 </div>
                 <button
                   onClick={() => setEmailPreviewRecipient(null)}
-                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2337,7 +2357,7 @@ export default function CampaignsAutoPage() {
                   </>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center mx-auto mb-4">
                       <Mail className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 dark:text-gray-400">
@@ -2351,10 +2371,10 @@ export default function CampaignsAutoPage() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e] flex justify-end gap-3">
                 <button
                   onClick={() => setEmailPreviewRecipient(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] rounded-lg transition-colors"
                 >
                   Close
                 </button>

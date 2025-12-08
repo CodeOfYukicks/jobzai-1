@@ -13,7 +13,7 @@ export const StatusBadge = ({ profile, loading }: StatusBadgeProps) => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]"
       >
         <Loader2 className="w-3.5 h-3.5 text-gray-500 animate-spin" />
         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">

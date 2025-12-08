@@ -291,10 +291,10 @@ const NotionPreviewCard = memo(
           />
 
           {/* Stack effect layers */}
-          <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-gray-700/80 rounded-lg transform translate-y-1.5 translate-x-1.5 opacity-0 group-hover:opacity-60 transition-all duration-300 -z-10 shadow-sm" />
-          <div className="absolute top-0 left-0 w-full h-full bg-white/60 dark:bg-gray-600/60 rounded-lg transform translate-y-3 translate-x-3 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20 shadow-sm" />
+          <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-[#3d3c3e]/80 rounded-lg transform translate-y-1.5 translate-x-1.5 opacity-0 group-hover:opacity-60 transition-all duration-300 -z-10 shadow-sm" />
+          <div className="absolute top-0 left-0 w-full h-full bg-white/60 dark:bg-[#4a494b]/60 rounded-lg transform translate-y-3 translate-x-3 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20 shadow-sm" />
 
-          <div className="relative w-full h-full bg-white dark:bg-gray-900 shadow-[0_4px_12px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_32px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden rounded-lg ring-1 ring-black/5 group-hover:ring-purple-500/20 flex flex-col">
+          <div className="relative w-full h-full bg-white dark:bg-[#242325] shadow-[0_4px_12px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_32px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden rounded-lg ring-1 ring-black/5 group-hover:ring-purple-500/20 flex flex-col">
             {/* Header with cover image or gradient */}
             <div 
               className="relative group/cover"
@@ -310,7 +310,7 @@ const NotionPreviewCard = memo(
                   />
                   <div className="absolute inset-0 bg-black/5 dark:bg-black/20" />
                   {/* Emoji badge over cover */}
-                  <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                  <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-white/90 dark:bg-[#242325]/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
                     <span className="text-lg">{note.emoji || '📝'}</span>
                   </div>
                   {/* Cover controls on hover */}
@@ -320,7 +320,7 @@ const NotionPreviewCard = memo(
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
-                        className="absolute top-2 right-2 flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg z-10"
+                        className="absolute top-2 right-2 flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg z-10"
                       >
                         <button
                           ref={coverButtonRef}
@@ -366,7 +366,7 @@ const NotionPreviewCard = memo(
                         className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors z-10"
                         title="Add cover"
                       >
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg shadow-sm">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-sm rounded-lg shadow-sm">
                           <Image className="w-4 h-4 text-gray-700 dark:text-gray-200" />
                           <span className="text-xs font-medium text-gray-700 dark:text-gray-200">Add cover</span>
                         </div>
@@ -408,7 +408,7 @@ const NotionPreviewCard = memo(
               initial={{ opacity: 0, y: 10 }}
               className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300"
             >
-              <div className="flex items-center gap-1 px-2 py-1.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-full shadow-xl border border-black/5 dark:border-white/10">
+              <div className="flex items-center gap-1 px-2 py-1.5 bg-white/95 dark:bg-[#242325]/95 backdrop-blur-xl rounded-full shadow-xl border border-black/5 dark:border-white/10">
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -421,7 +421,7 @@ const NotionPreviewCard = memo(
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                 </motion.button>
-                <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+                <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e]" />
                 {onRename && (
                   <>
                     <motion.button
@@ -436,7 +436,7 @@ const NotionPreviewCard = memo(
                     >
                       <Type className="w-3.5 h-3.5" />
                     </motion.button>
-                    <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+                    <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e]" />
                   </>
                 )}
                 <motion.button
@@ -523,8 +523,8 @@ const NotionPreviewCard = memo(
           createPortal(
             <div
               ref={contextMenuRef}
-              className="fixed z-[9999] bg-white dark:bg-gray-800 rounded-xl shadow-2xl
-              border border-gray-200 dark:border-gray-700 py-1.5 min-w-[160px]"
+              className="fixed z-[9999] bg-white dark:bg-[#2b2a2c] rounded-xl shadow-2xl
+              border border-gray-200 dark:border-[#3d3c3e] py-1.5 min-w-[160px]"
               style={{
                 left: `${contextMenu.x}px`,
                 top: `${contextMenu.y}px`,
@@ -533,7 +533,7 @@ const NotionPreviewCard = memo(
             >
               {onUpdateTags && (
                 <>
-                  <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                  <div className="px-3 py-2 border-b border-gray-100 dark:border-[#3d3c3e]">
                     <div className="flex items-center justify-between gap-1">
                       {TAG_COLORS.map((tag) => (
                         <button
@@ -584,7 +584,7 @@ const NotionPreviewCard = memo(
                   Rename
                 </button>
               )}
-              <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+              <div className="my-1 border-t border-gray-100 dark:border-[#3d3c3e]" />
               <button
                 onMouseDown={(e) => {
                   e.stopPropagation();
@@ -645,7 +645,7 @@ const NotionPreviewCard = memo(
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700"
+                className="bg-white dark:bg-[#2b2a2c] rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-[#3d3c3e]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-4 mb-4">
@@ -661,7 +661,7 @@ const NotionPreviewCard = memo(
                     </p>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 bg-gray-50 dark:bg-[#242325]/50 rounded-lg p-3">
                   "{note.title || 'Untitled'}" will be permanently deleted.
                 </p>
                 <div className="flex items-center gap-3 justify-end">

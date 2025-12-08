@@ -78,10 +78,10 @@ export const GeneratedHistoryModal = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+          className="bg-white dark:bg-[#2b2a2c] rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-[#3d3c3e]">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {toolName} History
@@ -92,7 +92,7 @@ export const GeneratedHistoryModal = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
             >
               <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </button>
@@ -115,7 +115,7 @@ export const GeneratedHistoryModal = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="group relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:border-purple-300 dark:hover:border-purple-600 transition-all"
+                    className="group relative p-4 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c]/50 hover:border-purple-300 dark:hover:border-purple-600 transition-all"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between mb-3">
@@ -128,7 +128,7 @@ export const GeneratedHistoryModal = ({
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleCopy(email.content, email.id)}
-                          className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                          className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                           title="Copy"
                         >
                           {copiedId === email.id ? (
@@ -172,7 +172,7 @@ export const GeneratedHistoryModal = ({
                     </div>
 
                     {/* Load button */}
-                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]">
                       <button
                         onClick={() => {
                           onLoad(email);

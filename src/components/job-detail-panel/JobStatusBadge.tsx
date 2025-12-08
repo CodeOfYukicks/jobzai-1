@@ -57,8 +57,8 @@ const statusConfig = {
         label: 'Archived',
         icon: Archive,
         color: 'text-gray-600 dark:text-gray-400',
-        bg: 'bg-gray-100 dark:bg-gray-800',
-        border: 'border-gray-200 dark:border-gray-700'
+        bg: 'bg-gray-100 dark:bg-[#2b2a2c]',
+        border: 'border-gray-200 dark:border-[#3d3c3e]'
     },
     pending_decision: {
         label: 'Pending Decision',
@@ -104,7 +104,7 @@ export const JobStatusBadge = ({ status, isEditing, onChange }: JobStatusBadgePr
                             initial={{ opacity: 0, y: 5, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                            className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50 overflow-hidden"
+                            className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-[#2b2a2c] rounded-xl shadow-xl border border-gray-200 dark:border-[#3d3c3e] py-1 z-50 overflow-hidden"
                         >
                             {(Object.keys(statusConfig) as Array<keyof typeof statusConfig>).map((key) => {
                                 const optionConfig = statusConfig[key];
@@ -116,7 +116,7 @@ export const JobStatusBadge = ({ status, isEditing, onChange }: JobStatusBadgePr
                                             onChange(key);
                                             setIsOpen(false);
                                         }}
-                                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${status === key ? 'bg-gray-50 dark:bg-gray-700/50 font-medium' : 'text-gray-600 dark:text-gray-300'
+                                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors ${status === key ? 'bg-gray-50 dark:bg-[#3d3c3e]/50 font-medium' : 'text-gray-600 dark:text-gray-300'
                                             }`}
                                     >
                                         <OptionIcon className={`w-4 h-4 ${optionConfig.color}`} />

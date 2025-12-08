@@ -479,11 +479,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <nav className="p-2 space-y-1">
               {/* APPLY Section */}
             <div className="space-y-0.5">
-              {isEffectivelyExpanded && (
-                <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    APPLY
+              {isEffectivelyExpanded ? (
+                <p className="px-3 pt-3 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
+                    Apply
                   </p>
-                )}
+              ) : (
+                <div className="flex justify-center py-2">
+                  <div className="w-6 h-[3px] rounded-full bg-[#b7e219]/60" />
+                </div>
+              )}
                 
                 {navigationGroups.apply.main.map((item) => (
                   <SidebarLink
@@ -501,11 +505,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
               {/* TRACK Section */}
             <div className="space-y-0.5">
-              {isEffectivelyExpanded && (
-                <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    TRACK
+              {isEffectivelyExpanded ? (
+                <p className="px-3 pt-4 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
+                    Track
                   </p>
-                )}
+              ) : (
+                <div className="flex justify-center py-2 mt-1">
+                  <div className="w-6 h-[3px] rounded-full bg-[#b7e219]/60" />
+                </div>
+              )}
                 {navigationGroups.track.map((item) => (
                   <Link
                     key={item.name}
@@ -544,11 +552,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
               {/* PREPARE Section */}
             <div className="space-y-0.5">
-              {isEffectivelyExpanded && (
-                <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    PREPARE
+              {isEffectivelyExpanded ? (
+                <p className="px-3 pt-4 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
+                    Prepare
                   </p>
-                )}
+              ) : (
+                <div className="flex justify-center py-2 mt-1">
+                  <div className="w-6 h-[3px] rounded-full bg-[#b7e219]/60" />
+                </div>
+              )}
                 {navigationGroups.prepare.map((item) => (
                   <Link
                     key={item.name}
@@ -587,11 +599,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
               {/* IMPROVE Section */}
             <div className="space-y-0.5">
-              {isEffectivelyExpanded && (
-                <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    IMPROVE
+              {isEffectivelyExpanded ? (
+                <p className="px-3 pt-4 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
+                    Improve
                   </p>
-                )}
+              ) : (
+                <div className="flex justify-center py-2 mt-1">
+                  <div className="w-6 h-[3px] rounded-full bg-[#b7e219]/60" />
+                </div>
+              )}
                 {navigationGroups.improve.map((item) => (
                   <Link
                     key={item.name}

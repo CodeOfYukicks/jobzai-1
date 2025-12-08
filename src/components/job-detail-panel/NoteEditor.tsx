@@ -90,13 +90,13 @@ export const NoteEditor = ({ onSave, placeholder = "Take a note..." }: NoteEdito
   };
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800">
+    <div className="border border-gray-200 dark:border-[#3d3c3e] rounded-xl overflow-hidden bg-white dark:bg-[#2b2a2c]">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+      <div className="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]/50">
         <button
           onClick={() => applyFormat('bold')}
-          className={`p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
-            isBold ? 'bg-gray-200 dark:bg-gray-700' : ''
+          className={`p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors ${
+            isBold ? 'bg-gray-200 dark:bg-[#3d3c3e]' : ''
           }`}
           title="Bold (Ctrl+B)"
           type="button"
@@ -106,8 +106,8 @@ export const NoteEditor = ({ onSave, placeholder = "Take a note..." }: NoteEdito
         
         <button
           onClick={() => applyFormat('italic')}
-          className={`p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
-            isItalic ? 'bg-gray-200 dark:bg-gray-700' : ''
+          className={`p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors ${
+            isItalic ? 'bg-gray-200 dark:bg-[#3d3c3e]' : ''
           }`}
           title="Italic (Ctrl+I)"
           type="button"
@@ -117,8 +117,8 @@ export const NoteEditor = ({ onSave, placeholder = "Take a note..." }: NoteEdito
         
         <button
           onClick={() => applyFormat('underline')}
-          className={`p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
-            isUnderline ? 'bg-gray-200 dark:bg-gray-700' : ''
+          className={`p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors ${
+            isUnderline ? 'bg-gray-200 dark:bg-[#3d3c3e]' : ''
           }`}
           title="Underline (Ctrl+U)"
           type="button"
@@ -126,11 +126,11 @@ export const NoteEditor = ({ onSave, placeholder = "Take a note..." }: NoteEdito
           <Underline className="w-4 h-4 text-gray-700 dark:text-gray-300" />
         </button>
 
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+        <div className="w-px h-6 bg-gray-300 dark:bg-[#4a494b] mx-1" />
 
         <button
           onClick={() => applyFormat('bullet')}
-          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors"
           title="Bullet List"
           type="button"
         >
@@ -139,18 +139,18 @@ export const NoteEditor = ({ onSave, placeholder = "Take a note..." }: NoteEdito
         
         <button
           onClick={() => applyFormat('numbered')}
-          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors"
           title="Numbered List"
           type="button"
         >
           <ListOrdered className="w-4 h-4 text-gray-700 dark:text-gray-300" />
         </button>
 
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+        <div className="w-px h-6 bg-gray-300 dark:bg-[#4a494b] mx-1" />
 
         <button
           onClick={() => applyFormat('link')}
-          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors"
           title="Insert Link"
           type="button"
         >
@@ -165,11 +165,11 @@ export const NoteEditor = ({ onSave, placeholder = "Take a note..." }: NoteEdito
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full min-h-[200px] p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none focus:outline-none"
+        className="w-full min-h-[200px] p-4 bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none focus:outline-none"
       />
 
       {/* Footer with Save Button */}
-      <div className="flex items-center justify-end p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+      <div className="flex items-center justify-end p-3 border-t border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]/50">
         <button
           onClick={handleSave}
           disabled={!content.trim()}

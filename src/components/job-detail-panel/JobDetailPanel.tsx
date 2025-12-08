@@ -115,8 +115,8 @@ const statusConfig = {
   archived: {
     icon: Archive,
     color: 'text-gray-500 dark:text-gray-400',
-    bg: 'bg-gray-50 dark:bg-gray-800/50',
-    border: 'border-gray-200 dark:border-gray-700'
+    bg: 'bg-gray-50 dark:bg-[#2b2a2c]/50',
+    border: 'border-gray-200 dark:border-[#3d3c3e]'
   },
   pending_decision: {
     icon: AlertCircle,
@@ -261,9 +261,9 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                 leaveTo="translate-x-full"
               >
                 <Dialog.Panel className="pointer-events-auto w-screen max-w-6xl">
-                  <div className="flex h-full flex-col overflow-y-scroll bg-white dark:bg-gray-900 shadow-2xl rounded-l-3xl border-l border-gray-200 dark:border-gray-700">
+                  <div className="flex h-full flex-col overflow-y-scroll bg-white dark:bg-[#242325] shadow-2xl rounded-l-3xl border-l border-gray-200 dark:border-[#3d3c3e]">
                     {/* Sticky Header */}
-                    <div className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700">
+                    <div className="sticky top-0 z-50 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-lg border-b border-gray-200 dark:border-[#3d3c3e]">
                       <div className="px-8 py-6">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0 pr-8">
@@ -359,7 +359,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                       </div>
 
                       {/* Tabs */}
-                      <div className="px-8 flex gap-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-x-auto">
+                      <div className="px-8 flex gap-6 border-t border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-x-auto">
                         {([
                           { id: 'overview', label: 'Overview', icon: null, badge: null },
                           { id: 'interviews', label: 'Interviews', icon: null, badge: null },
@@ -391,7 +391,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                   ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm'
                                   : typeof tab.badge === 'number' && tab.badge > 0
                                     ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
-                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                    : 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300'
                                   }`}
                               >
                                 {tab.badge}
@@ -411,25 +411,25 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                             <div className="space-y-8">
                               {/* Quick Stats / Highlights */}
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
                                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Applied</div>
                                   <div className="font-semibold text-gray-900 dark:text-white">
                                     {format(parseDate(job.appliedDate), 'MMM d, yyyy')}
                                   </div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
                                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Salary</div>
                                   <div className="font-semibold text-gray-900 dark:text-white">
                                     {job.salary || 'Not specified'}
                                   </div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
                                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Work Type</div>
                                   <div className="font-semibold text-gray-900 dark:text-white capitalize">
                                     {job.workType || 'Not specified'}
                                   </div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
                                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Platform</div>
                                   <div className="font-semibold text-gray-900 dark:text-white capitalize">
                                     {job.platform || 'Direct'}
@@ -455,11 +455,11 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                   <textarea
                                     value={editedJob.description !== undefined ? editedJob.description : job.description || ''}
                                     onChange={(e) => setEditedJob({ ...editedJob, description: e.target.value })}
-                                    className="w-full min-h-[150px] p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
+                                    className="w-full min-h-[150px] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
                                     placeholder="• Key responsibilities and main duties...&#10;• Required qualifications and experience...&#10;• Notable aspects and unique selling points..."
                                   />
                                 ) : (
-                                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
+                                  <div className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] p-6 shadow-sm">
                                     <EnhancedJobSummary job={job} />
                                   </div>
                                 )}
@@ -472,7 +472,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                     <FileText className="w-4 h-4 text-gray-400" />
                                     Full Description
                                   </h3>
-                                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
+                                  <div className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] p-6 shadow-sm">
                                     <div className="prose prose-sm dark:prose-invert max-w-none">
                                       <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                                         {job.fullJobDescription}
@@ -502,7 +502,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                 <div className="flex items-center justify-between px-1">
                                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                     Interview Schedule
-                                    <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                    <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
                                       {job.interviews?.length || 0}
                                     </span>
                                   </h3>
@@ -547,8 +547,8 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                   </div>
                                 ) : (
                                   !showAddInterviewForm && (
-                                    <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-                                      <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <div className="text-center py-16 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border border-dashed border-gray-200 dark:border-[#3d3c3e]">
+                                      <div className="w-16 h-16 bg-white dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
                                         <Calendar className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                                       </div>
                                       <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
@@ -559,7 +559,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                       </p>
                                       <button
                                         onClick={() => setShowAddInterviewForm(true)}
-                                        className="px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-medium text-sm inline-flex items-center gap-2 shadow-sm"
+                                        className="px-5 py-2.5 bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-all font-medium text-sm inline-flex items-center gap-2 shadow-sm"
                                       >
                                         <Plus className="w-4 h-4" />
                                         Schedule First Interview
@@ -576,7 +576,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                               <div className="flex items-center justify-between px-1">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                   Activity History
-                                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
                                     {job.statusHistory?.length || 0}
                                   </span>
                                 </h3>
@@ -594,8 +594,8 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                                   ))}
                                 </div>
                               ) : (
-                                <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-                                  <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                                <div className="text-center py-16 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border border-dashed border-gray-200 dark:border-[#3d3c3e]">
+                                  <div className="w-16 h-16 bg-white dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
                                     <Clock className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                                   </div>
                                   <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
@@ -679,19 +679,19 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                             {/* Quick Stats */}
                             <SectionCard title="Quick Stats">
                               <div className="space-y-3">
-                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
                                   <span className="text-sm text-gray-600 dark:text-gray-400">Interviews</span>
                                   <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     {job.interviews?.length || 0}
                                   </span>
                                 </div>
-                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
                                   <span className="text-sm text-gray-600 dark:text-gray-400">Status Changes</span>
                                   <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     {job.statusHistory?.length || 0}
                                   </span>
                                 </div>
-                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
                                   <span className="text-sm text-gray-600 dark:text-gray-400">Days Since Applied</span>
                                   <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     {Math.floor(
@@ -704,10 +704,10 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                             </SectionCard>
 
                             {/* Metadata */}
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                            <div className="p-4 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl text-xs text-gray-500 dark:text-gray-400 space-y-1">
                               <div>Created: {formatDate(job.createdAt, 'MMM d, yyyy HH:mm')}</div>
                               <div>Updated: {formatDate(job.updatedAt, 'MMM d, yyyy HH:mm')}</div>
-                              <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">ID: {job.id}</div>
+                              <div className="pt-2 border-t border-gray-200 dark:border-[#3d3c3e] mt-2">ID: {job.id}</div>
                             </div>
                           </div>
                         )}
@@ -741,7 +741,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                 exit={{ scale: 0.96, y: 10, opacity: 0 }}
                 transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800/50 overflow-hidden pointer-events-auto"
+                className="relative bg-white dark:bg-[#242325] rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-[#3d3c3e]/50 overflow-hidden pointer-events-auto"
                 style={{ zIndex: 201 }}
               >
                 {/* Subtle gradient overlay */}
@@ -771,7 +771,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
 
                   {/* Application Info - Ultra minimalist */}
                   {job && (
-                    <div className="mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                    <div className="mb-8 pb-6 border-b border-gray-100 dark:border-[#3d3c3e]">
                       <div className="text-center space-y-1">
                         <div className="font-medium text-sm text-gray-900 dark:text-white">
                           {job.position}
@@ -789,7 +789,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                       onClick={() => setShowDeleteModal(false)}
-                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50"
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-[#2b2a2c]/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-[#3d3c3e]/50"
                     >
                       Cancel
                     </motion.button>

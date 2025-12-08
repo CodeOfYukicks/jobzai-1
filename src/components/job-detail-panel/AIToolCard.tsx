@@ -29,8 +29,8 @@ export const AIToolCard = ({
       className={`
         group relative overflow-hidden
         p-8 rounded-2xl
-        bg-white dark:bg-gray-800
-        border-2 border-gray-200 dark:border-gray-700
+        bg-white dark:bg-[#2b2a2c]
+        border-2 border-gray-200 dark:border-[#3d3c3e]
         hover:border-purple-300 dark:hover:border-purple-600
         shadow-sm hover:shadow-xl
         transition-all duration-300

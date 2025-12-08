@@ -226,15 +226,15 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
           exit={{ opacity: 0, scale: 0.95, y: '100%' }}
           onClick={(e) => e.stopPropagation()}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="bg-white dark:bg-gray-900 w-full rounded-t-2xl sm:rounded-2xl max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+          className="bg-white dark:bg-[#242325] w-full rounded-t-2xl sm:rounded-2xl max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden"
         >
           {/* Drag handle for mobile */}
           <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
-            <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+            <div className="w-12 h-1 bg-gray-300 dark:bg-[#4a494b] rounded-full" />
           </div>
 
           {/* Header */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+          <div className="p-6 border-b border-gray-200 dark:border-[#3d3c3e]">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
@@ -275,7 +275,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setEventType('application')}
-                      className="group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-purple-500 dark:hover:border-purple-500 transition-all text-left"
+                      className="group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] hover:border-purple-500 dark:hover:border-purple-500 transition-all text-left"
                     >
                       <div className="flex flex-col items-start gap-3">
                         <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
@@ -297,7 +297,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setEventType('interview')}
-                      className="group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all text-left"
+                      className="group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] hover:border-indigo-500 dark:hover:border-indigo-500 transition-all text-left"
                     >
                       <div className="flex flex-col items-start gap-3">
                         <div className="p-3 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
@@ -319,7 +319,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
 
               {/* Event Type Badge */}
               {eventType && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl">
                   <div className="flex items-center gap-3">
                     {eventType === 'application' ? (
                       <>
@@ -385,7 +385,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                       <div className="relative group">
                         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 transition-opacity" />
                         <div className="relative rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500">
-                          <div className="relative flex rounded-xl bg-white dark:bg-gray-900 overflow-hidden">
+                          <div className="relative flex rounded-xl bg-white dark:bg-[#242325] overflow-hidden">
                             <input
                               type="url"
                               value={formData.url || ''}
@@ -400,7 +400,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                               whileTap={{ scale: 0.98 }}
                               onClick={handleExtractJobInfo}
                               disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
-                              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-r-xl bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-r-xl bg-gray-800 dark:bg-[#3d3c3e] text-white hover:bg-gray-700 dark:hover:bg-[#4a494b] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {isAnalyzingJob ? (
                                 <>
@@ -431,7 +431,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
-                      className="pt-2 border-t border-gray-200 dark:border-gray-800"
+                      className="pt-2 border-t border-gray-200 dark:border-[#3d3c3e]"
                     >
                       <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5 text-green-500" />
@@ -458,7 +458,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                               setShowApplicationDropdown(true);
                             }}
                             onFocus={() => setShowApplicationDropdown(true)}
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                             placeholder="Search by company or position..."
                           />
                           {selectedApplication && (
@@ -475,7 +475,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                                   location: '',
                                 }));
                               }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
                             >
                               <X className="w-4 h-4 text-gray-400" />
                             </button>
@@ -489,7 +489,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                              className="absolute z-50 w-full mt-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl shadow-lg max-h-60 overflow-y-auto"
                             >
                               {applications
                                 .filter(
@@ -517,7 +517,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                                       setShowApplicationDropdown(false);
                                       toast.success('Application linked successfully');
                                     }}
-                                    className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                                    className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors border-b border-gray-100 dark:border-[#3d3c3e] last:border-b-0"
                                   >
                                     <div className="flex items-start gap-3">
                                       <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
@@ -583,7 +583,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, interviewType: e.target.value }))
                         }
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       >
                         <option value="technical">Technical</option>
                         <option value="hr">HR</option>
@@ -606,7 +606,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, companyName: e.target.value }))
                       }
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       placeholder="Enter company name"
                     />
                   </div>
@@ -623,7 +623,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, position: e.target.value }))
                       }
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       placeholder="Enter position"
                     />
                   </div>
@@ -640,7 +640,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, location: e.target.value }))
                       }
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       placeholder="Enter location"
                     />
                   </div>
@@ -657,7 +657,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, interviewTime: e.target.value }))
                         }
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       />
                     </div>
                   )}
@@ -674,7 +674,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, contactName: e.target.value }))
                         }
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                         placeholder="Enter contact name"
                       />
                     </div>
@@ -692,7 +692,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, contactEmail: e.target.value }))
                         }
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                         placeholder="Enter contact email"
                       />
                     </div>
@@ -706,7 +706,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                     <textarea
                       value={formData.notes}
                       onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#3d3c3e] rounded-xl dark:bg-[#2b2a2c] min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
                       placeholder="Add any relevant notes..."
                       rows={3}
                     />
@@ -717,7 +717,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
+          <div className="p-6 border-t border-gray-200 dark:border-[#3d3c3e] flex justify-end gap-3">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -726,7 +726,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                 resetForm();
                 onClose();
               }}
-              className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium"
+              className="px-5 py-2.5 bg-gray-100 dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors font-medium"
             >
               Cancel
             </motion.button>

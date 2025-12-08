@@ -238,10 +238,10 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
                 <textarea
                   value={editedContent}
                   onChange={(e) => setEditedContent(e.target.value)}
-                    className="w-full min-h-[400px] p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all resize-none text-base leading-relaxed shadow-sm"
+                    className="w-full min-h-[400px] p-6 rounded-xl border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-gray-100 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all resize-none text-base leading-relaxed shadow-sm"
                 />
               ) : (
-                  <div className="p-6 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <div className="p-6 rounded-xl bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
                     <pre className="whitespace-pre-wrap text-base text-gray-900 dark:text-gray-100 font-sans leading-relaxed">
                     {generatedContent}
                   </pre>
@@ -261,7 +261,7 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
 
               <button
                 onClick={handleCopy}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm hover:shadow transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] shadow-sm hover:shadow transition-colors"
               >
                 {isCopied ? (
                   <>
@@ -280,7 +280,7 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
                 <button
                   onClick={handleSave}
                   disabled={isSaving || !generatedContent}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm hover:shadow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] shadow-sm hover:shadow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? (
                     <>
@@ -298,7 +298,7 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
             </div>
           </motion.div>
         ) : (
-            <div className="p-16 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 text-center">
+            <div className="p-16 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-[#3d3c3e] text-center">
               <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 mb-4">
                 <Sparkles className="w-8 h-8 text-white" />
               </div>

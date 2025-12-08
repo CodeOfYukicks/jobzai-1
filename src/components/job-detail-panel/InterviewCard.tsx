@@ -49,7 +49,7 @@ const interviewTypeConfig = {
   hr: { label: 'HR', color: 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800' },
   manager: { label: 'Manager', color: 'bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800' },
   final: { label: 'Final', color: 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800' },
-  other: { label: 'Other', color: 'bg-gray-50 text-gray-700 border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700' },
+  other: { label: 'Other', color: 'bg-gray-50 text-gray-700 border-gray-100 dark:bg-[#2b2a2c] dark:text-gray-300 dark:border-[#3d3c3e]' },
 };
 
 const statusConfig = {
@@ -104,11 +104,11 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+      className="group relative bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
     >
       <div className="flex flex-col sm:flex-row">
         {/* Left Side - Date Visual */}
-        <div className="sm:w-24 bg-gray-50 dark:bg-gray-800/50 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center p-4 gap-1 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors">
+        <div className="sm:w-24 bg-gray-50 dark:bg-[#2b2a2c]/50 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-[#3d3c3e] flex flex-col items-center justify-center p-4 gap-1 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors">
           <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
             {format(date, 'MMM')}
           </span>
@@ -163,14 +163,14 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 mb-4">
             <div className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-300">
-              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center flex-shrink-0">
                 <Clock className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
               </div>
               <span className="font-medium">{interview.time}</span>
             </div>
 
             <div className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-300">
-              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center flex-shrink-0">
                 {isVideoCall ? (
                   <Video className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
                 ) : (
@@ -182,12 +182,12 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
 
             {interview.interviewers && interview.interviewers.length > 0 && (
               <div className="col-span-1 sm:col-span-2 flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-300">
-                <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center flex-shrink-0">
                   <User className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {interview.interviewers.map((interviewer, idx) => (
-                    <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-md text-xs font-medium text-gray-700 dark:text-gray-300">
                       {interviewer}
                     </span>
                   ))}
@@ -197,7 +197,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
           </div>
 
           {interview.notes && (
-            <div className="mb-4 p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50">
+            <div className="mb-4 p-2.5 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-xl border border-gray-100 dark:border-[#3d3c3e]/50">
               <div className="flex items-start gap-2">
                 <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
                 <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">
@@ -218,7 +218,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
               >
                 {/* Subtle brightness overlay on hover */}
                 <motion.div 
-                  className="absolute inset-0 bg-white/5 dark:bg-gray-900/5"
+                  className="absolute inset-0 bg-white/5 dark:bg-[#242325]/5"
                   initial={{ opacity: 0 }}
                   whileHover={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
@@ -251,7 +251,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
             {interview.status === 'completed' && (
               <button
                 onClick={handlePrepareInterview}
-                className="flex-1 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 View Notes
@@ -280,7 +280,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
                 exit={{ scale: 0.96, y: 10, opacity: 0 }}
                 transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800/50 overflow-hidden pointer-events-auto"
+                className="relative bg-white dark:bg-[#242325] rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-[#3d3c3e]/50 overflow-hidden pointer-events-auto"
                 style={{ zIndex: 201 }}
               >
                 {/* Subtle gradient overlay */}
@@ -309,7 +309,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
                   </p>
 
                   {/* Interview Info - Ultra minimalist */}
-                  <div className="mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                  <div className="mb-8 pb-6 border-b border-gray-100 dark:border-[#3d3c3e]">
                     <div className="text-center space-y-1">
                       <div className="font-medium text-sm text-gray-900 dark:text-white">
                         {format(date, 'MMM d, yyyy')} at {interview.time}
@@ -326,7 +326,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                       onClick={() => setShowDeleteModal(false)}
-                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50"
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-[#2b2a2c]/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-[#3d3c3e]/50"
                     >
                       Cancel
                     </motion.button>

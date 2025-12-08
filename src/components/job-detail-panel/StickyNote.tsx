@@ -111,14 +111,14 @@ export const StickyNote = ({ note, onEdit, onDelete }: StickyNoteProps) => {
                     initial={{ opacity: 0, scale: 0.95, y: -10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    className="absolute right-0 top-8 z-20 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+                    className="absolute right-0 top-8 z-20 w-32 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-lg border border-gray-200 dark:border-[#3d3c3e] overflow-hidden"
                   >
                     <button
                       onClick={() => {
                         setIsEditing(true);
                         setShowMenu(false);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                       <span>Edit</span>

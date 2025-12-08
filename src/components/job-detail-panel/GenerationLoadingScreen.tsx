@@ -8,7 +8,7 @@ interface GenerationLoadingScreenProps {
 
 export const GenerationLoadingScreen = ({ onBack, toolName }: GenerationLoadingScreenProps) => {
   return (
-    <div className="min-h-[500px] flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-800">
+    <div className="min-h-[500px] flex flex-col items-center justify-center p-6 bg-white dark:bg-[#2b2a2c]">
       {/* Back button - top left */}
       <div className="absolute top-4 left-4">
         <button

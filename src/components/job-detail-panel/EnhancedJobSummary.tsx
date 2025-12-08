@@ -35,7 +35,7 @@ export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
       <div className="space-y-4">
         {/* Old Format Display */}
         {job.description && (
-          <div className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+          <div className="p-6 rounded-xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-200 dark:border-[#3d3c3e]">
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
               {job.description}
             </p>
@@ -135,11 +135,11 @@ export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -0.5 }}
-              className={`group relative overflow-hidden rounded-xl bg-white dark:bg-gray-900 border-l-2 ${insight.borderColor} border border-gray-100/50 dark:border-gray-800/50 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.3)] hover:border-opacity-30 dark:hover:border-opacity-30 transition-all duration-200 ease-out hover:bg-gradient-to-br hover:from-white/50 hover:to-transparent dark:hover:from-gray-800/30 dark:hover:to-transparent`}
+              className={`group relative overflow-hidden rounded-xl bg-white dark:bg-[#242325] border-l-2 ${insight.borderColor} border border-gray-100/50 dark:border-[#3d3c3e]/50 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.3)] hover:border-opacity-30 dark:hover:border-opacity-30 transition-all duration-200 ease-out hover:bg-gradient-to-br hover:from-white/50 hover:to-transparent dark:hover:from-gray-800/30 dark:hover:to-transparent`}
             >
               <div className="p-5 h-full flex flex-col">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className={`p-2.5 rounded-md border border-gray-200/50 dark:border-gray-700/30 ${insight.bgColor}`}>
+                  <div className={`p-2.5 rounded-md border border-gray-200/50 dark:border-[#3d3c3e]/30 ${insight.bgColor}`}>
                     <Icon className={`w-5 h-5 ${insight.color}`} />
                   </div>
                   <h4 className="text-base font-semibold text-gray-900 dark:text-white">

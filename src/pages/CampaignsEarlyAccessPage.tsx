@@ -223,7 +223,7 @@ export default function CampaignsEarlyAccessPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.4, ease: "easeInOut" }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+                className="bg-white dark:bg-[#2b2a2c] rounded-xl p-4 shadow-lg border border-gray-200 dark:border-[#3d3c3e]"
               >
                 <div className="flex items-center gap-3 mb-3">
                   {/* Icon */}
@@ -248,7 +248,7 @@ export default function CampaignsEarlyAccessPage() {
                   </div>
                       </div>
                 
-                <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                <div className="pt-3 border-t border-gray-100 dark:border-[#3d3c3e]">
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           Applied by AutoPilot while you slept
                         </p>
@@ -264,7 +264,7 @@ export default function CampaignsEarlyAccessPage() {
                   className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
                     index === currentCardIndex 
                       ? 'bg-[#635BFF] w-4' 
-                      : 'bg-gray-300 dark:bg-gray-600'
+                      : 'bg-gray-300 dark:bg-[#4a494b]'
                   }`}
                 />
               ))}
